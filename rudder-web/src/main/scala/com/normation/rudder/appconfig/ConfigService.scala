@@ -310,7 +310,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        display.changes.graph=true
        api.compatibility.mode=false
        rudder.policy.mode.name=${Enforce.name}
-       rudder.policy.mode.overridable=false
+       rudder.policy.mode.overridable=true
        rudder.featureSwitch.directiveScriptEngine=enabled
     """
 
