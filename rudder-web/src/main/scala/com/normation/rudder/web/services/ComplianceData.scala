@@ -60,8 +60,8 @@ import com.normation.rudder.services.reports.NodeChanges
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.rudder.domain.policies.PolicyMode._
 
-object RulePolicyMode {
-  def compute(globalMode : GlobalPolicyMode, directives : Set[Directive]) = {
+object ComputePolicyMode {
+  def ruleMode(globalMode : GlobalPolicyMode, directives : Set[Directive]) = {
    globalMode.overridable match {
       case PolicyModeOverrides.Unoverridable =>
         (globalMode.mode.name, s"""Rudder's global agent policy mode is set to <i><b>${globalMode.mode.name}</b></i> and is not overridable on a per-node or per-directive basis. Please check your Settings or contact your Rudder administrator.""")
@@ -91,6 +91,163 @@ object RulePolicyMode {
               // After all there is only one mode and it's the same than global mode => some modes were using default mode,
               // some were enforce the same mode as global
               (globalMode.mode.name, "")
+            }
+        }
+    }
+  }
+
+  def directiveModeOnNode(nodeMode : Option[PolicyMode], globalMode : GlobalPolicyMode)(directiveMode : Option[PolicyMode]) = {
+   globalMode.overridable match {
+      case PolicyModeOverrides.Unoverridable =>
+        (globalMode.mode.name, s"""Rudder's global agent policy mode is set to <i><b>${globalMode.mode.name}</b></i> and is not overridable on a per-node or per-directive basis. Please check your Settings or contact your Rudder administrator.""")
+      case PolicyModeOverrides.Always =>
+        val (mode,expl) = matchMode(nodeMode,globalMode,directiveMode)
+        (mode.name,expl)
+    }
+  }
+  def matchMode(nodeMode : Option[PolicyMode], globalMode : GlobalPolicyMode, directiveMode : Option[PolicyMode]) : (PolicyMode,String) = {
+    (nodeMode,directiveMode) match {
+      case (None,None) =>
+        (globalMode.mode, "This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
+      case (Some(Enforce),Some(Enforce)) =>
+        (Enforce, "<b>Enforce</b> is overriden by both this <i><b>Node</b></i> and this <i><b>Directive</b></i> mode")
+      case (Some(Enforce),None) =>
+        (Enforce, "<b>Enforce</b> is overriden by this <i><b>Node</b></i> mode")
+      case (None,Some(Enforce)) =>
+        (Enforce, "<b>Enforce</b> is overriden by this <i><b>Directive</b></i> mode")
+      case (Some(Audit), Some(Audit)) =>
+        (Audit, "<b>Audit</b> mode is overriden by both this <i><b>Node</b></i> and this <i><b>Directive</b></i>")
+      case (Some(Audit), None) =>
+        (Audit, "<b>Audit</b> mode is overriden by this <i><b>Node</b></i>")
+      case (Some(Audit), Some(Enforce)) =>
+        (Audit, "The <i><b>Directive</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by this <i><b>Node</b></i>. ")
+      case (None,Some(Audit))  =>
+        (Audit, "<b>Audit</b> mode is overriden by this <i><b>Directive</b></i>")
+      case (Some(Enforce),Some(Audit))  =>
+        (Audit, "The <i><b>Node</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by this <i><b>Directive</b></i>. ")
+    }
+  }
+
+  def ruleOnNode(nodeMode : Option[PolicyMode], globalMode : GlobalPolicyMode)( directivesMode : Set[Option[PolicyMode]]) : (String,String) = {
+   globalMode.overridable match {
+      case PolicyModeOverrides.Unoverridable =>
+        (globalMode.mode.name, s"""Rudder's global agent policy mode is set to <i><b>${globalMode.mode.name}</b></i> and is not overridable on a per-node or per-directive basis. Please check your Settings or contact your Rudder administrator.""")
+      case PolicyModeOverrides.Always =>
+        nodeMode match {
+          case Some(Audit) =>
+            (Audit.name,"<b>Audit</b> mode is overriden by this <i><b>Node</b></i>")
+          case nodeMode    =>
+
+            val (defaultMode,expl) = nodeMode match {
+              case Some(mode) =>
+                ( mode, s"<b>${mode.name}</b> mode is overriden by this <i><b>Node</b></i>")
+              case None =>
+                ( globalMode.mode, "This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
+            }
+            val default = (defaultMode.name,expl)
+
+            // We have a Set here so we only have 3 elem max (None, Some(audit), some(enforce))
+            directivesMode.toList match {
+              // No directives linked to the Rule, fallback to globalMode
+              case Nil => default
+              // We only have one element!!
+              case mode :: Nil => mode match {
+                case None => default
+                case Some(Audit) =>
+                  nodeMode match {
+                    case Some(Enforce) =>
+                     (Audit.name, "The <i><b>Node</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by all <i><b>Directives</b></i>. ")
+                    case Some(Audit) =>
+                     (Audit.name, "<b>Audit</b> mode is overriden by both this <i><b>Node</b></i> and all <i><b>Directives</b></i>")
+                    case None =>
+                     (Audit.name,"<b>Audit</b> mode is overriden by all <i><b>Directives</b></i>")
+                  }
+                case Some(Enforce) =>
+                  nodeMode match {
+                    case Some(Audit) =>
+                     (Audit.name, "All <i><b>directives</b></i> are configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by the <i><b>Node</b></i>. ")
+                    case Some(Enforce) =>
+                     (Enforce.name, "<b>Enforce</b> mode is overriden by both this <i><b>Node</b></i> and all <i><b>Directives</b></i>")
+                    case None =>
+                     (Enforce.name,"<b>Enforce</b> mode is overriden by all <i><b>Directives</b></i>")
+                  }
+
+              }
+
+              case modes  =>
+                // Here we now need to check if global mode is the same that all selected mode for directives
+                // So we replace any "None" (use global mode) by global mode and we will decide after what happens
+
+                directivesMode.map(_.getOrElse(defaultMode)).toList match {
+                  case Nil => default
+                  case mode :: Nil => (mode.name, s"<b>${mode.name}</b> mode is overriden by this <i><b>Node</b></i> and all <i><b>Directives</b></i>")
+                  case _ =>
+                  ("mixed", "This rule has at least one directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them.")
+                }
+            }
+        }
+    }
+  }
+
+  def directiveModeOnRule(nodeModes : Set[Option[PolicyMode]], globalMode : GlobalPolicyMode)( directiveMode : Option[PolicyMode]) = {
+   globalMode.overridable match {
+      case PolicyModeOverrides.Unoverridable =>
+        (globalMode.mode.name, s"""Rudder's global agent policy mode is set to <i><b>${globalMode.mode.name}</b></i> and is not overridable on a per-node or per-directive basis. Please check your Settings or contact your Rudder administrator.""")
+      case PolicyModeOverrides.Always =>
+        directiveMode match {
+          // If directive is in audit, we are in audit mode
+          case Some(Audit) =>
+            (Audit.name,"<b>Audit</b> mode is forced by this <i><b>Directive</b></i>")
+          // Directive either is in enforce Mode or in global mode, we will treat it later
+          case directiveMode =>
+
+            val (defaultMode,expl) = directiveMode match {
+              case Some(mode) =>
+                ( mode, s"<b>${mode.name}</b> mode is overriden by this <i><b>Directive</b></i>")
+              case None =>
+                ( globalMode.mode, "This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
+            }
+            val default = (defaultMode.name,expl)
+
+            // We have a Set here so we only have 3 elem max (None, Some(audit), some(enforce))
+            nodeModes.toList match {
+              // We only have one element!!
+              case mode :: Nil => mode match {
+                // global mode was not overriden by any Node, mode only depend on the Directive mode
+                case None => default
+                // Global mode is overriden by all directives with the same mode
+                case Some(Audit) =>
+                  directiveMode match {
+                    case Some(Enforce) =>
+                     (Audit.name, "The <i><b>Directive</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by all <i><b>Nodes</b></i>. ")
+                    case Some(Audit) =>
+                     (Audit.name, "<b>Audit</b> mode is overriden by both this <i><b>Directive</b></i> and all <i><b>Nodes</b></i>")
+                    case None =>
+                     (Audit.name,"<b>Audit</b> mode is overriden by all <i><b>Nodes</b></i>")
+                  }
+                case Some(Enforce) =>
+                  directiveMode match {
+                    case Some(Audit) =>
+                     (Audit.name, "All <i><b>nodes</b></i> are configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by the <i><b>Directive</b></i>. ")
+                    case Some(Enforce) =>
+                     (Enforce.name, "<b>Enforce</b> mode is overriden by both this <i><b>Directive</b></i> and all <i><b>Nddes</b></i>")
+                    case None =>
+                     (Enforce.name,"<b>Enforce</b> mode is overriden by all <i><b>Nodes</b></i>")
+                  }
+
+              }
+              // Directive applied on No Nodes, that should not happen ... we should use NonEmptyList here ... , fallback to globalMode
+              case Nil => default
+              case modes =>
+                // Here we now need to check if global mode is the same that all selected mode for directives
+                // So we replace any "None" (use global mode) by global mode and we will decide after what happens
+
+                nodeModes.map(_.getOrElse(defaultMode)).toList match {
+                  case Nil => default
+                  case mode :: Nil => (mode.name, s"<b>${mode.name}</b> mode is overriden by this <i><b>Node</b></i> and all <i><b>Directives</b></i>")
+                  case _ =>
+                  ("mixed", "This directive is applied on at least one node that <b class='text-Enforce'>enforces</b> configurations, and at least one that  <b class='text-Audit'>audits</b> them.")
+                }
             }
         }
     }
@@ -368,7 +525,7 @@ object ComplianceData extends Loggable {
         case PolicyModeOverrides.Unoverridable =>
           (globalMode.mode.name,"This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
         }
-      val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode)
+      val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeInfo.policyMode, globalMode))
       NodeComplianceLine(
           nodeInfo
         , aggregate.compliance
@@ -399,9 +556,11 @@ object ComplianceData extends Loggable {
       (ruleId, aggregate) <- report.byRules
       rule                <- rules.find( _.id == ruleId )
     } yield {
-      val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode)
+      val nodeMode = allNodeInfos.get(nodeId).flatMap { _.policyMode }
+      val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode))
 
-      val (policyMode,explanation) = RulePolicyMode.compute(globalMode, rule.directiveIds.map(directiveLib.allDirectives(_)._2).toSet)
+      val directivesMode = aggregate.directives.keys.map(directiveLib.allDirectives.get(_).flatMap(_._2.policyMode)).toSet
+      val (policyMode,explanation) = ComputePolicyMode.ruleOnNode(nodeMode, globalMode)(directivesMode)
       RuleComplianceLine (
           rule
         , rule.id
@@ -427,15 +586,16 @@ object ComplianceData extends Loggable {
     , globalMode      : GlobalPolicyMode
   ) : JsTableData[DirectiveComplianceLine] = {
 
-    val lines = getDirectivesComplianceDetails(report.report.directives.values.toSet, directiveLib, globalMode)
+    val lines = getDirectivesComplianceDetails(report.report.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnRule(allNodeInfos.map(_._2.policyMode).toSet, globalMode))
     JsTableData(lines.toList)
   }
 
   // From Node Point of view
   private[this] def getDirectivesComplianceDetails (
-      directivesReport: Set[DirectiveStatusReport]
-    , directiveLib    : FullActiveTechniqueCategory
+      directivesReport : Set[DirectiveStatusReport]
+    , directiveLib     : FullActiveTechniqueCategory
     , globalPolicyMode : GlobalPolicyMode
+    , computeMode      : Option[PolicyMode]=> (String,String)
   ) : List[DirectiveComplianceLine] = {
     val directivesComplianceData = for {
       directiveStatus                  <- directivesReport
@@ -444,7 +604,7 @@ object ComplianceData extends Loggable {
       val techniqueName    = fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
       val techniqueVersion = directive.techniqueVersion;
       val components       =  getComponentsComplianceDetails(directiveStatus.components.values.toSet, true)
-      val (policyMode,explanation) =
+      val (policyMode,explanation) = computeMode(directive.policyMode)/*
         globalPolicyMode.overridable match {
         case PolicyModeOverrides.Always =>
           directive.policyMode match {
@@ -453,7 +613,7 @@ object ComplianceData extends Loggable {
           }
         case PolicyModeOverrides.Unoverridable =>
           (globalPolicyMode.mode.name,"This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
-      }
+      }*/
 
       DirectiveComplianceLine (
           directive
