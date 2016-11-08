@@ -42,7 +42,7 @@ CREATE TABLE archivedNodeConfigurations (
 , nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
 , beginDate         timestamp with time zone NOT NULL
 , endDate           timestamp with time zone
-, configuration     text NOT NULL CHECK (nodeId <> '' )
+, configuration     text NOT NULL CHECK (configuration <> '' )
 , PRIMARY KEY (nodeId, nodeConfigId, beginDate)
 );
 

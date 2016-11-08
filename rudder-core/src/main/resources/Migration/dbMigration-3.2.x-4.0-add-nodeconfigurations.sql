@@ -46,7 +46,7 @@ CREATE TABLE nodeConfigurations (
 -- and interesting function are on 9.3/9.4.  we will be able to migrate with:
 -- ALTER TABLE table1 ALTER COLUMN col1 TYPE JSON USING col1::JSON;
 
-, configuration     text NOT NULL CHECK (nodeId <> '' )
+, configuration     text NOT NULL CHECK (configuration <> '' )
 
 -- Primary key is a little complexe because each of nodeId, nodeConfigId, (nodeId, nodeConfigId)
 -- can appears several times. We need to also add begin date (and that can broke on a server with
