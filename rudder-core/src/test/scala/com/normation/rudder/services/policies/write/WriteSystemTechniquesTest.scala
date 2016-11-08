@@ -212,7 +212,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , logNodeConfig
     , prepareTemplateVariable
     , new FillTemplatesService()
-    , "/bin/true", "/bin/true", "/bin/true"
+    , "/var/rudder/hooks.d"
   )
 
   //////////// end init ////////////
@@ -522,7 +522,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
       )
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode)
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now)
     }
 
     def compareWith(expected: String, ignoreRegex: List[String] = Nil) = {
@@ -572,7 +572,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
       )
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode)
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now)
 
       rootGeneratedPromisesDir/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/no-group.cf")
     }
@@ -597,7 +597,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
       )
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode)
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now)
 
       rootGeneratedPromisesDir/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
     }

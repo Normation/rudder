@@ -265,9 +265,6 @@ object RudderConfig extends Loggable {
   val RUDDER_WEBDAV_USER = config.getString("rudder.webdav.user")
   val RUDDER_WEBDAV_PASSWORD = config.getString("rudder.webdav.password") ; filteredPasswords += "rudder.webdav.password"
   val RUDDER_COMMUNITY_PORT = config.getInt("rudder.community.port")
-  val RUDDER_COMMUNITY_CHECKPROMISES_COMMAND = config.getString("rudder.community.checkpromises.command")
-  val RUDDER_NOVA_CHECKPROMISES_COMMAND = config.getString("rudder.nova.checkpromises.command")
-  val RUDDER_CFENGINE_RELOAD_SERVER_COMMAND = config.getString("rudder.cfengine.reload.server.command")
   val RUDDER_JDBC_DRIVER = config.getString("rudder.jdbc.driver")
   val RUDDER_JDBC_URL = config.getString("rudder.jdbc.url")
   val RUDDER_JDBC_USERNAME = config.getString("rudder.jdbc.username")
@@ -310,6 +307,12 @@ object RudderConfig extends Loggable {
     , RudderServerRole("rudder-relay-promises-only", config.getString("rudder.server-roles.relay-promises-only"))
     , RudderServerRole("rudder-cfengine-mission-portal", config.getString("rudder.server-roles.cfengine-mission-portal"))
   )
+
+
+  // The base directory for hooks. I'm not sure it need to be configurable
+  // as we only use it in generation.
+  val HOOKS_D = "/opt/rudder/hooks.d"
+
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
@@ -1382,9 +1385,7 @@ object RudderConfig extends Loggable {
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
     , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService)
     , new FillTemplatesService()
-    , RUDDER_COMMUNITY_CHECKPROMISES_COMMAND
-    , RUDDER_NOVA_CHECKPROMISES_COMMAND
-    , RUDDER_CFENGINE_RELOAD_SERVER_COMMAND
+    , HOOKS_D
   )
 
   //must be here because of circular dependency if in techniqueRepository
@@ -1440,6 +1441,7 @@ object RudderConfig extends Loggable {
         , configService.agent_run_start_minute
         , configService.rudder_featureSwitch_directiveScriptEngine
         , configService.rudder_global_policy_mode
+        , HOOKS_D
     )}
     val agent = new AsyncDeploymentAgent(
         deploymentService
