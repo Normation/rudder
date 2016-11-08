@@ -141,6 +141,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
 
     <dependency>
+        <groupId>com.zaxxer</groupId>
+        <artifactId>nuprocess</artifactId>
+        <version>1.1.0</version>
+        <scope>compile</scope>
+    </dependency>
+
+    <dependency>
       <groupId>commons-net</groupId>
       <artifactId>commons-net</artifactId>
       <version>3.3</version>

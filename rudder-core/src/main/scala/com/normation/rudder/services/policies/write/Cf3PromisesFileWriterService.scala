@@ -81,6 +81,9 @@ import net.liftweb.json.JsonAST
 import net.liftweb.json.Printer
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import scala.language.postfixOps
+import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.hooks.HookParameters
+import com.normation.rudder.hooks.HooksLogger
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -99,18 +102,17 @@ trait Cf3PromisesFileWriterService {
     , versions      : Map[NodeId, NodeConfigId]
     , allLicenses   : Map[NodeId, NovaLicense]
     , globalPolicyMode: GlobalPolicyMode
+    , generationTime  : DateTime
   ) : Box[Seq[NodeConfiguration]]
 }
 
 class Cf3PromisesFileWriterServiceImpl(
-    techniqueRepository      : TechniqueRepository
-  , pathComputer             : PathComputer
-  , logNodeConfig            : NodeConfigurationLogger
-  , prepareTemplate          : PrepareTemplateVariables
-  , fillTemplates            : FillTemplatesService
-  , communityCheckPromises   : String
-  , novaCheckPromises        : String
-  , cfengineReloadPromises   : String
+    techniqueRepository: TechniqueRepository
+  , pathComputer       : PathComputer
+  , logNodeConfig      : NodeConfigurationLogger
+  , prepareTemplate    : PrepareTemplateVariables
+  , fillTemplates      : FillTemplatesService
+  , HOOKS_D            : String
 ) extends Cf3PromisesFileWriterService with Loggable {
 
   val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
@@ -155,6 +157,7 @@ class Cf3PromisesFileWriterServiceImpl(
     , versions        : Map[NodeId, NodeConfigId]
     , allLicenses     : Map[NodeId, NovaLicense]
     , globalPolicyMode: GlobalPolicyMode
+    , generationTime  : DateTime
   ) : Box[Seq[NodeConfiguration]] = {
 
     val nodeConfigsToWrite = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
@@ -205,22 +208,41 @@ class Cf3PromisesFileWriterServiceImpl(
                               "OK"
                             }
                           }
-     propertiesWritten <- sequencePar(configAndPaths) { case  agentNodeConfig =>
+     propertiesWritten <- sequencePar(configAndPaths) { case agentNodeConfig =>
                             writeNodePropertiesFile(agentNodeConfig) ?~!
                               s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
-      checked          <- checkGeneratedPromises(configAndPaths.map { x => (x.agentType, x.paths) })
-      permChanges      <- sequencePar(pathsInfo) { nodePaths =>
-                            setCFEnginePermission(nodePaths.newFolder) ?~! "cannot change permission on destination folder"
+      nodePreMvHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-ready")
+      preMvHooks       <- sequencePar(configAndPaths) { agentNodeConfig =>
+                            val timeHooks = System.currentTimeMillis
+                            val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
+                            val res = RunHooks.syncRun(nodePreMvHooks, HookParameters.build(
+                                                           ("RUDDER_GENERATION_DATETIME", generationTime.toString)
+                                                         , ("RUDDER_NODEID", nodeId)
+                                                         , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
+                                                         , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.tagValue)
+                                                       )
+                            )
+                            HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
+                            res
                           }
       movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
+      nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished")
+      postMvHooks      <- sequencePar(configAndPaths) { agentNodeConfig =>
+                            val timeHooks = System.currentTimeMillis
+                            val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
+                            val res = RunHooks.syncRun(nodePostMvHooks, HookParameters.build(
+                                                           ("RUDDER_GENERATION_DATETIME", generationTime.toString)
+                                                         , ("RUDDER_NODEID", nodeId)
+                                                         , ("RUDDER_POLICIES_DIRECTORY", agentNodeConfig.paths.baseFolder)
+                                                         , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.tagValue)
+                                                       )
+                            )
+                            HooksLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
+                            res
+                          }
     } yield {
-
-      //the reload is just a cool simplification, it's not mandatory -
-      // - at least it does not failed the whole generation process
-      reloadCFEnginePromises()
-
       val ids = movedPromises.map { _.nodeId }.toSet
       allNodeConfigs.filterKeys { id => ids.contains(id) }.values.toSeq
     }
@@ -379,72 +401,6 @@ class Cf3PromisesFileWriterServiceImpl(
   }
 
   /**
-   * For each path of generated promises, for a given agent type, check if the promises are
-   * OK. At least execute cf-promises, but could also check sum and the like.
-   */
-  private[this] def checkGeneratedPromises(toCheck: Seq[(AgentType, NodePromisesPaths)]): Box[Seq[NodePromisesPaths]] = {
-
-    sequence(toCheck) { case (agentType, paths) =>
-      // Check the promises
-      val (errorCode, errors, checkCommand) =  {
-        if(logger.isDebugEnabled) {
-          //current time millis for debuging info
-          val now = System.currentTimeMillis
-          val res = executeCfPromise(agentType, paths.newFolder)
-          val spent = System.currentTimeMillis - now
-          logger.debug(s"` Execute cf-promises for '${paths.newFolder}': ${spent} ms (${spent/1000} s)")
-          res
-        } else {
-          executeCfPromise(agentType, paths.newFolder)
-        }
-      }
-
-      if (errorCode != 0) {
-        /*
-         * we want to put any cfengine error or output as a technical detail, because:
-         * - between version of cf-agent, it does not seems consistant what goes to sterr and what goes to stdout
-         * - even stdout messages can be quite cryptic, like:
-         *   ''' Fatal cfengine error: Validation: Scalar item in built-in FnCall
-         *       fileexists-arg => { Download a file } in rvalue is out of bounds
-         *       (value should match pattern "?(/.*)) '''
-         *
-         * More over, the !errormessage! tag is used on the client side to split among "information"
-         * and "error/technical details"
-         */
-        val completeErrorMsg = ( s"The generated promises are invalid!errormessage!cf-promise check fails for promises generated at '${paths.newFolder}'"
-                               + "<-Command to check generated promises is: '" + checkCommand + "'"
-                               + (if(errors.isEmpty) "" else errors.mkString("<-", "<-", ""))
-                               )
-        val failure = Failure(completeErrorMsg)
-        logger.error(failure.messageChain.replace("!errormessage!", ": "))
-        failure
-      } else {
-        Full(paths)
-      }
-    }
-  }
-
-  // CFEngine will not run automatically if someone else than user can write the promise
-  private[this] def setCFEnginePermission (baseFolder:String ) : Box[String] = {
-
-    // We need to remove executable perms, then add them back only on folders (X), so no file have executable perms
-    // Then remove all permissions for group and other
-    val changePermission: scala.sys.process.ProcessBuilder = s"/bin/chmod -R u-x,u+rwX,go-rwx ${baseFolder}"
-
-    // Permissions change is inside tryo, not sure if it throws exceptions, but as it interacts with IO, we cannot be sure
-    tryo { changePermission ! } match {
-      case Full(result) =>
-        if (result != 0) {
-          Failure(s"Could not change permission for base folder ${baseFolder}")
-        } else {
-          Full("OK")
-        }
-      case eb:EmptyBox =>
-        eb ?~! "cannot change permission on destination folder"
-    }
-  }
-
-  /**
    * Move the generated promises from the new folder to their final folder, backuping previous promises in the way
    * @param folder : (Container identifier, (base folder, new folder of the policies, backup folder of the policies) )
    */
@@ -491,28 +447,6 @@ class Cf3PromisesFileWriterServiceImpl(
 
   }
 
-  /**
-   * Force cf-serverd to reload its promises
-   * It always succeed, even if it fails it simply delays the reloading (automatic) by the server
-   */
-  private[this] def reloadCFEnginePromises() : Box[Unit] = {
-    import scala.sys.process.{ProcessBuilder, ProcessLogger}
-    var out = List[String]()
-    var err = List[String]()
-    val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
-
-    val process: ProcessBuilder = (cfengineReloadPromises)
-
-    val errorCode =  process.!(processLogger)
-
-    if (errorCode != 0) {
-      val errorMessage = s"""Failed to reload CFEngine server promises with command "${cfengineReloadPromises}" - cause is ${out.mkString(",")} ${err.mkString(",")}"""
-      logger.warn(errorMessage)
-      Failure(errorMessage)
-    } else {
-      Full( () )
-    }
-  }
 
   ///////////// utilities /////////////
 
@@ -552,7 +486,7 @@ class Cf3PromisesFileWriterServiceImpl(
     //here, we need a big try/catch, because almost anything in string template can
     //throw errors
     // write the files to the new promise folder
-    logger.trace("Create promises file %s %s".format(outPath, templateInfo.destination))
+    logger.trace(s"Create promises file ${outPath} ${templateInfo.destination}")
 
     for {
       replaced <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
@@ -561,31 +495,6 @@ class Cf3PromisesFileWriterServiceImpl(
     } yield {
       outPath
     }
-  }
-
-  private[this] def executeCfPromise(agentType: AgentType, pathOfPromises: String) : (Int, List[String], String) = {
-    import scala.sys.process.{Process, ProcessLogger}
-
-    var out = List[String]()
-    var err = List[String]()
-    val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
-
-    val checkPromises =  agentType match {
-      case NOVA_AGENT => novaCheckPromises
-      case COMMUNITY_AGENT => communityCheckPromises
-    }
-
-    val checkCommand = checkPromises + " -f " + pathOfPromises + "/promises.cf"
-
-    val errorCode = if (checkPromises != "/bin/true")  {
-      val process = Process(checkCommand, None, ("RES_OPTIONS","attempts:0"))
-      process.!(processLogger)
-    } else {
-      //command is /bin/true => just return with no error (0)
-      0
-    }
-
-    (errorCode, out.reverse ++ err.reverse, checkCommand)
   }
 
   /**
