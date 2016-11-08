@@ -258,7 +258,7 @@ class ReportDisplayer(
             ( "bg-warning text-warning"
             , <p>{nbAttention} reports below (out of {report.compliance.total} total reports) are not in Success, and may require attention."</p>
             )
-          } else if(report.compliance.pc_pending > 0) {
+          } else if(report.compliance.pc.pending > 0) {
             ("bg-info text-info", NodeSeq.Empty)
 
           } else {
@@ -330,7 +330,7 @@ class ReportDisplayer(
              * In these case, filter out "unexpected" reports to only
              * keep missing ones, and do not show the "compliance" row.
              */
-            val filtered = NodeStatusReport(report.forNode, report.runInfo, report.statusInfo, report.report.reports.flatMap { x =>
+            val filtered = NodeStatusReport(report.nodeId, report.runInfo, report.statusInfo, report.report.reports.flatMap { x =>
               x.withFilteredElements(
                   _ => true   //keep all (non empty) directives
                 , _ => true   //keep all (non empty) component values

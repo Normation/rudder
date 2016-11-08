@@ -169,6 +169,10 @@ CREATE TABLE nodeConfigurations (
 -- here, I'm using text but with valid JSON in it, because for now we can't impose postgres > 9.2, 
 -- and interesting function are on 9.3/9.4.  we will be able to migrate with:
 -- ALTER TABLE table1 ALTER COLUMN col1 TYPE JSON USING col1::JSON;
+-- or if version == 9.2, we need to do a several steps script like: 
+-- https://github.com/airblade/paper_trail/issues/600#issuecomment-136279154
+-- and then garbage collect space with:  
+-- vacuum full nodecompliance;
 
 , configuration     text NOT NULL CHECK (configuration <> '' )
 
@@ -191,6 +195,66 @@ CREATE TABLE archivedNodeConfigurations (
 , endDate           timestamp with time zone
 , configuration     text NOT NULL CHECK (configuration <> '' )
 , PRIMARY KEY (nodeId, nodeConfigId, beginDate)
+);
+
+/* 
+ *************************************************************************************
+ * The following tables stores "node compliance", i.e all the interesting information
+ * about what was the compliance of a node FOR A GIVEN RUN. 
+ * That table *only* store information for runs, and does not track (non exaustively):
+ * - when the node expected configuration is updated - only a new run will check,
+ * - node not sending runs - only the fact that we don't have data can be observed
+ * - if a node is deleted
+ *************************************************************************************
+ */
+
+-- Create the table for the node compliance
+CREATE TABLE nodeCompliance (
+  nodeId            text NOT NULL CHECK (nodeId <> '')  
+, runTimestamp      timestamp with time zone NOT NULL
+
+-- endOfList is the date until which the compliance information
+-- are relevant. After that date/time, the node must have sent
+-- a more recent run, this one is not valide anymore. 
+, endOfLife         timestamp with time zone
+
+-- all information about the run and what lead to that compliance:
+-- the run config version, the awaited config version, etc
+-- It's JSON (but in a string, cf explanation in nodeConfigurations table)
+-- and has such, it must not be empty (at least '{}')
+
+, runAnalysis       text NOT NULL CHECK (runAnalysis <> '' )
+
+-- node compliance summary (i.e, no details by rule etc), in percent
+-- that JSON, again
+
+, summary           text NOT NULL CHECK (summary <> '' )
+
+-- the actual compliance with all details
+-- Again, JSON
+
+, details  text NOT NULL CHECK (details <> '' )
+
+-- Primary key is given by a run timestamp and the node id. We could
+-- have duplicate if node clock change, but it would need to have 
+-- exact same timestamp down to the millis, quite improbable.
+
+, PRIMARY KEY (nodeId, runTimestamp)
+);
+
+CREATE INDEX nodeCompliance_nodeId ON nodeCoCompliance (nodeId);
+CREATE INDEX nodeCompliance_runTimestamp ON nodeCoCompliance (runTimestamp);
+CREATE INDEX nodeCompliance_endOfLife ON nodeCoCompliance (endOfLife);
+
+-- Create the table for the archived node compliance
+CREATE TABLE archivedNodeCompliance (
+  nodeId            text NOT NULL CHECK (nodeId <> '')  
+, runTimestamp      timestamp with time zone NOT NULL
+, endOfLife         timestamp with time zone
+, runAnalysis       text NOT NULL CHECK (runAnalysis <> '' )
+, summary           text NOT NULL CHECK (summary <> '' )
+, details  text NOT NULL CHECK (details <> '' )
+, PRIMARY KEY (nodeId, runTimestamp)
 );
 
 

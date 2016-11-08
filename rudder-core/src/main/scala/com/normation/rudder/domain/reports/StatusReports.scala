@@ -45,7 +45,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 
 import net.liftweb.common.Loggable
-import com.normation.rudder.services.reports.RunAndConfigInfo
+import com.normation.rudder.services.reports._
 
 /**
  * That file contains all the kind of status reports for:
@@ -104,7 +104,7 @@ final object RunComplianceInfo {
 
 
 final class NodeStatusReport private (
-    val forNode   : NodeId
+    val nodeId    : NodeId
   , val runInfo   : RunAndConfigInfo
   , val statusInfo: RunComplianceInfo
   , val report    : AggregatedStatusReport
@@ -338,5 +338,142 @@ object MessageStatusReport {
     new MessageStatusReport(status, msg)
   }
 
+}
+
+
+object NodeStatusReportSerialization {
+
+  import net.liftweb.json._
+  import net.liftweb.json.JsonDSL._
+
+
+  def jsonRunInfo(runInfo: RunAndConfigInfo): JValue = {
+
+    runInfo match {
+      case NoRunNoExpectedReport   =>
+        ( "type" -> "NoRunNoExpectedReport" )
+      case NoExpectedReport(t, id) =>
+        ( ( "type"           -> "NoExpectedReport" )
+        ~ ("lastRunConfigId" -> id.map( _.value )  )
+        )
+      case NoReportInInterval(e) =>
+        ( ( "type"             -> "NoReportInInterval" )
+        ~ ( "expectedConfigId" -> e.nodeConfigId.value )
+        )
+      case ReportsDisabledInInterval(e) =>
+        ( ( "type"             -> "ReportsDisabled"   )
+        ~ ( "expectedConfigId" -> e.nodeConfigId.value)
+        )
+      case UnexpectedVersion(t, id, _, e, _) =>
+        ( ( "type"             -> "UnexpectedVersion"       )
+        ~ ( "expectedConfigId" -> e.nodeConfigId.value      )
+        ~ ( "runConfigId"      -> id.get.nodeConfigId.value )
+        )
+      case UnexpectedNoVersion(_, id, _, e, _) =>
+        ( ( "type"             -> "UnexpectedNoVersion" )
+        ~ ( "expectedConfigId" -> e.nodeConfigId.value  )
+        ~ ( "runConfigId"      -> id.value              )
+        )
+      case UnexpectedUnknowVersion(_, id, e, _) =>
+        ( ( "type"             -> "UnexpectedUnknownVersion" )
+        ~ ( "expectedConfigId" -> e.nodeConfigId.value       )
+        ~ ( "runConfigId"      -> id.value                   )
+        )
+      case Pending(e, r, _) =>
+        ( ( "type"             -> "Pending"               )
+        ~ ( "expectedConfigId" -> e.nodeConfigId.value    )
+        ~ ("runConfigId"       -> r.map( _._2.nodeConfigId.value ) )
+        )
+      case ComputeCompliance(_, e, _) =>
+        ( ( "type"             -> "ComputeCompliance" )
+        ~ ( "expectedConfigId" -> e.nodeConfigId.value       )
+        ~ ( "runConfigId"      -> e.nodeConfigId.value       )
+        )
+    }
+  }
+  def jsonStatusInfo(statusInfo: RunComplianceInfo): JValue = {
+    (
+      ( "status" -> (statusInfo match {
+                      case RunComplianceInfo.OK => "success"
+                      case _                    => "error"
+                    })
+      ) ~ (
+        "errors" -> (statusInfo match {
+                      case RunComplianceInfo.OK => None
+                      case RunComplianceInfo.PolicyModeInconsistency(errors) => Some(errors.map {
+                        case RunComplianceInfo.PolicyModeError.TechniqueMixedMode(msg) =>
+                          ( "policyModeError" -> ( "message" -> msg ) ):JObject
+                        case RunComplianceInfo.PolicyModeError.AgentAbortMessage(cause, msg) =>
+                          ( "policyModeInconsistency" -> ( ( "cause" -> cause ) ~ ( "message" -> msg ) ) ):JObject
+                      })
+                    })
+      )
+    )
+  }
+
+  implicit class RunComplianceInfoToJs(x: (RunAndConfigInfo, RunComplianceInfo)) {
+    def toJValue() = {
+      (
+        ( "run"    -> jsonRunInfo(x._1)    )
+      ~ ( "status" -> jsonStatusInfo(x._2) )
+      )
+    }
+
+    def toJson() = pretty(render(toJValue))
+    def toCompactJson = compactRender(toJValue)
+  }
+
+  implicit class AggregatedStatusReportToJs(x: AggregatedStatusReport) {
+    import ComplianceLevelSerialisation._
+
+    def toJValue(): JValue = {
+
+      //here, I'm not sure that we want compliance or
+      //compliance percents. Having a normalized value
+      //seems far better for queries in the futur.
+      //but in that case, we should also keep the total
+      //number of events to be able to rebuild raw data
+
+      ("rules" -> (x.reports.map { r =>
+        (
+          ("ruleId"        -> r.ruleId.value)
+        ~ ("serial"        -> r.serial)
+        ~ ("compliance"    -> r.compliance.pc.toJson)
+        ~ ("numberReports" -> r.compliance.total)
+        ~ ("directives"    -> (r.directives.values.map { d =>
+          (
+            ("directiveId"   -> d.directiveId.value)
+          ~ ("compliance"    -> d.compliance.pc.toJson)
+          ~ ("numberReports" -> d.compliance.total)
+          ~ ("components"    -> (d.components.values.map { c =>
+              (
+                ("componentName" -> c.componentName)
+              ~ ("compliance"    -> c.compliance.pc.toJson)
+              ~ ("numberReports" -> c.compliance.total)
+              ~ ("values"        -> (c.componentValues.values.map { v =>
+                  (
+                    ("value"         -> v.componentValue)
+                  ~ ("compliance"    -> v.compliance.pc.toJson)
+                  ~ ("numberReports" -> v.compliance.total)
+                  ~ ("unexpanded"    -> v.unexpandedComponentValue)
+                  ~ ("messages"      -> (v.messages.map { m =>
+                      (
+                        ("message" -> m.message )
+                      ~ ("type"    -> m.reportType.severity)
+                      )
+                    }))
+                  )
+                }))
+              )
+            }))
+          )
+          }))
+        )
+      }))
+    }
+
+    def toJson() = pretty(render(toJValue))
+    def toCompactJson = compactRender(toJValue)
+  }
 }
 
