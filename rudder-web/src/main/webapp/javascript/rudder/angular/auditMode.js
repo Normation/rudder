@@ -61,7 +61,6 @@ app.factory('configNodeFactory', function ($http){
     }
 });
 app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, configGlobalFactory, configNodeFactory) {
-
   function getNodeId(){
     var nodeId;
     try {
@@ -137,6 +136,9 @@ app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, co
         $scope.saving = 2;
       });
     }
+  };
+  $scope.redirect = function(url) {
+    window.location = contextPath + url;
   };
 });
 
