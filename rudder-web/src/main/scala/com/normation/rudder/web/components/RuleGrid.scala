@@ -81,7 +81,7 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import com.normation.rudder.rule.category.RuleCategory
-import com.normation.rudder.web.services.RulePolicyMode
+import com.normation.rudder.web.services.ComputePolicyMode
 
 object RuleGrid {
   def staticInit =
@@ -542,7 +542,7 @@ class RuleGrid(
     val t0 = System.currentTimeMillis
 
     val nodes = groupsLib.getNodeIds(line.rule.targets, nodesInfo)
-    val (policyMode,explanation) = RulePolicyMode.compute(globalMode, line.rule.directiveIds.map(directiveLib.allDirectives(_)).map(_._2))
+    val (policyMode,explanation) = ComputePolicyMode.ruleMode(globalMode, line.rule.directiveIds.map(directiveLib.allDirectives(_)).map(_._2))
 
     // Status is the state of the Rule, defined as a string
     // reasons are the the reasons why a Rule is disabled

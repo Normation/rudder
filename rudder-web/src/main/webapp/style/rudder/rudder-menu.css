@@ -1161,9 +1161,16 @@ form .tooltip-content p {
 .tw-bs .rudder-label.label-audit:before,.tw-bs .label-text.label-audit:after{
   content: "Audit";
 }
-.tw-bs .rudder-label.label-audit + .tooltip b, .tw-bs .label-text.label-audit:after, .tw-bs .label-text.label-audit  + .tooltip b, .text-Audit{
+
+  .tw-bs .label-text.label-audit:after
+, .tw-bs .rudder-label.label-audit   + .tooltip b
+, .tw-bs .label-text.label-audit     + .tooltip b
+, .tw-bs .rudder-label.label-enforce + .tooltip b.text-Audit
+, .tw-bs .label-text.label-enforce   + .tooltip b.text-Audit
+, .text-Audit{
   color: #3694d1;
 }
+
 .tw-bs .rudder-label.label-enforce{
   background-color: #9BC832;
 }
@@ -1171,7 +1178,12 @@ form .tooltip-content p {
 .tw-bs .rudder-label.label-enforce:before,.tw-bs .label-text.label-enforce:after{
   content: "Enforce";
 }
-.tw-bs .rudder-label.label-enforce + .tooltip b, .tw-bs .label-text.label-enforce:after, .tw-bs .label-text.label-enforce  + .tooltip b, .text-Enforce{
+  .tw-bs .label-text.label-enforce:after
+, .tw-bs .rudder-label.label-enforce + .tooltip b
+, .tw-bs .label-text.label-enforce   + .tooltip b
+, .tw-bs .rudder-label.label-audit   + .tooltip b.text-Enforce
+, .tw-bs .label-text.label-audit     + .tooltip b.text-Enforce
+, .text-Enforce {
   color: #9BC832;
 }
 .tw-bs .rudder-label.label-mixed{
