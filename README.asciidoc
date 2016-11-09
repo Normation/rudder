@@ -1,122 +1,113 @@
-Rudder: open source IT automation and compliance
-------------------------------------------------
+Rudder: Continuous configuration for effective compliance
+---------------------------------------------------------
 
-[horizontal]
-Rudder site:: http://rudder-project.org
-Source:: https://github.com/Normation/rudder
-User documentation:: https://www.rudder-project.org/site/documentation/user-manual/
-API documentation:: http://www.rudder-project.org/rudder-api-doc/
-Bug report:: http://www.rudder-project.org/redmine/projects/rudder/issues
-Mailing list, irc:: https://www.rudder-project.org/site/community/mailing-lists/
-
-Rudder is an easy to use, web-driven, role-based solution for IT Infrastructure Automation & Compliance.
+Rudder is an easy to use, web-driven, role-based solution for IT Infrastructure
+Automation & Compliance.
 
 The workflow offers different users options at their own level:
 
-*  Non-expert users can define parameters in a central console, and Rudder will automatically make sure that your IT services are installed, configured, running and in good health. All actions (checks, warnings, fixed errors…) are reported upon immediately in the user interface, keeping drift from nominal behaviour low.
-*  Expert users can configure how to implement these parameters on different systems, or build upon the pre-defined library provided.
+*  Non-expert users can define parameters in a central console, and Rudder will
+   automatically make sure that your IT services are installed, configured, running
+   and in good health. All actions (checks, warnings, fixed errors…) are reported upon
+   immediately in the user interface, keeping drift from nominal behaviour low.
+*  Expert users can configure how to implement these parameters on different systems,
+   or build upon the pre-defined library provided.
 *  Managers can consult compliance reports and access audit logs.
 
-Rudder combines the power of some of the best-of-breed open source tools in the field, adding reporting and higher level features to keep an eye on your IT: http://www.ncf.io/[the ncf framework] and http://cfengine.com/[CFEngine configuration management agent], http://www.fusioninventory.org/[the FusionInventory hardware and software inventory tool], reporting and higher level features to keep an eye on your information system. Rudder’s web interface is developed in Scala. 
+Rudder is an established project with several 10000s of node managed, in companies
+from small to biggest-on-their-field. Typical deployement manages 100 to 1000 nodes.
+The biggest known deployment in 2016 is 7000 nodes.
 
 
-TIP: Rudder is open source – we welcome ideas, comments, criticism, patches and any other contributions! So let's get a chat we our community https://www.rudder-project.org/site/support/chat-mailing-lists/[on irc]!
-
+image::readme-resources/dashboard.png[Rudder Dashboard]
 
 === Feature overview
 
-* Automate common system administration tasks (installation, configuration)
-* Enforce configuration over time (configuring once is good, ensuring that configuration is valid and automatically fixing it is better)
+* Web interface to manage nodes and define policies
+  ** https://www.rudder-project.org/site/documentation/screenshots/
+* Continuously assesses drift compared to defined policies (with or without auto-healing)
+* Continuously enforces configuration over time (configuring once is good,
+  ensuring configuration is always valid and automatically fixing it is better)
 * Inventory of all managed nodes
-* Web interface to configure and manage nodes and their configuration
-* Compliance reporting, by configuration and/or by node
+* Compliance reporting, by configuration and/or by node, with possibility to
+  zoom on non-compliance to understand the problem.
+* Automate common system administration tasks (installation, configuration)
 * Full API to interact with Rudder server
 
-Screenshots:: https://www.rudder-project.org/site/documentation/screenshots/
 
-=== Testing Rudder
+TIP: Rudder is open source – we welcome ideas, comments, criticism, patches and
+any other contributions! So let's get a chat we our community
+https://www.rudder-project.org/site/support/chat-mailing-lists/[on irc]!
+
+=== Documentation and community
+
+[horizontal]
+Rudder site:: http://rudder-project.org
+User documentation:: http://www.rudder-project.org/doc-latest/
+API documentation:: http://www.rudder-project.org/rudder-api-doc/
+Mailing list, irc:: https://www.rudder-project.org/site/community/mailing-lists/
+Bug report:: http://www.rudder-project.org/redmine/projects/rudder/issues
+Source:: https://github.com/Normation/rudder
+
+
+=== Testing and installing Rudder
+
+==== 5 minutes tests
 
 ===== Demo site
 
-You can see a demo version of Rudder:
-
-* Long term support version: http://demo-stable.rudder-project.org/
-* Latest release: http://demo-latest.rudder-project.org/
-
-===== Linux packages
-
-The easiest way to test and use Rudder is to install it from the provided Linux packages. 
-For the server, the main .rpm-based (RedHat, CentOS, SLES) and .deb-based (Debian, Ubuntu)
-distribution are supported. See https://www.rudder-project.org/site/get-rudder/downloads/
-for details about repository and available versions. 
+You can see a demo version of Rudder: http://demo.rudder-project.org/
 
 ===== Vagrant
 
-Just want to test Rudder without worrying about a full installation?  We provide a https://github.com/Normation/rudder-vagrant[Vagrant set-up]. See https://www.rudder-project.org/site/get-rudder/vagrant/[Rudder Vagrant page] for a getting-started with Rudder on Vagrant.
+Just want to test Rudder without worrying about a full installation, but with real
+virtual machines so that you can actually configure and test things, contrary to
+the demo? We provide a https://github.com/Normation/rudder-vagrant[Vagrant set-up].
+See https://www.rudder-project.org/site/get-rudder/vagrant/[Rudder Vagrant page]
+for a getting-started with Rudder on Vagrant.
 
+===== Rudder Test Framework (rtf)
 
-=== Rudder components and projects overview
+Rudder test framework is a tool that allows to define full environnements and set
+them up for you. For example, you can define a plateform with a Rudder server on
+Debian stable, 2 nodes on CentOS connected to it, and a Rudder Relay Server with
+its own 2 Debian nodes with 3 lines of configuration and command.
 
-Rudder is now composed of several projects:
+See https://github.com/Normation/rudder-tests for more information.
 
-|====
-|Component | Description and GitHub Projects
+==== Installing on real environments
 
-| Rudder Techniques | 
-Provided Techniques coming in the base set-up of Rudder 
-https://github.com/Normation/rudder-techniques
+===== Linux server packages
 
-| Rudder packages | 
-This project contains all the logic to build both server and agent packages for Rudder
-https://github.com/Normation/rudder-packages
+The easiest way to test and use Rudder for prototyping or production is to install
+it from the provided Linux packages.
+For the server, the main current .rpm-based (RedHat, CentOS, SLES) and .deb-based
+(Debian, Ubuntu) distributions are supported. See https://www.rudder-project.org/site/get-rudder/downloads/
+for details about repository and available versions.
 
-| Rudder server | 
-This is the Scala web application It is composed of several Scala projects: 
-https://github.com/Normation/rudder-parent-pom
-https://github.com/Normation/rudder-commons
-https://github.com/Normation/scala-ldap
-https://github.com/Normation/cf-clerk
-https://github.com/Normation/rudder
+===== Rudder agent packages
 
-| Rudder inventory | 
-This part is in charge of parsing fusion inventory reports for Rudder
-https://github.com/Normation/ldap-inventory
+Rudder agent is extremelly versatil and packages are available for a wide set of
+releases for RedHat, CentOS, SLES, Debian and Ubuntu (like RHEL3 or Debian
+Lenny).
 
-| Rudder agent | 
-This project contains the CLI for Rudder agent
-https://github.com/Normation/rudder-agent
+It works on other distributions as well, like Slackware, Linux for Rasperry Pi and other
+embeded Linux on ARM/x86, Android, FreeBSD but no packages are provided out of
+the box today.
 
-| ncf framework | 
-A powerful and structured CFEngine framework used to build Rudder Techniques
-https://github.com/Normation/ncf
+Normation is providing commercial offer for AIX, Solaris and Windows agents.
 
-| Rudder tools | 
-Nice tools around Rudder 
-https://github.com/Normation/rudder-tools
-
-| Rudder plugins | 
-Plugin examples:
-https://github.com/Normation/rudder-plugin-helloworld
-https://github.com/Normation/rudder-plugin-external-node-information
-https://github.com/Normation/rudder-plugin-itop
-
-| Rudder documentation | 
-We have a project for main documentation and API documentation:
-https://github.com/Normation/rudder-doc
-https://github.com/Normation/rudder-api-doc
-
-|====
 
 === Authors
 
-Rudder is supported by Normation http://normation.com
+Rudder is supported by Normation http://www.normation.com/en/rudder/
 
 The list of contributors is available in https://github.com/Normation/rudder/graphs/contributors
 
 
 === License
 
-This project is licensed under GPLv3 license, see the provided "LICENSE" file or 
+This project is licensed under GPLv3 license, see the provided "LICENSE" file or
 http://www.gnu.org/licenses/gpl-3.0.txt
 
 We added an extension to the main GPLv3 license to allows to build and use plugins
@@ -125,28 +116,92 @@ https://github.com/Normation/rudder/blob/master/LICENSE_EXCEPTION
 
 === Contributing
 
-Thank you for your interest in our project! 
+Thank you for your interest in our project!
 
-We welcome pull requests on any of Rudder projects. 
+We welcome pull requests on any of Rudder projects.
 
-The contribution process is detailed here: 
+The contribution process is detailed here:
 http://www.rudder-project.org/HowToContribute
 
+=== Rudder components and projects overview
+
+Rudder is now composed of several projects:
+
+|====
+|Component | Description and GitHub Projects
+
+| Rudder documentation |
+We have a project for main documentation and API documentation:
+https://github.com/Normation/rudder-doc
+https://github.com/Normation/rudder-api-doc
+
+| Rudder agent |
+This project contains the CLI for Rudder agent
+https://github.com/Normation/rudder-agent
+
+| Rudder Techniques |
+Provided Techniques coming in the base set-up of Rudder
+https://github.com/Normation/rudder-techniques
+
+| ncf framework |
+A powerful and structured CFEngine framework used to build Rudder Techniques
+https://github.com/Normation/ncf
+
+| Rudder server |
+This is the Scala web application responsible for policy definition and
+generation by node, and compliance reporting. It also manage node
+inventories.
+It is composed of several Scala projects:
+
+https://github.com/Normation/rudder-parent-pom
+https://github.com/Normation/rudder-commons
+https://github.com/Normation/scala-ldap
+https://github.com/Normation/cf-clerk
+https://github.com/Normation/rudder
+https://github.com/Normation/ldap-inventory
+
+| Rudder packages |
+This project contains all the logic to build both server and agent packages for Rudder
+https://github.com/Normation/rudder-packages
+
+| Rudder tools |
+Nice tools around Rudder
+https://github.com/Normation/rudder-tools
+
+| Rudder plugins |
+Plugin examples:
+https://github.com/Normation/rudder-plugin-helloworld
+https://github.com/Normation/rudder-plugin-external-node-information
+https://github.com/Normation/rudder-plugin-itop
+
+|====
 
 
-.For a more 'developer oriented' usage.
+.On a more 'developer oriented' usage on that repos only, not as Rudder as a whole:
 
-This project is managed thanks to Maven software project management (http://maven.apache.org/). 
-You will have to have a working Maven 3.0.x installation.
+This project is managed thanks to Maven software project management (http://maven.apache.org/).
+You will have to have a working Maven 3.x.x installation.
 
 .Clean, build and install on your local repository:
+
+We are working on the public package repository for Rudder, so for now you will
+need to build all rudder dependencies. You can create a script with the following
+lines:
+
 ----
-% mvn clean install
+$ echo clone-build-rudder.sh
 ----
 
-For now, the development environment is not trivial to set-up. We want to 
-make it more easy so that an unique command will set-up the full environment, 
-but we are afraid that until that bright future become true, you will have to
-follow: http://www.rudder-project.org/foswiki/Development/SettingUpADevelopmentEnvironment
-
-
+----
+#!/bin/sh
+BASE="$PWD"
+REPOS="rudder-parent-pom rudder-commons scala-ldap ldap-inventory rudder"
+for i in ${REPOS}; do
+    echo "\e[0;32mCloning ${i}\e[0m"
+    git clone https://github.com/Normation/$i.git
+    P=${BASE}/${i}
+    cd ${P}
+    echo "\e[0;32mBuilding ${P}\e[0m"
+    mvn install
+done
+----
