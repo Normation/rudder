@@ -110,19 +110,19 @@ object ComputePolicyMode {
       case (None,None) =>
         (globalMode.mode, "This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
       case (Some(Enforce),Some(Enforce)) =>
-        (Enforce, "<b>Enforce</b> is overriden by both this <i><b>Node</b></i> and this <i><b>Directive</b></i> mode")
+        (Enforce, "<b>Enforce</b> is forced by both this <i><b>Node</b></i> and this <i><b>Directive</b></i> mode")
       case (Some(Enforce),None) =>
-        (Enforce, "<b>Enforce</b> is overriden by this <i><b>Node</b></i> mode")
+        (Enforce, "<b>Enforce</b> is forced by this <i><b>Node</b></i> mode")
       case (None,Some(Enforce)) =>
-        (Enforce, "<b>Enforce</b> is overriden by this <i><b>Directive</b></i> mode")
+        (Enforce, "<b>Enforce</b> is forced by this <i><b>Directive</b></i> mode")
       case (Some(Audit), Some(Audit)) =>
-        (Audit, "<b>Audit</b> mode is overriden by both this <i><b>Node</b></i> and this <i><b>Directive</b></i>")
+        (Audit, "<b>Audit</b> mode is forced by both this <i><b>Node</b></i> and this <i><b>Directive</b></i>")
       case (Some(Audit), None) =>
-        (Audit, "<b>Audit</b> mode is overriden by this <i><b>Node</b></i>")
+        (Audit, "<b>Audit</b> mode is forced by this <i><b>Node</b></i>")
       case (Some(Audit), Some(Enforce)) =>
         (Audit, "The <i><b>Directive</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by this <i><b>Node</b></i>. ")
       case (None,Some(Audit))  =>
-        (Audit, "<b>Audit</b> mode is overriden by this <i><b>Directive</b></i>")
+        (Audit, "<b>Audit</b> mode is forced by this <i><b>Directive</b></i>")
       case (Some(Enforce),Some(Audit))  =>
         (Audit, "The <i><b>Node</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by this <i><b>Directive</b></i>. ")
     }
@@ -135,12 +135,12 @@ object ComputePolicyMode {
       case PolicyModeOverrides.Always =>
         nodeMode match {
           case Some(Audit) =>
-            (Audit.name,"<b>Audit</b> mode is overriden by this <i><b>Node</b></i>")
+            (Audit.name,"<b>Audit</b> mode is forced by this <i><b>Node</b></i>")
           case nodeMode    =>
 
             val (defaultMode,expl) = nodeMode match {
               case Some(mode) =>
-                ( mode, s"<b>${mode.name}</b> mode is overriden by this <i><b>Node</b></i>")
+                ( mode, s"<b>${mode.name}</b> mode is forced by this <i><b>Node</b></i>")
               case None =>
                 ( globalMode.mode, "This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
             }
@@ -158,18 +158,18 @@ object ComputePolicyMode {
                     case Some(Enforce) =>
                      (Audit.name, "The <i><b>Node</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by all <i><b>Directives</b></i>. ")
                     case Some(Audit) =>
-                     (Audit.name, "<b>Audit</b> mode is overriden by both this <i><b>Node</b></i> and all <i><b>Directives</b></i>")
+                     (Audit.name, "<b>Audit</b> mode is forced by both this <i><b>Node</b></i> and all <i><b>Directives</b></i>")
                     case None =>
-                     (Audit.name,"<b>Audit</b> mode is overriden by all <i><b>Directives</b></i>")
+                     (Audit.name,"<b>Audit</b> mode is forced by all <i><b>Directives</b></i>")
                   }
                 case Some(Enforce) =>
                   nodeMode match {
                     case Some(Audit) =>
                      (Audit.name, "All <i><b>directives</b></i> are configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by the <i><b>Node</b></i>. ")
                     case Some(Enforce) =>
-                     (Enforce.name, "<b>Enforce</b> mode is overriden by both this <i><b>Node</b></i> and all <i><b>Directives</b></i>")
+                     (Enforce.name, "<b>Enforce</b> mode is forced by both this <i><b>Node</b></i> and all <i><b>Directives</b></i>")
                     case None =>
-                     (Enforce.name,"<b>Enforce</b> mode is overriden by all <i><b>Directives</b></i>")
+                     (Enforce.name,"<b>Enforce</b> mode is forced by all <i><b>Directives</b></i>")
                   }
 
               }
@@ -180,7 +180,12 @@ object ComputePolicyMode {
 
                 directivesMode.map(_.getOrElse(defaultMode)).toList match {
                   case Nil => default
-                  case mode :: Nil => (mode.name, s"<b>${mode.name}</b> mode is overriden by this <i><b>Node</b></i> and all <i><b>Directives</b></i>")
+                  case mode :: Nil =>
+                    mode match {
+                      case Audit   => (Audit.name, s"<b>${Audit.name}</b> mode is forced by all <i><b>Directives</b></i>")
+                      case Enforce => (Enforce.name, s"<b>${Enforce.name}</b> mode is forced by the <i><b>Node</b></i> all <i><b>Directives</b></i>")
+                    }
+
                   case _ =>
                   ("mixed", "This rule has at least one directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them.")
                 }
@@ -203,7 +208,7 @@ object ComputePolicyMode {
 
             val (defaultMode,expl) = directiveMode match {
               case Some(mode) =>
-                ( mode, s"<b>${mode.name}</b> mode is overriden by this <i><b>Directive</b></i>")
+                ( mode, s"<b>${mode.name}</b> mode is forced by this <i><b>Directive</b></i>")
               case None =>
                 ( globalMode.mode, "This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
             }
@@ -221,18 +226,18 @@ object ComputePolicyMode {
                     case Some(Enforce) =>
                      (Audit.name, "The <i><b>Directive</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by all <i><b>Nodes</b></i>. ")
                     case Some(Audit) =>
-                     (Audit.name, "<b>Audit</b> mode is overriden by both this <i><b>Directive</b></i> and all <i><b>Nodes</b></i>")
+                     (Audit.name, "<b>Audit</b> mode is forced by both this <i><b>Directive</b></i> and all <i><b>Nodes</b></i>")
                     case None =>
-                     (Audit.name,"<b>Audit</b> mode is overriden by all <i><b>Nodes</b></i>")
+                     (Audit.name,"<b>Audit</b> mode is forced by all <i><b>Nodes</b></i>")
                   }
                 case Some(Enforce) =>
                   directiveMode match {
                     case Some(Audit) =>
-                     (Audit.name, "All <i><b>nodes</b></i> are configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by the <i><b>Directive</b></i>. ")
+                     (Audit.name, "All <i><b>Nodes</b></i> are configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by the <i><b>Directive</b></i>. ")
                     case Some(Enforce) =>
-                     (Enforce.name, "<b>Enforce</b> mode is overriden by both this <i><b>Directive</b></i> and all <i><b>Nddes</b></i>")
+                     (Enforce.name, "<b>Enforce</b> mode is forced by both this <i><b>Directive</b></i> and all <i><b>Nddes</b></i>")
                     case None =>
-                     (Enforce.name,"<b>Enforce</b> mode is overriden by all <i><b>Nodes</b></i>")
+                     (Enforce.name,"<b>Enforce</b> mode is forced by all <i><b>Nodes</b></i>")
                   }
 
               }
@@ -244,7 +249,11 @@ object ComputePolicyMode {
 
                 nodeModes.map(_.getOrElse(defaultMode)).toList match {
                   case Nil => default
-                  case mode :: Nil => (mode.name, s"<b>${mode.name}</b> mode is overriden by this <i><b>Node</b></i> and all <i><b>Directives</b></i>")
+                  case mode :: Nil =>
+                    mode match {
+                      case Audit   => (Audit.name, s"<b>${Audit.name}</b> mode is forced by all <i><b>Nodes</b></i>")
+                      case Enforce => (Enforce.name, s"<b>${Enforce.name}</b> mode is forced by the <i><b>Directive</b></i> all <i><b>Nodes</b></i>")
+                    }
                   case _ =>
                   ("mixed", "This directive is applied on at least one node that <b class='text-Enforce'>enforces</b> configurations, and at least one that  <b class='text-Audit'>audits</b> them.")
                 }
@@ -515,16 +524,10 @@ object ComplianceData extends Loggable {
       (nodeId, aggregate) <- report.byNodes
       nodeInfo            <- allNodeInfos.get(nodeId)
     } yield {
-      val (policyMode,explanation) =
-        globalMode.overridable match {
-        case PolicyModeOverrides.Always =>
-          nodeInfo.policyMode match {
-            case None       => (globalMode.mode.name,"This mode is the globally defined default. You can change it in the global <i><b>settings</b></i> or override it on node, or for directive only.")
-            case Some(mode) => (mode.name,"This mode was forced by this <i><b>node's settings</b></i>.")
-          }
-        case PolicyModeOverrides.Unoverridable =>
-          (globalMode.mode.name,"This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
-        }
+
+      val directivesMode = aggregate.directives.keys.map(directiveLib.allDirectives.get(_).flatMap(_._2.policyMode)).toSet
+      val (policyMode,explanation) = ComputePolicyMode.ruleOnNode(nodeInfo.policyMode, globalMode)(directivesMode)
+
       val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeInfo.policyMode, globalMode))
       NodeComplianceLine(
           nodeInfo
@@ -604,16 +607,7 @@ object ComplianceData extends Loggable {
       val techniqueName    = fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
       val techniqueVersion = directive.techniqueVersion;
       val components       =  getComponentsComplianceDetails(directiveStatus.components.values.toSet, true)
-      val (policyMode,explanation) = computeMode(directive.policyMode)/*
-        globalPolicyMode.overridable match {
-        case PolicyModeOverrides.Always =>
-          directive.policyMode match {
-            case None       => (globalPolicyMode.mode.name,"This mode is the globally defined default. You can change it in the global <i><b>settings</b></i> or override it on node, or for directive only.")
-            case Some(mode) => (mode.name,"This mode was forced by this <i><b>directive's settings</b></i>.")
-          }
-        case PolicyModeOverrides.Unoverridable =>
-          (globalPolicyMode.mode.name,"This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
-      }*/
+      val (policyMode,explanation) = computeMode(directive.policyMode)
 
       DirectiveComplianceLine (
           directive
