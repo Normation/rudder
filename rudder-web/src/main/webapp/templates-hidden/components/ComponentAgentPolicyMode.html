@@ -20,7 +20,7 @@
            This setting is a global switch and will apply to all nodes and all directives as the default mode. You may also override this mode on a per-node and per-directive basis.
          </p>
          <p ng-if="!isGlobalForm" ng-cloak>
-           By default all nodes and all directives operate in the global mode defined in <a href="/secure/administration/policyServerManagement#agentPolicyMode">Settings</a>
+           By default all nodes and all directives operate in the global mode defined in <a href="" ng-click="redirect('/secure/administration/policyServerManagement#agentPolicyMode')">Settings</a>
            , which is currently <b>{{globalConfiguration.policyMode}}</b>.
          </p>
        </div>
@@ -99,7 +99,7 @@
        </form>
        <div ng-if="!isGlobalForm && !globalConfiguration.overrideMode" class="col-lg-12" role="alert" ng-cloak>
          <div class="alert alert-warning">
-         Current global settings do not allow this mode to be overridden on a per-node basis. You may change this in <a href="/secure/administration/policyServerManagement#agentPolicyMode">Settings</a>
+         Current global settings do not allow this mode to be overridden on a per-node basis. You may change this in <a href="" ng-click="redirect('/secure/administration/policyServerManagement#agentPolicyMode')">Settings</a>
          , or contact your Rudder administrator about this.
          </div>
        </div>
