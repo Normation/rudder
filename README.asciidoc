@@ -6,17 +6,17 @@ Automation & Compliance.
 
 The workflow offers different users options at their own level:
 
-*  Non-expert users can define parameters in a central console, and Rudder will
+*  Non-expert users can define parameters in a central interface, and Rudder will
    automatically make sure that your IT services are installed, configured, running
    and in good health. All actions (checks, warnings, fixed errors…) are reported upon
    immediately in the user interface, keeping drift from nominal behaviour low.
 *  Expert users can configure how to implement these parameters on different systems,
-   or build upon the pre-defined library provided.
+   or build upon the pre-defined library provided using the CLI or API.
 *  Managers can consult compliance reports and access audit logs.
 
 Rudder is an established project with several 10000s of node managed, in companies
-from small to biggest-on-their-field. Typical deployement manages 100 to 1000 nodes.
-The biggest known deployment in 2016 is 7000 nodes.
+from small to biggest-in-their-field. Typical deployments manage 100s to 1000s of nodes.
+The biggest known deployment in 2016 is about 7000 nodes.
 
 
 image::readme-resources/dashboard.png[Rudder Dashboard]
@@ -26,18 +26,18 @@ image::readme-resources/dashboard.png[Rudder Dashboard]
 * Web interface to manage nodes and define policies
   ** https://www.rudder-project.org/site/documentation/screenshots/
 * Continuously assesses drift compared to defined policies (with or without auto-healing)
-* Continuously enforces configuration over time (configuring once is good,
+* Optionally, continuously enforces configuration over time (configuring once is good,
   ensuring configuration is always valid and automatically fixing it is better)
 * Inventory of all managed nodes
 * Compliance reporting, by configuration and/or by node, with possibility to
-  zoom on non-compliance to understand the problem.
+  drill down in non-compliance issues to identify the root problem.
 * Automate common system administration tasks (installation, configuration)
-* Full API to interact with Rudder server
+* Full REST API to interact with the Rudder server
 
 
 TIP: Rudder is open source – we welcome ideas, comments, criticism, patches and
-any other contributions! So let's get a chat we our community
-https://www.rudder-project.org/site/support/chat-mailing-lists/[on irc]!
+any other contributions! So get chatting with our community
+https://www.rudder-project.org/site/support/chat-mailing-lists/[on IRC]!
 
 === Documentation and community
 
@@ -45,14 +45,14 @@ https://www.rudder-project.org/site/support/chat-mailing-lists/[on irc]!
 Rudder site:: http://rudder-project.org
 User documentation:: http://www.rudder-project.org/doc-latest/
 API documentation:: http://www.rudder-project.org/rudder-api-doc/
-Mailing list, irc:: https://www.rudder-project.org/site/community/mailing-lists/
+Mailing list, IRC:: https://www.rudder-project.org/site/community/mailing-lists/
 Bug report:: http://www.rudder-project.org/redmine/projects/rudder/issues
 Source:: https://github.com/Normation/rudder
 
 
 === Testing and installing Rudder
 
-==== 5 minutes tests
+==== 5 minute tests
 
 ===== Demo site
 
@@ -61,17 +61,17 @@ You can see a demo version of Rudder: http://demo.rudder-project.org/
 ===== Vagrant
 
 Just want to test Rudder without worrying about a full installation, but with real
-virtual machines so that you can actually configure and test things, contrary to
+virtual machines so that you can actually configure and test things, unlike
 the demo? We provide a https://github.com/Normation/rudder-vagrant[Vagrant set-up].
 See https://www.rudder-project.org/site/get-rudder/vagrant/[Rudder Vagrant page]
-for a getting-started with Rudder on Vagrant.
+for getting started with Rudder on Vagrant.
 
 ===== Rudder Test Framework (rtf)
 
 Rudder test framework is a tool that allows to define full environnements and set
-them up for you. For example, you can define a plateform with a Rudder server on
+them up for you. For example, you can define a platform with a Rudder server on
 Debian stable, 2 nodes on CentOS connected to it, and a Rudder Relay Server with
-its own 2 Debian nodes with 3 lines of configuration and command.
+its own 2 Debian nodes in 3 lines of configuration and commands.
 
 See https://github.com/Normation/rudder-tests for more information.
 
@@ -87,15 +87,14 @@ for details about repository and available versions.
 
 ===== Rudder agent packages
 
-Rudder agent is extremelly versatil and packages are available for a wide set of
-releases for RedHat, CentOS, SLES, Debian and Ubuntu (like RHEL3 or Debian
+Rudder agent is extremely versatile and packages are available for a wide range of
+versions of RedHat, CentOS, SLES, Debian and Ubuntu (like RHEL3 or Debian
 Lenny).
 
-It works on other distributions as well, like Slackware, Linux for Rasperry Pi and other
-embeded Linux on ARM/x86, Android, FreeBSD but no packages are provided out of
-the box today.
+It works on other distributions as well, like Slackware, Raspbian and other
+embedded Linux on ARM/x86, Android, FreeBSD but no ready-to-use packages are provided today.
 
-Normation is providing commercial offer for AIX, Solaris and Windows agents.
+Normation offers AIX, Solaris and Windows agents.
 
 
 === Authors
@@ -118,7 +117,7 @@ https://github.com/Normation/rudder/blob/master/LICENSE_EXCEPTION
 
 Thank you for your interest in our project!
 
-We welcome pull requests on any of Rudder projects.
+We welcome pull requests on any of the Rudder repositories.
 
 The contribution process is detailed here:
 http://www.rudder-project.org/HowToContribute
@@ -149,7 +148,7 @@ https://github.com/Normation/ncf
 
 | Rudder server |
 This is the Scala web application responsible for policy definition and
-generation by node, and compliance reporting. It also manage node
+generation by node, and compliance reporting. It also manages node
 inventories.
 It is composed of several Scala projects:
 
@@ -177,16 +176,16 @@ https://github.com/Normation/rudder-plugin-itop
 |====
 
 
-.On a more 'developer oriented' usage on that repos only, not as Rudder as a whole:
+.On a more 'developer oriented' usage on this repository only (not as Rudder as a whole):
 
-This project is managed thanks to Maven software project management (http://maven.apache.org/).
-You will have to have a working Maven 3.x.x installation.
+This Scala web application is managed with Maven software project management (http://maven.apache.org/).
+You will need a working Maven 3.x.x installation.
 
 .Clean, build and install on your local repository:
 
-We are working on the public package repository for Rudder, so for now you will
-need to build all rudder dependencies. You can create a script with the following
-lines:
+We are working on a public artefact repository for Rudder, so for now you will
+need to build all dependencies for the Scala web application yourself.
+You can create a script with the following lines:
 
 ----
 $ echo clone-build-rudder.sh
