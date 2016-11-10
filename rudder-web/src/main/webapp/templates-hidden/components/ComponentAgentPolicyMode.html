@@ -1,11 +1,11 @@
 <agentpolicymode:form>
    <div class="tw-bs">
    <div class="row" id="auditMode" ng-controller="auditmodeCtrl">
-     <div class="col-lg-12">
+     <div class="col-xs-12">
        <h3 id="agentPolicyMode" class="page-title">Agent Policy Mode</h3>
      </div>
-     <div class="col-lg-12">
-       <div class="col-lg-12 callout-fade callout-warning">
+     <div class="col-xs-12">
+       <div class="col-xs-12 callout-fade callout-warning">
          <div class="marker">
            <span class="glyphicon glyphicon-info-sign"></span>
          </div>
@@ -25,9 +25,9 @@
          </p>
        </div>
      </div>
-     <form class="rudder-form no-shadow col-lg-12" ng-if="isGlobalForm || (!isGlobalForm && globalConfiguration.overrideMode)" ng-cloak>
-       <p ng-if="$parent.isGlobalForm" class="sublabel col-lg-12">Global policy mode</p>
-       <p ng-if="!$parent.isGlobalForm" class="sublabel col-lg-12">Override policy mode for this node</p>
+     <form class="rudder-form no-shadow col-xs-12" ng-if="isGlobalForm || (!isGlobalForm && globalConfiguration.overrideMode)" ng-cloak>
+       <p ng-if="$parent.isGlobalForm" class="sublabel col-xs-12">Global policy mode</p>
+       <p ng-if="!$parent.isGlobalForm" class="sublabel col-xs-12">Override policy mode for this node</p>
        <div class="col-xs-12 policymode-group" ng-class="{'node':!$parent.isGlobalForm}">
          <div class="btn-group" data-toggle="buttons">
            <label class="btn btn-default btn-sm" ng-class="{'active':$parent.conf.policyMode=='default'}" ng-click="$parent.conf.policyMode='default'" ng-if="!$parent.isGlobalForm">
@@ -57,8 +57,8 @@
 	     </span>
        </div>
        <div ng-show="$parent.isGlobalForm">
-         <p class="sublabel col-lg-12">Allow overrides on this default setting?</p>
-         <div class="form-group col-lg-12">
+         <p class="sublabel col-xs-12">Allow overrides on this default setting?</p>
+         <div class="form-group col-xs-12">
 	         <div class="btn-group yesno" data-toggle="buttons">
 		       <label class="btn btn-default btn-sm" ng-class="{'active':$parent.conf.overrideMode}" ng-click="$parent.conf.overrideMode=true">
 		         <input type="radio" name="options2" id="option3" autocomplete="off">
@@ -77,7 +77,7 @@
            </label>
          </div>
        </div>
-         <div class="col-lg-12 button-group-success">
+         <div class="col-xs-12 button-group-success">
            <span class="button-shape" ng-mouseover="pop=true" ng-mouseout="pop=false" ng-class="{disabled:$parent.nochange}">
              <button type="button" class="btn btn-default btn-primary-rudder" ng-class="{loading: $parent.saving === 1 }" ng-click="saveChanges()" ng-disabled="$parent.nochange" ng-mouseover="pop=true;">
                <i class="fa fa-cog fa-spin" aria-hidden="true"></i>
@@ -97,7 +97,7 @@
            </span>
          </div>
        </form>
-       <div ng-if="!isGlobalForm && !globalConfiguration.overrideMode" class="col-lg-12" role="alert" ng-cloak>
+       <div ng-if="!isGlobalForm && !globalConfiguration.overrideMode" class="col-xs-12" role="alert" ng-cloak>
          <div class="alert alert-warning">
          Current global settings do not allow this mode to be overridden on a per-node basis. You may change this in <a href="" ng-click="redirect('/secure/administration/policyServerManagement#agentPolicyMode')">Settings</a>
          , or contact your Rudder administrator about this.
