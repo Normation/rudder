@@ -13,15 +13,15 @@
     <script type="text/javascript" src="/javascript/jquery/jquery-3.1.0.min.js"></script>
 </head>
 <body id="login-page" class="tw-bs">
-    <form class="rudder-form col-lg-3 col-lg-offset-45 col-md-4 col-md-offset-4 col-sm-6 col-sm-offset-3 col-xs-12 col-xs-offset-0" name="contact" id="contact" method="post" action="/j_spring_security_check">
+    <form class="rudder-form" name="contact" id="contact" method="post" action="/j_spring_security_check">
       <fieldset>
-          <legend class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+          <legend class="col-xs-12">
           <img src="/images/login/logo-rudder.svg" alt="Rudder">
           <span>@PACKAGING_RUDDER_MAJOR_VERSION@</span>
           </legend>
-          <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-            <h4 class="welcome col-lg-12 col-md-12 col-sm-12 col-xs-12">Welcome, please sign in:</h4>
-            <div class="form-group group-user has-feedback col-lg-12 col-md-12 col-sm-12 col-xs-12">
+          <div class="col-xs-12">
+            <h4 class="welcome col-xs-12">Welcome, please sign in:</h4>
+            <div class="form-group group-user has-feedback col-xs-12">
               <label class="sr-only" for="username">Username</label>
               <div class="input-group">
                 <label class="input-group-addon" for="username"><span class="ion ion-android-person"></span></label>
@@ -31,7 +31,7 @@
                 <span id="inputErrorStatus" class="sr-only">The field is required</span>
                 <span id="helpBlock" class="help-block">This field is required.</span>
             </div>
-            <div class="form-group group-password has-feedback col-lg-12 col-md-12 col-sm-12 col-xs-12">
+            <div class="form-group group-password has-feedback col-xs-12">
               <label class="sr-only" for="password">Password</label>
               <div class="input-group">
                 <label class="input-group-addon" for="password"><span class="ion ion-android-lock"></span></label>
@@ -41,42 +41,42 @@
               <span id="inputError2Status" class="sr-only">The field is required</span>
               <span id="helpBlock2" class="help-block">This field is required.</span>  
             </div>
-            <div class="form-group col-lg-12 col-md-12 col-sm-12 col-xs-12">
+            <div class="form-group col-xs-12">
               <label class="sr-only" for="valid">Sign in</label>
-              <div class="input-group col-lg-12 col-md-12 col-sm-12 col-xs-12">
+              <div class="input-group col-xs-12">
                  <span id="errorInfo" class="help-block">
                      Login error, please try again.
                  </span>
-                <button class="btn btn-warning-rudder col-lg-12 col-md-12 col-sm-12 col-xs-12" id="valid" name="valid" type="submit">
+                <button class="btn btn-warning-rudder col-xs-12" id="valid" name="valid" type="submit">
                   Sign in
                   <span class="ion ion-android-unlock"></span> 
                 </button>
               </div>
             </div>
           </div>
-          <div class="form-footer col-lg-12 col-md-12 col-sm-12 col-xs-12">
-            <div class="no-padding col-lg-6 col-sm-6 col-md-6 col-xs-6">
-              <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+          <div class="form-footer col-xs-12">
+            <div class="no-padding col-xs-6">
+              <div class="col-xs-12">
                 <a href="/rudder-doc" target="_blank">
                 <span class="fa fa-book"></span>
                   Documentation
                 </a>
               </div>
-              <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+              <div class="col-xs-12">
                 <a href="https://www.rudder-project.org/site/community/mailing-lists/" target="_blank">
                   <span class="ion ion-chatboxes"></span>
                   Mailing list, IRC
                 </a>
               </div>
             </div>
-            <div class="no-padding col-lg-6 col-sm-6 col-md-6 col-xs-6">
-              <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+            <div class="no-padding col-xs-6">
+              <div class="col-xs-12">
                 <a href="https://www.rudder-project.org/site/support/commercial-support/" target="_blank">
                 <span class="fa fa-life-ring"></span>
                   Support
                 </a>
               </div>
-              <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+              <div class="col-xs-12">
                 <a href="http://www.rudder-project.org/redmine/projects/rudder" target="_blank">
                   <span class="ion ion-bug"></span>
                   Bug tracker
