@@ -59,8 +59,8 @@ header.main-header .logo-lg img{
   border: none;
 }
 .tw-bs .modal .modal-header {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
   border-bottom: 1px solid #f08004;
   background: #f08004;
 }

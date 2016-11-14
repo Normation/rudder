@@ -408,7 +408,9 @@
 }
 
 .tw-bs .modal .modal-content {
-    border-radius: 6px;
+  border-radius: 4px;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
 }
 .tw-bs .modal .modal-header {
     border-top-left-radius: 4px;
