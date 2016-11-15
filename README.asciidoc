@@ -1,5 +1,8 @@
-Rudder: Continuous configuration for effective compliance
----------------------------------------------------------
+
+image::readme-resources/color_logo_horizontal_small.png[Rudder]
+
+Continuous configuration for effective compliance
+-------------------------------------------------
 
 Rudder is an easy to use, web-driven, role-based solution for IT Infrastructure
 Automation & Compliance.
@@ -123,6 +126,12 @@ The contribution process is detailed here:
 http://www.rudder-project.org/HowToContribute
 
 === Rudder components and projects overview
+
+==== Functional Components
+
+image::readme-resources/rudder-functional-component-diagram.png[Rudder Functional Components]
+
+==== Projects
 
 Rudder is now composed of several projects:
 
