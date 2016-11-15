@@ -171,7 +171,8 @@
 }
 .rudder_col{
   float: left;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   position: static;
   height:100%;
   background-color:#2e2d2d;
