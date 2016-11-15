@@ -2143,13 +2143,17 @@ li.disableTreeNode > a.jstree-anchor {
   font-style:italic;
 }
 
-tr.disabledRule > td {
-  color: grey;
-  font-style:italic;
+.dataTable tr > td a{
+  text-decoration:none !important;
+}
+.dataTable tr > td a:hover{
+  color:#000 !important;
 }
 
-tr.disabledRule a {
-  color: grey;
+tr.disabledRule > td .rudder-label + a:after{
+  color: #999;
+  content:"- Disabled";
+  margin-left: 5px;
 }
 
 ins.jstree-icon {
