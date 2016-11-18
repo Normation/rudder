@@ -88,6 +88,12 @@ rudder.syslog.port=514
 ldap.host=localhost
 ldap.port=389
 ldap.authdn=cn=manager,cn=rudder-configuration
+#
+# Password used to connect to the OpenLDAP server. 
+# On a standard Rudder installation, the password is managed in 
+# "/opt/rudder/etc/rudder-passwords.conf" and the value below
+# will be overriden. 
+#
 ldap.authpw=secret
 
 
@@ -116,6 +122,12 @@ ldap.inventories.removed.basedn=ou=Removed Inventories, ou=Inventories, cn=rudde
 rudder.jdbc.driver=org.postgresql.Driver
 rudder.jdbc.url=jdbc:postgresql://localhost:5432/rudder
 rudder.jdbc.username=rudder
+#
+# Password used to connect to the PostgreSQL server. 
+# On a standard Rudder installation, the password is managed in 
+# "/opt/rudder/etc/rudder-passwords.conf" and the value below
+# will be overriden. 
+#
 rudder.jdbc.password=Normation
 rudder.jdbc.maxPoolSize=25
 
