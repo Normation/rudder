@@ -203,7 +203,8 @@ html, body, .Override.container{
 }
 
 textarea.form-control {
-    resize:none
+  resize:none;
+  min-height:34px;
 }
 
 .input-xs {
