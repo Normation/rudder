@@ -3,13 +3,8 @@
 }
 
 .navbar-inverse {
-
-  background-color: #ee7f00;
-  background-image: linear-gradient(#FFA033, #EE7F00 50%, #B86200);
-  border: 1px solid #A35700;
-}
-.navbar-inverse .navbar-brand {
-  color: #eeeeee;
+  background-color: #f08004;
+  border-bottom:none;
 }
 
 .navbar-inverse .navbar-nav > li > a {
@@ -22,8 +17,27 @@
   color: #ffffff;
   background-color: transparent;
   font-weight: bold;
+  cursor:default;
 }
-
+.navbar-inverse a.navbar-brand{
+  width: 230px;
+  text-align: center;
+  background-color: #e07a07;
+  outline: none !important;
+  font-size: 24px;
+  color: #fff;
+}
+.navbar-inverse a.navbar-brand:focus,.navbar-inverse a.navbar-brand:active{
+  background-color: #e07a07;
+}
+.navbar-inverse a.navbar-brand:hover{
+  background-color: #FF8702;
+}
+@media screen and (max-width: 768px) {
+  .navbar-inverse a.navbar-brand{
+    width: 100%;
+  }
+}
 .anchor {
   display: block;
   position: relative;
@@ -35,11 +49,19 @@ hr {
   margin-bottom : -10px;
   border-width : 2px 0 0;
 }
-
+.modal.fade{
+  overflow:hidden !important;
+}
+.modal-content{
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
 .modal-header{
-    background-color: #ee7f00;
-    background-image: linear-gradient(#FFA033, #EE7F00 50%, #B86200);
-    color: #EEEEEE;
+  background-color: #f08004;
+  color: #fff;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  border-bottom: none;
 }
 .btn-ncf {
     background-image: linear-gradient(#FFA033, #EE7F00 50%, #B86200);
