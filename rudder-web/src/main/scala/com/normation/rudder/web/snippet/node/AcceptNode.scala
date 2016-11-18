@@ -400,5 +400,5 @@ class AcceptNode extends Loggable {
       <p>
       Select/deselect all <input type="checkbox" id="selectAll" onClick="jqCheckAll('selectAll', 'serverids')"/>
       </p>
-      </div>
+    </div>
 }
