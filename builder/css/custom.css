@@ -326,6 +326,7 @@ ul[dnd-list] {
 .method-param {
   font-size: 16px;
   margin: 0;
+  word-break: break-word;
 }
 
 .method-settings{
