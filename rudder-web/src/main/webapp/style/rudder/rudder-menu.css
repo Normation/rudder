@@ -355,6 +355,7 @@ a.sidebar-toggle{
   color: #fff;
   cursor: default;
 }
+
 .rudder_col {
   background-color: rgb(236, 240, 245);
   padding: 15px 15px 5px;
@@ -613,8 +614,14 @@ a.sidebar-toggle{
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
   }
 }
-
-
+.navbar-nav .notifications-menu>.dropdown-menu>li.footer>a{
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.navbar-nav .notifications-menu>.dropdown-menu>li.footer:last-child>a{
+  border-bottom-right-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
 .navbar-nav .notifications-menu>.dropdown-menu>li.footer>a{
   font-size:14px !important;
 }
