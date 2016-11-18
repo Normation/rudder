@@ -735,13 +735,19 @@ $scope.groupMethodsByCategory = function () {
   }
 
   // Move up the method in the hierachy
-  $scope.moveUp = function(index) {
-    $scope.move(index,index+1);
+  $scope.moveUp = function(event, index) {
+    event.stopPropagation();
+    if(!$(event.currentTarget).hasClass('disabled')){
+      $scope.move(index,index+1);
+    }
   }
 
   // Move down the method in the hierachy
-  $scope.moveDown = function(index) {
-    $scope.move(index,index-1);
+  $scope.moveDown = function(event, index) {
+    event.stopPropagation();
+    if(!$(event.currentTarget).hasClass('disabled')){
+      $scope.move(index,index-1);
+    }
   }
 
   // Resets a Technique to its original state
