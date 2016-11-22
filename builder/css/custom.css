@@ -212,8 +212,11 @@ html, body, .Override.container{
 textarea.form-control {
   resize:none;
   min-height:34px;
+  background: url('textarea-expand.svg');
+  background-position: bottom right;
+  background-repeat: no-repeat;
+  background-size: 15px;
 }
-
 .input-xs {
     border-radius: 3px;
     font-size: 13px;
