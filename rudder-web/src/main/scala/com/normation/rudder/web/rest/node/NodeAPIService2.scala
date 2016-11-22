@@ -155,7 +155,7 @@ case class NodeApiService2 (
 
   def deleteNode(req : Req, ids: Seq[NodeId]) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    implicit val action = "changePendingNodeStatus"
+    implicit val action = "deleteNode"
     val modId = ModificationId(uuidGen.newUuid)
     val actor = getActor(req)
     modifyStatusFromAction(ids,DeleteNode,modId,actor) match {
