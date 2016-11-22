@@ -114,18 +114,29 @@ a:hover {
     margin: 0 3px;
 }
 .method-actions {
-    opacity: 0.3 ;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 0;
+  color: #555;
 }
-
-.method-actions:hover {
-    opacity: 0.8 ;
+.method-actions.disabled {
+  cursor: not-allowed;
+  opacity: .3;
 }
-
+.method-actions:hover{
+  color:#333;
+}
+.method-actions:hover .icon-delete{
+  color:#c80003;
+}
+.icon-delete {
+  color : #da635d;
+}
 .method-margin {
     margin-top:4px;
     margin-bottom:0px;
 }
-
 .panel-margin-top {
     margin-top: 10px;
 }
@@ -145,10 +156,6 @@ html, body, .Override.container{
     width: 100%;
     margin: -72px 0 0 0;
     padding: 52px 0 0 0;
-}
-
-.grey-icon{
-    color:#333;
 }
 
 .Override.container:before
@@ -231,15 +238,6 @@ textarea.form-control {
 
 .top-margin {
     margin-top: -5px;
-}
-
-.icon-delete {
-    color : #b33630;
-    opacity : 0.6;
-}
-
-.icon-delete:hover {
-    opacity : 0.9;
 }
 
 .btn-delete:hover, .btn-delete:active, .btn-delete:focus{
@@ -407,4 +405,9 @@ body.iframe .Override.container {
     #categories-list.fixed{
         margin-top: 0;
     }
+}
+
+i.glyphicon.glyphicon-circle-arrow-down.icon-margin.method-actions.ng-hide,i.glyphicon.glyphicon-circle-arrow-up.icon-margin.method-actions.ng-hide {
+  display: inline-block !important;
+  visibility: hidden;
 }
