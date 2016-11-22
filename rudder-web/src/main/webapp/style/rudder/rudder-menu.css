@@ -110,7 +110,7 @@ header.main-header .logo-lg img{
 .tw-bs .btn-default {
   background-color: #f4f4f4;
 }
-.tw-bs .btn-success {
+.tw-bs .btn-success,.tw-bs .btn-success[disabled]:hover {
   background-color: #9bc832;
   border-color: #8fb92a;
 }
@@ -1458,6 +1458,8 @@ form .tooltip-content p {
   color: #555;
   border-bottom: 2px solid #f08004;
   box-shadow: none;
+  padding: 0;
+  width: 100%;
   padding-bottom: 4px;
   margin: 5px 0 20px;
   font-size: 22px;
@@ -1857,6 +1859,8 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   line-height: 34px;
   position: relative;
   top: 5px;
+  margin-bottom:0;
+  background-color: #fff;
 }
 .rudder-form input[type=radio] + .label-radio{
   border-radius: 50%;

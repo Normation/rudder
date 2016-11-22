@@ -86,6 +86,5 @@ class DataSourceApi9 (
     case Post(sourceId :: Nil, req) => {
       response(apiService.updateSource(DataSourceId(sourceId),req), req, "Could not update data source", None)("updateDataSource")
     }
-
   }
 }
