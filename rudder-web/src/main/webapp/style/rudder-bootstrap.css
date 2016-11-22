@@ -753,3 +753,12 @@ body .tw-bs {
 .tw-bs .text-section .btn {
   background-color: #eee;
 }
+
+.tw-bs .monospace-font{
+  font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+  word-break: break-all;
+  word-wrap: break-word;
+}
+.tw-bs textarea.monospace-font{
+  min-height:100px;
+}
