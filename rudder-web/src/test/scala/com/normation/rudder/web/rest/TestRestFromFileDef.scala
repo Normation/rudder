@@ -64,6 +64,9 @@ import net.liftweb.common.Loggable
 import net.liftweb.common.Failure
 import net.liftweb.common.Box
 import net.liftweb.util.NamedPF
+import org.specs2.execute.Result
+import org.specs2.specification.core.Fragment
+import org.specs2.specification.core.Fragments
 
 /*
  * Utily data structures
@@ -128,21 +131,23 @@ class TestRestFromFileDef extends Specification with Loggable {
 
   ///// tests ////
 
-  files.map { file =>
+  Fragments.foreach(files) { file =>
 
     s"For each test defined in ${file}" should {
 
       val objects = (new Yaml()).loadAll(src_main_resources_api_(file)).asScala
 
-      objects.map(readSpecification).zipWithIndex.foreach {
+      Fragment.foreach(objects.map(readSpecification).zipWithIndex.toSeq) { x => x match {
         case (eb: EmptyBox, i)  =>
           val f = eb ?~! s"I wasn't able to run the ${i}th tests in file ${filename(file)}"
           logger.error(f.messageChain)
+
           s"[${i}] failing test ${i}: can not read description" in {
             ko(s"The yaml description ${i} in ${file} cannot be read: ${f.messageChain}")
           }
 
         case (Full(test), i) =>
+
           s"[${i}] ${test.description}" in {
             val mockReq = new MockHttpServletRequest("http://localhost:8080")
             mockReq.method = test.method
@@ -152,7 +157,7 @@ class TestRestFromFileDef extends Specification with Loggable {
               response must beEqualTo(Full(PlainTextResponse(test.responseContent)))
             )
           }
-      }
+      } }
     }
   }
 }
