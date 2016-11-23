@@ -139,6 +139,7 @@ import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.web.rest.settings.SettingsAPI8
 import com.normation.rudder.web.rest.sharedFiles.SharedFilesAPI
+import com.normation.rudder.web.rest.datasource._
 
 /**
  * Define a resource for configuration.
@@ -308,11 +309,9 @@ object RudderConfig extends Loggable {
     , RudderServerRole("rudder-cfengine-mission-portal", config.getString("rudder.server-roles.cfengine-mission-portal"))
   )
 
-
   // The base directory for hooks. I'm not sure it need to be configurable
   // as we only use it in generation.
   val HOOKS_D = "/opt/rudder/hooks.d"
-
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
@@ -787,6 +786,9 @@ object RudderConfig extends Loggable {
 
   val settingsApi8 = new SettingsAPI8(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
 
+  val dataSourceApiService = new DataSourceApiService(new MemoryDataSourceRepository, restDataSerializer, restExtractorService)
+  val dataSourceApi9 = new DataSourceApi9(restExtractorService, dataSourceApiService, stringUuidGenerator)
+
   // First working version with support for rules, directives, nodes and global parameters
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   // Add change request support
@@ -801,6 +803,7 @@ object RudderConfig extends Loggable {
   val apiV7 = complianceApi7 :: apiV6.filter( _ != complianceApi6)
   // apiv8 add policy mode in node API and settings API
   val apiV8 = nodeApi8 :: settingsApi8 :: apiV7.filter( _ != nodeApi6)
+  val apiV9 = dataSourceApi9 :: apiV8
 
   val apis = {
     Map (
@@ -818,6 +821,8 @@ object RudderConfig extends Loggable {
       , ( ApiVersion(7,false) -> apiV7 )
         //Rudder 4.0
       , ( ApiVersion(8,false) -> apiV8 )
+        //Rudder 4.1
+      , ( ApiVersion(9,false) -> apiV9 )
     )
   }
 

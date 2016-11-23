@@ -38,34 +38,106 @@
 package com.normation.rudder.datasources
 
 import org.joda.time.DateTime
-import org.joda.time.Seconds
+import net.liftweb.common._
+import scala.concurrent.duration.FiniteDuration
+import com.normation.inventory.domain.NodeId
+
+object DataSource {
+  val defaultDuration = FiniteDuration(5,"minutes")
+}
 
 sealed trait DataSourceType {
   def name : String
 }
 
-case object ByNodeSourceType extends DataSourceType {
+final case class HttpDataSourceType (
+    url            : String
+  , headers        : Map[String,String]
+  , httpMethod     : String
+  , sslCheck       : Boolean
+  , path           : String
+  , requestMode    : HttpRequestMode
+  , requestTimeOut : FiniteDuration
+) extends DataSourceType {
+  val name = HttpDataSourceType.name
+}
+
+object HttpDataSourceType{
+  val name = "http"
+}
+
+sealed trait HttpRequestMode {
+  def name : String
+}
+final case object OneRequestByNode extends HttpRequestMode {
   val name = "byNode"
 }
 
-case class AllNodesSourceType(
+final case class OneRequestAllNodes(
     matchingPath  : String
   , nodeAttribute : String
-) extends DataSourceType {
-  val name = "allNodes"
+) extends HttpRequestMode {
+  val name = OneRequestAllNodes.name
 }
 
-case class DataSourceName(value : String) extends AnyVal
+object OneRequestAllNodes {
+  val name = "allNodes"
+}
+final case class DataSourceName(value : String) extends AnyVal
+final case class DataSourceId  (value : String) extends AnyVal
 
-case class DataSource (
-    name       : DataSourceName
-  , description: String
-  , sourceType : DataSourceType
-  , url        : String
-  , headers    : Map[String,String]
-  , httpMethod : String
-  , path       : String
-  , frequency  : Seconds
-  , lastUpdate : Option[DateTime]
-  , enabled    : Boolean
+sealed trait DataSourceSchedule {
+  def duration : FiniteDuration
+}
+
+final case class NoSchedule(
+  savedDuration : FiniteDuration
+) extends DataSourceSchedule {
+  val duration = savedDuration
+}
+
+final case class Scheduled(
+  duration : FiniteDuration
+) extends DataSourceSchedule
+
+final case class DataSourceRunParameters (
+    schedule     : DataSourceSchedule
+  , onGeneration : Boolean
+  , onNewNode    : Boolean
 )
+
+final case class DataSourceStatus (
+    lastRunDate : Option[DateTime]
+  , nodesStatus : Map[NodeId, DataSourceUpdateStatus]
+)
+
+sealed trait DataSourceUpdateStatus{
+  def state       : String
+  def lastRunDate : DateTime
+}
+
+final case class DataSourceUpdateSuccess(
+  lastRunDate : DateTime
+) extends DataSourceUpdateStatus {
+  val state = "success"
+}
+
+final case class DataSourceUpdateFailure(
+    lastRunDate     : DateTime
+  , message         : String
+  , lastSuccessDate : Option[String]
+) extends DataSourceUpdateStatus {
+  val state = "failure"
+}
+
+final case class DataSource (
+    id            : DataSourceId
+  , name          : DataSourceName
+  , sourceType    : DataSourceType
+  , runParam      : DataSourceRunParameters
+  , description   : String
+  , enabled       : Boolean
+  , updateTimeOut : FiniteDuration
+) {
+  val scope = "all"
+}

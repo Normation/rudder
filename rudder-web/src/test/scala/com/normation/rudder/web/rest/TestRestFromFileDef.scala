@@ -90,15 +90,14 @@ final case class TestRequest(
 @RunWith(classOf[JUnitRunner])
 class TestRestFromFileDef extends Specification with Loggable {
 
-
   //read all file in src/test/resources/api.
   //each file is a new test
 
   //get stream for files in src/main/resources/api. Empty name == the "." directory
   def filename(name: String) = "api/" + name
-  def src_main_resources_api_(name: String) = this.getClass.getClassLoader.getResourceAsStream(filename(name))
+  def src_test_resources_api_(name: String) = this.getClass.getClassLoader.getResourceAsStream(filename(name))
 
-  val files = IOUtils.readLines(src_main_resources_api_(""), Charsets.UTF_8).asScala
+  val files = IOUtils.readLines(src_test_resources_api_(""), Charsets.UTF_8).asScala
 
   /*
    * I *love* java. The snakeyaml parser returns a list of Objects. The may be null if empty, or
@@ -128,17 +127,16 @@ class TestRestFromFileDef extends Specification with Loggable {
     }
   }
 
-
   ///// tests ////
 
   Fragments.foreach(files) { file =>
 
     s"For each test defined in ${file}" should {
 
-      val objects = (new Yaml()).loadAll(src_main_resources_api_(file)).asScala
+      val objects = (new Yaml()).loadAll(src_test_resources_api_(file)).asScala
 
       Fragment.foreach(objects.map(readSpecification).zipWithIndex.toSeq) { x => x match {
-        case (eb: EmptyBox, i)  =>
+        case (eb: EmptyBox, i) =>
           val f = eb ?~! s"I wasn't able to run the ${i}th tests in file ${filename(file)}"
           logger.error(f.messageChain)
 

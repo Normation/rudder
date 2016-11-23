@@ -64,7 +64,8 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.util.NamedPF
 import net.liftweb.http.S
 import net.liftweb.common.EmptyBox
-
+import com.normation.rudder.web.rest.datasource._
+import net.liftweb.json.JsonAST.JValue
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -81,10 +82,34 @@ object RestTestSetUp {
     def registerCallback(callback:TechniquesLibraryUpdateNotification) : Unit = {}
   }, uuidGen)
 
+  val restExtractorService =
+  RestExtractorService (
+      null //roRuleRepository
+    , null //roDirectiveRepository
+    , null //roNodeGroupRepository
+    , null //techniqueRepository
+    , null //queryParser
+    , null //userPropertyService
+    , null //workflowService
+  )
+
+  val restDataSerializer = RestDataSerializerImpl(
+      null //techniqueRepository
+    , null //diffService
+    , () => Full(false)
+  )
+
+  val datasourceRepo = new MemoryDataSourceRepository
+  val dataSourceApiService = new DataSourceApiService(datasourceRepo, restDataSerializer, restExtractorService)
+  val dataSourceApi9 = new DataSourceApi9(restExtractorService, dataSourceApiService, uuidGen)
+
+  val api = APIDispatcher( Map((ApiVersion(42,false)-> List(dataSourceApi9))), restExtractorService)
+
   val liftRules = {
     val l = new LiftRules()
     l.statelessDispatch.append(RestStatus)
     l.statelessDispatch.append(reloadTechniques)
+    l.statelessDispatch.append(api)
     //TODO: add all other rest classes here
     l
   }
@@ -121,16 +146,46 @@ object RestTestSetUp {
     }
   }
 
-
-  def GET(path: String) = {
+  private[this] def mockRequest (path : String, method : String) = {
     val mockReq = new MockHttpServletRequest("http://localhost:8080")
-    mockReq.method = "GET"
+    mockReq.method = method
     mockReq.path = path
     mockReq
+  }
+  def GET(path: String) = mockRequest(path,"GET")
+  def DELETE(path: String) = mockRequest(path,"DELETE")
+
+  private[this] def mockJsonRequest (path : String, method : String, data : JValue) = {
+    val mockReq = mockRequest(path,method)
+    mockReq.body = data
+    mockReq
+  }
+
+  private[this] def mockDataRequest (path : String, method : String, data : Map[String,String]) = {
+    val mockReq = mockRequest(path,method)
+    mockReq.body = data.map{case (key,value) => s"$key=$value"}.mkString("\n")
+    mockReq
+  }
+
+  def jsonPUT(path: String, json : JValue) = {
+    mockJsonRequest(path,"PUT", json)
+  }
+
+  def jsonPOST(path: String, json : JValue) = {
+    mockJsonRequest(path,"POST", json)
   }
 
   def testGET[T](path: String)(tests: Req => MatchResult[T]) = {
     doReq(GET(path))(tests)
   }
-}
+  def testDELETE[T](path: String)(tests: Req => MatchResult[T]) = {
+    doReq(DELETE(path))(tests)
+  }
 
+  def testPUT[T](path: String, json : JValue)(tests: Req => MatchResult[T]) = {
+    doReq(jsonPUT(path, json))(tests)
+  }
+  def testPOST[T](path: String, json : JValue)(tests: Req => MatchResult[T]) = {
+    doReq(jsonPOST(path, json))(tests)
+  }
+}

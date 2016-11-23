@@ -97,8 +97,8 @@ class DirectiveAPI2 (
       implicit var action = "createDirective"
       for {
         restDirective <- restExtractor.extractDirective(req) ?~! s"Could not extract values from request."
-        directiveId <- restExtractor.extractId(req)(DirectiveId).map(_.getOrElse(DirectiveId(uuidGen.newUuid)))
-        optCloneId <- restExtractor.extractString("source")(req)(DirectiveId)
+        directiveId <- restExtractor.extractId(req)(x => Full(DirectiveId(x))).map(_.getOrElse(DirectiveId(uuidGen.newUuid)))
+        optCloneId <- restExtractor.extractString("source")(req)(x => Full(DirectiveId(x)))
         result = optCloneId match {
           case None =>
             apiV2.createDirective(directiveId,restDirective)
