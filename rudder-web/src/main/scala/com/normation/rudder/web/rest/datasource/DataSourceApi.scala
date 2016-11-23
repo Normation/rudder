@@ -35,41 +35,17 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.web.rest.datasource
 
-import org.junit._
-import org.junit.Assert._
-import org.junit.runner._
-import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner._
-
-import RestTestSetUp._
-import net.liftweb.common.Full
-import net.liftweb.http.PlainTextResponse
-import net.liftweb.common.Loggable
-import net.liftweb.http.JsonResponse
-import net.liftweb.http.LiftResponse
-import net.liftweb.common.Failure
-import net.liftweb.json.JsonAST
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.JsonAST.JArray
-import net.liftweb.json.JValue
-import com.normation.rudder.datasources.DataSource
+import com.normation.rudder.web.rest.RestAPI
+import org.joda.time.DateTime
+import net.liftweb.common._
+import com.normation.rudder.datasources._
+import com.normation.rudder.datasources.OneRequestAllNodes
+import com.normation.rudder.datasources.OneRequestByNode
 import org.joda.time.Seconds
-import com.normation.rudder.datasources.DataSourceName
-import net.liftweb.common.Box
-import com.normation.rudder.web.rest.datasource.DataSourceApi
+import scala.concurrent.duration.Duration
 
-@RunWith(classOf[JUnitRunner])
-class RestStatusTest extends Specification with Loggable {
-
-  "testing status REST API" should {
-    "be correct" in {
-      testGET("/api/status") { req =>
-       RestStatus(req)() must beEqualTo(Full(PlainTextResponse("OK")))
-      }
-    }
-  }
+trait DataSourceApi extends RestAPI {
+  val kind = "datasources"
 }

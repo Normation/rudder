@@ -58,6 +58,8 @@ import com.normation.rudder.web.rest.node.CustomDetailLevel
 import com.normation.rudder.web.rest.node.MinimalDetailLevel
 import com.normation.rudder.repository.FullActiveTechnique
 import scala.language.implicitConversions
+import com.normation.rudder.web.components.DateFormaterService
+import com.normation.rudder.datasources._
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest
@@ -86,6 +88,8 @@ trait RestDataSerializer {
   def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue
 
   def serializeTechnique(technique:FullActiveTechnique): JValue
+
+  def serializeDataSource(source : DataSource): JValue
 }
 
 case class RestDataSerializerImpl (
@@ -583,6 +587,49 @@ case class RestDataSerializerImpl (
   def serializeTechnique(technique:FullActiveTechnique): JValue = {
     (   ( "name"     -> technique.techniqueName.value )
       ~ ( "versions" ->  technique.techniques.map(_._1.toString ) )
+    )
+  }
+
+  def serializeDataSource(source : DataSource): JValue = {
+    ( ( "name"        -> source.name.value  )
+    ~ ( "id"        -> source.id.value  )
+    ~ ( "description" -> source.description )
+    ~ ( "type" -> (
+        ( "name" -> source.sourceType.name )
+        ~ { source.sourceType match {
+          case HttpDataSourceType(url,headers,method,checkSsl,path,mode,timeOut) =>
+            ( ( "url"        -> url     )
+            ~ ( "headers"    -> headers )
+            ~ ( "path"       -> path    )
+            ~ ( "checkSsl"   -> checkSsl )
+            ~ ( "requestTimeout"  -> timeOut.toString )
+            ~ ( "requestMode"  ->
+              ( ( "name" -> mode.name )
+              ~ { mode match {
+                  case OneRequestByNode =>
+                    JObject(Nil)
+                  case OneRequestAllNodes(subPath,nodeAttribute) =>
+                    ( ( "path" -> subPath)
+                    ~ ( "attribute" -> nodeAttribute)
+                    )
+              } } )
+            ) )
+          }
+        } )
+      )
+    ~ ( "runParam" -> (
+        ( "onGeneration" -> source.runParam.onGeneration )
+      ~ ( "onNewNode"    -> source.runParam.onNewNode )
+      ~ ( "schedule"     -> (
+          ( "type" -> (source.runParam.schedule match {
+                          case _:Scheduled => "scheduled"
+                          case _:NoSchedule => "notscheduled"
+                        } ) )
+        ~ ( "duration" -> source.runParam.schedule.duration.toString())
+        ) )
+      ) )
+    ~ ( "updateTimeOut" -> source.updateTimeOut.toString )
+    ~ ( "enabled"    -> source.enabled )
     )
   }
 
