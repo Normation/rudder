@@ -103,12 +103,12 @@ class TestReportParsing extends Specification with Loggable {
     }
   }
 
-  "Machine with two ips for one interfaces" should {
+  "Machine with four ips (two v4, two v6) for one interfaces" should {
 
     val report = parser.parse("fusion-report/centos-with-two-ip-for-one-interface.ocs")
 
     "lead to a node with two ips for eth0" in {
-      report.node.networks.find( _.name == "eth0").get.ifAddresses.size must beEqualTo(2)
+      report.node.networks.find( _.name == "eth0").get.ifAddresses.size must beEqualTo(4)
     }
   }
 
