@@ -237,6 +237,10 @@ class SystemVariableServiceImpl(
 
     val varRudderServerRole = systemVariableSpecService.get("RUDDER_SERVER_ROLES").toVariable().copyWithSavedValue(varRoleMappingValue)
 
+    // we need to know the mapping between policy servers and their children - do it one time for all nodes.
+    val childrenByPolicyServer = allNodeInfos.values.toList.groupBy( _.policyServerId )
+
+
     if (nodeInfo.isPolicyServer) {
       nodeConfigurationRoles.add(ServerRole("policy_server"))
       if (nodeInfo.id == nodeInfo.policyServerId) {
@@ -339,16 +343,38 @@ class SystemVariableServiceImpl(
       // Find the "policy children" of this policy server
       // thanks to the allNodeInfos, this is super easy
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
-      val children = allNodeInfos.filter{ case(k,v) => v.policyServerId == nodeInfo.id }.values.toSeq.sortBy( _.id.value )
+      val children = childrenByPolicyServer.getOrElse(nodeInfo.id, Nil).sortBy( _.id.value )
 
-      val varManagedNodes = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable(children.map(_.hostname))
-      val varManagedNodesId = systemVariableSpecService.get("MANAGED_NODES_ID").toVariable(children.map(_.id.value))
-      val varManagedNodesKey = systemVariableSpecService.get("MANAGED_NODES_KEY").toVariable(children.map(n => s"MD5=${n.cfengineKeyHash}"))
+      val varManagedNodes      = systemVariableSpecService.get("MANAGED_NODES_NAME" ).toVariable(children.map(_.hostname))
+      val varManagedNodesId    = systemVariableSpecService.get("MANAGED_NODES_ID"   ).toVariable(children.map(_.id.value))
+      val varManagedNodesKey   = systemVariableSpecService.get("MANAGED_NODES_KEY"  ).toVariable(children.map(n => s"MD5=${n.cfengineKeyHash}"))
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(children.map(_.localAdministratorAccountName).distinct.sorted)
 
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
-      val varManagedNodesIp = systemVariableSpecService.get("MANAGED_NODES_IP").toVariable(children.flatMap(_.ips).distinct.sorted)
+      val varManagedNodesIp = systemVariableSpecService.get("MANAGED_NODES_IP"      ).toVariable(children.flatMap(_.ips).distinct.sorted)
+
+      // same kind of variable but for ALL cildrens, not only direct one:
+      val allChildren = {
+         //utility to add children of a list of nodes
+        def addWithSubChildren(nodes: List[NodeInfo]): List[NodeInfo] = {
+          nodes.flatMap(n =>
+            n :: {
+              childrenByPolicyServer.get(n.policyServerId) match {
+                case None           => Nil
+                case Some(children) => addWithSubChildren(children)
+              }
+            }
+          )
+        }
+        addWithSubChildren(children)
+      }
+
+      val varSubNodesName    = systemVariableSpecService.get("SUB_NODES_NAME"   ).toVariable(allChildren.map(_.hostname))
+      val varSubNodesId      = systemVariableSpecService.get("SUB_NODES_ID"     ).toVariable(allChildren.map(_.id.value))
+      val varSubNodesServer  = systemVariableSpecService.get("SUB_NODES_SERVER" ).toVariable(allChildren.map(_.policyServerId.value))
+      val varSubNodesKeyhash = systemVariableSpecService.get("SUB_NODES_KEYHASH").toVariable(allChildren.map(n => s"sha256:${n.sha256KeyHash}"))
+
 
       //Reports DB (postgres) DB name and DB user
       val varReportsDBname = systemVariableSpecService.get("RUDDER_REPORTS_DB_NAME").toVariable(Seq(reportsDbName))
