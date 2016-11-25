@@ -52,6 +52,7 @@ import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.inventory.domain.FullInventory
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonParser.ParseException
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -94,6 +95,65 @@ case class NodeProperty(name: String, value: JValue) {
     case JString(s) => s
     case v          => net.liftweb.json.compactRender(v)
   }
+}
+
+object NodeProperty {
+
+  import net.liftweb.json.parse
+  import net.liftweb.json.JsonAST.{JNothing, JString}
+
+  /**
+   * A builder with the logic to handle the value part.
+   *
+   * For compatibity reason, we want to be able to process
+   * empty (JNothing) and primitive types, especially string, specificaly as
+   * a JString *but* a string representing and actual JSON should be
+   * used as json.
+   */
+  def apply(name: String, value: String): NodeProperty = {
+    try {
+      val v = parse(value) match {
+        case JNothing => JString("")
+        case json     => json
+      }
+      NodeProperty(name, v)
+    } catch {
+      case ex: ParseException =>
+        // in that case, we didn't had a valid json top-level structure,
+        // i.e either object or array. Use a JString with the content
+        NodeProperty(name, JString(value))
+    }
+  }
+}
+
+
+object CompareProperties {
+  /**
+   * Update a set of properties with the map:
+   * - if a key of the map matches a property name,
+   *   use the map value for the key as value for
+   *   the property
+   * - if the value is the emtpy string, remove
+   *   the property
+   */
+  def updateProperties(props: Seq[NodeProperty], updates: Option[Seq[NodeProperty]]) = {
+    updates match {
+      case None => props
+      case Some(u) =>
+        val values = u.map { case NodeProperty(k, v) => (k, v)}.toMap
+        val existings = props.map(_.name).toSet
+        //for news values, don't keep empty
+        val news = (values -- existings).collect { case(k,v) if(v != JString("")) => NodeProperty(k,v) }
+        props.flatMap { case p@NodeProperty(name, value)  =>
+          values.get(name) match {
+            case None              => Some(p)
+            case Some(JString("")) => None
+            case Some(x)           => Some(NodeProperty(name, x))
+          }
+        } ++ news
+    }
+  }
+
 }
 
 /**

@@ -77,6 +77,12 @@ object Doobie {
     case -\/(e) => Failure(e.getMessage, Full(e), Empty)
     case \/-(a) => Full(a)
   }
+  implicit class XorToBox[A](res: \/[Throwable, A]) {
+    def box = res match {
+      case -\/(e) => Failure(e.getMessage, Full(e), Empty)
+      case \/-(a) => Full(a)
+    }
+  }
 
   /*
    * Doobie is missing a Query0 builder, so here is simple one.
