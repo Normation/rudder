@@ -1120,9 +1120,13 @@ function createChangeRequestTable(gridId, data, contextPath, refresh) {
     , "sTitle": "#"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).empty();
+        $(nTd).addClass("link");
         var editLink = $("<a />");
+        var iconNext =  $("<i />");
+        iconNext.addClass("fa fa-arrow-right");
         editLink.attr("href",contextPath +'/secure/utilities/changeRequest/'+sData);
         editLink.text(sData);
+        editLink.append(iconNext);
         $(nTd).append(editLink);
       }
   } , {
