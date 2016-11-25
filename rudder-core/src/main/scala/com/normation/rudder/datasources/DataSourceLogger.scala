@@ -4,7 +4,7 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.logger
+package com.normation.rudder.datasources
 
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
@@ -43,6 +43,10 @@ import net.liftweb.common.Logger
 /**
  * Applicative log of interest for Rudder ops.
  */
-object ApplicationLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("application")
+object DataSourceLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("datasources")
+}
+
+object DataSourceTimingLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("datasources-timing")
 }

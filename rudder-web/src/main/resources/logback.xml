@@ -365,6 +365,29 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
    -->
   <logger name="com.normation.rudder.services.quicksearch" level="info" />
 
+  <!--
+    Datasource
+    ==========
+    Information about data source. 
+    "datasources" log what data source are fetched when (info level for updates start, 
+    error level for errors, debug/trace for non error returned value).
+    
+    "datasource-timing" give information about how long it takes to fetch data from
+    data source. Debug level is at the data source action level (ex: how long it takes
+    to update all nodes), trace times each http request individualy. It can be very
+    verbose if you have a couple of thousand of nodes with a "node by node" query type.
+  -->
+  <logger name="datasources" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
+    <appender-ref ref="STDOUT" />
+  </logger>
+  <logger name="datasources-timing" level="off" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
+    <appender-ref ref="STDOUT" />
+  </logger>
+
 
   <!-- ==================================================== -->
   <!-- YOU SHOULD NOT HAVE TO CHANGE THINGS BELOW THAT LINE -->

@@ -66,6 +66,7 @@ import net.liftweb.http.S
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.web.rest.datasource._
 import net.liftweb.json.JsonAST.JValue
+import com.normation.rudder.datasources.MemoryDataSourceRepository
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
