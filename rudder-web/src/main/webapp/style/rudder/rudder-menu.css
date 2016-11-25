@@ -961,6 +961,11 @@ a.sidebar-toggle{
   margin:10px 40px 30px;
 }
 
+/* --- EVENT LOGS PAGE --- */
+pre.technical-details{
+  white-space: pre-wrap;
+}
+
 /* --- TECHNIQUES PAGE --- */
 #editForm table{
   width:100%;
