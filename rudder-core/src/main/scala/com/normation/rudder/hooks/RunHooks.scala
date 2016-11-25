@@ -198,7 +198,6 @@ object RunHooks {
             HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission?")
             None
           }
-        case _ => None
       } }.sorted // sort them alphanumericaly
       Hooks(basePath, files)
      }

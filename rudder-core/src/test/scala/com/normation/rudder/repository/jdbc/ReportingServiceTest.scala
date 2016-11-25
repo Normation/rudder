@@ -107,6 +107,7 @@ import com.normation.rudder.repository.ComplianceRepository
  */
 @RunWith(classOf[JUnitRunner])
 class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
+  self =>
 
   import ReportType._
   import doobie._
@@ -167,7 +168,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
     def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = null
-    def nodeInfoService: NodeInfoService = nodeInfoService
+    def nodeInfoService: NodeInfoService = self.nodeInfoService
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = null
     def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     override def invalidate(nodeIds: Set[NodeId]) = Full(Map())

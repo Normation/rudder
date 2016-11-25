@@ -92,6 +92,9 @@ import org.joda.time.format.DateTimeFormatter
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.hooks.HookParameters
 import com.normation.rudder.hooks.HookParameter
+import ch.qos.logback.core.db.DataSourceConnectionSource
+import com.normation.rudder.datasources.DataSourceUpdateCallbacks
+import com.normation.rudder.datasources.DataSourceUpdateCallbacks
 
 /**
  * The main service which deploy modified rules and
@@ -121,6 +124,12 @@ trait PromiseGenerationService extends Loggable {
       _                   <- RunHooks.syncRun(preHooks, HookParameters.build { ("RUDDER_GENERATION_DATETIME", generationTime.toString) } )
       timeRunPreGenHooks  =  (System.currentTimeMillis - initialTime)
       _                   =  logger.debug(s"Post-policy-generation hooks ran in ${timeRunPreGenHooks} ms")
+
+      // updating node properties from data source must be node before getting node info
+      fetchDatasourcesTime =  System.currentTimeMillis
+      _                    =  datasourceCallbacks.onGenerationStarted(generationTime)
+      timeFetchDatasources =  (System.currentTimeMillis - fetchDatasourcesTime)
+      _                    =  logger.debug(s"All data fetched from data source in ${timeFetchDatasources} ms, start getting all generation related data.")
 
       fetch0Time          =  System.currentTimeMillis
       allRules            <- findDependantRules() ?~! "Could not find dependant rules"
@@ -274,6 +283,8 @@ trait PromiseGenerationService extends Loggable {
   def getAgentRunStartMinute : () => Box[Int]
   def getScriptEngineEnabled : () => Box[FeatureSwitch]
   def getGlobalPolicyMode    : () => Box[GlobalPolicyMode]
+
+  def datasourceCallbacks: DataSourceUpdateCallbacks
 
   // base folder for hooks. It's a string because there is no need to get it from config
   // file, it's just a constant.
@@ -460,6 +471,7 @@ class PromiseGenerationServiceImpl (
   , override val agentRunService : AgentRunIntervalService
   , override val complianceCache  : CachedFindRuleNodeStatusReports
   , override val promisesFileWriterService: Cf3PromisesFileWriterService
+  , override val datasourceCallbacks: DataSourceUpdateCallbacks
   , override val getAgentRunInterval: () => Box[Int]
   , override val getAgentRunSplaytime: () => Box[Int]
   , override val getAgentRunStartHour: () => Box[Int]

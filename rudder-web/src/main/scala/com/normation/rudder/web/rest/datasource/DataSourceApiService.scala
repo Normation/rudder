@@ -47,29 +47,6 @@ import scala.concurrent.duration.Duration
 import net.liftweb.http.Req
 import scala.concurrent.duration.FiniteDuration
 
-class MemoryDataSourceRepository extends DataSourceRepository {
-
-  private[this] var sources : Map[DataSourceId,DataSource] = Map()
-
-  def getAll() = Full(sources)
-
-  def get(id : DataSourceId) : Box[Option[DataSource]]= Full(sources.get(id))
-
-  def save(source : DataSource) = {
-    sources = sources +  ((source.id,source))
-    Full(source)
-  }
-  def delete(id : DataSourceId) : Box[DataSource] = {
-    sources.get(id) match {
-      case Some(source) =>
-        sources = sources - (id)
-        Full(source)
-      case None =>
-        Failure(s"Data source '${id}' does not exists, and thus can't be deleted")
-    }
-  }
-}
-
 class DataSourceApiService(
     dataSourceRepo     : DataSourceRepository
   , restDataSerializer : RestDataSerializer
