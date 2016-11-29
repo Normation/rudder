@@ -201,6 +201,8 @@ object RestUtils extends Loggable {
     toJsonError(None, JString(s"Version ${version} exists for this API function, but it's implementation is missing"))(action,false)
    }
 
+  def unauthorized = effectiveResponse(None, JString("You are not authorized to access that API"),ForbiddenError, "",false)
+
   def response (restExtractor : RestExtractorService, dataName: String, id : Option[String]) (function : Box[JValue], req : Req, errorMessage : String) (implicit action : String) : LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     function match {
