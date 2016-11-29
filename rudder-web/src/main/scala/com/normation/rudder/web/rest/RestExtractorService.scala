@@ -579,6 +579,7 @@ case class RestExtractorService (
       enabled     <- extractOneValue(params, "enabled")( convertToBoolean)
       dynamic     <- extractOneValue(params, "dynamic")( convertToBoolean)
       query       <- extractOneValue(params, "query")(convertToQuery)
+      _           <- if (query.map(_.criteria.size > 0).getOrElse(true)) Full("Query has at least one criteria") else Failure("Query should containt at least one criteria")
       category    <- extractOneValue(params, "category")(convertToGroupCategoryId)
     } yield {
       RestGroup(name,description,query,dynamic,enabled,category)
@@ -764,6 +765,7 @@ case class RestExtractorService (
       dynamic     <- extractJsonBoolean(json, "dynamic")
       stringQuery <- queryParser.jsonParse(json \\ "query")
       query       <- queryParser.parse(stringQuery)
+      _           <- if (query.criteria.size > 0) Full("Query has at least one criteria") else Failure("Query should containt at least one criteria")
       category    <- extractOneValueJson(json, "category")(convertToGroupCategoryId)
     } yield {
       RestGroup(name,description,Some(query),dynamic,enabled,category)
@@ -835,6 +837,7 @@ case class RestExtractorService (
       case Full(None) =>
         extractOneValue(params,CRITERIA)(convertToQueryCriterion) match {
           case Full(None) => Full(None)
+          case Full(Some(Nil)) => Failure("Query should at least contain one criteria")
           case Full(Some(criterion)) =>
             for {
               // Target defaults to NodeReturnType
