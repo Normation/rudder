@@ -58,6 +58,12 @@ trait RestAPI  extends RestHelper{
   def kind : String
 
   def requestDispatch(apiVersion : ApiVersion): PartialFunction[Req, () => Box[LiftResponse]]
+  def secureRequestDispatch(apiVersion : ApiVersion): PartialFunction[Req, () => Box[LiftResponse]] = {
+    case req =>
+      if (checkSecure(req)) requestDispatch(apiVersion)(req) else RestUtils.unauthorized
+  }
+
+  protected def checkSecure : PartialFunction[Req, Boolean] = { case _ => false}
 
 }
 
@@ -79,7 +85,7 @@ case class APIDispatcher (
         apis.foreach{
           api =>
             serve("api" / s"${version}" / s"${api.kind}" prefix api.requestDispatch(v)  )
-            serve("secure" / "api" / s"${version}" / s"${api.kind}" prefix api.requestDispatch(v)  )
+            serve("secure" / "api" / s"${version}" / s"${api.kind}" prefix api.secureRequestDispatch(v)  )
         }
     }
 
@@ -89,7 +95,7 @@ case class APIDispatcher (
       api =>
         // ... and Dispatch it
         serve("api" / "latest" / s"${api.kind}" prefix api.requestDispatch(latest))
-        serve("secure" / "api" / "latest" / s"${api.kind}" prefix api.requestDispatch(latest))
+        serve("secure" / "api" / "latest" / s"${api.kind}" prefix api.secureRequestDispatch(latest))
     }
 
     // regroup api by kind, to be able to dispatch header api version
