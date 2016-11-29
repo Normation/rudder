@@ -67,9 +67,18 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.reports.ComplianceModeName
 import net.liftweb.common.EmptyBox
 import net.liftweb.json.JsonAST._
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.authorization._
 
 trait SettingsApi extends RestAPI {
   val kind = "settings"
+
+  override protected def checkSecure : PartialFunction[Req, Boolean] = {
+    case Get(_,_) => CurrentUser.checkRights(Read("administration"))
+    case Post(_,_) | Put(_,_) | Delete(_,_) => CurrentUser.checkRights(Write("administration")) || CurrentUser.checkRights(Edit("administration"))
+    case _=> false
+
+  }
 }
 
 class SettingsAPI8(
