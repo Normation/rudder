@@ -145,7 +145,6 @@ class RoLDAPNodeGroupRepository(
     }
   }
 
-
   def getGroupsByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
     groupLibMutex.readLock { for {
       allCats        <- getAllGroupCategories(includeSystem)
@@ -242,8 +241,6 @@ class RoLDAPNodeGroupRepository(
             category.isSystem
          )
 
-
-
          if ((newCategory.items.size == 0) && (newCategory.children.size==0))
             return Empty
          else {
@@ -266,7 +263,6 @@ class RoLDAPNodeGroupRepository(
         case e:EmptyBox => e
     }
   }
-
 
   /**
    * Get a group category by its id
@@ -296,7 +292,6 @@ class RoLDAPNodeGroupRepository(
       addSubEntries(parentCategory, parentCategoryEntry.dn, con)
     }  }
   }
-
 
   def getParents_NodeGroupCategory(id:NodeGroupCategoryId) : Box[List[NodeGroupCategory]] = {
      //TODO : LDAPify that, we can have the list of all DN from id to root at the begining (just dn.getParent until rudderDit.NOE_GROUP.dn)
@@ -351,7 +346,6 @@ class RoLDAPNodeGroupRepository(
       SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]() ++ catsWithUPs
     }
   }
-
 
   /**
    * Fetch the parent category of the NodeGroup
@@ -421,7 +415,6 @@ class RoLDAPNodeGroupRepository(
     findGroupWithFilter(filter)
   }
 
-
   /**
    * Get the full group tree with all information
    * for categories and groups.
@@ -451,13 +444,11 @@ class RoLDAPNodeGroupRepository(
       )
     }
 
-
     /*
      * strategy: load the full subtree from the root category id,
      * then process entrie mapping them to their light version,
      * then call fromCategory on the root (we know its id).
      */
-
 
     val emptyAll = AllMaps(Map(), Map(), Map())
     import rudderDit.GROUP._
@@ -571,29 +562,29 @@ class WoLDAPNodeGroupRepository(
     }
   }
 
-
   /**
-   * Check if a nodeGroup exist with the given name
+   * Check if a nodeGroup exists(id already exists) and name is unique
    */
-  private[this] def nodeGroupExists(con:RoLDAPConnection, name : String) : Boolean = {
-    con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), EQ(A_NAME, name)), A_NODE_GROUP_UUID).size match {
+  private[this] def checkNodeGroupExists(con:RoLDAPConnection, group : NodeGroup) : Boolean = {
+    con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), OR(EQ(A_NODE_GROUP_UUID, group.id.value),EQ(A_NAME, group.name))), A_NODE_GROUP_UUID).size match {
       case 0 => false
       case 1 => true
-      case _ => logger.error("More than one nodeGroup has %s name".format(name)); true
+      case _ => logger.error(s"There is more than one node group with id '${group.id.value}' or name '${group.name}'")
+                true
     }
   }
 
   /**
    * Check if another nodeGroup exist with the given name
    */
-  private[this] def nodeGroupExists(con:RoLDAPConnection, name : String, id: NodeGroupId) : Boolean = {
+  private[this] def checkNameAlreadyInUse(con:RoLDAPConnection, name : String, id: NodeGroupId) : Boolean = {
     con.searchSub(rudderDit.GROUP.dn, AND(NOT(EQ(A_NODE_GROUP_UUID, id.value)), AND(EQ(A_OC, OC_RUDDER_NODE_GROUP), EQ(A_NAME, name))), A_NODE_GROUP_UUID).size match {
       case 0 => false
       case 1 => true
-      case _ => logger.error("More than one nodeGroup has %s name".format(name)); true
+      case _ => logger.error(s"More than one node group has '${name}' name")
+                true
     }
   }
-
 
   private[this] def getContainerDn(con : RoLDAPConnection, id: NodeGroupCategoryId) : Box[DN] = {
     groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_GROUP_CATEGORY), EQ(A_GROUP_CATEGORY_UUID, id.value)), A_GROUP_CATEGORY_UUID).toList match {
@@ -701,7 +692,6 @@ class WoLDAPNodeGroupRepository(
     } }
   }
 
-
   /**
    * Delete the category with the given id.
    * If no category with such id exists, it is a success.
@@ -757,8 +747,10 @@ class WoLDAPNodeGroupRepository(
   override def create(nodeGroup: NodeGroup, into: NodeGroupCategoryId, modId: ModificationId, actor:EventActor, reason:Option[String]): Box[AddNodeGroupDiff] = {
     for {
       con           <- ldap
-      exists        <- if (nodeGroupExists(con, nodeGroup.name)) Failure("Cannot create a group with name %s : there is already a group with the same name".format(nodeGroup.name))
-                       else Full(Unit)
+      exists        <- if (checkNodeGroupExists(con, nodeGroup))
+                         Failure(s"Cannot create a group '${nodeGroup.name}': a group with the same id (${nodeGroup.id.value}) or name already exists")
+                       else
+                         Full(Unit)
       categoryEntry <- getCategoryEntry(con, into) ?~! "Entry with ID '%s' was not found".format(into)
       entry         =  rudderDit.GROUP.groupModel(
                            nodeGroup.id.value
@@ -786,7 +778,6 @@ class WoLDAPNodeGroupRepository(
     }
   }
 
-
   private[this] def internalUpdate(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean, onlyUpdateNodes: Boolean): Box[Option[ModifyNodeGroupDiff]] = this.synchronized {
     for {
       con          <- ldap
@@ -799,8 +790,10 @@ class WoLDAPNodeGroupRepository(
                         case (false, true) => Failure("You can not modify a non system group (%s) with that method".format(oldGroup.name))
                         case _ => Full(oldGroup)
                       }
-      exists       <- if (nodeGroupExists(con, nodeGroup.name, nodeGroup.id)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(nodeGroup.name))
-                      else Full(Unit)
+      exists       <- if (checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id))
+                        Failure(s"Cannot change the group name to ${nodeGroup.name} : there is already a group with the same name")
+                      else
+                        Full(Unit)
       onlyNodes    <- if(!onlyUpdateNodes) {
                         Full("ok")
                       } else { //check that nothing but the node list changed
@@ -844,7 +837,6 @@ class WoLDAPNodeGroupRepository(
     internalUpdate(group, modId, actor, reason, true, true)
   }
 
-
   override def update(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
     internalUpdate(nodeGroup, modId, actor, reason, false, false)
   }
@@ -868,8 +860,10 @@ class WoLDAPNodeGroupRepository(
       systemCheck  <- if(oldGroup.isSystem) Failure("You can not move system group") else Full("OK")
 
       groupRDN     <- Box(existing.rdn) ?~! "Error when retrieving RDN for an exising group - seems like a bug"
-      exists       <- if (nodeGroupExists(con, oldGroup.name, nodeGroupId)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(oldGroup.name))
-                        else Full(Unit)
+      exists       <- if (checkNameAlreadyInUse(con, oldGroup.name, nodeGroupId))
+                        Failure(s"Cannot change the group name to ${oldGroup.name}: there is already a group with the same name")
+                      else
+                        Full(Unit)
       newParentDn  <- getContainerDn(con, containerId) ?~! "Couldn't find the new parent category when updating group %s".format(oldGroup.name)
       result       <- groupLibMutex.writeLock { con.move(existing.dn, newParentDn) }
       optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result)
@@ -892,8 +886,6 @@ class WoLDAPNodeGroupRepository(
       optDiff
     }
   }
-
-
 
   /**
    * Delete the given nodeGroup.
