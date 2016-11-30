@@ -49,7 +49,7 @@ def render(opts, args):
     try:
         data = json.loads(data)
     except ValueError as err:
-        sys.stderr.write(err)
+        sys.stderr.write(str(err))
         sys.exit(1)
 
     # keep_trailing_newline appeared in jinja 2.7, see http://jinja.pocoo.org/docs/dev/api/
