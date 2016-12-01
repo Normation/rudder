@@ -53,9 +53,9 @@ bundle agent check
   vars:
     "owner_id"                  int => getuid("${init.owner}");
     "group_id"                  int => getgid("${init.group}");
-    "permissions_test_mode"  string => "/usr/bin/test $(${test_utils.file_perms} ${init.file}) = \"${init.mode}\"";
-    "permissions_test_owner" string => "/usr/bin/test $(${test_utils.file_owner} ${init.file}) = \"${owner_id}\"";
-    "permissions_test_group" string => "/usr/bin/test $(${test_utils.file_group} ${init.file}) = \"${group_id}\"";
+    "permissions_test_mode"  string => "/usr/bin/test ${const.dollar}(${test_utils.file_perms} ${init.file}) = \"${init.mode}\"";
+    "permissions_test_owner" string => "/usr/bin/test ${const.dollar}(${test_utils.file_owner} ${init.file}) = \"${owner_id}\"";
+    "permissions_test_group" string => "/usr/bin/test ${const.dollar}(${test_utils.file_group} ${init.file}) = \"${group_id}\"";
 
   classes:
     # By default, permissions_type_recursion should create the file if it doesn't exist
