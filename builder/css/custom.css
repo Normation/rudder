@@ -436,3 +436,57 @@ i.glyphicon.glyphicon-circle-arrow-down.icon-margin.method-actions.ng-hide,i.gly
   display: inline-block !important;
   visibility: hidden;
 }
+span.saving{
+  position: absolute;
+  display: none;
+  top: 10px;
+  left: 10px;
+  font-size: 14px;
+  -webkit-animation: saving 2s linear infinite;
+  -moz-animation: saving 2s linear infinite;
+  -ms-animation: saving 2s linear infinite;
+  -o-animation: saving 2s linear infinite;
+  animation: saving 2s linear infinite;
+}
+button.btn-save{
+  position: relative;
+}
+button.btn-save.saving{
+  padding-left: 30px;
+}
+button.btn-save.saving span.saving{
+  display: inline-block;
+}
+
+@-webkit-keyframes saving {
+  0% {
+    -ms-transform: rotate(0deg);
+    -moz-transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -ms-transform: rotate(360deg);
+    -moz-transform: rotate(360deg);
+    -webkit-transform: rotate(360deg);
+    -o-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes saving {
+  0% {
+    -ms-transform: rotate(0deg);
+    -moz-transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -ms-transform: rotate(360deg);
+    -moz-transform: rotate(360deg);
+    -webkit-transform: rotate(360deg);
+    -o-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}

@@ -194,6 +194,8 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
 
   $scope.CForm = {};
 
+  $scope.saving = false;
+
   $scope.setPath = function() {
     var path = $location.search().path;
     if (path === undefined) {
@@ -819,6 +821,7 @@ $scope.groupMethodsByCategory = function () {
     // Update selected technique if it's still the same technique
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
+      $scope.saving = false;
       // Transform back ncfTechnique to UITechnique, that will make it ok
       var savedTechnique = toTechUI(ncfTechnique);
 
@@ -843,16 +846,20 @@ $scope.groupMethodsByCategory = function () {
         $scope.techniques[index] = savedTechnique;
       }
     }
-
+    var saveError = function(action, data) {
+      $scope.saving = false;
+      $scope.handle_error("while "+action+" Technique '"+ data.technique.name+"'")
+    }
     // Actually save the technique through API
+    $scope.saving = true;
     if ($scope.originalTechnique.bundle_name === undefined) {
       $http.post("/ncf/api/techniques", data).
         success(saveSuccess).
-        error($scope.handle_error("while creating Technique '"+ data.technique.name+"'"));
+        error(saveError("creating", data));
     } else {
       $http.put("/ncf/api/techniques", data).
         success(saveSuccess).
-        error($scope.handle_error("while saving Technique '"+ data.technique.name+"'"));
+        error(saveError("saving",data));
     }
   };
 
