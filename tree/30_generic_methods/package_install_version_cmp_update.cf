@@ -72,7 +72,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
-                        package_method  => apt_get,
+                        package_method  => apt_get_version,
                         classes         => classes_generic("${class_prefix}"),
                         action          => policy("${action}");
 
@@ -132,7 +132,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
-                        package_method  => ncf_generic,
+                        package_method  => ncf_generic_version,
                         classes         => classes_generic("${class_prefix}"),
                         action          => policy("${action}");
 
@@ -141,7 +141,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
-                        package_method  => ncf_generic,
+                        package_method  => ncf_generic_version,
                         classes         => classes_generic("${class_prefix}"),
                         action          => policy("${action}");
 
