@@ -739,3 +739,11 @@ form .tw-bs input {
 #new_servers_tab #lift__noticesContainer___error ul{
   margin-bottom:0;
 }
+.tw-bs .monospace-font{
+  font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+  word-break: break-all;
+  word-wrap: break-word;
+}
+.tw-bs textarea.monospace-font{
+  min-height:100px;
+}
