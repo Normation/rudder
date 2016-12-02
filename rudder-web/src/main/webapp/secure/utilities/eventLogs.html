@@ -1,38 +1,41 @@
 <lift:surround with="common-layout" at="content">
 
-<head>
-<title>Rudder - View logs</title>
+  <head>
+    <title>Rudder - View logs</title>
+    <style>
+      pre.technical-details{
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
 
-</head>
+  <div class="portlet">
+    <div class="inner-portlet">
+      <div class="page-title">Event Logs</div>
+      <div class="portlet-content">
+        <hr class="spacer"/>
 
-<div class="portlet">
-      <div class="inner-portlet">
-        <div class="page-title">Event Logs</div>
-  <div class="portlet-content">
-    <hr class="spacer"/>
+        <div class="lift:administration.EventLogsViewer.display"></div>
 
-    <div class="lift:administration.EventLogsViewer.display">
+        <span id="eventLogsError"></span>
+        <div id="filterLogs" class="tw-bs space-top hide">
+          Get event logs between
+          <input type="text" class="pickStartInput form-control input-xs"/>
+          and
+          <input type="text" class="pickEndInput form-control input-xs"/>
+          <button id="filterLogsButton" type="button" class="btn btn-default btn-sm pickDatesButton" title="Get Events">Get events</button>
+        </div>
+
+        <table id="eventLogsGrid" class="display" cellspacing="0"></table>
+
+        <div id="eventDetailPopup" class="nodisplay">
+          <lift:ignore>
+            This div gets the content of the eventDetailPopup injected within
+          </lift:ignore>
+        </div>
+
+      </div>
     </div>
-    <span id="eventLogsError"></span>
-    <div id="filterLogs" class="tw-bs space-top hide">
-      Get event logs between
-      <input type="text" class="pickStartInput form-control input-xs"/>
-       and
-      <input type="text" class="pickEndInput form-control input-xs"/>
-      <button id="filterLogsButton" type="button" class="btn btn-default btn-sm pickDatesButton" title="Get Events">Get events</button>
-    </div>
-    <table id="eventLogsGrid" class="display" cellspacing="0">
-    </table>
-
-    <div id="eventDetailPopup" class="nodisplay">
-      <lift:ignore>
-      This div gets the content of the eventDetailPopup injected within
-    </lift:ignore>
-    </div>
-
-
- </div>
- </div>
-</div>
+  </div>
 </lift:surround>
 
