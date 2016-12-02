@@ -895,6 +895,25 @@ a.sidebar-toggle{
 .skin-yellow.sidebar-collapse .directive-footer {
   width: 63.2%;
 }
+/* CHANGE REQUESTS PAGE */
+.dataTable tr > td.link a {
+  text-decoration: none !important;
+  display: block;
+}
+.dataTable tr > td.link a i.fa{
+  float:right;
+  position:relative;
+  visibility:hidden;
+  color:#555;
+  top:1px;
+}
+.dataTable tr > td.link a:hover i.fa{
+  visibility:visible;
+  -webkit-animation: bounceH .8s ease infinite;
+  -moz-animation: bounceH .8s ease infinite;
+  -o-animation: bounceH .8s ease infinite;
+  animation: bounceH .8s ease infinite;
+}
 
 /* --- CHANGE REQUEST PAGE --- */
 #changeRequestHeader{
@@ -912,6 +931,9 @@ a.sidebar-toggle{
   margin-bottom:5px;
   font-style:italic;
   color: #777;
+}
+#backButton{
+  box-shadow:none !important;
 }
 #backButton > span{
   margin-right: 5px;
