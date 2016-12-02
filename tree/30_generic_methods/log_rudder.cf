@@ -149,7 +149,9 @@ bundle agent _create_current_expected_reports_file {
       "${log_rudder.expected_reports_file}"
         create        => "true",
         edit_defaults => no_backup,
-        edit_line     => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]};;${reports[${keys}][5]};;${reports[${keys}][6]}"),
+        # We use const.dollar for the two last fields to stay compatible with CFEngine 3.10 which skips undefined nested variables.
+        # We will need a mecanism to insert their value when they are defined to be able to enable promiser stack-based reporting.
+        edit_line     => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]};;${const.dollar}{reports[${keys}][5]};;${const.dollar}{reports[${keys}][6]}"),
         classes       => classes_generic("logger_rudder_final_resfile");
 }
 
