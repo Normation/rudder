@@ -91,6 +91,7 @@ import com.normation.rudder.datasources.DataSourceRunParameters
 import com.normation.rudder.datasources.DataSourceSchedule
 import com.normation.rudder.datasources.Scheduled
 import com.normation.rudder.datasources.NoSchedule
+import com.normation.rudder.repository.json._
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -102,73 +103,22 @@ case class RestExtractorService (
   , workflowService      : WorkflowService
 ) extends Loggable {
 
+  import OptionnalJson._
   /*
    * Params Extractors
    */
-  private[this] def extractOneValue[T] (params : Map[String,List[String]], key : String)( convertTo : (String) => Box[T] = ( (value:String) => Full(value))) = {
+  private[this] def extractOneValue[T] (params : Map[String,List[String]], key : String)( to : (String) => Box[T] = ( (value:String) => Full(value))) = {
     params.get(key) match {
       case None               => Full(None)
-      case Some(value :: Nil) => convertTo(value).map(Some(_))
+      case Some(value :: Nil) => to(value).map(Some(_))
       case _                  => Failure(s"updateRule should contain only one value for $key")
     }
   }
 
-  private[this] def extractList[T] (params : Map[String,List[String]], key: String)(convertTo: (List[String]) => Box[T] = ( (values:List[String]) => Full(values))) : Box[Option[T]] = {
+  private[this] def extractList[T] (params : Map[String,List[String]], key: String)(to: (List[String]) => Box[T] = ( (values:List[String]) => Full(values))) : Box[Option[T]] = {
     params.get(key) match {
       case None       => Full(None)
-      case Some(list) => convertTo(list).map(Some(_))
-    }
-  }
-
-  /*
-   * JSON extractors
-   */
-  private[this] def extractOneValueJson[T](json:JValue, key:String )( convertTo : (String) => Box[T] = ( (value:String) => Full(value))) = {
-    json \\ key match {
-      case JString(value) => convertTo(value).map(Some(_))
-      case JObject(Nil)   => Full(None)
-      case _              => Failure(s"Not a good value for parameter ${key}")
-    }
-  }
-
-  private[this] def extractJsonBoolean(json:JValue, key:String ) = {
-    json \\ key match {
-      case JBool(value)   => Full(Some(value))
-      case JObject(Nil)   => Full(None)
-      case _              => Failure(s"Not a good value for parameter ${key}")
-    }
-  }
-
-  private[this] def extractJsonInt(json:JValue, key:String ) = {
-    json \\ key match {
-      case JInt(value)   => Full(Some(value.toInt))
-      case JObject(Nil)   => Full(None)
-      case _              => Failure(s"Not a good value for parameter ${key}")
-    }
-  }
-
-  private[this] def extractJsonBigInt[T](json:JValue, key:String )(convertTo : BigInt => Box[T]) = {
-    json \\ key match {
-      case JInt(value)   => convertTo(value).map(Some(_))
-      case JObject(Nil)   => Full(None)
-      case _              => Failure(s"Not a good value for parameter ${key}")
-    }
-  }
-
-  private[this] def extractJsonListString[T] (json: JValue, key: String)( convertTo: List[String] => Box[T] ): Box[Option[T]] = {
-    json \\ key match {
-      case JArray(values) =>
-        for {
-          strings <- sequence(values) { _ match {
-                        case JString(s) => Full(s)
-                        case x => Failure(s"Error extracting a string from json: '${x}'")
-                      } }
-          converted <- convertTo(strings.toList)
-        } yield {
-          Some(converted)
-        }
-      case JObject(Nil)   => Full(None)
-      case _              => Failure(s"Not a good value for parameter ${key}")
+      case Some(list) => to(list).map(Some(_))
     }
   }
 
@@ -188,7 +138,7 @@ case class RestExtractorService (
   /*
    * Convert value functions
    */
-  private[this] def convertToBoolean (value : String) : Box[Boolean] = {
+  private[this] def toBoolean (value : String) : Box[Boolean] = {
     value match {
       case "true"  => Full(true)
       case "false" => Full(false)
@@ -196,7 +146,7 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def convertToNodeStatusAction (value : String) : Box[NodeStatusAction] = {
+  private[this] def toNodeStatusAction (value : String) : Box[NodeStatusAction] = {
     value.toLowerCase match {
       case "accept" | "accepted"  => Full(AcceptNode)
       case "refuse" | "refused" => Full(RefuseNode)
@@ -204,7 +154,7 @@ case class RestExtractorService (
       case _       => Failure(s"value for nodestatus action should be accept, refuse, delete")
     }
   }
-  private[this] def convertToInt (value:String) : Box[Int] = {
+  private[this] def toInt (value:String) : Box[Int] = {
     try {
       Full(value.toInt)
     } catch  {
@@ -212,11 +162,11 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def convertToQuery (value:String) : Box[Query] = {
+  private[this] def toQuery (value:String) : Box[Query] = {
     queryParser(value)
   }
 
-  private[this] def convertToCriterionLine (value:String) : Box[List[StringCriterionLine]] = {
+  private[this] def toCriterionLine (value:String) : Box[List[StringCriterionLine]] = {
     JsonParser.parseOpt(value) match {
       case None => Failure("Could not parse 'select' cause in api query ")
       case Some(value) =>
@@ -226,7 +176,7 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def convertToQueryCriterion (value:String) : Box[List[StringCriterionLine]] = {
+  private[this] def toQueryCriterion (value:String) : Box[List[StringCriterionLine]] = {
     JsonParser.parseOpt(value) match {
       case None => Failure("Could not parse 'select' cause in api query ")
       case Some(value) =>
@@ -236,15 +186,15 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def convertToQueryReturnType (value:String) : Box[QueryReturnType] = {
+  private[this] def toQueryReturnType (value:String) : Box[QueryReturnType] = {
     QueryReturnType(value)
   }
 
-  private[this] def convertToQueryComposition (value:String) : Box[Option[String]] = {
+  private[this] def toQueryComposition (value:String) : Box[Option[String]] = {
     Full(Some(value))
   }
 
-  private[this] def convertToMinimalSizeString (minimalSize : Int) (value:String) : Box[String] = {
+  private[this] def toMinimalSizeString (minimalSize : Int) (value:String) : Box[String] = {
     if (value.size >= minimalSize){
       Full(value)
     }
@@ -253,8 +203,8 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def convertToParameterName (value:String) : Box[ParameterName] = {
-      convertToMinimalSizeString(3)(value) match {
+  private[this] def toParameterName (value:String) : Box[ParameterName] = {
+      toMinimalSizeString(3)(value) match {
         case Full(value) =>
           if (ParameterName.patternName.matcher(value).matches)
             Full(ParameterName(value))
@@ -264,7 +214,7 @@ case class RestExtractorService (
       }
   }
 
-  private[this] def convertToDirectiveParam (value:String) : Box[Map[String,Seq[String]]] = {
+  private[this] def toDirectiveParam (value:String) : Box[Map[String,Seq[String]]] = {
     parseSectionVal(parse(value)).map(SectionVal.toMapVariables(_))
   }
 
@@ -276,30 +226,30 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def convertToNodeGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
+  private[this] def toNodeGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
     readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Node group '$value' not found"
   }
-  private[this] def convertToRuleCategoryId (value:String) : Box[RuleCategoryId] = {
+  private[this] def toRuleCategoryId (value:String) : Box[RuleCategoryId] = {
   Full(RuleCategoryId(value))
   //Call to   readRule.getRuleCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
   }
 
-  private[this] def convertToGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
+  private[this] def toGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
     Full(NodeGroupCategoryId(value))
   }
-  private[this] def convertToDirectiveId (value:String) : Box[DirectiveId] = {
+  private[this] def toDirectiveId (value:String) : Box[DirectiveId] = {
     readDirective.getDirective(DirectiveId(value)).map(_.id) ?~ s"Directive '$value' not found"
   }
 
-  private[this] def convertToApiAccountId (value:String) : Box[ApiAccountId] = {
+  private[this] def toApiAccountId (value:String) : Box[ApiAccountId] = {
     Full(ApiAccountId(value))
   }
 
-  private[this] def convertToApiAccountName (value:String) : Box[ApiAccountName] = {
+  private[this] def toApiAccountName (value:String) : Box[ApiAccountName] = {
     Full(ApiAccountName(value))
   }
 
-  private[this] def convertToWorkflowStatus (value : String) : Box[Seq[WorkflowNodeId]] = {
+  private[this] def toWorkflowStatus (value : String) : Box[Seq[WorkflowNodeId]] = {
     val possiblestates = workflowService.stepsValue
     value.toLowerCase match {
       case "open" => Full(workflowService.openSteps)
@@ -312,7 +262,7 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def convertToWorkflowTargetStatus (value : String) : Box[WorkflowNodeId] = {
+  private[this] def toWorkflowTargetStatus (value : String) : Box[WorkflowNodeId] = {
     val possiblestates = workflowService.stepsValue
     possiblestates.find(_.value.toLowerCase == value.toLowerCase) match {
       case Some(state) => Full(state)
@@ -320,7 +270,7 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def convertToNodeDetailLevel (value:String) : Box[NodeDetailLevel] = {
+  private[this] def toNodeDetailLevel (value:String) : Box[NodeDetailLevel] = {
     val fields = value.split(",")
     if (fields.contains("full")) {
        Full(FullDetailLevel)
@@ -361,7 +311,7 @@ case class RestExtractorService (
    *
    * So in all case, the result is exactly ONE target.
    */
-  private[this] def convertToRuleTarget(parameters: Map[String, List[String]], key:String ): Box[Option[RuleTarget]] = {
+  private[this] def toRuleTarget(parameters: Map[String, List[String]], key:String ): Box[Option[RuleTarget]] = {
     parameters.get(key) match {
       case Some(values) =>
         sequence(values) { value => RuleTarget.unser(value) }.flatMap { mergeTarget }
@@ -369,7 +319,7 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def convertToRuleTarget(json:JValue, key:String ): Box[Option[RuleTarget]] = {
+  private[this] def toRuleTarget(json:JValue, key:String ): Box[Option[RuleTarget]] = {
     json \\ key match {
       case JArray(values) =>
         sequence(values) { value => RuleTarget.unserJson(value) }.flatMap { mergeTarget }
@@ -395,7 +345,7 @@ case class RestExtractorService (
    * Convert List Functions
    */
   private[this] def convertListToDirectiveId (values : Seq[String]) : Box[Set[DirectiveId]] = {
-    sequence(values){ convertToDirectiveId }.map(_.toSet)
+    sequence(values){ toDirectiveId }.map(_.toSet)
   }
 
   private[this] def convertListToNodeId (values : List[String]) : Box[List[NodeId]] = {
@@ -468,7 +418,7 @@ case class RestExtractorService (
    * Data extraction functions
    */
   def extractPrettify (params : Map[String,List[String]]) : Boolean = {
-    extractOneValue(params, "prettify")(convertToBoolean).map(_.getOrElse(false)).getOrElse(false)
+    extractOneValue(params, "prettify")(toBoolean).map(_.getOrElse(false)).getOrElse(false)
   }
 
   def extractReason (req : Req) : Box[Option[String]] = {
@@ -498,7 +448,7 @@ case class RestExtractorService (
   }
 
   def extractNodeStatus (params : Map[String,List[String]]) : Box[NodeStatusAction] = {
-    extractOneValue(params, "status")(convertToNodeStatusAction) match {
+    extractOneValue(params, "status")(toNodeStatusAction) match {
       case Full(Some(status)) => Full(status)
       case Full(None) => Failure("node status should not be empty")
       case eb:EmptyBox => eb ?~ "error with node status"
@@ -506,7 +456,7 @@ case class RestExtractorService (
   }
 
   def extractParameterName (params : Map[String,List[String]]) : Box[ParameterName] = {
-     extractOneValue(params, "id")(convertToParameterName) match {
+     extractOneValue(params, "id")(toParameterName) match {
        case Full(None) => Failure("Parameter id should not be empty")
        case Full(Some(value)) => Full(value)
        case eb:EmptyBox => eb ?~ "Error while fetch parameter Name"
@@ -514,7 +464,7 @@ case class RestExtractorService (
   }
 
   def extractWorkflowStatus (params : Map[String,List[String]]) : Box[Seq[WorkflowNodeId]] = {
-    extractOneValue(params, "status")(convertToWorkflowStatus) match {
+    extractOneValue(params, "status")(toWorkflowStatus) match {
        case Full(None) => Full(workflowService.openSteps)
        case Full(Some(value)) => Full(value)
        case eb:EmptyBox => eb ?~ "Error while fetching workflow status"
@@ -522,7 +472,7 @@ case class RestExtractorService (
   }
 
   def extractWorkflowTargetStatus (params : Map[String,List[String]]) : Box[WorkflowNodeId] = {
-    extractOneValue(params, "status")(convertToWorkflowTargetStatus) match {
+    extractOneValue(params, "status")(toWorkflowTargetStatus) match {
       case Full(Some(value)) => Full(value)
       case Full(None) => Failure("workflow status should not be empty")
       case eb:EmptyBox => eb ?~ "Error while fetching workflow status"
@@ -576,7 +526,7 @@ case class RestExtractorService (
   }
 
   def extractNodeGroupCategoryId (params :  Map[String,List[String]]) : Box[NodeGroupCategoryId] ={
-    extractOneValue(params, "nodeGroupCategory")(convertToNodeGroupCategoryId) match {
+    extractOneValue(params, "nodeGroupCategory")(toNodeGroupCategoryId) match {
       case Full(Some(category)) => Full(category)
       case Full(None) => Failure("nodeGroupCategory cannot be empty")
       case eb:EmptyBox => eb ?~ "error when deserializing node group category"
@@ -586,13 +536,13 @@ case class RestExtractorService (
   def extractRule (params : Map[String,List[String]]) : Box[RestRule] = {
 
     for {
-      name             <- extractOneValue(params,"displayName")(convertToMinimalSizeString(3))
-      category         <- extractOneValue(params, "category")(convertToRuleCategoryId)
+      name             <- extractOneValue(params,"displayName")(toMinimalSizeString(3))
+      category         <- extractOneValue(params, "category")(toRuleCategoryId)
       shortDescription <- extractOneValue(params,"shortDescription")()
       longDescription  <- extractOneValue(params,"longDescription")()
-      enabled          <- extractOneValue(params,"enabled")( convertToBoolean)
+      enabled          <- extractOneValue(params,"enabled")( toBoolean)
       directives       <- extractList(params,"directives")( convertListToDirectiveId)
-      target           <- convertToRuleTarget(params,"targets")
+      target           <- toRuleTarget(params,"targets")
       tagsList         <- extractList(params, "tags")(sequence(_){ s =>  val list =  s.split(":"); Full(Tag(TagName(list.headOption.getOrElse(s)),TagValue(list.tail.headOption.getOrElse(""))))})
       tags             = tagsList.map(t => Tags(t.toSet))
     } yield {
@@ -603,9 +553,9 @@ case class RestExtractorService (
   def extractRuleCategory (params : Map[String,List[String]]) : Box[RestRuleCategory] = {
 
     for {
-      name        <- extractOneValue(params,"name")(convertToMinimalSizeString(3))
+      name        <- extractOneValue(params,"name")(toMinimalSizeString(3))
       description <- extractOneValue(params, "description")()
-      parent      <- extractOneValue(params,"parent")(convertToRuleCategoryId)
+      parent      <- extractOneValue(params,"parent")(toRuleCategoryId)
     } yield {
       RestRuleCategory(name, description, parent)
     }
@@ -613,13 +563,13 @@ case class RestExtractorService (
 
   def extractGroup (params : Map[String,List[String]]) : Box[RestGroup] = {
     for {
-      name        <- extractOneValue(params, "displayName")(convertToMinimalSizeString(3))
+      name        <- extractOneValue(params, "displayName")(toMinimalSizeString(3))
       description <- extractOneValue(params, "description")()
-      enabled     <- extractOneValue(params, "enabled")( convertToBoolean)
-      dynamic     <- extractOneValue(params, "dynamic")( convertToBoolean)
-      query       <- extractOneValue(params, "query")(convertToQuery)
+      enabled     <- extractOneValue(params, "enabled")( toBoolean)
+      dynamic     <- extractOneValue(params, "dynamic")( toBoolean)
+      query       <- extractOneValue(params, "query")(toQuery)
       _           <- if (query.map(_.criteria.size > 0).getOrElse(true)) Full("Query has at least one criteria") else Failure("Query should containt at least one criteria")
-      category    <- extractOneValue(params, "category")(convertToGroupCategoryId)
+      category    <- extractOneValue(params, "category")(toGroupCategoryId)
     } yield {
       RestGroup(name,description,query,dynamic,enabled,category)
     }
@@ -628,9 +578,9 @@ case class RestExtractorService (
   def extractGroupCategory (params : Map[String,List[String]]) : Box[RestGroupCategory] = {
 
     for {
-      name        <- extractOneValue(params,"name")(convertToMinimalSizeString(3))
+      name        <- extractOneValue(params,"name")(toMinimalSizeString(3))
       description <- extractOneValue(params, "description")()
-      parent      <- extractOneValue(params,"parent")(convertToNodeGroupCategoryId)
+      parent      <- extractOneValue(params,"parent")(toNodeGroupCategoryId)
     } yield {
       RestGroupCategory(name, description, parent)
     }
@@ -639,7 +589,7 @@ case class RestExtractorService (
   def extractParameter (params : Map[String,List[String]]) : Box[RestParameter] = {
     for {
       description <- extractOneValue(params, "description")()
-      overridable <- extractOneValue(params, "overridable")( convertToBoolean)
+      overridable <- extractOneValue(params, "overridable")( toBoolean)
       value       <- extractOneValue(params, "value")()
     } yield {
       RestParameter(value,description,overridable)
@@ -714,7 +664,7 @@ case class RestExtractorService (
   def extractNodeFromJSON (json : JValue) : Box[RestNode] = {
     for {
       properties <- extractNodePropertiesFromJSON(json)
-      mode       <- extractOneValueJson(json, "policyMode")(PolicyMode.parseDefault)
+      mode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault)
     } yield {
       RestNode(properties,mode)
     }
@@ -743,12 +693,12 @@ case class RestExtractorService (
 
   def extractDirective (params : Map[String,List[String]]) : Box[RestDirective] = {
     for {
-      name             <- extractOneValue(params, "name")(convertToMinimalSizeString(3)) or extractOneValue(params, "displayName")(convertToMinimalSizeString(3))
+      name             <- extractOneValue(params, "name")(toMinimalSizeString(3)) or extractOneValue(params, "displayName")(toMinimalSizeString(3))
       shortDescription <- extractOneValue(params, "shortDescription")()
       longDescription  <- extractOneValue(params, "longDescription")()
-      enabled          <- extractOneValue(params, "enabled")( convertToBoolean)
-      priority         <- extractOneValue(params, "priority")(convertToInt)
-      parameters       <- extractOneValue(params, "parameters")(convertToDirectiveParam)
+      enabled          <- extractOneValue(params, "enabled")( toBoolean)
+      priority         <- extractOneValue(params, "priority")(toInt)
+      parameters       <- extractOneValue(params, "parameters")(toDirectiveParam)
       techniqueName    <- extractOneValue(params, "techniqueName")(x => Full(TechniqueName(x)))
       techniqueVersion <- extractOneValue(params, "techniqueVersion")(x => Full(TechniqueVersion(x)))
       policyMode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault)
@@ -761,12 +711,12 @@ case class RestExtractorService (
 
   def extractRuleFromJSON (json : JValue) : Box[RestRule] = {
     for {
-      name             <- extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
-      category         <- extractOneValueJson(json, "category")(convertToRuleCategoryId)
-      shortDescription <- extractOneValueJson(json, "shortDescription")()
-      longDescription  <- extractOneValueJson(json, "longDescription")()
+      name             <- extractJsonString(json, "displayName", toMinimalSizeString(3))
+      category         <- extractJsonString(json, "category", toRuleCategoryId)
+      shortDescription <- extractJsonString(json, "shortDescription")
+      longDescription  <- extractJsonString(json, "longDescription")
       directives       <- extractJsonListString(json, "directives")(convertListToDirectiveId)
-      target           <- convertToRuleTarget(json, "targets")
+      target           <- toRuleTarget(json, "targets")
       enabled          <- extractJsonBoolean(json,"enabled")
       tagsList         <- extractJsonList(json, "tags"){ case JObject(JField(name,JString(value)) :: Nil) => Full(Tag(TagName(name),TagValue(value))); case _ => Failure("Not valid format for tags")}
       tags             = tagsList.map(tags => Tags(tags.toSet))
@@ -777,9 +727,9 @@ case class RestExtractorService (
 
   def extractRuleCategory ( json : JValue ) : Box[RestRuleCategory] = {
     for {
-      name        <- extractOneValueJson(json,"name")(convertToMinimalSizeString(3))
-      description <- extractOneValueJson(json, "description")()
-      parent      <- extractOneValueJson(json,"parent")(convertToRuleCategoryId)
+      name        <- extractJsonString(json, "name", toMinimalSizeString(3))
+      description <- extractJsonString(json, "description")
+      parent      <- extractJsonString(json, "parent", toRuleCategoryId)
     } yield {
       RestRuleCategory(name, description, parent)
     }
@@ -787,15 +737,16 @@ case class RestExtractorService (
 
   def extractDirectiveFromJSON (json : JValue) : Box[RestDirective] = {
     for {
-      name             <- extractOneValueJson(json, "name")(convertToMinimalSizeString(3)) or extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
-      shortDescription <- extractOneValueJson(json, "shortDescription")()
-      longDescription  <- extractOneValueJson(json, "longDescription")()
+      name             <- extractJsonString(json, "name", toMinimalSizeString(3)) or
+                          extractJsonString(json, "displayName", toMinimalSizeString(3))
+      shortDescription <- extractJsonString(json, "shortDescription")
+      longDescription  <- extractJsonString(json, "longDescription")
       enabled          <- extractJsonBoolean(json, "enabled")
       priority         <- extractJsonInt(json,"priority")
       parameters       <- extractJsonDirectiveParam(json)
-      techniqueName    <- extractOneValueJson(json, "techniqueName")(x => Full(TechniqueName(x)))
-      techniqueVersion <- extractOneValueJson(json, "techniqueVersion")(x => Full(TechniqueVersion(x)))
-      policyMode       <- extractOneValueJson(json, "policyMode")(PolicyMode.parseDefault)
+      techniqueName    <- extractJsonString(json, "techniqueName", x => Full(TechniqueName(x)))
+      techniqueVersion <- extractJsonString(json, "techniqueVersion", x => Full(TechniqueVersion(x)))
+      policyMode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault)
       tagsList         <- extractJsonList(json, "tags"){ case JObject(JField(name,JString(value)) :: Nil) => Full(Tag(TagName(name),TagValue(value))); case _ => Failure("Not valid format for tags")}
       tags             = tagsList.map(tags => Tags(tags.toSet))
     } yield {
@@ -805,14 +756,14 @@ case class RestExtractorService (
 
   def extractGroupFromJSON (json : JValue) : Box[RestGroup] = {
     for {
-      name        <- extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
-      description <- extractOneValueJson(json, "description")()
+      name        <- extractJsonString(json, "displayName", toMinimalSizeString(3))
+      description <- extractJsonString(json, "description")
       enabled     <- extractJsonBoolean(json, "enabled")
       dynamic     <- extractJsonBoolean(json, "dynamic")
       stringQuery <- queryParser.jsonParse(json \\ "query")
       query       <- queryParser.parse(stringQuery)
       _           <- if (query.criteria.size > 0) Full("Query has at least one criteria") else Failure("Query should containt at least one criteria")
-      category    <- extractOneValueJson(json, "category")(convertToGroupCategoryId)
+      category    <- extractJsonString(json, "category", toGroupCategoryId)
     } yield {
       RestGroup(name,description,Some(query),dynamic,enabled,category)
     }
@@ -820,16 +771,16 @@ case class RestExtractorService (
 
   def extractGroupCategory ( json : JValue ) : Box[RestGroupCategory] = {
     for {
-      name        <- extractOneValueJson(json,"name")(convertToMinimalSizeString(3))
-      description <- extractOneValueJson(json, "description")()
-      parent      <- extractOneValueJson(json,"parent")(convertToNodeGroupCategoryId)
+      name        <- extractJsonString(json,"name", toMinimalSizeString(3))
+      description <- extractJsonString(json, "description")
+      parent      <- extractJsonString(json,"parent", toNodeGroupCategoryId)
     } yield {
       RestGroupCategory(name, description, parent)
     }
   }
 
   def extractParameterNameFromJSON (json : JValue) : Box[ParameterName] = {
-     extractOneValueJson(json, "id")(convertToParameterName) match {
+     extractJsonString(json, "id", toParameterName) match {
        case Full(None) => Failure("Parameter id should not be empty")
        case Full(Some(value)) => Full(value)
        case eb:EmptyBox => eb ?~ "Error while fetch parameter Name"
@@ -838,9 +789,9 @@ case class RestExtractorService (
 
   def extractParameterFromJSON (json : JValue) : Box[RestParameter] = {
     for {
-      description <- extractOneValueJson(json, "description")()
+      description <- extractJsonString(json, "description")
       overridable <- extractJsonBoolean(json, "overridable")
-      value       <- extractOneValueJson(json, "value")()
+      value       <- extractJsonString(json, "value")
     } yield {
       RestParameter(value,description,overridable)
     }
@@ -848,11 +799,11 @@ case class RestExtractorService (
 
   def extractApiAccountFromJSON (json : JValue) : Box[RestApiAccount] = {
     for {
-      id          <- extractOneValueJson(json, "id")(convertToApiAccountId)
-      name        <- extractOneValueJson(json, "name")(convertToApiAccountName)
-      description <- extractOneValueJson(json, "description")()
+      id          <- extractJsonString(json, "id", toApiAccountId)
+      name        <- extractJsonString(json, "name", toApiAccountName)
+      description <- extractJsonString(json, "description")
       enabled     <- extractJsonBoolean(json, "enabled")
-      oldName     <- extractOneValueJson(json, "oldId")(convertToApiAccountId)
+      oldName     <- extractJsonString(json, "oldId", toApiAccountId)
     } yield {
       RestApiAccount(id, name, description, enabled, oldName)
     }
@@ -863,7 +814,7 @@ case class RestExtractorService (
   }
 
   def extractNodeStatusFromJson (json : JValue) : Box[NodeStatusAction] = {
-    extractOneValueJson(json, "status")(convertToNodeStatusAction) match {
+    extractJsonString(json, "status", toNodeStatusAction) match {
       case Full(Some(status)) => Full(status)
       case Full(None) => Failure("node status should not be empty")
       case eb:EmptyBox => eb ?~ "error with node status"
@@ -871,7 +822,7 @@ case class RestExtractorService (
   }
 
   def extractNodeDetailLevel (params : Map[String,List[String]]) : Box[NodeDetailLevel] = {
-    extractOneValue(params,"include")(convertToNodeDetailLevel) match {
+    extractOneValue(params,"include")(toNodeDetailLevel) match {
       case Full(Some(level)) => Full(level)
       case Full(None) => Full(DefaultDetailLevel)
       case eb:EmptyBox => eb ?~ "error with node level detail"
@@ -879,19 +830,19 @@ case class RestExtractorService (
   }
 
   def extractQuery (params : Map[String,List[String]]) : Box[Option[Query]] = {
-    extractOneValue(params,"query")(convertToQuery) match {
+    extractOneValue(params,"query")(toQuery) match {
       case Full(None) =>
-        extractOneValue(params,CRITERIA)(convertToQueryCriterion) match {
+        extractOneValue(params,CRITERIA)(toQueryCriterion) match {
           case Full(None) => Full(None)
           case Full(Some(Nil)) => Failure("Query should at least contain one criteria")
           case Full(Some(criterion)) =>
             for {
               // Target defaults to NodeReturnType
-              optType <- extractOneValue(params,TARGET)(convertToQueryReturnType)
+              optType <- extractOneValue(params,TARGET)(toQueryReturnType)
               returnType = optType.getOrElse(NodeReturnType)
 
               // Composition defaults to None/And
-              optComposition <-extractOneValue(params,COMPOSITION)(convertToQueryComposition)
+              optComposition <-extractOneValue(params,COMPOSITION)(toQueryComposition)
               composition = optComposition.getOrElse(None)
 
               // Query may fail when parsing
@@ -996,17 +947,9 @@ case class RestExtractorService (
     }
   }
 
-  def extractJsonObj[T](key : String)(json : JValue)(jsonValueFun : JObject => Box[T]) : Box[Option[T]]  = {
-  json \ key match {
-      case obj : JObject => jsonValueFun(obj).map(Some(_))
-      case JNothing => Full(None)
-      case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
-    }
-  }
-
   def extractObj[T](key : String)(req : Req)(jsonValueFun : JObject => Box[T]) : Box[Option[T]]  = {
     req.json match {
-      case Full(json) => extractJsonObj (key) (json) (jsonValueFun)
+      case Full(json) => extractJsonObj (json, key, jsonValueFun)
       case _ =>
         req.params.get(key) match {
           case None => Full(None)
@@ -1046,136 +989,29 @@ case class RestExtractorService (
 
   def extractId[T] (req : Req)(fun : String => Full[T])  = extractString("id")(req)(fun)
 
-  def extractDataSource(req : Req, base : DataSource) : Box[DataSource] = {
-
-    def extractDuration (value : BigInt) = {
-      tryo { FiniteDuration(value.toLong, TimeUnit.MINUTES) }
-    }
-
-    def extractDataSourceRunParam(obj : JObject, base : DataSourceRunParameters) = {
-
-      def extractSchedule(obj : JObject, base : DataSourceSchedule) = {
-
-          for {
-              scheduleBase <- extractOneValueJson(obj, "type")( _ match {
-                case "scheduled" => Full(Scheduled(base.duration))
-                case "notscheduled" => Full(NoSchedule(base.duration))
-                case _ => Failure("not a valid value for datasource schedule")
-              }).map(_.getOrElse(base))
-              duration <- extractJsonBigInt(obj, "duration")(extractDuration)
-          } yield {
-            duration match {
-              case None => scheduleBase
-              case Some(newDuration) =>
-                scheduleBase match {
-                  case Scheduled(_) => Scheduled(newDuration)
-                  case NoSchedule(_) => NoSchedule(newDuration)
-                }
-            }
-
+  def extractReqDataSource(req : Req, base : DataSource) : Box[DataSource] = {
+    req.json match {
+      case Full(json) =>
+        extractDataSourceWrapper(base.id,json).map(_.withBase(base))
+      case _ =>
+        for {
+          name         <- extractString("name")(req) (x => Full(DataSourceName(x)))
+          description  <- extractString("description")(req) (boxedIdentity)
+          sourceType   <- extractObj("type")(req) (extractDataSourceTypeWrapper(_))
+          runParam     <- extractObj("runParameters")(req) (extractDataSourceRunParameterWrapper(_))
+          timeOut      <- extractInt("updateTimeout")(req)(extractDuration)
+          enabled      <- extractBoolean("enabled")(req)(identity)
+        } yield {
+          base.copy(
+              name = name.getOrElse(base.name)
+            , sourceType = getOrElse(sourceType.map(_.withBase(base.sourceType)),base.sourceType)
+            , description = description.getOrElse(base.description)
+            , enabled = enabled.getOrElse(base.enabled)
+            , updateTimeOut = timeOut.getOrElse(base.updateTimeOut)
+            , runParam = getOrElse(runParam.map(_.withBase(base.runParam)),base.runParam)
+          )
         }
-      }
-
-      for {
-        onGeneration <- extractJsonBoolean(obj, "onGeneration")
-        onNewNode    <- extractJsonBoolean(obj, "onNewNode")
-        schedule     <- extractJsonObj("schedule")(obj)(extractSchedule(_,base.schedule))
-      } yield {
-        base.copy(
-            schedule.getOrElse(base.schedule)
-          , onGeneration.getOrElse(base.onGeneration)
-          , onNewNode.getOrElse(base.onNewNode)
-        )
-      }
-    }
-
-    // A source type is composed of two fields : "name" and "parameters"
-    // name allow to determine which kind of datasource we are managing and how to extract paramters
-    def extractDataSourceType(obj : JObject, base : DataSourceType) = {
-      obj \ "name" match {
-        case JString(HttpDataSourceType.name) =>
-          val httpBase = base match {
-            case h : HttpDataSourceType => h
-          }
-
-          def extractHttpRequestMode(obj : JObject, base : HttpRequestMode) = {
-
-            obj \ "name" match {
-              case JString(OneRequestByNode.name) =>
-                Full(OneRequestByNode)
-              case JString(OneRequestAllNodes.name) =>
-                val allBase = base match {
-                  case h : OneRequestAllNodes => h
-                  case _ => OneRequestAllNodes("","")
-                }
-                for {
-                  attribute <- extractOneValueJson(obj, "attribute")(boxedIdentity)
-                  path <- extractOneValueJson(obj, "path")(boxedIdentity)
-                } yield {
-                  OneRequestAllNodes(
-                      path.getOrElse(allBase.matchingPath)
-                    , attribute.getOrElse(allBase.nodeAttribute)
-                  )
-                }
-              case x => Failure(s"Cannot extract request type from: ${x}")
-            }
-          }
-
-          def HttpDataSourceParameters (obj : JObject) : Box[HttpDataSourceType] = {
-            for {
-              url      <- extractOneValueJson(obj, "url")(boxedIdentity)
-              path     <- extractOneValueJson(obj, "path")(boxedIdentity)
-              method   <- extractOneValueJson(obj, "requestMethod")(boxedIdentity)
-              sslCheck <- extractJsonBoolean(obj, "checkSsl")
-              timeout  <- extractJsonBigInt(obj, "requestTimeout")(extractDuration)
-              headers  <- obj \ "headers" match {
-                case header@JObject(fields) =>
-
-                  sequence(fields.toSeq) { field => extractOneValueJson(header, field.name)( value => Full((field.name,value))).map(_.getOrElse((field.name,""))) }.map(fields => Some(fields.toMap))
-                case JNothing => Full(None)
-                case _ => Failure("oops")
-              }
-
-              requestMode <- extractJsonObj("requestMode")(obj)(extractHttpRequestMode(_,httpBase.requestMode))
-
-            } yield {
-              httpBase.copy(
-                  url.getOrElse(httpBase.url)
-                , headers.getOrElse(httpBase.headers)
-                , method.getOrElse(httpBase.httpMethod)
-                , sslCheck.getOrElse(httpBase.sslCheck)
-                , path.getOrElse(httpBase.path)
-                , requestMode.getOrElse(httpBase.requestMode)
-                , timeout.getOrElse(httpBase.requestTimeOut)
-              )
-            }
-          }
-
-          //
-          extractJsonObj("parameters")(obj)(HttpDataSourceParameters).map(_.getOrElse(httpBase))
-
-        case x => Failure(s"Cannot extract a data source type from: ${x}")
-      }
-    }
-
-    for {
-      name <- extractString("name")(req) (x => Full(DataSourceName(x)))
-      description  <- extractString("description")(req) (boxedIdentity)
-      sourceType   <- extractObj("type")(req) (extractDataSourceType(_, base.sourceType))
-      runParam     <- extractObj("runParameters")(req) (extractDataSourceRunParam(_, base.runParam))
-      timeOut      <- extractInt("updateTimeout")(req)(extractDuration)
-      enabled      <- extractBoolean("enabled")(req)(identity)
-    } yield {
-      base.copy(
-        name = name.getOrElse(base.name)
-      , sourceType = sourceType.getOrElse(base.sourceType)
-      , description = description.getOrElse(base.description)
-      , enabled = enabled.getOrElse(base.enabled)
-      , updateTimeOut = timeOut.getOrElse(base.updateTimeOut)
-      , runParam = runParam.getOrElse(base.runParam)
-    )
     }
   }
 
-  private[this] def boxedIdentity[T] : T => Box[T] = Full(_)
 }
