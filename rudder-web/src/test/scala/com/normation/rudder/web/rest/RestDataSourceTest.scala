@@ -61,6 +61,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.web.rest.datasource.DataSourceApi
 import scala.concurrent.duration.Duration
 import java.util.concurrent.TimeUnit
+import com.normation.rudder.repository.json.CompleteJson
 
 @RunWith(classOf[JUnitRunner])
 class RestDataSourceTest extends Specification with Loggable {
@@ -84,7 +85,9 @@ class RestDataSourceTest extends Specification with Loggable {
   val baseRunParam  = DataSourceRunParameters(NoSchedule(DataSource.defaultDuration), false,false)
 
   val datasource1 = DataSource(DataSourceId( "datasource1"), DataSourceName(""), baseSourceType, baseRunParam, "", false, DataSource.defaultDuration)
+
   val d1Json = restDataSerializer.serializeDataSource(datasource1)
+
   RestTestSetUp.datasourceRepo.save(datasource1)
 
   val datasource2 = datasource1.copy(id = DataSourceId("datasource2"))
@@ -95,6 +98,7 @@ class RestDataSourceTest extends Specification with Loggable {
     , sourceType = baseSourceType.copy(headers = Map( ("new header 1" -> "new value 1") , ("new header 2" -> "new value 2")))
     , runParam = baseRunParam.copy(Scheduled(Duration(70, TimeUnit.MINUTES))))
   val d2updatedJson = restDataSerializer.serializeDataSource(dataSource2Updated)
+
   val d2modJson = {
     import net.liftweb.json.JsonDSL._
     ( ( "type" ->
@@ -113,6 +117,12 @@ class RestDataSourceTest extends Specification with Loggable {
   }
 
   sequential ^ ("Data source api" should {
+
+    "test backend serialization" in {
+       val result = CompleteJson.extractDataSource(datasource1.id, DataSourceJsonSerializer.serialize(datasource1))
+
+       result must beEqualTo(Full(datasource1))
+    }
 
     "Get all base data source" in {
       testGET("/api/latest/datasources") { req =>

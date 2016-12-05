@@ -140,7 +140,7 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.web.rest.settings.SettingsAPI8
 import com.normation.rudder.web.rest.sharedFiles.SharedFilesAPI
 import com.normation.rudder.web.rest.datasource._
-import com.normation.rudder.datasources.MemoryDataSourceRepository
+import com.normation.rudder.datasources.PGDataSourceRepository
 import com.normation.rudder.datasources.DataSourceRepoImpl
 import com.normation.rudder.datasources.HttpQueryDataSourceService
 
@@ -792,9 +792,8 @@ object RudderConfig extends Loggable {
 
   val settingsApi8 = new SettingsAPI8(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
 
-
   val dataSourceRepository = new DataSourceRepoImpl(
-      new MemoryDataSourceRepository
+      new PGDataSourceRepository(doobie)
     , new HttpQueryDataSourceService(nodeInfoService, roLDAPParameterRepository, woLdapNodeRepository, interpolationCompiler)
     , stringUuidGenerator
   )
