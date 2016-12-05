@@ -51,6 +51,14 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog._
 import scala.concurrent.duration._
 import net.liftweb.common.Failure
+import scalaz.concurrent.Task
+import doobie.imports._
+import doobie.contrib.postgresql.pgtypes._
+import net.liftweb.common.Loggable
+import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.Doobie._
+import scalaz.{Failure => _, _}, Scalaz._
+import net.liftweb.common.Empty
 
 final case class PartialNodeUpdate(
     nodes        : Map[NodeId, NodeInfo] //the node to update
@@ -66,7 +74,7 @@ trait DataSourceRepository {
 
   def save(source : DataSource) : Box[DataSource]
 
-  def delete(id : DataSourceId) : Box[DataSource]
+  def delete(id : DataSourceId) : Box[DataSourceId]
 }
 
 /*
@@ -111,14 +119,9 @@ class MemoryDataSourceRepository extends DataSourceRepository {
     Full(source)
   }
 
-  def delete(id : DataSourceId) : Box[DataSource] = synchronized {
-    sources.get(id) match {
-      case Some(source) =>
-        sources = sources - (id)
-        Full(source)
-      case None =>
-        Failure(s"Data source '${id}' does not exists, and thus can't be deleted")
-    }
+  def delete(id : DataSourceId) : Box[DataSourceId] = synchronized {
+     sources = sources - (id)
+     Full(id)
   }
 }
 /**
@@ -213,7 +216,7 @@ class DataSourceRepoImpl(
   /*
    * delete need to clean existing live resource
    */
-  override def delete(id : DataSourceId) : Box[DataSource] = synchronized {
+  override def delete(id : DataSourceId) : Box[DataSourceId] = synchronized {
     //start by cleaning
     stop(id)
     datasources = datasources - (id)
@@ -286,6 +289,53 @@ class DataSourceRepoImpl(
     toStart.foreach { case ((period, dss), i) =>
       dss.startWithDelay((i+1).minutes)
     }
+  }
+
+}
+
+class DataSourceJdbcRepository(
+    doobie    : Doobie
+) extends DataSourceRepository with Loggable {
+
+  import doobie._
+
+  override def getAll(): Box[Map[DataSourceId,DataSource]] = {
+    query[DataSource]("""select id, properties from datasources""").vector.map { _.map( ds => (ds.id,ds)).toMap }.attempt.transact(xa).run
+  }
+
+  override def get(sourceId : DataSourceId): Box[Option[DataSource]] = {
+    sql"""select id, properties from datasources where id = ${sourceId.value}""".query[DataSource].option.attempt.transact(xa).run
+  }
+
+  override def save(source : DataSource): Box[DataSource] = {
+    import net.liftweb.json.compactRender
+    val json = compactRender(DataSourceJsonSerializer.serialize(source))
+    val insert = """insert into datasources (id, properties) values (?, ?)"""
+    val update = s"""
+      update datasources
+      set properties= ?
+      where id= ?
+    """
+
+    val sql = for {
+      rowsAffected <- Update[(String,String)](update).run((json, source.id.value))
+      result       <- rowsAffected match {
+                        case 0 =>
+                          logger.warn(s"source ${source.id} is not present in database, create it")
+                          Update[DataSource](insert).run(source)
+                        case 1 => 1.point[ConnectionIO]
+                        case n => throw new RuntimeException(s"Expected 0 or 1 change, not ${n} for ${source.id}")
+                      }
+    } yield {
+      result
+    }
+
+    sql.map(_ => source).attempt.transact(xa).run
+  }
+
+  override def delete(sourceId : DataSourceId): Box[DataSourceId] = {
+    val query = sql"""delete from datasources where id = ${sourceId}"""
+    query.update.run.map(_ => sourceId).attempt.transact(xa).run
   }
 
 }
