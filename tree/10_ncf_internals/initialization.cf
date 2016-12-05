@@ -23,10 +23,10 @@ bundle agent initialization
 {
 
   files:
-      "${sys.workdir}/modules/"
+      "${sys.workdir}/modules"
         # We cannot use ${me.framework_path} as it is specific to ncf promises.cf and we should have
         # a more general solution, in particular when calling ncf from an existing promises.cf
-        copy_from         => local_dcp("${this.promise_dirname}/modules/"),
+        copy_from         => local_dcp("${this.promise_dirname}/modules"),
         depth_search      => recurse("inf"),
         perms             => m("700"),
         action            => immediate,
