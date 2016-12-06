@@ -56,12 +56,17 @@ Yh3O5rVto12XqisGWIbsmsT0XFr6V9+/sde/lpjI4AEcHR8oFYX5JP9/SXPuRJfQ
 lEl8vn5PHTY0mMrNAcM7+rzpkOW2c7b8bwIBIw==
 """)
 
-  val expected = "8d3270d42486e8d6436d06ed5cc5034f"
 
   "Producing the magic MD5 hash" should {
     "give the same result has CFEngine" in {
+      CFEngineKey.getCfengineDigest(key) must beEqualTo(Full("8d3270d42486e8d6436d06ed5cc5034f"))
+    }
+  }
 
-      CFEngineKey.getHash(key) must beEqualTo(Full(expected))
+  "Producing the standard sha-256 hash" should {
+    "give the same result has the relay server API" in {
+      CFEngineKey.getSha256Digest(key) must beEqualTo(Full("02dee6f141495cad9813183696d0e66f8e8b2939af0d801e368f3873ed632276"))
     }
-    }
+  }
+
 }
