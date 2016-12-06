@@ -89,6 +89,9 @@ import com.normation.inventory.domain.AixOS
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.reports.HeartbeatConfiguration
 import org.joda.time.format.DateTimeFormatter
+import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.hooks.HookParameters
+import com.normation.rudder.hooks.HookParameter
 
 /**
  * The main service which deploy modified rules and
@@ -114,10 +117,15 @@ trait PromiseGenerationService extends Loggable {
 
     val result = for {
       //fetch all - yep, memory is cheap... (TODO: size of that for 1000 nodes, 100 rules, 100 directives, 100 groups ?)
+      preHooks            <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started")
+      _                   <- RunHooks.syncRun(preHooks, HookParameters.build { ("RUDDER_GENERATION_DATETIME", generationTime.toString) } )
+      timeRunPreGenHooks  =  (System.currentTimeMillis - initialTime)
+      _                   =  logger.debug(s"Post-policy-generation hooks ran in ${timeRunPreGenHooks} ms")
 
+      fetch0Time          =  System.currentTimeMillis
       allRules            <- findDependantRules() ?~! "Could not find dependant rules"
       fetch1Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched rules in ${fetch1Time-initialTime} ms")
+      _                   =  logger.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
       allNodeInfos        <- getAllNodeInfos ?~! "Could not get Node Infos"
       fetch2Time          =  System.currentTimeMillis
       _                   =  logger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
@@ -147,7 +155,7 @@ trait PromiseGenerationService extends Loggable {
 
       allNodeModes     =  buildNodeModes(allNodeInfos, globalComplianceMode, globalAgentRun, globalPolicyMode)
 
-      timeFetchAll    =  (System.currentTimeMillis - initialTime)
+      timeFetchAll    =  (System.currentTimeMillis - fetch0Time)
       _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
       nodeContextsTime =  System.currentTimeMillis
@@ -208,9 +216,24 @@ trait PromiseGenerationService extends Loggable {
       _                     =  invalidateComplianceCache(updatedNodeConfigs.keySet)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
+      // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
+      postHooksTime         =  System.currentTimeMillis
+      postHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-finished")
+      updatedNodeIds        =  updatedNodeConfigs.keySet.map( _.value )
+      _                     <- RunHooks.syncRun(postHooks, HookParameters.build(
+                                                               ("RUDDER_GENERATION_DATETIME", generationTime.toString())
+                                                             , ("RUDDER_END_GENERATION_DATETIME", new DateTime(postHooksTime).toString) //what is the most alike a end time
+                                                             , ("RUDDER_NODEIDS", updatedNodeIds.mkString(" "))
+                                                             , ("RUDDER_NUMBER_NODES_UPDATED", updatedNodeIds.size.toString)
+                                                             , ("RUDDER_ROOT_POLICY_SERVER_UPDATED", if(updatedNodeIds.contains("root")) "0" else "1" )
+                                                           )
+                               )
+      timeRunPostGenHooks   =  (System.currentTimeMillis - postHooksTime)
+      _                     =  logger.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
 
     } yield {
       logger.debug("Timing summary:")
+      logger.debug("Run pre generation hooks  : %10s ms".format(timeRunPreGenHooks))
       logger.debug("Fetch all information     : %10s ms".format(timeFetchAll))
       logger.debug("Historize names           : %10s ms".format(timeHistorize))
       logger.debug("Build current rule values : %10s ms".format(timeRuleVal))
@@ -219,6 +242,9 @@ trait PromiseGenerationService extends Loggable {
       logger.debug("Increment rule serials    : %10s ms".format(timeIncrementRuleSerial))
       logger.debug("Write node configurations : %10s ms".format(timeWriteNodeConfig))
       logger.debug("Save expected reports     : %10s ms".format(timeSetExpectedReport))
+      logger.debug("Run post generation hooks : %10s ms".format(timeRunPostGenHooks))
+      logger.debug("Number of nodes updated   : %10s   ".format(updatedNodeIds.size))
+
 
       writtenNodeConfigs.map( _.nodeInfo.id )
     }
@@ -249,6 +275,9 @@ trait PromiseGenerationService extends Loggable {
   def getScriptEngineEnabled : () => Box[FeatureSwitch]
   def getGlobalPolicyMode    : () => Box[GlobalPolicyMode]
 
+  // base folder for hooks. It's a string because there is no need to get it from config
+  // file, it's just a constant.
+  def HOOKS_D                : String
 
   /*
    * From global configuration and node modes, build node modes
@@ -437,6 +466,7 @@ class PromiseGenerationServiceImpl (
   , override val getAgentRunStartMinute: () => Box[Int]
   , override val getScriptEngineEnabled: () => Box[FeatureSwitch]
   , override val getGlobalPolicyMode: () => Box[GlobalPolicyMode]
+  , override val HOOKS_D: String
 ) extends PromiseGenerationService with
   PromiseGeneration_performeIO with
   PromiseGeneration_buildRuleVals with
@@ -921,7 +951,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     val fsWrite0   =  System.currentTimeMillis
 
     for {
-      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, allLicenses, globalPolicyMode)
+      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, allLicenses, globalPolicyMode, generationTime)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")
