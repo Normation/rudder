@@ -98,18 +98,45 @@ final case class NodeInfo(
   val properties                 = node.properties
   val policyMode                 = node.policyMode
 
+  /**
+   * Get a digest of the key in the proprietary CFEngine
+   * digest format.
+   */
   lazy val cfengineKeyHash: String = {
-    publicKey.map(CFEngineKey.getHash) match {
+    publicKey.map(CFEngineKey.getCfengineDigest) match {
       case None =>
-        logger.info(s"Node '${hostname}' (${id.value}) doens't have a register public key")
+        logger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
         ""
       case Some(Full(hash)) =>
         hash
       case Some(eb:EmptyBox) =>
-        val e = eb ?~! s"Error when trying to get CFEngine public key hash of node '${hostname}' (${id.value})"
+        val e = eb ?~! s"Error when trying to get the CFEngine-MD5 digest of CFEngine public key for node '${hostname}' (${id.value})"
         logger.error(e.messageChain)
         ""
     }
+  }
+
+  /**
+   * Get a sha-256 digest (of the DER byte sequence) of the key.
+   *
+   * This method never fails, and if we are not able to parse
+   * the store key, or if no key is store, it return an empty
+   * string. Logs are used to track problems.
+   *
+   */
+  lazy val sha256KeyHash: String = {
+    publicKey.map(CFEngineKey.getSha256Digest) match {
+      case None =>
+        logger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
+        ""
+      case Some(Full(hash)) =>
+        hash
+      case Some(eb:EmptyBox) =>
+        val e = eb ?~! s"Error when trying to get the sha-256 digest of CFEngine public key for node '${hostname}' (${id.value})"
+        logger.error(e.messageChain)
+        ""
+    }
+
   }
 }
 
@@ -160,7 +187,7 @@ object CFEngineKey {
    *
    * Caution: to use the complete key, with header and footer, you need to use key.key
    */
-  def getHash(key: PublicKey): Box[String] = {
+  def getCfengineDigest(key: PublicKey): Box[String] = {
     for {
                     // the parser able to read PEM files
                     // Parser may be null is the key is invalid
@@ -194,5 +221,30 @@ object CFEngineKey {
       Hex.toHexString(md5.digest)
     }
   }
-}
 
+  /**
+   * Get the sha256 digest of the public get.
+   * This is a direct digest of the encoded key in binary
+   * format, i.e neither modulus nor exponent is extracted
+   * contrary to CFEngine dedicated format.
+   *
+   * The return digest is given in sha256. If the sha-256
+   * engine is not available (extremly unlikly, it's a
+   * standard JCA algo), an error is returned.
+   *
+   * The result is a hex string of the digest.
+   */
+  def getSha256Digest(key: PublicKey): Box[String] = {
+    for {
+                    // the parser able to read PEM files
+                    // Parser may be null is the key is invalid
+      parser     <- Box(Option(new PEMParser(new StringReader(key.key))))
+                    // read the PEM b64 pubkey string
+      pubkeyInfo <- tryo { parser.readObject.asInstanceOf[SubjectPublicKeyInfo] }
+      sha256     <- tryo { MessageDigest.getInstance("SHA-256") }
+    } yield {
+      sha256.update(pubkeyInfo.getEncoded)
+      Hex.toHexString(sha256.digest)
+    }
+  }
+}
