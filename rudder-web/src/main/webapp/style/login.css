@@ -24,7 +24,7 @@ html,body{
 	margin-right:auto;
 }
 
-#login-page form legend{
+#login-page form p.legend{
 	border-top-left-radius: 5px;
 	border-top-right-radius: 5px;
     color: #fff;
@@ -32,11 +32,11 @@ html,body{
     padding: 20px 50px;
     margin-bottom: 0;
 }
-#login-page form legend img{
+#login-page form p.legend img{
 	height: auto;
 	width: 100%;
 }
-#login-page form legend span{
+#login-page form p.legend span{
 	position: absolute;
     right: 5px;
     font-size: 15px;
@@ -179,7 +179,7 @@ form.rudder-form{
     padding-bottom: 20px;
 }
 
-form.rudder-form legend{
+form.rudder-form p.legend{
     padding-left: 15px;
     padding-bottom: 5px;
     padding-top: 5px;
@@ -289,7 +289,7 @@ animation: opacity-1 .2s linear forwards;
 		margin-top: 80px;
 	    height: auto;	 
 	}
-	#login-page form legend{
+	#login-page form p.legend{
 		margin-bottom: 30px;
 	}
 	#login-page form .welcome{
@@ -313,7 +313,7 @@ animation: opacity-1 .2s linear forwards;
 	#login-page form{
 		margin-top: 20px;
 	}
-	#login-page form legend{
+	#login-page form p.legend{
 		margin-bottom: 30px;
 	}
 	#login-page form .welcome{
@@ -338,7 +338,7 @@ animation: opacity-1 .2s linear forwards;
 		margin-top: 20px;
 		margin-top: 20px;
 	}
-	#login-page form legend{
+	#login-page form p.legend{
 		margin-bottom: 30px;
 	}
 	#login-page form .welcome{
@@ -356,7 +356,7 @@ animation: opacity-1 .2s linear forwards;
 	#login-page form{
     margin-top: 20px;
 	}
-	#login-page form legend img{
+	#login-page form p.legend img{
 	    padding: 0 50px;
 	}
 
