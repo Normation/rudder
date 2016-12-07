@@ -1510,6 +1510,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(doobie, pgIn)
   private[this] lazy val updateExpectedRepo = new UpdateExpectedReportsJdbcRepository(doobie, pgIn)
   private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie)
+  private[this] lazy val complianceRepositoryImpl = new ComplianceJdbcRepository(doobie)
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD, RUDDER_JDBC_MAX_POOL_SIZE)
   private[this] lazy val doobie = new Doobie(dataSourceProvider.datasource)
   private[this] lazy val jdbcTemplate = {
@@ -1802,6 +1803,7 @@ object RudderConfig extends Loggable {
     , updatesEntryJdbcRepository
     , recentChangesService
     , reportingServiceImpl
+    , complianceRepositoryImpl
     , max
     )
   }

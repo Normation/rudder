@@ -97,6 +97,7 @@ import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.Technique
 import scala.collection.SortedMap
+import com.normation.rudder.repository.ComplianceRepository
 
 
 /**
@@ -196,6 +197,12 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     override def countChangesByRuleByInterval() = Empty
   }
 
+  lazy val dummyComplianceRepos = new ComplianceRepository() {
+    override def saveRunCompliance(reports: List[NodeStatusReport]): Box[List[NodeStatusReport]] = {
+      Full(reports)
+    }
+  }
+
   lazy val updateRuns = {
     new ReportsExecutionService(
         reportsRepo
@@ -203,6 +210,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       , new LastProcessedReportRepositoryImpl(doobie)
       , dummyChangesCache
       , dummyComplianceCache
+      , dummyComplianceRepos
       , 1
     )
   }

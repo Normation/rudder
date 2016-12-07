@@ -53,6 +53,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import scala.language.implicitConversions
+import com.normation.rudder.services.reports.RunAndConfigInfo
 
 /**
  *
@@ -145,6 +146,32 @@ object Doobie {
     )
   }
 
+  implicit val CompliancePercentComposite: Composite[CompliancePercent] = {
+    import ComplianceLevelSerialisation._
+    import net.liftweb.json._
+    Composite[String].xmap(
+        json => parsePercent(parse(json))
+      , x    => compactRender(x.toJson)
+    )
+  }
+
+  implicit val ComplianceRunInfoComposite: Composite[(RunAndConfigInfo, RunComplianceInfo)] = {
+    import NodeStatusReportSerialization._
+    import net.liftweb.json._
+    Composite[String].xmap(
+        json => throw new RuntimeException(s"You can deserialize run compliance info for now")
+      , x    => x.toJson
+    )
+  }
+
+  implicit val AggregatedStatusReportComposite: Composite[AggregatedStatusReport] = {
+    import NodeStatusReportSerialization._
+    import net.liftweb.json._
+    Composite[String].xmap(
+        json => throw new RuntimeException(s"You can deserialize aggredatedStatusReport for now")
+      , x    => x.toJson
+    )
+  }
 
   implicit val XmlMeta: Meta[Elem] =
     Meta.advanced[Elem](

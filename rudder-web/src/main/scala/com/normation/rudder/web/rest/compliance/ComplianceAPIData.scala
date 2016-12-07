@@ -339,15 +339,15 @@ object JsonCompliance {
 
     //we want at most two decimals
     Map(
-        statusDisplayName(EnforceNotApplicable) -> c.pc_notApplicable
-      , statusDisplayName(EnforceSuccess) -> c.pc_success
-      , statusDisplayName(EnforceRepaired) -> c.pc_repaired
-      , statusDisplayName(EnforceError) -> c.pc_error
-      , statusDisplayName(Unexpected) -> c.pc_unexpected
-      , statusDisplayName(Missing) -> c.pc_missing
-      , statusDisplayName(NoAnswer) -> c.pc_noAnswer
-      , statusDisplayName(Disabled) -> c.pc_reportsDisabled
-      , statusDisplayName(Pending) -> c.pc_pending
+        statusDisplayName(EnforceNotApplicable) -> c.pc.notApplicable
+      , statusDisplayName(EnforceSuccess) -> c.pc.success
+      , statusDisplayName(EnforceRepaired) -> c.pc.repaired
+      , statusDisplayName(EnforceError) -> c.pc.error
+      , statusDisplayName(Unexpected) -> c.pc.unexpected
+      , statusDisplayName(Missing) -> c.pc.missing
+      , statusDisplayName(NoAnswer) -> c.pc.noAnswer
+      , statusDisplayName(Disabled) -> c.pc.reportsDisabled
+      , statusDisplayName(Pending) -> c.pc.pending
     ).filter { case(k, v) => v > 0 }.mapValues(percent => percent )
   }
 }

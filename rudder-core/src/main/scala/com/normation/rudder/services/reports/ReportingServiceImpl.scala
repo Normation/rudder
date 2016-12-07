@@ -211,7 +211,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       } else {
         reports.mapValues { status =>
           val nodeStatusReports = status.report.reports
-          NodeStatusReport(status.forNode, status.runInfo, status.statusInfo
+          NodeStatusReport(status.nodeId, status.runInfo, status.statusInfo
                          , nodeStatusReports.filter(r => ruleIds.contains(r.ruleId) )
           )
         }.filter( _._2.report.reports.nonEmpty )
@@ -371,7 +371,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       //we want to have nodeStatus for all asked node, not only the ones with reports
       runInfos.map { case (nodeId, runInfo) =>
         val status = ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reports.getOrElse(nodeId, Seq()))
-        (status.forNode, status)
+        (status.nodeId, status)
       }
     }
   }

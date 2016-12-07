@@ -55,6 +55,7 @@ import org.joda.time.format.PeriodFormat
 
 import net.liftweb.common._
 import com.normation.rudder.db.DB
+import com.normation.rudder.repository.ComplianceRepository
 
 /**
  * That service contains most of the logic to merge
@@ -66,6 +67,7 @@ class ReportsExecutionService (
   , statusUpdateRepository : LastProcessedReportRepository
   , cachedChanges          : CachedNodeChangesServiceImpl
   , cachedCompliance       : CachedFindRuleNodeStatusReports
+  , complianceRepos        : ComplianceRepository
   , maxDays                : Int // in days
 ) {
 
@@ -220,6 +222,8 @@ class ReportsExecutionService (
             logger.error("Root exception was: ", ex)
           }
         case Full(x) => //youhou
+          //save compliance in DB
+          complianceRepos.saveRunCompliance(x.values.toList)
           logger.trace("Cache for compliance updates after new run received")
       }
     }
