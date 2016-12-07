@@ -60,7 +60,7 @@ fi
 
 # list capabilities
 capabilities=""
-if [ -e "${capability_file}" ]
+if [ -f "${capability_file}" ]
 then
   capabilities=`cat "${capability_file}"`
 else
