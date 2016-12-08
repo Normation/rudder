@@ -72,6 +72,7 @@ import scalaz.concurrent.Task
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.DB
+import doobie.free.preparedstatement.PreparedStatementIOOps
 
 /**
  * The EventLog repository
@@ -153,7 +154,7 @@ class EventLogJdbcRepository(
     val q = s"""
       select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
       from eventlog
-      where cast (xpath('${xpath}', data) as text[]) = ?
+      where cast (xpath('${xpath}', data) as varchar[]) = ?
       ${eventFilter} ${order} ${limit}
     """
 
@@ -179,7 +180,7 @@ class EventLogJdbcRepository(
 
     val eventFilter = eventTypeFilter match {
       case Nil => ""
-      case seq => " and eventType in (" + seq.map(x => "?").mkString(",") + ")"
+      case seq => "where eventType in (" + seq.map(x => "?").mkString(",") + ")"
     }
 
     // Query to get Last event by change request, we need to do something like a groupby and get the one with a higher creationDate
@@ -190,9 +191,9 @@ class EventLogJdbcRepository(
       from (
         select
             eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
-          , cast (xpath(?, data) as text[]) as crid
+          , cast (xpath('${xpath}', data) as varchar[]) as crid
           , row_number() over (
-              partition by cast (xpath(?, data) as text[])
+              partition by cast (xpath('${xpath}', data) as varchar[])
               order by creationDate desc
             ) as rownumber
         from eventlog
@@ -203,16 +204,16 @@ class EventLogJdbcRepository(
     // here, we have to build the parameters by hand
     // the first is the array needed by xpath, the following are eventType - if any
     val eventTypeParam = eventTypeFilter.zipWithIndex
-    val param = ( (HPS.set(1, xpath) *> HPS.set(2 , xpath))  /: eventTypeParam ) { case (current, (event,index)) =>
-      // zipwithIndex starts at 0, and we have already 2 used for the xpath, so we +3 the index
-      current *> HPS.set(index+3, event.eventType.serialize)
-    }
+    val param = eventTypeParam.traverse { case (event,index) =>
+      // zipwithIndex starts at 0, but sql index at 1, so we +1 the index
+      HPS.set(index+1, event.eventType.serialize)
+    }.void
 
     (for {
       entries <- HC.process[(String, String, EventLogDetails)](q, param).vector
     } yield {
       entries.map { case (crid, tpe, details) =>
-        (ChangeRequestId(crid.substring(1, id.length()-1).toInt), toEventLog((tpe, details)) )
+        (ChangeRequestId(crid.substring(1, crid.length()-1).toInt), toEventLog((tpe, details)) )
       }.toMap
     }).attempt.transact(xa).run
   }
