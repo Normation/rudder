@@ -132,6 +132,9 @@ object RudderLDAPConstants extends Loggable {
   //node configuraiton
   val A_NODE_CONFIG = "nodeConfig"
 
+  // key=value tags, in JSON
+  val A_SERIALIZED_TAGS = "serializedTags"
+
   //
   // Object Classe names
   //
@@ -163,7 +166,7 @@ object RudderLDAPConstants extends Loggable {
 
   OC += (OC_RULE,
     must = Set(A_RULE_UUID),
-    may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM, A_RULE_TARGET, A_DIRECTIVE_UUID, A_SERIAL, A_RULE_CATEGORY))
+    may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM, A_RULE_TARGET, A_DIRECTIVE_UUID, A_SERIAL, A_RULE_CATEGORY, A_SERIALIZED_TAGS))
 
   OC += (OC_RUDDER_NODE,
     must = Set(A_NODE_UUID, A_NAME, A_IS_BROKEN, A_IS_SYSTEM),
@@ -178,7 +181,7 @@ object RudderLDAPConstants extends Loggable {
   OC += (OC_DIRECTIVE,
     must = Set(A_DIRECTIVE_UUID),
     may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION,
-      A_PRIORITY, A_IS_ENABLED, A_DIRECTIVE_VARIABLES, A_IS_SYSTEM))
+      A_PRIORITY, A_IS_ENABLED, A_DIRECTIVE_VARIABLES, A_IS_SYSTEM, A_SERIALIZED_TAGS))
 
   OC += (OC_ACTIVE_TECHNIQUE,
     must = Set(A_ACTIVE_TECHNIQUE_UUID, A_TECHNIQUE_UUID),
