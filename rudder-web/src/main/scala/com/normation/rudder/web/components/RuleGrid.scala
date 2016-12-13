@@ -542,7 +542,10 @@ class RuleGrid(
     val t0 = System.currentTimeMillis
 
     val nodes = groupsLib.getNodeIds(line.rule.targets, nodesInfo)
-    val (policyMode,explanation) = ComputePolicyMode.ruleMode(globalMode, line.rule.directiveIds.map(directiveLib.allDirectives(_)).map(_._2))
+    // when building policy mode explanation we look into all directives every directive applied by the rule
+    // But some directive may be missing so we do 'get', we them skip the missing directive and only use existing one ( thanks to flatmap)
+    // Rule will be disabled somewhere else, stating that some object are missing and you should enable it again to fix it
+    val (policyMode,explanation) = ComputePolicyMode.ruleMode(globalMode, line.rule.directiveIds.map(directiveLib.allDirectives.get(_)).flatMap(_.map(_._2)))
 
     // Status is the state of the Rule, defined as a string
     // reasons are the the reasons why a Rule is disabled
@@ -656,7 +659,6 @@ class RuleGrid(
    )
   }
 }
-
 
   /*
    *   Javascript object containing all data to create a line in the DataTable
