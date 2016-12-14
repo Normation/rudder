@@ -358,7 +358,7 @@ a.sidebar-toggle{
 
 .rudder_col {
   background-color: rgb(236, 240, 245);
-  padding: 15px 15px 5px;
+  padding: 15px 15px 10px;
 }
 .content-wrapper {
   height: auto;
@@ -837,11 +837,24 @@ a.sidebar-toggle{
   opacity:1;
 }
 /* RULE PAGE */
+#includeSubCategory{
+  margin-top: 10px;
+  padding: 0 4px;
+}
+#includeSubCategory span{
+  margin-left:10px;
+}
 .tw-bs form hr,form .tw-bs hr{
   width:100%;
 }
 #submitSearch #SubmitSearch{
   margin-left: 7px;
+}
+label.rule-info{
+  margin-bottom:0;
+}
+label.rule-info + div{
+  color:#555;
 }
 .fake-form-control{
   float: left;
@@ -893,7 +906,7 @@ a.sidebar-toggle{
   border-right: 0;
 }
 .skin-yellow.sidebar-collapse .directive-footer {
-  width: 63.2%;
+  width: 63.2%;style="margin-top: 10px;padding: 0 4px;"
 }
 
 /* --- CHANGE REQUEST PAGE --- */
@@ -987,15 +1000,16 @@ a.sidebar-toggle{
   border-left: 15px solid #ECF0F5;
   max-height:88vh;
 }
-#directiveDetails,.directiveTree{
+#directiveDetails{
   overflow-y:auto;
   overflow-x:hidden;
-  padding-bottom: 20px;
 }
 .directiveTree {
   padding-left: 10px;
   padding-right: 10px;
-  max-height: calc(100vh - 70px);
+  padding: 0 10px;
+  overflow-y:auto;
+  overflow-x:hidden;
 }
 .ui-widget.ui-tooltip h4{
   margin-bottom: 10px;

@@ -244,7 +244,16 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
         $(nTd).prepend(elem);
       }
   };
-
+  var tags = {
+      "mDataProp"     : "tags"
+    , "sClass"        : "never"
+    , "sTitle"        : "Tags"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).empty();
+        var tag = JSON.stringify(oData.tags);
+        $(nTd).text(tag);
+      }
+  };
   // Name of the rule
   // First mandatory row, so do general thing on the row ( line css, description tooltip ...)
   var name = {
@@ -385,6 +394,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
 
   // Choose which columns should be included
   var columns = [];
+  columns.push(tags);
   if (needCheckbox) {
     columns.push(checkbox);
   }
@@ -408,8 +418,16 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
           "sZeroRecords": "No matching rules!"
         , "sSearch": ""
       }
+    , "columnDefs": [{
+          "targets": [ 0 ]
+        , "visible": false
+        , "searchable": true
+      }]
     , "fnDrawCallback": function( oSettings ) {
       $('.rudder-label').bsTooltip();
+      $('#updateRuleTable').on('click',function(){
+        refresh();
+      })
       var rows = this._('tr', {"page":"current"});
        $.each(rows, function(index,row) {
          var id = "Changes-"+row.id;
@@ -431,9 +449,8 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
        })
       }
     , "aaSorting": [[ 0, "asc" ] , [ sortingDefault, "asc" ]]
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+    , "sDom": 'rt<"dataTables_wrapper_bottom"lip>'
   }
-
   var table = createTable(gridId,data,columns, params, contextPath, refresh, "rules", isPopup);
   table.search("").columns().search("");
   if(isPopup){
@@ -1671,7 +1688,6 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     $('#filterLogs .pickStartInput, #filterLogs .pickEndInput').datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
     $('#filterLogsButton').click(pickEventLogsInInterval);
   }
-
   return table;
 }
 

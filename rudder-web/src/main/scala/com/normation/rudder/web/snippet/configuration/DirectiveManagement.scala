@@ -68,6 +68,8 @@ import org.joda.time.DateTime
 import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.Tags
+import com.normation.rudder.domain.policies.Tag
 
 /**
  * Snippet for managing the System and Active Technique libraries.
