@@ -1,77 +1,128 @@
-
 <lift:surround with="common-layout" at="content">
 
 <head>
-<title>Rudder - Directives Management</title>
-
-<style type="text/css">
-
-#versionTable thead tr {
-    border: 1px solid #666 !important;
-    padding: 0px;
-    list-style: none inside none;
-    font-weight: bold;
-    background-color: #666;
-    color: #FFF;
-    font-size: 13px;
-}
-
-#versionTable thead tr th {
-    padding: 3px;
-    text-align: center;
-}
-
-#versionTable tbody tr {
-    border: 1px solid #666 !important;
-    padding: 4px 3px;
-    margin: 0px;
-    padding: 0px;
-    list-style: none inside none;
-    font-size: 12px;
-}
-
-#versionTable tbody tr td {
-  text-align: center;
-}
-
-#editForm {
-  padding-bottom:70px;
-}
-
-</style>
-
+  <title>Rudder - Directives Management</title>
+  <style type="text/css">
+    #versionTable thead tr {
+      border: 1px solid #666 !important;
+      padding: 0px;
+      list-style: none inside none;
+      font-weight: bold;
+      background-color: #666;
+      color: #FFF;
+      font-size: 13px;
+    }
+    #versionTable thead tr th {
+      padding: 3px;
+      text-align: center;
+    }
+    #versionTable tbody tr {
+      border: 1px solid #666 !important;
+      padding: 4px 3px;
+      margin: 0px;
+      padding: 0px;
+      list-style: none inside none;
+      font-size: 12px;
+    }
+    #versionTable tbody tr td {
+      text-align: center;
+    }
+    #editForm {
+      padding-bottom:70px;
+    }
+    .rudder-col,body{
+      overflow:hidden;
+    }
+  </style>
+  <link media="screen" href="/style/rudder/rudder-tags.css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="/javascript/rudder/angular/filters.js"></script>
+  <script type="text/javascript" src="/javascript/rudder/directive.js"></script>
 </head>
 
 <div data-lift="configuration.DirectiveManagement.head"></div>
 
 <div class="tw-bs col-sm directiveTree">
   <div class="page-title">Directive Library</div>
-  <div id="activeTechniquesTree_actions_zone"  >
-    <div class="col-xs-12 tree">
+  <div id="activeTechniquesTree_actions_zone" ng-controller="filterTagDirectiveCtrl" ng-cloak>
+    <div class="tree">
       <div class="filter-tree">
         <div class="input-group">
           <div class="input-group-btn">
-            <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#activeTechniquesTree', this);">
+            <button type="button" class="btn btn-sm btn-default" aria-label="Bold" onclick="toggleTree('#activeTechniquesTree', this);">
               <span class="fa fa-folder fa-folder-open"></span>
             </button>
           </div>
-          <input class="form-control" placeholder="Filter" id="treeSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#activeTechniquesTree');">
+          <input class="form-control input-sm" placeholder="Filter" id="treeSearch" ng-model="searchStr" ng-keydown="refuseEnter($event)" ng-keyup="searchTree('#activeTechniquesTree')">
           <div class="input-group-btn">
-            <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree');" >
+            <button type="button" class="btn btn-default btn-sm" aria-label="Bold" ng-click="clearSearchFieldTree('#activeTechniquesTree');" >
               <span class="fa fa-times"></span>
             </button>
             <lift:authz role="technique_write">
-              <a class="btn btn-default" href="/secure/utilities/techniqueEditor">Edit Techniques</a>
+              <a class="btn btn-default btn-sm" href="/secure/utilities/techniqueEditor">Edit Techniques</a>
             </lift:authz>
           </div>
         </div>
       </div>
     </div>
     <div class="clearfix "></div>
+    <div id="showFiltersDirective" class="filters">
+      <div class="filters-container">
+          <form class="filterTag">
+            <div class="panel-group" role="tablist" aria-multiselectable="true">
+              <div class="panel panel-default">
+                <div class="panel-heading" role="tab" id="headingOne">
+                  <h4 class="panel-title">
+                    <a role="button" href="#form-tag" ng-click="toggleFilter('#stateFilterTag')" aria-expanded="true" aria-controls="form-tag">
+                      More filters
+                      <span id="stateFilterTag" class="glyphicon glyphicon-chevron-down pull-right"></span>
+                    </a>
+                  </h4>
+                </div>
+                <div id="form-tag" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+                  <div class="panel-body">
+                    <div class="form-group">
+                      <label>Tags</label>
+                      <div class="input-group">
+                        <input placeholder="key" class="form-control input-sm input-key    " type="text" ng-model="newTag.key">
+                        <span class="input-group-addon addon-json">=</span>
+                        <input placeholder="value" class="form-control input-sm input-value" type="text" ng-model="newTag.value">
+                        <span class="input-group-btn">
+                          <button type="button" class="btn btn-success btn-sm" ng-disabled="isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)" ng-click="addTag('#activeTechniquesTree')"><span class="fa fa-plus"></span></button>
+                        </span>
+                      </div>
+                    </div>
+                    <div class="only-tags">
+                      <a href="" ng-click="onlyAll($event)" class="all" ng-class="{'active':(!only.key && !only.value)}"> All </a>
+                      <span class="separator">/</span>
+                      <a href="" ng-click="onlyKey($event)" class="key" ng-class="{'active':only.key}"> Filter keys only   </a>
+                      <span class="separator">/</span>
+                      <a href="" ng-click="onlyValue($event)" class="value" ng-class="{'active':only.value}"> Filter values only </a>
+                      <button class="btn btn-default btn-xs pull-right" ng-click="clearAllTags()" ng-disabled="tags.length==0">
+                        Clear all tags
+                        <i class="fa fa-trash" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="panel-footer">
+                  <div class="tags-container" ng-show="tags.length>0">
+                    <span class="rudder-tag" ng-repeat="tag in tags" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag($index,tag)">
+                      <span class="tag-key"><span ng-show="tag.key!=''">{{tag.key}}</span><i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i></span>
+                      <span class="tag-separator">=</span>
+                      <span class="tag-value"><span ng-show="tag.value!=''">{{tag.value}}</span><i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.value==''"></i></span>
+                      <span class="fa fa-times" ng-click="removeTag($index)"></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+      </div>
+    </div>
   </div>
-
+  <div id="activeTechniquesTree_alert" style="display:none"><div class="alert alert-warning"><i class="fa fa-exclamation-triangle"></i>No directives match your filter.</div></div>
+  <hr class="separator-filter-tree">
   <div data-lift="configuration.DirectiveManagement.userLibrary" ></div>
-
 </div>
 
 <div class="col col-xl" id="directiveDetails">

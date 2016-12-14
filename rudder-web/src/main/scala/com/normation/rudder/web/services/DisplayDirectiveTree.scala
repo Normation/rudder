@@ -48,6 +48,7 @@ import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmd
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.{ boolean2, strToSuperArrowAssoc }
@@ -71,6 +72,7 @@ import net.liftweb.common.EmptyBox
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
+import net.liftweb.http.js.JsObj
 
 /**
  *
@@ -217,8 +219,9 @@ object DisplayDirectiveTree extends Loggable {
         s"${disabled} ${includedClass}"
       }
       val htmlId = s"jsTree-${directive.id.value}"
+      val directiveTags = JsObj(directive.tags.map(_.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList).getOrElse(Nil):_*)
       override val attrs = (
-                  ("data-jstree" -> """{ "type" : "directive" }""") ::
+                  ("data-jstree" -> s"""{"type":"directive", "tags":${directiveTags}}""") ::
                   ( "id" -> htmlId) ::
                   ("class" -> classes ) ::
                   Nil
@@ -231,8 +234,8 @@ object DisplayDirectiveTree extends Loggable {
             val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
               <span  class="tooltipable treeAction noRight directiveDetails fa fa-pencil" tooltipid={tooltipId} title="" onclick={redirectToDirectiveLink(directive.id).toJsCmd}> </span>
-						  <div class="tooltipContent" id={tooltipId}><div>Configure this Directive.</div></div>
-						</span>
+              <div class="tooltipContent" id={tooltipId}><div>Configure this Directive.</div></div>
+            </span>
           } else {
             NodeSeq.Empty
           }
@@ -280,7 +283,7 @@ object DisplayDirectiveTree extends Loggable {
             <div>Technique version: {directive.techniqueVersion.toString}</div>
             <div>{s"Used in ${isAssignedTo} rules" }</div>
               { if(!directive.isEnabled) <div>Disable</div> }
-            </div>
+          </div>
 
         }
 
@@ -292,7 +295,7 @@ object DisplayDirectiveTree extends Loggable {
       }
     }
 
-    displayCategory(directiveLib, "jstn_0").toXml
+    displayCategory(directiveLib, "jstn_0").toXml ++ Script(OnLoad(JsRaw("angular.bootstrap('#activeTechniquesTree_actions_zone', ['filters']);")))
   }
 
 }

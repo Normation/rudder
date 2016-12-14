@@ -124,6 +124,17 @@ class RuleDisplayer (
         , () => refreshGrid
     ) )
   }
+
+  def includeSubCategory = {
+    SHtml.ajaxCheckbox(
+        true
+      , value =>  OnLoad(JsRaw(s"""
+        include=${value};
+        filterTableInclude('#grid_rules_grid_zone',filter,include); """)) & check()
+      , ("id","includeCheckbox")
+    )
+  }
+
   def viewCategories(ruleCategoryTree : RuleCategoryTree) : NodeSeq = {
 
     val actionButton =
@@ -139,6 +150,7 @@ class RuleDisplayer (
            {actionButton}
          </div>
        </lift:authz>
+       <div id="includeSubCategory">{includeSubCategory}<span>Display Rules from subcategories</span></div>
        <div id="treeParent" style="overflow:auto; margin-top:10px; max-height:443px;">
          <div id="categoryTree" class="tw-bs">
            {ruleCategoryTree.tree}
@@ -176,15 +188,6 @@ class RuleDisplayer (
         , directive
       )
     }
-    def includeSubCategory = {
-      SHtml.ajaxCheckbox(
-          true
-        , value =>  OnLoad(JsRaw(s"""
-          include=${value};
-          filterTableInclude('#grid_rules_grid_zone',filter,include); """)) & check()
-        , ("id","includeCheckbox")
-      )
-    }
 
     def actionButton = {
       if (directive.isDefined) {
@@ -200,7 +203,6 @@ class RuleDisplayer (
           {actionButton}
         </span>
       </lift:authz>
-      <div style={s"margin:10px 0px 0px ${if (directive.isDefined) 0 else 50}px; float:left"}>{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></div>
       <hr class="spacer"/>
       { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, true, false)  ++
         Script(OnLoad(ruleGrid.asyncDisplayAllRules(None, true, configService.display_changes_graph().openOr(true)).applied))
@@ -212,7 +214,7 @@ class RuleDisplayer (
 
   def display = {
    val columnToFilter = {
-     if (directive.isDefined) 2 else 1
+     if (directive.isDefined) 3 else 2
    }
 
    ruleCategoryTree match {
