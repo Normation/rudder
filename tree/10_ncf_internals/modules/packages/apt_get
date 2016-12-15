@@ -202,6 +202,8 @@ def list_updates(online):
 def get_platform_arch():
     process = subprocess_Popen([dpkg_cmd, "--print-architecture"], stdout=subprocess.PIPE)
     for line in process.stdout:
+	if PY3:
+	    line = line.decode("utf-8")
         return line.rstrip()
     return None
 
