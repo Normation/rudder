@@ -81,8 +81,10 @@ install_rudder_agent() {
 	cd ${TEST_WORKDIR}
 	
 	curl -sO "https://www.rudder-project.org/tools/rudder-setup"
-	sh rudder-setup setup-agent ${VERSION}
-	
+	sh rudder-setup setup-agent ${VERSION} "localhost"
+
+	/opt/rudder/bin/rudder agent disable
+
 	# Put CFEngine binaries in the default PATH
 	export PATH="${PATH}:/var/rudder/cfengine-community/bin/"
 }
