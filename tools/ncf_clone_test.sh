@@ -81,7 +81,9 @@ install_rudder_agent() {
 	cd ${TEST_WORKDIR}
 	
 	curl -sO "https://www.rudder-project.org/tools/rudder-setup"
-	sh rudder-setup setup-agent ${VERSION} "localhost"
+
+	# this command will fail as we can't send the inventory
+	sh rudder-setup setup-agent ${VERSION} "localhost" || true
 
 	/opt/rudder/bin/rudder agent disable
 
