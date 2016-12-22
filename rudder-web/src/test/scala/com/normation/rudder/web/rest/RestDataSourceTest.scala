@@ -90,6 +90,10 @@ class RestDataSourceTest extends Specification with Loggable {
   val datasource2 = datasource1.copy(id = DataSourceId("datasource2"))
   val d2Json = restDataSerializer.serializeDataSource(datasource2)
 
+  println(net.liftweb.json.compactRender(d1Json))
+
+  println(net.liftweb.json.compactRender(d2Json))
+
   val dataSource2Updated = datasource2.copy(
       description = "new description"
     , sourceType = baseSourceType.copy(headers = Map( ("new header 1" -> "new value 1") , ("new header 2" -> "new value 2")))

@@ -140,6 +140,9 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.web.rest.settings.SettingsAPI8
 import com.normation.rudder.web.rest.sharedFiles.SharedFilesAPI
 import com.normation.rudder.web.rest.datasource._
+import com.normation.rudder.datasources.MemoryDataSourceRepository
+import com.normation.rudder.datasources.DataSourceRepoImpl
+import com.normation.rudder.datasources.HttpQueryDataSourceService
 
 /**
  * Define a resource for configuration.
@@ -436,6 +439,9 @@ object RudderConfig extends Loggable {
       , inMemoryChangeRequestRepository
     )
   }
+
+  case class A(s: String)
+  case class B(a: A)
 
   val roRuleCategoryRepository : RoRuleCategoryRepository = roLDAPRuleCategoryRepository
   val ruleCategoryService      : RuleCategoryService = new RuleCategoryService()
@@ -786,8 +792,17 @@ object RudderConfig extends Loggable {
 
   val settingsApi8 = new SettingsAPI8(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
 
-  val dataSourceApiService = new DataSourceApiService(new MemoryDataSourceRepository, restDataSerializer, restExtractorService)
+
+  val dataSourceRepository = new DataSourceRepoImpl(
+      new MemoryDataSourceRepository
+    , new HttpQueryDataSourceService(nodeInfoService, roLDAPParameterRepository, woLdapNodeRepository, interpolationCompiler)
+    , stringUuidGenerator
+  )
+
+  val dataSourceApiService = new DataSourceApiService(dataSourceRepository, restDataSerializer, restExtractorService)
   val dataSourceApi9 = new DataSourceApi9(restExtractorService, dataSourceApiService, stringUuidGenerator)
+  val nodeApiService9 = new NodeApiService9(dataSourceRepository)
+  val nodeApi9 = new NodeAPI9(nodeApi8, nodeApiService9, restExtractorService)
 
   // First working version with support for rules, directives, nodes and global parameters
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
@@ -803,7 +818,7 @@ object RudderConfig extends Loggable {
   val apiV7 = complianceApi7 :: apiV6.filter( _ != complianceApi6)
   // apiv8 add policy mode in node API and settings API
   val apiV8 = nodeApi8 :: settingsApi8 :: apiV7.filter( _ != nodeApi6)
-  val apiV9 = dataSourceApi9 :: apiV8
+  val apiV9 = dataSourceApi9 :: nodeApi9 :: apiV8.filter( _ != nodeApi8 )
 
   val apis = {
     Map (
@@ -1440,6 +1455,7 @@ object RudderConfig extends Loggable {
         , globalAgentRunService
         , reportingServiceImpl
         , rudderCf3PromisesFileWriterService
+        , dataSourceRepository
         , configService.agent_run_interval
         , configService.agent_run_splaytime
         , configService.agent_run_start_hour
@@ -1487,6 +1503,7 @@ object RudderConfig extends Loggable {
       , eventLogRepository
       , dyngroupUpdaterBatch
       , List(nodeInfoServiceImpl)
+      , dataSourceRepository
     )
   }
 

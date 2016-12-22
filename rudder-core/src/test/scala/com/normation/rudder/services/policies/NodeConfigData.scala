@@ -98,6 +98,9 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.inventory.domain.AgentInfo
 import com.normation.inventory.domain.AgentVersion
+import com.normation.rudder.services.nodes.NodeInfoService
+import net.liftweb.common.Full
+import net.liftweb.common.Box
 
 
 /*
