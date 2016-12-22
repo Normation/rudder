@@ -186,21 +186,30 @@ object RunHooks {
    *
    */
    def getHooks(basePath: String): Box[Hooks] = {
-    tryo {
-      val dir = new File(basePath)
-      // only keep executable files whose name ends with ".hook"
-      val files = dir.listFiles().toList.flatMap { file => file match {
-        case f if(f.isDirectory) => None
-        case f =>
-          if(f.canExecute) {
-            Some(f.getName)
-          } else {
-            HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission?")
-            None
-          }
-        case _ => None
-      } }.sorted // sort them alphanumericaly
-      Hooks(basePath, files)
+     tryo {
+       val dir = new File(basePath)
+       // Check that dir exists before looking in it
+       if (dir.exists) {
+         // only keep executable files
+         val files = dir.listFiles().toList.flatMap { file =>
+           file match {
+             case f if (f.isDirectory) => None
+             case f =>
+               if (f.canExecute) {
+                 Some(f.getName)
+               } else {
+                 HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission?")
+                 None
+               }
+             case _ => None
+           }
+         }.sorted // sort them alphanumericaly
+         Hooks(basePath, files)
+       } else {
+         HooksLogger.debug(s"Ignoring hook directory '${dir.getAbsolutePath}' because path does not exists")
+         // return an empty Hook
+         Hooks(basePath, List[String]())
+       }
      }
    }
 
