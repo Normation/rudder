@@ -360,9 +360,12 @@ class SystemVariableServiceImpl(
         def addWithSubChildren(nodes: List[NodeInfo]): List[NodeInfo] = {
           nodes.flatMap(n =>
             n :: {
-              childrenByPolicyServer.get(n.policyServerId) match {
+              childrenByPolicyServer.get(n.id) match {
                 case None           => Nil
-                case Some(children) => addWithSubChildren(children)
+                case Some(children) =>
+                  // Root server is its own policy server, we must remove it
+                  val sanitizedChildren = children.filterNot( x => x.id.value == "root" )
+                  addWithSubChildren(sanitizedChildren)
               }
             }
           )
