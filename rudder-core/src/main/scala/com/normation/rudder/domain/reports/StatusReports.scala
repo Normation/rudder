@@ -109,13 +109,36 @@ final class NodeStatusReport private (
   , val statusInfo: RunComplianceInfo
   , val report    : AggregatedStatusReport
 ) extends StatusReport {
-  val compliance = report.compliance
-  val byRules: Map[RuleId, AggregatedStatusReport] = report.reports.groupBy(_.ruleId).mapValues(AggregatedStatusReport(_))
+  lazy val compliance = report.compliance
+  lazy val byRules: Map[RuleId, AggregatedStatusReport] = report.reports.groupBy(_.ruleId).mapValues(AggregatedStatusReport(_))
 }
 
 object NodeStatusReport {
   def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, reports: Iterable[RuleNodeStatusReport]) = {
     new NodeStatusReport(nodeId, runInfo, statusInfo, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
+  }
+
+  // To use when you are sure that all reports are indeed for the designated node.
+  def applyByNode(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, reports: Iterable[RuleNodeStatusReport]) = {
+    new NodeStatusReport(nodeId, runInfo, statusInfo, AggregatedStatusReport(reports.toSet))
+  }
+
+  /*
+   * This method filters an NodeStatusReport by Rules.
+   * The goal is to have cheaper way to truncate data from NodeStatusReport that rebuilding it all from top-down
+   * With this approach, we don't need to to the RuleNodeStatusReport merge, and performance are about 20 times better than
+   * recreating and computing all data
+   * it take a NodeStatusReport, and returns it with only the relevant rules
+   */
+  def filterByRules(nodeStatusReport: NodeStatusReport, ruleIds: Set[RuleId]) : NodeStatusReport = {
+    new NodeStatusReport(
+        nodeStatusReport.forNode
+      , nodeStatusReport.runInfo
+      , nodeStatusReport.statusInfo
+      , AggregatedStatusReport.applyFromAggregatedStatusReport(nodeStatusReport.report, ruleIds)
+    )
+
+
   }
 }
 
@@ -130,12 +153,12 @@ final class AggregatedStatusReport private(
   /**
    * rebuild all the trees from the available status
    */
-  val directives: Map[DirectiveId, DirectiveStatusReport] = {
+  lazy val directives: Map[DirectiveId, DirectiveStatusReport] = {
     //toSeq is mandatory; here, we may have some directive only different
     //by rule or node and we don't want to loose the weight
     DirectiveStatusReport.merge(reports.toSeq.flatMap( _.directives.values))
   }
-  val compliance = ComplianceLevel.sum(directives.map(_._2.compliance))
+  lazy val compliance = ComplianceLevel.sum(directives.map(_._2.compliance))
 }
 
 object AggregatedStatusReport {
@@ -143,6 +166,16 @@ object AggregatedStatusReport {
   def apply(reports: Iterable[RuleNodeStatusReport]) = {
     val merged = RuleNodeStatusReport.merge(reports)
     new AggregatedStatusReport(merged.values.toSet)
+  }
+
+  /*
+   * This method filters an AggragatedStatusReport by Rules.
+   * The goal is to have cheaper way to truncate data from NodeStatusReport that rebuilding it all from top-down
+   * With this approach, we don't need to to the RuleNodeStatusReport merge, and performance are about 20 times better than
+   * recreating and computing all data
+   */
+  def applyFromAggregatedStatusReport(statusReport: AggregatedStatusReport, ruleIds: Set[RuleId]) = {
+    new AggregatedStatusReport(statusReport.reports.filter(r => ruleIds.contains(r.ruleId)))
   }
 
 }
@@ -159,7 +192,7 @@ final case class RuleNodeStatusReport(
   , expirationDate: DateTime
 ) extends StatusReport {
 
-  override val compliance = ComplianceLevel.sum(directives.map(_._2.compliance) )
+  override lazy val compliance = ComplianceLevel.sum(directives.map(_._2.compliance) )
 
   override def toString() = s"""[[${nodeId.value}: ${ruleId.value}/${serial}; run: ${agentRunTime.getOrElse("no time")};${configId.map(_.value).getOrElse("no config id")}->${expirationDate}]
   |  compliance:${compliance}
@@ -203,7 +236,7 @@ final case class DirectiveStatusReport(
     //only one component status report by component name
   , components : Map[String, ComponentStatusReport]
 ) extends StatusReport {
-  override val compliance = ComplianceLevel.sum(components.map(_._2.compliance) )
+  override lazy val compliance = ComplianceLevel.sum(components.map(_._2.compliance) )
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
       components.values.flatMap( _.getValues(predicate) ).toSeq.map { case(s,v) => (directiveId,s,v) }
   }
@@ -249,7 +282,7 @@ final case class ComponentStatusReport(
 
   override def toString() = s"${componentName}:${componentValues.values.toSeq.sortBy(_.componentValue).mkString("[", ",", "]")}"
 
-  override val compliance = ComplianceLevel.sum(componentValues.map(_._2.compliance) )
+  override lazy val compliance = ComplianceLevel.sum(componentValues.map(_._2.compliance) )
   /*
    * Get all values matching the predicate
    */
@@ -291,13 +324,13 @@ final case class ComponentValueStatusReport(
 
   override def toString() = s"${componentValue}(<-> ${unexpandedComponentValue}):${messages.mkString("[", ";", "]")}"
 
-  override val compliance = ComplianceLevel.compute(messages.map( _.reportType))
+  override lazy val compliance = ComplianceLevel.compute(messages.map( _.reportType))
 
   /*
    * It can be argued that a status for a value may make sense,
    * even in the case where several nodes contributed to it
    */
-  val status = ReportType.getWorseType(messages.map(_.reportType))
+  lazy val status = ReportType.getWorseType(messages.map(_.reportType))
 }
 
 object ComponentValueStatusReport extends Loggable {
