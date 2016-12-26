@@ -210,10 +210,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         reports
       } else {
         reports.mapValues { status =>
-          val nodeStatusReports = status.report.reports
-          NodeStatusReport(status.forNode, status.runInfo, status.statusInfo
-                         , nodeStatusReports.filter(r => ruleIds.contains(r.ruleId) )
-          )
+          NodeStatusReport.filterByRules(status, ruleIds)
         }.filter( _._2.report.reports.nonEmpty )
       }
     }
