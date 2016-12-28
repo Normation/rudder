@@ -670,8 +670,15 @@ object ExecutionBatch extends Loggable {
         case r: LogReports if(r.nodeId == nodeId && r.component.toLowerCase == "abort run") =>
           RunComplianceInfo.PolicyModeError.AgentAbortMessage(r.keyValue, r.message)
       }.toSet
-      val mixed = ruleNodeStatusReports.collect { case r => r.directives.collect { case (_, d) if (d.compliance.badPolicyMode > 0) =>
-        RunComplianceInfo.PolicyModeError.TechniqueMixedMode(s"Error for node '${nodeId.value}' in directive '${d.directiveId.value}', other directives based on the same Technique have different Policy Mode")
+
+      val mixed = ruleNodeStatusReports.collect { case r => r.directives.flatMap { case (_, directiveStatusReport) =>
+        directiveStatusReport.components.flatMap { case (_, componentStatusReport) =>
+          componentStatusReport.componentValues.flatMap { case (_, componentValueStatusReport) =>
+            componentValueStatusReport.messages.collect { case MessageStatusReport(reportType:BadPolicyMode.type, _) =>
+              RunComplianceInfo.PolicyModeError.TechniqueMixedMode(s"Error for node '${nodeId.value}' in directive '${directiveStatusReport.directiveId.value}', other directives based on the same Technique have different Policy Mode")
+            }
+          }
+        }
       }.toSet }.flatten
 
       (abort ++ mixed).toList match {
