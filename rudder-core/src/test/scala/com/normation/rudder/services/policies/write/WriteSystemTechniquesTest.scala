@@ -212,7 +212,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , logNodeConfig
     , prepareTemplateVariable
     , new FillTemplatesService()
-    , "/var/rudder/hooks.d"
+    , "/opt/rudder/etc/hooks.d"
   )
 
   //////////// end init ////////////
