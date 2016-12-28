@@ -309,9 +309,9 @@ object RudderConfig extends Loggable {
     , RudderServerRole("rudder-cfengine-mission-portal", config.getString("rudder.server-roles.cfengine-mission-portal"))
   )
 
-  // The base directory for hooks. I'm not sure it need to be configurable
+  // The base directory for hooks. I'm not sure it needs to be configurable
   // as we only use it in generation.
-  val HOOKS_D = "/opt/rudder/hooks.d"
+  val HOOKS_D = "/opt/rudder/etc/hooks.d"
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
