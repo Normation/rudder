@@ -285,6 +285,10 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       complianceMode      <- getGlobalComplianceMode()
       // we want compliance on these nodes
       runInfos            <- getNodeRunInfos(nodeIds, complianceMode)
+      t1                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.trace(s"Compliance: get node run infos: ${t1-t0}ms")
+
+
       // that gives us configId for runs, and expected configId (some may be in both set)
       expectedConfigIds   =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfig.nodeConfigId) }
       lastrunConfigId     =  runInfos.collect {
@@ -292,8 +296,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                                case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
                              }
 
-      t1                  =  System.currentTimeMillis
-      _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t1-t0}ms")
+      t2                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t2-t0}ms")
 
       // compute the status
       nodeStatusReports   <- buildNodeStatusReports(runInfos, ruleIds, complianceMode.mode)
@@ -314,6 +318,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    *
    */
   private[this] def getNodeRunInfos(nodeIds: Set[NodeId], complianceMode: GlobalComplianceMode): Box[Map[NodeId, RunAndConfigInfo]] = {
+    val t0 = System.currentTimeMillis
     for {
       runs              <- complianceMode.mode match {
                             //this is an optimisation to avoid querying the db in that case
@@ -321,7 +326,11 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                              case _ => agentRunRepository.getNodesLastRun(nodeIds)
                            }
       currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodeIds)
+      t1                =  System.currentTimeMillis
+      _                 =  TimingDebugLogger.trace(s"Compliance: get current expected reports: ${t1-t0}ms")
       nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds)
+      t2                =  System.currentTimeMillis
+      _                 =  TimingDebugLogger.trace(s"Compliance: get Node Config Id Infos: ${t2-t1}ms")
     } yield {
       ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
     }
@@ -343,6 +352,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   ): Box[Map[NodeId, NodeStatusReport]] = {
 
     val now = DateTime.now
+    val t0 = System.currentTimeMillis
 
     /*
      * We want to optimize and only query reports for nodes that we
@@ -367,12 +377,18 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                                       case ReportsDisabled => Full(Map[NodeId,Seq[Reports]]())
                                       case _               => reportsRepository.getExecutionReports(agentRunIds, ruleIds)
                                     }
+      t1      =  System.currentTimeMillis
+      _       =  TimingDebugLogger.trace(s"Compliance: get Execution Reports for ${runInfos.size} runInfos: ${t1-t0}ms")
     } yield {
+      val t2 = System.currentTimeMillis
       //we want to have nodeStatus for all asked node, not only the ones with reports
-      runInfos.map { case (nodeId, runInfo) =>
+      val nodeStatusReports = runInfos.map { case (nodeId, runInfo) =>
         val status = ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reports.getOrElse(nodeId, Seq()))
         (status.nodeId, status)
       }
+      val t3 = System.currentTimeMillis
+      TimingDebugLogger.trace(s"Compliance: Computing nodeStatusReports from execution batch: ${t3-t2}ms")
+      nodeStatusReports
     }
   }
 }

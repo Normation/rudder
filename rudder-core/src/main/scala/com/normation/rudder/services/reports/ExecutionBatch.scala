@@ -48,6 +48,7 @@ import scala.collection.mutable.Buffer
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.domain.logger.ComplianceDebugLogger._
+import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.Directive
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports._
@@ -573,6 +574,7 @@ object ExecutionBatch extends Loggable {
 
     ComplianceDebugLogger.node(nodeId).trace(s"Computing compliance for node ${nodeId.value} with: [${runInfo.toLog}]")
 
+    val t1 = System.currentTimeMillis
     val ruleNodeStatusReports = runInfo match {
 
       case ReportsDisabledInInterval(expectedConfig) =>
@@ -665,6 +667,9 @@ object ExecutionBatch extends Loggable {
      * an abort message or at least one mixed mode result
      */
 
+    val t2 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Compliance: getNodeStatusReports - computing compliance for node ${nodeId}: ${t2-t1}ms")
+
     val status = {
       val abort = agentExecutionReports.collect {
         case r: LogReports if(r.nodeId == nodeId && r.component.toLowerCase == "abort run") =>
@@ -679,6 +684,8 @@ object ExecutionBatch extends Loggable {
         case list => RunComplianceInfo.PolicyModeInconsistency(list)
       }
     }
+    val t3 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Compliance: computing policy status for ${nodeId}: ${t3-t2}ms")
 
     NodeStatusReport(nodeId, runInfo, status, ruleNodeStatusReports)
   }
@@ -729,10 +736,13 @@ object ExecutionBatch extends Loggable {
     , currentConfig     : NodeExpectedReports
   ): Set[RuleNodeStatusReport] = {
 
+    val t0 = System.currentTimeMillis
     val complianceForRun: Map[SerialedRuleId, RuleNodeStatusReport] = (for {
       RuleExpectedReports(ruleId
         , serial, directives     ) <- lastRunNodeConfig.ruleExpectedReports
       directiveStatusReports =  {
+
+                                   val t1 = System.currentTimeMillis
                                    //here, we had at least one report, even if it not a ResultReports (i.e: run start/end is meaningful
 
                                    val reportsForThatNodeRule: Seq[ResultReports] = executionReports.filter( _.ruleId == ruleId)
@@ -761,6 +771,8 @@ object ExecutionBatch extends Loggable {
 
                                      ((directive.directiveId, component.componentName), (policyMode, missingReportStatus, component))
                                    }).toMap
+                                   val t2 = System.currentTimeMillis
+                                   TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - prepare data: ${t2-t1}ms")
 
                                    /*
                                     * now we have three cases:
@@ -792,12 +804,16 @@ object ExecutionBatch extends Loggable {
                                        )}.toMap)
                                      ))
                                    }
+                                   val t3 = System.currentTimeMillis
+                                   TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - get missing reports: ${t3-t2}ms")
 
                                    //unexpected contains the one with unexpected key and all non matching serial/version
                                    val unexpected = buildUnexpectedDirectives(
                                        reports.filterKeys(k => !expectedKeys.contains(k)).values.flatten.toSeq ++
                                        badReports
                                    )
+                                   val t4 = System.currentTimeMillis
+                                   TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - unexpected directives computation: ${t4-t3}ms")
 
                                    val expected = okKeys.map { k =>
                                      val (policyMode, missingReportStatus, components) = expectedComponents(k)
@@ -805,6 +821,8 @@ object ExecutionBatch extends Loggable {
                                        checkExpectedComponentWithReports(components, reports(k), missingReportStatus, policyMode)
                                      ))
                                    }
+                                   val t5 = System.currentTimeMillis
+                                   TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - expected directives computation: ${t5-t4}ms")
 
                                    missing ++ unexpected ++ expected
                                 }
@@ -822,6 +840,8 @@ object ExecutionBatch extends Loggable {
           )
       )
     }).toMap
+    val t10 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Compliance: Compute complianceForRun map: ${t10-t0}ms")
 
     //now, for all current expected reports, choose between the computed value and the default one
 
@@ -829,6 +849,9 @@ object ExecutionBatch extends Loggable {
 
     val nil = Seq[RuleNodeStatusReport]()
     val currentRunReports = buildRuleNodeStatusReport(mergeInfo, currentConfig, ReportType.Pending)
+    val t11 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute buildRuleNodeStatusReport: ${t11-t10}ms")
+
     val (computed, newStatus) = ((nil, nil)/: currentRunReports) { case ( (c,n), currentStatusReports) =>
       complianceForRun.get(SerialedRuleId(currentStatusReports.ruleId, currentStatusReports.serial)) match {
         case None => //the whole rule is new!
@@ -849,12 +872,18 @@ object ExecutionBatch extends Loggable {
           (c:+newCompliance, n)
       }
     }
+    val t12 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute compliance : ${t12-t11}ms")
+
 
     ComplianceDebugLogger.node(mergeInfo.nodeId).trace(s"Compute compliance for node ${mergeInfo.nodeId.value} using: rules for which compliance is based on run reports: ${
       computed.map { x => s"[${x.ruleId.value}->${x.serial}]"}.mkString("")
     };"+s" rule updated since run: ${
       newStatus.map { x => s"${x.ruleId.value}->${x.serial}"}.mkString("[", "][", "]")
     }")
+
+    val t13 = System.currentTimeMillis
+    TimingDebugLogger.debug(s"Compliance: mergeCompareByRule global cost : ${t13-t0}ms")
 
     (computed ++ newStatus).toSet
   }
@@ -947,27 +976,30 @@ object ExecutionBatch extends Loggable {
    */
   private[reports] def checkExpectedComponentWithReports(
       expectedComponent: ComponentExpectedReport
-    , filteredReports  : Seq[Reports]
+    , filteredReports  : Seq[ResultReports]
     , noAnswerType     : ReportType
     , policyMode       : PolicyMode //the one of the directive, or node, or global
   ) : ComponentStatusReport = {
 
     // First, filter out all the not interesting reports
     // (here, interesting means non log, info, etc)
-    val purgedReports = filteredReports.filter(x => x.isInstanceOf[ResultReports])
+    //val purgedReports = filteredReports.filter(x => x.isInstanceOf[ResultReports])
 
     // build the list of unexpected ComponentValueStatusReport
     // i.e value
     val unexpectedStatusReports = {
       val unexpectedReports = getUnexpectedReports(
           expectedComponent.componentsValues.toList
-        , purgedReports
+        , filteredReports
       )
+
       unexpectedReports.foreach { r =>
         ComplianceDebugLogger.node(r.nodeId).warn(s"Unexpected report for Directive '${r.directiveId.value}', Rule '${r.ruleId.value}' generated on '${r.executionTimestamp}' "+
             s"on node '${r.nodeId.value}', Component is '${r.component}', keyValue is '${r.keyValue}'. The associated message is : ${r.message}"
         )
+
       }
+
       for {
         unexpectedReport <- unexpectedReports
       } yield {
@@ -1013,7 +1045,7 @@ object ExecutionBatch extends Loggable {
       if(valueKind.none.isEmpty) {
       (None, Seq())
       } else {
-        val reports = purgedReports.filter(r => r.keyValue == DEFAULT_COMPONENT_KEY)
+        val reports = filteredReports.filter(r => r.keyValue == DEFAULT_COMPONENT_KEY)
         ( Some(buildComponentValueStatus(
               DEFAULT_COMPONENT_KEY
             , reports
@@ -1036,7 +1068,7 @@ object ExecutionBatch extends Loggable {
         // at most the number of values if there is also cfevars
         // because the remaining values may be for cfengine vars
         val reports = {
-          val possible = purgedReports.filter(r => values.contains(r.keyValue))
+          val possible = filteredReports.filter(r => values.contains(r.keyValue))
           if(valueKind.cfeVar.size > 0) {
             possible.take(values.size)
           } else {
@@ -1058,7 +1090,7 @@ object ExecutionBatch extends Loggable {
 
     // Remove all already parsed reports so we only look in remaining reports for Cfengine variables
     val usedReports = noneReports ++ simpleReports
-    val remainingReports = purgedReports.diff(usedReports)
+    val remainingReports = filteredReports.diff(usedReports)
 
     // Find what reports matche what cfengine variables
 

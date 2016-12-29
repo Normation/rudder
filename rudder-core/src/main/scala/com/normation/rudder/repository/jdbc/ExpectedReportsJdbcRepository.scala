@@ -148,7 +148,7 @@ class FindExpectedReportsJdbcRepository(
       case Some(ids) =>
 
         implicit val idsParam = Param.many(ids)
-
+        val t0 = System.currentTimeMillis
         (for {
           configs <- sql"""
                        select nodeid, nodeconfigid, begindate, enddate, configuration
@@ -156,6 +156,8 @@ class FindExpectedReportsJdbcRepository(
                        where enddate is null and nodeid in (${ids: ids.type})
                      """.query[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].vector
         } yield {
+          val t1 =  System.currentTimeMillis
+          TimingDebugLogger.trace(s"Compliance: query to get current expected reports: ${t1-t0}ms")
           val configsMap = (configs.flatMap {
             case -\/((id, c, _)) =>
               logger.error(s"Error when deserializing JSON for expected node configuration ${id.value} (${c.value})")
