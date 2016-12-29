@@ -70,23 +70,23 @@ case class ComplianceLevel(
 
   override def toString() = s"[p:${pending} s:${success} r:${repaired} e:${error} u:${unexpected} m:${missing} nr:${noAnswer} na:${notApplicable} rd:${reportsDisabled}]"
 
-  val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable+reportsDisabled
+  lazy val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable+reportsDisabled
 
-  val complianceWithoutPending = pc_for(success+repaired+notApplicable, total-pending-reportsDisabled)
-  val compliance = pc_for(success+repaired+notApplicable, total)
+  lazy val complianceWithoutPending = pc_for(success+repaired+notApplicable, total-pending-reportsDisabled)
+  lazy val compliance = pc_for(success+repaired+notApplicable, total)
 
   private[this] def pc_for(i:Int, total:Int) : Double = if(total == 0) 0 else (i * 100 / BigDecimal(total)).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
   private[this] def pc(i:Int) : Double = pc_for(i, total)
 
-  val pc_pending         = pc(pending)
-  val pc_success         = pc(success)
-  val pc_repaired        = pc(repaired)
-  val pc_error           = pc(error)
-  val pc_unexpected      = pc(unexpected)
-  val pc_missing         = pc(missing)
-  val pc_reportsDisabled = pc(reportsDisabled)
-  val pc_noAnswer        = pc(noAnswer)
-  val pc_notApplicable   = pc(notApplicable)
+  lazy val pc_pending         = pc(pending)
+  lazy val pc_success         = pc(success)
+  lazy val pc_repaired        = pc(repaired)
+  lazy val pc_error           = pc(error)
+  lazy val pc_unexpected      = pc(unexpected)
+  lazy val pc_missing         = pc(missing)
+  lazy val pc_reportsDisabled = pc(reportsDisabled)
+  lazy val pc_noAnswer        = pc(noAnswer)
+  lazy val pc_notApplicable   = pc(notApplicable)
 
   def +(compliance: ComplianceLevel): ComplianceLevel = {
     ComplianceLevel(
