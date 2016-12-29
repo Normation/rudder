@@ -687,7 +687,7 @@ object ExecutionBatch extends Loggable {
     val t3 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Compliance: computing policy status for ${nodeId}: ${t3-t2}ms")
 
-    NodeStatusReport(nodeId, runInfo, status, ruleNodeStatusReports)
+    NodeStatusReport.applyByNode(nodeId, runInfo, status, ruleNodeStatusReports)
   }
 
 
@@ -980,10 +980,6 @@ object ExecutionBatch extends Loggable {
     , noAnswerType     : ReportType
     , policyMode       : PolicyMode //the one of the directive, or node, or global
   ) : ComponentStatusReport = {
-
-    // First, filter out all the not interesting reports
-    // (here, interesting means non log, info, etc)
-    //val purgedReports = filteredReports.filter(x => x.isInstanceOf[ResultReports])
 
     // build the list of unexpected ComponentValueStatusReport
     // i.e value

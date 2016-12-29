@@ -270,6 +270,9 @@ class HomePage extends Loggable {
 
       val globalCompliance = compliance.complianceWithoutPending.round
 
+      val n4 = System.currentTimeMillis
+      TimingDebugLogger.debug(s"Compute compliance for HomePage: ${n4 - n2}ms")
+
       Script(OnLoad(JsRaw(s"""
         homePage(
             ${complianceBar.toJsCmd}
