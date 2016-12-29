@@ -118,6 +118,10 @@ case class Directive(
      */
    , _isEnabled : Boolean = false
    , isSystem : Boolean = false
+    /**
+     * Optionally, Directive can have Tags
+     */
+   , tags : Option[Tags] = None
 ) extends HashcodeCaching {
   //system object must ALWAYS be ENABLED.
   def isEnabled = _isEnabled || isSystem

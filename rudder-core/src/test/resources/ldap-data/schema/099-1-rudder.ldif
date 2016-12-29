@@ -256,12 +256,20 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.230
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{4096} )
+### Policy mode, common for Nodes/Directive at first, Surely Rules and groups later
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.231
   NAME 'policyMode'
   DESC 'Policy mode (Enforce/Verify) for this element '
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch )
+### Tags key=value, stored in JSON
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.235
+  NAME 'serializedTags'
+  DESC 'key=value tags stored in JSON'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 ### API principal and tokens 
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.250
   NAME 'apiToken'
@@ -317,6 +325,12 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.352
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.353
+  NAME 'serializedHeartbeatRunConfiguration'
+  DESC 'Serialization of the defined heartbeat configuration defined for that node'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch )
 #######################################################
 ################  Object Classes ######################
 #######################################################
@@ -337,8 +351,8 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.1
   SUP top
   STRUCTURAL
   MUST ( nodeId $ cn $ isSystem $ isBroken)
-  MAY (  description $ serializedNodeProperty $ serializedAgentRunInterval $
-        serializedHeartbeatRunConfiguration $ policyMode ) )
+  MAY ( description $ serializedNodeProperty $ serializedAgentRunInterval $
+  serializedHeartbeatRunConfiguration $ policyMode ) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.2
   NAME 'rudderPolicyServer'
   DESC 'The Node representation of a policy server'
@@ -396,7 +410,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.23
   STRUCTURAL
   MUST ( directiveId $ techniqueVersion )
   MAY ( cn $ description $ longDescription $ isEnabled $ isSystem $
-  directivePriority $ directiveVariable $ policyMode ) )
+  directivePriority $ directiveVariable $ policyMode $ serializedTags) )
 ### rules ###
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.30
   NAME 'rule'
@@ -407,7 +421,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.30
   MAY ( cn $ description $ longDescription $
   isEnabled $ isSystem $
   ruleTarget $
-  directiveId $ tag) )
+  directiveId $ tag $ serializedTags ) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.31
   NAME 'ruleCategory'
   DESC 'Rule categories'

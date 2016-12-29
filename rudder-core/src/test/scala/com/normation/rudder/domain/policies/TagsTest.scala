@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2016 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -34,43 +34,40 @@
 *
 *************************************************************************************
 */
-
 package com.normation.rudder.domain.policies
-import com.normation.utils.HashcodeCaching
-import com.normation.rudder.rule.category.RuleCategoryId
 
-case class RuleId(value:String) extends HashcodeCaching
 
-case class SerialedRuleId(ruleId : RuleId, serial : Int) extends HashcodeCaching
+import org.junit.runner.RunWith
+import org.specs2.mutable._
+import org.specs2.runner._
+import net.liftweb.common._
 
-/**
- * A rule is a binding between a set of directives
- * and some target (group of node, etc) on which applying
- * these directives.
- *
- * A rule may be stored in a pending state, for
- * example if it is not fully initialized.
- * In that case, it *MUST* be considered desactivated, whatever
- * the isEnabledField say.
- */
-case class Rule(
-    id              : RuleId
-  , name            : String
-  , serial          : Int
-  , categoryId      : RuleCategoryId
-    //is not mandatory, but if not present, rule is disabled
-  , targets         : Set[RuleTarget] = Set()
-    //is not mandatory, but if not present, rule is disabled
-  , directiveIds    : Set[DirectiveId] = Set()
-  , shortDescription: String = ""
-  , longDescription : String = ""
-  , isEnabledStatus : Boolean = false
-  , isSystem        : Boolean = false
-    /**
-     * Optionally, Rule can have Tags
-     */
-   , tags           : Option[Tags] = None
-) extends HashcodeCaching {
-  //system object must ALWAYS be ENABLED.
-  def isEnabled = isSystem || (isEnabledStatus && !targets.isEmpty && !directiveIds.isEmpty)
+@RunWith(classOf[JUnitRunner])
+class TagsTest extends Specification with Loggable {
+  def createTag(name:String) : Tag = {
+    Tag(TagName(name), TagValue(name + "-value"))
+  }
+
+  val tag1 = createTag("tag1")
+  val tag2 = createTag("tag2")
+  val tag3 = createTag("tag3")
+
+  val simpleTags = Tags(Set[Tag](tag1, tag2, tag3))
+  val simpleSerialization = """[{"tag1":"tag1-value"},{"tag2":"tag2-value"},{"tag3":"tag3-value"}]"""
+
+  "Serializing and unserializing" should {
+    "serialize in correct JSON" in {
+      JsonTagSerialisation.serializeTags(simpleTags).toString must
+      equalTo(simpleSerialization)
+    }
+
+    "unserialize correct JSON" in {
+      JsonTagSerialisation.unserializeTags(simpleSerialization) must
+      equalTo(simpleTags)
+    }
+
+
+
+  }
+
 }
