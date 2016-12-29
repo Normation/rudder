@@ -55,6 +55,11 @@ class TagsTest extends Specification with Loggable {
   val simpleTags = Tags(Set[Tag](tag1, tag2, tag3))
   val simpleSerialization = """[{"tag1":"tag1-value"},{"tag2":"tag2-value"},{"tag3":"tag3-value"}]"""
 
+  val invalidSerialization = """[{"tag1"},{"tag2":"tag2-value"},{"tag3":"tag3-value"}]"""
+
+
+  val duplicatedSerialization = """[{"tag2":"tag2-value"},{"tag2":"tag2-value"},{"tag3":"tag3-value"},{"tag1":"tag1-value"}]"""
+
   "Serializing and unserializing" should {
     "serialize in correct JSON" in {
       JsonTagSerialisation.serializeTags(simpleTags).toString must
@@ -66,8 +71,14 @@ class TagsTest extends Specification with Loggable {
       equalTo(simpleTags)
     }
 
+    "fail to unserialize incorrect JSON" in {
+      JsonTagSerialisation.unserializeTags(invalidSerialization) must haveClass[Failure]
+    }
 
-
+    "unserialize duplicated entries in JSON into uniques" in {
+      JsonTagSerialisation.unserializeTags(duplicatedSerialization) must
+      equalTo(simpleTags)
+    }
   }
 
 }
