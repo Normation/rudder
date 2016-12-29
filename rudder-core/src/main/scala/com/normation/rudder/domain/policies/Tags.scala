@@ -76,15 +76,21 @@ final object JsonTagSerialisation {
     implicit val formats = DefaultFormats
 
     // This is awful
-    boxSequence(parse(value).children.map {
-      case JObject(fields) =>
-        fields.map{ case JField(tagName, tagValueJson) => tagValueJson match {
-          case JString(tagValue) => Full(Tag(TagName(tagName), TagValue(tagValue)))
-          case _ => Failure(s"Invalid type for tagValue ${tagValueJson}")
+    (tryo {
+      boxSequence(parse(value).children.map {
+        case JObject(fields) =>
+          fields.map{ case JField(tagName, tagValueJson) => tagValueJson match {
+            case JString(tagValue) => Full(Tag(TagName(tagName), TagValue(tagValue)))
+            case _ => Failure(s"Invalid type for tagValue ${tagValueJson}")
+          }
         }
-      }
-      case _ => Failure(s"Invalid object in JSON serialization for Tags ${value}")  :: Nil
-    }.flatten).map( x =>  Tags(x.toSet))
+        case _ => Failure(s"Invalid object in JSON serialization for Tags ${value}")  :: Nil
+      }.flatten).map( x =>  Tags(x.toSet))
+    }) match {
+      case Full(result) => result
+      case _ => Failure("Invalid JSON serialization for Tags ${value}")
+    }
+
 
   }
 }
