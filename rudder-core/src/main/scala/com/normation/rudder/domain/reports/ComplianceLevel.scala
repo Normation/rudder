@@ -100,13 +100,13 @@ final case class ComplianceLevel(
   override def toString() = s"[p:${pending} s:${success} r:${repaired} e:${error} u:${unexpected} m:${missing} nr:${noAnswer} na:${notApplicable
                               } rd:${reportsDisabled} c:${compliant} ana:${auditNotApplicable} nc:${nonCompliant} ae:${auditError} bpm:${badPolicyMode}]"
 
-  val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable+reportsDisabled+compliant+auditNotApplicable+nonCompliant+auditError+badPolicyMode
+  lazy val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable+reportsDisabled+compliant+auditNotApplicable+nonCompliant+auditError+badPolicyMode
 
-  val total_ok = success+repaired+notApplicable+compliant+auditNotApplicable
-  val complianceWithoutPending = pc_for(total_ok, total-pending-reportsDisabled)
-  val compliance = pc_for(total_ok, total)
+  lazy val total_ok = success+repaired+notApplicable+compliant+auditNotApplicable
+  lazy val complianceWithoutPending = pc_for(total_ok, total-pending-reportsDisabled)
+  lazy val compliance = pc_for(total_ok, total)
 
-  val pc = CompliancePercent(
+  lazy val pc = CompliancePercent(
       pc_for(pending           , total)
     , pc_for(success           , total)
     , pc_for(repaired          , total)
