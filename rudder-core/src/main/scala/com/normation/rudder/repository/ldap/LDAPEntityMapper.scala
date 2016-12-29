@@ -537,20 +537,24 @@ class LDAPEntityMapper(
     if(e.isA(OC_DIRECTIVE)) {
       //OK, translate
       for {
-        id <- e(A_DIRECTIVE_UUID) ?~! "Missing required attribute %s in entry %s".format(A_DIRECTIVE_UUID, e)
-        s_version <- e(A_TECHNIQUE_VERSION) ?~! "Missing required attribute %s in entry %s".format(A_TECHNIQUE_VERSION, e)
-        policyMode <- e(A_POLICY_MODE) match {
+        id              <- e(A_DIRECTIVE_UUID) ?~! "Missing required attribute %s in entry %s".format(A_DIRECTIVE_UUID, e)
+        s_version       <- e(A_TECHNIQUE_VERSION) ?~! "Missing required attribute %s in entry %s".format(A_TECHNIQUE_VERSION, e)
+        policyMode      <- e(A_POLICY_MODE) match {
           case None => Full(None)
           case Some(value) => PolicyMode.parse(value).map {Some(_) }
         }
-        version <- tryo(TechniqueVersion(s_version))
-        name = e(A_NAME).getOrElse(id)
-        params = parsePolicyVariables(e.valuesFor(A_DIRECTIVE_VARIABLES).toSeq)
+        version         <- tryo(TechniqueVersion(s_version))
+        name             = e(A_NAME).getOrElse(id)
+        params           = parsePolicyVariables(e.valuesFor(A_DIRECTIVE_VARIABLES).toSeq)
         shortDescription = e(A_DESCRIPTION).getOrElse("")
-        longDescription = e(A_LONG_DESCRIPTION).getOrElse("")
-        priority = e.getAsInt(A_PRIORITY).getOrElse(0)
-        isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
-        isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        longDescription  = e(A_LONG_DESCRIPTION).getOrElse("")
+        priority         = e.getAsInt(A_PRIORITY).getOrElse(0)
+        isEnabled        = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
+        isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        tags             <- e(A_SERIALIZED_TAGS) match {
+          case None => Full(None)
+          case Some(tags) => JsonTagSerialisation.unserializeTags(tags).map {Some(_) } ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
+        }
       } yield {
         Directive(
             DirectiveId(id)
@@ -563,6 +567,7 @@ class LDAPEntityMapper(
           , priority
           , isEnabled
           , isSystem
+          , tags
         )
       }
     } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_DIRECTIVE, e))
@@ -583,6 +588,7 @@ class LDAPEntityMapper(
     entry +=! (A_IS_ENABLED, directive.isEnabled.toLDAPString)
     entry +=! (A_IS_SYSTEM, directive.isSystem.toLDAPString)
     directive.policyMode.foreach ( mode => entry +=! (A_POLICY_MODE, mode.name) )
+    directive.tags.map ( tags => entry +=! (A_SERIALIZED_TAGS, JsonTagSerialisation.serializeTags(tags)) )
     entry
   }
 
@@ -634,6 +640,10 @@ class LDAPEntityMapper(
                     "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
         serial   <- e.getAsInt(A_SERIAL) ?~!
                     "Missing required attribute %s in entry %s".format(A_SERIAL, e)
+        tags     <- e(A_SERIALIZED_TAGS) match {
+          case None => Full(None)
+          case Some(tags) => JsonTagSerialisation.unserializeTags(tags).map {Some(_) } ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
+        }
       } yield {
         val targets = for {
           target <- e.valuesFor(A_RULE_TARGET)
@@ -650,6 +660,7 @@ class LDAPEntityMapper(
         val isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         val isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         val category = e(A_RULE_CATEGORY).map(RuleCategoryId(_)).getOrElse(rudderDit.RULECATEGORY.rootCategoryId)
+
         Rule(
             RuleId(id)
           , name
@@ -661,6 +672,7 @@ class LDAPEntityMapper(
           , longDescription
           , isEnabled
           , isSystem
+          , tags
         )
       }
     } else {
@@ -686,6 +698,8 @@ class LDAPEntityMapper(
     entry +=! (A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
     entry +=! (A_DESCRIPTION, rule.shortDescription)
     entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)
+    rule.tags.map ( tags => entry +=! (A_SERIALIZED_TAGS, JsonTagSerialisation.serializeTags(tags)) )
+
     entry
   }
 
