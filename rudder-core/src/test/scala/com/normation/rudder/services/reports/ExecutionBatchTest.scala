@@ -171,12 +171,12 @@ class ExecutionBatchTest extends Specification {
    //Test the component part
   "A component, with two different keys" should {
     val executionTimestamp = new DateTime()
-    val reports = Seq[Reports](
+    val reports = Seq[ResultReports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
     )
 
-    val badReports = Seq[Reports](
+    val badReports = Seq[ResultReports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
@@ -226,12 +226,12 @@ class ExecutionBatchTest extends Specification {
   // Test the component part
   "A component, with a None keys" should {
     val executionTimestamp = new DateTime()
-    val reports = Seq[Reports](
+    val reports = Seq[ResultReports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message")
     )
 
-    val badReports = Seq[Reports](
+    val badReports = Seq[ResultReports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message"),
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message")
@@ -272,12 +272,12 @@ class ExecutionBatchTest extends Specification {
   // Test the component part
   "A component, with a cfengine keys" should {
     val executionTimestamp = new DateTime()
-    val reports = Seq[Reports](
+    val reports = Seq[ResultReports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")
     )
 
-    val badReports = Seq[Reports](
+    val badReports = Seq[ResultReports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")
@@ -305,13 +305,13 @@ class ExecutionBatchTest extends Specification {
    // Test the component part
   "A component, with generation-time known keys" should {
     val executionTimestamp = new DateTime()
-    val reports = Seq[Reports](
+    val reports = Seq[ResultReports](
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node2", executionTimestamp, "message"),
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node1", executionTimestamp, "message")
     )
 
-    val badReports = Seq[Reports](
+    val badReports = Seq[ResultReports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node1", executionTimestamp, "message"),
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node1", executionTimestamp, "message"),
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node2", executionTimestamp, "message"),
@@ -387,7 +387,7 @@ class ExecutionBatchTest extends Specification {
         new ComponentExpectedReport("component", 2, expectOnlySuccess.toList, expectOnlySuccess.toList)
       }
 
-      val resultReports : Seq[Reports] = reports.map( x => x match {
+      val resultReports : Seq[ResultReports] = reports.map( x => x match {
         case Success(v) => new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", v, executionTimestamp, "message")
         case Repaired(v) => new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", v, executionTimestamp, "message")
         case x => new ResultErrorReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", x.value, executionTimestamp, "message")
@@ -890,7 +890,7 @@ class ExecutionBatchTest extends Specification {
    // Test the component part - with NotApplicable
   "A component, with two keys and NotApplicable reports" should {
     val executionTimestamp = new DateTime()
-    val reports = Seq[Reports](
+    val reports = Seq[ResultReports](
         new ResultNotApplicableReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
               )
