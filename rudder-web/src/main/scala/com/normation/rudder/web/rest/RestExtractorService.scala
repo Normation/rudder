@@ -640,6 +640,7 @@ case class RestExtractorService (
       val splitted = props.map { prop =>
         val parts = prop.split('=')
         if(parts.size == 1) NodeProperty(parts(0), "")
+        //here, we should parse parts(1) and only fallback to string if not successful.
         else NodeProperty(parts(0), parts(1))
       }
       Full(splitted)
@@ -1059,8 +1060,8 @@ case class RestExtractorService (
 
       for {
         onGeneration <- extractJsonBoolean(obj, "onGeneration")
-        onNewNode <- extractJsonBoolean(obj, "onNewNode")
-        schedule <- extractJsonObj("schedule")(obj)(extractSchedule(_,base.schedule))
+        onNewNode    <- extractJsonBoolean(obj, "onNewNode")
+        schedule     <- extractJsonObj("schedule")(obj)(extractSchedule(_,base.schedule))
       } yield {
         base.copy(
             schedule.getOrElse(base.schedule)
@@ -1097,16 +1098,17 @@ case class RestExtractorService (
                     , attribute.getOrElse(allBase.nodeAttribute)
                   )
                 }
+              case x => Failure(s"Cannot extract request type from: ${x}")
             }
           }
 
           for {
-            url <- extractOneValueJson(obj, "url")(boxedIdentity)
-            path <- extractOneValueJson(obj, "path")(boxedIdentity)
-            method <- extractOneValueJson(obj, "requestMethod")(boxedIdentity)
+            url      <- extractOneValueJson(obj, "url")(boxedIdentity)
+            path     <- extractOneValueJson(obj, "path")(boxedIdentity)
+            method   <- extractOneValueJson(obj, "requestMethod")(boxedIdentity)
             sslCheck <- extractJsonBoolean(obj, "sslCheck")
-            timeout <- extractOneValueJson(obj, "requestTimeout")(extractDuration)
-            headers <- obj \ "headers" match {
+            timeout  <- extractOneValueJson(obj, "requestTimeout")(extractDuration)
+            headers  <- obj \ "headers" match {
               case header@JObject(fields) =>
 
                 sequence(fields.toSeq) { field => extractOneValueJson(header, field.name)( value => Full((field.name,value))).map(_.getOrElse((field.name,""))) }.map(fields => Some(fields.toMap))
@@ -1127,6 +1129,8 @@ case class RestExtractorService (
               , timeout.getOrElse(httpBase.requestTimeOut)
             )
           }
+
+        case x => Failure(s"Cannot extract a data source type from: ${x}")
       }
     }
 
@@ -1135,8 +1139,8 @@ case class RestExtractorService (
       description  <- extractString("description")(req) (boxedIdentity)
       sourceType   <- extractObj("type")(req) (extractDataSourceType(_, base.sourceType))
       runParam     <- extractObj("runParam")(req) (extractDataSourceRunParam(_, base.runParam))
-      timeOut  <- extractString("timeout")(req)(extractDuration)
-      enabled <- extractBoolean("enabled")(req)(identity)
+      timeOut      <- extractString("timeout")(req)(extractDuration)
+      enabled      <- extractBoolean("enabled")(req)(identity)
     } yield {
       base.copy(
         name = name.getOrElse(base.name)

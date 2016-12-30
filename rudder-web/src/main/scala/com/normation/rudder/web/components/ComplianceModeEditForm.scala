@@ -117,6 +117,8 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
             startNewPolicyGeneration()
             S.notice("complianceModeMessage", "Compliance mode saved")
         }
+      //necessary to avoid the non-exhaustive warning due to "type pattern T is unchecked since eliminated by erasure" pb above
+      case x => S.error("complianceModeMessage", s"Compliance mode is not of the awaited type (dev error): please report that error")
     }
   }
 

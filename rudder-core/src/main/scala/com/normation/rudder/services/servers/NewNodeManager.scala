@@ -89,6 +89,7 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.utils.Control.sequence
 import com.normation.utils.Control.bestEffort
+import com.normation.rudder.datasources.DataSourceUpdateCallbacks
 
 /**
  * A trait to manage the acceptation of new node in Rudder
@@ -147,6 +148,7 @@ class NewNodeManagerImpl(
   , val eventLogRepository : EventLogRepository
   , override val updateDynamicGroups : UpdateDynamicGroups
   , val cacheToClear: List[CachedRepository]
+  , val datasourceCallback: DataSourceUpdateCallbacks
 ) extends NewNodeManager with ListNewNode with ComposedNewNodeManager
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -242,6 +244,8 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
   def updateDynamicGroups : UpdateDynamicGroups
 
   def cacheToClear: List[CachedRepository]
+
+  def datasourceCallback: DataSourceUpdateCallbacks
 
   ////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////// Refuse //////////////////////////////////////
@@ -566,6 +570,10 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
            case None =>
              logger.warn(s"Node '${id.value}' accepted, but couldn't find it's inventory")
          }
+
+         // Update datasource for the node
+         datasourceCallback.onNewNode(id)
+
          acceptationResults
        }
     )
