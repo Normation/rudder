@@ -125,6 +125,39 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>0.2.4</version>
       <scope>test</scope>
     </dependency>
+    
+    <!-- Doing HTTP requests -->
+    <!-- rapture dev seems to have stop -->
+    <dependency>
+      <groupId>org.scalaj</groupId>
+      <artifactId>scalaj-http_${scala-binary-version}</artifactId>
+      <version>2.3.0</version>
+    </dependency> 
+    <dependency>
+      <groupId>org.http4s</groupId>
+      <artifactId>http4s-dsl_${scala-binary-version}</artifactId>
+      <version>0.8.6</version>
+      <scope>test</scope>
+    </dependency> 
+    <dependency>
+      <groupId>org.http4s</groupId>
+      <artifactId>http4s-blazeserver_${scala-binary-version}</artifactId>
+      <version>0.8.6</version>
+      <scope>test</scope>
+    </dependency> 
+    <dependency>
+      <groupId>io.monix</groupId>
+      <artifactId>monix_${scala-binary-version}</artifactId>
+      <version>2.1.1</version>
+    </dependency>
+
+    
+    <!-- selecting sub-json -->
+    <dependency>
+      <groupId>com.jayway.jsonpath</groupId>
+      <artifactId>json-path</artifactId>
+      <version>2.2.0</version>
+    </dependency>
 
     <!-- pool connection: https://github.com/brettwooldridge/HikariCP -->
     <!-- http://blog.trustiv.co.uk/2014/06/battle-connection-pools -->
