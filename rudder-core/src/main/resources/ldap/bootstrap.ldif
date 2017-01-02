@@ -163,7 +163,7 @@ isSystem: TRUE
 dn: techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: techniqueCategory
 objectClass: top
-cn: Root of active techniques's library
+cn: Active Techniques
 description: This is the root category for active techniques. It contains subcategories, actives techniques and directives
 techniqueCategoryId: Active Techniques
 isSystem: TRUE
