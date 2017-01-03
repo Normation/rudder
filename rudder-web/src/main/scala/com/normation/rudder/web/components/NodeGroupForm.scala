@@ -177,7 +177,7 @@ class NodeGroupForm(
       "rudderid" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value}</div>,
       "cfeclasses" -> <div>
 											  <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300); return false;"}>
-												<b class="threeCol">Display CFEngine classes</b>
+												<b class="threeCol">Display agent classes</b>
 												</a>
 											  <span class="twoCol" style="display: none" id={s"cfe-${nodeGroup.id.value}"}>
 											    {RuleTarget.toCFEngineClassName(nodeGroup.id.value)}<br/>
