@@ -69,7 +69,6 @@ import net.liftweb.util.Helpers.tryo
  * Hooks are asynchronously executed by default, in a Future.
  */
 
-
 /*
  * Hooks are group in "set". We run all the hooks
  * from the same set with the same set of parameters.
@@ -171,10 +170,10 @@ object RunHooks {
     try {
       //cmdInfo is just for comments/log. We use "*" to synthetize
       val cmdInfo = s"'${hooks.basePath}/* ${parameters.values.mkString(" ")}'"
-      HooksLogger.info(s"Run hooks: ${cmdInfo}")
+      HooksLogger.debug(s"Run hooks: ${cmdInfo}")
       val time_0 = System.currentTimeMillis
       val res = Await.result(asyncRun(hooks, parameters), Duration.Inf)
-      HooksLogger.info(s"Done in ${new org.joda.time.Duration(System.currentTimeMillis-time_0).toString()}: ${cmdInfo}")
+      HooksLogger.debug(s"Done in ${System.currentTimeMillis - time_0} ms: ${cmdInfo}")
       res
     } catch {
       case NonFatal(ex) => Failure(s"Error when executing hooks in directory '${hooks.basePath}'. Error message is: ${ex.getMessage}")
@@ -201,7 +200,6 @@ object RunHooks {
                  HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission?")
                  None
                }
-             case _ => None
            }
          }.sorted // sort them alphanumericaly
          Hooks(basePath, files)
@@ -213,7 +211,4 @@ object RunHooks {
      }
    }
 
-
 }
-
-
