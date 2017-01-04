@@ -594,30 +594,32 @@ case class RestDataSerializerImpl (
     ( ( "name"        -> source.name.value  )
     ~ ( "id"        -> source.id.value  )
     ~ ( "description" -> source.description )
-    ~ ( "type" -> (
-        ( "name" -> source.sourceType.name )
-        ~ { source.sourceType match {
-          case HttpDataSourceType(url,headers,method,checkSsl,path,mode,timeOut) =>
-            ( ( "url"        -> url     )
-            ~ ( "headers"    -> headers )
-            ~ ( "path"       -> path    )
-            ~ ( "checkSsl"   -> checkSsl )
-            ~ ( "requestTimeout"  -> timeOut.toString )
-            ~ ( "requestMode"  ->
-              ( ( "name" -> mode.name )
-              ~ { mode match {
-                  case OneRequestByNode =>
-                    JObject(Nil)
-                  case OneRequestAllNodes(subPath,nodeAttribute) =>
-                    ( ( "path" -> subPath)
-                    ~ ( "attribute" -> nodeAttribute)
-                    )
-              } } )
-            ) )
-          }
-        } )
+    ~ ( "type" ->
+        ( ( "name" -> source.sourceType.name )
+        ~ ( "parameters" -> {
+            source.sourceType match {
+              case HttpDataSourceType(url,headers,method,checkSsl,path,mode,timeOut) =>
+                ( ( "url"        -> url     )
+                ~ ( "headers"    -> headers )
+                ~ ( "path"       -> path    )
+                ~ ( "checkSsl"   -> checkSsl )
+                ~ ( "requestTimeout"  -> timeOut.toString )
+                ~ ( "requestMethod"  -> method )
+                ~ ( "requestMode"  ->
+                  ( ( "name" -> mode.name )
+                  ~ { mode match {
+                      case OneRequestByNode =>
+                        JObject(Nil)
+                      case OneRequestAllNodes(subPath,nodeAttribute) =>
+                        ( ( "path" -> subPath)
+                        ~ ( "attribute" -> nodeAttribute)
+                        )
+                  } } )
+                ) )
+            }
+        } ) )
       )
-    ~ ( "runParam" -> (
+    ~ ( "runParameters" -> (
         ( "onGeneration" -> source.runParam.onGeneration )
       ~ ( "onNewNode"    -> source.runParam.onNewNode )
       ~ ( "schedule"     -> (
@@ -628,7 +630,7 @@ case class RestDataSerializerImpl (
         ~ ( "duration" -> source.runParam.schedule.duration.toString())
         ) )
       ) )
-    ~ ( "updateTimeOut" -> source.updateTimeOut.toString )
+    ~ ( "updateTimeout" -> source.updateTimeOut.toString )
     ~ ( "enabled"    -> source.enabled )
     )
   }
