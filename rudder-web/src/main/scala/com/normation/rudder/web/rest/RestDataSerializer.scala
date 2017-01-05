@@ -603,7 +603,7 @@ case class RestDataSerializerImpl (
                 ~ ( "headers"    -> headers )
                 ~ ( "path"       -> path    )
                 ~ ( "checkSsl"   -> checkSsl )
-                ~ ( "requestTimeout"  -> timeOut.toString )
+                ~ ( "requestTimeout"  -> timeOut.toMinutes )
                 ~ ( "requestMethod"  -> method )
                 ~ ( "requestMode"  ->
                   ( ( "name" -> mode.name )
@@ -627,10 +627,10 @@ case class RestDataSerializerImpl (
                           case _:Scheduled => "scheduled"
                           case _:NoSchedule => "notscheduled"
                         } ) )
-        ~ ( "duration" -> source.runParam.schedule.duration.toString())
+        ~ ( "duration" -> source.runParam.schedule.duration.toMinutes)
         ) )
       ) )
-    ~ ( "updateTimeout" -> source.updateTimeOut.toString )
+    ~ ( "updateTimeout" -> source.updateTimeOut.toMinutes )
     ~ ( "enabled"    -> source.enabled )
     )
   }

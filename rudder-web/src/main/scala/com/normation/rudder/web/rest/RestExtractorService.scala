@@ -1027,11 +1027,8 @@ case class RestExtractorService (
 
   def extractDataSource(req : Req, base : DataSource) : Box[DataSource] = {
 
-    def extractDuration (value : String) = {
-      tryo { Duration(value) match {
-        case a : FiniteDuration => Full(a)
-        case _ => Failure(s"${value} is not a valid timeout duration value")
-      } }.flatMap(identity)
+    def extractDuration (value : BigInt) = {
+      tryo { FiniteDuration(value.toLong, TimeUnit.MINUTES) }
     }
 
     def extractDataSourceRunParam(obj : JObject, base : DataSourceRunParameters) = {
@@ -1044,7 +1041,7 @@ case class RestExtractorService (
                 case "notscheduled" => Full(NoSchedule(base.duration))
                 case _ => Failure("not a valid value for datasource schedule")
               }).map(_.getOrElse(base))
-              duration <- extractOneValueJson(obj, "duration")(extractDuration)
+              duration <- extractJsonBigInt(obj, "duration")(extractDuration)
           } yield {
             duration match {
               case None => scheduleBase
@@ -1071,8 +1068,9 @@ case class RestExtractorService (
       }
     }
 
+    // A source type is composed of two fields : "name" and "parameters"
+    // name allow to determine which kind of datasource we are managing and how to extract paramters
     def extractDataSourceType(obj : JObject, base : DataSourceType) = {
-
       obj \ "name" match {
         case JString(HttpDataSourceType.name) =>
           val httpBase = base match {
@@ -1102,33 +1100,38 @@ case class RestExtractorService (
             }
           }
 
-          for {
-            url      <- extractOneValueJson(obj, "url")(boxedIdentity)
-            path     <- extractOneValueJson(obj, "path")(boxedIdentity)
-            method   <- extractOneValueJson(obj, "requestMethod")(boxedIdentity)
-            sslCheck <- extractJsonBoolean(obj, "checkSsl")
-            timeout  <- extractOneValueJson(obj, "requestTimeout")(extractDuration)
-            headers  <- obj \ "headers" match {
-              case header@JObject(fields) =>
+          def HttpDataSourceParameters (obj : JObject) : Box[HttpDataSourceType] = {
+            for {
+              url      <- extractOneValueJson(obj, "url")(boxedIdentity)
+              path     <- extractOneValueJson(obj, "path")(boxedIdentity)
+              method   <- extractOneValueJson(obj, "requestMethod")(boxedIdentity)
+              sslCheck <- extractJsonBoolean(obj, "checkSsl")
+              timeout  <- extractJsonBigInt(obj, "requestTimeout")(extractDuration)
+              headers  <- obj \ "headers" match {
+                case header@JObject(fields) =>
 
-                sequence(fields.toSeq) { field => extractOneValueJson(header, field.name)( value => Full((field.name,value))).map(_.getOrElse((field.name,""))) }.map(fields => Some(fields.toMap))
-              case JNothing => Full(None)
-              case _ => Failure("oops")
+                  sequence(fields.toSeq) { field => extractOneValueJson(header, field.name)( value => Full((field.name,value))).map(_.getOrElse((field.name,""))) }.map(fields => Some(fields.toMap))
+                case JNothing => Full(None)
+                case _ => Failure("oops")
+              }
+
+              requestMode <- extractJsonObj("requestMode")(obj)(extractHttpRequestMode(_,httpBase.requestMode))
+
+            } yield {
+              httpBase.copy(
+                  url.getOrElse(httpBase.url)
+                , headers.getOrElse(httpBase.headers)
+                , method.getOrElse(httpBase.httpMethod)
+                , sslCheck.getOrElse(httpBase.sslCheck)
+                , path.getOrElse(httpBase.path)
+                , requestMode.getOrElse(httpBase.requestMode)
+                , timeout.getOrElse(httpBase.requestTimeOut)
+              )
             }
-
-            requestMode <- extractJsonObj("requestMode")(obj)(extractHttpRequestMode(_,httpBase.requestMode))
-
-          } yield {
-            httpBase.copy(
-                url.getOrElse(httpBase.url)
-              , headers.getOrElse(httpBase.headers)
-              , method.getOrElse(httpBase.httpMethod)
-              , sslCheck.getOrElse(httpBase.sslCheck)
-              , path.getOrElse(httpBase.path)
-              , requestMode.getOrElse(httpBase.requestMode)
-              , timeout.getOrElse(httpBase.requestTimeOut)
-            )
           }
+
+          //
+          extractJsonObj("parameters")(obj)(HttpDataSourceParameters).map(_.getOrElse(httpBase))
 
         case x => Failure(s"Cannot extract a data source type from: ${x}")
       }
@@ -1139,7 +1142,7 @@ case class RestExtractorService (
       description  <- extractString("description")(req) (boxedIdentity)
       sourceType   <- extractObj("type")(req) (extractDataSourceType(_, base.sourceType))
       runParam     <- extractObj("runParameters")(req) (extractDataSourceRunParam(_, base.runParam))
-      timeOut      <- extractString("updateTimeout")(req)(extractDuration)
+      timeOut      <- extractInt("updateTimeout")(req)(extractDuration)
       enabled      <- extractBoolean("enabled")(req)(identity)
     } yield {
       base.copy(
