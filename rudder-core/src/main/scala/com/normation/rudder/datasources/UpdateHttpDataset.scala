@@ -76,7 +76,6 @@ import scalaz.concurrent.Task
  * - save it in the node properties.
  */
 
-
 /*
  * The whole service:
  * - from a datasource and node context,
@@ -98,14 +97,16 @@ class GetDataset(valueCompiler: InterpolatedValueCompiler) {
       time_0     =  System.currentTimeMillis
       body       <- QueryHttp.GET(url, datasource.headers, datasource.sslCheck, connectionTimeout, readTimeOut) ?~! s"Error when fetching data from ${url}"
       _          =  DataSourceTimingLogger.trace(s"[${System.currentTimeMillis - time_0} ms] node '${node.id.value}': GET ${url} // ${path}")
-      json       <- JsonSelect.fromPath(path, body) ?~! s"Error when extracting sub-json at path ${path} from ${body}"
+      json       <- body match {
+                      case Some(body) => JsonSelect.fromPath(path, body) ?~! s"Error when extracting sub-json at path ${path} from ${body}"
+                      case None => Full(Nil)
+                    }
     } yield {
       //we only get the first element from the path.
       //if list is empty, return "" (remove property).
       NodeProperty(datasourceName.value, json.headOption.getOrElse(""))
     }
   }
-
 
   /**
    * Get information for many nodes.
@@ -117,7 +118,6 @@ class GetDataset(valueCompiler: InterpolatedValueCompiler) {
 
 }
 
-
 /*
  * Timeout are given in Milleseconds
  */
@@ -127,7 +127,7 @@ object QueryHttp {
    * Simple synchronous http get, return the response
    * body as a string.
    */
-  def GET(url: String, headers: Map[String, String], checkSsl: Boolean, connectionTimeout: Duration, readTimeOut: Duration): Box[String] = {
+  def GET(url: String, headers: Map[String, String], checkSsl: Boolean, connectionTimeout: Duration, readTimeOut: Duration): Box[Option[String]] = {
     val options = (
         HttpOptions.connTimeout(connectionTimeout.toMillis.toInt)
      :: HttpOptions.readTimeout(readTimeOut.toMillis.toInt)
@@ -143,16 +143,20 @@ object QueryHttp {
     for {
       response <- tryo { client.asString }
       result   <- if(response.isSuccess) {
-                    Full(response.body)
+                    Full(Some(response.body))
                   } else {
-                    Failure(s"Failure updating datasource with URL '${url}': code ${response.code}: ${response.body}")
+                    // If we have a 404 response, we need to remove the property from datasource by setting an empty string here
+                    if (response.code == 404) {
+                      Full(None)
+                    } else {
+                      Failure(s"Failure updating datasource with URL '${url}': code ${response.code}: ${response.body}")
+                    }
                   }
     } yield {
       result
     }
   }
 }
-
 
 /**
  * A little service that allows the interpolation of a
@@ -235,7 +239,6 @@ object JsonSelect {
    * not exposed to user due to risk to not use the correct config
    */
   protected[datasources] def select(path: JsonPath, json: DocumentContext): Box[List[String]] = {
-
 
     // so, this lib seems to be a whole can of unconsistancies on String quoting.
     // we would like to NEVER have quoted string if they are not in a JSON object
