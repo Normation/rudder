@@ -1106,7 +1106,7 @@ case class RestExtractorService (
             url      <- extractOneValueJson(obj, "url")(boxedIdentity)
             path     <- extractOneValueJson(obj, "path")(boxedIdentity)
             method   <- extractOneValueJson(obj, "requestMethod")(boxedIdentity)
-            sslCheck <- extractJsonBoolean(obj, "sslCheck")
+            sslCheck <- extractJsonBoolean(obj, "checkSsl")
             timeout  <- extractOneValueJson(obj, "requestTimeout")(extractDuration)
             headers  <- obj \ "headers" match {
               case header@JObject(fields) =>
@@ -1138,8 +1138,8 @@ case class RestExtractorService (
       name <- extractString("name")(req) (x => Full(DataSourceName(x)))
       description  <- extractString("description")(req) (boxedIdentity)
       sourceType   <- extractObj("type")(req) (extractDataSourceType(_, base.sourceType))
-      runParam     <- extractObj("runParam")(req) (extractDataSourceRunParam(_, base.runParam))
-      timeOut      <- extractString("timeout")(req)(extractDuration)
+      runParam     <- extractObj("runParameters")(req) (extractDataSourceRunParam(_, base.runParam))
+      timeOut      <- extractString("updateTimeout")(req)(extractDuration)
       enabled      <- extractBoolean("enabled")(req)(identity)
     } yield {
       base.copy(
