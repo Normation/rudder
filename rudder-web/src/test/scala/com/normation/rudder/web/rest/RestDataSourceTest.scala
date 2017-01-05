@@ -98,15 +98,17 @@ class RestDataSourceTest extends Specification with Loggable {
   val d2modJson = {
     import net.liftweb.json.JsonDSL._
     ( ( "type" ->
-        ( "name" -> "http" )
-      ~ ( "headers" ->
-          ( ("new header 1" -> "new value 1")
-          ~ ("new header 2" -> "new value 2")
+      ( ( "name" -> "http" )
+      ~ ( "parameters" ->
+          ( "headers" ->
+            ( ("new header 1" -> "new value 1")
+            ~ ("new header 2" -> "new value 2")
+            )
           )
         )
-      )
+      ) )
     ~ ("description" -> "new description")
-    ~ ("runParam" -> ("schedule" -> ("type" -> "scheduled") ~ ("duration" -> "70 minutes") ))
+    ~ ("runParameters" -> ("schedule" -> ("type" -> "scheduled") ~ ("duration" -> 70 ) ))
     )
   }
 
