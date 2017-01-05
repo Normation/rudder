@@ -591,48 +591,7 @@ case class RestDataSerializerImpl (
   }
 
   def serializeDataSource(source : DataSource): JValue = {
-    ( ( "name"        -> source.name.value  )
-    ~ ( "id"        -> source.id.value  )
-    ~ ( "description" -> source.description )
-    ~ ( "type" ->
-        ( ( "name" -> source.sourceType.name )
-        ~ ( "parameters" -> {
-            source.sourceType match {
-              case HttpDataSourceType(url,headers,method,checkSsl,path,mode,timeOut) =>
-                ( ( "url"        -> url     )
-                ~ ( "headers"    -> headers )
-                ~ ( "path"       -> path    )
-                ~ ( "checkSsl"   -> checkSsl )
-                ~ ( "requestTimeout"  -> timeOut.toMinutes )
-                ~ ( "requestMethod"  -> method )
-                ~ ( "requestMode"  ->
-                  ( ( "name" -> mode.name )
-                  ~ { mode match {
-                      case OneRequestByNode =>
-                        JObject(Nil)
-                      case OneRequestAllNodes(subPath,nodeAttribute) =>
-                        ( ( "path" -> subPath)
-                        ~ ( "attribute" -> nodeAttribute)
-                        )
-                  } } )
-                ) )
-            }
-        } ) )
-      )
-    ~ ( "runParameters" -> (
-        ( "onGeneration" -> source.runParam.onGeneration )
-      ~ ( "onNewNode"    -> source.runParam.onNewNode )
-      ~ ( "schedule"     -> (
-          ( "type" -> (source.runParam.schedule match {
-                          case _:Scheduled => "scheduled"
-                          case _:NoSchedule => "notscheduled"
-                        } ) )
-        ~ ( "duration" -> source.runParam.schedule.duration.toMinutes)
-        ) )
-      ) )
-    ~ ( "updateTimeout" -> source.updateTimeOut.toMinutes )
-    ~ ( "enabled"    -> source.enabled )
-    )
+    DataSourceJsonSerializer.serialize(source)
   }
 
 }

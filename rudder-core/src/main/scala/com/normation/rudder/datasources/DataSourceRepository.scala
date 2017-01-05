@@ -51,7 +51,14 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog._
 import scala.concurrent.duration._
 import net.liftweb.common.Failure
-
+import scalaz.concurrent.Task
+import doobie.imports._
+import doobie.contrib.postgresql.pgtypes._
+import net.liftweb.common.Loggable
+import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.Doobie._
+import scalaz.{Failure => _, _}, Scalaz._
+import net.liftweb.common.Empty
 
 final case class PartialNodeUpdate(
     nodes        : Map[NodeId, NodeInfo] //the node to update
@@ -257,7 +264,6 @@ class DataSourceRepoImpl(
     }
   }
 
-
   override def startAll() = {
     //sort by period (the least frequent the last),
     //then start them every minutes
@@ -275,5 +281,67 @@ class DataSourceRepoImpl(
 
 }
 
+class PGDataSourceRepository(
+    doobie    : Doobie
+) extends DataSourceRepository with Loggable {
 
+  import doobie._
 
+  override def getAll(): Box[Map[DataSourceId,DataSource]] = {
+    query[DataSource]("""select id, properties from datasources""").vector.map { _.map( ds => (ds.id,ds)).toMap }.attempt.transact(xa).run
+  }
+
+  override def get(sourceId : DataSourceId): Box[Option[DataSource]] = {
+    sql"""select id, properties from datasources where id = ${sourceId.value}""".query[DataSource].option.attempt.transact(xa).run
+  }
+
+  override def save(source : DataSource): Box[DataSource] = {
+    import net.liftweb.json.compactRender
+    val json = compactRender(DataSourceJsonSerializer.serialize(source))
+    val insert = """insert into datasources (id, properties) values (?, ?)"""
+    val update = s"""
+      update datasources
+      set properties= ?
+      where id= ?
+    """
+
+    val sql = for {
+      rowsAffected <- Update[(String,String)](update).run((json, source.id.value))
+      result       <- rowsAffected match {
+                        case 0 =>
+                          logger.warn(s"source ${source.id} is not present in database, create it")
+                          Update[DataSource](insert).run(source)
+                        case 1 => 1.point[ConnectionIO]
+                        case n => throw new RuntimeException(s"Expected 0 or 1 change, not ${n} for ${source.id}")
+                      }
+    } yield {
+      result
+    }
+
+    sql.attempt.transact(xa).run match {
+      case \/-(x)  => Full(source)
+      case -\/(ex) => Failure(s"could not update lastId from database, cause is: ${ex.getMessage}", Full(ex), Empty)
+    }
+
+    /*
+    (for {
+       _ <- Update[DataSource](insert).run(source).attempt.transact(xa).run
+    } yield {
+      source
+    })*/
+  }
+
+  override def delete(sourceId : DataSourceId): Box[DataSource] = {
+    val query = sql"""delete from datasources where id = ${sourceId}"""
+    for {
+      source <-  get(sourceId).flatMap { _ match {
+        case None => Failure("no source")
+        case Some(source) => Full(source)
+      } }
+      _ <- query.update.run.attempt.transact(xa).run
+    } yield {
+      source
+    }
+  }
+
+}
