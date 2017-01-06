@@ -121,7 +121,7 @@ case class Directive(
     /**
      * Optionally, Directive can have Tags
      */
-   , tags : Option[Tags] = None
+   , tags : Tags = Tags(Set())
 ) extends HashcodeCaching {
   //system object must ALWAYS be ENABLED.
   def isEnabled = _isEnabled || isSystem
