@@ -272,11 +272,14 @@ def class_context_and(a, b):
 
   return '.'.join(final_contexts)
 
+def sanitize_cfpromises_string (value):
+    """All quotes in json provided by cf-promises are backslashed, so we need to remove all backslash before a quote from all values"""
+    return value.replace('\\"', '"').replace("\\'", "'")
 
 def parse_function_call_class_context(function_call):
   """Extract a function call from class context"""
   function_name = function_call['name']
-  function_args = [function_arg['value'].replace('\\"', '"') for function_arg in function_call['arguments']]
+  function_args = [ sanitize_cfpromises_string(function_arg['value']) for function_arg in function_call['arguments']]
   # This is valid for string parameters only should improve for inner function
   return function_name + '(' + ','.join(function_args) + ')'
 
@@ -325,7 +328,7 @@ def parse_technique_methods(technique_file):
         if attribute['lval'] == 'usebundle':
           if attribute['rval']['type'] == 'functionCall':
             method_name = attribute['rval']['name']
-            args = [arg['value'].replace('\\"', '"') for arg in attribute['rval']['arguments']]
+            args = [ sanitize_cfpromises_string(arg['value']) for arg in attribute['rval']['arguments']]
           if attribute['rval']['type'] == 'string':
             method_name = attribute['rval']['value']
         # Extract class context from 'ifvarclass'
