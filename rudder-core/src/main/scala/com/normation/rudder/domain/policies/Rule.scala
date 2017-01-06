@@ -69,7 +69,7 @@ case class Rule(
     /**
      * Optionally, Rule can have Tags
      */
-   , tags           : Option[Tags] = None
+   , tags           : Tags = Tags(Set())
 ) extends HashcodeCaching {
   //system object must ALWAYS be ENABLED.
   def isEnabled = isSystem || (isEnabledStatus && !targets.isEmpty && !directiveIds.isEmpty)

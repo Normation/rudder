@@ -49,6 +49,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.Tags
 
 trait DirectiveAPI extends RestAPI {
   val kind = "directives"
@@ -64,6 +65,7 @@ case class RestDirective(
     , techniqueName    : Option[TechniqueName]
     , techniqueVersion : Option[TechniqueVersion]
     , policyMode       : Option[Option[PolicyMode]]
+    , tags             : Option[Tags]
   ) {
 
     val onlyName = name.isDefined           &&
@@ -74,7 +76,8 @@ case class RestDirective(
                    priority.isEmpty         &&
                    techniqueName.isEmpty    &&
                    techniqueVersion.isEmpty &&
-                   policyMode.isEmpty
+                   policyMode.isEmpty       &&
+                   tags.isEmpty
 
     def updateDirective(directive:Directive) = {
       val updateName = name.getOrElse(directive.name)
@@ -85,6 +88,7 @@ case class RestDirective(
       val updateParameters = parameters.getOrElse(directive.parameters)
       val updatePriority = priority.getOrElse(directive.priority)
       val updateMode = policyMode.getOrElse(directive.policyMode)
+      val updateTags = tags.getOrElse(directive.tags)
       directive.copy(
           name             = updateName
         , shortDescription = updateShort
@@ -94,6 +98,7 @@ case class RestDirective(
         , techniqueVersion = updateTechniqueVersion
         , priority         = updatePriority
         , policyMode       = updateMode
+        , tags             = updateTags
       )
 
     }
