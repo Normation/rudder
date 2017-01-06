@@ -1,0 +1,53 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Sharedfile from node
+# @description This method retreives a file shared from another Rudder node
+# @documentation This method retreives a file shared from a Rudder node using a unique file identifier.
+#  The file will be downloaded using CFEngine protocol and copied into a new file.
+#  The destination path must be the complete absolute path of the destination file.
+#  Example: 
+# ```
+# sharedfile_from_node("2bf1afdc-6725-4d3d-96b8-9128d09d353c", "application.properties", "/opt/application/etc/application.properties")
+# ```
+#
+# @parameter source_uuid  which node to take the file from
+# @parameter file_id      unique name that was used to identify the file on the sender
+# @parameter file_path    where to put the file content
+# 
+# @class_prefix sharedfile_from_node
+# @class_parameter file_id
+
+bundle agent sharedfile_from_node(source_uuid, file_id, file_path)
+{
+  vars:
+      "old_class_prefix"  string => canonify("sharedfile_from_node_${file_id}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist  => { "${source_uuid}", "${file_id}", "${file_path}" };
+
+      "source"            string => "/var/rudder/shared-files/${source_uuid}/${g.uuid}/${file_id}";
+
+  files:
+      "${file_path}"
+        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+      "report" usebundle => _log("Retreiving ${file_id} from ${target_uuid} into ${file_path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
