@@ -140,7 +140,7 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.web.rest.settings.SettingsAPI8
 import com.normation.rudder.web.rest.sharedFiles.SharedFilesAPI
 import com.normation.rudder.web.rest.datasource._
-import com.normation.rudder.datasources.MemoryDataSourceRepository
+import com.normation.rudder.datasources.DataSourceJdbcRepository
 import com.normation.rudder.datasources.DataSourceRepoImpl
 import com.normation.rudder.datasources.HttpQueryDataSourceService
 
@@ -398,7 +398,7 @@ object RudderConfig extends Loggable {
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
   val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
   lazy val dataSourceRepository = new DataSourceRepoImpl(
-      new MemoryDataSourceRepository
+      new DataSourceJdbcRepository(doobie)
     , new HttpQueryDataSourceService(nodeInfoServiceImpl, roLDAPParameterRepository, woLdapNodeRepository, interpolationCompiler)
     , stringUuidGenerator
   )

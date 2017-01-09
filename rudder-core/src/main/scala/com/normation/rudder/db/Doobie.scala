@@ -54,6 +54,8 @@ import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import scala.language.implicitConversions
 import com.normation.rudder.services.reports.RunAndConfigInfo
+import com.normation.rudder.datasources.{ DataSource => RudderDataSource }
+import com.normation.rudder.datasources.DataSourceId
 
 /**
  *
@@ -92,7 +94,6 @@ object Doobie {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////// data structure mapping ///////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
   implicit val DateTimeMeta: Meta[DateTime] =
     Meta[java.sql.Timestamp].nxmap(
@@ -179,6 +180,22 @@ object Doobie {
     )
   }
 
+  implicit val DataSourceComposite: Composite[RudderDataSource] = {
+    import com.normation.rudder.repository.json.CompleteJson._
+    import com.normation.rudder.datasources.DataSourceJsonSerializer._
+    import net.liftweb.json.compactRender
+    import net.liftweb.json.parse
+    Composite[(DataSourceId,String)].xmap(
+        tuple => extractDataSource(tuple._1,parse(tuple._2)) match {
+          case Full(s) => s
+          case eb : EmptyBox  =>
+            val fail = eb ?~! s"Error when deserializing data source ${tuple._1} from following data: ${tuple._2}"
+            throw new RuntimeException(fail.messageChain)
+        }
+      , source => (source.id, compactRender(serialize(source)))
+      )
+  }
+
   implicit val XmlMeta: Meta[Elem] =
     Meta.advanced[Elem](
         NonEmptyList(Other)
@@ -194,4 +211,3 @@ object Doobie {
       , (_,  _) => sys.error("update not supported, sorry")
     )
 }
-

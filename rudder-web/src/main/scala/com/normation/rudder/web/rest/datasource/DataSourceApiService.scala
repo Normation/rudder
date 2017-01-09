@@ -73,11 +73,11 @@ class DataSourceApiService(
     }
   }
 
-  def deleteSource(name : DataSourceId) : Box[JValue] = {
+  def deleteSource(id : DataSourceId) : Box[JValue] = {
     for {
-      source <- dataSourceRepo.delete(name)
+      source <- dataSourceRepo.delete(id)
     } yield {
-      restDataSerializer.serializeDataSource(source) :: Nil
+      (( "id" -> id.value) ~ ("message" -> s"Data source ${id.value} deleted")) :: Nil
     }
   }
 
@@ -89,7 +89,7 @@ class DataSourceApiService(
     for {
       sourceId <- restExctactor.extractId(request){ a => val id = DataSourceId(a); Full(id)}.flatMap( Box(_) ?~! "You need to define datasource id to create it via api")
       base = DataSource.apply(sourceId, DataSourceName(""), baseSourceType, baseRunParam, "", false, defaultDuration)
-      source <- restExctactor.extractDataSource(request, base)
+      source <- restExctactor.extractReqDataSource(request, base)
       _ <- dataSourceRepo.save(source)
       data = restDataSerializer.serializeDataSource(source)
     } yield {
@@ -100,7 +100,7 @@ class DataSourceApiService(
   def updateSource(sourceId : DataSourceId, request: Req ) : Box[JValue] = {
     for {
       base <- dataSourceRepo.get(sourceId).flatMap { Box(_) ?~! s"Cannot update data source '${sourceId.value}', because it does not exist" }
-      updated <- restExctactor.extractDataSource(request, base)
+      updated <- restExctactor.extractReqDataSource(request, base)
       _ <- dataSourceRepo.save(updated)
       data = restDataSerializer.serializeDataSource(updated)
     } yield {
