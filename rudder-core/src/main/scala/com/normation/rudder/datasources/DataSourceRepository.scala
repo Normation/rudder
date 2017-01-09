@@ -60,11 +60,15 @@ final case class PartialNodeUpdate(
 
 trait DataSourceRepository {
 
+  def getAllWithStatus : Box[Map[DataSourceId,(DataSource,DataSourceStatus)]]
   def getAll : Box[Map[DataSourceId,DataSource]]
 
   def get(id : DataSourceId) : Box[Option[DataSource]]
 
+  def getStatus(id : DataSourceId) : Box[Option[DataSourceStatus]]
+
   def save(source : DataSource) : Box[DataSource]
+  def saveStatus(source : DataSourceId, status : DataSourceStatus) : Box[DataSourceStatus]
 
   def delete(id : DataSourceId) : Box[DataSource]
 }
@@ -102,19 +106,39 @@ class MemoryDataSourceRepository extends DataSourceRepository {
 
   private[this] var sources : Map[DataSourceId,DataSource] = Map()
 
-  def getAll() = synchronized(Full(sources))
+  private[this] var statuses : Map[DataSourceId,DataSourceStatus] = Map()
+
+  def getAllWithStatus() = synchronized{
+      Full(for {
+        (sourceId,source) <- sources
+        status = statuses.getOrElse(sourceId, DataSourceStatus(None,Map()))
+      } yield {
+        (sourceId,(source,status))
+      })
+  }
+
+  def getAll() = synchronized{
+    Full(sources)
+  }
 
   def get(id : DataSourceId) : Box[Option[DataSource]]= synchronized(Full(sources.get(id)))
+  def getStatus(id : DataSourceId) : Box[Option[DataSourceStatus]]= synchronized(Full(statuses.get(id)))
 
   def save(source : DataSource) = synchronized {
     sources = sources +  ((source.id,source))
     Full(source)
   }
 
+  def saveStatus(sourceId : DataSourceId, status : DataSourceStatus) : Box[DataSourceStatus] = synchronized {
+    statuses = statuses +  ((sourceId,status))
+    Full(status)
+  }
+
   def delete(id : DataSourceId) : Box[DataSource] = synchronized {
     sources.get(id) match {
       case Some(source) =>
         sources = sources - (id)
+        statuses = statuses - id
         Full(source)
       case None =>
         Failure(s"Data source '${id}' does not exists, and thus can't be deleted")
@@ -183,7 +207,12 @@ class DataSourceRepoImpl(
     DataSourceLogger.info(s"Live data sources: ${datasources.map(_._2.datasource.name.value).mkString("; ")}")
     backend.getAll
   }
+  override def getAllWithStatus = {
+    DataSourceLogger.info(s"Live data sources: ${datasources.map(_._2.datasource.name.value).mkString("; ")}")
+    backend.getAllWithStatus
+  }
   override def get(id : DataSourceId) : Box[Option[DataSource]] = backend.get(id)
+  override def getStatus(id : DataSourceId) : Box[Option[DataSourceStatus]] = backend.getStatus(id)
 
   ///
   ///         DB WRITE ONLY
@@ -209,6 +238,9 @@ class DataSourceRepoImpl(
         Full(s)
     }
   }
+  override def saveStatus(sourceId : DataSourceId, status:DataSourceStatus) : Box[DataSourceStatus] = synchronized {
+    backend.saveStatus(sourceId, status)
+  }
 
   /*
    * delete need to clean existing live resource
@@ -218,6 +250,66 @@ class DataSourceRepoImpl(
     stop(id)
     datasources = datasources - (id)
     backend.delete(id)
+  }
+
+  ///
+  ///        Status update
+  ///
+
+  // It should get the status from the database and update it (do not replace status of all nodes)
+  private[this] def updateOneNodeStatus (dataSource : DataSource, nodeId : NodeId, updateDate: DateTime, updateResult : Box[(NodeId,DataSourceUpdateStatus)] ) = {
+    for {
+      baseStatus <- getStatus(dataSource.id) match {
+          case Full(Some(status)) =>
+            Full(status)
+          case Full(None) =>
+            Full(DataSourceStatus(None,Map()))
+          case eb:EmptyBox =>
+            eb ?~! s"could not update status of datasource ${dataSource.id.value} after update of datasource data for Node ${nodeId.value}"
+        }
+      newStatus = updateResult match {
+        case Full((_,updateResult)) => updateResult
+        case eb:EmptyBox =>
+          val message = eb ?~! s" An error occured during update of datasource data for Node ${nodeId.value}"
+          val lastSuccess : Option[DateTime] = baseStatus.nodesStatus.get(nodeId).flatMap {
+            case DataSourceUpdateSuccess(date) => Some(date)
+            case DataSourceUpdateFailure(_,_,optDate) => optDate
+          }
+          DataSourceUpdateFailure(updateDate, message.messageChain,lastSuccess)
+      }
+      updatedStatus = baseStatus.copy(Some(newStatus), baseStatus.nodesStatus + ((nodeId,newStatus)))
+
+    } yield {
+      saveStatus(dataSource.id, updatedStatus)
+    }
+  }
+
+  private[this] def updateAllNodeStatus (dataSource : DataSource, updateDate: DateTime, updateResult : Box[Map[NodeId,DataSourceUpdateStatus]] ) = {
+    for {
+      baseStatus <- getStatus(dataSource.id) match {
+          case Full(Some(status)) =>
+            Full(status)
+          case Full(None) =>
+            Full(DataSourceStatus(None,Map()))
+          case eb:EmptyBox =>
+            eb ?~! s"could not update status of datasource ${dataSource.id.value} after update of datasource data for all Nodes"
+        }
+      newStatuses = updateResult match {
+        case Full(results) =>
+           DataSourceStatus(Some(DataSourceUpdateSuccess(updateDate)),results)
+        case eb:EmptyBox =>
+          val message = eb ?~! s" An error occured during update of datasource data for all Nodes}"
+          val lastSuccess : Option[DateTime] = baseStatus.lastRunDate.flatMap {
+            case DataSourceUpdateSuccess(date) => Some(date)
+            case DataSourceUpdateFailure(_,_,optDate) => optDate
+          }
+          DataSourceStatus(Some(DataSourceUpdateFailure(updateDate, message.messageChain,lastSuccess)), baseStatus.nodesStatus)
+      }
+      //updatedStatus = baseStatus.copy(Some(updateDate), baseStatus.nodesStatus + ((nodeId,newStatus)))
+
+    } yield {
+      saveStatus(dataSource.id, newStatuses)
+    }
   }
 
   ///
@@ -233,12 +325,17 @@ class DataSourceRepoImpl(
       val msg = s"Fetching data for data source ${dss.datasource.name.value} (${dss.datasource.id.value}) for new node '${nodeId.value}'"
       DataSourceLogger.debug(msg)
       //no scheduler reset for new node
-      fetch.queryOne(dss.datasource, nodeId, UpdateCause(
+      val updateDate = DateTime.now()
+
+      val updated = fetch.queryOne(dss.datasource, nodeId, UpdateCause(
           ModificationId(uuidGen.newUuid)
         , RudderEventActor
         , Some(msg)
       ))
+
+      updateOneNodeStatus(dss.datasource, nodeId, updateDate, updated)
     }
+
   }
 
   override def onGenerationStarted(generationTimeStamp: DateTime): Unit = {
@@ -247,8 +344,11 @@ class DataSourceRepoImpl(
       //for that one, do a scheduler restart
       val msg = s"Getting data for source ${dss.datasource.name.value} for policy generation started at ${generationTimeStamp.toString()}"
       DataSourceLogger.debug(msg)
-      dss.doActionAndSchedule(fetch.queryAll(dss.datasource, UpdateCause(ModificationId(uuidGen.newUuid), RudderEventActor, Some(msg))
-      ))
+      dss.doActionAndSchedule{
+        val updateDate = DateTime.now()
+        val updatedNodes = fetch.queryAll(dss.datasource, UpdateCause(ModificationId(uuidGen.newUuid), RudderEventActor, Some(msg)))
+        updateAllNodeStatus(dss.datasource, updateDate, updatedNodes)
+      }
     }
   }
 
@@ -258,8 +358,11 @@ class DataSourceRepoImpl(
       //for that one, do a scheduler restart
       val msg = s"Refreshing data from data source ${dss.datasource.name.value} on user ${actor.name} request"
       DataSourceLogger.debug(msg)
-      dss.doActionAndSchedule(fetch.queryAll(dss.datasource, UpdateCause(ModificationId(uuidGen.newUuid), actor, Some(msg))
-      ))
+      dss.doActionAndSchedule {
+        val updateDate = DateTime.now()
+        val updatedNodes = fetch.queryAll(dss.datasource, UpdateCause(ModificationId(uuidGen.newUuid), actor, Some(msg)))
+        updateAllNodeStatus(dss.datasource, updateDate, updatedNodes)
+      }
     }
   }
 
@@ -269,7 +372,10 @@ class DataSourceRepoImpl(
       //for that one, no scheduler restart
       val msg = s"Fetching data for data source ${dss.datasource.name.value} (${dss.datasource.id.value}) for node '${nodeId.value}' on user '${actor.name}' request"
       DataSourceLogger.debug(msg)
-      fetch.queryOne(dss.datasource, nodeId, UpdateCause(ModificationId(uuidGen.newUuid), RudderEventActor, Some(msg)))
+      val updateDate = DateTime.now()
+      val updated = fetch.queryOne(dss.datasource, nodeId, UpdateCause(ModificationId(uuidGen.newUuid), RudderEventActor, Some(msg)))
+
+      updateOneNodeStatus(dss.datasource, nodeId, updateDate, updated)
     }
   }
 

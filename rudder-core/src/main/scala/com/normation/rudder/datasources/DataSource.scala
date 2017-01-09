@@ -107,7 +107,7 @@ final case class DataSourceRunParameters (
 )
 
 final case class DataSourceStatus (
-    lastRunDate : Option[DateTime]
+    lastRunDate : Option[DataSourceUpdateStatus]
   , nodesStatus : Map[NodeId, DataSourceUpdateStatus]
 )
 
@@ -125,7 +125,7 @@ final case class DataSourceUpdateSuccess(
 final case class DataSourceUpdateFailure(
     lastRunDate     : DateTime
   , message         : String
-  , lastSuccessDate : Option[String]
+  , lastSuccessDate : Option[DateTime]
 ) extends DataSourceUpdateStatus {
   val state = "failure"
 }

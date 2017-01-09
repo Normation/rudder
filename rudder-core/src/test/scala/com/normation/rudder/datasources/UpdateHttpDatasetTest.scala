@@ -78,8 +78,6 @@ import net.liftweb.http.PartialUpdateMsg
 import com.normation.rudder.domain.eventlog._
 import org.specs2.specification.AfterAll
 
-
-
 @RunWith(classOf[JUnitRunner])
 class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Loggable with AfterAll {
 
@@ -243,12 +241,9 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
       , interpolation
     )
 
-
     val uuidGen = new StringUuidGeneratorImpl()
 
-
   }
-
 
   sequential
 
@@ -369,7 +364,6 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
       , interpolation
     )
 
-
     "work even if nodes don't reply at same speed" in {
       val ds = NewDataSource(
           "test-lot-of-nodes"
@@ -383,11 +377,10 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
       val res = http.queryAll(ds, UpdateCause(modId, actor, None))
       val t1 = System.currentTimeMillis
 
-      res mustFullEq(nodeIds) and (
+      res.map(_.keySet) mustFullEq(nodeIds) and (
         infos.updates.toMap must havePairs( nodeIds.map(x => (x, 1) ).toSeq:_* )
       )
     }
-
 
     "work for odd node even if even nodes fail" in {
       val ds = NewDataSource(
@@ -410,7 +403,6 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
 
     }
   }
-
 
   "Getting a node" should {
     val datasource = httpDatasourceTemplate.copy(
@@ -453,12 +445,11 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
       infos.updates.clear()
       val res = http.queryAll(datasource, UpdateCause(modId, actor, None))
 
-      res mustFullEq(nodeIds) and (
+      res.map(_.keySet) mustFullEq(nodeIds) and (
         infos.updates.toMap must havePairs( nodeIds.map(x => (x, 1) ).toSeq:_* )
       )
     }
   }
-
 
   lazy val booksJson = """
   {

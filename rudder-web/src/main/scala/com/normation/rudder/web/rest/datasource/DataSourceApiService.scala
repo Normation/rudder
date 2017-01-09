@@ -58,7 +58,7 @@ class DataSourceApiService(
   def getSources() : Box[JValue] = {
     for {
       sources <- dataSourceRepo.getAll
-      data = sources.values.map(restDataSerializer.serializeDataSource(_))
+      data = sources.values.map(s => restDataSerializer.serializeDataSource(s))
     } yield {
       data
     }
