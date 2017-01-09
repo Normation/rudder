@@ -57,16 +57,16 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
-      "sha512sum" expression => fileexists("${sha512sum}";
-      "${canonified_path}_signed" => fileexists("${file_path}.sign");
+      "sha512sum" expression => fileexists("${sha512sum}");
+      "${canonified_path}_signed" expression => fileexists("${file_path}.sign");
 
       # classes for _classes_combine_ifthenelse
-      "${old_class_prefix}_exist_true" => "${old_class_prefix}_exist_kept";
-      "${old_class_prefix}_exist_false" => "${old_class_prefix}_exist_repaired";
-      "${class_prefix}_exist_true" => "${class_prefix}_exist_kept";
-      "${class_prefix}_exist_false" => "${class_prefix}_exist_repaired";
+      "${old_class_prefix}_exist_true" expression => "${old_class_prefix}_exist_kept";
+      "${old_class_prefix}_exist_false" expression => "${old_class_prefix}_exist_repaired";
+      "${class_prefix}_exist_true" expression => "${class_prefix}_exist_kept";
+      "${class_prefix}_exist_false" expression => "${class_prefix}_exist_repaired";
 
-      "check_failed" => "${old_class_prefix}_exist_error|${class_prefix}_exist_error";
+      "check_failed" expression => "${old_class_prefix}_exist_error|${class_prefix}_exist_error";
 
   methods:
     !_stdlib_path_exists_curl|!sha512sum|check_failed::
@@ -96,12 +96,12 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
       "${paths.path[curl]}"
         args => "${url}?hash=${hash} -L -X HEAD -o /dev/null -s -f",
         contain => in_shell,
-        classes => classes_generic_return_single_code_two("${old_class_prefix}_exist", "${class_prefix}_exist", "0", "22", "999"); # 22 = http 400 or above
+        classes => classes_generic_return_single_code_two("${old_class_prefix}_exist", "${class_prefix}_exist", "0", "22", "999"), # 22 = http 400 or above
         ifvarclass => "${canonified_path}_signed";
 
       "echo | cat ${file_path}.sign - ${file_path} | ${paths.path[curl]}"
         args => "${url} -L -X PUT -o /dev/null -s -f -d @-",
         contain => in_shell,
-        classes => classes_generic_return_single_code_two("${old_class_prefix}_uploaded", "${class_prefix}_uploaded", "0", "22", "999"); # 22 = http 400 or above
+        classes => classes_generic_return_single_code_two("${old_class_prefix}_uploaded", "${class_prefix}_uploaded", "0", "22", "999"), # 22 = http 400 or above
         ifvarclass => "${canonified_path}_signed.(${old_class_prefix}_exist_repaired|${class_prefix}_exist_repaired)";
 }
