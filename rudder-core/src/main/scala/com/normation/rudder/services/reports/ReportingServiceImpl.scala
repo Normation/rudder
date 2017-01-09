@@ -176,17 +176,31 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         //only try to update nodes that are accepted in Rudder
         nodeIds            =  nodeIdsToCheck.intersect(allNodeIds)
         /*
-         * Three cases: 1/ cache does exist and up to date, 2/ cache exists but expiration date expired,
+         * Three cases:
+         * 1/ cache does exist and up to date,
+         * 2/ cache exists but expiration date expired,
          * 3/ cache does note exists.
          * For simplicity (and keeping computation logic elsewhere than in a cache that already has its cache logic
          * to manage), we will group 2 and 3, but it is well noted that it seems that a RuleNodeStatusReports that
          * expired could be computed without any more logic than "every thing is missing".
          *
+         * The definition of expired date is the following:
+         *  - Node is Pending -> expirationDateTime is the expiration time
+         *  - There is a LastRunAvailable -> expirationDateTime is the lastRunExpiration
+         *  - Other cases: no expiration
+         *
          */
         (expired, upToDate) =  nodeIds.partition { id =>  //two group: expired id, and up to date info
                                  cache.get(id) match {
                                    case None         => true
-                                   case Some(status) => status.report.reports.exists { _.expirationDate.isBefore(now) }
+                                   case Some(status) => status.runInfo match { // We have a status on the run
+                                     case t : ExpiringStatus => t.expirationDateTime.isBefore(now)
+                                     case UnexpectedVersion(_, _, lastRunExpiration, _, _)
+                                                             => lastRunExpiration.isBefore(now)
+                                     case UnexpectedNoVersion(_, _, lastRunExpiration, _, _)
+                                                             => lastRunExpiration.isBefore(now)
+                                     case _                  => false
+                                   }
                                  }
                                }
         newStatus           <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(expired, Set())
