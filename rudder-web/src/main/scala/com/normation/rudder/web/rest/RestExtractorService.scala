@@ -172,6 +172,19 @@ case class RestExtractorService (
     }
   }
 
+  private[this] def extractJsonList[T] (json: JValue, key: String)( convertTo: JValue => Box[T] ): Box[Option[List[T]]] = {
+    json \ key match {
+      case JArray(values) =>
+        for {
+          value <- sequence(values) { convertTo(_) }
+        } yield {
+          Some(value.toList)
+        }
+      case JNothing => Full(None)
+      case _        => Failure(s"Not a good value for parameter ${key}")
+    }
+  }
+
   /*
    * Convert value functions
    */
@@ -580,8 +593,10 @@ case class RestExtractorService (
       enabled          <- extractOneValue(params,"enabled")( convertToBoolean)
       directives       <- extractList(params,"directives")( convertListToDirectiveId)
       target           <- convertToRuleTarget(params,"targets")
+      tagsList         <- extractList(params, "tags")(sequence(_){ s =>  val list =  s.split(":"); Full(Tag(TagName(list.headOption.getOrElse(s)),TagValue(list.tail.headOption.getOrElse(""))))})
+      tags             = tagsList.map(t => Tags(t.toSet))
     } yield {
-      RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled)
+      RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
     }
   }
 
@@ -737,8 +752,10 @@ case class RestExtractorService (
       techniqueName    <- extractOneValue(params, "techniqueName")(x => Full(TechniqueName(x)))
       techniqueVersion <- extractOneValue(params, "techniqueVersion")(x => Full(TechniqueVersion(x)))
       policyMode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault)
+      tagsList         <- extractList(params, "tags")(sequence(_){ s =>  val list =  s.split(":"); Full(Tag(TagName(list.headOption.getOrElse(s)),TagValue(list.tail.headOption.getOrElse(""))))})
+      tags             = tagsList.map(t => Tags(t.toSet))
     } yield {
-      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority, techniqueName, techniqueVersion, policyMode)
+      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority, techniqueName, techniqueVersion, policyMode,tags)
     }
   }
 
@@ -751,8 +768,10 @@ case class RestExtractorService (
       directives       <- extractJsonListString(json, "directives")(convertListToDirectiveId)
       target           <- convertToRuleTarget(json, "targets")
       enabled          <- extractJsonBoolean(json,"enabled")
+      tagsList         <- extractJsonList(json, "tags"){ case JObject(JField(name,JString(value)) :: Nil) => Full(Tag(TagName(name),TagValue(value))); case _ => Failure("Not valid format for tags")}
+      tags             = tagsList.map(tags => Tags(tags.toSet))
     } yield {
-      RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled)
+      RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
     }
   }
 
@@ -777,8 +796,10 @@ case class RestExtractorService (
       techniqueName    <- extractOneValueJson(json, "techniqueName")(x => Full(TechniqueName(x)))
       techniqueVersion <- extractOneValueJson(json, "techniqueVersion")(x => Full(TechniqueVersion(x)))
       policyMode       <- extractOneValueJson(json, "policyMode")(PolicyMode.parseDefault)
+      tagsList         <- extractJsonList(json, "tags"){ case JObject(JField(name,JString(value)) :: Nil) => Full(Tag(TagName(name),TagValue(value))); case _ => Failure("Not valid format for tags")}
+      tags             = tagsList.map(tags => Tags(tags.toSet))
     } yield {
-      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority,techniqueName,techniqueVersion,policyMode)
+      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority,techniqueName,techniqueVersion,policyMode,tags)
     }
   }
 

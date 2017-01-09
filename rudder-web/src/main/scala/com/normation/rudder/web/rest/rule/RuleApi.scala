@@ -47,20 +47,21 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.rest.RestAPI
-
+import com.normation.rudder.domain.policies.Tags
 
 trait RuleAPI extends RestAPI {
   val kind = "rules"
 }
 
 case class RestRule(
-      name             : Option[String] = None
-    , category         : Option[RuleCategoryId] = None
-    , shortDescription : Option[String] = None
-    , longDescription  : Option[String] = None
+      name             : Option[String]           = None
+    , category         : Option[RuleCategoryId]   = None
+    , shortDescription : Option[String]           = None
+    , longDescription  : Option[String]           = None
     , directives       : Option[Set[DirectiveId]] = None
-    , targets          : Option[Set[RuleTarget]] = None
-    , enabled          : Option[Boolean]     = None
+    , targets          : Option[Set[RuleTarget]]  = None
+    , enabled          : Option[Boolean]          = None
+    , tags             : Option[Tags]              = None
   ) {
 
     val onlyName = name.isDefined           &&
@@ -69,7 +70,8 @@ case class RestRule(
                    longDescription.isEmpty  &&
                    directives.isEmpty       &&
                    targets.isEmpty          &&
-                   enabled.isEmpty
+                   enabled.isEmpty          &&
+                   tags.isEmpty
 
     def updateRule(rule:Rule) = {
       val updateName = name.getOrElse(rule.name)
@@ -79,6 +81,7 @@ case class RestRule(
       val updateDirectives = directives.getOrElse(rule.directiveIds)
       val updateTargets = targets.getOrElse(rule.targets)
       val updateEnabled = enabled.getOrElse(rule.isEnabledStatus)
+      val updateTags    = tags.getOrElse(rule.tags)
       rule.copy(
           name             = updateName
         , categoryId       = updateCategory
@@ -87,6 +90,7 @@ case class RestRule(
         , directiveIds     = updateDirectives
         , targets          = updateTargets
         , isEnabledStatus  = updateEnabled
+        , tags             = updateTags
       )
 
     }

@@ -145,6 +145,9 @@ class LDAPDiffMapper(
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldCr.isSystem,mod.getAttribute().getValueAsBoolean))))
                 case A_RULE_CATEGORY =>
                   tryo(diff.copy(modCategory = Some(SimpleDiff(oldCr.categoryId , RuleCategoryId(mod.getAttribute().getValue)))))
+                case A_SERIALIZED_TAGS =>
+                  // We do not store tags in event logs for now, use current diff
+                  Full(diff)
                 case x => Failure("Unknown diff attribute: " + x)
               }
             }
@@ -238,6 +241,9 @@ class LDAPDiffMapper(
                   } yield {
                     diff.copy(modPolicyMode = Some(SimpleDiff(oldPi.policyMode,policyMode)))
                   }
+                case A_SERIALIZED_TAGS =>
+                  // We do not store tags in event logs for now, use current diff
+                  Full(diff)
                 case x => Failure("Unknown diff attribute: " + x)
               }
             }
