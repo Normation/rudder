@@ -552,8 +552,8 @@ class LDAPEntityMapper(
         isEnabled        = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         tags             <- e(A_SERIALIZED_TAGS) match {
-          case None => Full(None)
-          case Some(tags) => JsonTagSerialisation.unserializeTags(tags).map {Some(_) } ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
+          case None => Full(Tags(Set()))
+          case Some(tags) => JsonTagSerialisation.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
         }
       } yield {
         Directive(
@@ -588,7 +588,7 @@ class LDAPEntityMapper(
     entry +=! (A_IS_ENABLED, directive.isEnabled.toLDAPString)
     entry +=! (A_IS_SYSTEM, directive.isSystem.toLDAPString)
     directive.policyMode.foreach ( mode => entry +=! (A_POLICY_MODE, mode.name) )
-    directive.tags.map ( tags => entry +=! (A_SERIALIZED_TAGS, JsonTagSerialisation.serializeTags(tags)) )
+    entry +=! (A_SERIALIZED_TAGS, JsonTagSerialisation.serializeTags(directive.tags))
     entry
   }
 
@@ -641,8 +641,8 @@ class LDAPEntityMapper(
         serial   <- e.getAsInt(A_SERIAL) ?~!
                     "Missing required attribute %s in entry %s".format(A_SERIAL, e)
         tags     <- e(A_SERIALIZED_TAGS) match {
-          case None => Full(None)
-          case Some(tags) => JsonTagSerialisation.unserializeTags(tags).map {Some(_) } ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
+          case None => Full(Tags(Set()))
+          case Some(tags) => JsonTagSerialisation.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
         }
       } yield {
         val targets = for {
@@ -698,7 +698,7 @@ class LDAPEntityMapper(
     entry +=! (A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
     entry +=! (A_DESCRIPTION, rule.shortDescription)
     entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)
-    rule.tags.map ( tags => entry +=! (A_SERIALIZED_TAGS, JsonTagSerialisation.serializeTags(tags)) )
+    entry +=! (A_SERIALIZED_TAGS, JsonTagSerialisation.serializeTags(rule.tags))
 
     entry
   }

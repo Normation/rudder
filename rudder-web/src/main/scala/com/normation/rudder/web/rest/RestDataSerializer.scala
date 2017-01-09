@@ -60,6 +60,7 @@ import com.normation.rudder.repository.FullActiveTechnique
 import scala.language.implicitConversions
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.datasources._
+import jdk.nashorn.api.scripting.JSObject
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest
@@ -172,6 +173,7 @@ case class RestDataSerializerImpl (
      ~ ( "targets"          -> rule.targets.map(_.toJson) )
      ~ ( "enabled"          -> rule.isEnabledStatus )
      ~ ( "system"           -> rule.isSystem )
+     ~ ( "tags"             -> JArray(rule.tags.tags.map ( t => JObject( JField(t.tagName.name,t.tagValue.value) :: Nil) ).toList))
    )
   }
 
@@ -290,18 +292,19 @@ case class RestDataSerializerImpl (
       ( ("isEnabled" -> directive.isEnabled )
       ~ ("isSystem" -> directive.isSystem ) )
     val base =
-      ( ("changeRequestId"  -> crId.map(_.value.toString))
-      ~ ("id"               -> directive.id.value)
-      ~ ("displayName"      -> directive.name)
-      ~ ("shortDescription" -> directive.shortDescription)
-      ~ ("longDescription"  -> directive.longDescription)
-      ~ ("techniqueName"    -> technique.id.name.value)
-      ~ ("techniqueVersion" -> directive.techniqueVersion.toString)
-      ~ ("parameters"       -> sectionVal )
-      ~ ("priority"         -> directive.priority)
-      ~ ("enabled"          -> directive.isEnabled )
-      ~ ("system"           -> directive.isSystem )
-      ~ ("policyMode"       -> directive.policyMode.map(_.name).getOrElse("default"))
+      ( ( "changeRequestId"  -> crId.map(_.value.toString))
+      ~ ( "id"               -> directive.id.value)
+      ~ ( "displayName"      -> directive.name)
+      ~ ( "shortDescription" -> directive.shortDescription)
+      ~ ( "longDescription"  -> directive.longDescription)
+      ~ ( "techniqueName"    -> technique.id.name.value)
+      ~ ( "techniqueVersion" -> directive.techniqueVersion.toString)
+      ~ ( "parameters"       -> sectionVal )
+      ~ ( "priority"         -> directive.priority)
+      ~ ( "enabled"          -> directive.isEnabled )
+      ~ ( "system"           -> directive.isSystem )
+      ~ ( "policyMode"       -> directive.policyMode.map(_.name).getOrElse("default"))
+      ~ ( "tags"             -> JArray(directive.tags.tags.map ( t => JObject( JField(t.tagName.name,t.tagValue.value) :: Nil) ).toList))
     )
     extendResponseCompatibility(base,extension)
   }
