@@ -52,7 +52,6 @@ import com.normation.rudder.domain.eventlog._
 import scala.concurrent.duration._
 import net.liftweb.common.Failure
 
-
 final case class PartialNodeUpdate(
     nodes        : Map[NodeId, NodeInfo] //the node to update
   , policyServers: Map[NodeId, NodeInfo] //there policy servers
@@ -92,6 +91,11 @@ trait DataSourceUpdateCallbacks {
    * all resources on them.
    */
   def startAll(): Unit
+
+  /*
+   * Define all datasource scheduler from data sources in backend
+   */
+  def initialize(): Unit
 }
 
 class MemoryDataSourceRepository extends DataSourceRepository {
@@ -133,6 +137,18 @@ class DataSourceRepoImpl(
 
   private[this] var datasources = Map[DataSourceId, DataSourceScheduler]()
 
+  // Initialize data sources scheduler, with all sources present in backend
+  def initialize() = {
+    getAll match {
+      case Full(sources) =>
+        for {
+          (_,source) <- sources
+        } yield {
+          updateDataSourceScheduler(source, Some(source.runParam.schedule.duration))
+        }
+      case eb  => throw new RuntimeException("error when initializing datasources")
+    }
+  }
   // utility methods on datasources
   // stop a datasource - must be called when the datasource still in "datasources"
   private[this] def stop(id: DataSourceId) = datasources.get(id).foreach( _.cancel() )
@@ -257,7 +273,6 @@ class DataSourceRepoImpl(
     }
   }
 
-
   override def startAll() = {
     //sort by period (the least frequent the last),
     //then start them every minutes
@@ -274,6 +289,3 @@ class DataSourceRepoImpl(
   }
 
 }
-
-
-
