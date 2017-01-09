@@ -230,9 +230,12 @@ object JsonSelect {
   /*
    * Some remarks:
    * - just a name "foo" is interpreted as "$.foo"
+   * - If path is empty, replace it by "$" or the path compilation fails,
+   *   an empty path means accepting the whole json
    */
   protected[datasources] def compilePath(path: String): Box[JsonPath] = {
-    tryo(JsonPath.compile(path))
+    val effectivePath = if (path.isEmpty()) "$" else path
+    tryo(JsonPath.compile(effectivePath))
   }
 
   /*

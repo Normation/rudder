@@ -397,6 +397,11 @@ object RudderConfig extends Loggable {
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
   val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
+  lazy val dataSourceRepository = new DataSourceRepoImpl(
+      new MemoryDataSourceRepository
+    , new HttpQueryDataSourceService(nodeInfoServiceImpl, roLDAPParameterRepository, woLdapNodeRepository, interpolationCompiler)
+    , stringUuidGenerator
+  )
 
   val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
   val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
@@ -791,13 +796,6 @@ object RudderConfig extends Loggable {
   val complianceApi7 = new ComplianceAPI7(restExtractorService, complianceAPIService)
 
   val settingsApi8 = new SettingsAPI8(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
-
-
-  val dataSourceRepository = new DataSourceRepoImpl(
-      new MemoryDataSourceRepository
-    , new HttpQueryDataSourceService(nodeInfoService, roLDAPParameterRepository, woLdapNodeRepository, interpolationCompiler)
-    , stringUuidGenerator
-  )
 
   val dataSourceApiService = new DataSourceApiService(dataSourceRepository, restDataSerializer, restExtractorService)
   val dataSourceApi9 = new DataSourceApi9(restExtractorService, dataSourceApiService, stringUuidGenerator)
@@ -1712,6 +1710,7 @@ object RudderConfig extends Loggable {
           asyncDeploymentAgent
         , uuidGen
       )
+    , new InitDataSourceScheduler(dataSourceRepository)
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////
