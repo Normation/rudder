@@ -116,6 +116,7 @@ object NodeConfigData {
   val hostname1 = "node1.localhost"
   val admin1 = "root"
   val id2 = NodeId("node2")
+  val hostname2 = "node2.localhost"
   val rootId = NodeId("root")
   val rootHostname = "server.rudder.local"
   val rootAdmin = "root"
@@ -163,7 +164,7 @@ object NodeConfigData {
     , ""
     , false
     , false
-    , false
+    , true //is policy server
     , DateTime.now
     , emptyNodeReportingConfiguration
     , Seq()
@@ -221,7 +222,7 @@ object NodeConfigData {
 
   //node1 us a relay
   val node2Node = node1Node.copy(id = id2, name = id2.value)
-  val node2 = node1.copy(node = node2Node, policyServerId = node1.id )
+  val node2 = node1.copy(node = node2Node, hostname = hostname2, policyServerId = node1.id )
 
   val allNodesInfo = Map( rootId -> root, node1.id -> node1, node2.id -> node2)
 

@@ -60,7 +60,6 @@ import com.normation.rudder.repository.FullActiveTechnique
 import scala.language.implicitConversions
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.datasources._
-import jdk.nashorn.api.scripting.JSObject
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest
