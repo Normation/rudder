@@ -260,8 +260,8 @@ class RuleGrid(
             logger.warn(fail.messageChain)
             (true, Some(fail.msg))
         }
-        val onLoad =
-          s"""createRuleTable (
+        val onLoad = s"""
+              createRuleTable (
                  "${htmlId_rulesGridId}"
                 , ${tableData.json.toJsCmd}
                 , ${showCheckboxColumn}
@@ -275,12 +275,88 @@ class RuleGrid(
               );
               createTooltip();
               createTooltiptr();
-              $$('#${htmlId_rulesGridWrapper}').css("margin","10px 0px 0px 0px");
+              angular.bootstrap('#showFiltersRules', ['filters']);
           """
         <div id={htmlId_rulesGridZone}>
           <span class="error" id="ruleTableError">{errorProperty.getOrElse("")}</span>
           <div id={htmlId_modalReportsPopup} class="nodisplay">
             <div id={htmlId_reportsPopup} ></div>
+          </div>
+          <div id="showFiltersRules" ng-controller="filterTagRuleCtrl" class="filters tw-bs" ng-cloak="">
+            <div class="filters-container">
+                <form class="filterTag form-inline">
+                  <div class="space-top">
+                    <ul class="nav nav-tabs nav-tabs-filter" role="tablist">
+                      <li role="presentation">
+                        <a href="" class="toggleTabFilter" role="tab" ng-click="toggleTagForm('search','#searchStr');">
+                          Filter
+                          <span class="fa fa-chevron-right" ng-class="{'fa-rotate-90':!hide.search}"></span>
+                        </a>
+                      </li>
+                      <li role="presentation">
+                        <a href="" class="toggleTabFilter" role="tab" ng-click="toggleTagForm('tag','.input-key')">
+                          Filter by tag
+                          <span class="fa fa-chevron-right" ng-class="{'fa-rotate-90':!hide.tag}"></span>
+                        </a>
+                      </li>
+                      <li role="presentation">
+                        <a href="" class="toggleTabFilter updateTable" id="updateRuleTable" role="tab">
+                          <i class="fa fa-refresh"></i>
+                        </a>
+                      </li>
+                    </ul>
+                    <div class="tab-content">
+                      <div role="tabpanel" class="tab-pane tab-filter" id="form-search" ng-class="{'active':!hide.search}">
+                        <div class="form-group">
+                          <div class="input-group">
+                            <label for="searchStr" class="input-group-addon"><span class="ion ion-search"></span></label>
+                            <input type="text" id="searchStr" class="input-sm form-control" placeholder="Filter" ng-model="strSearch" ng-keyup="filterGlobal(strSearch)"/>
+                          </div>
+                        </div>
+                      </div>
+                      <div role="tabpanel" class="tab-pane tab-filter" id="form-tag" ng-class="{'active':!hide.tag}">
+                        <div class="form-group">
+                          <div class="input-group">
+                            <input placeholder="key" class="form-control input-sm input-key    " type="text" ng-model="newTag.key"/>
+                            <span class="input-group-addon addon-json">=</span>
+                            <input placeholder="value" class="form-control input-sm input-value" type="text" ng-model="newTag.value"/>
+                            <span class="input-group-btn">
+                              <button type="button" ng-click="addTag()" class="btn btn-success btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)); ">
+                                <span class="fa fa-plus"></span>
+                              </button>
+                            </span>
+                          </div>
+                        </div>
+                        <div class="only-tags">
+                          <a href="" ng-click="onlyAll($event)" class="all" ng-class="{'active':getOnlyAllValue()}"> All </a>
+                          <span class="separator">/</span>
+                          <a href="" ng-click="onlyKey($event)" class="key" ng-class="{'active':only.key}"> Filter keys only   </a>
+                          <span class="separator">/</span>
+                          <a href="" ng-click="onlyValue($event)" class="value" ng-class="{'active':only.value}"> Filter values only </a>
+                          <button class="btn btn-default btn-xs pull-right" ng-click="clearAllTags()" ng-disabled="tags.length==0">
+                            Clear all tags
+                            <i class="fa fa-trash" aria-hidden="true"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <div role="tabpanel" class="tab-pane" ng-class="{'active':tags.length>0 || strSearch.length>0}">
+                        <div class="tags-container">
+                          <span class="rudder-tag tag-search" ng-if="strSearch.length>0">
+                            <span class="tag-value" ng-bind="strSearch"></span>
+                            <span class="fa fa-times" ng-click="clearSearch()"></span>
+                          </span>
+                          <span class="rudder-tag" ng-repeat="tag in tags" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag($index,tag)">
+                            <span class="tag-key"><span ng-show="tag.key!=''">{{{{tag.key}}}}</span><i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i></span>
+                            <span class="tag-separator">=</span>
+                            <span class="tag-value"><span ng-show="tag.value!=''">{{{{tag.value}}}}</span><i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.value==''"></i></span>
+                            <span class="fa fa-times" ng-click="removeTag($index)"></span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+            </div>
           </div>
           <table id={htmlId_rulesGridId} class="display" cellspacing="0"> </table>
           <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
@@ -316,7 +392,7 @@ class RuleGrid(
                     ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
                     ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
                   """))
-            }
+                }
             }
           } catch {
             case e:Exception =>
@@ -643,6 +719,8 @@ class RuleGrid(
     val t5 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: callback: ${t5-t4}ms")
 
+    val tags = JsObj(line.rule.tags.map(_.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList).getOrElse(Nil):_*).toJsCmd
+
     RuleLine (
         line.rule.name
       , line.rule.id
@@ -656,6 +734,7 @@ class RuleGrid(
       , reasons
       , policyMode
       , explanation
+      , tags
    )
   }
 }
@@ -689,6 +768,7 @@ case class RuleLine (
   , reasons          : Option[String]
   , policyMode       : String
   , explanation      : String
+  , tags             : String
 ) extends JsTableLine {
 
   /* Would love to have a reflexive way to generate that map ...  */
@@ -712,6 +792,7 @@ case class RuleLine (
         , ( "trClass", trClass )
         , ( "policyMode", policyMode )
         , ( "explanation", explanation )
+        , ( "tags", tags)
       )
 
       base +* JsObj(optFields:_*)
