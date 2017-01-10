@@ -307,8 +307,9 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
       //then, event after days, nothing is done
       testScheduler.tick(1.day)
       val total_1d = NodeDataset.counterError.get + NodeDataset.counterSuccess.get
-      //but updating on a generation works
+      //but asking for a direct update do the queries immediatly - task need at least 1ms to notice it should run
       dss.doActionAndSchedule(action(UpdateCause(ModificationId("plop"), RudderEventActor, None)))
+      testScheduler.tick(1.millis)
       val total_postGen = NodeDataset.counterError.get + NodeDataset.counterSuccess.get
 
       (total_0, total_1d, total_postGen                   ) must beEqualTo(
