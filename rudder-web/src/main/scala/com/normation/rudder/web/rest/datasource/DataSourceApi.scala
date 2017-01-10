@@ -45,7 +45,17 @@ import com.normation.rudder.datasources.OneRequestAllNodes
 import com.normation.rudder.datasources.OneRequestByNode
 import org.joda.time.Seconds
 import scala.concurrent.duration.Duration
+import net.liftweb.http.Req
+import com.normation.rudder.authorization._
+import com.normation.rudder.web.model.CurrentUser
 
 trait DataSourceApi extends RestAPI {
   val kind = "datasources"
+
+  override protected def checkSecure : PartialFunction[Req, Boolean] = {
+    case Get(_,_) => CurrentUser.checkRights(Read("administration"))
+    case Post(_,_) | Put(_,_) | Delete(_,_) => CurrentUser.checkRights(Write("administration")) || CurrentUser.checkRights(Edit("administration"))
+    case _=> false
+
+  }
 }
