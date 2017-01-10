@@ -420,7 +420,7 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
     )
     "get the node" in  {
 
-      val res = fetch.getNode(DataSourceName("test-get-one-node"), datasource, n1, root, Set(), 1.second, 5.seconds)
+      val res = fetch.getNode(DataSourceId("test-get-one-node"), datasource, n1, root, Set(), 1.second, 5.seconds)
 
       res mustFullEq(
           NodeProperty("test-get-one-node", compact("""{
