@@ -219,7 +219,7 @@ object DisplayDirectiveTree extends Loggable {
         s"${disabled} ${includedClass}"
       }
       val htmlId = s"jsTree-${directive.id.value}"
-      val directiveTags = JsObj(directive.tags.map(_.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList).getOrElse(Nil):_*)
+      val directiveTags = JsObj(directive.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList:_*)
       override val attrs = (
                   ("data-jstree" -> s"""{"type":"directive", "tags":${directiveTags}}""") ::
                   ( "id" -> htmlId) ::

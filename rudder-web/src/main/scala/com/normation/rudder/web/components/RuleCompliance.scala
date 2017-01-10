@@ -98,7 +98,7 @@ class RuleCompliance (
 
   import RuleCompliance._
 
-  val getRuleTags = JsObj(rule.tags.map(_.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList).getOrElse(Nil):_*)
+  val getRuleTags = JsObj(rule.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList:_*)
   def tagsEditForm = new TagsEditForm(getRuleTags)
   def display : NodeSeq = {
 
