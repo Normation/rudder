@@ -1,5 +1,3 @@
-
-
 /*
  * Reference Technique library tree
  */
@@ -114,7 +112,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContex
         "show_only_matches": true
       },
     "plugins" : [ "types", "dnd", "search" ] 
-  })   
+  })
 }
 
 /*
@@ -362,16 +360,15 @@ var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
     })
 }
 
-
-
 var buildDirectiveTree = function(id, initially_select, appContext, select_limit) {
+  
   var select_multiple_modifier = "on"
   if (select_limit > 0) {
     select_multiple_modifier = "ctrl"
   }
-  var tree = $(id).bind("loaded.jstree", function (event, data) {
-      data.instance.open_all();
-      $(id+' .rudder-label').bsTooltip();
+  var tree = $(id).on("loaded.jstree", function (event, data) {
+    data.instance.open_all();
+    $(id+' .rudder-label').bsTooltip();
     }).jstree({
       "core" : { 
         "animation" : 300,
@@ -418,12 +415,11 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
     	  "theme" : "rudder",
     	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
-      "plugins" : [ "themes", "html_data", "types", "search"]
+      "plugins" : [ "themes", "html_data", "types", "search", "searchtag"]
     });
 
    tree.jstree().select_node(initially_select)
 }
-
 
 /*
  * Directive management
@@ -462,7 +458,6 @@ var buildChangesTree = function(id,appContext) {
       },
       "plugins" : [ "types" ]      
   })
-
 }
 
 /**

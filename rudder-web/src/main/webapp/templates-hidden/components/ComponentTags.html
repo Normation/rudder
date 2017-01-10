@@ -1,0 +1,13 @@
+<tags:form>
+  <div class="row form-group" id="tagsController" ng-controller="" ng-cloak="" >
+    <label class="col-xs-12"><b>Tags</b></label>
+    <div class="tags-container col-xs-12">
+      <span class="rudder-tag simple" ng-repeat="tag in tags track by $index" ng-class="{'match': keyTagMatch(tag)||valTagMatch(tag)}">
+        <span class="tag-key" ng-class="{'match': keyTagMatch(tag)}">{{{{tag.key}}}}</span>
+        <span class="tag-separator">=</span>
+        <span class="tag-value" ng-class="{'match': valTagMatch(tag)}">{{{{tag.value}}}}</span>
+        <i class="glyphicon glyphicon-search" ng-click="toggleTag(tag)"></i>
+      </span>
+    </div>
+  </div>
+</tags:form>
