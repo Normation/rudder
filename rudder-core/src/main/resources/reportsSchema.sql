@@ -242,9 +242,9 @@ CREATE TABLE nodeCompliance (
 , PRIMARY KEY (nodeId, runTimestamp)
 );
 
-CREATE INDEX nodeCompliance_nodeId ON nodeCoCompliance (nodeId);
-CREATE INDEX nodeCompliance_runTimestamp ON nodeCoCompliance (runTimestamp);
-CREATE INDEX nodeCompliance_endOfLife ON nodeCoCompliance (endOfLife);
+CREATE INDEX nodeCompliance_nodeId ON nodeCompliance (nodeId);
+CREATE INDEX nodeCompliance_runTimestamp ON nodeCompliance (runTimestamp);
+CREATE INDEX nodeCompliance_endOfLife ON nodeCompliance (endOfLife);
 
 -- Create the table for the archived node compliance
 CREATE TABLE archivedNodeCompliance (
