@@ -170,7 +170,7 @@ case class RestDataSerializerImpl (
      ~ ( "targets"          -> rule.targets.map(_.toJson) )
      ~ ( "enabled"          -> rule.isEnabledStatus )
      ~ ( "system"           -> rule.isSystem )
-     ~ ( "tags"             -> JArray(rule.tags.tags.map ( t => JObject( JField(t.tagName.name,t.tagValue.value) :: Nil) ).toList))
+     ~ ( "tags"             -> JArray(rule.tags.tags.map ( t => JObject( JField(t.name.value,t.value.value) :: Nil) ).toList))
    )
   }
 
@@ -301,7 +301,7 @@ case class RestDataSerializerImpl (
       ~ ( "enabled"          -> directive.isEnabled )
       ~ ( "system"           -> directive.isSystem )
       ~ ( "policyMode"       -> directive.policyMode.map(_.name).getOrElse("default"))
-      ~ ( "tags"             -> JArray(directive.tags.tags.map ( t => JObject( JField(t.tagName.name,t.tagValue.value) :: Nil) ).toList))
+      ~ ( "tags"             -> JArray(directive.tags.tags.map ( t => JObject( JField(t.name.value,t.value.value) :: Nil) ).toList))
     )
     extendResponseCompatibility(base,extension)
   }

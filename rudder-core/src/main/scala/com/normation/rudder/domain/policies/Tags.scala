@@ -43,16 +43,23 @@ import com.normation.rudder.repository.json.JsonExctractorUtils
 
 /**
  * Tags that apply on Rules and Directives
- * We do not warranty unicity of tags name, only of tagsname + tagvalue
+ * We do not warranty unicity of tags name, only on tuple (name, value)
  */
-final case class TagName( name : String )
 
-final case class TagValue( value : String )
+object Tag {
+  implicit def tagName(value : String)  : TagName = TagName(value)
+  implicit def tagValue(value : String)  : TagValue = TagValue(value)
+}
 
-final case class Tag( tagName : TagName, tagValue : TagValue )
+final case class TagName ( val value : String )
+final case class TagValue( val value : String )
+
+import Tag._
+
+final case class Tag( name : TagName, value : TagValue )
 
 /**
- * We can have multiple Tags with same name - unicity is really on TagName + TagValue
+ * We can have multiple Tags with same name - unicity is really on tuple (name, value)
  */
 final case class Tags(tags : Set[Tag]){
   def map[A](f : Tag => A) = {
@@ -69,8 +76,8 @@ object JsonTagSerialisation {
   def serializeTags( tags : Tags ) : String = {
 
     // sort all the tags by name
-    val m : JValue = JArray( tags.tags.toList.sortBy( _.tagName.name ).map {
-      case Tag( tagName, tagValue ) => ( "key" -> tagName.name)~ ("value" -> tagValue.value )
+    val m : JValue = JArray( tags.tags.toList.sortBy ( _.name.value ).map {
+       t => ( "key" ->t.name.value) ~ ("value" -> t.value.value ) : JObject
     } )
 
     compactRender( m )
