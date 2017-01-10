@@ -423,7 +423,7 @@ class DirectiveEditForm(
       override def labelClassName = "col-xs-12"
       override def subContainerClassName = "col-xs-12"
     }
-  val getDirectiveTags = JsObj(directive.tags.map(_.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList).getOrElse(Nil):_*)
+  val getDirectiveTags = JsObj(directive.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList:_*)
   def tagsEditForm = new TagsEditForm(getDirectiveTags)
 
   def showDeprecatedVersion (version : TechniqueVersion) = {
