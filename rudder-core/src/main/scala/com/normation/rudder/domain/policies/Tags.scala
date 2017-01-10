@@ -53,8 +53,12 @@ final case class Tag( tagName : TagName, tagValue : TagValue )
 /**
  * We can have multiple Tags with same name - unicity is really on TagName + TagValue
  */
-final case class Tags(
-  tags : Set[Tag] )
+final case class Tags(tags : Set[Tag]){
+  def map[A](f : Tag => A) = {
+    tags.map(f)
+  }
+
+}
 
 final object JsonTagSerialisation {
   import net.liftweb.json._
@@ -90,7 +94,6 @@ final object JsonTagSerialisation {
       case Full(result) => result
       case _ => Failure("Invalid JSON serialization for Tags ${value}")
     }
-
 
   }
 }
