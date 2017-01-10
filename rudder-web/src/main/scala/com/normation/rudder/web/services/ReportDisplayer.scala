@@ -197,7 +197,7 @@ class ReportDisplayer(
 
         case UnexpectedVersion(lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfig, expectedExpiration) =>
           (
-            <p>This node is sending reports from an out-of-date configuration policy ({lastRunConfigInfo.configId.value}, run started at {lastRunDateTime.toString(dateFormat)}).
+            <p>This node is sending reports from an out-of-date configuration policy ({lastRunConfigInfo.nodeConfigId.value}, run started at {lastRunDateTime.toString(dateFormat)}).
                Please check that the node is able to update it's policy by running 'rudder agent update' on the node.</p>
             <p>For information, expected node policies are displayed below.</p>
             <p>{currentConfigId(expectedConfig)}</p>
