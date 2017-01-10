@@ -635,10 +635,6 @@ input.pickStartInput, input.pickEndInput {
   padding: 3px 0px 3px 0px;
 }
 
-.dataTables_wrapper {
-  margin-top: 10px;
-}
-
 .dataTables_wrapper_top {
   padding: 6px;
   overflow: hidden;

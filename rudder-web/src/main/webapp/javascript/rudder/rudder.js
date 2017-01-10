@@ -50,6 +50,8 @@ var bootstrapAffix = $.fn.affix.noConflict();
 var bootstrapModal = $.fn.modal.noConflict();
 $.fn.bsModal = bootstrapModal;
 $.fn.bsTooltip = bootstrapTooltip;
+$.fn.bsPopover = bootstrapPopover;
+$.fn.bsTab = bootstrapTab;
 /**
  * Instanciate the tooltip
  * For each element having the "tooltipable" class, when hovering it will look for it's
@@ -466,12 +468,12 @@ var searchTree = function(inputId, treeId) {
   enableSubtree($(".jstree-search"));
   return false;
 }
+
 var clearSearchFieldTree = function(inputId, treeId) {
   $(inputId).val('');
   $(treeId).jstree('clear_search');
   return false;
 }
-
 var twoDigitsFormator = d3.format("02d");
 
 /* Facility to format a number on two digits */
