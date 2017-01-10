@@ -88,7 +88,7 @@ class GetDataset(valueCompiler: InterpolatedValueCompiler) {
 
   val compiler = new InterpolateNode(valueCompiler)
 
-  def getNode(datasourceName: DataSourceName, datasource: HttpDataSourceType, node: NodeInfo, policyServer: NodeInfo, parameters: Set[Parameter], connectionTimeout: Duration, readTimeOut: Duration): Box[NodeProperty] = {
+  def getNode(datasourceName: DataSourceId, datasource: HttpDataSourceType, node: NodeInfo, policyServer: NodeInfo, parameters: Set[Parameter], connectionTimeout: Duration, readTimeOut: Duration): Box[NodeProperty] = {
     for {
       p          <- sequence(parameters.toSeq)(compiler.compileParameters) ?~! "Error when transforming Rudder Parameter for variable interpolation"
       parameters =  p.toMap

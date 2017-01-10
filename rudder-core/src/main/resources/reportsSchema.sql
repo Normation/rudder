@@ -464,6 +464,7 @@ CREATE TABLE dataSources (
 -- data source properties and status are valid json, until we can use postgres 9.2 keep text type (more details in configuration details)
 
 , properties text NOT NULL CHECK (properties <> '' )
+, status     text CHECK (status <> '' )
 );
 
 /*
