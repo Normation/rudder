@@ -89,8 +89,6 @@ trait QueryDataSourceService {
   def queryOne(datasource: DataSource, nodeId: NodeId, cause: UpdateCause): Box[NodeId]
 }
 
-
-
 class HttpQueryDataSourceService(
     nodeInfo        : NodeInfoService
   , parameterRepo   : RoParameterRepository
@@ -109,8 +107,8 @@ class HttpQueryDataSourceService(
 
   override def queryAll(datasource: DataSource, cause: UpdateCause): Box[Set[NodeId]] = {
     query[Set[NodeId]]("fetch data for all node", datasource, cause
-        , (d:HttpDataSourceType) => queryAllByNode(datasource.name, d, cause)
-        , (d:HttpDataSourceType) => queryAllByNode(datasource.name, d, cause)
+        , (d:HttpDataSourceType) => queryAllByNode(datasource.id, d, cause)
+        , (d:HttpDataSourceType) => queryAllByNode(datasource.id, d, cause)
         , s"All nodes data updated from data source '${datasource.name.value}' (${datasource.id.value})"
         , s"Error when fetching data from data source '${datasource.name.value}' (${datasource.id.value}) for all nodes"
     )
@@ -118,8 +116,8 @@ class HttpQueryDataSourceService(
 
   override def querySubset(datasource: DataSource, info: PartialNodeUpdate, cause: UpdateCause): Box[Set[NodeId]] = {
     query[Set[NodeId]](s"fetch data for a set of ${info.nodes.size}", datasource, cause
-        , (d:HttpDataSourceType) => querySubsetByNode(datasource.name, d, info, cause)
-        , (d:HttpDataSourceType) => querySubsetByNode(datasource.name, d, info, cause)
+        , (d:HttpDataSourceType) => querySubsetByNode(datasource.id, d, info, cause)
+        , (d:HttpDataSourceType) => querySubsetByNode(datasource.id, d, info, cause)
         , s"Requested nodes data updated from data source '${datasource.name.value}' (${datasource.id.value})"
         , s"Error when fetching data from data source '${datasource.name.value}' (${datasource.id.value}) for requested nodes"
     )
@@ -127,8 +125,8 @@ class HttpQueryDataSourceService(
 
   override def queryOne(datasource: DataSource, nodeId: NodeId, cause: UpdateCause): Box[NodeId] = {
     query[NodeId](s"fetch data for node '${nodeId.value}'", datasource, cause
-        , (d:HttpDataSourceType) => queryNodeByNode(datasource.name, d, nodeId, cause)
-        , (d:HttpDataSourceType) => queryNodeByNode(datasource.name, d, nodeId, cause)
+        , (d:HttpDataSourceType) => queryNodeByNode(datasource.id, d, nodeId, cause)
+        , (d:HttpDataSourceType) => queryNodeByNode(datasource.id, d, nodeId, cause)
         , s"Data for node '${nodeId.value}' updated from data source '${datasource.name.value}' (${datasource.id.value})"
         , s"Error when fetching data from data source '${datasource.name.value}' (${datasource.id.value}) for node '${nodeId.value}'"
     )
@@ -166,9 +164,8 @@ class HttpQueryDataSourceService(
     res
   }
 
-
   private[this] def buildOneNodeTask(
-      datasourceName: DataSourceName
+      datasourceId: DataSourceId
     , datasource    : HttpDataSourceType
     , nodeInfo      : NodeInfo
     , policyServers : Map[NodeId, NodeInfo]
@@ -182,26 +179,26 @@ class HttpQueryDataSourceService(
                           case Some(p) => Full(p)
                         })
                         //connection timeout: 5s ; getdata timeout: freq ?
-        property     <- getHttp.getNode(datasourceName, datasource, nodeInfo, policyServer, parameters, datasource.requestTimeOut, datasource.requestTimeOut)
+        property     <- getHttp.getNode(datasourceId, datasource, nodeInfo, policyServer, parameters, datasource.requestTimeOut, datasource.requestTimeOut)
         newNode      =  nodeInfo.node.copy(properties = CompareProperties.updateProperties(nodeInfo.properties, Some(Seq(property))))
         nodeUpdated  <- nodeRepository.updateNode(newNode, cause.modId, cause.actor, cause.reason) ?~! s"Cannot save value for node '${nodeInfo.id.value}' for property '${property.name}'"
       } yield {
         nodeUpdated.id
       }) match {
-        case Failure(msg, x, y) => Failure(s"Error when getting data from datasource '${datasourceName.value}' for node ${nodeInfo.hostname} (${nodeInfo.id.value}): ${msg}", x, y)
+        case Failure(msg, x, y) => Failure(s"Error when getting data from datasource '${datasourceId.value}' for node ${nodeInfo.hostname} (${nodeInfo.id.value}): ${msg}", x, y)
         case x                  => x
       }
     )
   }
 
-  def querySubsetByNode(datasourceName: DataSourceName, datasource: HttpDataSourceType, info: PartialNodeUpdate, cause: UpdateCause)(implicit scheduler: Scheduler): Box[Set[NodeId]] = {
+  def querySubsetByNode(datasourceId: DataSourceId, datasource: HttpDataSourceType, info: PartialNodeUpdate, cause: UpdateCause)(implicit scheduler: Scheduler): Box[Set[NodeId]] = {
     import scala.concurrent.duration._
     import net.liftweb.util.Helpers.tryo
     import com.normation.utils.Control.bestEffort
 
     def tasks(nodes: Map[NodeId, NodeInfo], policyServers: Map[NodeId, NodeInfo], parameters: Set[Parameter]): Task[List[Box[NodeId]]] = {
       Task.gatherUnordered(nodes.values.map { nodeInfo =>
-        buildOneNodeTask(datasourceName, datasource, nodeInfo, policyServers, parameters, cause)
+        buildOneNodeTask(datasourceId, datasource, nodeInfo, policyServers, parameters, cause)
       })
     }
 
@@ -216,18 +213,18 @@ class HttpQueryDataSourceService(
     }
   }
 
-  def queryAllByNode(datasourceName: DataSourceName, datasource: HttpDataSourceType, cause: UpdateCause)(implicit scheduler: Scheduler): Box[Set[NodeId]] = {
+  def queryAllByNode(datasourceId: DataSourceId, datasource: HttpDataSourceType, cause: UpdateCause)(implicit scheduler: Scheduler): Box[Set[NodeId]] = {
     for {
       nodes         <- nodeInfo.getAll()
       policyServers  = nodes.filter { case (_, n) => n.isPolicyServer }
       parameters    <- parameterRepo.getAllGlobalParameters.map( _.toSet[Parameter] )
-      updated       <- querySubsetByNode(datasourceName, datasource, PartialNodeUpdate(nodes, policyServers, parameters), cause)
+      updated       <- querySubsetByNode(datasourceId, datasource, PartialNodeUpdate(nodes, policyServers, parameters), cause)
     } yield {
       updated
     }
   }
 
-  def queryNodeByNode(datasourceName: DataSourceName, datasource: HttpDataSourceType, nodeId: NodeId, cause: UpdateCause)(implicit scheduler: Scheduler): Box[NodeId] = {
+  def queryNodeByNode(datasourceId: DataSourceId, datasource: HttpDataSourceType, nodeId: NodeId, cause: UpdateCause)(implicit scheduler: Scheduler): Box[NodeId] = {
     import net.liftweb.util.Helpers.tryo
     for {
       allNodes      <- nodeInfo.getAll()
@@ -237,7 +234,7 @@ class HttpQueryDataSourceService(
                        }
       policyServers  = allNodes.filterKeys( _ == node.policyServerId)
       parameters    <- parameterRepo.getAllGlobalParameters.map( _.toSet[Parameter] )
-      updated       <- tryo(Await.result(buildOneNodeTask(datasourceName, datasource, node, policyServers, parameters, cause).runAsync, datasource.requestTimeOut))
+      updated       <- tryo(Await.result(buildOneNodeTask(datasourceId, datasource, node, policyServers, parameters, cause).runAsync, datasource.requestTimeOut))
       result        <- updated
     } yield {
       result
@@ -254,4 +251,3 @@ class HttpQueryDataSourceService(
   }
 
 }
-
