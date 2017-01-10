@@ -205,7 +205,7 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
     , true
     , "CHANGE MY PATH"
     , OneRequestByNode
-    , 5.second
+    , 30.second
   )
   val datasourceTemplate = DataSource(
         DataSourceId("test-my-datasource")
