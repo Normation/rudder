@@ -124,7 +124,6 @@ class SystemVariableServiceImpl(
     )
   }
 
-
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
   val varCmdbEndpoint = systemVariableSpecService.get("CMDBENDPOINT").toVariable().copyWithSavedValue(cmdbEndPoint)
   val varWebdavUser = systemVariableSpecService.get("DAVUSER").toVariable().copyWithSavedValue(webdavUser)
@@ -240,7 +239,6 @@ class SystemVariableServiceImpl(
     // we need to know the mapping between policy servers and their children - do it one time for all nodes.
     val childrenByPolicyServer = allNodeInfos.values.toList.groupBy( _.policyServerId )
 
-
     if (nodeInfo.isPolicyServer) {
       nodeConfigurationRoles.add(ServerRole("policy_server"))
       if (nodeInfo.id == nodeInfo.policyServerId) {
@@ -354,7 +352,7 @@ class SystemVariableServiceImpl(
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesIp = systemVariableSpecService.get("MANAGED_NODES_IP"      ).toVariable(children.flatMap(_.ips).distinct.sorted)
 
-      // same kind of variable but for ALL cildrens, not only direct one:
+      // same kind of variable but for ALL childrens, not only direct one:
       val allChildren = {
          //utility to add children of a list of nodes
         def addWithSubChildren(nodes: List[NodeInfo]): List[NodeInfo] = {
@@ -363,9 +361,12 @@ class SystemVariableServiceImpl(
               childrenByPolicyServer.get(n.id) match {
                 case None           => Nil
                 case Some(children) =>
-                  // Root server is its own policy server, we must remove it
-                  val sanitizedChildren = children.filterNot( x => x.id.value == "root" )
-                  addWithSubChildren(sanitizedChildren)
+                  // If the node 'n' is the same node of the policy server we are generating variables, do not go to childs level, they will be treated by the upper level call
+                  if (n.id == nodeInfo.id) {
+                    Nil
+                  } else {
+                    addWithSubChildren(children)
+                  }
               }
             }
           )
@@ -377,7 +378,6 @@ class SystemVariableServiceImpl(
       val varSubNodesId      = systemVariableSpecService.get("SUB_NODES_ID"     ).toVariable(allChildren.map(_.id.value))
       val varSubNodesServer  = systemVariableSpecService.get("SUB_NODES_SERVER" ).toVariable(allChildren.map(_.policyServerId.value))
       val varSubNodesKeyhash = systemVariableSpecService.get("SUB_NODES_KEYHASH").toVariable(allChildren.map(n => s"sha256:${n.sha256KeyHash}"))
-
 
       //Reports DB (postgres) DB name and DB user
       val varReportsDBname = systemVariableSpecService.get("RUDDER_REPORTS_DB_NAME").toVariable(Seq(reportsDbName))
@@ -393,6 +393,10 @@ class SystemVariableServiceImpl(
         , varManagedNodesKey
         , varReportsDBname
         , varReportsDBuser
+        , varSubNodesName
+        , varSubNodesId
+        , varSubNodesServer
+        , varSubNodesKeyhash
       ) map (x => (x.spec.name, x))
     } else {
       Map()
@@ -408,7 +412,6 @@ class SystemVariableServiceImpl(
      * Cf3PromisesFileWriterServiceImpl#prepareRulesForAgents
      */
     val varNodeConfigVersion = systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq("DUMMY NODE CONFIG VERSION"))
-
 
     /*
      * RUDDER_NODE_GROUPS_VAR is an array of group_uuid -> group_name for the node
