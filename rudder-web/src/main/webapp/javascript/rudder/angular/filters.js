@@ -352,6 +352,11 @@ app.controller('filterTagRuleCtrl', function ($scope, $http, $location, $timeout
     $scope.searchTable();
     $scope.updateTag();
   }
+  $scope.clearAllTags = function(){
+    $scope.tags = [];
+    $scope.updateTag();
+    $scope.searchTable();
+  }
   $scope.searchTable = function() {
 	var table = $($scope.tableId).DataTable();
 	table.draw();
