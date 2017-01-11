@@ -284,7 +284,7 @@ class RuleGrid(
           </div>
           <div id="showFiltersRules" ng-controller="filterTagRuleCtrl" class="filters tw-bs" ng-cloak="">
             <div class="filters-container">
-                <form class="filterTag form-inline">
+                <div class="filterTag form-inline">
                   <div class="space-top">
                     <ul class="nav nav-tabs nav-tabs-filter" role="tablist">
                       <li role="presentation">
@@ -355,7 +355,7 @@ class RuleGrid(
                       </div>
                     </div>
                   </div>
-                </form>
+                </div>
             </div>
           </div>
           <table id={htmlId_rulesGridId} class="display" cellspacing="0"> </table>
