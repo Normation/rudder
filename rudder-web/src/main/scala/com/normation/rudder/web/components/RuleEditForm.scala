@@ -503,7 +503,7 @@ class RuleEditForm(
 
     new WBSelectField("Rule category", values, rule.categoryId.value) {
       override def className = "form-control"
-      override def labelClassName = "col-xs-12"
+      override def labelClassName = "col-xs-12 text-bold"
       override def subContainerClassName = "col-xs-12"
     }
   }
