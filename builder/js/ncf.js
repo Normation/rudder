@@ -145,7 +145,6 @@ app.directive('constraint', function($http, $q, $timeout) {
 };
 });
 
-
 app.directive('showErrors', function() {
 return {
   restrict: 'A',
@@ -158,8 +157,6 @@ return {
     // get the name on the text box so we know the property to check
     // on the form controller
     var inputName = inputNgEl.attr('name');
-
-    el.toggleClass('has-error', formCtrl[inputName].$invalid);
     // only apply the has-error class after the user leaves the text box
     inputNgEl.bind('blur', function() {
       el.toggleClass('has-error', formCtrl[inputName].$invalid);
@@ -172,7 +169,8 @@ return {
 app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll, ngToast, $timeout, focus) {
   initScroll();
   // Variable we use in the whole application
-
+  // Give access to the "General information" form
+  $scope.editForm;
   // Path of ncf files, defined as a url parameter    
   $scope.path;
   // generic methods container
@@ -604,6 +602,7 @@ $scope.groupMethodsByCategory = function () {
   };
 
   $scope.newTechnique = function() {
+    $scope.editForm.$setPristine();
     $scope.checkSelect(newTech, $scope.selectTechnique);
   };
 
@@ -753,6 +752,7 @@ $scope.groupMethodsByCategory = function () {
 
   // Resets a Technique to its original state
   $scope.resetTechnique = function() {
+    $scope.editForm.$setPristine();
     $scope.selectedTechnique=angular.copy($scope.originalTechnique);
     $scope.selectedTechnique.saving=false;
     // Reset selected method too
