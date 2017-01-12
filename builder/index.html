@@ -41,7 +41,7 @@
           <div class="modal-footer">
             <button class="btn btn-default pull-left" ng-click="cancel()">Cancel</button>
             <button class="btn btn-default" ng-click="discard()">Discard Changes</button>
-            <button class="btn btn-default" ng-disabled="editForm.$invalid" ng-click="save()">Save Changes</button>
+            <button class="btn btn-success" ng-disabled="editForm.$invalid" ng-click="save()">Save Changes</button>
           </div>
         </script>
         <script type="text/ng-template" id="template/confirmModal.html">
@@ -165,15 +165,16 @@
                                 <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
                                 General information
                             </accordion-heading>
-                            <div class="form-group" show-errors>
+                            <div class="form-group" ng-class="{'has-error':editForm.name.$dirty && (editForm.name.$error.required || editForm.name.$error.techniqueName)}">
                                 <label for="techniqueName" class="col-sm-3 control-label">Name:</label>
                                 <div class="col-sm-8">
-                  <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-change="updateBundleName()" focus-on="focusTechniqueName">
+                                  <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-change="updateBundleName()" focus-on="focusTechniqueName">
                                 </div>
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.techniqueName">Technique name must be unique</span>
+                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.required && editForm.name.$dirty">Technique name is required</span>
                             </div>
                             <div class="form-group">
-                                <label for="techniqueDescription" class="col-sm-3 control-label">Description:</label>
+                                <label for="techniqueDescription" class="col-sm-3 control-label"><span class="text-fit">Description:</span></label>
                                 <div class="col-sm-8">
                                     <textarea name="description" class="form-control" id="techniqueDescription" msd-elastic rows="1" ng-model="selectedTechnique.description" placeholder="Technique Description"></textarea>
                                 </div>
@@ -246,9 +247,17 @@
                                     Invalid constraint for parameter: '{{parameter.name}}'
                                   </div>
                                 </ng-messages>
+                                <ng-messages ng-if="!getClassParameter(method_call) && parameter.$errors.length <= 0">
+                                  <div class="requiredParameters">
+                                    <span class="glyphicon glyphicon-exclamation-sign"></span>
+                                    Required parameters missing
+                                  </div>
+                                </ng-messages>
                               </div>
                               <div class="pull-left method-param" >
+                                <div ng-if="getClassParameter(method_call)">
                                   {{getClassParameter(method_call)}}
+                                </div>
                               </div>
                           </div>
                         </div>
@@ -262,7 +271,7 @@
                     <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
                     Add methods
                 </div>
-                <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || selectedTechnique.saving" class="btn btn-default pull-right btn-save" ng-class="{saving : selectedTechnique.saving}" ng-click="saveTechnique()">
+                <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || selectedTechnique.saving" class="btn btn-success pull-right btn-save" ng-class="{saving : selectedTechnique.saving}" ng-click="saveTechnique()">
                   <span class="glyphicon glyphicon-cog saving"></span>
                   Save
                 </button>
