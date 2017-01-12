@@ -134,29 +134,37 @@ class RuleDisplayer (
       , ("id","includeCheckbox")
     )
   }
+  def actionButtonCategory =
+               if (directive.isEmpty) {
+                SHtml.ajaxButton("New Category", () => showCategoryPopup(None), ("class" -> "new-icon btn btn-success btn-xs"))
+              } else {
+                NodeSeq.Empty
+              }
 
+  def displaySubcategories : NodeSeq = {
+    <ul class="form-group">
+      <li class="rudder-form">
+        <div class="input-group displaySub">
+          <label for="includeCheckbox" class="input-group-addon" id="includeSubCategory">
+            {includeSubCategory}
+            <label class="label-radio" for="includeCheckbox">
+              <span class="ion ion-checkmark-round"></span>
+            </label>
+            <span class="ion ion-checkmark-round check-icon"></span>
+          </label>
+          <label for="includeCheckbox" class="form-control">
+            Display Rules from subcategories
+          </label>
+        </div>
+      </li>
+    </ul>
+  }
   def viewCategories(ruleCategoryTree : RuleCategoryTree) : NodeSeq = {
-
-    val actionButton =
-                 if (directive.isEmpty) {
-                  SHtml.ajaxButton("New Category", () => showCategoryPopup(None), ("class" -> "newRule btn btn-default"))
-                } else {
-                  NodeSeq.Empty
-                }
-
-     <div>
-       <lift:authz role="rule_write">
-         <div class="tw-bs">
-           {actionButton}
-         </div>
-       </lift:authz>
-       <div id="includeSubCategory">{includeSubCategory}<span>Display Rules from subcategories</span></div>
-       <div id="treeParent" style="overflow:auto; margin-top:10px; max-height:443px;">
-         <div id="categoryTree" class="tw-bs">
-           {ruleCategoryTree.tree}
-         </div>
-       </div>
-     </div>
+    <div id="treeParent">
+      <div id="categoryTree">
+        {ruleCategoryTree.tree}
+      </div>
+    </div>
   }
 
   def check() = {
@@ -167,6 +175,14 @@ class RuleDisplayer (
     directive match {
       case Some(d) => d.checkRules match {case (toCheck,toUncheck) => (toCheck.map(r => action(r.id,true)) ++ toUncheck.map(r => action(r.id,false)) :\ Noop){ _ & _}}
       case None    => Noop
+    }
+  }
+
+  def actionButtonRule = {
+    if (directive.isDefined) {
+      NodeSeq.Empty
+    } else {
+      SHtml.ajaxButton("New Rule", () => showRulePopup(None), ("class" -> "new-icon btn btn-success btn-xs"))
     }
   }
 
@@ -189,25 +205,10 @@ class RuleDisplayer (
       )
     }
 
-    def actionButton = {
-      if (directive.isDefined) {
-        NodeSeq.Empty
-      } else {
-        SHtml.ajaxButton("New Rule", () => showRulePopup(None), ("class" -> "newRule btn btn-default"),("style","float:left"))
-      }
-    }
-
     <div>
-      <lift:authz role="rule_write">
-        <span class="tw-bs">
-          {actionButton}
-        </span>
-      </lift:authz>
-      <hr class="spacer"/>
       { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, true, false)  ++
         Script(OnLoad(ruleGrid.asyncDisplayAllRules(None, true, configService.display_changes_graph().openOr(true)).applied))
       }
-
     </div>
 
   }
@@ -220,19 +221,117 @@ class RuleDisplayer (
    ruleCategoryTree match {
      case Full(ruleCategoryTree) =>
        <div>
-         <div style="float:left; width: 20%; overflow:auto">
-           <div class="page-title">Categories</div>
-           <div class="inner-portlet-content" id="categoryTreeParent">
-               {viewCategories(ruleCategoryTree)}
-           </div>
-         </div>
-         <div style="float:left; width:78%;padding-left:2%;">
-           <div class="page-title" id="categoryDisplay">Rule</div>
-           <div class="inner-portlet-content" id={gridId}>
-             {viewRules}
-           </div>
-        </div>
-      </div> ++ Script(JsRaw(s"""
+          <div class="row col-small-padding">
+            <div class="col-xs-12 col-lg-3 col-md-4">
+              <div class="box">
+                <div class="box-header with-border">
+                  <h3 class="box-title"><i class="fa fa-filter" aria-hidden="true"></i>Filters</h3>
+                  <div class="box-tools pull-right">
+                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                  </div>
+                </div><!-- /.box-header -->
+                <div class="box-body">
+                  <div class="row">
+                    <div class="col-xs-12">
+                      <div id="showFiltersRules" ng-controller="filterTagRuleCtrl" class="filters tw-bs" ng-cloak="">
+                        <div class="filters-container">
+                          <form class="filterTag">
+                            <div class="input-group search-addon">
+                              <label for="searchStr" class="input-group-addon search-addon"><span class="ion ion-search"></span></label>
+                              <input type="text" id="searchStr" class="input-sm form-control" placeholder="Filter" ng-model="strSearch" ng-keyup="filterGlobal(strSearch)"/>
+                            </div>
+                            <div class="form-group">
+                              <label>Tags</label>
+                              <div class="input-group">
+                                <input placeholder="key" class="form-control input-sm input-key" type="text" ng-model="newTag.key"/>
+                                <span class="input-group-addon addon-json">=</span>
+                                <input placeholder="value" class="form-control input-sm input-value" type="text" ng-model="newTag.value"/>
+                                <span class="input-group-btn">
+                                  <button type="button" ng-click="addTag()" class="btn btn-success btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)); ">
+                                    <span class="fa fa-plus"></span>
+                                  </button>
+                                </span>
+                              </div>
+                            </div>
+                            <div class="only-tags">
+                              <a href="" ng-click="onlyAll($event)" class="all" ng-class="{'active':getOnlyAllValue()}"> All </a>
+                              <span class="separator">/</span>
+                              <a href="" ng-click="onlyKey($event)" class="key" ng-class="{'active':only.key}"> Filter keys only   </a>
+                              <span class="separator">/</span>
+                              <a href="" ng-click="onlyValue($event)" class="value" ng-class="{'active':only.value}"> Filter values only </a>
+                              <button class="btn btn-default btn-xs pull-right" ng-click="clearAllTags()" ng-disabled="tags.length==0">
+                                Clear all tags
+                                <i class="fa fa-trash" aria-hidden="true"></i>
+                              </button>
+                            </div>
+                            <div class="tags-container">
+                              <div class="btn-group btn-group-xs" role="group"  ng-repeat="tag in tags track by $index">
+                                <button class="btn btn-default tag" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag($index,tag)" >
+                                  <span class="tag-key">
+                                    <span ng-show="tag.key!=''">{{{{tag.key}}}}</span>
+                                    <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i>
+                                  </span>
+                                  <span class="tag-separator">=</span>
+                                  <span class="tag-value">
+                                    <span ng-show="tag.value!=''">{{{{tag.value}}}}</span>
+                                    <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.value==''"></i>
+                                  </span>
+                                </button>
+                                <button type="button" class="btn btn-default" ng-click="removeTag($index)">
+                                  <span class="fa fa-times"></span>
+                                </button>
+                              </div>
+                            </div>
+                          </form>
+                          {displaySubcategories}
+                        </div>
+                      </div>
+                    </div>
+                  </div><!-- /.row -->
+                </div><!-- /.box-footer -->
+              </div><!-- /.box -->
+              <div class="box">
+                <div class="box-header with-border">
+                  <h3 class="box-title"><i class="fa fa-list" aria-hidden="true"></i>Categories</h3>
+                  <div class="box-tools pull-right">
+                    <lift:authz role="rule_write">
+                      {actionButtonCategory}
+                    </lift:authz>
+                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                  </div>
+                </div><!-- /.box-header -->
+                <div class="box-body">
+                  <div class="row">
+                    <div class="col-xs-12" id="categoryTreeParent">
+                      {viewCategories(ruleCategoryTree)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-9 col-xs-12 col-md-8">
+              <div class="box">
+                <div class="box-header with-border">
+                  <h3 class="box-title"><i class="fa fa-gears" aria-hidden="true"></i>Rules</h3>
+                  <div class="box-tools pull-right">
+                    <button class="btn btn-box-tool toggleTabFilter updateTable btn-xs" id="updateRuleTable">Refresh<span class="fa fa-refresh"></span></button>
+                    <lift:authz role="rule_write">
+                      {actionButtonRule}
+                    </lift:authz>
+                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                  </div>
+                </div>
+                <div class="box-body">
+                  <div class="row">
+                    <div class="col-xs-12" id={gridId}>
+                      {viewRules}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div> ++ Script(JsRaw(s"""
                   var include = true;
                   var filter = "";
                   var column = ${columnToFilter};"""
@@ -268,7 +367,6 @@ class RuleDisplayer (
   }
 
   // Popup
-
     private[this] def creationPopup(category : Option[RuleCategory], ruleCategoryTree : RuleCategoryTree) = {
       val rootCategory = ruleCategoryTree.getRoot
       new  RuleCategoryPopup(
@@ -303,7 +401,7 @@ class RuleDisplayer (
       JsRaw( s""" createPopup("${htmlId_popup}") """)
     }
 
-  /**
+    /**
     * Create the delete popup
     */
     private[this] def showDeleteCategoryPopup(category : RuleCategory) : JsCmd = {
@@ -324,5 +422,4 @@ class RuleDisplayer (
       SetHtml(htmlId_popup, popupHtml) &
       JsRaw( s""" createPopup("${htmlId_popup}") """)
     }
-
 }
