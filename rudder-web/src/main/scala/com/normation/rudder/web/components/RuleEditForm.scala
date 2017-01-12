@@ -227,11 +227,23 @@ class RuleEditForm(
         Script(
           OnLoad(JsRaw(s"""$$( "#editRuleZone" ).tabs({ active : ${tab} });""")) &
           JsRaw(s"""
+            var target = $$( ".nav-tabs .active a" ).attr('href');
+            if(target=="#ruleComplianceTab"){
+              $$('#changeIconRule').addClass('fa-area-chart');
+            }else{
+              $$('#changeIconRule').removeClass('fa-area-chart');
+            }
             $$("#editRuleZonePortlet").removeClass("nodisplay");
             ${Replace("details", new RuleCompliance(rule, rootRuleCategory).display).toJsCmd};
-            scrollToElement("${idToScroll}", ".rudder_col");
-            $$("#editRuleZone").bind( "tabsactivate", function(event, ui) {
-              if((ui.newPanel.attr('id')== 'ruleComplianceTab')&&(recentChart !== undefined)) {
+            scrollToElement("${idToScroll}", "body,html");
+            $$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+              var target = $$(e.target).attr("href") // activated tab
+              if(target=="#ruleComplianceTab"){
+                $$('#changeIconRule').addClass('fa-area-chart');
+              }else{
+                $$('#changeIconRule').removeClass('fa-area-chart');
+              }
+              if((target=="#ruleComplianceTab")&&(recentChart !== undefined)){
                 recentChart.flush();
               }
             });
@@ -333,7 +345,9 @@ class RuleEditForm(
       OnLoad(
         // Initialize angular part of page and group tree
         JsRaw(s"""
-          angular.bootstrap('#groupManagement', ['groupManagement']);
+          if(!angular.element('#groupManagement').scope()){
+            angular.bootstrap('#groupManagement', ['groupManagement']);
+          }
           var scope = angular.element($$("#GroupCtrl")).scope();
           scope.$$apply(function(){
             scope.init(${ruleTarget.toString()},${maptarget});
@@ -342,7 +356,9 @@ class RuleEditForm(
         ) &
         //function to update list of PIs before submiting form
         JsRaw(s"""
-          angular.bootstrap('#ruleDirectives', ['ruleDirectives']);
+          if(!angular.element('#ruleDirectives').scope()){
+            angular.bootstrap('#ruleDirectives', ['ruleDirectives']);
+          }
           var ruleDirectiveScope = angular.element($$("#DirectiveCtrl")).scope();
           ruleDirectiveScope.$$apply(function(){
             ruleDirectiveScope.init(${selectedDirectives});
