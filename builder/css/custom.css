@@ -271,7 +271,7 @@ textarea.form-control {
     background-image: linear-gradient(#dc5f59, #b33630)
 }
 
-.ng-invalid {
+.ng-invalid.ng-dirty {
     border-color: #b33630;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
 }
@@ -357,7 +357,7 @@ ul[dnd-list] {
     position: absolute;
     right: 10px;
 }
-input.form-control.ng-invalid:focus{
+input.form-control.ng-invalid.ng-dirty:focus{
     border-color: #b33630;
     outline: 0;
     -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(179, 54, 48, 0.38);
@@ -457,7 +457,20 @@ button.btn-save.saving{
 button.btn-save.saving span.saving{
   display: inline-block;
 }
-
+.requiredParameters{
+  color: #f08004;
+  font-size: 14px;
+  line-height: 22px;
+}
+.requiredParameters > .glyphicon{
+  top:2px;
+}
+.btn.btn-save[disabled]{
+  cursor: not-allowed;
+}
+span.text-fit {
+  font-weight: normal;
+}
 @-webkit-keyframes saving {
   0% {
     -ms-transform: rotate(0deg);
