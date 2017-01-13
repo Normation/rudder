@@ -365,6 +365,24 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
    -->
   <logger name="com.normation.rudder.services.quicksearch" level="info" />
 
+
+
+  <!--
+    Hooks
+    ==========
+    Information about hooks execution. 
+    This log allow to see what hooks are executed. 
+    
+    Debug level will display hooks with their parameter (may be quite noisy when there 
+    is a lot of nodes implied). Trace add system information (like environment variables).
+  -->
+  <logger name="hooks" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
+    <appender-ref ref="STDOUT" />
+  </logger>
+
+
   <!--
     Datasource
     ==========
