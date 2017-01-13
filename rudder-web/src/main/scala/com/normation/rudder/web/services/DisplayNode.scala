@@ -611,7 +611,7 @@ object DisplayNode extends Loggable {
               columns.map {h => <th>{h._1}</th> }.toSeq
             }</tr>
           </thead>
-          <tbody>{ seq.flatMap { x =>
+          <tbody class="toggle-color">{ seq.flatMap { x =>
             <tr>{ columns.flatMap{ case(header,renderLine) =>  <td>{renderLine(x)}</td> } }</tr>
           } }</tbody>
           </table>
@@ -664,11 +664,12 @@ object DisplayNode extends Loggable {
     }
 
     private def displayTabProperties(jsId:JsNodeId, node: NodeInfo) : NodeSeq = {
-    displayTabGrid(jsId)("props", Full(node.properties)){
+      import net.liftweb.json._
+      displayTabGrid(jsId)("props", Full(node.properties)){
         ("Name", {x:NodeProperty => Text(x.name)}) ::
-        ("Value", {x:NodeProperty => Text(net.liftweb.json.compactRender(x.value))}) ::
+        ("Value", {x:NodeProperty => <pre class="json-beautify" onclick="$(this).toggleClass('toggle')">{pretty(render(x.value))}</pre>}) ::
         Nil
-    }
+      }
     }
 
     private def displayTabProcess(jsId:JsNodeId,sm:FullInventory) : NodeSeq = {
