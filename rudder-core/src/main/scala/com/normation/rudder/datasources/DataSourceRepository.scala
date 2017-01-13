@@ -68,6 +68,15 @@ final case class PartialNodeUpdate(
 
 trait DataSourceRepository {
 
+  /*
+   * Retrieve IDs. This is useful to know what are the reserved
+   * node properties names.
+   * We only need the id because for now, the semantic is that
+   * as soon as the datasource is defined, even if disabled,
+   * the property can not be interactively managed.
+   */
+  def getAllIds: Box[Set[DataSourceId]]
+
   def getAll : Box[Map[DataSourceId,DataSource]]
 
   def get(id : DataSourceId) : Box[Option[DataSource]]
@@ -109,6 +118,8 @@ trait DataSourceUpdateCallbacks {
 class MemoryDataSourceRepository extends DataSourceRepository {
 
   private[this] var sources : Map[DataSourceId,DataSource] = Map()
+
+  def getAllIds() = synchronized(Full(sources.keySet))
 
   def getAll() = synchronized(Full(sources))
 
@@ -182,8 +193,9 @@ class DataSourceRepoImpl(
   ///         DB READ ONLY
   /// read only method are just forwarder to backend
   ///
+  override def getAllIds : Box[Set[DataSourceId]] = backend.getAllIds
   override def getAll : Box[Map[DataSourceId,DataSource]] = {
-    DataSourceLogger.info(s"Live data sources: ${datasources.map(_._2.datasource.name.value).mkString("; ")}")
+    DataSourceLogger.debug(s"Live data sources: ${datasources.map(_._2.datasource.name.value).mkString("; ")}")
     backend.getAll
   }
   override def get(id : DataSourceId) : Box[Option[DataSource]] = backend.get(id)
@@ -298,6 +310,10 @@ class DataSourceJdbcRepository(
 ) extends DataSourceRepository with Loggable {
 
   import doobie._
+
+  override def getAllIds(): Box[Set[DataSourceId]] = {
+    query[DataSourceId]("""select id from datasources""").to[Set].attempt.transact(xa).run
+  }
 
   override def getAll(): Box[Map[DataSourceId,DataSource]] = {
     query[DataSource]("""select id, properties from datasources""").vector.map { _.map( ds => (ds.id,ds)).toMap }.attempt.transact(xa).run
