@@ -67,23 +67,34 @@ import java.io.PipedOutputStream
 import com.zaxxer.nuprocess.NuProcessBuilder
 import java.util.Arrays
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.datasources.DataSourceRepository
 
 class NodeApiService8 (
     nodeRepository : WoNodeRepository
   , nodeInfoService: NodeInfoService
   , uuidGen        : StringUuidGenerator
+  , datasourceRepo : DataSourceRepository
   , asyncRegenerate: AsyncDeploymentAgent
 ) extends Loggable {
 
   def updateRestNode(nodeId: NodeId, restNode: RestNode, actor : EventActor, reason : Option[String]) : Box[Node] = {
 
     val modId = ModificationId(uuidGen.newUuid)
+    val propNames = restNode.properties.getOrElse(Nil).map( _.name ).toSet
 
     for {
-      node     <- nodeInfoService.getNode(nodeId)
-      updated  =  node.copy(properties = CompareProperties.updateProperties(node.properties, restNode.properties), policyMode = restNode.policyMode.getOrElse(node.policyMode))
-      saved    <- if(updated == node) Full(node)
-                  else nodeRepository.updateNode(updated, modId, actor, reason)
+      //it is forbiden to set properties owned by datasources
+      datasourcesIds <- datasourceRepo.getAllIds
+      badNames       =  datasourcesIds.map( _.value).intersect(propNames)
+      ok             <- if(badNames.isEmpty) {
+                          Full("ok")
+                        } else {
+                          Failure(s"You are trying to update the following properties which are owned by data sources and can not be interactively modified: '${badNames.mkString("', '")}'")
+                        }
+      node           <- nodeInfoService.getNode(nodeId)
+      updated        =  node.copy(properties = CompareProperties.updateProperties(node.properties, restNode.properties), policyMode = restNode.policyMode.getOrElse(node.policyMode))
+      saved          <- if(updated == node) Full(node)
+                        else nodeRepository.updateNode(updated, modId, actor, reason)
     } yield {
       if(node != updated) {
         asyncRegenerate ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor)
