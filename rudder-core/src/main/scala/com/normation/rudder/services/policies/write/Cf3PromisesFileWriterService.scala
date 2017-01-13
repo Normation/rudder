@@ -82,7 +82,7 @@ import net.liftweb.json.Printer
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import scala.language.postfixOps
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.hooks.HookParameters
+import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
 
 /**
@@ -192,6 +192,11 @@ class Cf3PromisesFileWriterServiceImpl(
      * - and finally, move everything to each node rules directory
      */
 
+    //we need to add the current environment variables to the script context
+    //plus the script environment variables used as script parameters
+    import scala.collection.JavaConverters._
+    val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
+
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
@@ -217,12 +222,15 @@ class Cf3PromisesFileWriterServiceImpl(
       preMvHooks       <- sequencePar(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
-                            val res = RunHooks.syncRun(nodePreMvHooks, HookParameters.build(
-                                                           ("RUDDER_GENERATION_DATETIME", generationTime.toString)
-                                                         , ("RUDDER_NODEID", nodeId)
-                                                         , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
-                                                         , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.tagValue)
-                                                       )
+                            val res = RunHooks.syncRun(
+                                          nodePreMvHooks
+                                        , HookEnvPairs.build(
+                                                                 ("RUDDER_GENERATION_DATETIME", generationTime.toString)
+                                                               , ("RUDDER_NODEID", nodeId)
+                                                               , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
+                                                               , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.tagValue)
+                                                             )
+                                        , systemEnv
                             )
                             HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
@@ -232,12 +240,15 @@ class Cf3PromisesFileWriterServiceImpl(
       postMvHooks      <- sequencePar(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
-                            val res = RunHooks.syncRun(nodePostMvHooks, HookParameters.build(
-                                                           ("RUDDER_GENERATION_DATETIME", generationTime.toString)
-                                                         , ("RUDDER_NODEID", nodeId)
-                                                         , ("RUDDER_POLICIES_DIRECTORY", agentNodeConfig.paths.baseFolder)
-                                                         , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.tagValue)
-                                                       )
+                            val res = RunHooks.syncRun(
+                                          nodePostMvHooks
+                                        , HookEnvPairs.build(
+                                                               ("RUDDER_GENERATION_DATETIME", generationTime.toString)
+                                                             , ("RUDDER_NODEID", nodeId)
+                                                             , ("RUDDER_POLICIES_DIRECTORY", agentNodeConfig.paths.baseFolder)
+                                                             , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.tagValue)
+                                                           )
+                                        , systemEnv
                             )
                             HooksLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res

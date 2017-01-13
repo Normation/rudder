@@ -90,8 +90,8 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.reports.HeartbeatConfiguration
 import org.joda.time.format.DateTimeFormatter
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.hooks.HookParameters
-import com.normation.rudder.hooks.HookParameter
+import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.hooks.HookEnvPair
 import ch.qos.logback.core.db.DataSourceConnectionSource
 import com.normation.rudder.datasources.DataSourceUpdateCallbacks
 import com.normation.rudder.datasources.DataSourceUpdateCallbacks
@@ -117,11 +117,15 @@ trait PromiseGenerationService extends Loggable {
 
     val generationTime = new DateTime(initialTime)
     val rootNodeId = Constants.ROOT_POLICY_SERVER_ID
+    //we need to add the current environment variables to the script context
+    //plus the script environment variables used as script parameters
+    import scala.collection.JavaConverters._
+    val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
 
     val result = for {
       //fetch all - yep, memory is cheap... (TODO: size of that for 1000 nodes, 100 rules, 100 directives, 100 groups ?)
       preHooks            <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started")
-      _                   <- RunHooks.syncRun(preHooks, HookParameters.build { ("RUDDER_GENERATION_DATETIME", generationTime.toString) } )
+      _                   <- RunHooks.syncRun(preHooks, HookEnvPairs.build( ("RUDDER_GENERATION_DATETIME", generationTime.toString) ), systemEnv)
       timeRunPreGenHooks  =  (System.currentTimeMillis - initialTime)
       _                   =  logger.debug(s"Post-policy-generation hooks ran in ${timeRunPreGenHooks} ms")
 
@@ -229,13 +233,16 @@ trait PromiseGenerationService extends Loggable {
       postHooksTime         =  System.currentTimeMillis
       postHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-finished")
       updatedNodeIds        =  updatedNodeConfigs.keySet.map( _.value )
-      _                     <- RunHooks.syncRun(postHooks, HookParameters.build(
-                                                               ("RUDDER_GENERATION_DATETIME", generationTime.toString())
-                                                             , ("RUDDER_END_GENERATION_DATETIME", new DateTime(postHooksTime).toString) //what is the most alike a end time
-                                                             , ("RUDDER_NODEIDS", updatedNodeIds.mkString(" "))
-                                                             , ("RUDDER_NUMBER_NODES_UPDATED", updatedNodeIds.size.toString)
-                                                             , ("RUDDER_ROOT_POLICY_SERVER_UPDATED", if(updatedNodeIds.contains("root")) "0" else "1" )
-                                                           )
+      _                     <- RunHooks.syncRun(
+                                   postHooks
+                                 , HookEnvPairs.build(
+                                                         ("RUDDER_GENERATION_DATETIME", generationTime.toString())
+                                                       , ("RUDDER_END_GENERATION_DATETIME", new DateTime(postHooksTime).toString) //what is the most alike a end time
+                                                       , ("RUDDER_NODEIDS", updatedNodeIds.mkString(" "))
+                                                       , ("RUDDER_NUMBER_NODES_UPDATED", updatedNodeIds.size.toString)
+                                                       , ("RUDDER_ROOT_POLICY_SERVER_UPDATED", if(updatedNodeIds.contains("root")) "0" else "1" )
+                                                     )
+                                 , systemEnv
                                )
       timeRunPostGenHooks   =  (System.currentTimeMillis - postHooksTime)
       _                     =  logger.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
