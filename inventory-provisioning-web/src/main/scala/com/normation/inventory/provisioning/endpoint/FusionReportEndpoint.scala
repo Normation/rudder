@@ -56,10 +56,21 @@ import FusionReportEndpoint._
 import com.unboundid.ldif.LDIFChangeRecord
 import javax.servlet.http.HttpServletRequest
 import com.normation.inventory.services.core.FullInventoryRepository
+import org.springframework.util.MultiValueMap
+import org.springframework.util.CollectionUtils.MultiValueMapAdapter
+import org.springframework.http.HttpHeaders
+import scala.util.control.NonFatal
 
 object FusionReportEndpoint{
   val printer = PeriodFormat.getDefault
 }
+
+//messages to know if the backend accepted to process the report
+final case object OkToSave
+final case object TooManyInQueue
+final case class QueueInfo(max: Int, current: Int)
+final case object GetQueueInfo
+
 
 @Controller
 class FusionReportEndpoint(
@@ -83,6 +94,28 @@ class FusionReportEndpoint(
     method = Array(RequestMethod.GET)
   )
   def checkStatus() = new ResponseEntity("OK", HttpStatus.OK)
+
+
+  /**
+   * Info on current number of elements in queue
+   */
+  @RequestMapping(
+    value = Array("/api/info"),
+    method = Array(RequestMethod.GET)
+  )
+  def queueInfo() = {
+    (ReportProcessor !? GetQueueInfo) match {
+      case QueueInfo(max, current) =>
+        val saturated = (current+1) >= max
+        val code = if(saturated) HttpStatus.TOO_MANY_REQUESTS else HttpStatus.OK
+        val json = s"""{"queueMaxSize":$max, "queueFillCount":$current, "queueSaturated":$saturated}"""
+        val headers = new HttpHeaders()
+        headers.add("content-type", "application/json")
+        new ResponseEntity(json, headers, code)
+      case x =>
+        new ResponseEntity(s"Internal error: the queue info query answered with the unknown message: '${x}'", HttpStatus.INTERNAL_SERVER_ERROR)
+    }
+  }
 
   /**
    * The actual endpoint. It's here that
@@ -201,6 +234,11 @@ class FusionReportEndpoint(
             logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
             new ResponseEntity(fail.messageChain, HttpStatus.PRECONDITION_FAILED)
         }
+      } catch {
+        case NonFatal(ex) =>
+          val msg = s"Error when trying to parse inventory '${inventory}': ${ex.getMessage}"
+          logger.error(msg, ex)
+          new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
       }
     }
 
@@ -233,15 +271,6 @@ class FusionReportEndpoint(
     }
   }
 
-
-
-
-
-  //two message to know if the backend accept to process the report
-  case object OkToSave
-  case object TooManyInQueue
-
-
   import scala.actors.Actor
   import Actor._
 
@@ -261,6 +290,9 @@ class FusionReportEndpoint(
     //queue it or not
     override def act = {
       loop { react {
+          case GetQueueInfo =>
+            reply(QueueInfo(queueSize, inQueue))
+
           case i:InventoryReport =>
 
             if(inQueue < queueSize) {
