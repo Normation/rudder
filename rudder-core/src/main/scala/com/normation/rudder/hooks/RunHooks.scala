@@ -71,22 +71,35 @@ import net.liftweb.util.Helpers.tryo
 
 /*
  * Hooks are group in "set". We run all the hooks
- * from the same set with the same set of parameters.
+ * from the same set with the same set of envVariables.
  * The hooks are executed in the order of the list.
  */
 
 final case class Hooks(basePath: String, hooksFile: List[String])
 /**
- * Hook parameters are pairs of environment variable name <=> value
+ * Hook env are pairs of environment variable name <=> value
  */
-final case class HookParameter(name: String, value: String)
-final case class HookParameters(values: List[HookParameter]) {
-  //shortcut to view parameters as a Map[String, String]
-  def toMap = values.map(p => (p.name, p.value)).toMap
+final case class HookEnvPair(name: String, value: String) {
+  def show = s"[${name}:${value}]"
 }
-object HookParameters {
+final case class HookEnvPairs(values: List[HookEnvPair]) {
+  //shortcut to view envVariables as a Map[String, String]
+  def toMap = values.map(p => (p.name, p.value)).toMap
+
+  def add(other: HookEnvPairs) = HookEnvPairs(this.values ::: other.values)
+
+  /**
+   * Formatted string
+   * [key1:val1][key2:val2]...
+   */
+  def show: String = values.map(_.show).mkString(" ")
+}
+
+object HookEnvPairs {
+  def toListPairs(values: (String, String)*) = values.map( p => HookEnvPair(p._1, p._2)).toList
+
   def build( values: (String, String)*) = {
-    HookParameters(values.map( p => HookParameter(p._1, p._2)).toList)
+    HookEnvPairs(toListPairs(values:_*))
   }
 }
 
@@ -115,7 +128,7 @@ object RunHooks {
    * - > 255: should not happen, but treated as reserved.
    *
    */
-  def asyncRun(hooks: Hooks, parameters: HookParameters): Future[Box[Unit]] = {
+  def asyncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs): Future[Box[Unit]] = {
     /*
      * We can not use Future.fold, because it execute all scripts
      * in parallele and then combine their results. Our semantic
@@ -127,9 +140,11 @@ object RunHooks {
       val path = hooks.basePath + File.separator + nextHookName
       previousFuture.flatMap {
         case Full(())     =>
-          HooksLogger.debug(s"Run hook: '${path} ${parameters.values.mkString(" ")}'")
-          RunNuCommand.run(Cmd(path, Nil, parameters.toMap)).map { result =>
-            lazy val msg = s"Exit code=${result.code} for hook: '${path} ${parameters.values.mkString(" ")}'. \n  Stdout: '${result.stdout}' \n  Stderr: '${result.stderr}'"
+          HooksLogger.debug(s"Run hook: '${path}' with environment parameters: ${hookParameters.show}")
+          HooksLogger.trace(s"System environment variables: ${envVariables.show}")
+          val env = envVariables.add(hookParameters)
+          RunNuCommand.run(Cmd(path, Nil, env.toMap)).map { result =>
+            lazy val msg = s"Exit code=${result.code} for hook: '${path}' with environment variables: ${env.show}. \n  Stdout: '${result.stdout}' \n  Stderr: '${result.stderr}'"
             HooksLogger.trace(s"  -> results: ${msg}")
             if(       result.code <= 0 ) {
               Full(())
@@ -142,7 +157,7 @@ object RunHooks {
               Failure(msg)
             }
           } recover {
-            case ex: Exception => Failure(s"Exception when executing '${path} ${parameters.values.mkString(" ")}: ${ex.getMessage}")
+            case ex: Exception => Failure(s"Exception when executing '${path}' with environment variables: ${env.show}: ${ex.getMessage}")
           }
         case eb: EmptyBox => Future(eb)
       }
@@ -166,13 +181,14 @@ object RunHooks {
    *
    *
    */
-  def syncRun(hooks: Hooks, parameters: HookParameters): Box[Unit] = {
+  def syncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs): Box[Unit] = {
     try {
       //cmdInfo is just for comments/log. We use "*" to synthetize
-      val cmdInfo = s"'${hooks.basePath}/* ${parameters.values.mkString(" ")}'"
+      val cmdInfo = s"'${hooks.basePath}' with environment parameters: ${hookParameters.show}"
       HooksLogger.debug(s"Run hooks: ${cmdInfo}")
+      HooksLogger.trace(s"Hook environment variables: ${envVariables.show}")
       val time_0 = System.currentTimeMillis
-      val res = Await.result(asyncRun(hooks, parameters), Duration.Inf)
+      val res = Await.result(asyncRun(hooks, hookParameters, envVariables), Duration.Inf)
       HooksLogger.debug(s"Done in ${System.currentTimeMillis - time_0} ms: ${cmdInfo}")
       res
     } catch {
