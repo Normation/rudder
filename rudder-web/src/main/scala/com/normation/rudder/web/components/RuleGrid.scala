@@ -275,7 +275,10 @@ class RuleGrid(
               );
               createTooltip();
               createTooltiptr();
-              angular.bootstrap('#showFiltersRules', ['filters']);
+              var scopeElmnt = '#showFiltersRules'
+              if(!angular.element(scopeElmnt).scope()){
+                angular.bootstrap(scopeElmnt, ['filters']);
+              }
           """
         <div id={htmlId_rulesGridZone}>
           <span class="error" id="ruleTableError">{errorProperty.getOrElse("")}</span>
