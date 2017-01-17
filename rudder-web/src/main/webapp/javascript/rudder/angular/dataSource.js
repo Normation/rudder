@@ -59,7 +59,7 @@ app.controller("datasourceCtrl", ['$scope', '$timeout', 'orderByFilter','$http',
   $scope.datasources = [];
   // Selected data source
   $scope.selectedDatasource;
-
+  $scope.treeId = "#datasources-tree";
   /* Get data sources */
   $scope.getDataSources = function(){
     return $http.get(contextPath + '/secure/api/latest/datasources').then(function(response){
@@ -68,12 +68,14 @@ app.controller("datasourceCtrl", ['$scope', '$timeout', 'orderByFilter','$http',
       $scope.reverse = false;
       $scope.datasources =  orderBy(res, $scope.propertyName, $scope.reverse);
       for(var i=0 ; i<$scope.datasources.length ; i++){
-        $scope.datasources[i].newHeader = {"key":"","value":""};
+        $scope.datasources[i].newHeader = {"name":"","value":""};
+        $scope.datasources[i].newParam  = {"name":"","value":""};
         $scope.datasources[i].modifiedTimes = {
           'schedule'       : timeConvert($scope.datasources[i].runParameters.schedule.duration)
         , 'updateTimeout'  : timeConvert($scope.datasources[i].updateTimeout)
         , 'requestTimeout' : timeConvert($scope.datasources[i].type.parameters.requestTimeout)
-        }
+        };
+        //This will need to be changed when Bug #10554 will be fixed
       }
     });
   }
@@ -91,9 +93,6 @@ app.controller("datasourceCtrl", ['$scope', '$timeout', 'orderByFilter','$http',
     }
     return false;
   }
-  $scope.updateKey = function(header, index, key){
-    renameKey(header, Object.keys(header)[index], key)
-  }
   // DATASOURCES
   $scope.createNewDatasource = function(){
     if($scope.forms.datasourceForm){
@@ -106,13 +105,14 @@ app.controller("datasourceCtrl", ['$scope', '$timeout', 'orderByFilter','$http',
       "type"        :{
         "name"       :"http",
         "parameters" :{
-          "url"     :"",
-          "headers" :{},
+          "checkSsl":true,
+          "headers" :[],
+          "params" :[],
           "path"    :"",
-          "checkSsl":false,
-          "requestTimeout":5,
+          "requestTimeout":30,
           "requestMethod":"GET",
-          "requestMode":{"name":"byNode"}
+          "requestMode":{"name":"byNode"},
+          "url"     :""
         }
 	  },
 	  "runParameters":{
@@ -120,19 +120,40 @@ app.controller("datasourceCtrl", ['$scope', '$timeout', 'orderByFilter','$http',
 	    "onNewNode"    :false,
 	    "schedule":{
 	      "type":"scheduled",
-	      "duration":5
+	      "duration":21600
 	    }
 	  },
-	  "updateTimeout":5,
+	  "updateTimeout":30,
 	  "enabled":false,
-	  "newHeader":{"key":"","value":""},
+	  "newHeader":{"name":"","value":""},
 	  "modifiedTimes":{
-	    "schedule":{"day":0,"hour":0,"minute":5},
-	    "updateTimeout":{"day":0,"hour":0,"minute":5},
-	    "requestTimeout":{"day":0,"hour":0,"minute":5}
+	    "schedule":{"second":0,"minute":360},
+	    "updateTimeout":{"second":30,"minute":0},
+	    "requestTimeout":{"second":30,"minute":0}
 	  },
 	  "isNew":true
 	};
+  }
+  $scope.updateKeyName = function(str){
+    if($scope.selectedDatasource.isNew){
+      if(str){
+        var r = str.replace(/[^\-_a-zA-Z0-9]/g,"_");
+        $scope.selectedDatasource.id = r;
+      }else{
+        $scope.selectedDatasource.id = "";
+      }
+    }
+  }
+
+  $scope.toggleEnabled = function(){
+    $scope.selectedDatasource.enabled = !$scope.selectedDatasource.enabled;
+    var temp = jQuery.extend(true, {}, $scope.getDatasource($scope.selectedDatasource.id));
+    temp.enabled = $scope.selectedDatasource.enabled;
+    $http.post(contextPath + '/secure/api/latest/datasources/' + temp.id, temp).then(function(response){
+      var res = response;
+      var index = $scope.getDatasource($scope.selectedDatasource.id, true);
+      $scope.datasources[index] = jQuery.extend(true, {}, $scope.selectedDatasource);
+    });
   }
   $scope.saveDatasource = function(){
     //CONVERT TIMES
@@ -158,6 +179,7 @@ app.controller("datasourceCtrl", ['$scope', '$timeout', 'orderByFilter','$http',
   $scope.selectDatasource = function(id){
 	if($scope.forms.datasourceForm){
 	  $scope.forms.datasourceForm.$setPristine();
+	  $('.well').css('display','none');
 	}
     var getDatasource = $scope.getDatasource(id);
     if(getDatasource){
@@ -176,46 +198,67 @@ app.controller("datasourceCtrl", ['$scope', '$timeout', 'orderByFilter','$http',
     });
   }
   // HEADERS
-  $scope.resetNewHeader = function(datasource){
-    datasource.newHeader.key   = "";
-    datasource.newHeader.value = "";
+  $scope.resetNewObj = function(obj){
+    obj.name   = "";
+    obj.value = "";
   }
   $scope.toggleHeaders = function(idHeader, event){
     $('#'+idHeader).toggle(80);
-    $(event.currentTarget).find('.fa').toggleClass('fa-rotate-180');
+    $(event.currentTarget).find('.fa').toggleClass('fa-rotate-90');
   }
-  $scope.addNewHeader = function(datasource){
-    if(!datasource.type.parameters.headers.hasOwnProperty(datasource.newHeader.key)){
-      datasource.type.parameters.headers[datasource.newHeader.key]=datasource.newHeader.value;
-      $scope.resetNewHeader(datasource);
+  $scope.toggleExample = function(event){
+    $(event.currentTarget).parent().find('.example-help').toggle();
+    $(event.currentTarget).toggleClass('show');
+  }
+  $scope.addNewObj = function(array, newObj){
+    var exists = false;
+    for(var i=0; i<array.length; i++){
+      if(array[i].name.toLowerCase() == newObj.name.toLowerCase()){
+        exists = true;
+      }
+    }
+    if(!exists){
+      array.push(angular.copy(newObj));
+      $scope.resetNewObj(newObj);
     }
   }
-  $scope.removeHeader = function(datasource,headerKey){
-    delete datasource.type.parameters.headers[headerKey];
+  $scope.removeObj = function(array,index){
+    array.splice(index, 1);
   }
-  $scope.hasHeaders = function(datasource){
-    return Object.keys(datasource.type.parameters.headers).length;
+  $scope.hasObj = function(obj){
+    return Object.keys(obj).length;
   }
+
+  $scope.toggleInfo = function(event, action){
+    $(event.currentTarget).bsPopover(action);
+  }
+  $scope.toggleWell = function(event){
+    var el = $(event.currentTarget);
+    el.find('.fa').toggleClass('fa-rotate-90');
+    el.parent().parent().find('.well').toggle();
+  }
+  adjustHeight($scope.treeId, true);
 }]);
 
 function timeConvert(time) {
+  var min = Math.floor(time/60);
+  var sec = time - min*60;
   return {
-      "day"    : Math.floor(time/24/60)
-    , "hour"   : Math.floor(time/60%24)
-    , "minute" : time%60
+      "second"   : sec
+    , "minute"   : min
   }
 }
 function minuteConvert(time) {
-  return time.day*1440 + time.hour*60 + time.minute;
+  return time.second + time.minute*60;
 }
-function renameKey(obj, oldKey, newKey){
-  if (oldKey !== newKey) {
-	Object.defineProperty(obj, newKey,
-	    Object.getOwnPropertyDescriptor(obj, oldKey));
-	delete obj[oldKey];
+function objToArray(obj){
+  var arr = [];
+  for(x in obj){
+    var temp = {'name':x, 'value':obj[x]};
+    arr.push(temp);
   }
+  return arr;
 }
-
 
 $(document).ready(function(){
   angular.bootstrap('#datasource', ['datasource']);
