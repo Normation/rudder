@@ -18,6 +18,57 @@
 
 # @name File ensure keys -> values present
 # @description Ensure that the file contains all pairs of "key separator value", with arbitrary separator between each key and its value
+# @documentation This method ensures key-value pairs are present in a file.
+# 
+# #### Usage
+#
+# This method will iterate over the key-value pairs in the dict, and:
+#
+# * If the key is not defined in the destination, add the *key + separator + value* line.
+# * If the key is already present in the file, replace the *key + separator +* anything by *key + separator + value*
+#
+# Keys are considered unique (to allow replacing the value), so you should use [file_ensure_lines_present](#file_ensure_lines_present)
+# if you want to have multiple lines with the same key.
+#
+# #### Example
+#
+# If you have an initial file (`/etc/myfile.conf`) containing:
+#
+# ```
+# key1 = something
+# key3 = value3
+# ```
+#
+# To define key-value pairs, use the [variable_dict](#variable_dict) or
+# [variable_dict_from_file](#variable_dict_from_file) methods.
+#
+# For example, if you use the following content (stored in `/tmp/data.json`):
+#
+# ```json
+# {
+#    "key1": "value1",
+#    "key2": "value2"
+# }
+# ```
+#
+# With the following policy:
+#
+# ```
+# # Define the `content` variable in the `configuration` prefix from the json file
+# variable_dict_from_file("configuration", "content", "/tmp/data.json")
+# # Enforce the presence of the key-value pairs
+# file_ensure_keys_values("/etc/myfile.conf", "configuration.content", " = ")
+#
+# ```
+#
+# The destination file (`/etc/myfile.conf`) will contain:
+#
+# ```
+# key1 = value1
+# key3 = value3
+# key2 = value2
+# ```
+#
 #
 # @parameter file File name to edit
 # @parameter keys Dict structure containing the keys (keys of the dict), and values to define (values of the dict)
