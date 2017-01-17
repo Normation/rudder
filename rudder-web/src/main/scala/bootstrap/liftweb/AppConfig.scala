@@ -701,17 +701,22 @@ object RudderConfig extends Loggable {
     )
   }
 
+  val nodeApiService8 = {
+    new NodeApiService8(
+        woNodeRepository
+      , nodeInfoService
+      , uuidGen
+      , dataSourceRepository
+      , asyncDeploymentAgent
+    )
+  }
+
   val nodeApi5 = {
     new NodeAPI5 (
         nodeApi4
-      , new NodeApiService5(
-            woNodeRepository
-          , nodeInfoService
-          , uuidGen
-          , restExtractorService
-          , asyncDeploymentAgent
-        )
+      , nodeApiService8
       , restExtractorService
+      , restDataSerializer
     )
   }
 
@@ -733,14 +738,8 @@ object RudderConfig extends Loggable {
   val nodeApi8 = {
     new NodeAPI8 (
         nodeApi6
-      , new NodeApiService8(
-            woNodeRepository
-          , nodeInfoService
-          , uuidGen
-          , asyncDeploymentAgent
-        )
+      , nodeApiService8
       , restExtractorService
-      , restDataSerializer
     )
   }
 
