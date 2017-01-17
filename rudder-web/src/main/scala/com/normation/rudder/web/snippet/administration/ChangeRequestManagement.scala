@@ -195,11 +195,10 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
     val filterFunction =
       s"""var filter = [];
           var selected = $$(this).find(":selected")
-          if (selected.size() > 0) {
+          if (selected.length > 0) {
             selected.each(function () {
               filter.push($$(this).attr("value"));
             } );
-
             $$('#${changeRequestTableId}').dataTable().fnFilter(filter.join("|"),1,true,false,true);
           }
           else {
