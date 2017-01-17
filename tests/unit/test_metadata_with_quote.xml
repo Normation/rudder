@@ -11,7 +11,7 @@
   <SECTIONS>
     <SECTION component="true" multivalued="true" name="Command execution">
       <REPORTKEYS>
-        <VALUE><![CDATA[/bin/echo \'Executing echo\']]></VALUE>
+        <VALUE><![CDATA[/bin/echo 'Executing echo']]></VALUE>
       </REPORTKEYS>
     </SECTION>
   </SECTIONS>
