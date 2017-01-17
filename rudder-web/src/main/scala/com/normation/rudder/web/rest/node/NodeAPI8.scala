@@ -57,12 +57,7 @@ class NodeAPI8 (
     apiV6        : NodeAPI6
   , apiV8service : NodeApiService8
   , extractor    : RestExtractorService
-  , serializer   : RestDataSerializer
 ) extends RestHelper with NodeAPI with Loggable{
-
-  private[this] def serialize(node : Node) = {
-    serializer.serializeNode(node)
-  }
 
   val v8Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
@@ -84,46 +79,6 @@ class NodeAPI8 (
           val fail = eb ?~! s"An error occured when applying policy on all Nodes"
           toJsonError(None, fail.messageChain)
         }
-      }
-    }
-
-    case id :: Nil JsonPost body -> req => {
-      implicit val prettify = extractor.extractPrettify(req.params)
-      implicit val action = "updateNode"
-      val actor = RestUtils.getActor(req)
-
-      (for {
-        restNode <- extractor.extractNodeFromJSON(body)
-        reason   <- extractor.extractReason(req)
-        result   <- apiV8service.updateRestNode(NodeId(id), restNode, actor, reason)
-      } yield {
-        toJsonResponse(Some(id), serialize(result))
-      }) match {
-        case Full(response) =>
-          response
-        case eb : EmptyBox =>
-          val fail = eb ?~! s"An error occured while updating Node '${id}'"
-          logger.error(fail.messageChain)
-          toJsonError(Some(id), fail.messageChain)
-      }
-    }
-
-   case Post(id :: Nil, req) => {
-      implicit val prettify = extractor.extractPrettify(req.params)
-      implicit val action = "updateNode"
-      val actor = RestUtils.getActor(req)
-      (for {
-        restNode <- extractor.extractNode(req.params)
-        reason   <- extractor.extractReason(req)
-        result   <- apiV8service.updateRestNode(NodeId(id), restNode, actor, reason)
-      } yield {
-        toJsonResponse(Some(id), serialize(result))
-      }) match {
-        case Full(response) =>
-          response
-        case eb : EmptyBox =>
-          val fail = eb ?~! s"An error occured while updating Node '${id}'"
-          toJsonError(Some(id), fail.messageChain)
       }
     }
 
