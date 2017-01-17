@@ -297,7 +297,13 @@ object DisplayDirectiveTree extends Loggable {
       }
     }
 
-    displayCategory(directiveLib, "jstn_0").toXml ++ Script(OnLoad(JsRaw("angular.bootstrap('#activeTechniquesTree_actions_zone', ['filters']);")))
+    displayCategory(directiveLib, "jstn_0").toXml ++ Script(OnLoad(JsRaw("""
+      var scopeElmnt = '#activeTechniquesTree_actions_zone'
+      if(!angular.element(scopeElmnt).scope()){
+        angular.bootstrap(scopeElmnt, ['filters']);
+      }
+      adjustHeight('#activeTechniquesTree');
+    """)))
   }
 
 }
