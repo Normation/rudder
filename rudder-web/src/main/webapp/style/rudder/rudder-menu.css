@@ -982,7 +982,8 @@ label.rule-info + div{
   -o-animation:      bounceH .8s ease infinite;
   animation:         bounceH .8s ease infinite;
 }
-#CRStatus {
+
+#changeRequestHeader > #CRStatus {
   background-color: #eeeeee;
   min-width: 160px;
   line-height: 50px;
@@ -996,7 +997,7 @@ label.rule-info + div{
   text-align:center;
   position:relative;
 }
-#CRStatus:before {
+#changeRequestHeader > #CRStatus:before {
   position: absolute;
   content: "";
   width: 0;
