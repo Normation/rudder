@@ -38,42 +38,83 @@
 package com.normation.rudder.web.rest.node
 
 import com.normation.inventory.domain.NodeId
-import net.liftweb.common.Box
-import net.liftweb.common.Loggable
+import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.web.rest.RestDataSerializer
+import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.web.rest.RestUtils
+import com.normation.rudder.web.rest.RestUtils._
+
+import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
-import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.web.rest.RestUtils._
-import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.web.rest.RestUtils
-import com.normation.rudder.web.rest.ApiVersion
 
 class NodeAPI5 (
     apiV4        : NodeAPI4
-  , apiV5service : NodeApiService5
-  , restExtractor: RestExtractorService
+  , apiV8service : NodeApiService8
+  , extractor    : RestExtractorService
+  , serializer   : RestDataSerializer
 ) extends RestHelper with NodeAPI with Loggable{
+
+  private[this] def serialize(node : Node) = {
+    serializer.serializeNode(node)
+  }
 
   val v5Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
+    /*
+     * The two following function were in NodeAPI8 before, but we choose to make
+     * the code dryer by moving them in place of previous NodeAPI dedicated code.
+     *
+     *  It is the reason for using NodeApiService8 here.
+     *
+     * The behaviour DOES change because now, NodeAPI v5 knows about policyMode,
+     * but this not a problem because it does not change at all behaviour of
+     * pre-existing script using that API version exactly.
+     */
+
     case id :: Nil JsonPost body -> req => {
-      req.json match {
-        case Full(arg) =>
-          val restNode = restExtractor.extractNodePropertiesrFromJSON(arg)
-            apiV5service.updateRestNode(NodeId(id), restNode, req)
-        case Empty =>
-          toJsonError(None, "No Json data sent")("updateGroup",restExtractor.extractPrettify(req.params))
-        case f:Failure =>
-          toJsonError(None, f.messageChain)("updateGroup",restExtractor.extractPrettify(req.params))
+      implicit val prettify = extractor.extractPrettify(req.params)
+      implicit val action = "updateNode"
+      val actor = RestUtils.getActor(req)
+
+      (for {
+        restNode <- extractor.extractNodeFromJSON(body)
+        reason   <- extractor.extractReason(req)
+        result   <- apiV8service.updateRestNode(NodeId(id), restNode, actor, reason)
+      } yield {
+        toJsonResponse(Some(id), serialize(result))
+      }) match {
+        case Full(response) =>
+          response
+        case eb : EmptyBox =>
+          val fail = eb ?~! s"An error occured while updating Node '${id}'"
+          logger.error(fail.messageChain)
+          toJsonError(Some(id), fail.messageChain)
       }
     }
 
    case Post(id :: Nil, req) => {
-      val restNode = restExtractor.extractNodeProperties(req.params).map(RestNodeProperties(_))
-      apiV5service.updateRestNode(NodeId(id), restNode, req)
+      implicit val prettify = extractor.extractPrettify(req.params)
+      implicit val action = "updateNode"
+      val actor = RestUtils.getActor(req)
+      (for {
+        restNode <- extractor.extractNode(req.params)
+        reason   <- extractor.extractReason(req)
+        result   <- apiV8service.updateRestNode(NodeId(id), restNode, actor, reason)
+      } yield {
+        toJsonResponse(Some(id), serialize(result))
+      }) match {
+        case Full(response) =>
+          response
+        case eb : EmptyBox =>
+          val fail = eb ?~! s"An error occured while updating Node '${id}'"
+          toJsonError(Some(id), fail.messageChain)
+      }
     }
+
   }
 
   // Node API Version 5 fallback to Node API v4 if request is not handled in V5
