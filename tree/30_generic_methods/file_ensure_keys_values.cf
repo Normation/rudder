@@ -27,6 +27,8 @@
 # * If the key is not defined in the destination, add the *key + separator + value* line.
 # * If the key is already present in the file, replace the *key + separator +* anything by *key + separator + value*
 #
+# This method always ignores spaces and tabs when replacing (which means for example that `key = value` will match the `=` separator).
+#
 # Keys are considered unique (to allow replacing the value), so you should use [file_ensure_lines_present](#file_ensure_lines_present)
 # if you want to have multiple lines with the same key.
 #
@@ -69,13 +71,10 @@
 # key2 = value2
 # ```
 #
-#
 # @parameter file File name to edit
 # @parameter keys Dict structure containing the keys (keys of the dict), and values to define (values of the dict)
 # @parameter separator Separator between key and value (for example "=" or " ")
 # @parameter_constraint separator "allow_whitespace_string" : true 
-#
-# @documentation You can create a dict variable by using the variable_dict* methods.
 #
 # @class_prefix file_ensure_keys_values
 # @class_parameter file
