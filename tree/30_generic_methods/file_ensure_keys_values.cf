@@ -24,8 +24,8 @@
 #
 # This method will iterate over the key-value pairs in the dict, and:
 #
-# * If the key is not defined in the destination, add the *key + separator + value* line.
-# * If the key is already present in the file, replace the *key + separator +* anything by *key + separator + value*
+# * If the key is not defined in the destination, add the *key* + *separator* + *value* line.
+# * If the key is already present in the file, replace the *key* + *separator* + anything by *key* + *separator* + *value*
 #
 # This method always ignores spaces and tabs when replacing (which means for example that `key = value` will match the `=` separator).
 #
