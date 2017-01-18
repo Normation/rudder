@@ -403,7 +403,6 @@ $scope.groupMethodsByCategory = function () {
     if ($scope.selectedTechnique === undefined) {
       select(technique);
     } else {
-
       if  ($scope.checkSelectedTechnique()) {
         // Selected technique is the same than actual selected technique, unselect it
         select(technique);
@@ -429,7 +428,7 @@ $scope.groupMethodsByCategory = function () {
       // Select the technique, by using angular.copy to have different objects
       $scope.selectedTechnique=angular.copy(technique);
       $scope.originalTechnique=angular.copy($scope.selectedTechnique);
-      $scope.selectedTechnique.saving=false;
+      $scope.$broadcast('endSaving');
     }
   };
 
@@ -754,7 +753,7 @@ $scope.groupMethodsByCategory = function () {
   $scope.resetTechnique = function() {
     $scope.editForm.$setPristine();
     $scope.selectedTechnique=angular.copy($scope.originalTechnique);
-    $scope.selectedTechnique.saving=false;
+    $scope.$broadcast('endSaving');
     // Reset selected method too
     if ($scope.selectedMethod !== undefined) {
       // if original_index did not exists, close the edit method tab
@@ -807,9 +806,16 @@ $scope.groupMethodsByCategory = function () {
     return ! (parameter.constraints.allow_whitespace_string);
   }
 
+  $scope.$on("saving",function(){
+    $scope.saving = true;
+  });
+  $scope.$on("endSaving",function(){
+    $scope.saving = false;
+  });
+
   // Save a technique
   $scope.saveTechnique = function() {
-    $scope.selectedTechnique.saving = true;
+    $scope.$broadcast('saving');
     // Set technique bundle name
     $scope.setBundleName($scope.selectedTechnique);
     // make a copy of data so we don't lose the selected technique
@@ -823,7 +829,7 @@ $scope.groupMethodsByCategory = function () {
     // Update selected technique if it's still the same technique
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
-      $scope.selectedTechnique.saving = false;
+        $scope.$broadcast('endSaving');
       // Transform back ncfTechnique to UITechnique, that will make it ok
       var savedTechnique = toTechUI(ncfTechnique);
 
@@ -832,6 +838,7 @@ $scope.groupMethodsByCategory = function () {
         // If we were cloning a technique, remove its 'clone' state
         savedTechnique.isClone = false;
         savedTechnique.saving = false;
+        $scope.$broadcast('endSaving');
         $scope.originalTechnique=angular.copy(savedTechnique);
         $scope.selectedTechnique=angular.copy(savedTechnique);
         // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
@@ -850,7 +857,7 @@ $scope.groupMethodsByCategory = function () {
       }
     }
     var saveError = function(action, data) {
-      $scope.selectedTechnique.saving = false;
+      $scope.$broadcast('endSaving');
       $scope.handle_error("while "+action+" Technique '"+ data.technique.name+"'")
     }
 

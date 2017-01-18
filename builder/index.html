@@ -277,7 +277,7 @@
                     <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
                     Add methods
                 </div>
-                <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || selectedTechnique.saving" class="btn btn-success pull-right btn-save" ng-class="{saving : selectedTechnique.saving}" ng-click="saveTechnique()">
+                <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving" class="btn btn-success pull-right btn-save" ng-class="{saving : saving}" ng-click="saveTechnique()">
                   <span class="glyphicon glyphicon-cog saving"></span>
                   Save
                 </button>
