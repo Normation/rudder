@@ -53,6 +53,7 @@ import java.util.regex.Pattern
 import scala.util.matching.Regex
 import com.normation.cfclerk.domain.InputVariable
 import com.normation.cfclerk.domain.Variable
+import org.apache.commons.io.FileUtils
 
 /*
  * This class test the JsEngine.
@@ -157,7 +158,11 @@ class TestJsEngine extends Specification {
 
     "still be able to do dangerous things, because it's only the JsEngine which is sandboxed" in {
       JsEngine.SandboxedJsEngine.sandboxed { box =>
-        Full((new java.io.File(s"/tmp/rudder-test-${System.currentTimeMillis}")).createNewFile())
+        val dir = new java.io.File(s"/tmp/rudder-test-${System.currentTimeMillis}")
+        val res = Full((dir).createNewFile())
+        //but clean tmp after all :)
+        dir.delete()
+        res
       } must beEqualTo(Full(true))
     }
 

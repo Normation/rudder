@@ -108,7 +108,7 @@ import java.security.Policy.PolicyDelegate
  * of that file.
  */
 @RunWith(classOf[JUnitRunner])
-class WriteSystemTechniqueTest extends Specification with Loggable with ContentMatchers with AfterAll with AfterEach {
+class WriteSystemTechniquesTest extends Specification with Loggable with ContentMatchers with AfterAll with AfterEach {
 
   //just a little sugar to stop hurting my eyes with new File(blablab, plop)
   implicit class PathString(root: String) {
@@ -119,7 +119,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
   }
 
   //////////// init ////////////
-  val abstractRoot = "/tmp/test-rudder-config-repo"/System.currentTimeMillis.toString
+  val abstractRoot = new File("/tmp/test-rudder-config-repo-" + DateTime.now.toString())
   abstractRoot.mkdirs()
   // config-repo will also be the git root, as a normal rudder
   val configurationRepositoryRoot = abstractRoot/"configuration-repository"
@@ -219,12 +219,16 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
 
   //////////// set-up auto test cleaning ////////////
   override def afterAll(): Unit = {
-    logger.info("Deleting directory " + abstractRoot.getAbsoluteFile)
-    FileUtils.deleteDirectory(abstractRoot)
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      logger.info("Deleting directory " + abstractRoot.getAbsolutePath)
+      FileUtils.deleteDirectory(abstractRoot)
+    }
   }
   override def after: Unit = {
-    logger.info("Deleting directory " + rootGeneratedPromisesDir.getAbsoluteFile)
-    FileUtils.deleteDirectory(rootGeneratedPromisesDir)
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      logger.info("Deleting directory " + rootGeneratedPromisesDir.getAbsoluteFile)
+      FileUtils.deleteDirectory(rootGeneratedPromisesDir)
+    }
   }
 
   //////////// end set-up ////////////

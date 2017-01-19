@@ -49,16 +49,19 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import java.io.FileInputStream
+import org.joda.time.DateTime
 
 @RunWith(classOf[JUnitRunner])
 class TemplateCliTest extends Specification with ContentMatchers with AfterAll {
 
   sequential
 
-  val testDir = new File("/tmp/test-template-cli", System.currentTimeMillis.toString)
+  val testDir = new File("/tmp/test-template-cli-" + DateTime.now.toString())
 
   override def afterAll(): Unit = {
-   // FileUtils.deleteQuietly(testDir)
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      FileUtils.deleteDirectory(testDir)
+    }
   }
 
   def dir(path: String) = (new File(testDir, path)).getAbsolutePath
