@@ -65,7 +65,7 @@ import monix.reactive.Observable
 import net.liftweb.common.Loggable
 import scala.concurrent.duration.FiniteDuration
 
-
+import com.normation.rudder.datasources.DataSourceSchedule._
 
 
 final case class UpdateCause(modId: ModificationId, actor:EventActor, reason:Option[String])

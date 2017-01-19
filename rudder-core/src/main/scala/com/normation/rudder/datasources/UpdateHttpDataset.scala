@@ -89,22 +89,30 @@ class GetDataset(valueCompiler: InterpolatedValueCompiler) {
   val compiler = new InterpolateNode(valueCompiler)
 
 
-  def getNode(datasourceName: DataSourceId, datasource: HttpDataSourceType, node: NodeInfo, policyServer: NodeInfo, parameters: Set[Parameter], connectionTimeout: Duration, readTimeOut: Duration): Box[NodeProperty] = {
+  def getNode(datasourceName: DataSourceId, datasource: DataSourceType.HTTP, node: NodeInfo, policyServer: NodeInfo, parameters: Set[Parameter], connectionTimeout: Duration, readTimeOut: Duration): Box[NodeProperty] = {
+    //utility to expand both key and values of a map
+    def expandMap(expand: String => Box[String], map: Map[String, String]): Box[Map[String, String]] = {
+      (sequence(map.toList) { case (key, value) =>
+          for {
+            newKey   <- expand(key)
+            newValue <- expand(value)
+          } yield {
+            (newKey, newValue)
+          }
+        }).map( _.toMap )
+    }
+
+    //actual logic
+
     for {
       parameters <- sequence(parameters.toSeq)(compiler.compileParameters) ?~! "Error when transforming Rudder Parameter for variable interpolation"
       expand     =  compiler.compileInput(node, policyServer, parameters.toMap) _
       url        <- expand(datasource.url) ?~! s"Error when trying to parse URL ${datasource.url}"
       path       <- expand(datasource.path) ?~! s"Error when trying to compile JSON path ${datasource.path}"
-      headers    <- (sequence(datasource.headers.toList) { case (key, value) =>
-                      for {
-                        newKey   <- expand(key)
-                        newValue <- expand(value)
-                      } yield {
-                        (newKey, newValue)
-                      }
-                    }).map( _.toMap )
+      headers    <- expandMap(expand, datasource.headers)
+      httpParams <- expandMap(expand, datasource.params)
       time_0     =  System.currentTimeMillis
-      body       <- QueryHttp.GET(url, headers, datasource.sslCheck, connectionTimeout, readTimeOut) ?~! s"Error when fetching data from ${url}"
+      body       <- QueryHttp.QUERY(datasource.httpMethod, url, headers, httpParams, datasource.sslCheck, connectionTimeout, readTimeOut) ?~! s"Error when fetching data from ${url}"
       _          =  DataSourceTimingLogger.trace(s"[${System.currentTimeMillis - time_0} ms] node '${node.id.value}': GET ${url} // ${path}")
       json       <- body match {
                       case Some(body) => JsonSelect.fromPath(path, body) ?~! s"Error when extracting sub-json at path ${path} from ${body}"
@@ -133,10 +141,10 @@ class GetDataset(valueCompiler: InterpolatedValueCompiler) {
 object QueryHttp {
 
   /*
-   * Simple synchronous http get, return the response
+   * Simple synchronous http get/post, return the response
    * body as a string.
    */
-  def GET(url: String, headers: Map[String, String], checkSsl: Boolean, connectionTimeout: Duration, readTimeOut: Duration): Box[Option[String]] = {
+  def QUERY(method: HttpMethod, url: String, headers: Map[String, String], params: Map[String, String], checkSsl: Boolean, connectionTimeout: Duration, readTimeOut: Duration): Box[Option[String]] = {
     val options = (
         HttpOptions.connTimeout(connectionTimeout.toMillis.toInt)
      :: HttpOptions.readTimeout(readTimeOut.toMillis.toInt)
@@ -147,7 +155,13 @@ object QueryHttp {
         })
     )
 
-    val client = Http(url).headers(headers).options(options)
+    val client = {
+      val c = Http(url).headers(headers).options(options).params(params)
+      method match {
+        case HttpMethod.GET  => c
+        case HttpMethod.POST => c.postForm
+      }
+    }
 
     for {
       response <- tryo { client.asString }

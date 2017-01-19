@@ -63,7 +63,7 @@ import com.normation.utils.StringUuidGeneratorImpl
 
 import org.http4s._
 import org.http4s.dsl._
-import org.http4s.server.HttpService
+import org.http4s.util._
 import org.http4s.server.blaze.BlazeBuilder
 import org.joda.time.DateTime
 
@@ -77,6 +77,7 @@ import net.liftweb.common._
 import net.liftweb.http.PartialUpdateMsg
 import com.normation.rudder.domain.eventlog._
 import org.specs2.specification.AfterAll
+import com.normation.rudder.datasources.DataSourceSchedule._
 
 
 
@@ -118,11 +119,42 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
           nodeJson(x)
         }
 
-      case GET -> Root / "delay" / x =>
-        Ok {
-          counterSuccess.add(1)
-          nodeJson(x)
-        }.after(Random.nextInt(1000).millis)
+      case r @ GET -> Root / "delay" / x =>
+        r.headers.get(CaseInsensitiveString("nodeId")).map( _.value) match {
+          case Some(`x`) =>
+            Ok {
+              counterSuccess.add(1)
+              nodeJson(x)
+            }.after(Random.nextInt(1000).millis)
+
+          case _ =>
+            Forbidden {
+              counterError.add(1)
+              "node id was not found in the 'nodeid' header"
+            }
+        }
+
+      case r @ POST -> Root / "delay" =>
+
+        val headerId = r.headers.get(CaseInsensitiveString("nodeId")).map( _.value)
+
+        r.decode[UrlForm] { data =>
+          val formId = data.values.get("nodeId").flatMap(_.headOption)
+
+          (headerId, formId) match {
+            case (Some(x), Some(y)) if x == y =>
+              Ok {
+                counterSuccess.add(1)
+                nodeJson("plop")
+              }.after(Random.nextInt(1000).millis)
+
+            case _ =>
+              Forbidden {
+                counterError.add(1)
+                "node id was not found in post form (key=nodeId)"
+              }
+          }
+        }
 
       case GET -> Root / "faileven" / x =>
         // x === "nodeXX" or root
@@ -140,7 +172,7 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
     }
   }
   //start server
-  var server = BlazeBuilder.bindHttp(8282)
+  val server = BlazeBuilder.bindHttp(8282)
     .mountService(NodeDataset.service, "/datasource")
     .run
 
@@ -198,13 +230,14 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
     NodeConfigData.node1.copy(node = n.copy(properties = NodeProperty("get-that", "book") :: Nil ))
   }
 
-  val httpDatasourceTemplate = HttpDataSourceType(
+  val httpDatasourceTemplate = DataSourceType.HTTP(
       "CHANGE MY URL"
     , Map()
-    , "GET"
+    , HttpMethod.GET
+    , Map()
     , true
     , "CHANGE MY PATH"
-    , OneRequestByNode
+    , HttpRequestMode.OneRequestByNode
     , 30.second
   )
   val datasourceTemplate = DataSource(
@@ -226,8 +259,11 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
     , url    : String = httpDatasourceTemplate.url
     , path   : String = httpDatasourceTemplate.path
     , schedule: DataSourceSchedule = datasourceTemplate.runParam.schedule
+    , method: HttpMethod = httpDatasourceTemplate.httpMethod
+    , params: Map[String, String] = httpDatasourceTemplate.params
+    , headers: Map[String, String] = httpDatasourceTemplate.headers
   ) = {
-    val http = httpDatasourceTemplate.copy(url = url, path = path)
+    val http = httpDatasourceTemplate.copy(url = url, path = path, httpMethod = method, params = params, headers = headers)
     val run  = datasourceTemplate.runParam.copy(schedule = schedule)
     datasourceTemplate.copy(name = DataSourceName(name), sourceType = http, runParam = run)
 
@@ -371,24 +407,49 @@ class UpdateHttpDatasetTest extends Specification with BoxSpecMatcher with Logga
     )
 
 
-    "work even if nodes don't reply at same speed" in {
+    "work even if nodes don't reply at same speed with GET" in {
       val ds = NewDataSource(
-          "test-lot-of-nodes"
+          "test-lot-of-nodes-GET"
         , url  = "http://localhost:8282/datasource/delay/${rudder.node.id}"
         , path = "$.hostname"
+        , headers = Map( "nodeId" -> "${rudder.node.id}" )
       )
       val nodeIds = infos.getAll().openOrThrowException("test shall not throw").keySet
       //all node updated one time
       infos.updates.clear()
+      NodeDataset.reset()
       val t0 = System.currentTimeMillis
       val res = http.queryAll(ds, UpdateCause(modId, actor, None))
       val t1 = System.currentTimeMillis
 
       res mustFullEq(nodeIds) and (
         infos.updates.toMap must havePairs( nodeIds.map(x => (x, 1) ).toSeq:_* )
-      )
+      ) and (NodeDataset.counterError.get === 0) and (NodeDataset.counterSuccess.get === nodeIds.size)
     }
 
+    "work even if nodes don't reply at same speed with POST" in {
+      val ds = NewDataSource(
+          "test-lot-of-nodes-POST"
+        , url  = "http://localhost:8282/datasource/delay"
+        , path = "$.hostname"
+        , method = HttpMethod.POST
+        , params = Map( "nodeId" -> "${rudder.node.id}" )
+        , headers = Map( "nodeId" -> "${rudder.node.id}" )
+      )
+      val nodeIds = infos.getAll().openOrThrowException("test shall not throw").keySet
+      //all node updated one time
+      infos.updates.clear()
+      NodeDataset.reset()
+      val t0 = System.currentTimeMillis
+      val res = http.queryAll(ds, UpdateCause(modId, actor, None))
+      val t1 = System.currentTimeMillis
+
+      println(infos.updates.toList.sortBy(_._1.value))
+
+      res mustFullEq(nodeIds) and (
+        infos.updates.toMap must havePairs( nodeIds.map(x => (x, 1) ).toSeq:_* )
+      ) and (NodeDataset.counterError.get === 0) and (NodeDataset.counterSuccess.get === nodeIds.size)
+    }
 
     "work for odd node even if even nodes fail" in {
       val ds = NewDataSource(

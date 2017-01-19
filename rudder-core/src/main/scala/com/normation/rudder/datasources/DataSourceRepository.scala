@@ -59,6 +59,7 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
 import scalaz.{Failure => _, _}, Scalaz._
 import net.liftweb.common.Empty
+import com.normation.rudder.datasources.DataSourceSchedule._
 
 final case class PartialNodeUpdate(
     nodes        : Map[NodeId, NodeInfo] //the node to update

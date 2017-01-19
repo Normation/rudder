@@ -61,7 +61,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.web.rest.datasource.DataSourceApi
 import scala.concurrent.duration.Duration
 import java.util.concurrent.TimeUnit
-import com.normation.rudder.repository.json.CompleteJson
+import com.normation.rudder.repository.json.DSExtractor.CompleteJson
 
 @RunWith(classOf[JUnitRunner])
 class RestDataSourceTest extends Specification with Loggable {
@@ -81,8 +81,8 @@ class RestDataSourceTest extends Specification with Loggable {
     }
   }
 
-  val baseSourceType = HttpDataSourceType("", Map(), "GET", false, "", OneRequestByNode, DataSource.defaultDuration)
-  val baseRunParam  = DataSourceRunParameters(NoSchedule(DataSource.defaultDuration), false,false)
+  val baseSourceType = DataSourceType.HTTP("", Map(), HttpMethod.GET, Map(), false, "", HttpRequestMode.OneRequestByNode, DataSource.defaultDuration)
+  val baseRunParam  = DataSourceRunParameters(DataSourceSchedule.NoSchedule(DataSource.defaultDuration), false,false)
 
   val datasource1 = DataSource(DataSourceId( "datasource1"), DataSourceName(""), baseSourceType, baseRunParam, "", false, DataSource.defaultDuration)
 
@@ -96,7 +96,7 @@ class RestDataSourceTest extends Specification with Loggable {
   val dataSource2Updated = datasource2.copy(
       description = "new description"
     , sourceType = baseSourceType.copy(headers = Map( ("new header 1" -> "new value 1") , ("new header 2" -> "new value 2")))
-    , runParam = baseRunParam.copy(Scheduled(Duration(70, TimeUnit.MINUTES))))
+    , runParam = baseRunParam.copy(DataSourceSchedule.Scheduled(Duration(70, TimeUnit.MINUTES))))
   val d2updatedJson = restDataSerializer.serializeDataSource(dataSource2Updated)
 
   val d2modJson = {
