@@ -184,7 +184,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.1</version>
+        <version>3.6.1</version>
         <configuration>
           <!-- require java8, cf http://www.rudder-project.org/redmine/issues/8963 -->
           <source>1.8</source>
@@ -288,12 +288,21 @@ limitations under the License.
     <commons-io-version>2.4</commons-io-version>
     <commons-codec-version>1.9</commons-codec-version>
     <commons-lang-version>2.6</commons-lang-version>
-    <specs2-version>3.6.6</specs2-version>
     <spring-version>3.2.9.RELEASE</spring-version>
     <spring-security-version>3.2.4.RELEASE</spring-security-version>
-    <squeryl-version>0.9.5-7</squeryl-version>
     <jgit-version>4.4.1.201607150455-r</jgit-version>
     <cglib-version>3.1</cglib-version>
+    <monix-version>2.1.1</monix-version>
+    <!-- 
+      These one must be updated to work together 
+      We declare scalaz in "test" here, because it adds ~12Mo of dep. 
+      and for now, it's not used at all in inventory-ldap app. 
+    -->
+    <specs2-version>3.8.6</specs2-version>
+    <scalaz-version>7.2.8</scalaz-version>
+    <scalaz-stream-version>0.8.6a</scalaz-stream-version>
+    <doobie-version>0.4.0</doobie-version>
+    <http4s-version>0.15.3a</http4s-version>
   </properties>
 
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
@@ -342,7 +351,7 @@ limitations under the License.
     <dependency>
       <groupId>ca.mrvisser</groupId>
       <artifactId>sealerate_${scala-binary-version}</artifactId>
-      <version>0.0.4</version>
+      <version>0.0.5</version>
     </dependency>
 
     <!--
@@ -366,6 +375,12 @@ limitations under the License.
       <groupId>org.specs2</groupId>
       <artifactId>specs2-core_${scala-binary-version}</artifactId>
       <version>${specs2-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.scalaz</groupId>
+      <artifactId>scalaz-concurrent_${scala-binary-version}</artifactId>
+      <version>${scalaz-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
