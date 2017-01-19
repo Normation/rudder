@@ -49,23 +49,20 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 
 import net.liftweb.common.Loggable
+import org.joda.time.DateTime
 
 @RunWith(classOf[JUnitRunner])
 class TestGitFindUtils extends Specification with Loggable with AfterAll {
 
   ////////// set up / clean-up and utilities //////////
 
-  lazy val gitRoot = new File("/tmp/test-jgit/filters", System.currentTimeMillis.toString)
+  lazy val gitRoot = new File("/tmp/test-jgit-"+ DateTime.now().toString())
 
-  override def afterAll(): Unit = deleteDirectory()
 
-  def deleteDirectory() = {
-    logger.debug("Deleting directory " + gitRoot.getAbsoluteFile)
-    try {
+  override def afterAll(): Unit = {
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      logger.debug("Deleting directory " + gitRoot.getAbsolutePath)
       FileUtils.deleteDirectory(gitRoot)
-    } catch {
-      case e:Exception =>
-        logger.error(s"Error when cleaning directory ${gitRoot.getAbsoluteFile}", e)
     }
   }
 

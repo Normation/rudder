@@ -57,6 +57,7 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 
 import net.liftweb.common.Loggable
+import org.joda.time.DateTime
 
 /**
  * Details of tests executed in each instances of
@@ -73,15 +74,19 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
   def ptLib : File
   def relativePathArg : Option[String]
 
-  def deleteDir() = {
-    logger.info("Deleting directory " + gitRoot.getAbsoluteFile)
-    FileUtils.deleteDirectory(gitRoot)
+  /**
+   * Add a switch to be able to see tmp files (not clean themps) with
+   * -Dtests.clean.tmp=false
+   */
+  override def afterAll() = {
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      logger.info("Deleting directory " + gitRoot.getAbsoluteFile)
+      FileUtils.deleteDirectory(gitRoot)
+    }
   }
 
   //hook to allows to make some more initialisation
   def postInitHook() : Unit
-
-  override def afterAll(): Unit = deleteDir
 
   val variableSpecParser = new VariableSpecParser
   val policyParser: TechniqueParser = new TechniqueParser(
@@ -275,7 +280,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
  */
 @RunWith(classOf[JUnitRunner])
 class JGitPackageReader_SameRootTest extends JGitPackageReaderSpec {
-  lazy val gitRoot = new File("/tmp/test-jgit", System.currentTimeMillis.toString)
+  lazy val gitRoot = new File("/tmp/test-jgit-"+ DateTime.now().toString())
   lazy val ptLib = gitRoot
   lazy val relativePathArg = None
   def postInitHook() : Unit = {}
@@ -289,7 +294,7 @@ class JGitPackageReader_SameRootTest extends JGitPackageReaderSpec {
  */
 @RunWith(classOf[JUnitRunner])
 class JGitPackageReader_ChildRootTest extends JGitPackageReaderSpec {
-  lazy val gitRoot = new File("/tmp/test-jgit", System.currentTimeMillis.toString)
+  lazy val gitRoot = new File("/tmp/test-jgit-"+ DateTime.now().toString())
   lazy val ptLibDirName = "techniques"
   lazy val ptLib = new File(gitRoot, ptLibDirName)
   lazy val relativePathArg = Some("  /" + ptLibDirName + "/  ")
