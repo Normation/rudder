@@ -44,6 +44,7 @@ import scalaz.Monad
 import scalaz.Id
 import scalaz.std.option._
 import com.normation.rudder.datasources.DataSourceExtractor
+import scala.language.higherKinds
 
 trait JsonExctractorUtils[A[_]] {
 
@@ -91,28 +92,34 @@ trait JsonExctractorUtils[A[_]] {
   }
 }
 
-object OptionnalJson extends DataSourceExtractor[Option] {
-  def monad = implicitly
-  def getOrElse[T](value : Option[T], default : T) = value.getOrElse(default)
-  protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) = {
-    json \ key match {
-      case JNothing => Full(None)
-      case value if validJson.isDefinedAt(value) =>
-        convertTo(validJson(value)).map(Some(_))
-      case invalidJson => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
+
+object DSExtractor {
+  
+  object OptionnalJson extends DataSourceExtractor[Option] {
+    def monad = implicitly
+    def getOrElse[T](value : Option[T], default : T) = value.getOrElse(default)
+    protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) = {
+      json \ key match {
+        case JNothing => Full(None)
+        case value if validJson.isDefinedAt(value) =>
+          convertTo(validJson(value)).map(Some(_))
+        case invalidJson => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
+      }
     }
   }
-}
 
- object CompleteJson extends DataSourceExtractor[Id.Id] {
-  def monad = implicitly
-  def getOrElse[T](value : T, default : T) = value
-  protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) = {
-    json \ key match {
-      case value if validJson.isDefinedAt(value) =>
-        convertTo(validJson(value))
-      case JNothing => Failure(s"parameter ${key} cannot be empty")
-      case invalidJson => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
+  type Id[+X] = X
+
+  object CompleteJson extends DataSourceExtractor[Id] {
+    def monad = implicitly
+    def getOrElse[T](value : T, default : T) = value
+    protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) = {
+      json \ key match {
+        case value if validJson.isDefinedAt(value) =>
+          convertTo(validJson(value))
+        case JNothing => Failure(s"parameter ${key} cannot be empty")
+        case invalidJson => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
+      }
     }
   }
 }

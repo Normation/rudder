@@ -45,6 +45,9 @@ import com.normation.rudder.repository.json.JsonExctractorUtils
 import scalaz.Monad
 import scala.concurrent.duration.Duration
 import net.liftweb.json._
+import com.normation.rudder.datasources.HttpRequestMode._
+import com.normation.rudder.datasources.DataSourceSchedule._
+import scala.language.higherKinds
 
 object DataSourceJsonSerializer{
   def serialize(source : DataSource) : JValue = {
@@ -56,14 +59,15 @@ object DataSourceJsonSerializer{
         ( ( "name" -> source.sourceType.name )
         ~ ( "parameters" -> {
             source.sourceType match {
-              case HttpDataSourceType(url,headers,method,checkSsl,path,mode,timeOut) =>
-                ( ( "url"        -> url     )
-                ~ ( "headers"    -> headers )
-                ~ ( "path"       -> path    )
-                ~ ( "checkSsl"   -> checkSsl )
-                ~ ( "requestTimeout"  -> timeOut.toMinutes )
-                ~ ( "requestMethod"  -> method )
-                ~ ( "requestMode"  ->
+              case DataSourceType.HTTP(url,headers,method,params,checkSsl,path,mode,timeOut) =>
+                ( ( "url"            -> url     )
+                ~ ( "headers"        -> headers )
+                ~ ( "params"         -> params  )
+                ~ ( "path"           -> path    )
+                ~ ( "checkSsl"       -> checkSsl)
+                ~ ( "requestTimeout" -> timeOut.toMinutes )
+                ~ ( "requestMethod"  -> method.name )
+                ~ ( "requestMode"    ->
                   ( ( "name" -> mode.name )
                   ~ { mode match {
                       case OneRequestByNode =>
@@ -120,25 +124,26 @@ trait DataSourceExtractor[M[+_]] extends JsonExctractorUtils[M] {
   case class DataSourceTypeWrapper(
     url            : M[String]
   , headers        : M[Map[String,String]]
-  , httpMethod     : M[String]
+  , httpMethod     : M[HttpMethod]
+  , params         : M[Map[String,String]]
   , sslCheck       : M[Boolean]
   , path           : M[String]
   , requestMode    : M[HttpRequestMode]
   , requestTimeout : M[FiniteDuration]
   ) {
     def to = {
-      monad.apply7(url,headers,httpMethod,sslCheck,path,requestMode,requestTimeout){
-        case (a,b,c,d,e,f,g) => HttpDataSourceType(a,b,c,d,e,f,g)
+      monad.apply8(url,headers,httpMethod,params,sslCheck,path,requestMode,requestTimeout){
+        case (a,b,c,d,e,f,g,h) => DataSourceType.HTTP(a,b,c,d,e,f,g,h)
       }
     }
-
     def withBase (base : DataSourceType) : DataSourceType = {
       base match {
-        case httpBase : HttpDataSourceType =>
+        case httpBase : DataSourceType.HTTP =>
           httpBase.copy(
               getOrElse(url           , httpBase.url)
             , getOrElse(headers       , httpBase.headers)
             , getOrElse(httpMethod    , httpBase.httpMethod)
+            , getOrElse(params        , httpBase.params)
             , getOrElse(sslCheck      , httpBase.sslCheck)
             , getOrElse(path          , httpBase.path)
             , getOrElse(requestMode   , httpBase.requestMode)
@@ -160,7 +165,7 @@ trait DataSourceExtractor[M[+_]] extends JsonExctractorUtils[M] {
     def to = {
     val unwrapRunParam = monad.bind(runParam)(_.to)
     val unwrapType = monad.bind(sourceType)(_.to)
-      monad.apply6(name, unwrapType, unwrapRunParam,description, enabled, updateTimeout){
+      monad.apply6(name, unwrapType, unwrapRunParam, description, enabled, updateTimeout){
         case (a,b,c,d,e,f) => DataSource(id,a,b,c,d,e,f)
       }
     }
@@ -263,7 +268,7 @@ trait DataSourceExtractor[M[+_]] extends JsonExctractorUtils[M] {
   def extractDataSourceTypeWrapper(obj : JObject) : Box[DataSourceTypeWrapper] = {
 
     obj \ "name" match {
-      case JString(HttpDataSourceType.name) =>
+      case JString(DataSourceType.HTTP.name) =>
 
         def extractHttpRequestMode(obj : JObject) : Box[M[HttpRequestMode]] = {
           obj \ "name" match {
@@ -284,9 +289,16 @@ trait DataSourceExtractor[M[+_]] extends JsonExctractorUtils[M] {
           for {
             url      <- extractJsonString(obj, "url")
             path     <- extractJsonString(obj, "path")
-            method   <- extractJsonString(obj, "requestMethod")
+            method   <- extractJsonString(obj, "requestMethod", {s => Box(HttpMethod.values.find( _.name == s))})
             checkSsl <- extractJsonBoolean(obj, "checkSsl")
             timeout  <- extractJsonBigInt(obj, "requestTimeout", extractDuration)
+            params   <- extractJsonObj(obj, "params", {
+                                          case container@JObject(fields) =>
+                                            val t = sequence(fields.toSeq) {
+                                              field => extractJsonString(container, field.name, value => Full((field.name,value)))
+                                            }
+                                            t
+                                       } )
             headers  <- extractJsonObj(obj, "headers", {
                                           case container@JObject(fields) =>
                                             val t = sequence(fields.toSeq) {
@@ -299,12 +311,15 @@ trait DataSourceExtractor[M[+_]] extends JsonExctractorUtils[M] {
           } yield {
 
             import scalaz.std.list._
-            val t = monad.bind(headers)( s => monad.map(monad.sequence[(String,String),List]( s.toList))(_.toMap))
+            val headersM = monad.bind(headers)( s => monad.map(monad.sequence[(String,String),List]( s.toList))(_.toMap))
+            val paramsM = monad.bind(params)( s => monad.map(monad.sequence[(String,String),List]( s.toList))(_.toMap))
             val unwrapMode = monad.join(requestMode)
+
             (
                 url
-              , t
+              , headersM
               , method
+              , paramsM
               , checkSsl
               , path
               , unwrapMode
@@ -318,15 +333,17 @@ trait DataSourceExtractor[M[+_]] extends JsonExctractorUtils[M] {
           url = monad.bind(parameters)(_._1)
           headers = monad.bind(parameters)(_._2)
           method = monad.bind(parameters)(_._3)
-          checkSsl = monad.bind(parameters)(_._4)
-          path = monad.bind(parameters)(_._5)
-          mode = monad.bind(parameters)(_._6)
-          timeout = monad.bind(parameters)(_._7)
+          params = monad.bind(parameters)(_._4)
+          checkSsl = monad.bind(parameters)(_._5)
+          path = monad.bind(parameters)(_._6)
+          mode = monad.bind(parameters)(_._7)
+          timeout = monad.bind(parameters)(_._8)
         } yield {
           DataSourceTypeWrapper(
               url
             , headers
             , method
+            , params
             , checkSsl
             , path
             , mode

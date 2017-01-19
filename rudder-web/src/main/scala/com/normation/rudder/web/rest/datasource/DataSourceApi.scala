@@ -37,17 +37,11 @@
 
 package com.normation.rudder.web.rest.datasource
 
-import com.normation.rudder.web.rest.RestAPI
-import org.joda.time.DateTime
-import net.liftweb.common._
-import com.normation.rudder.datasources._
-import com.normation.rudder.datasources.OneRequestAllNodes
-import com.normation.rudder.datasources.OneRequestByNode
-import org.joda.time.Seconds
-import scala.concurrent.duration.Duration
-import net.liftweb.http.Req
 import com.normation.rudder.authorization._
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.rest.RestAPI
+
+import net.liftweb.http.Req
 
 trait DataSourceApi extends RestAPI {
   val kind = "datasources"
