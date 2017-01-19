@@ -34,14 +34,29 @@ import ZipUtils.Zippable
 import scala.collection.JavaConversions._
 import java.util.zip.ZipEntry
 import java.io.FileOutputStream
+import org.specs2.specification.Fragments
+import org.specs2.specification.Step
+import org.apache.commons.io.FileUtils
 
 @RunWith(classOf[JUnitRunner])
 class TestZipUtils extends Specification with Loggable {
 
   // prepare data
-  val directory = new File(System.getProperty("java.io.tmpdir"), "test-zip/"+ DateTime.now.toString(ISODateTimeFormat.dateTime))
+  val directory = new File(System.getProperty("java.io.tmpdir"), "test-zip-" + DateTime.now.toString(ISODateTimeFormat.dateTime))
 
   directory.mkdirs()
+
+  override def map(fs: =>Fragments) = fs ^ Step(clean)
+
+  /**
+   * Add a switch to be able to see tmp files (not clean themps) with
+   * -Dtests.clean.tmp=false
+   */
+  def clean = {
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      FileUtils.forceDelete(directory)
+    }
+  }
 
   logger.debug("Unzipping test in directory: " + directory.getPath())
 
