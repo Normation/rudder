@@ -36,11 +36,11 @@
 */
 package com.normation.rudder.domain.policies
 
-
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner._
 import net.liftweb.common._
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 
 @RunWith(classOf[JUnitRunner])
 class TagsTest extends Specification with Loggable {
@@ -53,12 +53,11 @@ class TagsTest extends Specification with Loggable {
   val tag3 = createTag("tag3")
 
   val simpleTags = Tags(Set[Tag](tag1, tag2, tag3))
-  val simpleSerialization = """[{"tag1":"tag1-value"},{"tag2":"tag2-value"},{"tag3":"tag3-value"}]"""
+  val simpleSerialization = """[{"key":"tag1","value":"tag1-value"},{"key":"tag2","value":"tag2-value"},{"key":"tag3","value":"tag3-value"}]"""
 
-  val invalidSerialization = """[{"tag1"},{"tag2":"tag2-value"},{"tag3":"tag3-value"}]"""
+  val invalidSerialization = """[{"key" :"tag1"},{"key" :"tag2", "value":"tag2-value"},{"key" :"tag3", "value":"tag3-value"}]"""
 
-
-  val duplicatedSerialization = """[{"tag2":"tag2-value"},{"tag2":"tag2-value"},{"tag3":"tag3-value"},{"tag1":"tag1-value"}]"""
+  val duplicatedSerialization = """[{"key" :"tag2", "value":"tag2-value"},{"key" :"tag2", "value":"tag2-value"},{"key" :"tag3", "value":"tag3-value"},{"key" : "tag1", "value": "tag1-value"}]"""
 
   "Serializing and unserializing" should {
     "serialize in correct JSON" in {
@@ -67,16 +66,16 @@ class TagsTest extends Specification with Loggable {
     }
 
     "unserialize correct JSON" in {
-      JsonTagSerialisation.unserializeTags(simpleSerialization) must
+      CompleteJson.unserializeTags(simpleSerialization) must
       equalTo(simpleTags)
     }
 
     "fail to unserialize incorrect JSON" in {
-      JsonTagSerialisation.unserializeTags(invalidSerialization) must haveClass[Failure]
+      CompleteJson.unserializeTags(invalidSerialization) must haveClass[Failure]
     }
 
     "unserialize duplicated entries in JSON into uniques" in {
-      JsonTagSerialisation.unserializeTags(duplicatedSerialization) must
+      CompleteJson.unserializeTags(duplicatedSerialization) must
       equalTo(simpleTags)
     }
   }
