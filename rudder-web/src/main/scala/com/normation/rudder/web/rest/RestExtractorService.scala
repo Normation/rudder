@@ -90,7 +90,7 @@ case class RestExtractorService (
   , workflowService      : WorkflowService
 ) extends Loggable {
 
-  import com.normation.rudder.repository.json.DSExtractor.OptionnalJson._
+  import com.normation.rudder.repository.json.DataExtractor.OptionnalJson._
   /*
    * Params Extractors
    */
@@ -705,8 +705,7 @@ case class RestExtractorService (
       directives       <- extractJsonListString(json, "directives")(convertListToDirectiveId)
       target           <- toRuleTarget(json, "targets")
       enabled          <- extractJsonBoolean(json,"enabled")
-      tagsList         <- extractJsonList(json, "tags"){ case JObject(JField(name,JString(value)) :: Nil) => Full(Tag(TagName(name),TagValue(value))); case _ => Failure("Not valid format for tags")}
-      tags             = tagsList.map(tags => Tags(tags.toSet))
+      tags             <- extractTags(json \ "tags")
     } yield {
       RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
     }
@@ -734,8 +733,7 @@ case class RestExtractorService (
       techniqueName    <- extractJsonString(json, "techniqueName", x => Full(TechniqueName(x)))
       techniqueVersion <- extractJsonString(json, "techniqueVersion", x => Full(TechniqueVersion(x)))
       policyMode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault)
-      tagsList         <- extractJsonList(json, "tags"){ case JObject(JField(name,JString(value)) :: Nil) => Full(Tag(TagName(name),TagValue(value))); case _ => Failure("Not valid format for tags")}
-      tags             = tagsList.map(tags => Tags(tags.toSet))
+      tags             <- extractTags(json \ "tags")
     } yield {
       RestDirective(name,shortDescription,longDescription,enabled,parameters,priority,techniqueName,techniqueVersion,policyMode,tags)
     }

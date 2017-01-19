@@ -276,7 +276,7 @@ class DirectiveEditForm(
         </a> &
       "#techniqueDescription *" #> technique.description &
       "#nameField" #> {piName.toForm_!} &
-      "#tagField *" #> tagsEditForm.dispatch("cfTagsDirectiveConfiguration") &
+      "#tagField *" #> tagsEditForm.tagsForm("directiveTags", "directiveEditTagsApp", updateTag, false) &
       "#rudderID *" #> {directive.id.value} &
       "#shortDescriptionField" #> piShortDescription.toForm_! &
       "#longDescriptionField" #> piLongDescription.toForm_! &
@@ -424,8 +424,17 @@ class DirectiveEditForm(
       override def subContainerClassName = "col-xs-12"
     }
 
-  val getDirectiveTags = JsObj(directive.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList:_*)
-  def tagsEditForm = new TagsEditForm(getDirectiveTags)
+  private[this] var newTags = directive.tags
+
+  def updateTag (boxTag : Box[Tags]) = {
+    boxTag match {
+      case Full(tags) => newTags = tags
+      case eb : EmptyBox =>
+        val failure = eb ?~! s"Error when updating directive ${directive.id.value} tag"
+        formTracker.addFormError(error(failure.messageChain))
+    }
+  }
+  def tagsEditForm = new TagsEditForm(directive.tags)
 
   def showDeprecatedVersion (version : TechniqueVersion) = {
     val deprecationInfo = fullActiveTechnique.techniques(version).deprecrationInfo match {
@@ -552,6 +561,7 @@ class DirectiveEditForm(
           , longDescription  = piLongDescription.is
           , _isEnabled       = directive.isEnabled
           , policyMode       = policyModes.is
+          , tags             = newTags
         )
 
         displayConfirmationPopup(
@@ -571,6 +581,7 @@ class DirectiveEditForm(
           , priority         = piPriority.is
           , longDescription  = piLongDescription.is
           , policyMode       = policyModes.is
+          , tags             = newTags
         )
 
         if ((!isMigration && directive == updatedDirective && updatedRules.isEmpty)) {
