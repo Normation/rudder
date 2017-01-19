@@ -65,14 +65,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </encoder>
   </appender>
   
-  <!-- 
-    That property defines the directory into which log using OPSLOG 
-    appender will be write. 
-    It can be overwritten when the application is launched with the
-    Java system property syntax: java -DOPSLOG_DIR="/some/other/directory/"
-  -->
-  <property name="OPSLOG_DIR" value="/tmp/rudder-test-logs" />
-  
+
   <!-- 
     A file log appender for exploitation logs about reports, outputing in a file
     The message format will be looking like syslog message:
@@ -80,8 +73,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     
     'report' is expected to be the ops logger name.
    -->
+  <!-- to create uniquely named file for test -->
+  <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+   
   <appender name="OPSLOG" class="ch.qos.logback.core.FileAppender">
-    <file>${OPSLOG_DIR}/rudder-webapp.log</file>
+    <file>/tmp/rudder-test-logs-rudder-webapp-${bySecond}.log</file>
     <append>true</append>
     <encoder>
       <pattern>%d{MMM dd HH:mm:ss} ${HOSTNAME} rudder[%logger]: [%level] %msg%n</pattern>
