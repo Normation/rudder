@@ -107,27 +107,46 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <!-- scope must be compile, some object are used by Doobie -->
     </dependency>
 
+    <!-- pool connection: https://github.com/brettwooldridge/HikariCP -->
+    <!-- http://blog.trustiv.co.uk/2014/06/battle-connection-pools -->
+    <dependency>
+        <groupId>com.zaxxer</groupId>
+        <artifactId>HikariCP</artifactId>
+        <version>2.5.1</version>
+    </dependency>
 
+    <!-- Need to explicit scalaz-stream version to 
+         make both doobie and http4s happy 
+    -->
+    <dependency>
+      <groupId>org.scalaz.stream</groupId>
+      <artifactId>scalaz-stream_${scala-binary-version}</artifactId>
+      <version>${scalaz-stream-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.scalaz</groupId>
+      <artifactId>scalaz-concurrent_${scala-binary-version}</artifactId>
+      <version>${scalaz-version}</version>
+    </dependency>
     <!-- Doobie for SQL queries -->
     <dependency>
       <groupId>org.tpolecat</groupId>
       <artifactId>doobie-core_${scala-binary-version}</artifactId>
-      <version>0.2.4</version>
+      <version>${doobie-version}</version>
     </dependency>
     <dependency>
       <groupId>org.tpolecat</groupId>
       <artifactId>doobie-contrib-postgresql_${scala-binary-version}</artifactId>
-      <version>0.2.4</version>
+      <version>0.3.0</version>
     </dependency>
     <dependency>
       <groupId>org.tpolecat</groupId>
       <artifactId>doobie-contrib-specs2_${scala-binary-version}</artifactId>
-      <version>0.2.4</version>
+      <version>${doobie-version}</version>
       <scope>test</scope>
     </dependency>
     
     <!-- Doing HTTP requests -->
-    <!-- rapture dev seems to have stop -->
     <dependency>
       <groupId>org.scalaj</groupId>
       <artifactId>scalaj-http_${scala-binary-version}</artifactId>
@@ -136,19 +155,21 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>org.http4s</groupId>
       <artifactId>http4s-dsl_${scala-binary-version}</artifactId>
-      <version>0.8.6</version>
+      <version>${http4s-version}</version>
       <scope>test</scope>
     </dependency> 
     <dependency>
       <groupId>org.http4s</groupId>
-      <artifactId>http4s-blazeserver_${scala-binary-version}</artifactId>
-      <version>0.8.6</version>
+      <artifactId>http4s-blaze-server_${scala-binary-version}</artifactId>
+      <version>${http4s-version}</version>
       <scope>test</scope>
     </dependency> 
+    
+    <!-- Task: monix -->
     <dependency>
       <groupId>io.monix</groupId>
       <artifactId>monix_${scala-binary-version}</artifactId>
-      <version>2.1.1</version>
+      <version>${monix-version}</version>
     </dependency>
 
     
@@ -159,13 +180,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>2.2.0</version>
     </dependency>
 
-    <!-- pool connection: https://github.com/brettwooldridge/HikariCP -->
-    <!-- http://blog.trustiv.co.uk/2014/06/battle-connection-pools -->
-    <dependency>
-        <groupId>com.zaxxer</groupId>
-        <artifactId>HikariCP</artifactId>
-        <version>2.4.7</version>
-    </dependency>
 
     <dependency>
       <groupId>com.google.guava</groupId>

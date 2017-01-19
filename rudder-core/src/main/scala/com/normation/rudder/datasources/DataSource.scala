@@ -49,7 +49,7 @@ import com.normation.rudder.repository.json.JsonExctractorUtils
 import scalaz.Monad
 import scalaz.Id
 
-object DataSource {
+final object DataSource {
   val defaultDuration = FiniteDuration(5,"minutes")
 }
 
@@ -57,39 +57,60 @@ sealed trait DataSourceType {
   def name : String
 }
 
-final case class HttpDataSourceType (
-    url            : String
-  , headers        : Map[String,String]
-  , httpMethod     : String
-  , sslCheck       : Boolean
-  , path           : String
-  , requestMode    : HttpRequestMode
-  , requestTimeOut : FiniteDuration
-) extends DataSourceType {
-  val name = HttpDataSourceType.name
+/*
+ * For an HTTP datasource, how to contact the
+ * foreign server?
+ */
+sealed trait HttpMethod { def name: String }
+final object HttpMethod {
+
+  final case object GET  extends HttpMethod { override val name = "GET"  }
+  final case object POST extends HttpMethod { override val name = "POST" }
+
+  def values = ca.mrvisser.sealerate.values[HttpMethod]
 }
 
-object HttpDataSourceType{
-  val name = "http"
+final object DataSourceType {
+
+  final object HTTP {
+    val name = "http"
+  }
+
+  final case class HTTP (
+      url            : String
+    , headers        : Map[String,String]
+    , httpMethod     : HttpMethod
+    , params         : Map[String, String] // query params for GET, form params for POST
+    , sslCheck       : Boolean
+    , path           : String
+    , requestMode    : HttpRequestMode
+    , requestTimeOut : FiniteDuration
+  ) extends DataSourceType {
+    val name = HTTP.name
+  }
 }
 
 sealed trait HttpRequestMode {
   def name : String
 }
-final case object OneRequestByNode extends HttpRequestMode {
-  val name = "byNode"
+
+final object HttpRequestMode {
+  final case object OneRequestByNode extends HttpRequestMode {
+    val name = "byNode"
+  }
+
+  final object OneRequestAllNodes {
+    val name = "allNodes"
+  }
+
+  final case class OneRequestAllNodes(
+      matchingPath  : String
+    , nodeAttribute : String
+  ) extends HttpRequestMode {
+    val name = HttpRequestMode.OneRequestAllNodes.name
+  }
 }
 
-final case class OneRequestAllNodes(
-    matchingPath  : String
-  , nodeAttribute : String
-) extends HttpRequestMode {
-  val name = OneRequestAllNodes.name
-}
-
-object OneRequestAllNodes {
-  val name = "allNodes"
-}
 final case class DataSourceName(value : String) extends AnyVal
 final case class DataSourceId  (value : String) extends AnyVal
 
@@ -97,15 +118,17 @@ sealed trait DataSourceSchedule {
   def duration : FiniteDuration
 }
 
-final case class NoSchedule(
-  savedDuration : FiniteDuration
-) extends DataSourceSchedule {
-  val duration = savedDuration
-}
+final object DataSourceSchedule {
+  final case class NoSchedule(
+    savedDuration : FiniteDuration
+  ) extends DataSourceSchedule {
+    val duration = savedDuration
+  }
 
-final case class Scheduled(
-  duration : FiniteDuration
-) extends DataSourceSchedule
+  final case class Scheduled(
+    duration : FiniteDuration
+  ) extends DataSourceSchedule
+}
 
 final case class DataSourceRunParameters (
     schedule     : DataSourceSchedule
@@ -123,18 +146,21 @@ sealed trait DataSourceUpdateStatus{
   def lastRunDate : DateTime
 }
 
-final case class DataSourceUpdateSuccess(
-  lastRunDate : DateTime
-) extends DataSourceUpdateStatus {
-  val state = "success"
-}
+final case object DataSourceUpdateStatus {
 
-final case class DataSourceUpdateFailure(
-    lastRunDate     : DateTime
-  , message         : String
-  , lastSuccessDate : Option[String]
-) extends DataSourceUpdateStatus {
-  val state = "failure"
+  final case class Success(
+    lastRunDate : DateTime
+  ) extends DataSourceUpdateStatus {
+    val state = "success"
+  }
+
+  final case class Failure(
+      lastRunDate     : DateTime
+    , message         : String
+    , lastSuccessDate : Option[String]
+  ) extends DataSourceUpdateStatus {
+    val state = "failure"
+  }
 }
 
 final case class DataSource (

@@ -41,7 +41,6 @@ import scala.concurrent.ExecutionContext
 
 import org.http4s._
 import org.http4s.dsl._
-import org.http4s.server.HttpService
 import org.http4s.server.blaze.BlazeBuilder
 
 /*

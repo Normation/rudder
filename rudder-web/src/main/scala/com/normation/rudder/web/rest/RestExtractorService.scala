@@ -40,58 +40,45 @@ package com.normation.rudder.web.rest
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.api.ApiAccountId
+import com.normation.rudder.api.ApiAccountName
+import com.normation.rudder.datasources.DataSource
+import com.normation.rudder.datasources.DataSourceName
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.QueryReturnType
+import com.normation.rudder.domain.workflows._
 import com.normation.rudder.repository._
+import com.normation.rudder.repository.json._
+import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.CmdbQueryParser._
+import com.normation.rudder.services.queries.JsonQueryLexer
+import com.normation.rudder.services.queries.StringCriterionLine
+import com.normation.rudder.services.queries.StringQuery
+import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.web.rest.changeRequest.APIChangeRequestInfo
 import com.normation.rudder.web.rest.directive.RestDirective
 import com.normation.rudder.web.rest.group.RestGroup
 import com.normation.rudder.web.rest.node._
+import com.normation.rudder.web.rest.parameter.RestParameter
 import com.normation.rudder.web.rest.rule.RestRule
 import com.normation.rudder.web.services.ReasonBehavior.Disabled
 import com.normation.rudder.web.services.ReasonBehavior.Mandatory
 import com.normation.rudder.web.services.ReasonBehavior.Optionnal
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.utils.Control._
-import net.liftweb.util.Helpers.tryo
+
 import net.liftweb.common._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
-import com.normation.rudder.api.ApiAccountId
-import com.normation.rudder.web.rest.parameter.RestParameter
-import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.rudder.api.ApiAccountName
-import com.normation.rudder.domain.workflows._
-import com.normation.rudder.web.rest.changeRequest.APIChangeRequestInfo
-import com.normation.rudder.services.workflows.WorkflowService
-import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.services.queries.JsonQueryLexer
-import com.normation.rudder.domain.nodes.NodeProperty
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.services.queries.StringCriterionLine
-import com.normation.rudder.domain.queries.QueryReturnType
-import com.normation.rudder.domain.queries.NodeReturnType
-import com.normation.rudder.services.queries.StringQuery
 import net.liftweb.http.Req
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.datasources.DataSource
-import com.normation.rudder.datasources.DataSourceName
-import org.joda.time.Seconds
+import net.liftweb.json._
 import net.liftweb.json.JsonAST.JObject
-import com.normation.rudder.datasources.DataSourceType
-import scala.concurrent.duration._
-import java.util.concurrent.TimeUnit
-import com.normation.rudder.datasources.HttpDataSourceType
-import com.normation.rudder.datasources.HttpRequestMode
-import com.normation.rudder.datasources.OneRequestByNode
-import com.normation.rudder.datasources.OneRequestAllNodes
-import com.normation.rudder.datasources.DataSourceRunParameters
-import com.normation.rudder.datasources.DataSourceSchedule
-import com.normation.rudder.datasources.Scheduled
-import com.normation.rudder.datasources.NoSchedule
-import com.normation.rudder.repository.json._
+import net.liftweb.json.JsonDSL._
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -103,7 +90,7 @@ case class RestExtractorService (
   , workflowService      : WorkflowService
 ) extends Loggable {
 
-  import OptionnalJson._
+  import com.normation.rudder.repository.json.DSExtractor.OptionnalJson._
   /*
    * Params Extractors
    */
