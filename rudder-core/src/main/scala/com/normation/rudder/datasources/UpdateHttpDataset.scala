@@ -88,14 +88,23 @@ class GetDataset(valueCompiler: InterpolatedValueCompiler) {
 
   val compiler = new InterpolateNode(valueCompiler)
 
+
   def getNode(datasourceName: DataSourceId, datasource: HttpDataSourceType, node: NodeInfo, policyServer: NodeInfo, parameters: Set[Parameter], connectionTimeout: Duration, readTimeOut: Duration): Box[NodeProperty] = {
     for {
-      p          <- sequence(parameters.toSeq)(compiler.compileParameters) ?~! "Error when transforming Rudder Parameter for variable interpolation"
-      parameters =  p.toMap
-      url        <- compiler.compileInput(datasource.url, node, policyServer, parameters) ?~! s"Error when trying to parse URL ${datasource.url}"
-      path       <- compiler.compileInput(datasource.path, node, policyServer, parameters) ?~! s"Error when trying to compile JSON path ${datasource.path}"
+      parameters <- sequence(parameters.toSeq)(compiler.compileParameters) ?~! "Error when transforming Rudder Parameter for variable interpolation"
+      expand     =  compiler.compileInput(node, policyServer, parameters.toMap) _
+      url        <- expand(datasource.url) ?~! s"Error when trying to parse URL ${datasource.url}"
+      path       <- expand(datasource.path) ?~! s"Error when trying to compile JSON path ${datasource.path}"
+      headers    <- (sequence(datasource.headers.toList) { case (key, value) =>
+                      for {
+                        newKey   <- expand(key)
+                        newValue <- expand(value)
+                      } yield {
+                        (newKey, newValue)
+                      }
+                    }).map( _.toMap )
       time_0     =  System.currentTimeMillis
-      body       <- QueryHttp.GET(url, datasource.headers, datasource.sslCheck, connectionTimeout, readTimeOut) ?~! s"Error when fetching data from ${url}"
+      body       <- QueryHttp.GET(url, headers, datasource.sslCheck, connectionTimeout, readTimeOut) ?~! s"Error when fetching data from ${url}"
       _          =  DataSourceTimingLogger.trace(s"[${System.currentTimeMillis - time_0} ms] node '${node.id.value}': GET ${url} // ${path}")
       json       <- body match {
                       case Some(body) => JsonSelect.fromPath(path, body) ?~! s"Error when extracting sub-json at path ${path} from ${body}"
@@ -170,7 +179,7 @@ class InterpolateNode(compiler: InterpolatedValueCompiler) {
     compiler.compile(parameter.value).map(v => (parameter.name, v))
   }
 
-  def compileInput(input: String, node: NodeInfo, policyServer: NodeInfo, parameters: Map[ParameterName, InterpolationContext => Box[String]]): Box[String] = {
+  def compileInput(node: NodeInfo, policyServer: NodeInfo, parameters: Map[ParameterName, InterpolationContext => Box[String]])(input: String): Box[String] = {
 
     //build interpolation context from node:
     val context = InterpolationContext(node, policyServer, TreeMap[String, Variable](), parameters, 5)
