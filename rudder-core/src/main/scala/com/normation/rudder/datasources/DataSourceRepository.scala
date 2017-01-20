@@ -53,7 +53,7 @@ import scala.concurrent.duration._
 import net.liftweb.common.Failure
 import scalaz.concurrent.Task
 import doobie.imports._
-import doobie.contrib.postgresql.pgtypes._
+import doobie.postgres.pgtypes._
 import net.liftweb.common.Loggable
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._

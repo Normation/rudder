@@ -66,10 +66,9 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
 
   def updateNodes(nodes: Seq[NodeInfo], closable: Seq[String]): Unit = {
     (nodes.map(x => x.id.value).toList ++ closable).toNel.map { toClose =>
-      implicit val closeParam = Param.many(toClose)
 
       (for {
-        updated  <- sql"update nodes set endtime = ${Some(DateTime.now)} where endtime is null and nodeid in (${toClose: toClose.type})".update.run
+        updated  <- (fr"update nodes set endtime = ${Some(DateTime.now)} where endtime is null and " ++ Fragments.in(fr"nodeid", toClose)).update.run
         inserted <- Update[DB.SerializedNodes[Unit]](
                       "insert into nodes (nodeid, nodename, nodedescription, starttime, endtime) values (?, ?, ?, ?, ?)"
                     ).updateMany(nodes.map(DB.Historize.fromNode).toList)
@@ -90,8 +89,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       groups     <- sql"""select id, groupid, groupname, groupdescription, nodecount, groupstatus, starttime, endtime
                           from groups where endtime is null""".query[DB.SerializedGroups[Long]].vector
       joinGroups <- groups.map( _.id).toNel.foldMap { joinIds =>
-                      implicit val joinIdsParam = Param.many(joinIds)
-                      sql"select grouppkeyid, nodeid from groupsnodesjoin where grouppkeyid in (${joinIds: joinIds.type})".query[DB.SerializedGroupsNodes].vector
+                      (fr"select grouppkeyid, nodeid from groupsnodesjoin where " ++ Fragments.in(fr"grouppkeyid", joinIds)).query[DB.SerializedGroupsNodes].vector
                     }(Monoid.liftMonoid)
     } yield {
       val byIds = joinGroups.groupBy(_.groupPkeyId)
@@ -104,10 +102,9 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
 
   def updateGroups(groups : Seq[NodeGroup], closable : Seq[String]): Unit = {
     (groups.map(x => x.id.value).toList ++ closable).toNel.map { toClose =>
-      implicit val closeParam = Param.many(toClose)
 
       (for {
-        updated  <- sql"update groups set endtime = ${Some(DateTime.now)} where endtime is null and groupid in (${toClose: toClose.type})".update.run
+        updated  <- (fr"update groups set endtime = ${Some(DateTime.now)} where endtime is null and " ++ Fragments.in(fr"groupid", toClose)).update.run
         inserted <- Update[DB.SerializedGroups[Unit]](
                       "insert into groups (groupid, groupname, groupdescription, nodecount, groupstatus, starttime, endtime) values (?, ?, ?, ?, ?, ?, ?)"
                     ).updateMany(groups.map(DB.Historize.fromNodeGroup).toList)
@@ -129,10 +126,8 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     , closable : Seq[String]
   ): Unit = {
     (directives.map(x => x._1.id.value).toList ++ closable).toNel.map { toClose =>
-      implicit val closeParam = Param.many(toClose)
-
       (for {
-        updated  <- sql"update directives set endtime = ${Some(DateTime.now)} where endtime is null and directiveid in (${toClose: toClose.type})".update.run
+        updated  <- (fr"update directives set endtime = ${Some(DateTime.now)} where endtime is null and " ++ Fragments.in(fr"directiveid", toClose)).update.run
         inserted <- Update[DB.SerializedDirectives[Unit]]("""
                       insert into directives (directiveid, directivename, directivedescription, priority, techniquename,
                       techniquehumanname, techniquedescription, techniqueversion, starttime, endtime) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -151,16 +146,14 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                           where endtime is null""".query[DB.SerializedRules[Long]].vector
       ruleIds    =  rules.map( _.id).toNel
       groups     <- ruleIds.foldMap { joinIds =>
-                        implicit val joinIdsParam = Param.many(joinIds)
-                        sql"""select rulepkeyid, targetserialisation
+                        (fr"""select rulepkeyid, targetserialisation
                               from rulesgroupjoin
-                              where rulepkeyid in (${joinIds: joinIds.type})""".query[DB.SerializedRuleGroups].vector
+                              where """ ++ Fragments.in(fr"rulepkeyid", joinIds)).query[DB.SerializedRuleGroups].vector
                     }(Monoid.liftMonoid)
       directives <- ruleIds.foldMap { joinIds =>
-                        implicit val joinIdsParam = Param.many(joinIds)
-                        sql"""select rulepkeyid, directiveid
+                        (fr"""select rulepkeyid, directiveid
                               from rulesdirectivesjoin
-                              where rulepkeyid in (${joinIds: joinIds.type})""".query[DB.SerializedRuleDirectives].vector
+                              where """ ++ Fragments.in(fr"rulepkeyid", joinIds)).query[DB.SerializedRuleDirectives].vector
                     }(Monoid.liftMonoid)
     } yield {
         val dMap = directives.groupBy(_.rulePkeyId)
@@ -201,10 +194,8 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
 
 
     (rules.map(x => x.id.value).toList ++ closable).toNel.map { toClose =>
-      implicit val closeParam = Param.many(toClose)
       (for {
-        updated  <- sql"update rules set endtime = ${Some(DateTime.now)} where endtime is null and ruleid in (${toClose: toClose.type})"
-                    .update.run.transact(xa)
+        updated  <- (fr"update rules set endtime = ${Some(DateTime.now)} where endtime is null and " ++ Fragments.in(fr"ruleid", toClose)).update.run.transact(xa)
         inserted <- rules.map(r => insertRule(now)(r).transact(xa)).toList.sequence
       } yield {
         ()

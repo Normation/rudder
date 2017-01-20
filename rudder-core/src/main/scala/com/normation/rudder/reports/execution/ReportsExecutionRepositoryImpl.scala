@@ -88,9 +88,6 @@ case class RoReportsExecutionRepositoryImpl (
       case None => Full(Map())
       case Some(nodes) =>
 
-        //val nodes = pgInClause.in("nodeid", nodeIds.map(_.value))
-        implicit val nodesParam = Param.many(nodes)
-
         // notice that we can't use pgInClause because we don't have any way
         // to interpolate the actual value of in - sql""" """ is more
         // than just interpolation. Need to check perfomances.
@@ -98,19 +95,19 @@ case class RoReportsExecutionRepositoryImpl (
           // Here to make the query faster, we distinct only on the reportexecution to get the last run
           // but we need to get the matching last entry on nodeconfigurations.
           // I didn't find any better solution than doing a distinct on the table
-          runs <- sql"""select r.nodeid, r.date, r.nodeconfigid, r.complete, r.insertionid,
+          runs <- (fr"""select r.nodeid, r.date, r.nodeconfigid, r.complete, r.insertionid,
                          c.nodeid, c.nodeconfigid, c.begindate, c.enddate, c.configuration from
                          (
                            select distinct on (nodeid)
                               nodeid, date, nodeconfigid, complete, insertionid
                               from reportsexecution
                               where complete = true
-                              and nodeid in (${nodes : nodes.type})
-                           order by nodeid, insertionid desc
+                              and """ ++ Fragments.in(fr"nodeid", nodes) ++
+                      fr"""order by nodeid, insertionid desc
                          ) as r
                          left outer join nodeconfigurations as c
                           on r.nodeId = c.nodeid and r.nodeconfigid = c.nodeconfigid
-                     """.query[
+                     """).query[
                           //
                           // For some reason unknown of me, if we use Option[NodeId] for the parameter,
                           // we are getting the assertion fail from NodeId: "An UUID can not have a null or empty value (value: null)"

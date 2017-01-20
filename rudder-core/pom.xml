@@ -136,12 +136,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
     <dependency>
       <groupId>org.tpolecat</groupId>
-      <artifactId>doobie-contrib-postgresql_${scala-binary-version}</artifactId>
-      <version>0.3.0</version>
+      <artifactId>doobie-postgres_${scala-binary-version}</artifactId>
+      <version>${doobie-version}</version>
     </dependency>
     <dependency>
       <groupId>org.tpolecat</groupId>
-      <artifactId>doobie-contrib-specs2_${scala-binary-version}</artifactId>
+      <artifactId>doobie-specs2_${scala-binary-version}</artifactId>
       <version>${doobie-version}</version>
       <scope>test</scope>
     </dependency>
