@@ -96,8 +96,10 @@ trait DataSourceUpdateCallbacks {
 
   def onNewNode(node: NodeId): Unit
   def onGenerationStarted(generationTimeStamp: DateTime): Unit
-  def onUserAskUpdateAll(actor: EventActor): Unit
+  def onUserAskUpdateAllNodes(actor: EventActor): Unit
+  def onUserAskUpdateAllNodesFor(actor: EventActor, datasourceId: DataSourceId): Unit
   def onUserAskUpdateNode(actor: EventActor, nodeId: NodeId): Unit
+  def onUserAskUpdateNodeFor(actor: EventActor, nodeId: NodeId, datasourceId: DataSourceId): Unit
 
   /*
    * Initialise all datasource so that they are ready to schedule their
@@ -268,9 +270,19 @@ class DataSourceRepoImpl(
     }
   }
 
-  override def onUserAskUpdateAll(actor: EventActor): Unit = {
-    DataSourceLogger.info(s"Fetching data from data source for all node because ${actor.name} asked for it")
-    foreachDatasourceScheduler(ds => ds.enabled){ dss =>
+  override def onUserAskUpdateAllNodes(actor: EventActor): Unit = {
+    DataSourceLogger.info(s"Fetching data from data sources for all node because ${actor.name} asked for it")
+    fetchAllNode(actor, None)
+  }
+
+  override def onUserAskUpdateAllNodesFor(actor: EventActor, datasourceId: DataSourceId): Unit = {
+    DataSourceLogger.info(s"Fetching data from data source '${datasourceId.value}' for all node because ${actor.name} asked for it")
+    fetchAllNode(actor, Some(datasourceId))
+  }
+
+  // just to factorise the same code
+  private[this] def fetchAllNode(actor: EventActor, datasourceId: Option[DataSourceId]) = {
+    foreachDatasourceScheduler(ds => ds.enabled && datasourceId.fold(true)(id => ds.id == id)){ dss =>
       //for that one, do a scheduler restart
       val msg = s"Refreshing data from data source ${dss.datasource.name.value} on user ${actor.name} request"
       DataSourceLogger.debug(msg)
@@ -281,7 +293,16 @@ class DataSourceRepoImpl(
 
   override def onUserAskUpdateNode(actor: EventActor, nodeId: NodeId): Unit = {
     DataSourceLogger.info(s"Fetching data from data source for node '${nodeId.value}' because '${actor.name}' asked for it")
-    foreachDatasourceScheduler(ds => ds.enabled){ dss =>
+    fetchOneNode(actor, nodeId, None)
+  }
+
+  override def onUserAskUpdateNodeFor(actor: EventActor, nodeId: NodeId, datasourceId: DataSourceId): Unit = {
+    DataSourceLogger.info(s"Fetching data from data source for node '${nodeId.value}' because '${actor.name}' asked for it")
+    fetchOneNode(actor, nodeId, Some(datasourceId))
+  }
+
+  private[this] def fetchOneNode(actor: EventActor, nodeId: NodeId, datasourceId: Option[DataSourceId]) = {
+    foreachDatasourceScheduler(ds => ds.enabled && datasourceId.fold(true)(id => ds.id == id)){ dss =>
       //for that one, no scheduler restart
       val msg = s"Fetching data for data source ${dss.datasource.name.value} (${dss.datasource.id.value}) for node '${nodeId.value}' on user '${actor.name}' request"
       DataSourceLogger.debug(msg)
