@@ -67,7 +67,7 @@ import scala.util.{Failure => Catch}
 
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import doobie. contrib.postgresql.pgtypes._
+import doobie.postgres.pgtypes._
 import scalaz.concurrent.Task
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
@@ -167,7 +167,7 @@ class EventLogJdbcRepository(
     }
 
     (for {
-      entries <- HC.process[(String, EventLogDetails)](q, param).vector
+      entries <- HC.process[(String, EventLogDetails)](q, param, 512).vector
     } yield {
       entries.map(toEventLog)
     }).attempt.transact(xa).run
@@ -210,7 +210,7 @@ class EventLogJdbcRepository(
     }.void
 
     (for {
-      entries <- HC.process[(String, String, EventLogDetails)](q, param).vector
+      entries <- HC.process[(String, String, EventLogDetails)](q, param, 512).vector
     } yield {
       entries.map { case (crid, tpe, details) =>
         (ChangeRequestId(crid.substring(1, crid.length()-1).toInt), toEventLog((tpe, details)) )
