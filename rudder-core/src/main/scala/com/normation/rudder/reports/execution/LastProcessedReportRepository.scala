@@ -86,7 +86,7 @@ class LastProcessedReportRepositoryImpl (
   }
 
   def setExecutionStatus(newId : Long, reportsDate : DateTime) : Box[DB.StatusUpdate] = {
-    import doobie.contrib.postgresql.sqlstate.class23.UNIQUE_VIOLATION
+    import doobie.postgres.sqlstate.class23.UNIQUE_VIOLATION
 
     //upsert of the poor :)
     val insert = sql"""

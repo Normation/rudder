@@ -46,7 +46,7 @@ import com.normation.rudder.db.Doobie._
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
 import scalaz.concurrent.Task
-import doobie.contrib.postgresql.pgtypes._
+import doobie.postgres.pgtypes._
 import com.normation.rudder.db.DB
 import com.normation.rudder.services.reports._
 import com.normation.inventory.domain.NodeId

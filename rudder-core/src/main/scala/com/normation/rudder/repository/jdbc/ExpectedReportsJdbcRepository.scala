@@ -54,7 +54,7 @@ import com.normation.rudder.db.Doobie._
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
 import scalaz.concurrent.Task
-import doobie.contrib.postgresql.pgtypes._
+import doobie.postgres.pgtypes._
 import com.normation.rudder.db.DB
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 
@@ -147,14 +147,13 @@ class FindExpectedReportsJdbcRepository(
       case None => Full(Map())
       case Some(ids) =>
 
-        implicit val idsParam = Param.many(ids)
         val t0 = System.currentTimeMillis
         (for {
-          configs <- sql"""
+          configs <- (fr"""
                        select nodeid, nodeconfigid, begindate, enddate, configuration
                        from nodeconfigurations
-                       where enddate is null and nodeid in (${ids: ids.type})
-                     """.query[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].vector
+                       where enddate is null and """ ++ Fragments.in(fr"nodeid", ids)
+                     ).query[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].vector
         } yield {
           val t1 =  System.currentTimeMillis
           TimingDebugLogger.trace(s"Compliance: query to get current expected reports: ${t1-t0}ms")
@@ -220,19 +219,18 @@ class UpdateExpectedReportsJdbcRepository(
       case None          => Full(Nil)
       case Some(nodeIds) =>
 
-        implicit val nodeIdsParam = Param.many(nodeIds)
 
         type A = \/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
-        val getConfigs: \/[Throwable, List[A]] = sql"""
+        val getConfigs: \/[Throwable, List[A]] = (fr"""
                            select nodeid, nodeconfigid, begindate, enddate, configuration
                            from nodeconfigurations
-                           where nodeid in (${nodeIds: nodeIds.type}) and enddate is NULL
-                        """.query[A].list.attempt.transact(xa).run
+                           where enddate is NULL and """ ++ Fragments.in(fr"nodeid", nodeIds)
+                        ).query[A].list.attempt.transact(xa).run
 
         type B = (NodeId, Vector[NodeConfigIdInfo])
-        val getInfos: \/[Throwable, List[B]] = sql"""
-                            select node_id, config_ids from nodes_info where node_id in (${nodeIds: nodeIds.type})
-                          """.query[B].list.attempt.transact(xa).run
+        val getInfos: \/[Throwable, List[B]] = (fr"""
+                            select node_id, config_ids from nodes_info where """ ++ Fragments.in(fr"node_id", nodeIds)
+                          ).query[B].list.attempt.transact(xa).run
 
         // common part: find old configs and node config info for all config to update
         val time_0 = System.currentTimeMillis
