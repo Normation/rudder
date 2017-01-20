@@ -40,7 +40,7 @@ package com.normation.rudder.db
 import javax.sql.DataSource
 import doobie.imports._
 import doobie.enum.jdbctype.Other
-import doobie.contrib.postgresql.pgtypes._
+import doobie.postgres.pgtypes._
 import scalaz.{Failure => _, _}, Scalaz._
 import scalaz.concurrent.Task
 import org.joda.time.DateTime

@@ -63,7 +63,7 @@ import scalaz.concurrent.Task
 import com.normation.rudder.db.Doobie._
 
 
-import doobie.contrib.postgresql.pgtypes._
+import doobie.postgres.pgtypes._
 
 
 
