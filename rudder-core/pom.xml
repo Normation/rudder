@@ -128,6 +128,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>scalaz-concurrent_${scala-binary-version}</artifactId>
       <version>${scalaz-version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.scalaz</groupId>
+      <artifactId>scalaz-core_${scala-binary-version}</artifactId>
+      <version>${scalaz-version}</version>
+    </dependency>
     <!-- Doobie for SQL queries -->
     <dependency>
       <groupId>org.tpolecat</groupId>
