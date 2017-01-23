@@ -39,6 +39,7 @@ package com.normation.rudder.domain.policies
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 import com.normation.utils.Control._
+import com.normation.rudder.repository.json.JsonExctractorUtils
 
 /**
  * Tags that apply on Rules and Directives
@@ -60,7 +61,8 @@ final case class Tags(tags : Set[Tag]){
 
 }
 
-final object JsonTagSerialisation {
+object JsonTagSerialisation {
+
   import net.liftweb.json._
   import net.liftweb.json.JsonDSL._
 
@@ -68,32 +70,47 @@ final object JsonTagSerialisation {
 
     // sort all the tags by name
     val m : JValue = JArray( tags.tags.toList.sortBy( _.tagName.name ).map {
-      case Tag( tagName, tagValue ) =>
-        ( tagName.name -> tagValue.value ) : JObject
+      case Tag( tagName, tagValue ) => ( "key" -> tagName.name)~ ("value" -> tagValue.value )
     } )
 
     compactRender( m )
   }
 
-  def unserializeTags(value:String): Box[Tags] = {
-    import net.liftweb.json.JsonParser._
-    implicit val formats = DefaultFormats
+}
 
-    // This is awful
-    (tryo {
-      boxSequence(parse(value).children.map {
-        case JObject(fields) =>
-          fields.map{ case JField(tagName, tagValueJson) => tagValueJson match {
-            case JString(tagValue) => Full(Tag(TagName(tagName), TagValue(tagValue)))
-            case _ => Failure(s"Invalid type for tagValue ${tagValueJson}")
-          }
-        }
-        case _ => Failure(s"Invalid object in JSON serialization for Tags ${value}")  :: Nil
-      }.flatten).map( x =>  Tags(x.toSet))
-    }) match {
-      case Full(result) => result
+trait JsonTagExtractor[M[+_]] extends JsonExctractorUtils[M] {
+  import net.liftweb.json._
+  import net.liftweb.json.JsonDSL._
+
+  def unserializeTags(value:String): Box[M[Tags]] = {
+
+   parseOpt(value) match {
+      case Some(json) => extractTags(json)
       case _ => Failure("Invalid JSON serialization for Tags ${value}")
     }
-
   }
+
+  def extractTags(value:JValue): Box[M[Tags]] = {
+    value match {
+      case JArray(jsonTags) =>
+        for {
+          tags <-
+           sequence(jsonTags) {
+             jsonTag =>
+               for {
+                 tagName <- extractJsonString(jsonTag, "key", s => Full(TagName(s)))
+                 tagValue <- extractJsonString(jsonTag, "value", s => Full(TagValue(s)))
+               } yield {
+                 monad.apply2(tagName, tagValue)( (k,v) => Tag(k,v))
+               }
+           }
+        } yield {
+          import scalaz.Scalaz.listInstance
+          val tagMonad = monad.sequence(tags.toList)
+          monad.apply(tagMonad){ t:List[Tag] => Tags(t.toSet)}
+        }
+      case _ => Failure("Invalid JSON serialization for Tags ${value}")
+    }
+  }
+
 }

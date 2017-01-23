@@ -35,68 +35,69 @@
 *************************************************************************************
 */
 
+
 var app = angular.module('tags', []);
 
-app.controller('tagsDirectiveCtrl', function ($scope, $http, $location, $timeout) {
-  $scope.treeId;
-  $scope.scopeFilter;
+app.controller('tagsController', function ($scope, $http, $location, $timeout, $rootScope) {
+  $scope.filterScope;
+  $scope.newTag = { "key" : "" , "value" : "" };
   $scope.tags = [];
+  $scope.isEditForm = false
+  $scope.showDelete = [];
+  $scope.filterKeys = [];
+  $scope.filterValues = [];
 
-  $scope.init = function(treeId, tags){
-    $scope.treeId = treeId;
-    var temp;
-    for (key in tags){
-      temp = {'key':key, 'value':tags[key]};
-      $scope.tags.push(temp);
-    }
-    $scope.scopeFilter = angular.element($('[ng-controller="filterTagDirectiveCtrl"]')).scope();
-    $scope.scopeFilter.updateFilter();
+  $scope.init = function(tags, filterCtrl, isEditForm){
+    $scope.tags = tags;
+    $scope.isEditForm = isEditForm
+
+    angular.element($('[ng-controller="'+filterCtrl+'"]')).scope().registerScope($rootScope)
   }
+  
   $scope.toggleTag = function(tag){
-    $scope.scopeFilter.$apply(function(){
-      var newTag = {"key":tag.key, "value":tag.value};
-      $scope.scopeFilter.addTag($scope.treeId,newTag);
-    });
+    if( $scope.filterScope !== undefined) {
+      $scope.filterScope.$emit("addTag", angular.copy(tag))
+    }    
   }
+  
   $scope.keyTagMatch = function(tag){
-    return tag.match.key && $scope.scopeFilter.tags.length>0;
+    return $.inArray(tag.key , $scope.filterKeys) > -1
   }
   $scope.valTagMatch = function(tag){
-    return tag.match.value && $scope.scopeFilter.tags.length>0;
+    return $.inArray(tag.value, $scope.filterValues) > -1 // tag.match.value && $scope.scopeFilter.tags.length>0;
   }
+
+  $scope.$watch('tags', updateResult, true)
+  
+  $rootScope.$on("registerScope", function(event,filterScope) {
+    $scope.filterScope = filterScope;
+  })
+    
+  $rootScope.$on("updateFilter", function(event,filters) {
+    $scope.filterKeys = [];
+    $scope.filterValues = [];
+    angular.forEach(filters.tags, function(filter) {
+      $scope.filterKeys.push(filter.key);
+      $scope.filterValues.push(filter.value);
+    })
+    $timeout(function() {},0);
+  })
+  
+  function updateResult () {
+    $scope.result = JSON.stringify($scope.tags);
+  }
+  
+  $scope.addTag = function(){
+    $scope.tags.push($scope.newTag);
+    $scope.newTag = {};
+  }
+  
+  $scope.removeTag = function(index){
+    $scope.tags.splice(index, 1);
+  }
+  
 });
 
-app.controller('tagsRuleCtrl', function ($scope, $http, $location, $timeout) {
-  $scope.scopeFilter;
-
-  $scope.init = function(treeId, tags){
-    $scope.tags = [];
-    var jsonTags;
-    if(typeof tags == "string"){
-      jsonTags = JSON.parse(tags);
-    }
-    var temp;
-    for (key in jsonTags){
-      temp = {'key':key, 'value':jsonTags[key]};
-      $scope.tags.push(temp);
-    }
-    $scope.scopeFilter = angular.element($('[ng-controller="filterTagRuleCtrl"]')).scope();
-    $scope.scopeFilter.updateFilter();
-  }
-
-  $scope.toggleTag = function(tag){
-    $scope.scopeFilter.$apply(function(){
-      var newTag = {"key":tag.key, "value":tag.value};
-      $scope.scopeFilter.addTag(newTag);
-    });
-  }
-  $scope.keyTagMatch = function(tag){
-    return tag.match.key && $scope.scopeFilter.tags.length>0;
-  }
-  $scope.valTagMatch = function(tag){
-    return tag.match.value && $scope.scopeFilter.tags.length>0;
-  }
-});
 app.config(function($locationProvider) {
   $locationProvider.html5Mode({
     enabled: true,

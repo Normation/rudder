@@ -61,7 +61,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.web.rest.datasource.DataSourceApi
 import scala.concurrent.duration.Duration
 import java.util.concurrent.TimeUnit
-import com.normation.rudder.repository.json.DSExtractor.CompleteJson
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 
 @RunWith(classOf[JUnitRunner])
 class RestDataSourceTest extends Specification with Loggable {
