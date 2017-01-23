@@ -51,6 +51,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JString
+import com.normation.rudder.datasources.DataSourceId
 
 class NodeAPI9 (
     apiV8        : NodeAPI8
@@ -60,26 +61,46 @@ class NodeAPI9 (
 
   val v9Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
-    case Post( "fetchData" :: Nil, req) => {
+    case Post( "reloadDatasources" :: Nil, req) => {
       implicit val prettify = extractor.extractPrettify(req.params)
-      implicit val action = "fetchDataAllNodes"
+      implicit val action = "reloadAllDatasourcesAllNodes"
       val actor = RestUtils.getActor(req)
 
-      apiV9service.fetchDataAllNodes(actor)
+      apiV9service.reloadDataAllNodes(actor)
 
       toJsonResponse(None, JString("Data for all nodes, for all configured data sources are going to be updated"))
     }
 
-    case Post(id :: "fetchData" ::Nil, req) => {
+
+    case Post( "reloadDatasources" :: datasourceId :: Nil, req) => {
       implicit val prettify = extractor.extractPrettify(req.params)
-      implicit val action = "fetchDataOneNode"
+      implicit val action = "reloadOneDatasourceAllNodes"
       val actor = RestUtils.getActor(req)
 
-      apiV9service.fetchDataOneNode(NodeId(id), actor)
+      apiV9service.reloadDataAllNodesFor(actor, DataSourceId(datasourceId))
 
-      toJsonResponse(None, JString(s"Data for node '${id}', for all configured data sources, is going to be updated"))
+      toJsonResponse(None, JString("Data for all nodes, for all configured data sources are going to be updated"))
     }
 
+    case Post(nodeId :: "reloadDatasources" :: Nil, req) => {
+      implicit val prettify = extractor.extractPrettify(req.params)
+      implicit val action = "reloadAllDatasourcesOneNode"
+      val actor = RestUtils.getActor(req)
+
+      apiV9service.reloadDataOneNode(actor, NodeId(nodeId))
+
+      toJsonResponse(None, JString(s"Data for node '${nodeId}', for all configured data sources, is going to be updated"))
+    }
+
+    case Post(nodeId :: "reloadDatasources" :: datasourceId :: Nil, req) => {
+      implicit val prettify = extractor.extractPrettify(req.params)
+      implicit val action = "reloadOneDatasourceOneNode"
+      val actor = RestUtils.getActor(req)
+
+      apiV9service.reloadDataOneNodeFor(actor, NodeId(nodeId), DataSourceId(datasourceId))
+
+      toJsonResponse(None, JString(s"Data for node '${nodeId}', for all configured data sources, is going to be updated"))
+    }
   }
 
   override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {

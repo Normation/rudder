@@ -68,17 +68,25 @@ import com.zaxxer.nuprocess.NuProcessBuilder
 import java.util.Arrays
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.datasources.DataSourceUpdateCallbacks
+import com.normation.rudder.datasources.DataSourceId
 
 class NodeApiService9 (
     dataSourceUpdate: DataSourceUpdateCallbacks
 ) extends Loggable {
 
-  def fetchDataAllNodes(actor: EventActor): Unit = {
-    dataSourceUpdate.onUserAskUpdateAll(actor)
+  def reloadDataAllNodes(actor: EventActor): Unit = {
+    dataSourceUpdate.onUserAskUpdateAllNodes(actor)
   }
 
-  def fetchDataOneNode(nodeId: NodeId, actor: EventActor): Unit = {
+  def reloadDataAllNodesFor(actor: EventActor, datasourceId: DataSourceId): Unit = {
+    dataSourceUpdate.onUserAskUpdateAllNodesFor(actor, datasourceId)
+  }
+
+  def reloadDataOneNode(actor: EventActor, nodeId: NodeId): Unit = {
     dataSourceUpdate.onUserAskUpdateNode(actor, nodeId)
   }
 
+  def reloadDataOneNodeFor(actor: EventActor, nodeId: NodeId, datasourceId: DataSourceId): Unit = {
+    dataSourceUpdate.onUserAskUpdateNodeFor(actor, nodeId, datasourceId)
+  }
 }
