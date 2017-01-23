@@ -139,39 +139,15 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>scalaj-http_${scala-binary-version}</artifactId>
       <version>2.3.0</version>
     </dependency> 
-    <dependency>
-      <groupId>org.http4s</groupId>
-      <artifactId>http4s-dsl_${scala-binary-version}</artifactId>
-      <version>${http4s-version}</version>
-      <scope>test</scope>
-    </dependency> 
-    <dependency>
-      <groupId>org.http4s</groupId>
-      <artifactId>http4s-blaze-server_${scala-binary-version}</artifactId>
-      <version>${http4s-version}</version>
-      <scope>test</scope>
-    </dependency> 
     
-    <!-- Task: monix -->
+    <!-- cache used in compliance logger -->
     <dependency>
-      <groupId>io.monix</groupId>
-      <artifactId>monix_${scala-binary-version}</artifactId>
-      <version>${monix-version}</version>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+      <version>2.3.5</version>
     </dependency>
     
-    <!-- selecting sub-json -->
-    <dependency>
-      <groupId>com.jayway.jsonpath</groupId>
-      <artifactId>json-path</artifactId>
-      <version>2.2.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>19.0</version>
-    </dependency>
-
+    <!-- High performance, low memory native process fork/exec -->
     <dependency>
         <groupId>com.zaxxer</groupId>
         <artifactId>nuprocess</artifactId>
@@ -179,11 +155,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <scope>compile</scope>
     </dependency>
 
-    <dependency>
-      <groupId>commons-net</groupId>
-      <artifactId>commons-net</artifactId>
-      <version>3.3</version>
-    </dependency>
 
     <dependency>
       <groupId>net.liftweb</groupId>

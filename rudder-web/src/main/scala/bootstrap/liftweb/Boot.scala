@@ -59,13 +59,29 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import java.util.Locale
+
+/*
+ * Utilities about rights
+ */
+object Boot {
+  val redirection = RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error )
+
+  def userIsAllowed(redirectTo:String, requiredAuthz:AuthorizationType*) : Box[LiftResponse] =  {
+    if (requiredAuthz.exists((CurrentUser.checkRights(_)))) {
+      Empty
+    } else {
+      Full(RedirectWithState(redirectTo, redirection ) )
+    }
+  }
+}
+
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
  */
 class Boot extends Loggable {
 
-  val redirection = RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error )
+  import Boot._
 
   def boot {
 
@@ -237,10 +253,6 @@ class Boot extends Loggable {
             "secure" / "administration" / "apiManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Read("administration")) )
-        , Menu("dataSourceManagement", <span>Data sources</span>) /
-            "secure" / "administration" / "dataSourceManagement"
-            >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Read("administration")) )
       )
 
     def utilitiesMenu = {
@@ -354,13 +366,5 @@ class Boot extends Loggable {
     plugin.init
     //add the plugin packages to Lift package to look for packages
     LiftRules.addToPackages(plugin.basePackage)
-  }
-
-  private[this] def userIsAllowed(redirectTo:String, requiredAuthz:AuthorizationType*) : Box[LiftResponse] =  {
-    if (requiredAuthz.exists((CurrentUser.checkRights(_)))) {
-      Empty
-    } else {
-      Full(RedirectWithState(redirectTo, redirection ) )
-    }
   }
 }

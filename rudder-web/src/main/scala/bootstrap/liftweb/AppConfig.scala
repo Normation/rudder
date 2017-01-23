@@ -139,10 +139,6 @@ import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.web.rest.settings.SettingsAPI8
 import com.normation.rudder.web.rest.sharedFiles.SharedFilesAPI
-import com.normation.rudder.web.rest.datasource._
-import com.normation.rudder.datasources.DataSourceJdbcRepository
-import com.normation.rudder.datasources.DataSourceRepoImpl
-import com.normation.rudder.datasources.HttpQueryDataSourceService
 
 /**
  * Define a resource for configuration.
@@ -392,17 +388,12 @@ object RudderConfig extends Loggable {
   val ditQueryData: DitQueryData = ditQueryDataImpl
   val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
-  val allBootstrapChecks : BootstrapChecks = allChecks
   lazy val srvGrid = new SrvGrid(roAgentRunsRepository, asyncComplianceService, configService)
   val findExpectedReportRepository : FindExpectedReportRepository = findExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
   val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
-  lazy val dataSourceRepository = new DataSourceRepoImpl(
-      new DataSourceJdbcRepository(doobie)
-    , new HttpQueryDataSourceService(nodeInfoServiceImpl, roLDAPParameterRepository, woLdapNodeRepository, interpolationCompiler)
-    , stringUuidGenerator
-  )
+
 
   val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
   val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
@@ -707,7 +698,6 @@ object RudderConfig extends Loggable {
         woNodeRepository
       , nodeInfoService
       , uuidGen
-      , dataSourceRepository
       , asyncDeploymentAgent
       , RUDDER_RELAY_API
     )
@@ -798,11 +788,6 @@ object RudderConfig extends Loggable {
 
   val settingsApi8 = new SettingsAPI8(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
 
-  val dataSourceApiService = new DataSourceApiService(dataSourceRepository, restDataSerializer, restExtractorService)
-  val dataSourceApi9 = new DataSourceApi9(restExtractorService, dataSourceApiService, stringUuidGenerator)
-  val nodeApiService9 = new NodeApiService9(dataSourceRepository)
-  val nodeApi9 = new NodeAPI9(nodeApi8, nodeApiService9, restExtractorService)
-
   // First working version with support for rules, directives, nodes and global parameters
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   // Add change request support
@@ -817,7 +802,6 @@ object RudderConfig extends Loggable {
   val apiV7 = complianceApi7 :: apiV6.filter( _ != complianceApi6)
   // apiv8 add policy mode in node API and settings API
   val apiV8 = nodeApi8 :: settingsApi8 :: apiV7.filter( _ != nodeApi6)
-  val apiV9 = dataSourceApi9 :: nodeApi9 :: apiV8.filter( _ != nodeApi8 )
 
   val apis = {
     Map (
@@ -830,11 +814,11 @@ object RudderConfig extends Loggable {
         //Rudder 4.0
       , ( ApiVersion(8,false) -> apiV8 )
         //Rudder 4.1
-      , ( ApiVersion(9,false) -> apiV9 )
     )
   }
 
-  val apiDispatcher = APIDispatcher(apis, restExtractorService)
+  val apiDispatcher = APIDispatcher(restExtractorService)
+  apiDispatcher.addEndpoints(apis)
 
   // Internal APIs
   val sharedFileApi = new SharedFilesAPI(restExtractorService,RUDDER_DIR_SHARED_FILES_FOLDER)
@@ -1313,7 +1297,7 @@ object RudderConfig extends Loggable {
     )
   }
 
-  private[this] lazy val roLDAPParameterRepository = new RoLDAPParameterRepository(
+  lazy val roLDAPParameterRepository = new RoLDAPParameterRepository(
       rudderDitImpl, roLdap, ldapEntityMapper, parameterReadWriteMutex
   )
   private[this] lazy val woLDAPParameterRepository = new WoLDAPParameterRepository(
@@ -1419,48 +1403,50 @@ object RudderConfig extends Loggable {
     )
     service
   }
-  private[this] lazy val interpolationCompiler = new InterpolatedValueCompilerImpl()
+  lazy val interpolationCompiler = new InterpolatedValueCompilerImpl()
   private[this] lazy val ruleValService: RuleValService = new RuleValServiceImpl(interpolationCompiler)
 
   private[this] lazy val psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
     roLdapDirectiveRepository, woLdapDirectiveRepository)
   private[this] lazy val historizationService = new HistorizationServiceImpl(historizationJdbcRepository)
 
+  lazy val deploymentService = {
+    new PromiseGenerationServiceImpl(
+        roLdapRuleRepository
+      , woLdapRuleRepository
+      , ruleValService
+      , systemVariableService
+      , nodeConfigurationServiceImpl
+      , nodeInfoServiceImpl
+      , licenseRepository
+      , updateExpectedReports
+      , historizationService
+      , roNodeGroupRepository
+      , roDirectiveRepository
+      , ruleApplicationStatusImpl
+      , roParameterServiceImpl
+      , interpolationCompiler
+      , ldapFullInventoryRepository
+      , globalComplianceModeService
+      , globalAgentRunService
+      , reportingServiceImpl
+      , rudderCf3PromisesFileWriterService
+      , configService.agent_run_interval
+      , configService.agent_run_splaytime
+      , configService.agent_run_start_hour
+      , configService.agent_run_start_minute
+      , configService.rudder_featureSwitch_directiveScriptEngine
+      , configService.rudder_global_policy_mode
+      , HOOKS_D
+  )}
+
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentAgent = {
-    val deploymentService = {
-      new PromiseGenerationServiceImpl(
-          roLdapRuleRepository
-        , woLdapRuleRepository
-        , ruleValService
-        , systemVariableService
-        , nodeConfigurationServiceImpl
-        , nodeInfoServiceImpl
-        , licenseRepository
-        , updateExpectedReports
-        , historizationService
-        , roNodeGroupRepository
-        , roDirectiveRepository
-        , ruleApplicationStatusImpl
-        , roParameterServiceImpl
-        , interpolationCompiler
-        , ldapFullInventoryRepository
-        , globalComplianceModeService
-        , globalAgentRunService
-        , reportingServiceImpl
-        , rudderCf3PromisesFileWriterService
-        , dataSourceRepository
-        , configService.agent_run_interval
-        , configService.agent_run_splaytime
-        , configService.agent_run_start_hour
-        , configService.agent_run_start_minute
-        , configService.rudder_featureSwitch_directiveScriptEngine
-        , configService.rudder_global_policy_mode
-        , HOOKS_D
-    )}
+
     val agent = new AsyncDeploymentAgent(
         deploymentService
       , eventLogDeploymentServiceImpl
-      , deploymentStatusSerialisation)
+      , deploymentStatusSerialisation
+    )
     techniqueRepositoryImpl.registerCallback(
         new DeployOnTechniqueCallback("DeployOnPTLibUpdate", 1000, agent)
     )
@@ -1496,7 +1482,6 @@ object RudderConfig extends Loggable {
       , eventLogRepository
       , dyngroupUpdaterBatch
       , List(nodeInfoServiceImpl)
-      , dataSourceRepository
     )
   }
 
@@ -1527,7 +1512,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie)
   private[this] lazy val complianceRepositoryImpl = new ComplianceJdbcRepository(doobie)
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD, RUDDER_JDBC_MAX_POOL_SIZE)
-  private[this] lazy val doobie = new Doobie(dataSourceProvider.datasource)
+  lazy val doobie = new Doobie(dataSourceProvider.datasource)
   private[this] lazy val jdbcTemplate = {
     val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
     template
@@ -1678,7 +1663,7 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val ruleCategoriesDirectory = new File(new File(RUDDER_DIR_GITROOT),ruleCategoriesDirectoryName)
 
-  private[this] lazy val allChecks = new SequentialImmediateBootStrapChecks(
+  lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
@@ -1705,7 +1690,6 @@ object RudderConfig extends Loggable {
           asyncDeploymentAgent
         , uuidGen
       )
-    , new InitDataSourceScheduler(dataSourceRepository)
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////
