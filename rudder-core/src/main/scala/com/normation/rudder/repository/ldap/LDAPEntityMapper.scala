@@ -81,6 +81,7 @@ import JsonDSL._
 import com.normation.rudder.reports._
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 
 /**
  * Map objects from/to LDAPEntries
@@ -553,7 +554,7 @@ class LDAPEntityMapper(
         isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         tags             <- e(A_SERIALIZED_TAGS) match {
           case None => Full(Tags(Set()))
-          case Some(tags) => JsonTagSerialisation.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
+          case Some(tags) => CompleteJson.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
         }
       } yield {
         Directive(
@@ -642,7 +643,7 @@ class LDAPEntityMapper(
                     "Missing required attribute %s in entry %s".format(A_SERIAL, e)
         tags     <- e(A_SERIALIZED_TAGS) match {
           case None => Full(Tags(Set()))
-          case Some(tags) => JsonTagSerialisation.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
+          case Some(tags) => CompleteJson.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
         }
       } yield {
         val targets = for {

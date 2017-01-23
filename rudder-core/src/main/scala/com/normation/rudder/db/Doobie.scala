@@ -181,7 +181,7 @@ object Doobie {
   }
 
   implicit val DataSourceComposite: Composite[RudderDataSource] = {
-    import com.normation.rudder.repository.json.DSExtractor.CompleteJson._
+    import com.normation.rudder.repository.json.DataExtractor.CompleteJson._
     import com.normation.rudder.datasources.DataSourceJsonSerializer._
     import net.liftweb.json.compactRender
     import net.liftweb.json.parse
