@@ -98,15 +98,13 @@ class RuleCompliance (
 
   import RuleCompliance._
 
-  val getRuleTags = JsObj(rule.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList:_*)
-
-  def tagsEditForm = new TagsEditForm(getRuleTags)
+  def tagsEditForm = new TagsEditForm(rule.tags)
   def display : NodeSeq = {
 
     (
       "#ruleName" #>   rule.name &
       "#ruleCategory" #> categoryService.shortFqdn(rootRuleCategory, rule.categoryId) &
-      "#tagField *" #> tagsEditForm.dispatch("cfTagsRuleConfiguration") &
+      "#tagField *" #> tagsEditForm.viewTags("viewRuleTags", "ruleViewTagsApp", true) &
       "#rudderID" #> rule.id.value &
       "#ruleShortDescription" #> rule.shortDescription &
       "#ruleLongDescription" #>  rule.longDescription &

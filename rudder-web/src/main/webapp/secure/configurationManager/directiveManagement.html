@@ -35,6 +35,8 @@
     }
   </style>
   <link media="screen" href="/style/rudder/rudder-tags.css" rel="stylesheet" type="text/css">
+  
+  <script type="text/javascript" src="/javascript/rudder/tree-tag-plugin.js"></script>
   <script type="text/javascript" src="/javascript/rudder/angular/filters.js"></script>
   <script type="text/javascript" src="/javascript/rudder/directive.js"></script>
 </head>
@@ -85,9 +87,9 @@
                       <div class="input-group">
                         <input placeholder="key" class="form-control input-sm input-key    " type="text" ng-model="newTag.key">
                         <span class="input-group-addon addon-json">=</span>
-                        <input placeholder="value" class="form-control input-sm input-value" type="text" ng-model="newTag.value">
+                        <input placeholder="value" class="form-control input-sm input-key    " type="text" ng-model="newTag.value">
                         <span class="input-group-btn">
-                          <button type="button" class="btn btn-success btn-sm" ng-disabled="isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)" ng-click="addTag('#activeTechniquesTree')"><span class="fa fa-plus"></span></button>
+                          <button type="button" class="btn btn-success btn-sm" ng-disabled="isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)" ng-click="addTag(newTag)"><span class="fa fa-plus"></span></button>
                         </span>
                       </div>
                     </div>
@@ -106,12 +108,23 @@
                 </div>
                 <div class="panel-footer">
                   <div class="tags-container" ng-show="tags.length>0">
-                    <span class="rudder-tag" ng-repeat="tag in tags" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag($index,tag)">
-                      <span class="tag-key"><span ng-show="tag.key!=''">{{tag.key}}</span><i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i></span>
-                      <span class="tag-separator">=</span>
-                      <span class="tag-value"><span ng-show="tag.value!=''">{{tag.value}}</span><i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.value==''"></i></span>
-                      <span class="fa fa-times" ng-click="removeTag($index)"></span>
-                    </span>
+                    <div class="btn-group btn-group-xs" role="group"  ng-repeat="tag in tags track by $index">
+                      <button class="btn btn-default tag" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag($index,tag)" >
+                        <span class="tag-key">
+                          <span ng-show="tag.key!=''">{{tag.key}}</span>
+                          <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i>
+                        </span>
+                        <span class="tag-separator">=</span>
+                        <span class="tag-value">
+                          <span ng-show="tag.value!=''">{{tag.value}}</span>
+                          <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.value==''"></i>
+                        </span>
+                      </button>
+                      <button type="button" class="btn btn-default" ng-click="removeTag($index)">
+                        <span class="fa fa-times"></span>
+                      </button>
+                    </div>
+                  
                   </div>
                 </div>
               </div>
