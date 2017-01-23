@@ -344,16 +344,30 @@ class RuleGrid(
                       </div>
                       <div role="tabpanel" class="tab-pane" ng-class="{'active':tags.length>0 || strSearch.length>0}">
                         <div class="tags-container">
-                          <span class="rudder-tag tag-search" ng-if="strSearch.length>0">
-                            <span class="tag-value" ng-bind="strSearch"></span>
-                            <span class="fa fa-times" ng-click="clearSearch()"></span>
-                          </span>
-                          <span class="rudder-tag" ng-repeat="tag in tags" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag($index,tag)">
-                            <span class="tag-key"><span ng-show="tag.key!=''">{{{{tag.key}}}}</span><i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i></span>
-                            <span class="tag-separator">=</span>
-                            <span class="tag-value"><span ng-show="tag.value!=''">{{{{tag.value}}}}</span><i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.value==''"></i></span>
-                            <span class="fa fa-times" ng-click="removeTag($index)"></span>
-                          </span>
+                          <div class="btn-group btn-group-xs" role="group" ng-if="strSearch.length>0">
+                            <button type="button" class="btn btn-default search" ng-bind="strSearch"></button>
+                            <button type="button" class="btn btn-default" ng-click="clearSearch()">
+                              <span class="fa fa-times"></span>
+                            </button>
+                          </div>
+
+                          <div class="btn-group btn-group-xs" role="group"  ng-repeat="tag in tags track by $index">
+                            <button class="btn btn-default tag" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag($index,tag)" >
+                              <span class="tag-key">
+                                <span ng-show="tag.key!=''">{{{{tag.key}}}}</span>
+                                <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i>
+                              </span>
+                              <span class="tag-separator">=</span>
+                              <span class="tag-value">
+                                <span ng-show="tag.value!=''">{{{{tag.value}}}}</span>
+                                <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.value==''"></i>
+                              </span>
+                            </button>
+                            <button type="button" class="btn btn-default" ng-click="removeTag($index)">
+                              <span class="fa fa-times"></span>
+                            </button>
+                          </div>
+
                         </div>
                       </div>
                     </div>

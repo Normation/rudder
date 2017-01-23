@@ -92,6 +92,7 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.Tags
 
 object RuleEditForm {
 
@@ -294,6 +295,7 @@ class RuleEditForm(
       "#categoryField" #> category.toForm_! &
       "#shortDescriptionField" #> crShortDescription.toForm_! &
       "#longDescriptionField" #> crLongDescription.toForm_! &
+      "#tagField" #> tagsEditForm.tagsForm("ruleTags", "ruleEditTagsApp", updateTag, true) &
       "#selectPiField" #> {
         <div id={htmlId_activeTechniquesTree} class="tw-bs">{
           <ul>{
@@ -466,6 +468,18 @@ class RuleEditForm(
 
   ///////////// fields for Rule settings ///////////////////
 
+  private[this] var newTags = rule.tags
+
+  def updateTag (boxTag : Box[Tags]) = {
+    boxTag match {
+      case Full(tags) => newTags = tags
+      case eb : EmptyBox =>
+        val failure = eb ?~! s"Error when updating Rule ${rule.id.value} tag"
+        formTracker.addFormError(error(failure.messageChain))
+    }
+  }
+  def tagsEditForm = new TagsEditForm(rule.tags)
+
   private[this] val crName = new WBTextField("Name", rule.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "form-control"
@@ -524,12 +538,14 @@ class RuleEditForm(
         , directiveIds     = selectedDirectiveIds
         , isEnabledStatus  = rule.isEnabledStatus
         , categoryId       = RuleCategoryId(category.is)
+        , tags             = newTags
       )
-       if (newCr == rule) {
-          onNothingToDo()
-        } else {
-          displayConfirmationPopup("save", newCr)
-        }
+
+      if (newCr == rule) {
+        onNothingToDo()
+      } else {
+        displayConfirmationPopup("save", newCr)
+      }
     }
   }
 

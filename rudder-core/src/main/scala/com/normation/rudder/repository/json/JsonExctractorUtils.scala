@@ -44,6 +44,7 @@ import scalaz.Monad
 import scalaz.Id
 import scalaz.std.option._
 import com.normation.rudder.datasources.DataSourceExtractor
+import com.normation.rudder.domain.policies.JsonTagExtractor
 import scala.language.higherKinds
 
 trait JsonExctractorUtils[A[_]] {
@@ -92,10 +93,10 @@ trait JsonExctractorUtils[A[_]] {
   }
 }
 
+trait DataExtractor[T[+_]] extends DataSourceExtractor[T] with JsonTagExtractor[T]
+object DataExtractor {
 
-object DSExtractor {
-  
-  object OptionnalJson extends DataSourceExtractor[Option] {
+  object OptionnalJson extends DataExtractor[Option] {
     def monad = implicitly
     def getOrElse[T](value : Option[T], default : T) = value.getOrElse(default)
     protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) = {
@@ -110,7 +111,7 @@ object DSExtractor {
 
   type Id[+X] = X
 
-  object CompleteJson extends DataSourceExtractor[Id] {
+  object CompleteJson extends DataExtractor[Id] {
     def monad = implicitly
     def getOrElse[T](value : T, default : T) = value
     protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) = {
