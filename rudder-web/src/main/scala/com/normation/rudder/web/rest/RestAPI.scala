@@ -74,9 +74,18 @@ trait RestAPI  extends RestHelper{
  * Then define the header API from the map
  */
 case class APIDispatcher (
-    apisByVersion : Map[ApiVersion, List[RestAPI]]
-  , restExtractor : RestExtractorService
+    restExtractor : RestExtractorService
 ) extends RestHelper {
+
+  /*
+   * This method transform the map of api by version in the enumeration of
+   * endpoints accessible in both:
+   * - api/$version/$apikind
+   * - secure/api/$version$apikind
+   *
+   * It also automatically provides a "latest" endpoint.
+   */
+  def addEndpoints(apisByVersion: Map[ApiVersion, List[RestAPI]]): Unit = {
 
     // For each api version
     apisByVersion.foreach{
@@ -99,15 +108,18 @@ case class APIDispatcher (
     }
 
     // regroup api by kind, to be able to dispatch header api version
-    val apiByKindByVersion = apisByVersion.toList.flatMap{case (version,list) => list.map((version,_))}.groupBy(_._2.kind).mapValues(_.toMap)
+    val apiByKindByVersion = ( apisByVersion
+        .toList
+        .flatMap { case (version, list) => list.map( (version, _) ) }
+        .groupBy(_._2.kind)
+        .mapValues(_.toMap)
+    )
 
     // for each kind
-    apiByKindByVersion.foreach{
-      case (kind,apis) =>
-
-        implicit val availableVersions = apis.keySet.toList
-        // Build request dispatch
-        val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+    apiByKindByVersion.foreach{ case (kind,apis) =>
+      implicit val availableVersions = apis.keySet.toList
+      // Build request dispatch
+      val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
         // on all requests
         case req =>
             // analyze apiVersion
@@ -125,9 +137,9 @@ case class APIDispatcher (
                 // Not a valid version
                 RestUtils.notValidVersionResponse(kind)
               }
-            }
-        // Dispatch header API
-        serve("api" / s"${kind}" prefix requestDispatch)
+      }
+      // Dispatch header API
+      serve("api" / s"${kind}" prefix requestDispatch)
     }
 
     serve {
@@ -151,4 +163,5 @@ case class APIDispatcher (
         RestUtils.toJsonResponse(None, versions)
 
     }
+  }
 }

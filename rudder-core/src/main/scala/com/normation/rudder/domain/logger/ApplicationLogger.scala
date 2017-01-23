@@ -4,7 +4,7 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
@@ -45,4 +45,12 @@ import net.liftweb.common.Logger
  */
 object ApplicationLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("application")
+}
+
+
+/**
+ * A logger dedicated to "plugin" information, especially boot info.
+ */
+object PluginLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("application.plugin")
 }

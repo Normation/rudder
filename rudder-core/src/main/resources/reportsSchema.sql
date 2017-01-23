@@ -457,15 +457,6 @@ startTime timestamp with time zone default now(),
 endTime timestamp with time zone
 );
 
--- Create the table for the node configuration
-CREATE TABLE dataSources (
-  id            text PRIMARY KEY NOT NULL CHECK (id <> '')  
-
--- data source properties and status are valid json, until we can use postgres 9.2 keep text type (more details in configuration details)
-
-, properties text NOT NULL CHECK (properties <> '' )
-, status     text CHECK (status <> '' )
-);
 
 /*
  *************************************************************************************

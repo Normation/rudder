@@ -59,7 +59,6 @@ import com.normation.rudder.web.rest.node.MinimalDetailLevel
 import com.normation.rudder.repository.FullActiveTechnique
 import scala.language.implicitConversions
 import com.normation.rudder.web.components.DateFormaterService
-import com.normation.rudder.datasources._
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest
@@ -89,7 +88,6 @@ trait RestDataSerializer {
 
   def serializeTechnique(technique:FullActiveTechnique): JValue
 
-  def serializeDataSource(source : DataSource): JValue
 }
 
 case class RestDataSerializerImpl (
@@ -590,10 +588,6 @@ case class RestDataSerializerImpl (
     (   ( "name"     -> technique.techniqueName.value )
       ~ ( "versions" ->  technique.techniques.map(_._1.toString ) )
     )
-  }
-
-  def serializeDataSource(source : DataSource): JValue = {
-    DataSourceJsonSerializer.serialize(source)
   }
 
 }

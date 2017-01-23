@@ -64,9 +64,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.util.NamedPF
 import net.liftweb.http.S
 import net.liftweb.common.EmptyBox
-import com.normation.rudder.web.rest.datasource._
 import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.datasources.MemoryDataSourceRepository
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -100,11 +98,9 @@ object RestTestSetUp {
     , () => Full(false)
   )
 
-  val datasourceRepo = new MemoryDataSourceRepository
-  val dataSourceApiService = new DataSourceApiService(datasourceRepo, restDataSerializer, restExtractorService)
-  val dataSourceApi9 = new DataSourceApi9(restExtractorService, dataSourceApiService, uuidGen)
-
-  val api = APIDispatcher( Map((ApiVersion(42,false)-> List(dataSourceApi9))), restExtractorService)
+  val api = APIDispatcher(restExtractorService)
+  // TODO
+  // api.addEndpoints(Map((ApiVersion(42,false)-> List(....))))
 
   val liftRules = {
     val l = new LiftRules()

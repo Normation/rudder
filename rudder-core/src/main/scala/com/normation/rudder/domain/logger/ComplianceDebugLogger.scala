@@ -46,11 +46,11 @@ import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
-import com.google.common.cache.CacheBuilder
 import java.util.concurrent.TimeUnit
-import com.google.common.cache.CacheLoader
 import com.normation.rudder.domain.reports.NodeConfigIdInfo
 import com.normation.rudder.domain.reports.NodeExpectedReports
+import com.github.benmanes.caffeine.cache.Caffeine
+import com.github.benmanes.caffeine.cache.CacheLoader
 
 /**
  * Log information about compliance.
@@ -64,7 +64,7 @@ object ComplianceDebugLogger extends Logger {
   //we have one logger defined by node.
   //they automatically expires after some time.
 
-  val nodeCache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build(
+  val nodeCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build(
                     new CacheLoader[String, Logger]() {
                       def load(key: String) = {
                         new Logger() {

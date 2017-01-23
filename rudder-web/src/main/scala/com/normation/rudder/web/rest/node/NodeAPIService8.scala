@@ -67,15 +67,14 @@ import java.io.PipedOutputStream
 import com.zaxxer.nuprocess.NuProcessBuilder
 import java.util.Arrays
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.datasources.DataSourceRepository
 import scalaj.http.Http
+import com.normation.rudder.domain.nodes.CompareProperties
 
 class NodeApiService8 (
-    nodeRepository  : WoNodeRepository
-  , nodeInfoService : NodeInfoService
-  , uuidGen         : StringUuidGenerator
-  , datasourceRepo  : DataSourceRepository
-  , asyncRegenerate : AsyncDeploymentAgent
+    nodeRepository : WoNodeRepository
+  , nodeInfoService: NodeInfoService
+  , uuidGen        : StringUuidGenerator
+  , asyncRegenerate: AsyncDeploymentAgent
   , relayApiEndpoint: String
 ) extends Loggable {
 
@@ -85,16 +84,9 @@ class NodeApiService8 (
     val propNames = restNode.properties.getOrElse(Nil).map( _.name ).toSet
 
     for {
-      //it is forbiden to set properties owned by datasources
-      datasourcesIds <- datasourceRepo.getAllIds
-      badNames       =  datasourcesIds.map( _.value).intersect(propNames)
-      ok             <- if(badNames.isEmpty) {
-                          Full("ok")
-                        } else {
-                          Failure(s"You are trying to update the following properties which are owned by data sources and can not be interactively modified: '${badNames.mkString("', '")}'")
-                        }
       node           <- nodeInfoService.getNode(nodeId)
-      updated        =  node.copy(properties = CompareProperties.updateProperties(node.properties, restNode.properties), policyMode = restNode.policyMode.getOrElse(node.policyMode))
+      newProperties  <- CompareProperties.updateProperties(node.properties, restNode.properties)
+      updated        =  node.copy(properties = newProperties, policyMode = restNode.policyMode.getOrElse(node.policyMode))
       saved          <- if(updated == node) Full(node)
                         else nodeRepository.updateNode(updated, modId, actor, reason)
     } yield {
@@ -105,6 +97,7 @@ class NodeApiService8 (
     }
   }
 
+  // buffer size for file I/O
   private[this] val pipeSize = 4096
 
   def runResponse(in : InputStream)(out : OutputStream) = {

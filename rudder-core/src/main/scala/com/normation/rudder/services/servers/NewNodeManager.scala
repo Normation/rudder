@@ -89,12 +89,27 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.utils.Control.sequence
 import com.normation.utils.Control.bestEffort
-import com.normation.rudder.datasources.DataSourceUpdateCallbacks
+
+
+/**
+ * A newNodeManager hook is a class that accept callbacks.
+ */
+trait NewNodeManagerHooks {
+
+  /*
+   * Hooks to call after the node is accepted.
+   * These hooks are async and we don't wait for
+   * their result. They are responsible to log
+   * their errors.
+   */
+  def afterNodeAcceptedAsync(nodeId: NodeId): Unit
+
+}
 
 /**
  * A trait to manage the acceptation of new node in Rudder
  */
-trait NewNodeManager {
+trait NewNodeManager extends NewNodeManagerHooks {
 
   /**
    * List all pending node
@@ -125,6 +140,7 @@ trait NewNodeManager {
    */
   def refuse(id: Seq[NodeId], modId: ModificationId, actor:EventActor, actorIp : String) : Box[Seq[Srv]]
 
+  def appendPostAcceptCodeHook(hook: NewNodeManagerHooks): Unit
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -148,8 +164,19 @@ class NewNodeManagerImpl(
   , val eventLogRepository : EventLogRepository
   , override val updateDynamicGroups : UpdateDynamicGroups
   , val cacheToClear: List[CachedRepository]
-  , val datasourceCallback: DataSourceUpdateCallbacks
-) extends NewNodeManager with ListNewNode with ComposedNewNodeManager
+) extends NewNodeManager with ListNewNode with ComposedNewNodeManager with NewNodeManagerHooks {
+
+  private[this] val codeHooks = collection.mutable.Buffer[NewNodeManagerHooks]()
+
+  override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = {
+    codeHooks.foreach( _.afterNodeAcceptedAsync(nodeId) )
+  }
+
+  def appendPostAcceptCodeHook(hook: NewNodeManagerHooks): Unit = {
+    this.codeHooks.append(hook)
+  }
+
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -228,7 +255,7 @@ trait UnitAcceptInventory {
 
 }
 
-trait ComposedNewNodeManager extends NewNodeManager with Loggable {
+trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeManagerHooks {
 
   def ldap:LDAPConnectionProvider[RoLDAPConnection]
   def pendingNodesDit:InventoryDit
@@ -244,8 +271,6 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
   def updateDynamicGroups : UpdateDynamicGroups
 
   def cacheToClear: List[CachedRepository]
-
-  def datasourceCallback: DataSourceUpdateCallbacks
 
   ////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////// Refuse //////////////////////////////////////
@@ -571,8 +596,8 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
              logger.warn(s"Node '${id.value}' accepted, but couldn't find it's inventory")
          }
 
-         // Update datasource for the node
-         datasourceCallback.onNewNode(id)
+         // Update hooks for the node
+         afterNodeAcceptedAsync(id)
 
          acceptationResults
        }
