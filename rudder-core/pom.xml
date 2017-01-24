@@ -115,24 +115,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <version>2.5.1</version>
     </dependency>
 
-    <!-- Need to explicit scalaz-stream version to 
-         make both doobie and http4s happy 
-    -->
-    <dependency>
-      <groupId>org.scalaz.stream</groupId>
-      <artifactId>scalaz-stream_${scala-binary-version}</artifactId>
-      <version>${scalaz-stream-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.scalaz</groupId>
-      <artifactId>scalaz-concurrent_${scala-binary-version}</artifactId>
-      <version>${scalaz-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.scalaz</groupId>
-      <artifactId>scalaz-core_${scala-binary-version}</artifactId>
-      <version>${scalaz-version}</version>
-    </dependency>
     <!-- Doobie for SQL queries -->
     <dependency>
       <groupId>org.tpolecat</groupId>
@@ -176,7 +158,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>monix_${scala-binary-version}</artifactId>
       <version>${monix-version}</version>
     </dependency>
-
     
     <!-- selecting sub-json -->
     <dependency>
@@ -184,7 +165,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>json-path</artifactId>
       <version>2.2.0</version>
     </dependency>
-
 
     <dependency>
       <groupId>com.google.guava</groupId>
