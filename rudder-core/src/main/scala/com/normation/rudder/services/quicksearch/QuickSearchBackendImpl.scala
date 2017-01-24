@@ -57,6 +57,11 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import com.normation.ldap.sdk.LDAPBoolean
 import com.unboundid.ldap.sdk.Attribute
+import com.normation.rudder.domain.policies.Tag
+import com.normation.rudder.domain.policies.TagName
+import com.normation.rudder.domain.policies.TagValue
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import scala.util.control.NonFatal
 
 /**
  * Correctly quote a token
@@ -141,6 +146,7 @@ object QSDirectiveBackend {
         case LongDescription   => Some(Set((dir.longDescription,dir.longDescription)))
         case Name              => Some(Set((dir.name,dir.name)))
         case IsEnabled         => Some(isEnabled)
+        case Tags              => Some(dir.tags.map{ case Tag(TagName(k),TagValue(v)) => (s"$k=$v", s"$k=$v") }.toSet )
         case NodeId            => None
         case Fqdn              => None
         case OsType            => None
@@ -266,6 +272,7 @@ object QSLdapBackend {
       , RuleId            -> A_RULE_UUID
       , DirectiveIds      -> A_DIRECTIVE_UUID
       , Targets           -> A_RULE_TARGET
+      , Tags              -> A_SERIALIZED_TAGS
     )
 
     if(m.size != QSAttribute.all.size) {
@@ -377,9 +384,41 @@ object QSLdapBackend {
         case RuleId            => sub(a, token)
         case DirectiveIds      => sub(a, token)
         case Targets           => sub(a, token)
+        case Tags              => sub(a, token)
       }
     }
   }
+
+  /**
+   * How to find the actual value to display from a token for
+   * an attribute.
+   * The transformation may fail (option = none).
+   */
+  implicit class LdapAttributeValueTransform(attrName: String) {
+
+    def transform(pattern: Pattern, value: String): Option[String] = {
+      attrName match {
+        case A_SERIALIZED_TAGS =>
+          import net.liftweb.json.parse
+          try {
+            val json = parse(value)
+            CompleteJson.extractTags(json) match {
+              case Full(tags) => tags.tags.find { t =>
+                  pattern.matcher(t.tagName.name).matches || pattern.matcher(t.tagValue.value).matches
+                }.map( t => s"${t.tagName.name}=${t.tagValue.value}")
+
+              case _          => None
+            }
+          } catch {
+            case NonFatal(ex) => None
+          }
+
+        //main case: no more transformation
+        case _                 => Some(value)
+      }
+    }
+  }
+
 
   /**
    * Build LDAP filter for a QSObject
@@ -465,14 +504,19 @@ object QSLdapBackend {
       for {
         (attr, desc) <- (Option.empty[(String, String)] /: e.attributes) { (current, next) => (current, next ) match {
                           case (Some(x), _) => Some(x)
-                          case (None   , a) => matchValue(a, token, pattern)
+                          case (None   , a) =>
+                            for {
+                              (attr, value) <- matchValue(a, token, pattern)
+                              trans         <- attr.transform(pattern, value)
+                            } yield {
+                              (attr, trans)
+                            }
                         } }
         id           <- getId(e)
        if(isNodeOrNotSystem(e))
       } yield {
         //prefer hostname for nodes
         val name = e(A_HOSTNAME).orElse(e(A_NAME)).getOrElse(id.value)
-
         QuickSearchResult(id, name, ldapNameMapping.get(attr), desc)
       }
     }
