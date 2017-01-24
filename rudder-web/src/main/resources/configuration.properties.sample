@@ -68,6 +68,11 @@ rudder.dir.lock=/var/rudder/lock/
 #
 rudder.endpoint.cmdb=http://localhost:8080/endpoint/upload/
 
+#
+# Location of the relay api used by rudder webapp
+# It's the base url of relay api, Rudder will manage to call the correct url from that base
+#
+rudder.server.relay.api=https://localhost/rudder/relay-api
 
 #
 # The port used by the rsyslog server on the Rudder root server. 
