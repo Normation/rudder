@@ -454,8 +454,11 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
       },
       "plugins" : [ "themes", "html_data", "types", "search", "searchtag"]
     });
-
-   tree.jstree().select_node(initially_select)
+   if(tree.element){
+     tree.element.jstree().select_node(initially_select)
+   }else{
+     tree.jstree().select_node(initially_select)
+   }
 }
 
 /*
