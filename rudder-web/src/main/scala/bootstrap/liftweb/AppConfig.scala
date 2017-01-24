@@ -819,16 +819,10 @@ object RudderConfig extends Loggable {
 
   val apis = {
     Map (
-        //Rudder 2.7
-        ( ApiVersion(2,true) -> apiV2 )
-        //Rudder 2.8
-      , ( ApiVersion(3,true) -> apiV3 )
-        //Rudder 2.10
-      , ( ApiVersion(4,true) -> apiV4 )
         //Rudder 3.0
-      , ( ApiVersion(5,false) -> apiV5 )
+        ( ApiVersion(5,true) -> apiV5 )
         //Rudder 3.1
-      , ( ApiVersion(6,false) -> apiV6 )
+      , ( ApiVersion(6,true) -> apiV6 )
         //Rudder 3.2
       , ( ApiVersion(7,false) -> apiV7 )
         //Rudder 4.0
