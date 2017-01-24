@@ -44,7 +44,10 @@
 <div data-lift="configuration.DirectiveManagement.head"></div>
 
 <div class="tw-bs col-sm directiveTree">
-  <div class="page-title">Directive Library</div>
+  <div class="page-title">Directive Library
+    <lift:authz role="technique_write">
+      <a class="btn btn-primary btn-xs pull-right editTech" href="/secure/utilities/techniqueEditor">Edit Techniques</a>
+    </lift:authz></div>
   <div id="activeTechniquesTree_actions_zone" ng-controller="filterTagDirectiveCtrl" ng-cloak>
     <div class="tree">
       <div class="filter-tree">
@@ -59,9 +62,6 @@
             <button type="button" class="btn btn-default btn-sm" aria-label="Bold" ng-click="clearSearchFieldTree('#activeTechniquesTree');" >
               <span class="fa fa-times"></span>
             </button>
-            <lift:authz role="technique_write">
-              <a class="btn btn-default btn-sm" href="/secure/utilities/techniqueEditor">Edit Techniques</a>
-            </lift:authz>
           </div>
         </div>
       </div>
@@ -75,7 +75,7 @@
                 <div class="panel-heading" role="tab" id="headingOne">
                   <h4 class="panel-title">
                     <a role="button" href="#form-tag" ng-click="toggleFilter('#stateFilterTag')" aria-expanded="true" aria-controls="form-tag">
-                      More filters
+                      <i class="fa fa-filter moreFilters" aria-hidden="true"></i> More filters
                       <span id="stateFilterTag" class="glyphicon glyphicon-chevron-down pull-right"></span>
                     </a>
                   </h4>
