@@ -68,13 +68,15 @@ import com.zaxxer.nuprocess.NuProcessBuilder
 import java.util.Arrays
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.datasources.DataSourceRepository
+import scalaj.http.Http
 
 class NodeApiService8 (
-    nodeRepository : WoNodeRepository
-  , nodeInfoService: NodeInfoService
-  , uuidGen        : StringUuidGenerator
-  , datasourceRepo : DataSourceRepository
-  , asyncRegenerate: AsyncDeploymentAgent
+    nodeRepository  : WoNodeRepository
+  , nodeInfoService : NodeInfoService
+  , uuidGen         : StringUuidGenerator
+  , datasourceRepo  : DataSourceRepository
+  , asyncRegenerate : AsyncDeploymentAgent
+  , relayApiEndpoint: String
 ) extends Loggable {
 
   def updateRestNode(nodeId: NodeId, restNode: RestNode, actor : EventActor, reason : Option[String]) : Box[Node] = {
@@ -103,19 +105,8 @@ class NodeApiService8 (
     }
   }
 
-  // We use ressource on the local machine, so we can have a more important pipe
   private[this] val pipeSize = 4096
 
-  private[this] def classOption(classes : List[String]) : List[String] = {
-     classes match {
-        case Nil => Nil
-        case classes => "-D" :: classes.mkString(",") :: Nil
-      }
-  }
-
-  private[this] def runAction (node: NodeInfo) = {
-    (if ( node.id.value == "root" ) "agent" else "remote") :: "run" :: (if ( node.id.value == "root" ) Nil else node.hostname :: Nil)
-  }
   def runResponse(in : InputStream)(out : OutputStream) = {
     val bytes : Array[Byte] = new Array(pipeSize)
     val zero = 0.toByte
@@ -138,54 +129,32 @@ class NodeApiService8 (
     }
   }
 
-  private[this] class RunHandler (out : Option[OutputStream]) extends NuAbstractProcessHandler {
+  def remoteRunRequest(nodeId: NodeId, classes : List[String], keepOutput : Boolean, asynchronous : Boolean) = {
+    val url = s"${relayApiEndpoint}/remote-run/nodes/${nodeId.value}"
+    val params =
+      ("classes"      , classes.mkString(",") ) ::
+      ( "keep_output" , keepOutput.toString   ) ::
+      ( "asynchronous", asynchronous.toString ) ::
+      Nil
 
-    // set output (stdout or stderr) buffer to our stream
-    // Synchronized so outputs are not mixed
-    def onOut(buf: ByteBuffer, isClosed : Boolean) = {
-      out match {
-        case Some(out) =>
-          val bytes : Array[Byte] = new Array(buf.remaining())
-          buf.get(bytes)
-          out.synchronized {
-            out.write(bytes)
-            out.flush()
-          }
-        case None => // Nothing to do for now
-      }
-    }
-
-    // On exit will be called at the end of the process, or if any error/exception occurs, so we can close our outputstream here
-    override def onExit( statusCode : Int) = {
-      out.map(_.close())
-    }
-
-    override def onStdout(buf: ByteBuffer, isClosed : Boolean) = onOut(buf,isClosed)
-
-    override def onStderr(buf: ByteBuffer, isClosed : Boolean) = onOut(buf,isClosed)
+    Http(url).params( params ).postForm
   }
 
   def runNode(nodeId: NodeId, classes : List[String]) : Box[OutputStream => Unit] = {
 
+    val request = remoteRunRequest(nodeId,classes,true,false)
     import net.liftweb.util.Helpers.tryo
     for {
-      node <- nodeInfoService.getNodeInfo(nodeId).flatMap {node => Box(node) ?~! s"Could not find node '${nodeId.value}' informations" }
-      in = new PipedInputStream(pipeSize)
-      out = new PipedOutputStream(in)
-      _ <- try {
-             import scala.collection.JavaConversions._
-             val pb = new NuProcessBuilder("/usr/bin/rudder" :: runAction(node) ::: classOption(classes))
-             val handler = new RunHandler(Some(out))
-             pb.setProcessListener(handler)
-             Full(pb.start())
-           } catch {
-             case e : Throwable =>
-               out.close()
-               Failure(s"An error occured when applying policy on Node '${node.id.value}', cause is: ${e.getMessage}")
-           }
-    } yield {
-      runResponse(in)
-    }
+       httpResponse <- tryo { request.execute { runResponse } }
+       response <- if (httpResponse.isSuccess ) {
+         Full(httpResponse.body)
+       } else {
+         Failure(s"An error occured when applying policy on Node '${nodeId.value}'")
+       }
+     } yield {
+
+       response
+     }
   }
 
   def runAllNodes(classes : List[String]) : Box[JValue] = {
@@ -201,20 +170,15 @@ class NodeApiService8 (
         node <- nodes.values.toList
       } yield {
         {
+
+         val request = remoteRunRequest(node.id, classes, false, true)
          val commandRun = {
-           JString(
-             try {
-               import scala.collection.JavaConversions._
-               val pb = new NuProcessBuilder("/usr/bin/rudder" :: runAction(node) ::: classOption(classes))
-               val handler = new RunHandler(None)
-               pb.setProcessListener(handler)
-               pb.start()
-               "Started"
-             } catch {
-               case e : Throwable =>
-               s"An error occured when applying policy on Node '${node.id.value}', cause is: ${e.getMessage}"
-             }
-           )
+
+           if (request.asString.isSuccess) {
+             "Started"
+           } else {
+             s"An error occured when applying policy on Node '${node.id.value}'"
+           }
          }
          ( ( "id" -> node.id.value)
          ~ ( "hostname" -> node.hostname)
