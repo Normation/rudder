@@ -1,4 +1,3 @@
-
 <lift:surround with="common-layout" at="content">
 
   <head>
@@ -10,31 +9,23 @@
 
   <div data-lift="configuration.RuleManagement.head" ></div>
 
-  <div class="portlet">
-    <div class="portlet-content">
-      <div id="viewAllRulesZone">
-        <div data-lift="configuration.RuleManagement.viewRules" ></div>
-      </div>
-      <hr class="spacer" />
-      <div id="editRuleZonePortlet" class="inner-portlet nodisplay">
-        <div class="page-title">Rule details</div>
-        <div class="inner-portlet-content">
-          <div data-lift="configuration.RuleManagement.editRule" ></div>
-        </div>
+  <div class="tw-bs no-background">
+    <div id="viewAllRulesZone">
+      <div data-lift="configuration.RuleManagement.viewRules" ></div>
+      <div id="editRuleZonePortlet" class="nodisplay row">
+        <div data-lift="configuration.RuleManagement.editRule" ></div>
       </div>
     </div>
-    
-    <div class="tw-bs">  
-        <div id="createRulePopup" class="modal fade" data-keyboard="true" tabindex="-1">
-            <lift:ignore>
-                This div gets the content of the createRule injected within
-            </lift:ignore>
-            <div id="createRuleContainer"></div>
-        </div>  
+    <div id="createRulePopup" class="modal fade" data-keyboard="true" tabindex="-1">
+      <lift:ignore>
+        This div gets the content of the createRule injected within
+      </lift:ignore>
+      <div id="createRuleContainer"></div>
     </div>
-	<div class="tw-bs">  
-      <div id="createRuleCategoryPopup" class="modal fade" data-keyboard="true" tabindex="-1"></div>
-  	</div>
+
+    <div id="createRuleCategoryPopup" class="modal fade" data-keyboard="true" tabindex="-1"></div>
+
   </div>
+
 </lift:surround>
 
