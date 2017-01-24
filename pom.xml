@@ -307,6 +307,35 @@ limitations under the License.
 
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
 
+  <!-- 
+    This allows to use homogeneous version of scalaz everywhere. 
+    Yep, we need to explicitly specify them all. 
+  -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.scalaz</groupId>
+        <artifactId>scalaz-core_${scala-binary-version}</artifactId>
+        <version>${scalaz-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scalaz</groupId>
+        <artifactId>scalaz-effect_${scala-binary-version}</artifactId>
+        <version>${scalaz-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scalaz</groupId>
+        <artifactId>scalaz-concurrent_${scala-binary-version}</artifactId>
+        <version>${scalaz-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scalaz.stream</groupId>
+        <artifactId>scalaz-stream_${scala-binary-version}</artifactId>
+        <version>${scalaz-stream-version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>org.scala-lang</groupId>
@@ -375,12 +404,6 @@ limitations under the License.
       <groupId>org.specs2</groupId>
       <artifactId>specs2-core_${scala-binary-version}</artifactId>
       <version>${specs2-version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.scalaz</groupId>
-      <artifactId>scalaz-concurrent_${scala-binary-version}</artifactId>
-      <version>${scalaz-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
