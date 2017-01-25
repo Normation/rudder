@@ -61,8 +61,12 @@ object DataSourceJsonSerializer{
             source.sourceType match {
               case DataSourceType.HTTP(url,headers,method,params,checkSsl,path,mode,timeOut) =>
                 ( ( "url"            -> url     )
-                ~ ( "headers"        -> headers )
-                ~ ( "params"         -> params  )
+                ~ ( "headers"        -> headers.map{
+                  case (name,value) => ("name" -> name) ~ ("value" -> value)
+                } )
+                ~ ( "params"         -> params.map{
+                  case (name,value) => ("name" -> name) ~ ("value" -> value)
+                } )
                 ~ ( "path"           -> path    )
                 ~ ( "checkSsl"       -> checkSsl)
                 ~ ( "requestTimeout" -> timeOut.toMinutes )
@@ -285,6 +289,17 @@ trait DataSourceExtractor[M[+_]] extends JsonExctractorUtils[M] {
           }
         }
 
+        def extractNameValueObject(json : JValue) : Box[M[(String,String)]] = {
+
+          for {
+            name <- extractJsonString(json, "name", boxedIdentity)
+            value <- extractJsonString(json, "value", boxedIdentity)
+
+          } yield {
+            monad.tuple2(name,value)
+          }
+        }
+
         def HttpDataSourceParameters (obj : JObject)  = {
           for {
             url      <- extractJsonString(obj, "url")
@@ -292,27 +307,15 @@ trait DataSourceExtractor[M[+_]] extends JsonExctractorUtils[M] {
             method   <- extractJsonString(obj, "requestMethod", {s => Box(HttpMethod.values.find( _.name == s))})
             checkSsl <- extractJsonBoolean(obj, "checkSsl")
             timeout  <- extractJsonBigInt(obj, "requestTimeout", extractDuration)
-            params   <- extractJsonObj(obj, "params", {
-                                          case container@JObject(fields) =>
-                                            val t = sequence(fields.toSeq) {
-                                              field => extractJsonString(container, field.name, value => Full((field.name,value)))
-                                            }
-                                            t
-                                       } )
-            headers  <- extractJsonObj(obj, "headers", {
-                                          case container@JObject(fields) =>
-                                            val t = sequence(fields.toSeq) {
-                                              field => extractJsonString(container, field.name, value => Full((field.name,value)))
-                                            }
-                                            t
-                                       } )
+            params   <- extractJsonArray(obj, "params")( extractNameValueObject)
+            headers  <- extractJsonArray(obj, "headers")( extractNameValueObject)
             requestMode <- extractJsonObj(obj, "requestMode", extractHttpRequestMode(_))
 
           } yield {
 
             import scalaz.std.list._
-            val headersM = monad.bind(headers)( s => monad.map(monad.sequence[(String,String),List]( s.toList))(_.toMap))
-            val paramsM = monad.bind(params)( s => monad.map(monad.sequence[(String,String),List]( s.toList))(_.toMap))
+            val headersM =   monad.map(headers)(_.toMap)
+            val paramsM = monad.map(params)(_.toMap)
             val unwrapMode = monad.join(requestMode)
 
             (
