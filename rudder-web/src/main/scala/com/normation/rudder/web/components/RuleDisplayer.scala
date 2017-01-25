@@ -235,7 +235,7 @@ class RuleDisplayer (
                     <div class="col-xs-12">
                       <div id="showFiltersRules" ng-controller="filterTagRuleCtrl" class="filters tw-bs" ng-cloak="">
                         <div class="filters-container">
-                          <form class="filterTag">
+                          <div class="filterTag">
                             <div class="input-group search-addon">
                               <label for="searchStr" class="input-group-addon search-addon"><span class="ion ion-search"></span></label>
                               <input type="text" id="searchStr" class="input-sm form-control" placeholder="Filter" ng-model="strSearch" ng-keyup="filterGlobal(strSearch)"/>
@@ -282,7 +282,7 @@ class RuleDisplayer (
                                 </button>
                               </div>
                             </div>
-                          </form>
+                          </div>
                           {displaySubcategories}
                         </div>
                       </div>
