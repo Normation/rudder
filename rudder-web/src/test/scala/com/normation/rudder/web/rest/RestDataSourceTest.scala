@@ -104,10 +104,10 @@ class RestDataSourceTest extends Specification with Loggable {
     ( ( "type" ->
       ( ( "name" -> "http" )
       ~ ( "parameters" ->
-          ( "headers" ->
-            ( ("new header 1" -> "new value 1")
-            ~ ("new header 2" -> "new value 2")
-            )
+          ( "headers" -> JArray(
+            ( ("name" -> "new header 1") ~ ("value" -> "new value 1") ) ::
+            ( ("name" -> "new header 2") ~ ("value" -> "new value 2") ) ::
+            Nil)
           )
         )
       ) )
