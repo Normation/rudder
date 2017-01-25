@@ -162,6 +162,10 @@ object QSAttribute {
 
   final case object TechniqueVersion  extends QSAttribute { override val name = "technique_version" }
 
+  final case object Tags              extends QSAttribute {
+    override val name = "tags"
+  }
+
   //Parameters
   final case object ParameterName  extends QSAttribute {
     override val name = "param_name"
@@ -208,13 +212,13 @@ object QSObject {
   }
   final case object Directive extends QSObject { override val name = "directive"
                                                  override val attributes : Set[QSAttribute] = Common.attributes ++ Set(DirectiveId, DirectiveVarName
-                                                   , DirectiveVarValue, TechniqueName, TechniqueId, TechniqueVersion)
+                                                   , DirectiveVarValue, TechniqueName, TechniqueId, TechniqueVersion, Tags)
   }
   final case object Parameter extends QSObject { override val name = "parameter"
                                                  override val attributes : Set[QSAttribute] = Common.attributes ++ Set(ParameterName, ParameterValue)
   }
   final case object Rule      extends QSObject { override val name = "rule"
-                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ Set(RuleId, DirectiveIds, Targets)
+                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ Set(RuleId, DirectiveIds, Targets, Tags)
   }
 
   final val all: Set[QSObject] = sealerate.values[QSObject]
@@ -292,6 +296,7 @@ final object QSMapping {
       case RuleId            => (a, Set(RuleId.name, "ruleid", "rule_id") )
       case DirectiveIds      => (a, Set(DirectiveIds.name, "directiveids", "id", "ids") )
       case Targets           => (a, Set(Targets.name, "target", "group", "groups") )
+      case Tags              => (a, Set(Tags.name, "tag") )
     } }
   }.toMap
 
