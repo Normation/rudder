@@ -53,7 +53,15 @@ trait JsonExctractorUtils[A[_]] {
 
   def getOrElse[T](value : A[T], default : T) : T
   def boxedIdentity[T] : T => Box[T] = Full(_)
-  protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) : Box[A[T]]
+  def emptyValue[T] : Box[A[T]]
+  protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) : Box[A[T]] = {
+    json \ key match {
+      case value if validJson.isDefinedAt(value) =>
+        convertTo(validJson(value)).map(monad.point(_))
+      case JNothing => emptyValue ?~! s"parameter ${key} cannot be empty"
+      case invalidJson => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
+    }
+  }
 
   def extractJsonString[T](json:JValue, key:String, convertTo : String => Box[T] = boxedIdentity[String]) = {
     extractJson(json, key, convertTo ,{ case JString(value) => value } )
@@ -91,6 +99,20 @@ trait JsonExctractorUtils[A[_]] {
       case _              => Failure(s"Not a good value for parameter ${key}")
     }
   }
+
+  def extractJsonArray[T] (json: JValue, key: String)( convertTo: JValue => Box[A[T]] ): Box[A[List[T]]] = {
+    json \ key match {
+      case JArray(values) =>
+        for {
+          converted <- sequence(values) { convertTo(_) }
+        } yield {
+          import scalaz.Scalaz.listInstance
+          monad.sequence(converted.toList)
+        }
+      case JNothing   => emptyValue
+      case _              => Failure(s"Not a good value for parameter ${key}")
+    }
+  }
 }
 
 trait DataExtractor[T[+_]] extends DataSourceExtractor[T] with JsonTagExtractor[T]
@@ -98,29 +120,15 @@ object DataExtractor {
 
   object OptionnalJson extends DataExtractor[Option] {
     def monad = implicitly
+    def emptyValue[T] = Full(None)
     def getOrElse[T](value : Option[T], default : T) = value.getOrElse(default)
-    protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) = {
-      json \ key match {
-        case JNothing => Full(None)
-        case value if validJson.isDefinedAt(value) =>
-          convertTo(validJson(value)).map(Some(_))
-        case invalidJson => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
-      }
-    }
   }
 
   type Id[+X] = X
 
   object CompleteJson extends DataExtractor[Id] {
     def monad = implicitly
+    def emptyValue[T] = Failure(s"parameter cannot be empty")
     def getOrElse[T](value : T, default : T) = value
-    protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) = {
-      json \ key match {
-        case value if validJson.isDefinedAt(value) =>
-          convertTo(validJson(value))
-        case JNothing => Failure(s"parameter ${key} cannot be empty")
-        case invalidJson => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
-      }
-    }
   }
 }
