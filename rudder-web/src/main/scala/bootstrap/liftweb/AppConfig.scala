@@ -311,6 +311,7 @@ object RudderConfig extends Loggable {
     , RudderServerRole("rudder-relay-promises-only", config.getString("rudder.server-roles.relay-promises-only"))
     , RudderServerRole("rudder-cfengine-mission-portal", config.getString("rudder.server-roles.cfengine-mission-portal"))
   )
+  val RUDDER_RELAY_API = config.getString("rudder.server.relay.api")
 
   // The base directory for hooks. I'm not sure it needs to be configurable
   // as we only use it in generation.
@@ -708,6 +709,7 @@ object RudderConfig extends Loggable {
       , uuidGen
       , dataSourceRepository
       , asyncDeploymentAgent
+      , RUDDER_RELAY_API
     )
   }
 
