@@ -92,12 +92,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${rudder-version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>net.liftmodules</groupId>
-      <artifactId>widgets_2.6_${scala-binary-version}</artifactId>
-      <version>1.4-SNAPSHOT</version>
-    </dependency>
-
     <!-- it seems to not be resolved, don't know why -->
     <dependency>
       <groupId>com.thoughtworks.paranamer</groupId>
