@@ -44,7 +44,6 @@ import net.liftweb.common._
 import net.liftweb.sitemap._
 import net.liftweb.sitemap.Loc._
 import Helpers._
-import net.liftmodules.widgets.autocomplete.AutoComplete
 import javax.servlet.UnavailableException
 import LiftSpringApplicationContext.inject
 import com.normation.plugins.RudderPluginDef
@@ -161,9 +160,6 @@ class Boot extends Loggable {
         }
       }
     }}
-
-    //init autocomplete widget
-    AutoComplete.init()
 
     // All the following is related to the sitemap
     val nodeManagerMenu =
