@@ -633,7 +633,6 @@ function showFileManager(idField){
   angular.element(fileManagerApp).injector().invoke(function($compile) {
     var $scope = angular.element(fileManagerApp).scope();
     fileManagerApp.append($compile(filemanager)($scope));
-    
     $scope.directiveId = idField;
     // Finally, refresh the watch expressions in the new element
     $scope.$apply();
@@ -648,4 +647,13 @@ function showFileManager(idField){
 function hideFileManager(){
   $(document).off('keydown.closeWindow');
   $("angular-filemanager").remove();
+}
+
+//Adjust tree height
+function adjustHeight(treeId, height){
+  var tree = $(treeId);
+  var offsetTop = tree.offset().top + 12;
+  var maxHeight = 'calc(100vh - '+ offsetTop + 'px)';
+  var cssProp = height ? 'height' : 'max-height'
+  tree.css(cssProp,maxHeight);
 }

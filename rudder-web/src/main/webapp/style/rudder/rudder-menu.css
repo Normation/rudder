@@ -135,6 +135,16 @@ pre.json-beautify.toggle:after{
 	color: #555;
 }
 /* - INPUT BOOTSTRAP */
+.btn-radio > input[type=radio] {
+  position       : absolute;
+  clip           : rect(0, 0, 0, 0);
+  pointer-events : none;
+}
+.tw-bs .btn-default.active.disabled{
+  color: #fff !important;
+  background-color: #9bc832 !important;
+  border-color: #7b9e28 !important;
+}
 #login-page .tw-bs .form-control:focus {
   border-color: #222D32;
   -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0);
@@ -198,7 +208,6 @@ pre.json-beautify.toggle:after{
   left: 26px;
   font-size: 20px;
 }
-
 /* FAKE INPUT DISABLED */
 .tw-bs .well.well-disabled, .tw-bs .readonly-field > div > div{
   cursor: no-drop;
@@ -1123,6 +1132,9 @@ table.tablewidth{
 .text-bold .text-fit{
   font-weight: bold !important;
 }
+label.text-fit{
+	font-weight:normal !important;
+}
 /* --- LABEL --- */
 #badge-apm{
   margin-left: 5px;
@@ -1293,6 +1305,14 @@ form .tooltip-content p {
 .tw-bs .label-text:after{
   float: left;
   font-family: Verdana,Arial,sans-serif;
+}
+.tw-bs label > .icon-info{
+  margin-left: 5px;
+  color: #337ab7;
+  cursor:help;
+}
+.tw-bs label > .icon-info:hover{
+  color: #286090;
 }
 
 /*
@@ -1519,7 +1539,6 @@ form .tooltip-content p {
   margin: 5px 0 20px;
   font-size: 22px;
   font-weight: 500;
-  text-transform: capitalize;
   font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
   line-height: 1.42857143;
   cursor: default;
@@ -1980,7 +1999,10 @@ hr.separation{
   padding: 0;
   font-family: inherit;
   background-color: #fff;
-  border: 1px solid rgba(34, 45, 50, 0.44);
+  border: 1px solid #ddd;
+  z-index:9999999;
+  border-radius: 4px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
 
 /* ----------------- BUTTONS -----------------  */
