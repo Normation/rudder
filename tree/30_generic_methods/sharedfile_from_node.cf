@@ -51,5 +51,5 @@ bundle agent sharedfile_from_node(source_uuid, file_id, file_path)
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report" usebundle => _log("Retreiving ${file_id} from ${target_uuid} into ${file_path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log("Retrieving ${file_id} from ${source_uuid} into ${file_path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
