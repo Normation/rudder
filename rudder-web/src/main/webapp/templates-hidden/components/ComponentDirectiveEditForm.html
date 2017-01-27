@@ -1,4 +1,4 @@
-<xml:group>
+  <xml:group>
 
 <component-itemdependencies>
 
@@ -12,7 +12,6 @@
       <tr><td>Col1</td><td>Col2</td><td>Col3</td></tr>
     </tbody>
   </table>
-
 </component-itemdependencies>
 
 <component-body>
@@ -22,225 +21,214 @@
 </component-body>
 
 <component-form>
-  <div id="editForm">
-    <link rel="stylesheet" href="/style/rudder/rudder-filemanager.css" />
-    <script src="/javascript/rudder/angular/fileManager.js" ></script>
-    <script type="text/javascript" src="/javascript/rudder/angular/passwordForm.js" id="angular-passwordForm"></script>
-    <script type="text/javascript" src="/javascript/rudder/angular/textForm.js" id="angular-textForm"></script>
-    <script type="text/javascript" src="/javascript/rudder/angular/tags.js"></script>
+  <link rel="stylesheet" href="/style/rudder/rudder-filemanager.css" />
+  <script src="/javascript/rudder/angular/fileManager.js" ></script>
+  <script type="text/javascript" src="/javascript/rudder/angular/passwordForm.js" id="angular-passwordForm"></script>
+  <script type="text/javascript" src="/javascript/rudder/angular/textForm.js" id="angular-textForm"></script>
+  <script type="text/javascript" src="/javascript/rudder/angular/tags.js"></script>
 
-    <div id="directiveTitle" class="page-title">Directive</div>
-
-    <div class="tw-bs">
-      <div class="bs-callout bs-callout-warning" id="deprecation-warning" role="alert">
-        <h4>Technique version deprecated</h4>
-        <div>This Directive uses a version of this Technique that is deprecated: <span id="deprecation-message"></span>.<br/>
-           Please upgrade to a new version: <span id="migrate-button"></span>
-        </div>
-      </div>
+  <div class="box" id="editForm"> 
+    <div class="box-header with-border">
+      <h3 class="box-title"><i class="fa fa-file-text" aria-hidden="true"></i><span id="directiveTitle">Directive</span></h3>
     </div>
-
-    <lift:authz role="directive_edit">
-      <div id="pendingChangeRequestNotification">
-        <div class="page-title">Pending change requests</div>
-        <br />
-        <div>
-          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-          <div style="float:left">
-            The following pending change requests affect this Directive, you should check that your modification is not already pending:
+      <div id="edit-box" class="box-body">
+        <div class="bs-callout bs-callout-warning" id="deprecation-warning" role="alert">
+          <h4>Technique version deprecated</h4>
+          <div>This Directive uses a version of this Technique that is deprecated: <span id="deprecation-message"></span>.<br/>
+             Please upgrade to a new version: <span id="migrate-button"></span>
+          </div>
+        </div>
+        <lift:authz role="directive_edit">
+          <div class="col-lg-12 callout-fade callout-warning" id="pendingChangeRequestNotification">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            <h4>Pending change requests</h4>
+            <p>
+              The following pending change requests affect this Directive, you should check that your modification is not already pending:
+            </p>
             <ul id="changeRequestList"></ul>
           </div>
-        </div>
-      </div>
-      <hr class="spacer"/>
-    </lift:authz>
-
-		<div id="directiveInfoTab" class="unfoldedSection" onclick="$('#directiveInfo').toggle(400); $('#directiveInfoTab').toggleClass('foldedSection');$('#directiveInfoTab').toggleClass('unfoldedSection');">
-		  <div class="section-title">Directive information</div>
-		</div>
-		<div id="directiveInfo" class="tw-bs">
-      <div id="nameField">
-        Here comes the name field
-      </div>
-      <div id="tagField">
-        Here comes the tag field
-      </div>
-      <div id="shortDescriptionField">
-        Here comes the shortDescription field
-      </div>
-      <div id="longDescriptionField">
-        Here comes the longDescription field
-      </div>
-      <div id="priority">
-        Here come the priority field
-      </div>
-      <div id="policyModes">
-        Here come the policy mode field
-      </div>
-      <div id="version">
-        Here come the version field
-      </div>
-      <div id="migrate">
-        Here come the migrate field
-      </div>
-      <div class="directiveTechnicalInfo" id="showTechnical"></div>
-      <div id="technicalDetails" style="display:none" class="well">
-        <div class="directiveTechnicalInfo row wbBaseField form-group">
-          <label>Technique name</label>
-            <div id="techniqueName">
-              Technique name
+        </lift:authz>
+  	  	<div id="directiveInfoTab" class="unfoldedSection" onclick="$('#directiveInfo').toggle(400); $('#directiveInfoTab').toggleClass('foldedSection');$('#directiveInfoTab').toggleClass('unfoldedSection');">
+  	  	  <div class="section-title">Directive information</div>
+  	  	</div>
+  	  	<div id="directiveInfo" class="tw-bs">
+          <div id="nameField">
+            Here comes the name field
+          </div>
+          <div id="tagField">
+            Here comes the tag field
+          </div>
+          <div id="shortDescriptionField">
+            Here comes the shortDescription field
+          </div>
+          <div id="longDescriptionField">
+            Here comes the longDescription field
+          </div>
+          <div id="priority">
+            Here come the priority field
+          </div>
+          <div id="policyModes">
+            Here come the policy mode field
+          </div>
+          <div id="version">
+            Here come the version field
+          </div>
+          <div id="migrate">
+            Here come the migrate field
+          </div>
+          <div class="directiveTechnicalInfo" id="showTechnical"></div>
+          <div id="technicalDetails" style="display:none" class="well">
+            <div class="directiveTechnicalInfo row wbBaseField form-group">
+              <label>Technique name</label>
+                <div id="techniqueName">
+                  Technique name
+                </div>
             </div>
-        </div>
-        <div class="directiveTechnicalInfo row wbBaseField form-group">
-          <label>Technique description</label>
-          <div id="techniqueDescription" class="fake-form-control textarea readonly">
-            Technique description
+            <div class="directiveTechnicalInfo row wbBaseField form-group">
+              <label>Technique description</label>
+              <div id="techniqueDescription" class="fake-form-control textarea readonly">
+                Technique description
+              </div>
+            </div>
+            <div class="directiveTechnicalInfo row wbBaseField form-group">
+              <label>Technique unicity</label>
+              <div id="isSingle" class="fake-form-control readonly">
+                isSingle
+              </div>
+            </div>
+            <div class="directiveTechnicalInfo row wbBaseField form-group">
+              <label>Supported operating systems</label>
+              <div id="compatibilityOs" class="fake-form-control readonly">
+                System Compatibility
+              </div>
+            </div>
+            <div class="directiveTechnicalInfo row wbBaseField form-group">
+              <label>Supported agents</label>
+              <div id="compatibilityAgent" class="fake-form-control readonly">
+                System Compatibility
+              </div>
+            </div>
+            <div class="directiveTechnicalInfo row wbBaseField form-group">
+              <label>Directive Rudder ID</label>
+              <div id="rudderID" class="fake-form-control readonly">
+                Here comes the rudder ID
+              </div>
+            </div>
           </div>
         </div>
-        <div class="directiveTechnicalInfo row wbBaseField form-group">
-          <label>Technique unicity</label>
-          <div id="isSingle" class="fake-form-control readonly">
-            isSingle
+        <div  id="directiveParametersTab" class="unfoldedSection" onclick="$('#parameters').toggle(400); $('#directiveParametersTab').toggleClass('foldedSection');$('#directiveParametersTab').toggleClass('unfoldedSection');">
+          <div class="section-title">Parameters</div>
+          <div id="notifications"></div>
+        </div>
+        <div id="parameters">Here goes the list of parameters</div>
+      
+        <div  id="ruleTargetSection" class="unfoldedSection" onclick="$('#directiveRulesTab').toggle(400); $('#ruleTargetSection').toggleClass('foldedSection');$('#ruleTargetSection').toggleClass('unfoldedSection');">
+          <div class="section-title">Target Rules</div>
+        </div>
+  	  	<div id="directiveRulesTab" class="tw-bs"></div>
+      </div>
+      <lift:authz role="directive_edit">
+        <div id="directiveToolbar" class="box-footer">
+          <div id="removeAction" style="float:left"></div>
+          <div id="desactivateAction" style="float:left; margin-left:20px;"></div>
+          <button id="clone">[Clone]</button>
+          <div class="cpiefsave">
+            <button id="save">Save</button>
           </div>
         </div>
-        <div class="directiveTechnicalInfo row wbBaseField form-group">
-          <label>Supported operating systems</label>
-          <div id="compatibilityOs" class="fake-form-control readonly">
-            System Compatibility
-          </div>
-        </div>
-        <div class="directiveTechnicalInfo row wbBaseField form-group">
-          <label>Supported agents</label>
-          <div id="compatibilityAgent" class="fake-form-control readonly">
-            System Compatibility
-          </div>
-        </div>
-        <div class="directiveTechnicalInfo row wbBaseField form-group">
-          <label>Directive Rudder ID</label>
-          <div id="rudderID" class="fake-form-control readonly">
-            Here comes the rudder ID
-          </div>
-        </div>
-      </div>
-    </div>
-    <div  id="directiveParametersTab" class="unfoldedSection" onclick="$('#parameters').toggle(400); $('#directiveParametersTab').toggleClass('foldedSection');$('#directiveParametersTab').toggleClass('unfoldedSection');">
-      <div class="section-title">Parameters</div>
-      <div id="notifications"></div>
-    </div>
-    <div id="parameters">Here goes the list of parameters</div>
-
-    <div  id="ruleTargetSection" class="unfoldedSection" onclick="$('#directiveRulesTab').toggle(400); $('#ruleTargetSection').toggleClass('foldedSection');$('#ruleTargetSection').toggleClass('unfoldedSection');">
-      <div class="section-title">Target Rules</div>
-      </div>
-		<div id="directiveRulesTab" class="tw-bs"></div>
-
-	<lift:authz role="directive_edit">
-	<div class="fixed-footer directive-footer tw-bs">
-	      <div id="removeAction" style="float:left">
-      </div>
-      <div id="desactivateAction" style="float:left; margin-left:20px;">
-      </div>
-      <button id="clone">[Clone]</button>
-      <div class="cpiefsave">
-        <button id="save">Save</button>
-      </div>
+      </lift:authz>
   </div>
-    </lift:authz>
-    <br/>
+  <div class="tw-bs">
+    <div id="removeActionDialog" class="modal fade" data-keyboard="true" tabindex="-1"></div>
+  </div>
+  <div class="tw-bs">
+    <div id="disableActionDialog" class="modal fade" data-keyboard="true" tabindex="-1"></div>
+  </div>
+  <div class="tw-bs">
+    <div id="confirmUpdateActionDialog" class="modal fade" data-keyboard="true" tabindex="-1"></div>
+  </div>
+  <div class="tw-bs">
+    <div id="createCloneDirectivePopup" class="modal fade" data-keyboard="true" tabindex="-1">
+      <lift:ignore>
+        This div gets the content of the createDirective injected within
+      </lift:ignore>
     </div>
-    <div class="tw-bs">
-      <div id="removeActionDialog" class="modal fade" data-keyboard="true" tabindex="-1"></div>
-    </div>
-    <div class="tw-bs">
-        <div id="disableActionDialog" class="modal fade" data-keyboard="true" tabindex="-1"></div>
-    </div>
-    <div class="tw-bs">
-        <div id="confirmUpdateActionDialog" class="modal fade" data-keyboard="true" tabindex="-1"></div>
-    </div>
-    <div class="tw-bs">
-      <div id="createCloneDirectivePopup" class="modal fade" data-keyboard="true" tabindex="-1">
-          <lift:ignore>
-            This div gets the content of the createDirective injected within
-          </lift:ignore>
-        </div>
-    </div>
+  </div>
 </component-form>
 
-<component-informationtab>
-<div class="page-title">Directive information</div>
-      <hr class="spacer" />
-      <div id="nameField">
-        Here comes the name field
-      </div>
-      <hr class="spacer" />
+<component-informationTab>
+  <div class="page-title">Directive information</div>
+    <hr class="spacer" />
+  <div id="nameField">
+    Here comes the name field
+  </div>
+  <hr class="spacer" />
+  <div id="shortDescriptionField">
+    Here comes the shortDescription field
+  </div>
+  <hr class="spacer" />
+  <div id="longDescriptionField">
+    Here comes the longDescription field
+  </div>
+  <hr class="spacer" />
 
-      <div id="shortDescriptionField">
-        Here comes the shortDescription field
-      </div>
-      <hr class="spacer" />
+  <div id="priority">
+    Here come the priority field
+  </div>
+  <hr class="spacer" />
+  <div class="directiveTechnicalInfo" id="showTechnical"></div>
+  <div id="technicalDetails" style="display:none">
+    <div class="directiveTechnicalInfo">
+      <b class="threeCol">Technique name: </b>
+      <span id="techniqueName">
+        Technique name
+      </span>
+    </div>
+    <hr class="spacer"/>
 
-      <div id="longDescriptionField">
-        Here comes the longDescription field
-      </div>
-      <hr class="spacer" />
+    <div class="directiveTechnicalInfo">
+      <b class="threeCol">Technique description: </b>
+      <span id="techniqueDescription">
+        Technique description
+      </span>
+    </div>
+    <hr class="spacer"/>
 
-      <div id="priority">
-        Here come the priority field
-      </div>
-      <hr class="spacer" />
-      <div class="directiveTechnicalInfo" id="showTechnical"></div>
-      <div id="technicalDetails" style="display:none">
+    <div class="directiveTechnicalInfo">
+      <b class="threeCol">Technique unicity: </b>
+      <span id="isSingle">
+        isSingle
+      </span>
+    </div>
+    <hr class="spacer"/>
+    <div class="directiveTechnicalInfo">
+      <b class="threeCol">Directive Rudder ID: </b>
+      <span id="rudderID">
+        Here comes the rudder ID
+      </span>
+    </div>
+    <hr class="spacer"/>
+  </div>
+  <br/>
+</component-informationTab>
 
-        <div class="directiveTechnicalInfo">
-          <b class="threeCol">Technique name: </b>
-          <span id="techniqueName">
-            Technique name
-          </span>
-        </div>
-        <hr class="spacer"/>
-
-        <div class="directiveTechnicalInfo">
-          <b class="threeCol">Technique description: </b>
-          <span id="techniqueDescription">
-            Technique description
-          </span>
-        </div>
-        <hr class="spacer"/>
-
-        <div class="directiveTechnicalInfo">
-          <b class="threeCol">Technique unicity: </b>
-          <span id="isSingle">
-            isSingle
-          </span>
-        </div>
-        <hr class="spacer"/>
-
-        <div class="directiveTechnicalInfo">
-          <b class="threeCol">Directive Rudder ID: </b>
-          <span id="rudderID">
-            Here comes the rudder ID
-          </span>
-        </div>
-        <hr class="spacer"/>
-      </div>
-      <br/>
-</component-informationtab>
-
-<component-ruletargettab>
-    <div >
-      <div class="inner-portlet" style="float:left; margin-top:40px; min-width:150px; width:30%; overflow: auto">
-        <div class="section-title" style="font-family:monospace; color: #999; border:0;'">Categories</div>
-          <div class="inner-portlet-content" id="categoryTreeParent">
-            <div data-lift="configuration.RuleManagement.viewCategories" ></div>
-          </div>
-      </div>
-      <div class="inner-portlet" style="float:left; min-width:300px; width:60%; border-left: 1px #656565 solid; margin-top:40px; padding-left:40px;">
-        <div class="section-title" style="font-family:monospace; color: #999; border:0;'" id="categoryDisplay">Rules</div>
-        <div class="inner-portlet-content">
-          <div data-lift="configuration.RuleManagement.viewRules" ></div>
-        </div>
+<component-ruleTargetTab>
+  <div>
+    <div class="inner-portlet" style="float:left; margin-top:40px; min-width:150px; width:30%; overflow: auto">
+      <div class="section-title" style="font-family:monospace; color: #999; border:0;'">Categories</div>
+      <div class="inner-portlet-content" id="categoryTreeParent">
+        <div data-lift="configuration.RuleManagement.viewCategories" ></div>
       </div>
     </div>
+    <div class="inner-portlet" style="float:left; min-width:300px; width:60%; border-left: 1px #656565 solid; margin-top:40px; padding-left:40px;">
+      <div class="section-title" style="font-family:monospace; color: #999; border:0;'" id="categoryDisplay">Rules</div>
+      <div class="inner-portlet-content">
+        <div data-lift="configuration.RuleManagement.viewRules" ></div>
+      </div>
+    </div>
+  </div>
 </component-ruletargettab>
 
 </xml:group>

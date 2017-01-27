@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -35,20 +35,44 @@
 *************************************************************************************
 */
 
-$(document).ready(function(){
-  var treeId = '#activeTechniquesTree';
-  var formId = '#edit-box';
-  $(window).on('resize',function(){
-    adjustHeight(treeId);
-    adjustHeight(formId,"#directiveToolbar");
-  });
-  $(treeId).on("searchtag.jstree",function(e, data){
-	  data.res.length>0 ? $('#activeTechniquesTree_alert').hide() : $('#activeTechniquesTree_alert').show();
-    adjustHeight(treeId);
-  });
-  $(treeId).on("clear_search.jstree",function(e, data){
-    $('#activeTechniquesTree_alert').hide();
-    $(this).jstree(true).show_all();
-    adjustHeight(treeId);
-  });
-});
+#ruleComplianceTab {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+#boxTreeRules{
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+i#changeIconRule {
+  min-width: 25px;
+}
+#submitSearch #SubmitSearch{
+  margin-left: 7px;
+}
+label.rule-info{
+  margin-bottom:0;
+}
+label.rule-info + div{
+  color:#555;
+}
+#grid_rules_grid_zone_length label,#grid_rules_grid_zone_info{
+  font-weight:normal;
+  font-size:12px;
+}
+/* ----- </RULE FOOTER>  ----- */
+.rule-footer {
+  width: calc(100% - 230px);
+  left: 230px;
+  bottom: 0;
+}
+.skin-yellow.sidebar-collapse .rule-footer {
+  width: calc(100% - 50px);
+  left: 50px;
+}
+@media (max-width: 767px){
+  .skin-yellow.sidebar-collapse .rule-footer,.skin-yellow .rule-footer {
+    width: 100%;
+    left: 0;
+    bottom: 0;
+  }
+}
