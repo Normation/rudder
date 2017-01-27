@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -35,20 +35,79 @@
 *************************************************************************************
 */
 
-$(document).ready(function(){
-  var treeId = '#activeTechniquesTree';
-  var formId = '#edit-box';
-  $(window).on('resize',function(){
-    adjustHeight(treeId);
-    adjustHeight(formId,"#directiveToolbar");
-  });
-  $(treeId).on("searchtag.jstree",function(e, data){
-	  data.res.length>0 ? $('#activeTechniquesTree_alert').hide() : $('#activeTechniquesTree_alert').show();
-    adjustHeight(treeId);
-  });
-  $(treeId).on("clear_search.jstree",function(e, data){
-    $('#activeTechniquesTree_alert').hide();
-    $(this).jstree(true).show_all();
-    adjustHeight(treeId);
-  });
-});
+#versionTable + .checkbox-group{
+  margin-top:4px;
+}
+#versionTable + .checkbox-group input{
+  margin: 0px 2px 0px 0px;
+  position:relative;
+  top:2px;
+}
+#versionTable + .checkbox-group input + label{
+  font-weight:normal;
+  font-size:13px;
+}
+#directiveToolbar{
+  border-top-color:#e2e2e2;
+}
+.editTech{
+  margin-top:4px;
+}
+.moreFilters{
+  margin-left:0 !important;
+  margin-right:4px !important;
+}
+#technicalDetails{
+  padding:0 30px 12px 30px;
+}
+#technicalDetails > .directiveTechnicalInfo:first-child{
+  margin-top:0;
+}
+.directiveTree {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding: 0 10px;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+#directiveRulesTab {
+  margin-top: 20px;
+}
+#directiveRulesTab .box {
+  border: 1px solid #ddd;
+}
+#directiveRulesTab .box-header.with-border {
+  background-color: #f4f4f4;
+}
+#directiveRulesTab .rudder-form  input[type=checkbox] + .label-radio + .check-icon{
+  right: 7px;
+  font-size: 12px;
+  top: calc(50% - 6px);
+}
+#directiveRulesTab ul > li.rudder-form > .input-group label.form-control {
+  padding-right: 20px;
+  padding-left: 6px;
+}
+#directiveRulesTab .only-tags a.all{
+  font-size: 10px;
+  width:15px;
+}
+#directiveRulesTab .only-tags a.key{
+  font-size: 10px;
+  width:80px;
+}
+#directiveRulesTab .only-tags a.value{
+  font-size: 10px;
+  width:80px;
+}
+#directiveRulesTab .tags-container{
+  margin-top:30px;
+}
+#directiveRulesTab .only-tags .btn-xs.pull-right{
+  float:left !important;
+}
+#edit-box{
+  padding:10px;
+  overflow-y:auto;
+  overflow-x:hidden;
+}

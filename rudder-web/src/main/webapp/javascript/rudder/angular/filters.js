@@ -374,16 +374,4 @@ app.config(function($locationProvider) {
     enabled: true,
     requireBase: false
   });
-})
-
-// Adjust tree height
-function adjustHeight(treeId){
-  var tree = $(treeId);
-  var treeOffset = tree.offset()
-  if(treeOffset){
-    var offsetTop = treeOffset.top + 10;
-    var maxHeight = 'calc(100vh - '+ offsetTop + 'px)';
-    tree.css('max-height',maxHeight);
-  }
-}
-
+});
