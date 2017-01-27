@@ -24,3 +24,4 @@ site/cache/*
 site/*.pid
 *.pyc
 *.swp
+.ncf-exclude-cache*
