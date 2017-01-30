@@ -182,13 +182,13 @@ class RuleEditForm(
 
   def mainDispatch = Map(
       "showForm"          -> { _:NodeSeq => showForm() }
-    , "showEditForm"      -> { _:NodeSeq => showForm(1) }
-    , "showRecentChanges" -> { _:NodeSeq => showForm(0,"changesGrid") }
+    , "showEditForm"      -> { _:NodeSeq => showForm(0) }
+    , "showRecentChanges" -> { _:NodeSeq => showForm(1,"changesGrid") }
   )
 
   private[this] val boxRootRuleCategory = getRootRuleCategory()
 
-  private[this] def showForm(tab :Int = 0, idToScroll  : String = "editRuleZonePortlet") : NodeSeq = {
+  private[this] def showForm(tab :Int = 1, idToScroll  : String = "editRuleZonePortlet") : NodeSeq = {
     (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos(), boxRootRuleCategory, configService.rudder_global_policy_mode()) match {
       case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory), Full(globalMode)) =>
 
@@ -199,9 +199,8 @@ class RuleEditForm(
             } else {
               <div>You have no rights to see rules details, please contact your administrator</div>
             }
-
             (
-                s"#${htmlId_EditZone} *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+                s"#${htmlId_EditZone}" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
                 ClearClearable &
               "#ruleForm" #> formContent &
               actionButtons()
@@ -225,7 +224,7 @@ class RuleEditForm(
 
         form ++
         Script(
-          OnLoad(JsRaw(s"""$$( "#editRuleZone" ).tabs({ active : ${tab} });""")) &
+          OnLoad(JsRaw(s"""$$($$('.rules-nav-tab > li > a').get(${tab})).bsTab('show');""")) &
           JsRaw(s"""
             var target = $$( ".nav-tabs .active a" ).attr('href');
             if(target=="#ruleComplianceTab"){
@@ -248,8 +247,7 @@ class RuleEditForm(
               }
             });
             """
-          )
-        )
+        ))
 
       case (groupLib, directiveLib, allNodes, rootRuleCategory, globalMode) =>
         List(groupLib, directiveLib, allNodes, rootRuleCategory, globalMode).collect{ case eb: EmptyBox =>
@@ -413,7 +411,7 @@ class RuleEditForm(
   ////////////// Callbacks //////////////
 
   private[this] def updateFormClientSide() : JsCmd = {
-    Replace(htmlId_EditZone, this.showForm(1) )
+    Replace(htmlId_EditZone, this.showForm(0) )
   }
 
   private[this] def onSuccess() : JsCmd = {

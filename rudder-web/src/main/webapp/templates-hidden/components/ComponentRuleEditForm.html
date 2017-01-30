@@ -46,35 +46,37 @@
 </component:staticInit>
 
 <component:body>
-  <div class="col-xs-12">
-    <div class="box nav-tabs-custom has-toolbar">
-      <ul class="nav nav-tabs pull-right">
-        <li><a href="#ruleDetailsEditTab" data-toggle="tab">Settings</a></li>
-        <li class="active"><a href="#ruleComplianceTab" data-toggle="tab">Compliance</a></li>
-        <li class="pull-left header"><i id="changeIconRule" class="fa fa-gear"></i> Rule</li>
-      </ul>
-      <div class="tab-content no-padding">
-        <div class="chart tab-pane active" id="ruleComplianceTab">
-          <div id="details"></div>
-        </div>
-        <div class="chart tab-pane" id="ruleDetailsEditTab">
-          <div id="ruleForm"></div>
-          <div id="removeActionDialog"></div>
-          <div id="disactivateActionDialog"></div>
+  <div id="editRuleZone">
+    <div class="col-xs-12">
+      <div class="box nav-tabs-custom has-toolbar">
+        <ul class="nav nav-tabs pull-right rules-nav-tab">
+          <li><a id="settingsTab" href="#ruleDetailsEditTab" data-toggle="tab">Settings</a></li>
+          <li class="active"><a href="#ruleComplianceTab" data-toggle="tab">Compliance</a></li>
+          <li class="pull-left header"><i id="changeIconRule" class="fa fa-gear"></i> Rule</li>
+        </ul>
+        <div class="tab-content no-padding">
+          <div class="chart tab-pane active" id="ruleComplianceTab">
+            <div id="details"></div>
+          </div>
+          <div class="chart tab-pane" id="ruleDetailsEditTab">
+            <div id="ruleForm"></div>
+            <div id="removeActionDialog"></div>
+            <div id="disactivateActionDialog"></div>
+          </div>
         </div>
       </div>
     </div>
+    <lift:authz role="rule_edit">
+      <div class="fixed-footer rule-footer tw-bs">
+        <div id="removeAction" style="float:left"></div>
+        <div id="desactivateAction" style="float:left; margin-left:20px;"></div>
+        <button id="clone">[Clone]</button>
+        <div class="cpiefsave">
+          <button id="save">Save</button>
+        </div>
+      </div>
+    </lift:authz>
   </div>
-  <lift:authz role="rule_edit">
-    <div class="fixed-footer rule-footer tw-bs">
-      <div id="removeAction" style="float:left"></div>
-      <div id="desactivateAction" style="float:left; margin-left:20px;"></div>
-      <button id="clone">[Clone]</button>
-      <div class="cpiefsave">
-        <button id="save">Save</button>
-      </div>
-    </div>
-  </lift:authz>
   <div id="confirmUpdateActionDialog" class="modal fade" data-keyboard="true" tabindex="-1"></div>
 </component:body>
 

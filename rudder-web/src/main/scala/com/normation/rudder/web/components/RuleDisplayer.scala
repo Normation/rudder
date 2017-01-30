@@ -136,7 +136,7 @@ class RuleDisplayer (
   }
   def actionButtonCategory =
                if (directive.isEmpty) {
-                SHtml.ajaxButton("New Category", () => showCategoryPopup(None), ("class" -> "new-icon btn btn-success btn-xs"))
+                SHtml.ajaxButton("New Category", () => showCategoryPopup(None), ("class" -> "new-icon btn btn-success btn-sm"))
               } else {
                 NodeSeq.Empty
               }
@@ -182,7 +182,7 @@ class RuleDisplayer (
     if (directive.isDefined) {
       NodeSeq.Empty
     } else {
-      SHtml.ajaxButton("New Rule", () => showRulePopup(None), ("class" -> "new-icon btn btn-success btn-xs"))
+      SHtml.ajaxButton("New Rule", () => showRulePopup(None), ("class" -> "new-icon btn btn-success btn-sm"))
     }
   }
 
@@ -297,7 +297,7 @@ class RuleDisplayer (
                     <lift:authz role="rule_write">
                       {actionButtonCategory}
                     </lift:authz>
-                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    <button class="btn btn-box-tool btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
                   </div>
                 </div><!-- /.box-header -->
                 <div class="box-body">
@@ -314,11 +314,10 @@ class RuleDisplayer (
                 <div class="box-header with-border">
                   <h3 class="box-title"><i class="fa fa-gears" aria-hidden="true"></i>Rules</h3>
                   <div class="box-tools pull-right">
-                    <button class="btn btn-box-tool toggleTabFilter updateTable btn-xs" id="updateRuleTable">Refresh<span class="fa fa-refresh"></span></button>
+                    <button class="btn btn-box-tool toggleTabFilter updateTable btn-sm" id="updateRuleTable">Refresh<span class="fa fa-refresh"></span></button>
                     <lift:authz role="rule_write">
                       {actionButtonRule}
                     </lift:authz>
-                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
                   </div>
                 </div>
                 <div class="box-body">
