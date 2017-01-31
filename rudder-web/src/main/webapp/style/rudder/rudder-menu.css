@@ -875,7 +875,7 @@ i#changeIconRule {
   min-width: 25px;
 }
 .search-addon{
-	margin-bottom:10px;
+  margin-bottom:6px;
 }
 .search-addon > .input-group-addon{
 	border-top-left-radius: 4px !important;
@@ -1072,6 +1072,45 @@ table.tablewidth{
   padding: 0 10px;
   overflow-y:auto;
   overflow-x:hidden;
+}
+#directiveRulesTab {
+  margin-top: 20px;
+}
+#directiveRulesTab .box {
+  border: 1px solid #ddd;
+}
+#directiveRulesTab .box-header.with-border {
+  background-color: #f4f4f4;
+}
+#directiveRulesTab .rudder-form  input[type=checkbox] + .label-radio + .check-icon{
+  right: 7px;
+  font-size: 12px;
+  top: calc(50% - 6px);
+}
+#directiveRulesTab ul > li.rudder-form > .input-group label.form-control {
+  padding-right: 20px;
+  padding-left: 6px;
+}
+#directiveRulesTab .only-tags a.all{
+  font-size: 10px;
+  width:15px;
+}
+#directiveRulesTab .only-tags a.key{
+  font-size: 10px;
+  width:80px;
+}
+#directiveRulesTab .only-tags a.value{
+  font-size: 10px;
+  width:80px;
+}
+#directiveRulesTab .tags-container{
+  margin-top:30px;
+}
+#directiveRulesTab .only-tags .btn-xs.pull-right{
+  float:left !important;
+}
+.tw-bs .filters-container .input-group{
+  width: 100%;
 }
 .ui-widget.ui-tooltip h4{
   margin-bottom: 10px;
@@ -2126,8 +2165,9 @@ ul > li.rudder-form > .input-group label.form-control{
   color: #555;
   font-size: 14px;
 }
-ul.list-sm > li.rudder-form > .input-group label.form-control{
-  height: 28px;
+ul.list-sm > li.rudder-form > .input-group label.form-control,#directiveRulesTab ul > li.rudder-form > .input-group label.form-control{
+  height: auto;
+  min-height: 34px;
   font-size: 12px;
 }
 ul > li.rudder-form > .input-group .input-group-addon{
@@ -2159,8 +2199,8 @@ ul > li.rudder-form > .input-group.disabled *{
 /* CHECKBOX */
 .rudder-form  input[type=checkbox] + .label-radio + .check-icon,.rudder-form  input[type=radio] + .label-radio + .check-icon{
   position: absolute;
+  top: calc(50% - 7px);
   right: 15px;
-  top: 10px;
   color: #222d32;
   z-index: 10;
   visibility:hidden;
