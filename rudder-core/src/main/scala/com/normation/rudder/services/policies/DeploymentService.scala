@@ -93,8 +93,23 @@ import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookEnvPair
 import ch.qos.logback.core.db.DataSourceConnectionSource
-import com.normation.rudder.datasources.DataSourceUpdateCallbacks
-import com.normation.rudder.datasources.DataSourceUpdateCallbacks
+
+
+/**
+ * A deployment hook is a class that accept callbacks.
+ */
+trait PromiseGenerationHooks {
+
+  /*
+   * Hooks to call before deployment start.
+   * This one is synchronise, so that deployment will
+   * wait for its completion AND success.
+   * So
+   */
+  def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
+}
+
+
 
 /**
  * The main service which deploy modified rules and
@@ -127,13 +142,12 @@ trait PromiseGenerationService extends Loggable {
       preHooks            <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started")
       _                   <- RunHooks.syncRun(preHooks, HookEnvPairs.build( ("RUDDER_GENERATION_DATETIME", generationTime.toString) ), systemEnv)
       timeRunPreGenHooks  =  (System.currentTimeMillis - initialTime)
-      _                   =  logger.debug(s"Post-policy-generation hooks ran in ${timeRunPreGenHooks} ms")
+      _                   =  logger.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
 
-      // updating node properties from data source must be node before getting node info
-      fetchDatasourcesTime =  System.currentTimeMillis
-      _                    =  datasourceCallbacks.onGenerationStarted(generationTime)
-      timeFetchDatasources =  (System.currentTimeMillis - fetchDatasourcesTime)
-      _                    =  logger.debug(s"All data fetched from data source in ${timeFetchDatasources} ms, start getting all generation related data.")
+      codePreGenHooksTime =  System.currentTimeMillis
+      _                   <- beforeDeploymentSync(generationTime)
+      timeCodePreGenHooks =  (System.currentTimeMillis - codePreGenHooksTime)
+      _                   =  logger.debug(s"Pre-policy-generation modules hooks in ${timeCodePreGenHooks} ms, start getting all generation related data.")
 
       fetch0Time          =  System.currentTimeMillis
       allRules            <- findDependantRules() ?~! "Could not find dependant rules"
@@ -249,7 +263,8 @@ trait PromiseGenerationService extends Loggable {
 
     } yield {
       logger.debug("Timing summary:")
-      logger.debug("Run pre generation hooks  : %10s ms".format(timeRunPreGenHooks))
+      logger.debug("Run pre-gen scripts hooks : %10s ms".format(timeRunPreGenHooks))
+      logger.debug("Run pre-gen modules hooks : %10s ms".format(timeCodePreGenHooks))
       logger.debug("Fetch all information     : %10s ms".format(timeFetchAll))
       logger.debug("Historize names           : %10s ms".format(timeHistorize))
       logger.debug("Build current rule values : %10s ms".format(timeRuleVal))
@@ -291,7 +306,8 @@ trait PromiseGenerationService extends Loggable {
   def getScriptEngineEnabled : () => Box[FeatureSwitch]
   def getGlobalPolicyMode    : () => Box[GlobalPolicyMode]
 
-  def datasourceCallbacks: DataSourceUpdateCallbacks
+  // code hooks
+  def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
 
   // base folder for hooks. It's a string because there is no need to get it from config
   // file, it's just a constant.
@@ -478,7 +494,6 @@ class PromiseGenerationServiceImpl (
   , override val agentRunService : AgentRunIntervalService
   , override val complianceCache  : CachedFindRuleNodeStatusReports
   , override val promisesFileWriterService: Cf3PromisesFileWriterService
-  , override val datasourceCallbacks: DataSourceUpdateCallbacks
   , override val getAgentRunInterval: () => Box[Int]
   , override val getAgentRunSplaytime: () => Box[Int]
   , override val getAgentRunStartHour: () => Box[Int]
@@ -492,7 +507,19 @@ class PromiseGenerationServiceImpl (
   PromiseGeneration_buildNodeConfigurations with
   PromiseGeneration_updateAndWriteRule with
   PromiseGeneration_setExpectedReports with
-  PromiseGeneration_historization
+  PromiseGeneration_historization with
+  PromiseGenerationHooks {
+
+  private[this] val codeHooks = collection.mutable.Buffer[PromiseGenerationHooks]()
+
+  override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = {
+    sequence(codeHooks) { _.beforeDeploymentSync(generationTime) }.map( _ => () )
+  }
+
+  def appendPreGenCodeHook(hook: PromiseGenerationHooks): Unit = {
+    this.codeHooks.append(hook)
+  }
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Follows: traits implementing each part of the deployment service

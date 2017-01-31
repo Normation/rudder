@@ -544,7 +544,7 @@ class TestNodeAndParameterLookup extends Specification {
     }
 
     "match when node properties are on multiline" in {
-      val node = context.nodeInfo.node.copy(properties = Seq(NodeProperty("datacenter", jparse("""{"Europe": "Paris"}"""))))
+      val node = context.nodeInfo.node.copy(properties = Seq(NodeProperty("datacenter", jparse("""{"Europe": "Paris"}"""), None, None)))
       val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
       lookup(Seq(multilineNodePropVariable), c.copy(parameters = p(fooParam)))( values =>
         values must containTheSameElementsAs(Seq(Seq("=\r= \nParis =\n=")))
@@ -605,7 +605,7 @@ class TestNodeAndParameterLookup extends Specification {
 
     def compare(param: String, props: Seq[(String, String)])= {
       val i = compileAndGet(param)
-      val p = props.map { case (k, v) => NodeProperty(k, jparse(v)) }
+      val p = props.map { case (k, v) => NodeProperty(k, jparse(v), None, None) }
       val node = context.nodeInfo.node.copy(properties = p)
       val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
 
@@ -703,7 +703,7 @@ class TestNodeAndParameterLookup extends Specification {
 
       def compare(s1: String, s2: String) = {
         val i = compileAndGet(s"$${node.properties[${s1}]}")
-        val props = Seq(NodeProperty(s2, jparse(value)))
+        val props = Seq(NodeProperty(s2, jparse(value), None, None))
         val node = context.nodeInfo.node.copy(properties = props)
         val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
 

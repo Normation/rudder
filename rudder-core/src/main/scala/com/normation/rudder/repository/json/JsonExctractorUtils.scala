@@ -43,7 +43,6 @@ import com.normation.utils.Control._
 import scalaz.Monad
 import scalaz.Id
 import scalaz.std.option._
-import com.normation.rudder.datasources.DataSourceExtractor
 import com.normation.rudder.domain.policies.JsonTagExtractor
 import scala.language.higherKinds
 
@@ -115,7 +114,7 @@ trait JsonExctractorUtils[A[_]] {
   }
 }
 
-trait DataExtractor[T[+_]] extends DataSourceExtractor[T] with JsonTagExtractor[T]
+trait DataExtractor[T[+_]] extends JsonTagExtractor[T]
 object DataExtractor {
 
   object OptionnalJson extends DataExtractor[Option] {
