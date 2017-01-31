@@ -280,18 +280,20 @@ limitations under the License.
     <scala-version>2.11.8</scala-version>
     <scala-binary-version>2.11</scala-binary-version>
     <lift-version>2.6.3</lift-version>
-    <slf4j-version>1.7.7</slf4j-version>
-    <logback-version>1.1.2</logback-version>
-    <junit-version>4.11</junit-version>
-    <jodatime-version>2.3</jodatime-version>
-    <jodaconvert-version>1.6</jodaconvert-version>
-    <commons-io-version>2.4</commons-io-version>
-    <commons-codec-version>1.9</commons-codec-version>
+    <slf4j-version>1.7.22</slf4j-version>
+    <logback-version>1.1.9</logback-version>
+    <junit-version>4.12</junit-version>
+    <jodatime-version>2.9.7</jodatime-version>
+    <jodaconvert-version>1.8.1</jodaconvert-version>
+    <commons-io-version>2.5</commons-io-version>
+    <commons-codec-version>1.10</commons-codec-version>
     <commons-lang-version>2.6</commons-lang-version>
-    <spring-version>3.2.9.RELEASE</spring-version>
-    <spring-security-version>3.2.4.RELEASE</spring-security-version>
-    <jgit-version>4.4.1.201607150455-r</jgit-version>
-    <cglib-version>3.1</cglib-version>
+    <spring-version>3.2.18.RELEASE</spring-version>
+    <spring-security-version>3.2.10.RELEASE</spring-security-version>
+    <jgit-version>4.6.0.201612231935-r</jgit-version>
+    <cglib-version>3.2.4</cglib-version>
+    <asm-version>5.2</asm-version>
+    <bcpkix-jdk15on-version>1.56</bcpkix-jdk15on-version>
     <monix-version>2.1.1</monix-version>
     <!-- 
       These one must be updated to work together 
@@ -313,6 +315,11 @@ limitations under the License.
   -->
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.ow2.asm</groupId>
+        <artifactId>asm</artifactId>
+        <version>${asm-version}</version>
+      </dependency>
       <dependency>
         <groupId>org.scalaz</groupId>
         <artifactId>scalaz-core_${scala-binary-version}</artifactId>
