@@ -91,12 +91,7 @@
                       </div>
                     </div>
                     <div class="only-tags">
-                      <a href="" ng-click="onlyAll($event)" class="all" ng-class="{'active':(!only.key && !only.value)}"> All </a>
-                      <span class="separator">/</span>
-                      <a href="" ng-click="onlyKey($event)" class="key" ng-class="{'active':only.key}"> Filter keys only   </a>
-                      <span class="separator">/</span>
-                      <a href="" ng-click="onlyValue($event)" class="value" ng-class="{'active':only.value}"> Filter values only </a>
-                      <button class="btn btn-default btn-xs pull-right" ng-click="clearAllTags()" ng-disabled="tags.length==0">
+                      <button class="btn btn-default btn-xs pull-right" ng-click="clearAllTags()" ng-hide="tags.length==0">
                         Clear all tags
                         <i class="fa fa-trash" aria-hidden="true"></i>
                       </button>
