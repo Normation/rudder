@@ -67,7 +67,13 @@ trait BootstrapChecks {
 
 }
 
-class SequentialImmediateBootStrapChecks(checkActions:BootstrapChecks*) extends BootstrapChecks {
+class SequentialImmediateBootStrapChecks(_checkActions:BootstrapChecks*) extends BootstrapChecks {
+
+  private[this] var checkActions = collection.mutable.Buffer[BootstrapChecks](_checkActions:_*)
+
+  def appendBootstrapChecks(check: BootstrapChecks): Unit = {
+    checkActions.append(check)
+  }
 
   override val description = "Sequence of bootstrap checks"
   val formater = new PeriodFormatterBuilder()

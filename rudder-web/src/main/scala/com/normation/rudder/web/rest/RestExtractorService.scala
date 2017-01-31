@@ -42,8 +42,6 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccountName
-import com.normation.rudder.datasources.DataSource
-import com.normation.rudder.datasources.DataSourceName
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.parameters.ParameterName
@@ -79,6 +77,8 @@ import net.liftweb.http.Req
 import net.liftweb.json._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
+import com.normation.rudder.domain.nodes.NodePropertyRights
+import com.normation.rudder.domain.nodes.NodePropertyProvider
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -588,12 +588,14 @@ case class RestExtractorService (
    * ==> set foo to bar; delete baz, set plop to plop.
    */
   def extractNodeProperties (params : Map[String, List[String]]) : Box[Option[Seq[NodeProperty]]] = {
+    // properties coming from the API are always provider=rudder / mode=read-write
+
     extractList(params, "properties") { props =>
       val splitted = props.map { prop =>
         val parts = prop.split('=')
-        if(parts.size == 1) NodeProperty(parts(0), "")
+        if(parts.size == 1) NodeProperty(parts(0), "", None, None)
         //here, we should parse parts(1) and only fallback to string if not successful.
-        else NodeProperty(parts(0), parts(1))
+        else NodeProperty(parts(0), parts(1), None, None)
       }
       Full(splitted)
     }
@@ -620,7 +622,19 @@ case class RestExtractorService (
   private[this] def extractNodeProperty(json : JValue) : Box[NodeProperty] = {
     ( (json \ "name"), (json \ "value") ) match {
       case ( JString(nameValue), value ) =>
-        Full(NodeProperty(nameValue, value))
+        val provider = (json \ "provider") match {
+          case JString(value) => Some(NodePropertyProvider(value))
+          //if not defined of not a string, use default
+          case _              => None
+        }
+
+        val mode = (json \ "mode") match {
+          case JString(NodePropertyRights.ReadOnly.value)  => Some(NodePropertyRights.ReadOnly)
+          case JString(NodePropertyRights.ReadWrite.value) => Some(NodePropertyRights.ReadWrite)
+          case _                                         => None
+        }
+
+        Full(NodeProperty(nameValue, value, provider, mode))
       case (a, b)  =>
         Failure(s"""Error when trying to parse new property: '${compact(render(json))}'. The awaited format is: {"name": string, "value": json}""")
     }
@@ -973,30 +987,5 @@ case class RestExtractorService (
   }
 
   def extractId[T] (req : Req)(fun : String => Full[T])  = extractString("id")(req)(fun)
-
-  def extractReqDataSource(req : Req, base : DataSource) : Box[DataSource] = {
-    req.json match {
-      case Full(json) =>
-        extractDataSourceWrapper(base.id,json).map(_.withBase(base))
-      case _ =>
-        for {
-          name         <- extractString("name")(req) (x => Full(DataSourceName(x)))
-          description  <- extractString("description")(req) (boxedIdentity)
-          sourceType   <- extractObj("type")(req) (extractDataSourceTypeWrapper(_))
-          runParam     <- extractObj("runParameters")(req) (extractDataSourceRunParameterWrapper(_))
-          timeOut      <- extractInt("updateTimeout")(req)(extractDuration)
-          enabled      <- extractBoolean("enabled")(req)(identity)
-        } yield {
-          base.copy(
-              name = name.getOrElse(base.name)
-            , sourceType = getOrElse(sourceType.map(_.withBase(base.sourceType)),base.sourceType)
-            , description = description.getOrElse(base.description)
-            , enabled = enabled.getOrElse(base.enabled)
-            , updateTimeOut = timeOut.getOrElse(base.updateTimeOut)
-            , runParam = getOrElse(runParam.map(_.withBase(base.runParam)),base.runParam)
-          )
-        }
-    }
-  }
 
 }

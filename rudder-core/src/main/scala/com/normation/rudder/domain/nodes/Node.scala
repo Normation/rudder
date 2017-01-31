@@ -46,6 +46,7 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.utils.HashcodeCaching
+import com.normation.utils.Control.sequence
 
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.SimpleDiff
@@ -53,6 +54,9 @@ import com.normation.inventory.domain.FullInventory
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonParser.ParseException
+import net.liftweb.common.Box
+import net.liftweb.common.Full
+import net.liftweb.common.Failure
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -90,7 +94,46 @@ case object Node {
   }
 }
 
-case class NodeProperty(name: String, value: JValue) {
+
+/*
+ * Name of the owner of a node property.
+ */
+final case class NodePropertyProvider(value: String)
+
+sealed trait NodePropertyRights {
+  def value: String
+}
+
+object NodePropertyRights {
+
+  final object ReadWrite extends NodePropertyRights {
+    override val value = "read-write"
+  }
+  final object ReadOnly extends NodePropertyRights {
+    override val value = "read-only"
+  }
+
+  def values = ca.mrvisser.sealerate.values[NodePropertyRights]
+
+}
+
+/**
+ * A node property is a key/value pair + metadata.
+ * For now, only metadata availables are:
+ * - the provider of the property. By default Rudder.
+ * - the mode: read-write (default) or read-only.
+ *   (TODO: add mode="none" ?)
+ *
+ * If mode is read-only, only the provider can modify
+ * the properties. This is typically what happens
+ * when the property is set by an external source.
+ */
+final case class NodeProperty(
+    name    : String
+  , value   : JValue
+  , provider: Option[NodePropertyProvider] // optional, default "rudder"
+  , rights  : Option[NodePropertyRights]   // optional, default, "read-write"
+) {
   def renderValue: String = value match {
     case JString(s) => s
     case v          => net.liftweb.json.compactRender(v)
@@ -98,6 +141,8 @@ case class NodeProperty(name: String, value: JValue) {
 }
 
 object NodeProperty {
+
+  val rudderNodePropertyProvider = NodePropertyProvider("rudder")
 
   import net.liftweb.json.parse
   import net.liftweb.json.JsonAST.{JNothing, JString}
@@ -110,18 +155,18 @@ object NodeProperty {
    * a JString *but* a string representing and actual JSON should be
    * used as json.
    */
-  def apply(name: String, value: String): NodeProperty = {
+  def apply(name: String, value: String, provider: Option[NodePropertyProvider], mode: Option[NodePropertyRights]): NodeProperty = {
     try {
       val v = parse(value) match {
         case JNothing => JString("")
         case json     => json
       }
-      NodeProperty(name, v)
+      NodeProperty(name, v, provider, mode)
     } catch {
       case ex: ParseException =>
         // in that case, we didn't had a valid json top-level structure,
         // i.e either object or array. Use a JString with the content
-        NodeProperty(name, JString(value))
+        NodeProperty(name, JString(value), provider, mode)
     }
   }
 }
@@ -135,22 +180,52 @@ object CompareProperties {
    *   the property
    * - if the value is the emtpy string, remove
    *   the property
+   *
+   * Each time, we have to check the provider of the update to see if it's compatible.
+   * Node that in read-write mode, the provider is the last who wrote the property.
+   *
+   * A "none" provider actually means Rudder system one.
    */
-  def updateProperties(props: Seq[NodeProperty], updates: Option[Seq[NodeProperty]]) = {
-    updates match {
-      case None => props
-      case Some(u) =>
-        val values = u.map { case NodeProperty(k, v) => (k, v)}.toMap
-        val existings = props.map(_.name).toSet
-        //for news values, don't keep empty
-        val news = (values -- existings).collect { case(k,v) if(v != JString("")) => NodeProperty(k,v) }
-        props.flatMap { case p@NodeProperty(name, value)  =>
-          values.get(name) match {
-            case None              => Some(p)
-            case Some(JString("")) => None
-            case Some(x)           => Some(NodeProperty(name, x))
-          }
-        } ++ news
+  def updateProperties(oldProps: Seq[NodeProperty], optNewProps: Option[Seq[NodeProperty]]): Box[Seq[NodeProperty]] = {
+
+    //when we compare providers, we actually compared them with "none" replaced by RudderProvider
+    def same(p1: Option[NodePropertyProvider], p2: Option[NodePropertyProvider]) = {
+       p1.getOrElse(NodeProperty.rudderNodePropertyProvider) == p2.getOrElse(NodeProperty.rudderNodePropertyProvider)
+    }
+    //check if the prop should be removed or updated
+    def updateOrRemoveProp(prop: NodeProperty): Either[String, NodeProperty] = {
+     if(prop.value == JString("")) {
+       Left(prop.name)
+     } else {
+       Right(prop)
+     }
+    }
+
+    import NodePropertyRights._
+    optNewProps match {
+      case None => Full(oldProps)
+      case Some(newProps) =>
+        val oldPropsMap = oldProps.map(p => (p.name, p)).toMap
+
+        //update only according to rights - we get a seq of option[either[remove, update]]
+        for {
+          updated <- sequence(newProps) { newProp =>
+                       oldPropsMap.get(newProp.name) match {
+                         case None =>
+                           Full(updateOrRemoveProp(newProp))
+                         case Some(oldProp@NodeProperty(name, value, provider, rights)) => rights match {
+                             case Some(ReadOnly) if(!same(newProp.provider, provider)) =>
+                               Failure(s"You are trying to update the following property which is owned by an other provider with 'read-only' mode set: '${name}'")
+                             case _ =>
+                               Full(updateOrRemoveProp(newProp))
+                           }
+                       }
+                     }
+        } yield {
+          val toRemove = updated.collect { case Left(name)  => name }.toSet
+          val toUpdate = updated.collect { case Right(prop) => (prop.name, prop) }.toMap
+          (oldPropsMap.filterKeys(k => !toRemove.contains(k)) ++ toUpdate).values.toSeq
+        }
     }
   }
 
