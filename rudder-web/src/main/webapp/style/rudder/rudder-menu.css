@@ -1149,7 +1149,7 @@ label.text-fit{
   left:0 !important;
 }
 .tw-bs .tooltip{
-  z-index:99999999999;
+  z-index:9;
 }
 .tw-bs .tooltip > .tooltip-inner {
   background-color: #fff;
