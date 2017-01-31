@@ -142,7 +142,7 @@ class RuleDisplayer (
               }
 
   def displaySubcategories : NodeSeq = {
-    <ul class="form-group">
+    <ul class="form-group list-sm">
       <li class="rudder-form">
         <div class="input-group">
           <label for="includeCheckbox" class="input-group-addon" id="includeSubCategory">
@@ -161,6 +161,7 @@ class RuleDisplayer (
   }
   def viewCategories(ruleCategoryTree : RuleCategoryTree) : NodeSeq = {
     <div id="treeParent">
+      {displaySubcategories}
       <div id="categoryTree">
         {ruleCategoryTree.tree}
       </div>
@@ -182,7 +183,7 @@ class RuleDisplayer (
     if (directive.isDefined) {
       NodeSeq.Empty
     } else {
-      SHtml.ajaxButton("New Rule", () => showRulePopup(None), ("class" -> "new-icon btn btn-success btn-sm"))
+      SHtml.ajaxButton("New Rule", () => showRulePopup(None), ("class" -> "new-icon btn btn-sm btn-success"))
     }
   }
 
@@ -227,9 +228,9 @@ class RuleDisplayer (
                 <div class="box-header with-border">
                   <h3 class="box-title"><i class="fa fa-filter" aria-hidden="true"></i>Filters</h3>
                   <div class="box-tools pull-right">
-                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-chevron-down"></i></button>
                   </div>
-                </div><!-- /.box-header -->
+                </div>
                 <div class="box-body">
                   <div class="row">
                     <div class="col-xs-12">
@@ -254,12 +255,7 @@ class RuleDisplayer (
                               </div>
                             </div>
                             <div class="only-tags">
-                              <a href="" ng-click="onlyAll($event)" class="all" ng-class="{'active':getOnlyAllValue()}"> All </a>
-                              <span class="separator">/</span>
-                              <a href="" ng-click="onlyKey($event)" class="key" ng-class="{'active':only.key}"> Filter keys only   </a>
-                              <span class="separator">/</span>
-                              <a href="" ng-click="onlyValue($event)" class="value" ng-class="{'active':only.value}"> Filter values only </a>
-                              <button class="btn btn-default btn-xs pull-right" ng-click="clearAllTags()" ng-disabled="tags.length==0">
+                              <button class="btn btn-default btn-xs pull-right" ng-click="clearAllTags()" ng-hide="tags.length==0">
                                 Clear all tags
                                 <i class="fa fa-trash" aria-hidden="true"></i>
                               </button>
@@ -283,13 +279,12 @@ class RuleDisplayer (
                               </div>
                             </div>
                           </div>
-                          {displaySubcategories}
                         </div>
                       </div>
                     </div>
-                  </div><!-- /.row -->
-                </div><!-- /.box-footer -->
-              </div><!-- /.box -->
+                  </div>
+                </div>
+              </div>
               <div class="box">
                 <div class="box-header with-border">
                   <h3 class="box-title"><i class="fa fa-list" aria-hidden="true"></i>Categories</h3>
@@ -297,9 +292,9 @@ class RuleDisplayer (
                     <lift:authz role="rule_write">
                       {actionButtonCategory}
                     </lift:authz>
-                    <button class="btn btn-box-tool btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    <button class="btn btn-sm btn-box-tool" data-widget="collapse"><i class="fa fa-chevron-down"></i></button>
                   </div>
-                </div><!-- /.box-header -->
+                </div>
                 <div class="box-body">
                   <div class="row">
                     <div class="col-xs-12" id="categoryTreeParent">
