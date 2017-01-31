@@ -180,7 +180,10 @@ class CreateOrCloneRulePopup(
   private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup() : JsCmd = {
-      JsRaw(""" $('#createRulePopup').bsModal('hide');""")
+      JsRaw("""
+        $('#createRulePopup').bsModal('hide');
+        $('#settingsTab').bsTab('show');
+      """)
   }
   /**
    * Update the form when something happened
@@ -209,7 +212,7 @@ class CreateOrCloneRulePopup(
 
       woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.is )) match {
           case Full(x) =>
-            closePopup() & onSuccessCallback(rule)
+            onSuccessCallback(rule) & closePopup()
           case Empty =>
             logger.error("An error occurred while saving the Rule")
             formTracker.addFormError(error("An error occurred while saving the Rule"))
