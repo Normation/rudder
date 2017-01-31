@@ -144,7 +144,7 @@ class RuleDisplayer (
   def displaySubcategories : NodeSeq = {
     <ul class="form-group">
       <li class="rudder-form">
-        <div class="input-group displaySub">
+        <div class="input-group">
           <label for="includeCheckbox" class="input-group-addon" id="includeSubCategory">
             {includeSubCategory}
             <label class="label-radio" for="includeCheckbox">
