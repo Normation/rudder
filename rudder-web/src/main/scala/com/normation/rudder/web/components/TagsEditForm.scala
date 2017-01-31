@@ -59,7 +59,9 @@ class TagsEditForm(
       "#tagApp [id]" #> (appId)
 
     css(tagsTemplate) ++ Script(OnLoad(JsRaw(s"""
-      angular.bootstrap('#${appId}', ['tags']);
+      if(!angular.element('#${appId}').scope()){
+        angular.bootstrap('#${appId}', ['tags']);
+      }
       var scope = angular.element($$("#${controllerId}")).scope();
       scope.$$apply(function(){
         scope.init(  ${jsTags}, "${filterController}" ,  ${isEditForm});
