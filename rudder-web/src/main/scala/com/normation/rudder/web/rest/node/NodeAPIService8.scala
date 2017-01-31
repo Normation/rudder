@@ -69,6 +69,7 @@ import java.util.Arrays
 import com.normation.rudder.domain.nodes.NodeInfo
 import scalaj.http.Http
 import com.normation.rudder.domain.nodes.CompareProperties
+import scalaj.http.HttpOptions
 
 class NodeApiService8 (
     nodeRepository : WoNodeRepository
@@ -125,12 +126,15 @@ class NodeApiService8 (
   def remoteRunRequest(nodeId: NodeId, classes : List[String], keepOutput : Boolean, asynchronous : Boolean) = {
     val url = s"${relayApiEndpoint}/remote-run/nodes/${nodeId.value}"
     val params =
-      ("classes"      , classes.mkString(",") ) ::
+      ( "classes"     , classes.mkString(",") ) ::
       ( "keep_output" , keepOutput.toString   ) ::
       ( "asynchronous", asynchronous.toString ) ::
       Nil
+    // We currently bypass verification on certificate
+    // We should add an option to allow the user to define a certificate in configuration file
+    val options = HttpOptions.allowUnsafeSSL :: Nil
 
-    Http(url).params( params ).postForm
+    Http(url).params(params).options(options).postForm
   }
 
   def runNode(nodeId: NodeId, classes : List[String]) : Box[OutputStream => Unit] = {
