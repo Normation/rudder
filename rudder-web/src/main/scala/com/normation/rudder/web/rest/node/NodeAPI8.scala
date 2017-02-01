@@ -52,6 +52,7 @@ import com.normation.rudder.web.rest.ApiVersion
 import com.normation.rudder.web.rest.RestDataSerializer
 import com.normation.rudder.domain.nodes.Node
 import net.liftweb.http.OutputStreamResponse
+import net.liftweb.http.StreamingResponse
 
 class NodeAPI8 (
     apiV6        : NodeAPI6
