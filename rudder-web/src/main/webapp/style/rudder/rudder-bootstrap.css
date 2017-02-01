@@ -34,6 +34,10 @@
 *
 *************************************************************************************
 */
+.tw-bs .tooltip.in {
+  z-index: 99999;
+}
+
 .tw-bs .modal{
   overflow-x: hidden;
   overflow-y: auto;
@@ -162,7 +166,6 @@
   font-size:12px;
 }
 
-
 .tw-bs .navbar-form .form-control:focus {
   border-color: #cccccc;
   outline: 0;
@@ -171,8 +174,6 @@
 }
 .rudder_col{
   float: left;
-  overflow-x: hidden;
-  overflow-y: auto;
   position: static;
   height:100%;
   background-color:#2e2d2d;
