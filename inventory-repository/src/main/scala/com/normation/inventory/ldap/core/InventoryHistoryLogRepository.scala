@@ -44,6 +44,7 @@ import com.normation.ldap.sdk.LDAPEntry
 import com.unboundid.ldap.sdk.Entry
 import com.unboundid.ldif._
 import net.liftweb.common._
+import java.io.FileNotFoundException
 
 /**
  * A service that write and read ServerAndMachine inventory data to/from file.
@@ -69,6 +70,7 @@ class FullInventoryFileMarshalling(
       fromLdapEntries.fromLdapEntries(buf.map(e => new LDAPEntry(e)))
     } catch {
       case e : LDIFException => Failure(e.getMessage,Full(e),Empty)
+      case e : FileNotFoundException => Failure(s"History file '${in.getAbsolutePath}' was not found. It was likelly deleted", Full(e), Empty)
     } finally {
       if(null != reader) reader.close
     }
