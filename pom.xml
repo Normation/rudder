@@ -284,9 +284,9 @@ limitations under the License.
     <rudder-version>4.1.0~beta3-SNAPSHOT</rudder-version>
     <spring-run-dep-version>4.1.0~beta3-SNAPSHOT</spring-run-dep-version>
 
-    <scala-version>2.11.8</scala-version>
-    <scala-binary-version>2.11</scala-binary-version>
-    <lift-version>2.6.3</lift-version>
+    <scala-version>2.12.1</scala-version>
+    <scala-binary-version>2.12</scala-binary-version>
+    <lift-version>3.0.1</lift-version>
     <slf4j-version>1.7.22</slf4j-version>
     <logback-version>1.1.9</logback-version>
     <junit-version>4.12</junit-version>
@@ -346,6 +346,11 @@ limitations under the License.
         <groupId>org.scalaz.stream</groupId>
         <artifactId>scalaz-stream_${scala-binary-version}</artifactId>
         <version>${scalaz-stream-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-reflect</artifactId>
+        <version>${scala-version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
