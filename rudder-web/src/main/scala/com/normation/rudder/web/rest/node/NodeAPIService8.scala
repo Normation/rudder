@@ -138,7 +138,7 @@ class NodeApiService8 (
 
   def runNode(nodeId: NodeId, classes : List[String]) : Box[OutputStream => Unit] = {
     import monix.execution.Scheduler.Implicits.global
-    val request = remoteRunRequest(nodeId,classes,true,false)
+    val request = remoteRunRequest(nodeId,classes,true,true)
 
     val in = new PipedInputStream(pipeSize)
     val out = new PipedOutputStream(in)
