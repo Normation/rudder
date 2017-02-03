@@ -119,9 +119,9 @@ class CreateOrUpdateGlobalParameterPopup(
       onFailure
     } else {
       val newParameter = new GlobalParameter(
-        name        = ParameterName(parameterName.is),
-        value       = parameterValue.is,
-        description = parameterDescription.is,
+        name        = ParameterName(parameterName.get),
+        value       = parameterValue.get,
+        description = parameterDescription.get,
         overridable = parameterOverridable
       )
       val savedChangeRequest = {

@@ -179,7 +179,7 @@ class HomePage extends Loggable {
 
 
     ( for {
-      nodeInfos <- HomePage.boxNodeInfos.is
+      nodeInfos <- HomePage.boxNodeInfos.get
       n2 = System.currentTimeMillis
       userRules <- roRuleRepo.getIds()
       n3 = System.currentTimeMillis
@@ -291,7 +291,7 @@ class HomePage extends Loggable {
 
   def inventoryInfo() = {
     ( for {
-      nodeInfos <- HomePage.boxNodeInfos.is
+      nodeInfos <- HomePage.boxNodeInfos.get
     } yield {
       val machines = nodeInfos.values.map { _.machine.map(_.machineType) match {
                         case Some(_: VirtualMachineType) => "Virtual"
@@ -351,7 +351,7 @@ class HomePage extends Loggable {
     val n1 = System.currentTimeMillis
     for {
       con <- ldap
-      nodeInfos        <- HomePage.boxNodeInfos.is
+      nodeInfos        <- HomePage.boxNodeInfos.get
       n2               =  System.currentTimeMillis
       agentSoftEntries =  con.searchOne(acceptedNodesDit.SOFTWARE.dn, EQ(A_NAME, "rudder-agent"))
       agentSoftDn      =  agentSoftEntries.map(_.dn.toString).toSet

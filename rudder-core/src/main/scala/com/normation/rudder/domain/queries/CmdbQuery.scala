@@ -483,7 +483,7 @@ case class JsonComparator(key:String, splitter:String = "", numericvalue:Boolean
     def JsonQueryfromkeyvalues (attributeName:String,value:String): Filter = {
       splitJson(attributeName,value) match {
         case e:EmptyBox => HAS(key)
-        case x => SUB(key,null,x.get.toArray ,null)
+        case Full(x)    => SUB(key,null,x.toArray ,null)
       }
     }
     comparator match {
@@ -591,7 +591,7 @@ case class Query(
                 ("value" -> c.value)
               ) )
 
-    lazy val toJSONString = compact(render(toJSON))
+    lazy val toJSONString = compactRender(toJSON)
 
     override def equals(other:Any) : Boolean = {
       other match {

@@ -51,7 +51,6 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmd
 import net.liftweb.util.Helpers
-import net.liftweb.util.Helpers.{ boolean2, strToSuperArrowAssoc }
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.domain.policies.Directive

@@ -452,7 +452,7 @@ object NodeStatusReportSerialization {
       )
     }
 
-    def toJson() = pretty(render(toJValue))
+    def toJson() = prettyRender(toJValue)
     def toCompactJson = compactRender(toJValue)
   }
 
@@ -505,7 +505,7 @@ object NodeStatusReportSerialization {
       }))
     }
 
-    def toJson() = pretty(render(toJValue))
+    def toJson() = prettyRender(toJValue)
     def toCompactJson = compactRender(toJValue)
   }
 }

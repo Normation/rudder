@@ -54,6 +54,7 @@ import net.liftweb.common.Failure
 import net.liftweb.util.Helpers.tryo
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
+import net.liftweb.json.JsonAST.RenderSettings
 
 /**
  */
@@ -67,7 +68,7 @@ object RestUtils extends Loggable {
    */
   def getUsername(req:Req) : Option[String] = {
 
-    CurrentUser.is match {
+    CurrentUser.get match {
       case None => req.header(s"X-REST-USERNAME") match {
         case eb:EmptyBox => None
         case Full(name) => Some(name)
@@ -102,82 +103,20 @@ object RestUtils extends Loggable {
    *   - add a new line after each element in array
    *   - Add a new line at the end and beginning of an array and indent one more level array data
    *   - space after colon
+   *
+   *   TODO: see if/how it is possible to get the same behaviour
    */
-  def render(value: JValue): Document = {
-
-    import scala.text.{Document, DocText}
-    import scala.text.Document._
-
-    // Helper functions, needed but private in JSONAst,
-    // That one modified, add a bref after the punctuate
-    def series(docs: List[Document]) = punctuate(text(",") :: break, docs)
-
-    // no modification here
-    def trimArr(xs: List[JValue]) = xs.filter(_ != JNothing)
-    def trimObj(xs: List[JField]) = xs.filter(_.value != JNothing)
-    def fields(docs: List[Document]) = punctuate(text(",") :: break, docs)
-
-    // Indentation changed
-    def punctuate(p: Document, docs: List[Document]): Document = {
-      if (docs.length == 0) {
-        empty
-      } else {
-        docs.reduceLeft((d1, d2) => d1 :: p :: d2)
-      }
-    }
-
-    def quote(s: String): String = {
-      val buf = new StringBuilder
-      appendEscapedString(buf, s)
-      buf.toString
-    }
-
-    def appendEscapedString(buf: StringBuilder, s: String) {
-      for (i <- 0 until s.length) {
-        val c = s.charAt(i)
-        buf.append(c match {
-          case '"'  => "\\\""
-          case '\\' => "\\\\"
-          case '\b' => "\\b"
-          case '\f' => "\\f"
-          case '\n' => "\\n"
-          case '\r' => "\\r"
-          case '\t' => "\\t"
-          case c if ((c >= '\u0000' && c < '\u0020')) => "\\u%04x".format(c: Int)
-          case c => c
-        } )
-      }
-    }
-
-    // The actual render function
-    // Fallback to JsonAst.render
-    value match {
-      case JArray(arr)   =>
-        // origin: text("[") :: series(trimArr(arr).map(render)) :: text("]")
-        // We want to break after [ and indent one more level
-        val nested = break :: series(trimArr(arr).map(render))
-        text("[") :: nest(2, nested) :: break :: text("]")
-      case JField(n, v)  =>
-        // origin : text("\"" + quote(n) + "\":") :: render(v)
-        // Just add a space after the colon
-        text("\"" + quote(n) + "\": ") :: render(v)
-      case JObject(obj)  =>
-        // origin:  val nested = break :: fields(trimObj(obj).map(f => text("\"" + quote(f.name) + "\":") :: render(f.value)))
-        // Just add a space after the colon
-        val nested = break :: fields(trimObj(obj).map(f => text("\"" + quote(f.name) + "\": ") :: render(f.value)))
-        text("{") :: nest(2, nested) :: break :: text("}")
-      case _ => JsonAST.render(value)
-    }
+  def render(value: JValue): String = {
+    JsonAST.render(value, RenderSettings.pretty.copy(spaceAfterFieldName= true))
   }
 
   private[this] def effectiveResponse (id:Option[String], message:JValue, status:HttpStatus, action : String , prettify : Boolean) : LiftResponse = {
-    val printer: Document => String = if (prettify) Printer.pretty else Printer.compact
     val json = ( "action" -> action ) ~
                   ( "id"     -> id ) ~
                   ( "result" -> status.status ) ~
                   ( status.container   ->  message )
     val content : JsExp = new JsExp {
-      lazy val toJsCmd = printer(render((json)))
+      lazy val toJsCmd = if(prettify) render(json) else compactRender(json)
     }
 
     JsonResponse(content,List(),List(), status.code)

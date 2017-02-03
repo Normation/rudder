@@ -181,7 +181,7 @@ class EventListDisplayer(
     }
     val json = {
       JsObj(
-          "id" -> event.id.map(_.toString).getOrElse("Unknown")
+          "id" -> (event.id.map(_.toString).getOrElse("Unknown"): String)
         , "date" -> DateFormaterService.getFormatedDate(event.creationDate)
         , "actor" -> event.principal.name
         , "type" -> S.?("rudder.log.eventType.names." + event.eventType.serialize)

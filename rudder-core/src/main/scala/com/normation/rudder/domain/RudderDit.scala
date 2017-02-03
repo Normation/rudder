@@ -227,7 +227,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       mod +=! (A_TECHNIQUE_UUID, techniqueName.value)
       mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
       mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
-      mod +=! (A_ACCEPTATION_DATETIME, Printer.compact(JsonAST.render(acceptationDateTimes)))
+      mod +=! (A_ACCEPTATION_DATETIME, compactRender(acceptationDateTimes))
       mod
     }
 

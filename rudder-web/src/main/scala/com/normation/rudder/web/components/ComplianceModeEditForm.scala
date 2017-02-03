@@ -67,6 +67,7 @@ import com.normation.rudder.reports.NodeComplianceMode
 import scala.reflect.runtime.universe._
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.NodeComplianceMode
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * Component to display and configure the compliance Mode (and it's heartbeat)
@@ -80,13 +81,10 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
 ) (implicit tt : TypeTag[T]) extends DispatchSnippet with Loggable  {
 
   // Html template
-  def templatePath = List("templates-hidden", "components", "ComponentComplianceMode")
-  def template() =  Templates(templatePath) match {
-     case _ : EmptyBox =>
-       sys.error(s"Template for Compliance mode configuration not found. I was looking for ${templatePath.mkString("/")}.html")
-     case Full(n) => n
-  }
-  def complianceModeTemplate = chooseTemplate("property", "compliancemode", template)
+  def complianceModeTemplate = ChooseTemplate(
+      List("templates-hidden", "components", "ComponentComplianceMode")
+    , "property-compliancemode"
+  )
 
   def dispatch = {
     case "complianceMode" => (xml) => complianceModeConfiguration
@@ -133,7 +131,7 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
       jsonMode.values.get("overrides") match {
         case Some(JBool(bool)) => Full(bool)
         case Some(allow_override : Boolean) => Full(allow_override)
-        case Some(json : JValue) => Failure(s"'${render(json)}' is not a valid value for compliance mode 'override' attribute")
+        case Some(json : JValue) => Failure(s"'${compactRender(json)}' is not a valid value for compliance mode 'override' attribute")
         // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
         case Some(any) => Failure(s"'${any}' is not a valid value for compliance mode 'override' attribute")
         case None => Failure("compliance mode 'overrides' parameter must not be empty ")
@@ -199,7 +197,7 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
       }
     }
 
-    Printer.compact(render(json))
+    compactRender(json)
   }
 
   def complianceModeConfiguration = {

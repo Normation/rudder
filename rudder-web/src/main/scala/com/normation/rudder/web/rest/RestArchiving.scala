@@ -177,7 +177,7 @@ class RestArchiving(
                         ("id" -> id) ~ ("date" -> datetime) ~ ("commiter" -> tag.commiter.getName) ~ ("gitCommit" -> tag.commit.value)
                   }
 
-    JField(archiveType,  ordered)
+    JObject(JField(archiveType,  ordered))
   }
 
 

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2016 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,19 +35,40 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.batch
+package com.normation.rudder.web
 
-import net.liftweb.actor.LiftActor
-import net.liftweb.common.Loggable
-import net.liftweb.http.ListenerManager
-import com.normation.rudder.services.workflows.WorkflowUpdate
+import net.liftweb._
+import net.liftweb.http._
+import net.liftweb.util.Helpers._
+import net.liftweb.common._
+import scala.xml.NodeSeq
 
-class AsyncWorkflowInfo extends LiftActor with Loggable with ListenerManager {
+/**
+ * A replacement for "chooseTemplate" from Lift 2.6.
+ * It is based on CSS selector.
+ * It should be just a temporary replacement of real
+ * use of CSS selector with correct HTML5 pages.
+ *
+ * If the template is missing, it produces a sys.error (fatale).
+ * Better for dev, but you should have your template.
+ */
+object ChooseTemplate {
 
-
-  def createUpdate = WorkflowUpdate
-
-  override protected def lowPriority = {
-    case WorkflowUpdate => updateListeners _
+  /**
+   * Typical use case to replace chooseTemplate:
+   * ChooseTemplate("templates-hidden" :: "foo" :: Nil, "component-plop")
+   *
+   */
+  def apply(templatePath: List[String], selector: String): NodeSeq = {
+    val xml = Templates(templatePath) match {
+      case eb:EmptyBox =>
+       sys.error(s"Template for path ${templatePath.mkString("/")}.html not found.")
+      case Full(x) => x
+    }
+    //chose children. The right part is ignored.
+    val select = (s"$selector ^*" #> "not relevant")
+    select(xml)
   }
+
 }
+

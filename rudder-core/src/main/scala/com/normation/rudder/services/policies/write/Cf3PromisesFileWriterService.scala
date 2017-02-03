@@ -132,7 +132,7 @@ class Cf3PromisesFileWriterServiceImpl(
     val fileName = Constants.GENEREATED_PROPERTY_FILE
     val path = Constants.GENERATED_PROPERTY_DIR
     val jsonProperties = generateNodePropertiesJson(agentNodeConfig.config.nodeInfo.properties)
-    val propertyContent = Printer.pretty(JsonAST.render(jsonProperties))
+    val propertyContent = JsonAST.prettyRender(jsonProperties)
     logger.trace(s"Create node properties file '${agentNodeConfig.paths.newFolder}/${path}/${fileName}'")
     Try {
       val propertyFile = new File ( new File (agentNodeConfig.paths.newFolder, path), fileName)

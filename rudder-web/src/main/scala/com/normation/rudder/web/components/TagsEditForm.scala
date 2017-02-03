@@ -13,21 +13,14 @@ import net.liftweb.util.CssSel
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.policies.JsonTagSerialisation
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import com.normation.rudder.web.ChooseTemplate
 
-class TagsEditForm(
-    tags : Tags
-) extends Loggable {
+class TagsEditForm(tags : Tags) extends Loggable {
 
-  def templatePath = List("templates-hidden", "components", "ComponentTags")
-  def template() =  Templates(templatePath) match {
-     case Empty | Failure(_,_,_) =>
-       sys.error("Template for Tags not found. I was looking for %s.html"
-           .format(templatePath.mkString("/")))
-     case Full(n) => n
-  }
-  def tagsTemplate = chooseTemplate("tags", "form", template)
+  val templatePath = List("templates-hidden", "components", "ComponentTags")
+  def tagsTemplate = ChooseTemplate(templatePath, "tags-form")
 
-  def editTagsTemplate = chooseTemplate("tags", "editform", template)
+  def editTagsTemplate = ChooseTemplate(templatePath, "tags-editform")
 
   val jsTags = JsonTagSerialisation.serializeTags(tags)
 

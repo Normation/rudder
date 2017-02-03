@@ -2,7 +2,7 @@
 
 
 
-<component:staticinit >
+<component-staticinit >
   <head>
   <style type="text/css">
     .warnicon {
@@ -14,9 +14,9 @@
     }
   </style>
   </head>
-</component:staticinit>
+</component-staticinit>
 
-<component:staticBody>
+<component-staticbody>
 <div class="tw-bs">
   <div id="createCloneGroupPopup" class="modal fade" data-keyboard="true" tabindex="-1">
     <div id="createCloneGroupContainer" ></div>
@@ -26,9 +26,9 @@
 <div class="tw-bs">
   <div id="confirmUpdateActionDialog" class="modal fade" data-keyboard="true" tabindex="-1" ></div>
 </div>
-</component:staticBody>
+</component-staticbody>
 
-<component:body>
+<component-body>
 <div id="GroupTabs">
   <ul id="groupTabMenu">
     <li><a href="#groupParametersTab">Group parameters</a></li>
@@ -43,22 +43,22 @@
            </div>
            <div class="inner-portlet-content">
              <div class="tw-bs">
-               <group:notifications ></group:notifications>
-               <group:pendingChangeRequest></group:pendingChangeRequest>
-               <group:name></group:name>
-               <group:container></group:container>
-               <group:static></group:static>
-               <group:description></group:description>
-               <group:rudderID></group:rudderID>
-               <group:cfeclasses></group:cfeclasses>
+               <group-notifications ></group-notifications>
+               <group-pendingchangerequest></group-pendingchangerequest>
+               <group-name></group-name>
+               <group-container></group-container>
+               <group-static></group-static>
+               <group-description></group-description>
+               <group-rudderid></group-rudderid>
+               <group-cfeclasses></group-cfeclasses>
              </div>
              <div class="searchNodes section-title">Group criteria</div>
              <div id="SearchNodes">
-               <group:showGroup ></group:showGroup>
+               <group-showGroup ></group-showGroup>
              </div>
 <!--
              <lift:authz role="group_edit">
-               <group:reason />
+               <group-reason></group-reason>
              </lift:authz>
 -->
 
@@ -66,11 +66,11 @@
              <div class="tw-bs">
                <div class="margins clearfix ">
                  <div class="pull-left" >
-                 <lift:authz role="group_write"><group:delete></group:delete></lift:authz>
-                 <lift:authz role="group_write"><group:clone></group:clone></lift:authz>
+                 <lift:authz role="group_write"><group-delete></group-delete></lift:authz>
+                 <lift:authz role="group_write"><group-clone></group-clone></lift:authz>
                </div>
                <div class="pull-right"  >
-                 <group:save></group:save>
+                 <group-save></group-save>
                  <div id="saveButtonToolTip" class="tooltipContent">If your 'Save' button is disabled, it means that you have updated the query without Searching for new Nodes.
                   Please click on 'Search' to enable saving again </div>
                </div>
@@ -81,9 +81,9 @@
       </div>
      </div>
 <!--
-    <group:removeForm/>
+    <group-removeform></group-removeform>
 -->
   </div>
 </div>
-</component:body>
+</component-body>
 </xml:group>

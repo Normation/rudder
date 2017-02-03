@@ -161,7 +161,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
       , showPopup
     )))
 
-    currentRuleDisplayer.is match {
+    currentRuleDisplayer.get match {
       case Full(ruleDisplayer) => ruleDisplayer.display
       case eb: EmptyBox =>
         val fail = eb ?~! ("Error when displaying Rules")
@@ -171,7 +171,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
   // When a rule is changed, the Rule displayer should be updated (Rule grid, selected category, ...)
   def onRuleChange(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule:Rule) = {
-    currentRuleDisplayer.is match {
+    currentRuleDisplayer.get match {
       case Full(ruleDisplayer) =>
         ruleDisplayer.onRuleChange(rule.categoryId)
       case eb: EmptyBox =>
@@ -181,9 +181,9 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
   def editRule(workflowEnabled: Boolean, changeMsgEnabled : Boolean, dispatch:String="showForm") : NodeSeq = {
     def errorDiv(f:Failure) = <div id={htmlId_editRuleDiv} class="error">Error in the form: {f.messageChain}</div>
 
-    currentRuleForm.is match {
+    currentRuleForm.get match {
       case f:Failure => errorDiv(f)
-      case Empty => <div id={htmlId_editRuleDiv}/>
+      case Empty => <div id={htmlId_editRuleDiv}></div>
       case Full(form) => form.dispatch(dispatch)(NodeSeq.Empty)
     }
   }
@@ -241,7 +241,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     * Create the popup
     */
   def createPopup(ruleToClone : Option[Rule]) : NodeSeq = {
-    currentRuleDisplayer.is match {
+    currentRuleDisplayer.get match {
       case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
       case Empty => <div>The component is not set</div>
       case Full(popup) => popup.ruleCreationPopup(ruleToClone)

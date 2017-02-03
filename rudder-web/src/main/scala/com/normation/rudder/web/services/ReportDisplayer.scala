@@ -67,6 +67,7 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.appconfig.ConfigRepository
 import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * Display the last reports of a server
@@ -81,15 +82,9 @@ class ReportDisplayer(
 ) extends Loggable {
 
   private[this] val getAllNodeInfos = RudderConfig.nodeInfoService.getAll _
-  private[this] val templateByNodePath = List("templates-hidden", "reports_server")
-  private def templateByNode() =  Templates(templateByNodePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for execution batch history not found. I was looking for %s.html".format(templateByNodePath.mkString("/")))
-    case Full(n) => n
-  }
 
-  def reportByNodeTemplate = chooseTemplate("batches", "list", templateByNode)
-  def directiveDetails = chooseTemplate("directive", "foreach", templateByNode)
+  def reportByNodeTemplate = ChooseTemplate(List("templates-hidden", "reports_server"), "batches-list")
+  def directiveDetails = ChooseTemplate(List("templates-hidden", "reports_server"), "directive:foreach")
 
   /**
    * Main entry point to display the tab with reports of a node.
@@ -315,12 +310,12 @@ class ReportDisplayer(
 
         report.runInfo match {
           case NoRunNoExpectedReport | _:NoExpectedReport =>
-            bind("lastreportgrid", reportByNodeTemplate
-              , "intro"      -> intro
-              , "grid"       -> NodeSeq.Empty
-              , "missing"    -> NodeSeq.Empty
-              , "unexpected" -> NodeSeq.Empty
-            )
+            (
+                "lastreportgrid-intro"      #> intro
+              & "lastreportgrid-grid"       #> NodeSeq.Empty
+              & "lastreportgrid-missing"    #> NodeSeq.Empty
+              & "lastreportgrid-unexpected" #> NodeSeq.Empty
+            )(reportByNodeTemplate)
 
           case _:UnexpectedVersion | _:UnexpectedNoVersion |
                _:UnexpectedUnknowVersion | _:NoReportInInterval |
@@ -340,24 +335,24 @@ class ReportDisplayer(
               )
             } )
 
-            bind("lastreportgrid", reportByNodeTemplate
-              , "intro"      -> intro
-              , "grid"       -> showReportDetail(filtered, node, withCompliance = false)
-              , "missing"    -> NodeSeq.Empty
-              , "unexpected" -> NodeSeq.Empty
-            )
+            (
+                "lastreportgrid-intro"      #> intro
+              & "lastreportgrid-grid"       #> showReportDetail(filtered, node, withCompliance = false)
+              & "lastreportgrid-missing"    #> NodeSeq.Empty
+              & "lastreportgrid-unexpected" #> NodeSeq.Empty
+            )(reportByNodeTemplate)
 
           case  _:Pending | _:ComputeCompliance =>
 
             val missing    = getComponents(ReportType.Missing   , report, directiveLib).toSet
             val unexpected = getComponents(ReportType.Unexpected, report, directiveLib).toSet
 
-            bind("lastreportgrid", reportByNodeTemplate
-              , "intro"      -> intro
-              , "grid"       -> showReportDetail(report, node, withCompliance = true)
-              , "missing"    -> showMissingReports(missing)
-              , "unexpected" -> showUnexpectedReports(unexpected)
-            )
+            (
+                "lastreportgrid-intro"      #> intro
+              & "lastreportgrid-grid"       #> showReportDetail(report, node, withCompliance = true)
+              & "lastreportgrid-missing"    #> showMissingReports(missing)
+              & "lastreportgrid-unexpected" #> showUnexpectedReports(unexpected)
+            )(reportByNodeTemplate)
         }
       }
     )

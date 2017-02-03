@@ -110,7 +110,7 @@
             <span class="sr-only">Toggle navigation</span>
           </a>
           <!-- Quick Search-->
-         <div data-lift="QuickSearchNode.render"  class="sidebar-form topbar-search-form" >        <!-- Quick Search -->
+         <div data-lift="QuickSearchNode.render"  class="sidebar-form topbar-search-form" > 
   
             <div ng-app="quicksearch" id="quicksearch" ng-controller="QuicksearchCtrl" class="input-group">
             <script type="text/ng-template" id="quicksearch.html">
@@ -406,7 +406,9 @@
   <div class="content-wrapper">
   <div class="rudder_col">
   <lift:Authz.whenhasrights>
-    <lift:bind name="content" />
+    <div id="content">
+      <!-- Here come the content bound by <lift:surround at="content"> -->
+    </div>
   </lift:Authz.whenhasrights>
 
   <lift:Authz.whennorights>

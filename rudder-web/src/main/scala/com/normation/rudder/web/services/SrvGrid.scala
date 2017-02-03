@@ -70,6 +70,7 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -96,14 +97,7 @@ class SrvGrid(
   , configService         : ReadConfigService
 ) extends Loggable {
 
-  private def templatePath = List("templates-hidden", "srv_grid")
-  private def template() =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(templatePath.mkString("/")))
-    case Full(n) => n
-  }
-
-  private def tableTemplate = chooseTemplate("servergrid","table",template)
+  private def tableTemplate = ChooseTemplate(List("templates-hidden", "srv_grid"), "servergrid-table")
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
@@ -273,14 +267,14 @@ case class NodeLine (
    JsObj(
        ( "name" -> hostname )
      , ( "id" -> node.id.value )
-     , ( "machineType" -> node.machine.map { _.machineType match {
+     , ( "machineType" -> (node.machine.map { _.machineType match {
                             case _: VirtualMachineType => "Virtual"
                             case PhysicalMachineType   => "Physical"
-                          } }.getOrElse("No Machine Inventory" )
+                          } }.getOrElse("No Machine Inventory" ):String )
        )
      , ( "osName") -> S.?(s"os.name.${node.osDetails.os.name}")
      , ( "osVersion" -> node.osDetails.version.value)
-     , ( "servicePack" -> node.osDetails.servicePack.getOrElse("N/A"))
+     , ( "servicePack" -> (node.osDetails.servicePack.getOrElse("N/A"): String))
      , ( "agentPolicyMode" -> policyMode.toString)
      , ( "explanation" -> explanation.toString)
      , ( "lastReport" ->  lastReportValue )
