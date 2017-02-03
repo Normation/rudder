@@ -69,7 +69,7 @@ import scala.reflect.ClassTag
  *   }
  *
  *   def displayComponent(xml:NodeSeq) : NodeSeq = {
- *     myComponentHolder.is match {
+ *     myComponentHolder.get match {
  *       case Failure(m,_,_) =>
  *           //error with the component loading or update, display an error message
  *           //here, <lift:MyComponent.renderComponent /> will lead to Lift saying it does not know that class
@@ -109,7 +109,7 @@ class LocalSnippet[T <: DispatchSnippet](implicit m: ClassTag[T]) {
 
   val name = m.runtimeClass.getSimpleName
 
-  def is = _snippet
+  def get = _snippet
 
   def set(snippet:Box[T]) : Unit = {
     _snippet = snippet

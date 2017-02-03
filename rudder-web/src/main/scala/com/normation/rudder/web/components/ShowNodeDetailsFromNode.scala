@@ -71,18 +71,16 @@ import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.web.ChooseTemplate
 
 object ShowNodeDetailsFromNode {
 
   private val groupTreeId = "node_groupTree"
 
-  private def serverPortletPath = List("templates-hidden", "server", "server_details")
-  private def serverPortletTemplateFile() =  Templates(serverPortletPath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for node details not found. I was looking for %s.html".format(serverPortletPath.mkString("/")))
-    case Full(n) => n
-  }
-  private def serverDetailsTemplate = chooseTemplate("detail","server",serverPortletTemplateFile)
+  private def serverDetailsTemplate = ChooseTemplate(
+      List("templates-hidden", "server", "server_details")
+    , "detail-server"
+  )
 }
 
 class ShowNodeDetailsFromNode(

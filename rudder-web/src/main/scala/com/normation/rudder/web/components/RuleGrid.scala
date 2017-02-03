@@ -82,6 +82,7 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.web.services.ComputePolicyMode
+import com.normation.rudder.web.ChooseTemplate
 
 object RuleGrid {
   def staticInit =
@@ -147,13 +148,10 @@ class RuleGrid(
   private[this] val htmlId_rulesGridWrapper = htmlId_rulesGridId + "_wrapper"
   private[this] val tableId_reportsPopup = "popupReportsGrid"
 
-  def templatePath = List("templates-hidden", "reports_grid")
-  def template() =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for report grid not found. I was looking for %s.html".format(templatePath.mkString("/")))
-    case Full(n) => n
-  }
-  def reportTemplate = chooseTemplate("reports", "report", template)
+  def reportTemplate = ChooseTemplate(
+      List("templates-hidden", "reports_grid")
+    , "reports-report"
+  )
 
   def dispatch = {
     case "rulesGrid" => { _:NodeSeq => rulesGridWithUpdatedInfo(None, true, true, false)}

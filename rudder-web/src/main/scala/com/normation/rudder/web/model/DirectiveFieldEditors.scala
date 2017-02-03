@@ -61,6 +61,7 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.appconfig.FeatureSwitch.Disabled
 import com.normation.rudder.domain.appconfig.FeatureSwitch.Enabled
 import com.normation.rudder.services.policies.JsEngine
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * This field is a simple input text, without any
@@ -71,14 +72,7 @@ object TextField {
 
   def textInput(kind : String)(id : String) = {
       // Html template
-    def templatePath = List("templates-hidden", "components", "directiveInput")
-    def template() =  Templates(templatePath) match {
-       case eb : EmptyBox =>
-         val failure = eb ?~ s"Template for text input configuration not found. I was looking for ${templatePath.mkString("/")}.html"
-         sys.error(failure.messageChain)
-       case Full(n) => n
-    }
-    def textInput = chooseTemplate("input", kind, template)
+    def textInput = ChooseTemplate(List("templates-hidden", "components", "directiveInput") , s"input:$kind")
 
     val css: CssSel =  ".tw-bs [id]" #> id &
     ".text-section [id]" #>  (id+"-controller")
@@ -557,24 +551,24 @@ class FilePermsField(val id: String) extends DirectiveField {
   def toForm() = {
     val xml = <table>
                 <tr><th></th><th>Read</th><th>Write</th><th>Exec</th></tr>
-                <tr><td>User</td><td><check:ur/></td><td><check:uw/></td><td><check:ux/></td></tr>
-                <tr><td>Group</td><td><check:gr/></td><td><check:gw/></td><td><check:gx/></td></tr>
-                <tr><td>Other</td><td><check:or/></td><td><check:ow/></td><td><check:ox/></td></tr>
+                <tr><td>User</td><td><span id="check-ur"/></td><td><span id="check-uw"/></td><td><span id="check-ux"/></td></tr>
+                <tr><td>Group</td><td><span id="check-gr"/></td><td><span id="check-gw"/></td><td><span id="check-gx"/></td></tr>
+                <tr><td>Other</td><td><span id="check-or"/></td><td><span id="check-ow"/></td><td><span id="check-ox"/></td></tr>
               </table> % ("id" -> id)
 
-    val fxml = bind("check", xml,
-      "ur" -> SHtml.checkbox(_x.u.read, { _x.u.read = _ }),
-      "uw" -> SHtml.checkbox(_x.u.write, { _x.u.write = _ }),
-      "ux" -> SHtml.checkbox(_x.u.exec, { _x.u.exec = _ }),
-      "gr" -> SHtml.checkbox(_x.g.read, { _x.g.read = _ }),
-      "gw" -> SHtml.checkbox(_x.g.write, { _x.g.write = _ }),
-      "gx" -> SHtml.checkbox(_x.g.exec, { _x.g.exec = _ }),
-      "or" -> SHtml.checkbox(_x.o.read, { _x.o.read = _ }),
-      "ow" -> SHtml.checkbox(_x.o.write, { _x.o.write = _ }),
-      "ox" -> SHtml.checkbox(_x.o.exec, { _x.o.exec = _ }))
-
-    Full(fxml)
+    Full( (
+        "#check-ur" #> SHtml.checkbox(_x.u.read, { _x.u.read = _ })
+      & "#check-uw" #> SHtml.checkbox(_x.u.write, { _x.u.write = _ })
+      & "#check-ux" #> SHtml.checkbox(_x.u.exec, { _x.u.exec = _ })
+      & "#check-gr" #> SHtml.checkbox(_x.g.read, { _x.g.read = _ })
+      & "#check-gw" #> SHtml.checkbox(_x.g.write, { _x.g.write = _ })
+      & "#check-gx" #> SHtml.checkbox(_x.g.exec, { _x.g.exec = _ })
+      & "#check-or" #> SHtml.checkbox(_x.o.read, { _x.o.read = _ })
+      & "#check-ow" #> SHtml.checkbox(_x.o.write, { _x.o.write = _ })
+      & "#check-ox" #> SHtml.checkbox(_x.o.exec, { _x.o.exec = _ })
+    )(xml) )
   }
+
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] =
     Some((FilePerms.allPerms /: filters) { (filePerms, filter) =>
       filePerms.filter(p => filter(p))
@@ -718,7 +712,7 @@ class PasswordField(
     }) match {
       case Full(newValue) => set(newValue)
       case eb: EmptyBox =>
-        val fail = eb ?~! s"Error while parsing password input, value received is: ${Printer.compact(RestUtils.render(json))}"
+        val fail = eb ?~! s"Error while parsing password input, value received is: ${compactRender(json)}"
         logger.error(fail.messageChain)
         errors = errors ::: List(FieldError(this, fail.messageChain))
     }
@@ -851,13 +845,7 @@ object PasswordField {
 
   def xml(id : String) = {
       // Html template
-    def templatePath = List("templates-hidden", "components", "passwordInput")
-    def template() =  Templates(templatePath) match {
-       case Empty | Failure(_,_,_) =>
-         sys.error(s"Template for password input configuration not found. I was looking for ${templatePath.mkString("/")}.html")
-       case Full(n) => n
-    }
-    def agentScheduleTemplate = chooseTemplate("password", "input", template)
+    def agentScheduleTemplate = ChooseTemplate(List("templates-hidden", "components", "passwordInput"), "password-input")
 
     val css: CssSel =  ".tw-bs [id]" #> id &
     ".password-section [id]" #>  (id+"-controller")
@@ -923,14 +911,8 @@ object FileField {
 
   def fileInput(kind : String)(id : String) = {
       // Html template
-    def templatePath = List("templates-hidden", "components", "directiveInput")
-    def template() =  Templates(templatePath) match {
-       case eb : EmptyBox =>
-         val failure = eb ?~ s"Template for file input configuration not found. I was looking for ${templatePath.mkString("/")}.html"
-         sys.error(failure.messageChain)
-       case Full(n) => n
-    }
-    def xml = chooseTemplate("input", kind, template)
+    def xml = ChooseTemplate(List("templates-hidden", "components", "directiveInput"), s"input:$kind")
+
     val css: CssSel =  ".tw-bs [id]" #> id  &
     "#fileInput [id]" #>  (id+"-fileInput") &
     "#browserFile [onclick]" #> ("showFileManager('"+id+"')") &

@@ -329,7 +329,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
    * Create the popup
    */
   private[this] def createPopup : NodeSeq = {
-    creationPopup.is match {
+    creationPopup.get match {
       case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
       case Empty => <div>The component is not set</div>
       case Full(popup) => popup.popupContent()

@@ -66,6 +66,7 @@ import org.joda.time.DateTime
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import net.liftweb.json.JsonAST.JString
 import org.joda.time.format.DateTimeFormat
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * Show the reports from cfengine (raw data)
@@ -76,14 +77,10 @@ class LogDisplayer(
   , ruleRepository     : RoRuleRepository
 ) extends Loggable {
 
-  private val templatePath = List("templates-hidden", "node_logs_tabs")
-  private def template() =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for server details not found. I was looking for %s.html".format(templatePath.mkString("/")))
-    case Full(n) => n
-  }
-
-  private def content = chooseTemplate("logs","content",template)
+  private def content = ChooseTemplate(
+      List("templates-hidden", "node_logs_tabs")
+    , "logs-content"
+  )
 
   private val gridName = "logsGrid"
 

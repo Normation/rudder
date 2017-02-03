@@ -5,19 +5,19 @@
  -->
 
 <xml:goup>
-  <emergency:panel>
+  <emergency-panel>
     <span class="right">
-      <button id="openAlert"><emergency:images/></button>
+      <button id="openAlert"><emergency-images></emergency-images></button>
       <!--popin Alerte-->
       <div id="dialogAlert">
 
         <div id="Alerte">
           <div class="simplemodal-title">
-            <h1><emergency:title/></h1>
+            <h1><emergency-title></emergency-title></h1>
             <hr/>
           </div>
           <div class="simplemodal-content">
-            <emergency:body/>
+            <emergency-body></emergency-body>
             <hr class="spacer" />
           </div>
           <div class="simplemodal-bottom">
@@ -26,7 +26,7 @@
               <div class="popupButton">
                  <span>
                   <input type="submit" value="Cancel" class="simplemodal-close" onClick="$.modal.close();"/>
-                  <emergency:button/>
+                  <emergency-button></emergency-button>
                 </span>
               </div>
             </form>
@@ -36,5 +36,5 @@
       </div>
       <!--Fin popin Alerte-->
       </span>
-  </emergency:panel>
+  </emergency-panel>
 </xml:goup>

@@ -61,12 +61,12 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
 
 }) {
 
-  def getRights : Rights = this.is match {
+  def getRights : Rights = this.get match {
     case Some(u) => u.authz
     case None => new Rights(NoRights)
   }
 
-  def getActor : EventActor = this.is match {
+  def getActor : EventActor = this.get match {
     case Some(u) => EventActor(u.getUsername)
     case None => EventActor("unknown")
   }

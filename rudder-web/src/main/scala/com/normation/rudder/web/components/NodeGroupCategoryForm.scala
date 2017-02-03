@@ -105,13 +105,13 @@ class NodeGroupCategoryForm(
         <div>
           <div class="page-title">Category details</div>
         </div>
-        <directive:notifications />
+        <directive-notifications></directive-notifications>
         <hr class="spacer"/>
-        <directive:name/>
+        <directive-name></directive-name>
         <hr class="spacer"/>
-        <directive:description/>
+        <directive-description></directive-description>
         <hr class="spacer"/>
-        <directive:container/>
+        <directive-container></directive-container>
         <hr class="spacer"/>
         <div class="wbBaseField">
           <span class="threeCol textright"><b>Rudder ID:</b></span>
@@ -119,41 +119,32 @@ class NodeGroupCategoryForm(
        </div>
         <hr class="spacer"/>
         <lift:authz role="node_write">
-        <div class="margins tw-bs" align="right"><directive:save/> <directive:delete/></div>
+        <div class="margins tw-bs" align="right"><directive-save></directive-save> <directive-delete></directive-delete></div>
         </lift:authz>
       </div>
    )
 
-    if (_nodeGroupCategory.isSystem) {
-      ("input" #> {(n:NodeSeq) => n match {
-        case input: Elem => input % ("disabled", "true")
-      } } &
-        "textarea" #> {(n:NodeSeq) => n match {
-        case input: Elem => input % ("disabled", "true")
-      } }) (bind("directive", html,
-        "name" -> name.toForm_! ,
-        "description" -> description.toForm_!,
-        "container" -> container.toForm_!,
-        "save" -> SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default")),
-        "delete" -> deleteButton,
-        "notifications" -> updateAndDisplayNotifications()
-      ))
-    } else {
-       bind("directive", html,
-        "name" -> name.toForm_!,
-        "description" -> description.toForm_!,
-        "container" -> container.toForm_!,
-        "save" -> { if (CurrentUser.checkRights(Edit("group")))
-                 SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default"))
-              else NodeSeq.Empty
-        },
-        "delete" -> { if (CurrentUser.checkRights(Write("group")))
-                  deleteButton
-              else NodeSeq.Empty
-        },
-        "notifications" -> updateAndDisplayNotifications()
-      )
-    }
+    (
+        "directive-name"          #> name.toForm_!
+      & "directive-description"   #> description.toForm_!
+      & "directive-container"     #> container.toForm_!
+      & "directive-notifications" #> updateAndDisplayNotifications()
+      & (if (_nodeGroupCategory.isSystem) (
+            "input [disabled]"        #> "true"
+          & "textarea [disabled]"     #> "true"
+          & "directive-save"          #> SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default"))
+          & "directive-delete"        #> deleteButton
+        ) else (
+            "directive-save" #> (
+                if (CurrentUser.checkRights(Edit("group"))) SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default"))
+                else NodeSeq.Empty
+            )
+          & "directive-delete" #> (
+              if (CurrentUser.checkRights(Write("group"))) deleteButton
+                else NodeSeq.Empty
+            )
+        ))
+    )(html)
    }
 
   ///////////// delete management /////////////
@@ -294,8 +285,8 @@ class NodeGroupCategoryForm(
       // create the new NodeGroupCategory
       val newNodeGroup = new NodeGroupCategory(
         _nodeGroupCategory.id,
-        name.is,
-        description.is,
+        name.get,
+        description.get,
         _nodeGroupCategory.children,
         _nodeGroupCategory.items,
         _nodeGroupCategory.isSystem
@@ -303,7 +294,7 @@ class NodeGroupCategoryForm(
 
       woGroupCategoryRepository.saveGroupCategory(
           newNodeGroup
-        , NodeGroupCategoryId(container.is)
+        , NodeGroupCategoryId(container.get)
         , ModificationId(uuidGen.newUuid)
         , CurrentUser.getActor
         , Some("Node Group category saved by user from UI")

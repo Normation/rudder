@@ -45,10 +45,9 @@ import org.specs2.runner.JUnitRunner
 import RestTestSetUp._
 import net.liftweb.common.Full
 import net.liftweb.http.PlainTextResponse
-import net.liftweb.common.Loggable
 
 @RunWith(classOf[JUnitRunner])
-class RestStatusTest extends Specification with Loggable {
+class RestStatusTest extends Specification {
 
   "testing status REST API" should {
     "be correct" in {

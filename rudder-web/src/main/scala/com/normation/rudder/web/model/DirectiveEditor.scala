@@ -113,7 +113,7 @@ trait DirectiveField extends BaseField with SectionChildField {
   /* parseClient / toClient : get and set value from/to
    * web ui.
    *
-   * this.is should be invariant with
+   * this.get should be invariant with
    * parseClient(toClient).
    *
    */

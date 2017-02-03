@@ -239,7 +239,7 @@ class RuleValServiceTest extends Specification {
       "first component should have 3 values" in {
         cardinality match {
           case eb: EmptyBox => ko("error when parsing vars")
-          case Full(x) => x.head.x._2.size === 3 and x.head.x._3.size === 3
+          case Full(x) => x.head._2.size === 3 and x.head._3.size === 3
         }
       }
 

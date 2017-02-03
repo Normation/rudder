@@ -65,6 +65,7 @@ import com.normation.rudder.domain.servers.Srv
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.appconfig.ReadConfigService
+import com.normation.rudder.web.ChooseTemplate
 
 object NodeGrid {
   val logger = LoggerFactory.getLogger(classOf[NodeGrid])
@@ -91,14 +92,10 @@ class NodeGrid(
   , configService    : ReadConfigService
 ) extends Loggable {
 
-  private def templatePath = List("templates-hidden", "server_grid")
-  private def template() =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(templatePath.mkString("/")))
-    case Full(n) => n
-  }
-
-  private def tableTemplate = chooseTemplate("servergrid","table",template)
+  private def tableTemplate = ChooseTemplate(
+      List("templates-hidden", "server_grid")
+    , "servergrid-table"
+  )
 
   def displayAndInit(
       servers:Seq[Srv],
@@ -178,7 +175,7 @@ class NodeGrid(
           $$(this).click( function (event) {
             var source = event.target || event.srcElement;
             event.stopPropagation();
-            if(!( $$(source).is("button") || $$(source).is("input") )){
+            if(!( $$(source).get("button") || $$(source).get("input") )){
               var opened = $$(this).prop("open");
               if (opened && opened.match("opened")) {
                 $$(this).prop("open", "closed");

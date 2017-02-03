@@ -67,6 +67,7 @@ import net.liftweb.util.ToJsCmd
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 import scala.collection.mutable.{Map => MutMap}
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * The Search Nodes component
@@ -96,14 +97,11 @@ class SearchNodeComponent(
   private[this] val queryProcessor  = RudderConfig.acceptedNodeQueryProcessor
 
   // The portlet for the server detail
-  private[this] def serverPortletPath = List("templates-hidden", "server", "server_details")
-  private[this] def serverPortletTemplateFile() =  Templates(serverPortletPath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for server details not found. I was looking for %s.html".format(serverPortletPath.mkString("/")))
-    case Full(n) => n
-  }
+  private[this] def searchNodes = ChooseTemplate(
+      List("templates-hidden", "server", "server_details")
+    , "query-searchnodes"
+  )
 
-  private[this] def searchNodes = chooseTemplate("query","searchnodes",serverPortletTemplateFile)
   private[this] def queryline = {
   <tr class="error"></tr>
   <tr class="query_line querylinecolor">
@@ -115,7 +113,10 @@ class SearchNodeComponent(
     <td class="last addLine tw-bs"></td>
   </tr>
   }
-  private[this] def content = chooseTemplate("content","query",searchNodes)
+  private[this] def content = {
+    val select = ("content-query ^*" #> "not relevant for ^* operator")
+    select(searchNodes)
+  }
 
   /**
    * External exposition of the current state of server list.
@@ -241,7 +242,7 @@ class SearchNodeComponent(
 
     /**
      * Display the query part
-     * Caution, we pass an html different at the init part (whole content:query) or at update (update:query)
+     * Caution, we pass an html different at the init part (whole content-query)
      *
      */
     def displayQuery(html: NodeSeq) = {
@@ -293,14 +294,14 @@ class SearchNodeComponent(
 
     }
 
-    /**
+    /*
      * Show the search engine and the grid
      */
     def showQueryAndGridContent() : NodeSeq = {
-      bind("content",searchNodes,
-        "query" -> {x:NodeSeq => displayQuery(x)},
-        "gridresult" -> srvGrid.displayAndInit(Seq(),"serverGrid") // we need to set something, or IE moans
-      )
+      (
+          "content-query" #> {x:NodeSeq => displayQuery(x)}
+        & "update-gridresult" #> srvGrid.displayAndInit(Seq(),"serverGrid") // we need to set something, or IE moans
+      )(searchNodes)
     }
 
     showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh))

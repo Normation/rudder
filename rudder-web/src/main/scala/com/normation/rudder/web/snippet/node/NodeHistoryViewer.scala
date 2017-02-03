@@ -108,7 +108,8 @@ class NodeHistoryViewer extends StatefulSnippet {
     if(newUuid != this.uuid) {
       this.uuid = newUuid
       this.hid =  JsNodeId(uuid,"hist_").toString
-      this.dates = diffRepos.versions(uuid).get. //TODO : manage errors here
+      this.dates = diffRepos.versions(uuid).
+        getOrElse(throw new RuntimeException("Error when trying to parse version date. Please report as it is most likely a bug")).
         map(d => (d, d.toString()))
       if(dates.nonEmpty) { selectedDate = dates.head._1 }
     }

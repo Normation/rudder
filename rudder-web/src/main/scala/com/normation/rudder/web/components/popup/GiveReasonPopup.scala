@@ -60,6 +60,7 @@ import com.normation.rudder.repository._
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.ChooseTemplate
 
 class GiveReasonPopup(
     onSuccessCallback : (ActiveTechniqueId) => JsCmd = { (ActiveTechniqueId) => Noop }
@@ -70,14 +71,10 @@ class GiveReasonPopup(
 ) extends DispatchSnippet with Loggable {
 
  // Load the template from the popup
-  def templatePath = List("templates-hidden", "Popup", "giveReason")
-  def template() =  Templates(templatePath) match {
-     case Empty | Failure(_,_,_) =>
-       error("Template for creation popup not found. I was looking for %s.html"
-           .format(templatePath.mkString("/")))
-     case Full(n) => n
-  }
-  def popupTemplate = chooseTemplate("reason", "givereasonpopup", template)
+  def popupTemplate = ChooseTemplate(
+      List("templates-hidden", "Popup", "giveReason")
+    , "reason-givereasonpopup"
+  )
 
   private[this] val uuidGen                     = RudderConfig.stringUuidGenerator
   private[this] val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
@@ -90,16 +87,16 @@ class GiveReasonPopup(
   }
 
   def popupContent(html : NodeSeq) : NodeSeq = {
-    SHtml.ajaxForm(bind("item", popupTemplate,
-       "reason" -> crReasons.map {f =>
+    SHtml.ajaxForm( (
+      "item-reason" #> crReasons.map {f =>
          <div>
             <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
             {f.toForm_!}
          </div>
-        },
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() & refreshActiveTreeLibrary() }, ("tabindex","4"), ("class","btn btn-default")),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _, ("id","createATCSaveButton") , ("tabindex","3"),("class","btn btn-success"))
-    ))
+        }
+    & "item-cancel"  #> SHtml.ajaxButton("Cancel", { () => closePopup() & refreshActiveTreeLibrary() }, ("tabindex","4"), ("class","btn btn-default"))
+    & "item-save"    #> SHtml.ajaxSubmit("Save", onSubmit _, ("id","createATCSaveButton") , ("tabindex","3"),("class","btn btn-success"))
+    )(popupTemplate))
   }
 
 ///////////// fields for category settings ///////////////////
@@ -163,7 +160,7 @@ class GiveReasonPopup(
                       techniqueRepository.getTechniqueVersions(ptName).toSeq,
                       ModificationId(uuidGen.newUuid),
                       CurrentUser.getActor,
-                      crReasons.map (_.is)
+                      crReasons.map (_.get)
                    )
                    ?~! errorMess.format(sourceActiveTechniqueId.value, destCatId.value)
                )

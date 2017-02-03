@@ -114,7 +114,7 @@ trait JsonExctractorUtils[A[_]] {
   }
 }
 
-trait DataExtractor[T[+_]] extends JsonTagExtractor[T]
+trait DataExtractor[T[_]] extends JsonTagExtractor[T]
 object DataExtractor {
 
   object OptionnalJson extends DataExtractor[Option] {
@@ -123,7 +123,7 @@ object DataExtractor {
     def getOrElse[T](value : Option[T], default : T) = value.getOrElse(default)
   }
 
-  type Id[+X] = X
+  type Id[X] = X
 
   object CompleteJson extends DataExtractor[Id] {
     def monad = implicitly

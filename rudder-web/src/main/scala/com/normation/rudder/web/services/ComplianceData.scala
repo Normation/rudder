@@ -282,9 +282,9 @@ case class ChangeLine (
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "nodeName"      -> nodeName.getOrElse(report.nodeId.value) )
+        ( "nodeName"      -> (nodeName.getOrElse(report.nodeId.value):String) )
       , ( "message"       -> report.message )
-      , ( "directiveName" -> directiveName.getOrElse(report.directiveId.value) )
+      , ( "directiveName" -> (directiveName.getOrElse(report.directiveId.value):String) )
       , ( "component"     -> report.component )
       , ( "value"         -> report.keyValue )
       , ( "executionDate" -> DateFormaterService.getFormatedDate(report.executionTimestamp ))

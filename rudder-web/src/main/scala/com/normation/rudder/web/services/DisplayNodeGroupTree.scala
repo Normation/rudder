@@ -50,7 +50,6 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers
-import net.liftweb.util.Helpers.{ boolean2, strToSuperArrowAssoc }
 import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.domain.policies.FullRuleTarget
 import com.normation.rudder.domain.policies.RuleTarget
@@ -204,7 +203,7 @@ object DisplayNodeGroupTree extends Loggable {
             {targetInfo.name}
             { if (targetInfo.isSystem) <small class="greyscala"> - System</small>}
             <small class="greyscala">{ targetInfo.target match {
-                case g:FullGroupTarget => s" - ${g.nodeGroup.isDynamic ? "Dynamic" | "Static" }"
+                case g:FullGroupTarget => s" - ${if(g.nodeGroup.isDynamic) "Dynamic" else "Static" }"
                 case _ => ""
             } }</small>
 
