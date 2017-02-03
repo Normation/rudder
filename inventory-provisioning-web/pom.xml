@@ -66,17 +66,16 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${rudder-version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-actors</artifactId>
-      <version>${scala-version}</version>
-    </dependency>
-
     <!-- Compile dependencies -->
     <dependency>
       <groupId>commons-fileupload</groupId>
       <artifactId>commons-fileupload</artifactId>
       <version>1.3.2</version>
+    </dependency>
+    <dependency>
+      <groupId>io.monix</groupId>
+      <artifactId>monix-reactive_${scala-binary-version}</artifactId>
+      <version>${monix-version}</version>
     </dependency>
     <!-- Needed for fileupload -->
     <dependency>
