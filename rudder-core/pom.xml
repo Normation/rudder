@@ -135,6 +135,17 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>3.3</version>
     </dependency>
 
+    <!--
+         @Nonnull annotation, avoid "Class javax.annotation.Nonnull not found
+         - continuing with a stub"
+    -->
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <version>3.0.1</version>
+    </dependency>
+
+
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-webkit_${scala-binary-version}</artifactId>
