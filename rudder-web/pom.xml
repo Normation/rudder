@@ -59,7 +59,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
        <!-- this is needed to have Rudder plugins access rudder-web in jar format -->
        <plugin>
         <artifactId>maven-war-plugin</artifactId>
-        <version>2.5</version>
+        <version>3.0.0</version>
         <configuration>
           <attachClasses>true</attachClasses>
         </configuration>
@@ -75,11 +75,31 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
           </webAppConfig>
         </configuration>
       </plugin>
+     <!-- we need to be able to depend on tests for plugin -->
+     <plugin>
+       <groupId>org.apache.maven.plugins</groupId>
+       <artifactId>maven-jar-plugin</artifactId>
+       <version>3.0.2</version>
+       <executions>
+         <execution>
+           <goals>
+             <goal>test-jar</goal>
+           </goals>
+         </execution>
+       </executions>
+      </plugin>
     </plugins>
+    <resources>
+      <resource>
+        <directory>src/test/resources</directory>
+        <excludes>
+          <exclude>logback-test.xml</exclude>
+        </excludes>
+      </resource>
+    </resources>
   </build>
 
   <dependencies>
-
     <dependency>
       <groupId>com.typesafe</groupId>
       <artifactId>config</artifactId>
