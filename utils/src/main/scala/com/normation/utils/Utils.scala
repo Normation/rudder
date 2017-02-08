@@ -116,7 +116,7 @@ object Utils extends Loggable {
     try {
       block
     } catch {
-      case e: NullPointerException => e.getStackTrace()(2).getMethodName match {
+      case e: NullPointerException => e.getStackTrace()(1).getMethodName match {
           case "$qmark" | "$qmark$qmark" | "$qmark$qmark$bang" => null.asInstanceOf[A]
           case _ => throw e
         }
