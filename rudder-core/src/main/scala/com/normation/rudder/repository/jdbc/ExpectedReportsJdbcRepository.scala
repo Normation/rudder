@@ -67,7 +67,7 @@ import com.normation.rudder.repository.WoNodeConfigIdInfoRepository
 import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.domain.logger.TimingDebugLogger
-
+import com.normation.rudder.domain.logger.PolicyLogger
 
 
 class PostgresqlInClause(
@@ -258,7 +258,7 @@ class FindExpectedReportsJdbcRepository(
     getRuleExpectedReports("where enddate is null and ruleid = ?", Array[AnyRef](ruleId.value))  match {
         case Empty => Empty
         case f:Failure =>
-          logger.error(s"Error when getting expected report: ${f.messageChain}")
+          PolicyLogger.expectedReports.error(s"Error when getting expected report: ${f.messageChain}")
           f
         case Full(seq) =>
           seq.size match {
@@ -437,9 +437,9 @@ class UpdateExpectedReportsJdbcRepository(
             if (deletedExpectedReports == 0) {
               0
             } else {
-              logger.debug(s"Deleted ${deletedExpectedReports} expected reports closed before ${date}")
+              PolicyLogger.expectedReports.debug(s"Deleted ${deletedExpectedReports} expected reports closed before ${date}")
               val deletedExpectedReportsNode = jdbcTemplate.update("delete from expectedreportsnodes where nodejoinkey not in (select nodejoinkey from expectedreports)")
-              logger.debug(s"Deleted ${deletedExpectedReportsNode} expected reports node")
+              PolicyLogger.expectedReports.debug(s"Deleted ${deletedExpectedReportsNode} expected reports node")
               deletedExpectedReports
             }
           }
@@ -508,12 +508,16 @@ class UpdateExpectedReportsJdbcRepository(
 
   }
   override def findAllCurrentExpectedReportsWithNodesAndSerial(): Map[RuleId, (Int, Int, Map[NodeId, NodeConfigVersions])] = {
+    logger.debug(s"Getting all currect expected reports")
     val composite = jdbcTemplate.query("select distinct ruleid, serial, nodejoinkey from expectedreports where enddate is null", RuleIdSerialNodeJoinKeyMapper)
 
     (for {
       (ruleId, serial, nodeJoin) <- composite.asScala
+      t0                         =  System.currentTimeMillis
       nodeList                   <- getNodes(Set(nodeJoin))
     } yield {
+      val t1 = System.currentTimeMillis
+      TimingDebugLogger.debug(s"Get node list for of expected reports of rule id ${ruleId.value}: ${t1-t0}ms")
       (ruleId, (serial, nodeJoin, nodeList(nodeJoin).map{case(nodeId, versions) => (nodeId, NodeConfigVersions(nodeId, versions))}.toMap ))
     }).toMap
 
@@ -525,7 +529,7 @@ class UpdateExpectedReportsJdbcRepository(
    * @param ruleId
    */
   override def closeExpectedReport(ruleId : RuleId, generationTime: DateTime) : Box[Unit] = {
-    logger.debug(s"Closing expected report for rules '${ruleId.value}'")
+    PolicyLogger.expectedReports.debug(s"Closing expected report for rules '${ruleId.value}'")
     findReports.findCurrentExpectedReports(ruleId) match {
       case e:EmptyBox => e
       case Full(None) =>
@@ -560,7 +564,7 @@ class UpdateExpectedReportsJdbcRepository(
     , directiveExpectedReports: Seq[DirectiveExpectedReports]
     , nodeConfigIds           : Seq[NodeAndConfigId]
   ) : Box[RuleExpectedReports] = {
-     logger.debug(s"Saving expected report for rule '${ruleId.value}'")
+     PolicyLogger.expectedReports.trace(s"Saving expected report for rule '${ruleId.value}'")
 // TODO : store also the unexpanded
      findReports.findCurrentExpectedReports(ruleId) match {
        case e: EmptyBox => e
@@ -585,7 +589,7 @@ class UpdateExpectedReportsJdbcRepository(
            case seq if seq.size > 0 =>
              val msg = s"Inconsistency in the database : cannot save an already existing expected report for rule '${ruleId.value}'"
              logger.error(msg)
-             logger.debug("Intersecting values are " + seq)
+             PolicyLogger.expectedReports.debug("Intersecting values are " + seq)
              Failure(msg)
 
            case _ => // Ok
@@ -605,6 +609,7 @@ class UpdateExpectedReportsJdbcRepository(
     , nodeConfigIds           : Seq[NodeAndConfigId]
   ) : Box[RuleExpectedReports] = {
 
+    PolicyLogger.expectedReports.trace(s"Creating the expected reports for rule ${ruleId.value}")
     val generationTimestamp = new Timestamp(generationTime.getMillis)
 
     transactionTemplate.execute(new TransactionCallback[Box[RuleExpectedReports]]() {
@@ -627,6 +632,8 @@ class UpdateExpectedReportsJdbcRepository(
           )
         }
 
+        PolicyLogger.expectedReports.trace(s"Saved into expectedreports table for rule ${ruleId.value}")
+
         // save new nodeconfiguration - no need to check for existing version for them
         for (config <- nodeConfigIds) {
           jdbcTemplate.update(new PreparedStatementCreator() {
@@ -639,6 +646,8 @@ class UpdateExpectedReportsJdbcRepository(
             }
           })
         }
+
+        PolicyLogger.expectedReports.trace(s"Saved into expectedreportsnodes table for rule ${ruleId.value}")
 
         findReports.findCurrentExpectedReports(ruleId) match {
           case Full(Some(x)) => Full(x)
