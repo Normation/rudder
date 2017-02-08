@@ -63,7 +63,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.policies.ExpandedRuleVal
-
+import com.normation.rudder.domain.logger.PolicyLogger
 /**
  * The purpose of that service is to handle the update of
  * expected reports.
@@ -149,8 +149,12 @@ class ExpectedReportsUpdateImpl(
     , overrides         : Set[UniqueOverrides]
 ) : Box[Seq[RuleExpectedReports]] = {
 
+    val t0 = System.currentTimeMillis
     val filteredExpandedRuleVals = filterOverridenDirectives(expandedRuleVals, overrides)
     val openExepectedReports = confExpectedRepo.findAllCurrentExpectedReportsWithNodesAndSerial()
+
+    val t1 = System.currentTimeMillis
+    PolicyLogger.expectedReports.debug(s"Get all opened expected report in ${t1-t0}ms")
 
     // All the rule and serial. Used to know which one are to be removed
     val currentConfigurationsToRemove =  MutMap[RuleId, (Int, Int, Map[NodeId, NodeConfigVersions])]() ++ openExepectedReports
@@ -163,18 +167,18 @@ class ExpectedReportsUpdateImpl(
       currentConfigurationsToRemove.get(ruleId) match {
         // non existant, add it
         case None =>
-          logger.debug("New rule %s".format(ruleId))
+          PolicyLogger.expectedReports.debug("New rule %s".format(ruleId))
           confToCreate += conf
 
         case Some((serial, nodeJoinKey, nodeConfigMap)) if ((serial == newSerial)&&(configs.size > 0)) =>
             // no change if same serial and some config applicable, that's ok, trace level
-            logger.trace(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed and cache up-to-date: nothing to do")
+            PolicyLogger.expectedReports.trace(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed and cache up-to-date: nothing to do")
             // must check that their are no differents nodes in the DB than in the new reports
             // it can happen if we delete nodes in some corner case (detectUpdates(nodes) cannot detect it
             // And it's actually nodes, not node version because version may change and still use the
             // same expected report
             if (configs.keySet.map( _.nodeId) != nodeConfigMap.keySet) {
-              logger.debug("Same serial %s for ruleId %s, but not same node set, it need to be closed and created".format(serial, ruleId))
+              PolicyLogger.expectedReports.debug("Same serial %s for ruleId %s, but not same node set, it need to be closed and created".format(serial, ruleId))
               confToCreate += conf
               confToClose += ruleId
             } else
@@ -183,11 +187,11 @@ class ExpectedReportsUpdateImpl(
 
         case Some((serial, nodeJoinKey, nodeSet)) if ((serial == newSerial)&&(configs.size == 0)) => // same serial, but no targets
             // if there is not target, then it need to be closed
-          logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed BUT no previous configuration known: update expected reports for that rule")
+          PolicyLogger.expectedReports.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed BUT no previous configuration known: update expected reports for that rule")
           confToClose += ruleId
 
         case Some((serial, _, nodeSet)) => // not the same serial
-          logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was changed: update expected reports for that rule")
+          PolicyLogger.expectedReports.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was changed: update expected reports for that rule")
             confToCreate += conf
             confToClose += ruleId
 
@@ -200,11 +204,14 @@ class ExpectedReportsUpdateImpl(
     //all closable = expected reports that don't exist anymore + expected reports that need to be changed
     val allClosable = (currentConfigurationsToRemove.keys ++ confToClose).toSet
 
-    logger.debug(s"Closing expected reports for rules: ${if(allClosable.isEmpty) "none" else s"[${allClosable.map(_.value).mkString(", ")}]" }" )
+    PolicyLogger.expectedReports.debug(s"Closing expected reports for rules: ${if(allClosable.isEmpty) "none" else s"[${allClosable.map(_.value).mkString(", ")}]" }" )
 
+    val t2 = System.currentTimeMillis
     for (closable <- allClosable) {
       confExpectedRepo.closeExpectedReport(closable, generationTime)
     }
+    val t3 = System.currentTimeMillis
+    PolicyLogger.expectedReports.debug(s"Closed all expected reports to close in ${t3-t2}ms")
 
     // Now I need to unfold the configuration to create, so that I get for a given
     // set of ruleId, serial, DirectiveExpectedReports we have the list of  corresponding nodes
@@ -249,12 +256,15 @@ class ExpectedReportsUpdateImpl(
        }.toSeq
     // now we save them
 
-    logger.debug(s"Updating expected reports for rules: ${if(groupedContent.isEmpty) "none" else s"[${groupedContent.map {case ((RuleId(v), _, _), _) => v}.mkString(", ")}]" }")
+    PolicyLogger.expectedReports.debug(s"Updating expected reports for rules: ${if(groupedContent.isEmpty) "none" else s"[${groupedContent.map {case ((RuleId(v), _, _), _) => v}.mkString(", ")}]" }")
 
+    val t4 = System.currentTimeMillis
     for {
       createdExpectedReports   <- sequence(groupedContent) { case ((ruleId, serial, nodeConfigIds), directives) =>
                                     confExpectedRepo.saveExpectedReports(ruleId, serial, generationTime, directives, nodeConfigIds)
                                   }
+      t5                       = System.currentTimeMillis
+      _                        = logger.debug(s"Saved expected reports in ${t5-t4}ms")
       //we want to save updatedNodeConfiguration that were not already saved
       //in expected reports.
       newConfigId              =  filteredExpandedRuleVals.flatMap { case ExpandedRuleVal(_, _, configs) => configs.keySet.map{case NodeAndConfigId(id,v) => (id,v)}}.toMap
@@ -266,7 +276,11 @@ class ExpectedReportsUpdateImpl(
                                     }
                                   }
       _                        <- confExpectedRepo.updateNodeConfigVersion(notUpdateNodeJoinKey)
+      t6                       = System.currentTimeMillis
+      _                        = logger.debug(s"Updated node config version in ${t6-t5}ms")
       savedNodesInfos          <- nodeConfigRepo.addNodeConfigIdInfo(updatedNodeConfigs, generationTime)
+      t7                       = System.currentTimeMillis
+      _                        = logger.debug(s"Adding node config in ${t7-t6}ms")
     } yield {
 
       /*
