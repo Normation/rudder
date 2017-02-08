@@ -61,16 +61,14 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
            </goals>
          </execution>
        </executions>
+        <configuration>
+          <excludes>
+            <exclude>**/logback-test.xml</exclude>
+          </excludes>
+        </configuration>
      </plugin>
     </plugins>
-    <resources>
-      <resource>
-        <directory>src/test/resources</directory>
-        <excludes>
-          <exclude>logback-test.xml</exclude>
-        </excludes>
-      </resource>
-    </resources>
+
   </build>
 
   <dependencies>
@@ -179,17 +177,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <artifactId>nuprocess</artifactId>
         <version>1.1.0</version>
         <scope>compile</scope>
-    </dependency>
-
-
-    <!--
-         @Nonnull annotation, avoid "Class javax.annotation.Nonnull not found
-         - continuing with a stub"
-    -->
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-      <version>3.0.1</version>
     </dependency>
 
     <!--
