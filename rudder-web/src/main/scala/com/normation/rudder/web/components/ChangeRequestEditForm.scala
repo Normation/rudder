@@ -50,14 +50,13 @@ import net.liftweb.util.Helpers._
 import com.normation.rudder.services.workflows.WorkflowService
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.authorization.Edit
+import com.normation.rudder.web.ChooseTemplate
 
 object ChangeRequestEditForm {
-  def form =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentChangeRequest" :: Nil)
-    } yield {
-      chooseTemplate("component", "details", xml)
-    }) openOr Nil
+  def form = ChooseTemplate(
+      "templates-hidden" :: "components" :: "ComponentChangeRequest" :: Nil
+    , "component-details"
+  )
 }
 
 class ChangeRequestEditForm (
@@ -145,7 +144,7 @@ class ChangeRequestEditForm (
       updateFomClientSide
     }
     else {
-      val newInfo = ChangeRequestInfo(changeRequestName.is,changeRequestDescription.is)
+      val newInfo = ChangeRequestInfo(changeRequestName.get,changeRequestDescription.get)
       if (info == newInfo)
         onNothingToDo
       else {

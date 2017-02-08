@@ -45,7 +45,7 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.marshalling.TestFileFormat
 
 import net.liftweb.common.Box
-import net.liftweb.util.Helpers.strToCssBindPromoter
+import net.liftweb.util.Helpers.StringToCssBindPromoter
 import net.liftweb.util.Helpers.tryo
 import com.normation.rudder.db.Doobie
 

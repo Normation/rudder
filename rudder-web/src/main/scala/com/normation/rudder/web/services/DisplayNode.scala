@@ -667,7 +667,7 @@ object DisplayNode extends Loggable {
       import net.liftweb.json._
       displayTabGrid(jsId)("props", Full(node.properties)){
         ("Name", {x:NodeProperty => Text(x.name)}) ::
-        ("Value", {x:NodeProperty => <pre class="json-beautify" onclick="$(this).toggleClass('toggle')">{pretty(render(x.value))}</pre>}) ::
+        ("Value", {x:NodeProperty => <pre class="json-beautify" onclick="$(this).toggleClass('toggle')">{prettyRender(x.value)}</pre>}) ::
         Nil
       }
     }

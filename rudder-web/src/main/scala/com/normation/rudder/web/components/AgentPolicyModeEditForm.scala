@@ -10,18 +10,15 @@ import JE._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import net.liftweb.http.Templates
+import com.normation.rudder.web.ChooseTemplate
 
 class AgentPolicyModeEditForm extends DispatchSnippet with Loggable  {
 
   // Html template
-  def templatePath = List("templates-hidden", "components", "ComponentAgentPolicyMode")
-  def template() =  Templates(templatePath) match {
-     case Empty | Failure(_,_,_) =>
-       sys.error("Template for Agent Policy Mode configuration not found. I was looking for %s.html"
-           .format(templatePath.mkString("/")))
-     case Full(n) => n
-  }
-  def agentPolicyModeTemplate = chooseTemplate("agentpolicymode", "form", template)
+  def agentPolicyModeTemplate = ChooseTemplate(
+      List("templates-hidden", "components", "ComponentAgentPolicyMode")
+    , "agentpolicymode-form"
+  )
 
   def dispatch = {
     case "cfagentPolicyModeConfiguration" => (xml) => cfagentPolicyModeConfiguration

@@ -61,7 +61,6 @@ import com.normation.rudder.services.queries._
 import org.joda.time.Duration
 import org.joda.time.DateTime
 import net.liftweb.common._
-import Box._
 import net.liftweb.util.Helpers._
 import scala.xml.{Text,NodeSeq}
 import com.normation.exceptions.{BusinessException,TechnicalException}

@@ -64,16 +64,13 @@ import com.normation.rudder.web.services.ChangeLine
 import com.normation.rudder.services.reports.NodeChanges
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.js.JsObj
+import com.normation.rudder.web.ChooseTemplate
 
 object RuleCompliance {
-
-  private def details =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "details", xml)
-    }) openOr Nil
-
+  private def details = ChooseTemplate(
+      "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
+    , "component-details"
+  )
 }
 
 /**

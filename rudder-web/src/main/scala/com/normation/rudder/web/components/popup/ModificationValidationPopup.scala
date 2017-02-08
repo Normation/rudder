@@ -82,6 +82,7 @@ import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.utils.Control.boxSequence
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * Validation pop-up for modification on group and directive.
@@ -102,17 +103,10 @@ import com.normation.utils.Control.boxSequence
 object ModificationValidationPopup extends Loggable {
   val htmlId_popupContainer = "validationContainer"
 
-  private def html = {
-    val path = "templates-hidden" :: "Popup" :: "ModificationValidationPopup" :: Nil
-    (for {
-      xml <- Templates(path)
-    } yield {
-      chooseTemplate("component", "validationpopup", xml)
-    }) openOr {
-      logger.error("Missing template <component:validationPopup> at path: %s.html".format(path.mkString("/")))
-      <div/>
-    }
-  }
+  private def html = ChooseTemplate(
+      "templates-hidden" :: "Popup" :: "ModificationValidationPopup" :: Nil
+    , "component-validationpopup"
+  )
 
 sealed trait Action { def displayName: String }
 final case object Save extends Action { val displayName: String = "Save" }
@@ -375,7 +369,7 @@ class ModificationValidationPopup(
       ".reasonsFieldsetPopup" #> {
         crReasons.map { f =>
           <div>
-							{
+              {
                 (workflowEnabled, action) match {
                   case (true, CreateSolo) => <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
                   case (true, _) => NodeSeq.Empty

@@ -128,7 +128,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         htmlId_editForm,
         technique,
         activeTechnique,
-        currentTechniqueCategoryDetails.is.map( _.getCategory ),
+        currentTechniqueCategoryDetails.get.map( _.getCategory ),
         { () => Replace(htmlId_activeTechniquesTree, userLibrary) }
         //we don't need/want an error callback here - the error is managed in the form.
     )))
@@ -174,7 +174,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Create the popup
    */
   private[this] def createPopup : NodeSeq = {
-    creationPopup.is match {
+    creationPopup.get match {
       case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
       case Empty => <div>The component is not set</div>
       case Full(popup) => popup.popupContent(NodeSeq.Empty)
@@ -185,7 +185,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Create the reason popup
    */
   private[this] def createReasonPopup : NodeSeq = {
-    giveReasonPopup.is match {
+    giveReasonPopup.get match {
       case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
       case Empty => <div>The component is not set</div>
       case Full(popup) => popup.popupContent(NodeSeq.Empty)
@@ -355,7 +355,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * user Technique (private) library.
    */
   def showTechniqueDetails() : NodeSeq = {
-    currentTechniqueDetails.is match {
+    currentTechniqueDetails.get match {
       case e:EmptyBox =>
         <div id={htmlId_bottomPanel}>
           <h3>Technique details</h3>
@@ -366,7 +366,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   }
 
   def showUserCategoryDetails() : NodeSeq = {
-    currentTechniqueCategoryDetails.is  match {
+    currentTechniqueCategoryDetails.get  match {
       case e:EmptyBox => <div id={htmlId_bottomPanel}><p>Click on a category from the user library to display its details and edit its properties</p></div>
       case Full(form) => form.showForm
     }
@@ -701,7 +701,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       //update UI
       //update template details only if it is open
       (
-        currentTechniqueDetails.is match {
+        currentTechniqueDetails.get match {
           case Full(form) =>
             updateCurrentTechniqueDetails(form.technique, form.activeTechnique)
 

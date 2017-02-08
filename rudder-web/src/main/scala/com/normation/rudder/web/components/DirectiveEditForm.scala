@@ -72,6 +72,7 @@ import com.normation.rudder.web.rest.settings._
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.web.ChooseTemplate
 
 object DirectiveEditForm {
 
@@ -82,19 +83,15 @@ object DirectiveEditForm {
    */
   def staticInit: NodeSeq = RuleGrid.staticInit
 
-  private def body =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "body", xml)
-    }) openOr Nil
+  private def body = ChooseTemplate(
+      "templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil
+    , "component-body"
+  )
 
-  private def crForm =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "form", xml)
-    }) openOr Nil
+  private def crForm = ChooseTemplate(
+      "templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil
+     , "component-form"
+  )
 }
 
 /**
@@ -149,7 +146,7 @@ class DirectiveEditForm(
   }
 
   val rules = roRuleRepo.getAll(false).getOrElse(Seq()).toList
-  val rootCategory = roRuleCategoryRepo.getRootCategory.get
+  val rootCategory = roRuleCategoryRepo.getRootCategory.getOrElse(throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report."))
   val directiveApp = new DirectiveApplicationManagement(directive,rules,rootCategory)
   def dispatch = {
     case "showForm" => { _ => showForm }
@@ -283,7 +280,7 @@ class DirectiveEditForm(
       "#priority" #> piPriority.toForm_! &
       "#policyModes" #> policyModes.toForm_! &
       "#version" #> versionSelect.toForm_! &
-      "#migrate" #> migrateButton(directiveVersion.is,"Migrate") &
+      "#migrate" #> migrateButton(directiveVersion.get,"Migrate") &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class","btn btn-success") } &
@@ -555,12 +552,12 @@ class DirectiveEditForm(
 
         val newDirective = directive.copy(
             parameters       = parameterEditor.mapValueSeq
-          , name             = piName.is
-          , shortDescription = piShortDescription.is
-          , priority         = piPriority.is
-          , longDescription  = piLongDescription.is
+          , name             = piName.get
+          , shortDescription = piShortDescription.get
+          , priority         = piPriority.get
+          , longDescription  = piLongDescription.get
           , _isEnabled       = directive.isEnabled
-          , policyMode       = policyModes.is
+          , policyMode       = policyModes.get
           , tags             = newTags
         )
 
@@ -576,11 +573,11 @@ class DirectiveEditForm(
 
         val updatedDirective = directive.copy(
             parameters       = parameterEditor.mapValueSeq
-          , name             = piName.is
-          , shortDescription = piShortDescription.is
-          , priority         = piPriority.is
-          , longDescription  = piLongDescription.is
-          , policyMode       = policyModes.is
+          , name             = piName.get
+          , shortDescription = piShortDescription.get
+          , priority         = piPriority.get
+          , longDescription  = piLongDescription.get
+          , policyMode       = policyModes.get
           , tags             = newTags
         )
 

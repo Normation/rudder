@@ -30,20 +30,20 @@
         </div>
         <div  data-lift="lazy-load">
           <div data-lift="node.AcceptNode.list">
-            <pending:selectall></pending:selectall>
+            <pending-selectall></pending-selectall>
             <br/>
-            <pending:servers></pending:servers>
+            <pending-servers></pending-servers>
             <div id="acceptNodeGrid_paginate_area" class="nodisplay"></div>
             <lift:authz role="node_write">
               <div class="tw-bs">
                 <div class="col-xs-12">
-                <pending:accept></pending:accept>
-                <pending:refuse></pending:refuse>
+                <pending-accept></pending-accept>
+                <pending-refuse></pending-refuse>
                 </div>
               </div>
               <hr class="spacer"/>
             </lift:authz>
-            <pending:errors></pending:errors>
+            <pending-errors></pending-errors>
           </div>
         </div>
       </div>
@@ -54,7 +54,7 @@
           <p>Click on a node name to view detailed inventory information (as it was at review time).</p>
         </div>
         <div data-lift="node.PendingHistoryGrid.displayAndInit">
-          <pending:history></pending:history>
+          <pending-history></pending-history>
         </div>
       </div></div>
     </div>

@@ -295,9 +295,9 @@ object ParseVariables extends Loggable {
                                  case JString(value) => value
                                  case JBool(value)   => value
                                  //at that level, any other thing, including array, is parser as a simple string
-                                 case value          => compact(render(value))
+                                 case value          => compactRender(value)
                                } }
-        case value            => compact(render(value)) :: Nil
+        case value            => compactRender(value) :: Nil
       }
     }
 
@@ -305,37 +305,40 @@ object ParseVariables extends Loggable {
     for {
       json       <- Tryor(JsonParser.parse(jsonString), s"Error when parsing the variable file")
     } yield {
+      json match {
+        case JObject(fields) => fields.flatMap { x =>
+            x match {
+              case field@JField(name, JObject(values)) => // in that case, only value is mandatory
+                val map = values.map { case JField(n, v) => (n, v) }.toMap
 
-      json.children.flatMap { x =>
-        x match {
-          case field@JField(name, JObject(values)) => // in that case, only value is mandatory
-            val map = values.map { case JField(n, v) => (n, v) }.toMap
+                map.get("value") match {
+                  case None =>
+                    logger.info(s"Missing mandatory field 'value' in object ${compactRender(JObject(field))}")
+                    None
+                  case Some(value) =>
+                    val optional = map.get("optional") match {
+                      case Some(JBool(b)) => b
+                      case _              => true
+                    }
+                    val system = map.get("system") match {
+                      case Some(JBool(b)) => b
+                      case _              => false
+                    }
 
-            map.get("value") match {
-              case None =>
-                logger.info(s"Missing mandatory field 'value' in object ${compact(render(field))}")
-                None
-              case Some(value) =>
-                val optional = map.get("optional") match {
-                  case Some(JBool(b)) => b
-                  case _              => true
+                    Some(STVariable(name, optional, parseAsValue(value), system))
                 }
-                val system = map.get("system") match {
-                  case Some(JBool(b)) => b
-                  case _              => false
-                }
 
-                Some(STVariable(name, optional, parseAsValue(value), system))
+              //in any other case, parse as value
+              case JField(name, value) => Some(STVariable(name, true, parseAsValue(value), false))
+
+              //and if not a field, well just abort
+              case _ => None
+
             }
+          }.toSet
 
-          //in any other case, parse as value
-          case JField(name, value) => Some(STVariable(name, true, parseAsValue(value), false))
-
-          //and if not a field, well just abort
-          case _ => None
-
-        }
-      }.toSet
+        case _ => Set()
+      }
     }
   }
 }

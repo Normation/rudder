@@ -54,19 +54,17 @@ import com.normation.rudder.web.model.{
 import com.normation.rudder.repository._
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.ChooseTemplate
 
 class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
 
  // Load the template from the popup
-  def templatePath = List("templates-hidden", "Popup", "createActiveTechniqueCategory")
-  def template() =  Templates(templatePath) match {
-     case Empty | Failure(_,_,_) =>
-       error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
-     case Full(n) => n
-  }
-  def popupTemplate = chooseTemplate("technique", "createcategorypopup", template)
+  def popupTemplate = ChooseTemplate(
+      "templates-hidden" :: "Popup" :: "createActiveTechniqueCategory" :: Nil
+    , "technique-createcategorypopup"
+  )
 
   private[this] val activeTechniqueCategoryRepository   = RudderConfig.roDirectiveRepository
   private[this] val rwActiveTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
@@ -79,14 +77,16 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
   }
 
   def popupContent(html : NodeSeq) : NodeSeq = {
-    SHtml.ajaxForm(bind("item", popupTemplate,
-      "itemname" -> categoryName.toForm_!,
-      "itemcontainer" -> categoryContainer.toForm_!,
-      "itemdescription" -> categoryDescription.toForm_!,
-      "notifications" -> updateAndDisplayNotifications(),
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4") % ("class","btn btn-default"),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createATCSaveButton") % ("tabindex","3") % ("class","btn btn-success")
-    ))
+    SHtml.ajaxForm(
+      (
+          "item-itemname" #> categoryName.toForm_!
+        & "item-itemcontainer" #> categoryContainer.toForm_!
+        & "item-itemdescription" #> categoryDescription.toForm_!
+        & "item-notifications" #> updateAndDisplayNotifications()
+        & "item-cancel" #> ( SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4") % ("class","btn btn-default") )
+        & "item-save" #> ( SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createATCSaveButton") % ("tabindex","3") % ("class","btn btn-success") )
+      )(popupTemplate)
+    )
   }
 
 ///////////// fields for category settings ///////////////////
@@ -137,12 +137,12 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
       rwActiveTechniqueCategoryRepository.addActiveTechniqueCategory(
           new ActiveTechniqueCategory(
             ActiveTechniqueCategoryId(uuidGen.newUuid),
-            name = categoryName.is,
-            description = categoryDescription.is,
+            name = categoryName.get,
+            description = categoryDescription.get,
             children = Nil,
             items = Nil
           )
-         , ActiveTechniqueCategoryId(categoryContainer.is)
+         , ActiveTechniqueCategoryId(categoryContainer.get)
          , ModificationId(uuidGen.newUuid)
          , CurrentUser.getActor
          , Some("user created a new category")

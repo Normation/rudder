@@ -102,7 +102,7 @@ final case object AllNodesWithoutRole extends NonGroupRuleTarget {
  * This target is rendered as Json
  */
 sealed trait CompositeRuleTarget extends RuleTarget {
-  final def target = compact(render(toJson))
+  final def target = compactRender(toJson)
 
   /**
    * Removing a target is the action of erasing that target in each place where
@@ -302,7 +302,7 @@ object RuleTarget extends Loggable {
             TargetIntersection(targets.toSet)
           }
       case _ =>
-        Failure(s"'${compact(render(json))}' is not a valid rule target")
+        Failure(s"'${compactRender(json)}' is not a valid rule target")
       }
     }
 

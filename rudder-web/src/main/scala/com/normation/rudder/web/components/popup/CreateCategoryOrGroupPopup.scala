@@ -68,6 +68,7 @@ import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * Create a group or a category
@@ -86,13 +87,10 @@ class CreateCategoryOrGroupPopup(
 ) extends DispatchSnippet with Loggable {
 
   // Load the template from the popup
-  def templatePath = List("templates-hidden", "Popup", "createCategoryOrGroup")
-  def template() =  Templates(templatePath) match {
-     case Empty | Failure(_,_,_) =>
-       error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
-     case Full(n) => n
-  }
-  def popupTemplate = chooseTemplate("groups", "creategrouppopup", template)
+  def popupTemplate = ChooseTemplate(
+      List("templates-hidden", "Popup", "createCategoryOrGroup")
+    , "groups-creategrouppopup"
+  )
 
   private[this] val woNodeGroupRepository      = RudderConfig.woNodeGroupRepository
   private[this] val nodeInfoService            = RudderConfig.nodeInfoService
@@ -112,7 +110,7 @@ class CreateCategoryOrGroupPopup(
    */
  private[this] def initJs : JsCmd = {
     JsRaw("""
-        if($('input[value="Group"]').is(':checked')){
+        if($('input[value="Group"]').get(':checked')){
           $('#createGroupHiddable').removeClass('nodisplay');
           $('#itemTitle').text('Group');
         }else{
@@ -135,27 +133,34 @@ class CreateCategoryOrGroupPopup(
   }
 
   def popupContent() : NodeSeq = {
-    SHtml.ajaxForm(bind("item", popupTemplate,
-      "itemtype" -> {
-         groupGenerator match {
-           case None => piItemType.toForm_!
-           case Some(x) => NodeSeq.Empty
-         }
-      },
-      "itemname" -> piName.toForm_!,
-      "itemcontainer" -> piContainer.toForm_!,
-      "itemdescription" -> piDescription.toForm_!,
-      "notifications" -> updateAndDisplayNotifications(),
-      "grouptype" -> piStatic.toForm_!,
-      "itemreason" -> { piReasons.map { f =>
-        <div>
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
-          {f.toForm_!}
-        </div>
-      } },
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","6") % ("class","btn btn-default"),
-      "save" -> SHtml.ajaxSubmit("Create", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","5") % ("class","btn btn-success")
-    )) ++ Script(OnLoad(initJs))
+    val f = SHtml.ajaxForm(
+    (
+          "item-itemType" #> {
+             groupGenerator match {
+               case None => piItemType.toForm_!
+               case Some(x) => NodeSeq.Empty
+             }
+          }
+        & "item-itemname" #> piName.toForm_!
+        & "item-itemcontainer" #> piContainer.toForm_!
+        & "item-itemdescription" #> piDescription.toForm_!
+        & "item-notifications" #> updateAndDisplayNotifications()
+        & "item-grouptype" #> piStatic.toForm_!
+        & "item-itemreason" #> { piReasons.map { f =>
+            <div>
+              <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+              {f.toForm_!}
+            </div>
+            } }
+        & "item-cancel" #> ( SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","6") % ("class","btn btn-default") )
+        & "item-save" #> ( SHtml.ajaxSubmit("Create", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","5") % ("class","btn btn-success") )
+    )(popupTemplate)
+  ) ++ Script(OnLoad(initJs))
+  println("*"*10)
+  println(popupTemplate)
+  println("*"*10)
+  println(f)
+  f
   }
 
   ///////////// fields for category settings ///////////////////
@@ -244,7 +249,7 @@ class CreateCategoryOrGroupPopup(
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
-      val createCategory = piItemType.is match {
+      val createCategory = piItemType.get match {
         case "Group" => false
         case "Category" => true
       }
@@ -252,15 +257,15 @@ class CreateCategoryOrGroupPopup(
         woNodeGroupRepository.addGroupCategorytoCategory(
             new NodeGroupCategory(
               NodeGroupCategoryId(uuidGen.newUuid),
-              piName.is,
-              piDescription.is,
+              piName.get,
+              piDescription.get,
               Nil,
               Nil
             )
-          , NodeGroupCategoryId(piContainer.is)
+          , NodeGroupCategoryId(piContainer.get)
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.getActor
-          , piReasons.map(_.is)
+          , piReasons.map(_.get)
         ) match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
           case Empty =>
@@ -280,20 +285,20 @@ class CreateCategoryOrGroupPopup(
             , value      = "Linux"
             )
         val query = Some(groupGenerator.flatMap(_.query).getOrElse(Query(NodeReturnType,And,Seq(defaultLine))))
-        val isDynamic = piStatic.is match { case "dynamic" => true ; case _ => false }
+        val isDynamic = piStatic.get match { case "dynamic" => true ; case _ => false }
         val srvList =  groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
         val nodeId = NodeGroupId(uuidGen.newUuid)
-        val nodeGroup = NodeGroup(nodeId,piName.is,piDescription.is,query,isDynamic,srvList,true)
+        val nodeGroup = NodeGroup(nodeId,piName.get,piDescription.get,query,isDynamic,srvList,true)
         woNodeGroupRepository.create(
             nodeGroup
-          , NodeGroupCategoryId(piContainer.is)
+          , NodeGroupCategoryId(piContainer.get)
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.getActor
-          , piReasons.map(_.is)
+          , piReasons.map(_.get)
         ) match {
           case Full(x) =>
             closePopup() &
-            onSuccessCallback(x.group.id.value) & onSuccessGroup(x.group, NodeGroupCategoryId(piContainer.is))
+            onSuccessCallback(x.group.id.value) & onSuccessGroup(x.group, NodeGroupCategoryId(piContainer.get))
           case Empty =>
             logger.error("An error occurred while saving the group")
             formTracker.addFormError(error("An error occurred while saving the group"))

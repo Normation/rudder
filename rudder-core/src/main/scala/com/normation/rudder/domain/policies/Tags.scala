@@ -78,7 +78,7 @@ object JsonTagSerialisation {
 
 }
 
-trait JsonTagExtractor[M[+_]] extends JsonExctractorUtils[M] {
+trait JsonTagExtractor[M[_]] extends JsonExctractorUtils[M] {
   import net.liftweb.json._
   import net.liftweb.json.JsonDSL._
 

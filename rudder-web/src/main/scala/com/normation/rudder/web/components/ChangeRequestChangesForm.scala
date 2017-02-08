@@ -77,14 +77,13 @@ import com.normation.rudder.web.services.DiffDisplayer
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.web.ChooseTemplate
 
 object ChangeRequestChangesForm {
-  def form =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentChangeRequest" :: Nil)
-    } yield {
-      chooseTemplate("component", "changes", xml)
-    } ) openOr Nil
+  def form = ChooseTemplate(
+      "templates-hidden" :: "components" :: "ComponentChangeRequest" :: Nil
+    , "component-changes"
+  )
 }
 
 class ChangeRequestChangesForm(

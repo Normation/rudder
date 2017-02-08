@@ -62,25 +62,17 @@ import com.normation.rudder.services.workflows.NoWorkflowAction
 import com.normation.rudder.services.workflows.WorkflowAction
 import com.normation.rudder.authorization.Edit
 import com.normation.rudder.authorization.Read
+import com.normation.rudder.web.ChooseTemplate
 
 object ChangeRequestDetails {
 
-  private[this] val templatePathList = "templates-hidden" :: "components" :: "ComponentChangeRequest" :: Nil
-  private val templatePath = templatePathList.mkString("", "/", ".html")
+  private[this] val templatePath = "templates-hidden" :: "components" :: "ComponentChangeRequest" :: Nil
 
-  private[this] def chooseNodes(tag:String) : NodeSeq = {
-    val xml = chooseTemplate("component", tag, template)
-    if(xml.isEmpty) throw new Exception(s"Missing tag <component:${tag}> in template at path ${templatePath}")
-    else xml
-  }
-
-  def template = Templates(templatePathList).openOrThrowException(s"Can not find template at path ${templatePath}")
-
-  val header = chooseNodes("header")
-  val popup = chooseNodes("popup")
-  val popupContent = chooseNodes("popupcontent")
-  val actionButtons = chooseNodes("actionbuttons")
-  def unmergeableWarning = chooseNodes("warnunmergeable")
+  val header = ChooseTemplate(templatePath, "component-header")
+  val popup = ChooseTemplate(templatePath, "component-popup")
+  val popupContent = ChooseTemplate(templatePath, "component-popupcontent")
+  val actionButtons = ChooseTemplate(templatePath, "component-actionbuttons")
+  def unmergeableWarning = ChooseTemplate(templatePath, "component-warnunmergeable")
 }
 
 class ChangeRequestDetails extends DispatchSnippet with Loggable {
@@ -377,7 +369,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
         updateForm(nextChosen)
       }
       else {
-        nextChosen._2(cr.id,CurrentUser.getActor,changeMessage.map(_.is)) match {
+        nextChosen._2(cr.id,CurrentUser.getActor,changeMessage.map(_.get)) match {
           case Full(next) =>
             SetHtml("workflowActionButtons", displayActionButton(cr,next)) &
             SetHtml("newStatus",Text(next.value)) &

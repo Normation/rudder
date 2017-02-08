@@ -64,7 +64,7 @@ class FormTracker(private[this] var _fields : List[RudderBaseField] = Nil) exten
 
   override def allFields = _fields.toList
 
-  def register(field:RudderBaseField) : Unit = _fields ::= field
+  def register(field: RudderBaseField) : Unit = _fields ::= field
 
   def fieldErrors : Map[RudderBaseField, List[FieldError]] = _fields.map { f => (f -> f.errors) }.toMap
 
@@ -124,7 +124,7 @@ abstract class RudderBaseField extends BaseField {
   ////// field content and getter / setter //////
   protected val defaultValue : ValueType
   protected var value = defaultValue
-  override def is = value
+  override def get = value
   override def set(in:ValueType) : ValueType = {
     value = (in /: setFilter)( (currentVal,currentFilter) => currentFilter(currentVal) )
     validate
@@ -170,43 +170,44 @@ abstract class RudderBaseField extends BaseField {
   protected lazy val id = Helpers.nextFuncName
   override lazy val uniqueFieldId: Box[String] = Full(id)
   override lazy val fieldId : Option[NodeSeq] = Some(Text(id))
-  override def toString = "[%s:%s]".format(name, is.toString)
+  override def toString = "[%s:%s]".format(name, get.toString)
   override def validate = {
-    _errors = validations.flatMap( v => v(this.is) )
+    _errors = validations.flatMap( v => v(this.get) )
     _errors
   }
-  override def get = is
 
   override def toForm = Full(toForm_!)
-    def toForm_! = bind("field",
+    def toForm_! = {(
+        "field-label" #> displayHtml
+      & "field-input" #> (
+          errors match {
+            case Nil => inputField % ( "id" -> id) % ("class" -> className)
+            case l =>
+              val c = className + " errorInput"
+              inputField % ( "id" -> id) % ("class" -> c)
+          }
+        )
+      & "field-infos"  #> (helpAsHtml openOr NodeSeq.Empty)
+      & "field-errors" #> (
+          errors match {
+            case Nil => NodeSeq.Empty
+            case l =>
+              <span class={errorClassName}><ul>{
+                l.map(e => <li class="text-danger">{e.msg}</li>)
+              }</ul></span>
+            }
+        )
+    )(
     <div class="row wbBaseField form-group">
-      <label for={id} class={labelClassName + " wbBaseFieldLabel"}><field:label /></label>
+      <label for={id} class={labelClassName + " wbBaseFieldLabel"}><field-label></field-label></label>
       <div class={subContainerClassName}>
-        <field:input />
-        <field:infos />
-        <field:errors />
+        <field-input></field-input>
+        <field-infos></field-infos>
+        <field-errors></field-errors>
       </div>
-    </div>,
-    "label" -> displayHtml,
-    "input" -> {
-      errors match {
-        case Nil => inputField % ( "id" -> id) % ("class" -> className)
-        case l =>
-          val c = className + " errorInput"
-          inputField % ( "id" -> id) % ("class" -> c)
-      }
-    },
-    "infos" -> (helpAsHtml openOr NodeSeq.Empty),
-    "errors" -> {
-      errors match {
-        case Nil => NodeSeq.Empty
-        case l =>
-          <span class={errorClassName}><ul>{
-            l.map(e => <li class="text-danger">{e.msg}</li>)
-          }</ul></span>
-      }
-    }
-  )
+    </div>
+    ) }
+
   def readOnlyValue =
    <div class="row wbBaseField form-group readonly-field">
       <label class={labelClassName + " wbBaseFieldLabel"}>{displayHtml}</label>

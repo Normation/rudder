@@ -66,20 +66,14 @@ import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.web.ChooseTemplate
 
 object NodeGroupForm {
-  private[this] val templatePathList = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
-  private[this] val templatePath = templatePathList.mkString("/", "/", ".html")
-  private[this] val template = Templates(templatePathList).openOrThrowException(s"Missing template at path ${templatePath}")
-  private[this] def chooseXml(tag:String) = {
-    val xml = chooseTemplate("component", tag, template)
-    if(xml.isEmpty) throw new Exception(s"Tag <component:${tag} is empty at path ${templatePath}")
-    xml
-  }
+  val templatePath = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
 
-  val staticInit = chooseXml("staticinit")
-  val body = chooseXml("body")
-  val staticBody = chooseXml("staticbody")
+  val staticInit = ChooseTemplate(templatePath, "component-staticinit")
+  val body = ChooseTemplate(templatePath, "component-body")
+  val staticBody = ChooseTemplate(templatePath, "component-staticbody")
 
   private val saveButtonId = "groupSaveButtonId"
 
@@ -140,7 +134,7 @@ class NodeGroupForm(
 
   def mainDispatch = Map(
     "showForm" -> { _:NodeSeq => showForm() },
-    "showGroup" -> { _:NodeSeq => searchNodeComponent.is match {
+    "showGroup" -> { _:NodeSeq => searchNodeComponent.get match {
       case Full(component) => component.buildQuery
       case _ =>  <div>The component is not set</div>
      } }
@@ -163,14 +157,14 @@ class NodeGroupForm(
        OnLoad(JsRaw("$('#GroupTabs').tabs( {active : 0 });" ))
      )
 
-     bind("group", html,
-      "pendingchangerequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled),
-      "name" -> groupName.toForm_!,
-      "rudderid" -> <div class="form-group row">
+     (
+        "group-pendingchangerequest" #>  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled)
+      & "group-name" #> groupName.toForm_!
+      & "group-rudderid" #> <div class="form-group row">
                       <label class="wbBaseFieldLabel">Rudder ID</label>
                       <input readonly="" class="form-control" value={nodeGroup.id.value}/>
-                    </div>,
-      "cfeclasses" -> <div class="form-group row">
+                    </div>
+      & "group-cfeclasses" #> <div class="form-group row">
                         <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300);$$(this).toggleClass('open');return false;"} class="toggle-caret">
                           <label class="wbBaseFieldLabel">Display agent classes</label>
                           <span class="caret"></span>
@@ -179,27 +173,27 @@ class NodeGroupForm(
                           {RuleTarget.toCFEngineClassName(nodeGroup.id.value)}<br/>
                           {RuleTarget.toCFEngineClassName(nodeGroup.name)}
                         </div>
-                      </div>,
-      "description" -> groupDescription.toForm_!,
-      "container" -> groupContainer.toForm_!,
-      "static" -> groupStatic.toForm_!,
-      "showgroup" -> (searchNodeComponent.is match {
+                      </div>
+      & "group-description" #> groupDescription.toForm_!
+      & "group-container" #> groupContainer.toForm_!
+      & "group-static" #> groupStatic.toForm_!
+      & "group-showgroup" #> (searchNodeComponent.get match {
                        case Full(req) => req.buildQuery
                        case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
-      }),
-      "clone" -> { if (CurrentUser.checkRights(Write("group")))
+      })
+      & "group-clone" #> { if (CurrentUser.checkRights(Write("group")))
                      SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % ("id", "groupCloneButtonId") % ("class"," btn btn-default")
                    else NodeSeq.Empty
-                 },
-      "save" -> { if (CurrentUser.checkRights(Edit("group")))
+                 }
+      & "group-save" #> { if (CurrentUser.checkRights(Edit("group")))
                     <div  tooltipid="saveButtonToolTip" class="tooltipable" title=""> {
                       SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId) % ("class"," btn btn-success")
                     } </div>
                    else NodeSeq.Empty
-                },
-      "delete" -> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class"," btn btn-danger")),
-      "notifications" -> updateAndDisplayNotifications()
-    )
+                }
+      & "group-delete" #> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class"," btn btn-danger"))
+      & "group:notifications" #> updateAndDisplayNotifications()
+    )(html)
    }
 
   ///////////// fields for category settings ///////////////////
@@ -268,7 +262,7 @@ class NodeGroupForm(
 
   private[this] def onSubmit() : JsCmd = {
     // Since we are doing the submit from the component, it ought to exist
-    searchNodeComponent.is match {
+    searchNodeComponent.get match {
       case Full(req) =>
         query = req.getQuery
         srvList = req.getSrvList
@@ -281,16 +275,16 @@ class NodeGroupForm(
       onFailure & onFailureCallback()
     } else {
       val optContainer = {
-        val c = NodeGroupCategoryId(groupContainer.is)
+        val c = NodeGroupCategoryId(groupContainer.get)
         if(c == parentCategoryId) None
         else Some(c)
       }
 
       val newGroup = nodeGroup.copy(
-          name = groupName.is
-        , description = groupDescription.is
+          name = groupName.get
+        , description = groupDescription.get
         //, container = container
-        , isDynamic = groupStatic.is match { case "dynamic" => true ; case _ => false }
+        , isDynamic = groupStatic.get match { case "dynamic" => true ; case _ => false }
         , query = query
         , serverList =  srvList.getOrElse(Set()).map( _.id ).toSet
       )
@@ -363,7 +357,7 @@ class NodeGroupForm(
               , onSuccessCategory = displayACategory
               , onSuccessGroup = showGroupSection
             )))
-    val nodeSeqPopup = popupSnippet.is match {
+    val nodeSeqPopup = popupSnippet.get match {
       case Failure(m, _, _) =>  <span class="error">Error: {m}</span>
       case Empty => <div>The component is not set</div>
       case Full(popup) => popup.popupContent()

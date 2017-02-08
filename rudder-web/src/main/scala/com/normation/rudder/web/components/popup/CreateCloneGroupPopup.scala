@@ -27,6 +27,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.ChooseTemplate
 
 class CreateCloneGroupPopup(
   nodeGroup : Option[NodeGroup],
@@ -53,34 +54,29 @@ class CreateCloneGroupPopup(
     case "popupContent" => { _ => popupContent }
   }
 
-  def popupContent() : NodeSeq = {
-    SHtml.ajaxForm( bind( "item", popupTemplate,
-      "itemname" -> piName.toForm_!,
-      "itemcontainer" -> piContainer.toForm_!,
-      "itemdescription" -> piDescription.toForm_!,
-      "grouptype" -> piStatic.toForm_!,
-      "itemreason" -> { piReasons.map { f =>
+  def popupContent() : NodeSeq = (
+    SHtml.ajaxForm( (
+      "item-itemname" #> piName.toForm_!
+    & "item-itemcontainer" #> piContainer.toForm_!
+    & "item-itemdescription" #> piDescription.toForm_!
+    & "item-grouptype" #> piStatic.toForm_!
+    & "item-itemreason" #> { piReasons.map { f =>
         <div>
           <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
           {f.toForm_!}
         </div>
-      } },
-      "notifications" -> updateAndDisplayNotifications(formTracker),
-      "cancel" -> SHtml.ajaxButton( "Cancel", { () => closePopup() } ) % ( "tabindex", "6" )% ( "class", "btn btn-default" ),
-      "save" -> SHtml.ajaxSubmit( "Clone", onSubmit _ ) % ( "id", "createCOGSaveButton" ) % ( "tabindex", "5" )% ( "class", "btn btn-success" )
-    ) ) ++ Script( OnLoad( initJs ) )
-  }
+      } }
+    & "item-notifications" #> updateAndDisplayNotifications(formTracker)
+    & "item-cancel" #> (SHtml.ajaxButton( "Cancel", { () => closePopup() } ) % ( "tabindex", "6" )% ( "class", "btn btn-default" ) )
+    & "item-save" #> (SHtml.ajaxSubmit( "Clone", onSubmit _ ) % ( "id", "createCOGSaveButton" ) % ( "tabindex", "5" )% ( "class", "btn btn-success" ) )
+    )(popupTemplate) ) ++ Script( OnLoad( initJs ) )
+  )
 
-  def templatePath = List("templates-hidden", "Popup", "createCloneGroupPopup")
 
-  def template() =  Templates(templatePath) match {
-     case Empty | Failure(_,_,_) =>
-       error("Template for creation popup not found. I was looking for %s.html"
-         .format(templatePath.mkString("/")))
-     case Full(n) => n
-  }
-
-  def popupTemplate = chooseTemplate("groups", "createclonegrouppopup", template)
+  def popupTemplate = ChooseTemplate(
+      List("templates-hidden", "Popup", "createCloneGroupPopup")
+    , "groups:createclonegrouppopup"
+  )
 
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $('#createCloneGroupPopup').bsModal('hide');""")
@@ -106,12 +102,12 @@ class CreateCloneGroupPopup(
         woNodeGroupRepository.addGroupCategorytoCategory(
             new NodeGroupCategory(
               NodeGroupCategoryId(uuidGen.newUuid),
-              piName.is,
-              piDescription.is,
+              piName.get,
+              piDescription.get,
               Nil,
               Nil
             )
-          , NodeGroupCategoryId(piContainer.is)
+          , NodeGroupCategoryId(piContainer.get)
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.getActor
           , Some("Node Group category created by user from UI")
@@ -129,18 +125,18 @@ class CreateCloneGroupPopup(
       } else {
         // we are creating a group
         val query = nodeGroup.map(x => x.query).getOrElse(groupGenerator.flatMap(_.query))
-        val parentCategoryId = NodeGroupCategoryId(piContainer.is)
-        val isDynamic = piStatic.is match { case "dynamic" => true ; case _ => false }
+        val parentCategoryId = NodeGroupCategoryId(piContainer.get)
+        val isDynamic = piStatic.get match { case "dynamic" => true ; case _ => false }
         val srvList =  nodeGroup.map(x => x.serverList).getOrElse(Set[NodeId]())
         val nodeId = NodeGroupId(uuidGen.newUuid)
-        val clone = NodeGroup(nodeId,piName.is,piDescription.is,query,isDynamic,srvList,true)
+        val clone = NodeGroup(nodeId,piName.get,piDescription.get,query,isDynamic,srvList,true)
 
         woNodeGroupRepository.create(
             clone
           , parentCategoryId
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.getActor
-          , piReasons.map(_.is)
+          , piReasons.map(_.get)
         ) match {
           case Full(x) =>
             closePopup() &

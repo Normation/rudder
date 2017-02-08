@@ -51,6 +51,8 @@ import com.normation.rudder.web.model.{
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.web.model.RudderBaseField
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.ChooseTemplate
+
 /**
  * Validation pop-up for modification on rules only.
  *
@@ -64,17 +66,10 @@ import com.normation.rudder.web.model.CurrentUser
 object RuleModificationValidationPopup extends Loggable {
   val htmlId_popupContainer = "validationContainer"
 
-  private def html = {
-    val path = "templates-hidden" :: "Popup" :: "RuleModificationValidationPopup" :: Nil
-    (for {
-      xml <- Templates(path)
-    } yield {
-      chooseTemplate("component", "validationpopup", xml)
-    }) openOr {
-      logger.error("Missing template <component:validationPopup> at path: %s.html".format(path.mkString("/")))
-      <div/>
-    }
-  }
+  private def html = ChooseTemplate(
+      "templates-hidden" :: "Popup" :: "RuleModificationValidationPopup" :: Nil
+    , "component-validationpopup"
+  )
 
   /* Text variation for
    * - Rules
