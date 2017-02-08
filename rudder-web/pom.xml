@@ -87,16 +87,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
            </goals>
          </execution>
        </executions>
+        <configuration>
+          <excludes>
+            <exclude>**/logback-test.xml</exclude>
+          </excludes>
+        </configuration>
       </plugin>
     </plugins>
-    <resources>
-      <resource>
-        <directory>src/test/resources</directory>
-        <excludes>
-          <exclude>logback-test.xml</exclude>
-        </excludes>
-      </resource>
-    </resources>
   </build>
 
   <dependencies>
