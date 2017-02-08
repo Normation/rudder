@@ -307,7 +307,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
            }.toSeq.flatten.sortBy( _._1 )
 
            "#directiveIntro " #> {
-             currentDirectiveSettingForm.is.map { piForm =>
+             currentDirectiveSettingForm.get.map { piForm =>
                (".directive *" #> piForm.directive.name)
              }
            } &
@@ -388,7 +388,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * user Technique (private) library.
    */
   private[this] def showDirectiveDetails() : NodeSeq = {
-    currentDirectiveSettingForm.is match {
+    currentDirectiveSettingForm.get match {
       case Failure(m,_,_) =>
         <div id={htmlId_policyConf} class="error">
           An error happened when trying to load Directive configuration.

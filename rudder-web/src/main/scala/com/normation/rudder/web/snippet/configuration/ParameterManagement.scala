@@ -199,7 +199,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
               var jTr = $(this);
               var opened = jTr.prop("open");
               var source = event.target || event.srcElement;
-              if (!( $(source).is("button"))) {
+              if (!( $(source).get("button"))) {
                 if (opened && opened.match("opened")) {
                   jTr.prop("open", "closed");
                   $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
@@ -264,7 +264,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     * Create the creation popup
     */
   def createPopup : NodeSeq = {
-    parameterPopup.is match {
+    parameterPopup.get match {
       case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
       case Empty => <div>The component is not set</div>
       case Full(popup) => popup.popupContent()

@@ -165,28 +165,25 @@ class TechniqueCategoryEditForm(
 
     override def validations = Nil
 
-    override def toForm_! = bind("field",
-    <div class="wbBaseField">
-      <field:errors />
-      <label for={id} class="wbBaseFieldLabel threeCol textright"><b><field:label /></b></label>
-      <field:input />
-      <field:infos />
-
-    </div>,
-    "label" -> displayHtml,
-    "input" -> inputField % ( "id" -> id) % ("class" -> "largeCol"),
-    "infos" -> (helpAsHtml openOr NodeSeq.Empty),
-    "errors" -> {
-      errors match {
-        case Nil => NodeSeq.Empty
-        case l =>
-          <span><ul class="field_errors paddscala">{
-            l.map(e => <li class="text-danger lopaddscala">{e.msg}</li>)
-          }</ul></span><hr class="spacer"/>
-      }
-    }
-  )
-
+    override def toForm_! = (
+        "field-label" #> displayHtml
+      & "field-input" #> (inputField % ( "id" -> id) % ("class" -> "largeCol"))
+      & "field-infos" #> helpAsHtml
+      & "field-errors" #> ( errors match {
+          case Nil => NodeSeq.Empty
+          case l =>
+            <span><ul class="field_errors paddscala">{
+              l.map(e => <li class="text-danger lopaddscala">{e.msg}</li>)
+            }</ul></span><hr class="spacer"/>
+        })
+    )(
+      <div class="wbBaseField">
+        <field-errors></field-errors>
+        <label for={id} class="wbBaseFieldLabel threeCol textright"><b><field-label></field-label></b></label>
+        <field-input></field-input>
+        <field-infos></field-infos>
+      </div>
+    )
   }
 
   val categorFormTracker = new FormTracker(categoryName, categoryDescription)
@@ -198,56 +195,54 @@ class TechniqueCategoryEditForm(
   private[this] def categoryDetailsForm : NodeSeq = {
     val html = SHtml.ajaxForm(
       <div id={htmlId_categoryDetailsForm}>
-        <update:notifications />
-        <update:name/>
+        <update-notifications></update-notifications>
+        <update-name></update-name>
         <hr class="spacer"/>
-        <update:description />
+        <update-description></update-description>
         <hr class="spacer"/>
         <div class="spacerscala tw-bs">
-          <update:submit />
-          <update:delete/>
+          <update-submit></update-submit>
+          <update-delete></update-delete>
         </div>
         <hr class="spacer"/>
       </div>)
 
-    bind("update", html,
-      "name" -> categoryName.toForm_!,
-      "description" -> categoryDescription.toForm_!,
-      "submit" -> SHtml.ajaxSubmit("Update", {
-         () => {
-           if(categorFormTracker.hasErrors) {
-             categorFormTracker.addFormError( error("Some errors prevented completing the form") )
-           } else {
-             val updatedCategory = currentCategory.copy(
-                 name = categoryName.is,
-                 description = categoryDescription.is
-             )
-             activeTechniqueCategoryRepository.saveActiveTechniqueCategory(updatedCategory, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User updated category from UI")) match {
-               case Failure(m,_,_) =>
-                 categorFormTracker.addFormError(  error("An error occured: " + m) )
-               case Empty =>
-                 categorFormTracker.addFormError( error("An error occured without a message. Please try again later or contact your administrator") )
-               case Full(c) =>
-                 categorFormTracker.clean
-                 currentCategory = c
+    (
+        "update-name" #> categoryName.toForm_!
+      & "update-description" #> categoryDescription.toForm_!
+      & "update-submit" #> SHtml.ajaxSubmit("Update", {
+           () => {
+             if(categorFormTracker.hasErrors) {
+               categorFormTracker.addFormError( error("Some errors prevented completing the form") )
+             } else {
+               val updatedCategory = currentCategory.copy(
+                   name = categoryName.get,
+                   description = categoryDescription.get
+               )
+               activeTechniqueCategoryRepository.saveActiveTechniqueCategory(updatedCategory, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User updated category from UI")) match {
+                 case Failure(m,_,_) =>
+                   categorFormTracker.addFormError(  error("An error occured: " + m) )
+                 case Empty =>
+                   categorFormTracker.addFormError( error("An error occured without a message. Please try again later or contact your administrator") )
+                 case Full(c) =>
+                   categorFormTracker.clean
+                   currentCategory = c
+               }
+             }
+
+             //update ui
+             if(categorFormTracker.hasErrors) {
+               SetHtml(htmlId_categoryDetailsForm, categoryDetailsForm ) &
+               onFailureCallback()
+             } else {
+               successPopup &
+               SetHtml(htmlId_categoryDetailsForm, categoryDetailsForm) &
+               onSuccessCallback() //Replace(htmlId_activeTechniquesTree, <lift:configuration.TechniqueLibraryManagement.userLibrary />) & buildUserLibraryJsTree
              }
            }
-
-           //update ui
-           if(categorFormTracker.hasErrors) {
-             SetHtml(htmlId_categoryDetailsForm, categoryDetailsForm ) &
-             onFailureCallback()
-           } else {
-             successPopup &
-             SetHtml(htmlId_categoryDetailsForm, categoryDetailsForm) &
-             onSuccessCallback() //Replace(htmlId_activeTechniquesTree, <lift:configuration.TechniqueLibraryManagement.userLibrary />) & buildUserLibraryJsTree
-           }
-         }
-       }
-       , ("class","btn btn-default")
-       ),
-       "delete" -> {
-         if(currentCategory.id != rootCategoryId && currentCategory.children.isEmpty && currentCategory.items.isEmpty) {
+         }, ("class","btn btn-default"))
+       & "update-delete" #> {
+           if(currentCategory.id != rootCategoryId && currentCategory.children.isEmpty && currentCategory.items.isEmpty) {
               {Script(OnLoad(JsRaw("""$( "#deleteCategoryButton" ).click(function() {
                 $("#removeCategoryActionDialog").bsModal('show');
                 return false;
@@ -259,19 +254,19 @@ class TechniqueCategoryEditForm(
               {<button id="deleteCategoryButton" disabled="disabled"  class="btn btn-danger">Delete</button>
               <br/><span class="catdelete">Only non root and empty category can be deleted</span>}
             }
-       },
-       "notifications" -> {
-         categoryNotifications :::= categorFormTracker.formErrors
-         categorFormTracker.cleanErrors
-
-         if(categoryNotifications.isEmpty) NodeSeq.Empty
-         else {
-           val notifications = <div class="notify"><ul class="field_errors">{categoryNotifications.map( n => <li>{n}</li>) }</ul></div>
-           categoryNotifications = Nil
-           notifications
          }
-       }
-    )
+       & "update-notifications" #> {
+           categoryNotifications :::= categorFormTracker.formErrors
+           categorFormTracker.cleanErrors
+
+           if(categoryNotifications.isEmpty) NodeSeq.Empty
+           else {
+             val notifications = <div class="notify"><ul class="field_errors">{categoryNotifications.map( n => <li>{n}</li>) }</ul></div>
+             categoryNotifications = Nil
+             notifications
+           }
+         }
+    )(html)
   }
 
 

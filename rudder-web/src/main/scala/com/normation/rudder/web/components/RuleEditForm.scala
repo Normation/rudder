@@ -93,6 +93,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.Tags
+import com.normation.rudder.web.ChooseTemplate
 
 object RuleEditForm {
 
@@ -101,26 +102,20 @@ object RuleEditForm {
    * Any page which contains (or may contains after an ajax request)
    * that component have to add the result of that method in it.
    */
-  def staticInit:NodeSeq =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "staticInit", xml)
-    }) openOr Nil
+  def staticInit:NodeSeq = ChooseTemplate(
+      "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
+    , "component-staticinit"
+  )
 
-  private def body =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "body", xml)
-    }) openOr Nil
+  private def body = ChooseTemplate(
+      "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
+    , "component-body"
+  )
 
-  private def crForm =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "form", xml)
-    }) openOr Nil
+  private def crForm = ChooseTemplate(
+      "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
+    , "component-form"
+  )
 
   val htmlId_groupTree = "groupTree"
   val htmlId_activeTechniquesTree = "directiveTree"
@@ -545,13 +540,13 @@ class RuleEditForm(
       onFailure
     } else { //try to save the rule
       val newCr = rule.copy(
-          name             = crName.is
-        , shortDescription = crShortDescription.is
-        , longDescription  = crLongDescription.is
+          name             = crName.get
+        , shortDescription = crShortDescription.get
+        , longDescription  = crLongDescription.get
         , targets          = Set(ruleTarget)
         , directiveIds     = selectedDirectiveIds
         , isEnabledStatus  = rule.isEnabledStatus
-        , categoryId       = RuleCategoryId(category.is)
+        , categoryId       = RuleCategoryId(category.get)
         , tags             = newTags
       )
 

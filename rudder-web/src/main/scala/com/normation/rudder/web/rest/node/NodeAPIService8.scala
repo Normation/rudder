@@ -70,7 +70,6 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import scalaj.http.Http
 import com.normation.rudder.domain.nodes.CompareProperties
 import scalaj.http.HttpOptions
-import monix.eval.Task
 
 class NodeApiService8 (
     nodeRepository : WoNodeRepository
@@ -103,7 +102,6 @@ class NodeApiService8 (
   private[this] val pipeSize = 4096
 
   def runResponse(in : InputStream)(out : OutputStream) = {
-
     val bytes : Array[Byte] = new Array(pipeSize)
     val zero = 0.toByte
     var read = 0
@@ -117,8 +115,11 @@ class NodeApiService8 (
 
     } catch {
       case e : IOException =>
-        out.write(e.getMessage.toByte)
-        out.flush()
+        // should we log ? Should we end ?
+        // No need to close output or inputs
+        // Output will be managed by  Lift / java servlet response
+        // Input is a Piped input stream and therefore, use only in memory ressources (no network, no database ...)
+        // And we already close the other side of the pipe, a case that PipedInputStream handles
     }
   }
 
@@ -139,25 +140,18 @@ class NodeApiService8 (
   def runNode(nodeId: NodeId, classes : List[String]) : Box[OutputStream => Unit] = {
     import monix.execution.Scheduler.Implicits.global
     val request = remoteRunRequest(nodeId,classes,true,true)
-
-    val in = new PipedInputStream(pipeSize)
-    val out = new PipedOutputStream(in)
     import net.liftweb.util.Helpers.tryo
+    for {
+       httpResponse <- tryo { request.execute { runResponse } }
+       response <- if (httpResponse.isSuccess ) {
+         Full(httpResponse.body)
+       } else {
+         Failure(s"An error occured when applying policy on Node '${nodeId.value}'")
+       }
+     } yield {
 
-    val response =
-
-      Task(
-      request.exec{
-      case (status,headers,input) =>
-        if (status >= 200 && status < 300) {
-          runResponse(input)(out)
-        } else {
-          out.write(s"An error occured when applying policy on Node '${nodeId.value}'".toByte)
-          out.flush
-        }
-      })
-    response.runAsync.onComplete { _ => out.close() }
-    Full(runResponse(in))
+       response
+     }
   }
 
   def runAllNodes(classes : List[String]) : Box[JValue] = {
@@ -177,11 +171,10 @@ class NodeApiService8 (
          val request = remoteRunRequest(node.id, classes, false, true)
          val commandRun = {
 
-           val result = request.asString
-           if (result.isSuccess) {
+           if (request.asString.isSuccess) {
              "Started"
            } else {
-             s"An error occured when applying policy on Node '${node.id.value}', cause is: ${result.body}"
+             s"An error occured when applying policy on Node '${node.id.value}'"
            }
          }
          ( ( "id" -> node.id.value)

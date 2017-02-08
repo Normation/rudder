@@ -60,7 +60,7 @@ import com.normation.rudder.services.queries._
 import org.joda.time.Duration
 import org.joda.time.DateTime
 import net.liftweb.common._
-import Box._
+import Box.{tryo => _, _}
 import net.liftweb.util.Helpers._
 import scala.xml.{Text,NodeSeq}
 import com.normation.exceptions.{BusinessException,TechnicalException}
@@ -110,11 +110,11 @@ class LDAPEntityMapper(
     entry +=! (A_IS_SYSTEM, node.isSystem.toLDAPString)
 
     node.nodeReportingConfiguration.agentRunInterval match {
-      case Some(interval) => entry +=! (A_SERIALIZED_AGENT_RUN_INTERVAL, Printer.compact(JsonAST.render(serializeAgentRunInterval(interval))))
+      case Some(interval) => entry +=! (A_SERIALIZED_AGENT_RUN_INTERVAL, compactRender(serializeAgentRunInterval(interval)))
       case _ =>
     }
 
-    entry +=! (A_NODE_PROPERTY, node.properties.map(x => Printer.compact(JsonAST.render(x.toLdapJson))):_* )
+    entry +=! (A_NODE_PROPERTY, node.properties.map(x => compactRender(x.toLdapJson)):_* )
 
     node.nodeReportingConfiguration.heartbeatConfiguration match {
       case Some(heatbeatConfiguration) =>
@@ -123,7 +123,7 @@ class LDAPEntityMapper(
           ( "overrides"  , heatbeatConfiguration.overrides ) ~
           ( "heartbeatPeriod" , heatbeatConfiguration.heartbeatPeriod)
         }
-        entry +=! (A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, Printer.compact(JsonAST.render(json)))
+        entry +=! (A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, compactRender(json))
       case _ => // Save nothing if missing
     }
 

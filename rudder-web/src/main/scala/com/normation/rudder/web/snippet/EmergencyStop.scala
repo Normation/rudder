@@ -52,17 +52,15 @@ import com.normation.exceptions.TechnicalException
 
 import EmergencyStop._
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.ChooseTemplate
 
 
 object EmergencyStop {
-  def templatePath = List("templates-hidden", "emergency_stop")
-  def template =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for 'emergency stop' not found. I was looking for %s.html".format(templatePath.mkString("/")))
-    case Full(n) => n
-  }
 
-  def panelTemplate = chooseTemplate("emergency","panel",template)
+  def panelTemplate = ChooseTemplate(
+      List("templates-hidden", "emergency_stop")
+    , "emergency-panel"
+  )
 }
 
 class EmergencyStop {
@@ -82,21 +80,23 @@ class EmergencyStop {
 
     orchestrator.status match {
       case ButtonReleased => //show the emergency stop
-        bind("emergency",panelTemplate,
-            "button" -> SHtml.submit("Confirm", stop),
-            "body" -> <h2>This button can be used to force a shutdown of the whole Rudder infastructure. Please use with caution.</h2>,
-            "img" -> <img src="/images/btnAlert.jpg"/>,
-            "title" -> Text("Emergency system shutdown"))
+        (
+            "emergency-button" #> SHtml.submit("Confirm", stop)
+          & "emergency-body"   #> <h2>This button can be used to force a shutdown of the whole Rudder infastructure. Please use with caution.</h2>
+          & "emergency:img"    #> <img src="/images/btnAlert.jpg"/>
+          & "emergency-title"  #> Text("Emergency system shutdown")
+        )(panelTemplate)
 
       case ButtonActivated => //show the restart button
-        bind("emergency",panelTemplate,
-            "button" -> SHtml.submit("Start", start,
+        (
+            "emergency-button" #> SHtml.submit("Start", start,
                       ("id", "emergencyStartButton"),
                       ("class", "emergencyButton"),
-                      ("title","Unlock and restart the orchestrator")),
-            "body" -> <h2>Restart the Rudder Infrastructure.</h2>,
-            "img" -> <img src="/images/btnAccept.jpg"/>,
-            "title" -> Text("Unlock and restart the orchestrator"))
+                      ("title","Unlock and restart the orchestrator"))
+          & "emergency-body"   #> <h2>Restart the Rudder Infrastructure.</h2>
+          & "emergency:img"    #> <img src="/images/btnAccept.jpg"/>
+          & "emergency-title"  #> Text("Unlock and restart the orchestrator")
+        )(panelTemplate)
 
     }
   }

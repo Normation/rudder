@@ -152,6 +152,26 @@ class Boot extends Loggable {
     // Content type things : use text/html in place of application/xhtml+xml
     LiftRules.useXhtmlMimeType = false
 
+    // Lift 3 add security rules. It's good! But we use a lot
+    // of server side generated js and other things that make
+    // it extremelly impracticable for ue.
+    LiftRules.securityRules = () => {
+      SecurityRules(content = Some(ContentSecurityPolicy(
+        styleSources = List(
+          ContentSourceRestriction.UnsafeInline,
+          ContentSourceRestriction.All
+        ),
+        fontSources = List(
+          ContentSourceRestriction.All
+        ),
+        scriptSources = List(
+          ContentSourceRestriction.UnsafeEval,
+          ContentSourceRestriction.UnsafeInline,
+          ContentSourceRestriction.Self
+        )
+      )))
+    }
+
     /*
      * For development, we override the default local calculator
      * to allow explicit locale switch with just the addition
@@ -200,8 +220,6 @@ class Boot extends Loggable {
             >> LocGroup("groupGroup")
             >> TestAccess( () => userIsAllowed("/secure/index",Read("group") ) )
 
-        //Menu(Loc("PolicyServers", List("secure", "nodeManager","policyServers"), <span>Rudder server</span>,  LocGroup("nodeGroup"))) ::
-        //Menu(Loc("UploadedFiles", List("secure", "nodeManager","uploadedFiles"), <span>Manage uploaded files</span>, LocGroup("filesGroup"))) ::
       )
 
     def buildManagerMenu(name:String) =

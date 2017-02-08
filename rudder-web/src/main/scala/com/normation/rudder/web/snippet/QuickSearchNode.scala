@@ -48,7 +48,6 @@ import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.util.Helpers.strToSuperArrowAssoc
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.S
 import com.normation.rudder.services.quicksearch.QSObject
@@ -76,7 +75,7 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
   //json view of the aliases
   val jsonDocinfo = {
     import net.liftweb.json._
-    import net.liftweb.json.JsonAST.{render => _, _}
+    import net.liftweb.json.JsonAST.{compactRender => _, _}
     import net.liftweb.json.JsonDSL._
     import com.normation.rudder.services.quicksearch.QSObject._
 
@@ -91,7 +90,7 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
       )
     }
 
-    "'" + compact(render(objs)) + "'"
+    "'" + compactRender(objs) + "'"
   }
 
 }

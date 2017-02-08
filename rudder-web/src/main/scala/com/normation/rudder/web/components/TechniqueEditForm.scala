@@ -48,8 +48,6 @@ import JE._
 import net.liftweb.common._
 import net.liftweb.http._
 import scala.xml._
-import net.liftweb.util._
-import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
 import com.normation.utils.StringUuidGenerator
 import com.normation.cfclerk.domain.{
@@ -65,48 +63,28 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import net.liftweb.util._
+import net.liftweb.util.Helpers._
+import com.normation.rudder.web.ChooseTemplate
 
 object TechniqueEditForm {
+
+  val componentTechniqueEditForm = "templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil
 
   /**
    * This is part of component static initialization.
    * Any page which contains (or may contains after an ajax request)
    * that component have to add the result of that method in it.
    */
-  def staticInit:NodeSeq =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "staticInit", xml)
-    }) openOr Nil
+  def staticInit:NodeSeq = ChooseTemplate(componentTechniqueEditForm, "component-staticinit")
 
-  private def body =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "body", xml)
-    }) openOr Nil
+  private def body = ChooseTemplate(componentTechniqueEditForm, "component-body")
 
-  private def popupRemoveForm =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "popupremoveform", xml)
-    }) openOr Nil
+  private def popupRemoveForm = ChooseTemplate(componentTechniqueEditForm, "component-popupremoveform")
 
-  private def popupDisactivateForm =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "popupdisableform", xml)
-    }) openOr Nil
+  private def popupDisactivateForm = ChooseTemplate(componentTechniqueEditForm, "component-popupdisableform")
 
-  private def crForm =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "form", xml)
-    }) openOr Nil
+  private def crForm = ChooseTemplate(componentTechniqueEditForm, "component-form")
 
   val htmlId_techniqueConf = "techniqueConfiguration"
   val htmlId_addPopup = "addPopup"
@@ -382,7 +360,7 @@ class TechniqueEditForm(
         {
           val modId = ModificationId(uuidGen.newUuid)
           (for {
-            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.getActor, crReasonsRemovePopup.map (_.is))
+            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.getActor, crReasonsRemovePopup.map (_.get))
             deploy <- {
               asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
               Full("Policy update request sent")
@@ -580,7 +558,7 @@ class TechniqueEditForm(
     val modId = ModificationId(uuidGen.newUuid)
     (for {
       save <- rwActiveTechniqueRepository.changeStatus(uactiveTechniqueId, status,
-                modId, CurrentUser.getActor, crReasonsDisablePopup.map(_.is))
+                modId, CurrentUser.getActor, crReasonsDisablePopup.map(_.get))
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
         Full("Policy update request sent")

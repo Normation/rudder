@@ -54,6 +54,7 @@ import net.liftweb.http.Templates
 import com.normation.rudder.reports.AgentRunInterval
 import net.liftweb.util.PassThru
 import net.liftweb.util.ClearNodes
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * Component to display and configure the Agent Schedule
@@ -66,14 +67,10 @@ class AgentScheduleEditForm(
 ) extends DispatchSnippet with Loggable  {
 
   // Html template
-  def templatePath = List("templates-hidden", "components", "ComponentAgentSchedule")
-  def template() =  Templates(templatePath) match {
-     case Empty | Failure(_,_,_) =>
-       sys.error("Template for Agent Schedule configuration not found. I was looking for %s.html"
-           .format(templatePath.mkString("/")))
-     case Full(n) => n
-  }
-  def agentScheduleTemplate = chooseTemplate("schedule", "agentschedule", template)
+  def agentScheduleTemplate = ChooseTemplate(
+      List("templates-hidden", "components", "ComponentAgentSchedule")
+    , "schedule-agentschedule"
+  )
 
   def dispatch = {
     case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration
@@ -108,12 +105,13 @@ class AgentScheduleEditForm(
     val json = parse(s)
 
     ( for {
-        JField("overrides"  , ov) <- json
-        JField("interval"   , JInt(i)) <- json
-        JField("startHour"  , JInt(h)) <- json
-        JField("startMinute", JInt(m)) <- json
-        JField("splayHour"  , JInt(sh)) <- json
-        JField("splayMinute", JInt(sm)) <- json
+        JObject(child)                  <- json
+        JField("overrides"  , ov)       <- child
+        JField("interval"   , JInt(i))  <- child
+        JField("startHour"  , JInt(h))  <- child
+        JField("startMinute", JInt(m))  <- child
+        JField("splayHour"  , JInt(sh)) <- child
+        JField("splayMinute", JInt(sm)) <- child
     } yield {
       val splayTime = (sh.toInt * 60) + sm.toInt
       val overrideValue = ov match {

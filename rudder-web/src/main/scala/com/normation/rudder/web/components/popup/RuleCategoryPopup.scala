@@ -62,6 +62,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * Create a group or a category
@@ -79,29 +80,15 @@ class RuleCategoryPopup(
 ) extends DispatchSnippet with Loggable {
 
   // Load the template from the popup
-  private def html = {
-    val path = "templates-hidden" :: "Popup" :: "RuleCategoryPopup" :: Nil
-    (for {
-      xml <- Templates(path)
-    } yield {
-      chooseTemplate("component", "creationpopup", xml)
-    }) openOr {
-      logger.error("Missing template <component:creationPopup> at path: %s.html".format(path.mkString("/")))
-      <div/>
-    }
-  }
+  private def html = ChooseTemplate(
+      "templates-hidden" :: "Popup" :: "RuleCategoryPopup" :: Nil
+    , "component-creationpopup"
+  )
 
-  private def deleteHtml = {
-    val path = "templates-hidden" :: "Popup" :: "RuleCategoryPopup" :: Nil
-    (for {
-      xml <- Templates(path)
-    } yield {
-      chooseTemplate("component", "deletepopup", xml)
-    }) openOr {
-      logger.error("Missing template <component:creationPopup> at path: %s.html".format(path.mkString("/")))
-      <div/>
-    }
-  }
+  private def deleteHtml = ChooseTemplate(
+      "templates-hidden" :: "Popup" :: "RuleCategoryPopup" :: Nil
+    , "component-deletepopup"
+  )
 
   private[this] val woRulecategoryRepository   = RudderConfig.woRuleCategoryRepository
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
@@ -141,9 +128,9 @@ class RuleCategoryPopup(
                                         <label class="col-lg-3 col-sm-12 col-xs-12 text-right wbBaseFieldLabel"><b>Rudder ID</b>
                                         </label>
                                         <div class="col-lg-9 col-sm-12 col-xs-12">
-                                        	<input class="form-control col-lg-12 col-sm-12 col-xs-12" type="text" value={c.id.value} disabled="true">
-                                        	</input>
-																				</div>
+                                          <input class="form-control col-lg-12 col-sm-12 col-xs-12" type="text" value={c.id.value} disabled="true">
+                                          </input>
+                                        </div>
                                         </div>
                                   }) &
       "#saveCategory"          #> SHtml.ajaxSubmit(TextForButton, () => onSubmit(), ("id", "createRuleCategorySaveButton") , ("tabindex","5"), ("style","margin-left:5px;")) andThen
@@ -244,21 +231,21 @@ class RuleCategoryPopup(
 
           val newCategory = RuleCategory(
                                 RuleCategoryId(uuidGen.newUuid)
-                              , categoryName.is
-                              , categoryDescription.is
+                              , categoryName.get
+                              , categoryDescription.get
                               , Nil
                               , false
                             )
 
-          val parent = RuleCategoryId(categoryParent.is)
+          val parent = RuleCategoryId(categoryParent.get)
           val modId = new ModificationId(uuidGen.newUuid)
           woRulecategoryRepository.create(newCategory, parent,modId , CurrentUser.getActor, None)
         case Some(category) =>
           val updated = category.copy(
-                            name        =  categoryName.is
-                          , description = categoryDescription.is
+                            name        =  categoryName.get
+                          , description = categoryDescription.get
                         )
-          val parent = RuleCategoryId(categoryParent.is)
+          val parent = RuleCategoryId(categoryParent.get)
 
           if (updated == category && parentCategory.exists(_ == parent.value)) {
             Failure("There are no modifications to save")

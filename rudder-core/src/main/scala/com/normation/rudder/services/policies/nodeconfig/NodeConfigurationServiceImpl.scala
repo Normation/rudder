@@ -94,10 +94,10 @@ class NodeConfigurationServiceImpl(
           logger.error(s"The directive '${set.head.id.directiveId.value}' on rule '${set.head.id.ruleId.value}' was added several times on node '${nodeConfig.nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter at random for the promise generation.")
           import net.liftweb.json._
           implicit val formats = Serialization.formats(NoTypeHints)
-          def r(j:JValue) = if(j == JNothing) "{}" else pretty(render(j))
+          def r(j:JValue) = if(j == JNothing) "{}" else prettyRender(j)
 
           val jmain = Extraction.decompose(main)
-          logger.error("First directivedraft: " + pretty(render(jmain)))
+          logger.error("First directivedraft: " + prettyRender(jmain))
           set.tail.foreach{ x =>
             val diff  = jmain.diff(Extraction.decompose(x))
             logger.error(s"Diff with other draft: \nadded:${r(diff.added)} \nchanged:${r(diff.changed)} \ndeleted:${r(diff.deleted)}")

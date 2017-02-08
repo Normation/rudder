@@ -78,6 +78,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  * Check for server in the pending repository and propose to
@@ -107,23 +108,15 @@ class AcceptNode extends Loggable {
      }
   }
 
-  def acceptTemplatePath = List("templates-hidden", "Popup", "accept_new_server")
-  def template() =  Templates(acceptTemplatePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(acceptTemplatePath.mkString("/")))
-    case Full(n) => n
-  }
+  def acceptTemplate = ChooseTemplate(
+      List("templates-hidden", "Popup", "accept_new_server")
+    , "accept_new_server-template"
+  )
 
-  def acceptTemplate = chooseTemplate("accept_new_server","template",template)
-
-  def refuseTemplatePath = List("templates-hidden", "Popup", "refuse_new_server")
-  def templateRefuse() =  Templates(refuseTemplatePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(refuseTemplatePath.mkString("/")))
-    case Full(n) => n
-  }
-
-  def refuseTemplate = chooseTemplate("refuse_new_server","template",templateRefuse)
+  def refuseTemplate = ChooseTemplate(
+      List("templates-hidden", "Popup", "refuse_new_server")
+    , "refuse_new_server-template"
+  )
 
   /*
    * List all server that have there isAccpeted tag to pending.
@@ -313,22 +306,22 @@ class AcceptNode extends Loggable {
       case Full(servers) =>
         val lines : NodeSeq = servers.flatMap(displayServerLine)
         ("#server_lines" #> lines).apply(
-          bind("servergrid",template,
-              "accept" ->
+          (
+              "servergrid-accept" #>
                 SHtml.submit("Accept", {
                   () => { addNodes(listNode) }
                   S.redirectTo(S.uri)
                 }, ("class", "btn btn-success"))
-            , "refuse" ->
+            & "servergrid-refuse" #>
                 SHtml.submit("Refuse", {
                   () => refuseNodes(listNode)
                   S.redirectTo(S.uri)
                 }, ("class", "btn btn-danger"))
-            ,  "close" ->
+            &  "servergrid-close" #>
                  SHtml.ajaxButton("Cancel", {
                    () => JsRaw(" $('#confirmPopup').bsModal('hide');$('#refusePopup').bsModal('hide');") : JsCmd
                  }, ("class", "btn btn-default"))
-          )
+          )(template)
         )
       case e:EmptyBox =>
         val error = e ?~! "An error occured when trying to get server details for displaying them in the popup"
@@ -371,24 +364,24 @@ class AcceptNode extends Loggable {
       )
     }
 
-    bind("pending",html,
-        "servers" -> servers
-      , "accept" ->
+    (
+        "pending-servers" #> servers
+      & "pending-accept" #>
           SHtml.ajaxButton(
               "Accept"
             , { () =>  showConfirmPopup(acceptTemplate, "confirmPopup") }
-          ) % ("class", "btn btn-success pull-right")
-      , "refuse" ->
+            , ("class", "btn btn-success pull-right") )
+      & "pending-refuse" #>
           SHtml.ajaxButton(
               "Refuse"
             , { () => showConfirmPopup(refuseTemplate, "refusePopup" ) }
-          ) % ("class", "btn btn-danger")
-      , "errors" -> (errors match {
+            , ("class", "btn btn-danger") )
+      & "pending-errors" #> (errors match {
         case None => NodeSeq.Empty
         case Some(x) => <div>x</div>
       })
-    , "selectall" -> selectAll
-    )
+    & "pending-selectall" #> selectAll
+    )(html)
   }
 
   /**

@@ -50,17 +50,14 @@ import net.liftweb.util.ClearClearable
 import net.liftweb.util.Helpers._
 import scala.xml.NodeSeq
 import scala.xml.Text
+import com.normation.rudder.web.ChooseTemplate
 
 object ExpectedPolicyPopup {
 
-  def expectedTechniquePath = List("templates-hidden", "Popup", "expected_policy_popup")
-  def template() =  Templates(expectedTechniquePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(expectedTechniquePath.mkString("/")))
-    case Full(n) => n
-  }
-
-  def expectedTechnique = chooseTemplate("expectedpolicypopup","template",template)
+  def expectedTechnique = ChooseTemplate(
+      List("templates-hidden", "Popup", "expected_policy_popup")
+    , "expectedpolicypopup-template"
+  )
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
@@ -91,13 +88,12 @@ class ExpectedPolicyPopup(
     }
 
     (
-        ClearClearable &
-        "#dependentRulesGrid" #> rulesGrid
-    )(bind("expectedpolicypopup",expectedTechnique,
-      "node" -> displayNode(nodeSrv),
-      "os" -> displayNodeOs(nodeSrv),
-      "close" -> <button onClick="$.modal.close(); return false;">Close</button>
-    ) )
+        ClearClearable
+      & "#dependentRulesGrid" #> rulesGrid
+      & "expectedpolicypopup-node" #> displayNode(nodeSrv)
+      & "expectedpolicypopup-os" #> displayNodeOs(nodeSrv)
+      & "expectedpolicypopup:close" #> <button onClick="$.modal.close(); return false;">Close</button>
+    )(expectedTechnique)
   }
 
   private[this] val getDependantRulesForNode:Box[Seq[Rule]] = {

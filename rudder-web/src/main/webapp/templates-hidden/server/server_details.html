@@ -2,9 +2,9 @@
 
 <lift:ignore>This part contains the search parts, with lines, and with the grid that get included behind</lift:ignore>
 
-<query:SearchNodes>
+<query-searchnodes>
 	<div id="SearchForm">
-  <content:query>
+  <content-query>
     <div id="serverGrid_info_area"></div>
 
     <div id="queryParameters">
@@ -26,15 +26,15 @@
       <div class="nodeGroupSubmitSearch tw-bs" id="submitSearch" >
       </div>
     </div>
-  </content:query>
+  </content-query>
   </div>
   <div id="gridResult">
-      <content:gridResult></content:gridResult>
+      <update-gridresult></update-gridresult>
   </div>
-</query:SearchNodes>
+</query-searchnodes>
 
 <lift:ignore>This part is the detail of a node</lift:ignore>
-<detail:server>
+<detail-server>
 <div id="node_tabs" class="tabs">
   <div id="node_header" class="nodeheader">
     <div class="nodeheadercontent ui-corner-top"> Node: <span id="node_name"></span>
@@ -82,6 +82,6 @@
   </div>
 
 </div>
-</detail:server>
+</detail-server>
 
 </xml:group>

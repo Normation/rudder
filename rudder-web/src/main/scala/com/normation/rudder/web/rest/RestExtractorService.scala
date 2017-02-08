@@ -79,6 +79,7 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.domain.nodes.NodePropertyRights
 import com.normation.rudder.domain.nodes.NodePropertyProvider
+import com.normation.rudder.web.rest.parameter.RestParameter
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -307,10 +308,17 @@ case class RestExtractorService (
   }
 
   private[this] def toRuleTarget(json:JValue, key:String ): Box[Option[RuleTarget]] = {
-    json \\ key match {
-      case JArray(values) =>
-        sequence(values) { value => RuleTarget.unserJson(value) }.flatMap { mergeTarget }
-      case x              => RuleTarget.unserJson(x).map(Some(_))
+    for {
+      targets <- sequence((json \\ key).children) { child =>
+                   child match {
+                     case JArray(values) =>
+                       sequence(values.children) { value => RuleTarget.unserJson(value) }.flatMap { mergeTarget }
+                     case x              => RuleTarget.unserJson(x).map(Some(_))
+                   }
+                 }
+      merged  <- mergeTarget(targets.flatten)
+    } yield {
+      merged
     }
   }
 
@@ -392,7 +400,7 @@ case class RestExtractorService (
     for {
       root <- xml match {
         case JNothing       => Failure("Missing required tag <section> in: " + xml)
-        case JObject( JField("section",values) :: Nil) => Full(JField("section",values))
+        case JObject( JField("section",values) :: Nil) => Full(values)
         case _              => Failure("Found several <section> tag in XML, but only one root section is allowed: " + xml)
       }
       (_ , sectionVal) <- recValParseSection(root)
@@ -636,7 +644,7 @@ case class RestExtractorService (
 
         Full(NodeProperty(nameValue, value, provider, mode))
       case (a, b)  =>
-        Failure(s"""Error when trying to parse new property: '${compact(render(json))}'. The awaited format is: {"name": string, "value": json}""")
+        Failure(s"""Error when trying to parse new property: '${compactRender(json)}'. The awaited format is: {"name": string, "value": json}""")
     }
   }
 

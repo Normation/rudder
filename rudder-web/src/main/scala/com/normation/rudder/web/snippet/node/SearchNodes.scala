@@ -58,8 +58,8 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers.chooseTemplate
 import com.normation.rudder.web.model.JsInitContextLinkUtil
+import com.normation.rudder.web.ChooseTemplate
 
 /**
  *
@@ -77,13 +77,9 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil
  */
 
 object SearchNodes {
-  private val serverPortletPath = List("templates-hidden", "server", "server_details")
-  private val serverPortletTemplateFile =  Templates(serverPortletPath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for node details not found. I was looking for %s.html".format(serverPortletPath.mkString("/")))
-    case Full(n) => n
-  }
-  private val searchNodes = chooseTemplate("query","SearchNodes",serverPortletTemplateFile)
+  private val searchNodes = ChooseTemplate(
+      List("templates-hidden", "server", "server_details")
+    , "query-searchnodes")
 }
 
 class SearchNodes extends StatefulSnippet with Loggable {
@@ -111,7 +107,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   setSearchComponent(None)
 
   var dispatch : DispatchIt = {
-    case "showQuery" => searchNodeComponent.is match {
+    case "showQuery" => searchNodeComponent.get match {
       case Full(component) => { _ => queryForm(component) }
       case _ => { _ => <div>The component is not set</div><div></div> }
     }
@@ -233,7 +229,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
    * Create the popup
    */
   private[this] def createPopup : NodeSeq = {
-    creationPopup.is match {
+    creationPopup.get match {
       case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
       case Empty => <div>The component is not set</div>
       case Full(popup) => popup.popupContent()
@@ -241,7 +237,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   }
 
   private[this] def showPopup() : JsCmd = {
-    searchNodeComponent.is match {
+    searchNodeComponent.get match {
       case Full(r) => setCreationPopup(r.getQuery, r.getSrvList)
         //update UI
         SetHtml("createGroupContainer", createPopup) &

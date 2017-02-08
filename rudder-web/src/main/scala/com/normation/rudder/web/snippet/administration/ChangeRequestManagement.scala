@@ -99,7 +99,7 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
           "id" -> changeRequest.id.value
         , "name" -> changeRequest.info.name
         , "creator" -> changeRequest.owner
-        , "step" -> workflowStateMap.get(changeRequest.id).map(_.value).getOrElse("Unknown")
+        , "step" -> (workflowStateMap.get(changeRequest.id).map(_.value).getOrElse("Unknown"): String)
         , "lastModification" -> date
       )
     }

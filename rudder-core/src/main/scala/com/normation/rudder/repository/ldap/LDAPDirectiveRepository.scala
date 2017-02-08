@@ -970,7 +970,7 @@ class WoLDAPDirectiveRepository(
       activeTechnique <- getUPTEntry(con, uactiveTechniqueId, A_ACCEPTATION_DATETIME)
       saved           <- {
                            val oldAcceptations = mapper.unserializeAcceptations(activeTechnique(A_ACCEPTATION_DATETIME).getOrElse(""))
-                           val json = Printer.compact(JsonAST.render(mapper.serializeAcceptations(oldAcceptations ++ datetimes)))
+                           val json = JsonAST.compactRender(mapper.serializeAcceptations(oldAcceptations ++ datetimes))
                            activeTechnique.+=!(A_ACCEPTATION_DATETIME, json)
                            userLibMutex.writeLock { con.save(activeTechnique) }
                          }

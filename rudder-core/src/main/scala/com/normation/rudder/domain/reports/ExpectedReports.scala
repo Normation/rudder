@@ -419,7 +419,7 @@ object ExpectedReportsSerialisation {
     def toJValue() = {
       jsonNodeExpectedReports(JsonNodeExpectedReports(n.modes, n.ruleExpectedReports))
     }
-    def toJson() = pretty(render(toJValue))
+    def toJson() = prettyRender(toJValue)
     def toCompactJson = compactRender(toJValue)
   }
 }

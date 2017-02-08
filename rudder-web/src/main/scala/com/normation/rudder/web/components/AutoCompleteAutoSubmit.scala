@@ -218,7 +218,7 @@ class AutoCompleteAutoSubmit {
 
 
     fmapFunc(SFuncHolder(f)){ func =>
-      val what: String = encodeURL(S.contextPath + "/" + LiftRules.ajaxPath+"?"+func+"=foo")
+      val what: String = encodeURL(S.contextPath + "/" + LiftRules.liftPath+"/ajax?"+func+"=foo")
 
       val id = Helpers.nextFuncName
       fmapFunc(SFuncHolder(onSubmit)){hidden =>

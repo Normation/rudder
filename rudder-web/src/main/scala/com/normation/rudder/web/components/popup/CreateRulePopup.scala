@@ -60,6 +60,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.web.ChooseTemplate
 
 class CreateOrCloneRulePopup(
     rootRuleCategory  : RuleCategory
@@ -76,7 +77,10 @@ class CreateOrCloneRulePopup(
        error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
      case Full(n) => n
   }
-  def popupTemplate = chooseTemplate("rule", "createrulepopup", template)
+  def popupTemplate = ChooseTemplate(
+      List("templates-hidden", "Popup", "createRule")
+    , "rule-createrulepopup"
+  )
 
   private[this] val roRuleRepository    = RudderConfig.roRuleRepository
   private[this] val woRuleRepository    = RudderConfig.woRuleRepository
@@ -91,19 +95,19 @@ class CreateOrCloneRulePopup(
 
   def popupContent() : NodeSeq = {
 
-    SHtml.ajaxForm(bind("item", popupTemplate,
-      "title" -> { if(clonedRule.isDefined) "Clone a rule" else "Create a new rule" },
-      "itemname" -> ruleName.toForm_!,
-      "category" -> category.toForm_!,
-      "itemshortdescription" -> ruleShortDescription.toForm_!,
-      "itemreason" -> { reason.map { f =>
+    SHtml.ajaxForm( (
+      "item-title" #> (if(clonedRule.isDefined) "Clone a rule" else "Create a new rule")
+    & "item-itemname" #> ruleName.toForm_!
+    & "item-category" #> category.toForm_!
+    & "item-itemshortdescription" #> ruleShortDescription.toForm_!
+    & "item-itemreason" #> { reason.map { f =>
         <div>
             <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
             {f.toForm_!}
         </div>
 
-      } },
-      "clonenotice" -> {
+      } }
+    & "item-clonenotice" #> {
         if(clonedRule.isDefined)
             <hr class="css-fix"/>
             <div class="alert alert-info text-center">
@@ -112,12 +116,11 @@ class CreateOrCloneRulePopup(
             </div>
         else
           NodeSeq.Empty
-      },
-      "notifications" -> updateAndDisplayNotifications(),
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","5") % ("class","btn btn-default"),
-      "save" -> SHtml.ajaxSubmit(if(clonedRule.isDefined) "Clone" else "Create", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","4") % ("class","btn btn-success")
-
-    ))
+      }
+    & "item-notifications" #> updateAndDisplayNotifications()
+    & "item-cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","5") % ("class","btn btn-default"))
+    & "item-save" #> (SHtml.ajaxSubmit(if(clonedRule.isDefined) "Clone" else "Create", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","4") % ("class","btn btn-success"))
+    )(popupTemplate) )
   }
 
   ///////////// fields for category settings ///////////////////
@@ -200,17 +203,17 @@ class CreateOrCloneRulePopup(
       val rule =
         Rule(
             RuleId(uuidGen.newUuid)
-          , ruleName.is
+          , ruleName.get
           , 0
-          , RuleCategoryId(category.is)
+          , RuleCategoryId(category.get)
           , targets = clonedRule.map( _.targets).getOrElse(Set())
           , directiveIds = clonedRule.map( _.directiveIds).getOrElse(Set())
-          , shortDescription = ruleShortDescription.is
+          , shortDescription = ruleShortDescription.get
           , longDescription = clonedRule.map( _.longDescription ).getOrElse("")
           , isEnabledStatus = !clonedRule.isDefined
       )
 
-      woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.is )) match {
+      woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.get )) match {
           case Full(x) =>
             onSuccessCallback(rule) & closePopup()
           case Empty =>
