@@ -37,36 +37,25 @@
 
 package com.normation.rudder.web.rest
 
-import org.junit._
-import org.junit.Assert._
-import org.junit.runner._
-import org.junit.runner.RunWith
-import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
-
-import net.liftweb.common.Full
-import net.liftweb.http.LiftRules
-import net.liftweb.http.LiftRulesMocker
-import net.liftweb.http.PlainTextResponse
-import net.liftweb.http.Req
-import net.liftweb.mocks.MockHttpServletRequest
-import net.liftweb.mockweb.MockWeb
-import net.liftweb.util.Helpers.tryo
-
-import RestTestSetUp._
-import org.apache.commons.io.IOUtils
-import org.apache.commons.io.Charsets
-import org.yaml.snakeyaml.Yaml
 import scala.collection.JavaConverters._
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Loggable
-import net.liftweb.common.Failure
-import net.liftweb.common.Box
-import net.liftweb.util.NamedPF
-import org.specs2.execute.Result
+
+import org.apache.commons.io.Charsets
+import org.apache.commons.io.IOUtils
+import org.junit.runner.RunWith
+import org.specs2.mutable._
+import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.Fragment
 import org.specs2.specification.core.Fragments
+import org.yaml.snakeyaml.Yaml
+
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.http.PlainTextResponse
+import net.liftweb.mocks.MockHttpServletRequest
+import net.liftweb.util.Helpers.tryo
 
 /*
  * Utily data structures
@@ -105,7 +94,7 @@ class TestRestFromFileDef extends Specification with Loggable {
    * a Map[String, Object]. Which not much better. Expects other cast along the line.
    */
   def readSpecification(obj: Object): Box[TestRequest] = {
-    import java.util.{Map => juMap}
+    import java.util.{ Map => juMap }
     type YMap = juMap[String, Any]
 
     if(obj == null) Failure("The YAML document is empty")

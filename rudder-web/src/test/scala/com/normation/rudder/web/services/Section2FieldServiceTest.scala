@@ -37,31 +37,33 @@
 
 package com.normation.rudder.web.services
 
-import org.junit.Test
-import org.junit._
-import org.junit.Assert._
-import org.junit.runner.RunWith
-import org.junit.runners.BlockJUnit4ClassRunner
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
-
-import com.normation.rudder.web.model.SectionField
-import com.normation.cfclerk.domain._
-import com.normation.rudder.web.model._
-import org.springframework.context.{ ApplicationContext, ApplicationContextAware }
-import org.springframework.context.annotation.AnnotationConfigApplicationContext
-import org.springframework.context.annotation.{ Bean, Configuration, Import }
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.annotation.Lazy
-import org.springframework.context.annotation.{ Bean, Configuration, Import, ImportResource }
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.{ ApplicationContext, ApplicationContextAware }
-import org.springframework.context.annotation.AnnotationConfigApplicationContext
-import org.springframework.core.io.ClassPathResource
-import com.normation.spring._
-import net.liftweb.common.Full
+import com.normation.cfclerk.domain.BooleanVType
+import com.normation.cfclerk.domain.DestinationPathVType
+import com.normation.cfclerk.domain.InputVariableSpec
+import com.normation.cfclerk.domain.PermVType
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.SectionVariableSpec
+import com.normation.cfclerk.domain.SelectOneVariableSpec
+import com.normation.cfclerk.domain.SelectVariableSpec
+import com.normation.cfclerk.domain.SizeVType
+import com.normation.cfclerk.domain.UploadedFileVType
+import com.normation.cfclerk.domain.VariableSpec
 import com.normation.rudder.domain.appconfig.FeatureSwitch.Disabled
+import com.normation.rudder.web.model.CheckboxField
+import com.normation.rudder.web.model.DirectiveField
+import com.normation.rudder.web.model.FilePermsField
+import com.normation.rudder.web.model.InputSizeField
+import com.normation.rudder.web.model.SectionField
+import com.normation.rudder.web.model.SelectField
+import com.normation.rudder.web.model.SelectOneField
+import com.normation.rudder.web.model.TextField
+import com.normation.rudder.web.model.UploadedFileField
+
+import org.junit.runner.RunWith
+import org.specs2.mutable._
+import org.specs2.runner.JUnitRunner
+
+import net.liftweb.common.Full
 
 @RunWith(classOf[JUnitRunner])
 class Section2FieldServiceTest extends Specification {

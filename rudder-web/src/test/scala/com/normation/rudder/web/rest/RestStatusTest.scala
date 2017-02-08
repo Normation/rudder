@@ -42,7 +42,6 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
-import RestTestSetUp._
 import net.liftweb.common.Full
 import net.liftweb.http.PlainTextResponse
 
@@ -51,7 +50,7 @@ class RestStatusTest extends Specification {
 
   "testing status REST API" should {
     "be correct" in {
-      testGET("/api/status") { req =>
+      RestTestSetUp.testGET("/api/status") { req =>
        RestStatus(req)() must beEqualTo(Full(PlainTextResponse("OK")))
       }
     }
