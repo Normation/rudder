@@ -76,6 +76,8 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.reports.AgentRunInterval
 
+import com.normation.rudder.domain.logger.PolicyLogger
+
 /**
  * The purpose of that service is to handle the update of
  * expected reports.
@@ -159,9 +161,8 @@ class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepositor
     , overrides         : Set[UniqueOverrides]
     , allNodeModes      : Map[NodeId, NodeModeConfig]
   ) : Box[List[NodeExpectedReports]] = {
-
-
     val filteredExpandedRuleVals = filterOverridenDirectives(expandedRuleVals, overrides)
+
 
     // transform to rule expected reports by node
     val directivesExpectedReports = filteredExpandedRuleVals.map { case ExpandedRuleVal(ruleId, serial, configs) =>
