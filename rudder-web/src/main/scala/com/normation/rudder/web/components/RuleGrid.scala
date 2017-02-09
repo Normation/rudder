@@ -98,14 +98,26 @@ object RuleGrid {
     </head>
 }
 
+/**
+ * An ADT to denote if a column should be display or not,
+ * or if is should be decided from config service.
+ */
+sealed trait DisplayColumn
+final object DisplayColumn {
+  final case class Force(display: Boolean) extends DisplayColumn
+  final object FromConfig                  extends DisplayColumn
+}
+
 class RuleGrid(
     htmlId_rulesGridZone: String
    //JS callback to call when clicking on a line
   , detailsCallbackLink : Option[(Rule,String) => JsCmd]
-  , getDisplayChanges   : () => Box[Boolean]
-  , showCheckboxColumn  :Boolean = true
-  , directiveApplication: Option[DirectiveApplicationManagement] = None
+  , showCheckboxColumn  : Boolean
+  , directiveApplication: Option[DirectiveApplicationManagement]
+  , columnCompliance    : DisplayColumn
+  , graphRecentChanges : DisplayColumn
 ) extends DispatchSnippet with Loggable {
+
 
   private[this] sealed trait Line { val rule:Rule }
 
@@ -125,18 +137,19 @@ class RuleGrid(
   private[this] val getFullNodeGroupLib      = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib      = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
-  private[this] val getAllNodeInfos      = RudderConfig.nodeInfoService.getAll _
-  private[this] val getRootRuleCategory  = RudderConfig.roRuleCategoryRepository.getRootCategory _
+  private[this] val getAllNodeInfos          = RudderConfig.nodeInfoService.getAll _
+  private[this] val getRootRuleCategory      = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
-  private[this] val recentChanges    = RudderConfig.recentChangesService
-  private[this] val techniqueRepository = RudderConfig.techniqueRepository
-  private[this] val categoryService     = RudderConfig.ruleCategoryService
-  private[this] val asyncComplianceService = RudderConfig.asyncComplianceService
+  private[this] val recentChanges            = RudderConfig.recentChangesService
+  private[this] val techniqueRepository      = RudderConfig.techniqueRepository
+  private[this] val categoryService          = RudderConfig.ruleCategoryService
+  private[this] val asyncComplianceService   = RudderConfig.asyncComplianceService
+  private[this] val configService            = RudderConfig.configService
 
   //used to error tempering
-  private[this] val roRuleRepository    = RudderConfig.roRuleRepository
-  private[this] val woRuleRepository    = RudderConfig.woRuleRepository
-  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
+  private[this] val roRuleRepository         = RudderConfig.roRuleRepository
+  private[this] val woRuleRepository         = RudderConfig.woRuleRepository
+  private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
 
   /////  local variables /////
   private[this] val htmlId_rulesGridId = "grid_" + htmlId_rulesGridZone
@@ -144,6 +157,38 @@ class RuleGrid(
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
   private[this] val htmlId_rulesGridWrapper = htmlId_rulesGridId + "_wrapper"
   private[this] val tableId_reportsPopup = "popupReportsGrid"
+
+  /*
+   * Compliance and recent changes columns (not forced):
+   * - we display compliance if rudder_ui_display_ruleComplianceColumns is true,
+   * - we display recent changes only if compliance is displayed ; we
+   *   display the number in place of graphe if diplay_recent_changes is false
+   *
+   * If the configService is not available, display
+   *
+   * The will is to have the following result: (C = compliance column,
+   * R = recent changes columns; 0 = missing, N = number, G = graph)
+   *
+   * Screen \ config | C=1 R=1 | C=1 R=0 | C=0 R=1 | C=0 R=0 |
+   * ---------------------------------------------------------
+   * Rules           | C=1 R=G | C=1 R=N | C=1 R=1 | C=1 R=N |
+   * ---------------------------------------------------------
+   * Directives      | C=1 R=G | C=1 R=N | C=0 R=0 | C=0 R=0 |
+   * ---------------------------------------------------------
+   * Accept Node     |                                       |
+   * -----------------               C=0  R=0                |
+   * Validate Change |                                       |
+   * ---------------------------------------------------------
+   */
+  import DisplayColumn._
+  private[this] val showComplianceAndChangesColumn = columnCompliance match {
+    case Force(display) => display
+    case FromConfig     => configService.rudder_ui_display_ruleComplianceColumns.openOr(true)
+  }
+  private[this] val showChangesGraph = showComplianceAndChangesColumn && (graphRecentChanges match {
+    case Force(display) => display
+    case FromConfig => configService.display_changes_graph.openOr(true)
+  })
 
   def templatePath = List("templates-hidden", "reports_grid")
   def template() =  Templates(templatePath) match {
@@ -154,13 +199,13 @@ class RuleGrid(
   def reportTemplate = chooseTemplate("reports", "report", template)
 
   def dispatch = {
-    case "rulesGrid" => { _:NodeSeq => rulesGridWithUpdatedInfo(None, true, true)}
+    case "rulesGrid" => { _:NodeSeq => rulesGridWithUpdatedInfo(None, true)}
   }
 
   /**
    * Display all the rules. All data are charged asynchronously.
    */
-  def asyncDisplayAllRules(onlyRules: Option[Set[RuleId]], showComplianceColumns: Boolean, showRecentChanges: Boolean) =  {
+  def asyncDisplayAllRules(onlyRules: Option[Set[RuleId]]) =  {
     AnonFunc(SHtml.ajaxCall(JsNull, (s) => {
 
       val start = System.currentTimeMillis
@@ -173,14 +218,19 @@ class RuleGrid(
           afterRules      =  System.currentTimeMillis
           _               =  TimingDebugLogger.debug(s"Rule grid: fetching all Rules took ${afterRules - start}ms" )
 
-          futureChanges   =  if(showComplianceColumns) changesFuture(rules) else changesFuture(Seq())
+                             //we skip request only if the column is not displayed - we need it even to display text info
+          futureChanges   =  if(showComplianceAndChangesColumn) ajaxChanges(changesFuture(rules)) else Noop
 
           nodeInfo        <- getAllNodeInfos()
           afterNodeInfos  =  System.currentTimeMillis
           _               =  TimingDebugLogger.debug(s"Rule grid: fetching all Nodes informations took ${afterNodeInfos - afterRules}ms" )
 
           // we have all the data we need to start our future
-          futureCompliance =  if(showComplianceColumns) asyncComplianceService.complianceByRule(nodeInfo.keys.toSet, rules.map(_.id).toSet, htmlId_rulesGridId) else Noop
+          futureCompliance =  if(showComplianceAndChangesColumn) {
+                                asyncComplianceService.complianceByRule(nodeInfo.keys.toSet, rules.map(_.id).toSet, htmlId_rulesGridId)
+                              } else {
+                                Noop
+                              }
 
           groupLib        <- getFullNodeGroupLib()
           afterGroups     =  System.currentTimeMillis
@@ -206,7 +256,7 @@ class RuleGrid(
               recentGraphs = {};
               refreshTable("${htmlId_rulesGridId}", ${newData.json.toJsCmd});
               ${futureCompliance.toJsCmd}
-              ${ajaxChanges(showRecentChanges,futureChanges).toJsCmd}
+              ${futureChanges.toJsCmd}
           """)
         }
       ) match {
@@ -223,7 +273,7 @@ class RuleGrid(
   /**
    * Display the selected set of rules.
    */
-  def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean, showComplianceColumns: Boolean): NodeSeq = {
+  def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean): NodeSeq = {
 
     (for {
       allNodeInfos <- getAllNodeInfos()
@@ -250,31 +300,23 @@ class RuleGrid(
       case Full(tableData) =>
 
         val allcheckboxCallback = AnonFunc("checked",SHtml.ajaxCall(JsVar("checked"), (in : String) => selectAllVisibleRules(in.toBoolean)))
-        val (showRecentChanges, errorProperty) = getDisplayChanges() match {
-          case Full(display) => (display, None)
-          case eb: EmptyBox =>
-            val fail = eb ?~! "Error while fetching 'display graph' property, displaying them by default"
-            logger.warn(fail.messageChain)
-            (true, Some(fail.msg))
-        }
         val onLoad =
           s"""createRuleTable (
-                 "${htmlId_rulesGridId}"
+                  "${htmlId_rulesGridId}"
                 , ${tableData.json.toJsCmd}
                 , ${showCheckboxColumn}
                 , ${showActionsColumn}
-                , ${showComplianceColumns}
-                , ${showRecentChanges}
+                , ${showComplianceAndChangesColumn}
+                , ${showChangesGraph}
                 , ${allcheckboxCallback.toJsCmd}
                 , "${S.contextPath}"
-                , ${asyncDisplayAllRules(rules.map(_.map(_.id).toSet), showComplianceColumns, showRecentChanges).toJsCmd}
+                , ${asyncDisplayAllRules(rules.map(_.map(_.id).toSet)).toJsCmd}
               );
               createTooltip();
               createTooltiptr();
               $$('#${htmlId_rulesGridWrapper}').css("margin","10px 0px 0px 0px");
           """
         <div id={htmlId_rulesGridZone}>
-          <span class="error" id="ruleTableError">{errorProperty.getOrElse("")}</span>
           <div id={htmlId_modalReportsPopup} class="nodisplay">
             <div id={htmlId_reportsPopup} ></div>
           </div>
@@ -353,7 +395,7 @@ class RuleGrid(
   }
 
   // Ajax call back to get recent changes
-  private[this] def ajaxChanges(displayGraph: Boolean, future : Future[Box[Map[RuleId,Map[Interval, Int]]]]) : JsCmd = {
+  private[this] def ajaxChanges(future : Future[Box[Map[RuleId,Map[Interval, Int]]]]) : JsCmd = {
     SHtml.ajaxInvoke( () => {
       // Is my future completed ?
       if( future.isCompleted ) {
@@ -365,7 +407,7 @@ class RuleGrid(
             } yield {
               val changeCount = change.values.sum
               val data = NodeChanges.json(change, recentChanges.getCurrentValidIntervals(None))
-              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds, ${changeCount}, ${displayGraph})"""
+              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds, ${changeCount})"""
            }
 
           JsRaw(s"""
@@ -382,7 +424,7 @@ class RuleGrid(
             Alert(error.messageChain)
         }
       } else {
-        After(500,ajaxChanges(displayGraph,future))
+        After(500,ajaxChanges(future))
       }
     } )
 

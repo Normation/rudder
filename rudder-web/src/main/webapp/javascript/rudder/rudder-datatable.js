@@ -151,7 +151,6 @@ function generateRecentGraph(id, displayGraph) {
 
 
 function recentChangesText(id) {
-
   // Datas
   var graphId = "Changes-"+id;
   var tooltipId = graphId+"-description";
@@ -201,7 +200,7 @@ function recentChangesText(id) {
  *   , "reasons": Reasons why a Rule is a not applied, empty if there is no reason [ String ]
  *   }
  */
-function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance, addRecentChanges, allCheckboxCallback, contextPath, refresh) {
+function createRuleTable(gridId, data, checkboxColumn, actionsColumn, complianceColumn, recentChangesGraph, allCheckboxCallback, contextPath, refresh) {
 
   //base element for the clickable cells
   function callbackElement(oData, action) {
@@ -217,7 +216,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
 
   // Define which columns should be sorted by default
   var sortingDefault;
-  if (needCheckbox) {
+  if (checkboxColumn) {
     sortingDefault = 1;
   } else {
     sortingDefault = 0;
@@ -229,7 +228,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
   var checkbox = {
       "mDataProp": "applying"
     , "sTitle" : "<input id='checkAll' type='checkbox'></input>"
-    , "sWidth": "30px"
+    , "sWidth": "5%"
     , "bSortable": false
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var data = oData;
@@ -254,7 +253,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
         var data = oData;
 
         var action = "showForm"
-        if (! needActions) {
+        if (! actionsColumn) {
           action = "showEditForm"
         }
         // Define the elem and its callback
@@ -379,17 +378,17 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
 
   // Choose which columns should be included
   var columns = [];
-  if (needCheckbox) {
+  if (checkboxColumn) {
     columns.push(checkbox);
   }
   columns.push(name);
   columns.push(category);
   columns.push(status);
-  if (needCompliance) {
+  if (complianceColumn) {
     columns.push(compliance);
     columns.push(recentChanges);
   }
-  if (needActions) {
+  if (actionsColumn) {
     columns.push(actions);
   }
 
@@ -411,15 +410,15 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
          if (compliance !== undefined) {
            $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
          }
-         if (addRecentChanges) {
+         if (recentChangesGraph) {
            var changes = recentGraphs[row.id]
            if (changes !== undefined) {
              $("#"+id).html(changes.element);
            } else {
-             generateRecentGraph(row.id,addRecentChanges);
+             generateRecentGraph(row.id,recentChangesGraph);
            }
          } else {
-             generateRecentGraph(row.id,addRecentChanges);
+           generateRecentGraph(row.id,recentChangesGraph);
          }
        })
       }

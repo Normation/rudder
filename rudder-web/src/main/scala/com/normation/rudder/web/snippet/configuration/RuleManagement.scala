@@ -69,6 +69,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.components.RuleDisplayer
 import com.normation.rudder.web.components.RuleDisplayer
+import com.normation.rudder.web.components.DisplayColumn
 
 /**
  * Snippet for managing Rules.
@@ -159,6 +160,8 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
       , detailsCallbackLink(workflowEnabled, changeMsgEnabled)
       , (rule : Rule ) => onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"showEditForm")
       , showPopup
+      , DisplayColumn.Force(true)
+      , DisplayColumn.FromConfig
     )))
 
     currentRuleDisplayer.is match {

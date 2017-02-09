@@ -92,6 +92,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "sendMetricsConfiguration" => sendMetricsConfiguration
     case "networkProtocolSection" => networkProtocolSection
     case "displayGraphsConfiguration" => displayGraphsConfiguration
+    case "displayRuleColumnConfiguration" => displayRuleColumnConfiguration
     case "apiMode" => apiComptabilityMode
     case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
     case "quickSearchConfiguration" => quickSearchConfiguration
@@ -747,7 +748,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         } )
     } ) apply (xml ++ Script(Run("correctButtons();")))
   }
-
   def displayGraphsConfiguration = { xml : NodeSeq =>
 
     ( configService.display_changes_graph() match {
@@ -786,6 +786,50 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       case eb: EmptyBox =>
         ( "#displayGraphs" #> {
           val fail = eb ?~ "there was an error while fetching value of property: 'display change graphs'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml
+  }
+
+  def displayRuleColumnConfiguration = { xml : NodeSeq =>
+
+    ( configService.rudder_ui_display_ruleComplianceColumns() match {
+      case Full(value) =>
+        var displayColumns = value
+        def noModif() = displayColumns == value
+        def check() = {
+          S.notice("displayColumnsMsg","")
+          Run(s"""$$("#displayColumnsSubmit").button( "option", "disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_rudder_ui_display_ruleComplianceColumns(displayColumns)
+          S.notice("displayColumnsMsg", save match {
+            case Full(_)  =>
+              "'Display compliance and recent changes columns on rule summary' property updated"
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'Display compliance and recent changes columns on rule summary' property"
+          } )
+        }
+
+        ( "#displayColumnsCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                value
+              , (b : Boolean) => { displayColumns = b; check}
+              , ("id","displayColumnsCheckbox")
+            )
+          } &
+          "#displayColumnsSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          } &
+          "#displayColumnsSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+          }
+        )
+      case eb: EmptyBox =>
+        ( "#displayColumns" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'Display compliance and recent changes columns on rule summary'"
           logger.error(fail.messageChain)
           <div class="error">{fail.messageChain}</div>
         } )

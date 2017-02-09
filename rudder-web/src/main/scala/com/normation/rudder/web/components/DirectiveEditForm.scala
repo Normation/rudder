@@ -139,12 +139,12 @@ class DirectiveEditForm(
       case Full(pe) => pe
       case Empty => {
         val errMsg = "Can not initialize the parameter editor for Directive %s " +
-        		"(template %s). No error returned"
+            "(template %s). No error returned"
         throw new IllegalArgumentException(errMsg.format(directive.id, technique.id))
       }
       case Failure(m, _, _) => {
         val errMsg = "Can not initialize the parameter editor for Directive %s " +
-        		"(template %s). Error message: %s"
+            "(template %s). Error message: %s"
         throw new IllegalArgumentException(errMsg.format(directive.id, technique.id, m))
       }
     }
@@ -193,6 +193,8 @@ class DirectiveEditForm(
         , (_ :Rule,_ : String)  => Noop
         , (_ : Rule)         => Noop
         , (_ : Option[Rule]) => Noop
+        , DisplayColumn.FromConfig
+        , DisplayColumn.FromConfig
         ).display
     }
 
@@ -214,7 +216,7 @@ class DirectiveEditForm(
       val agentCompEmpty : NodeSeq =
         <span>
           Can be used on any agent.
-	      </span>
+        </span>
       technique.compatible match {
         case None =>
           (osCompEmpty,agentCompEmpty)
@@ -233,7 +235,7 @@ class DirectiveEditForm(
             case agent =>
                 <span>
                   {agent.mkString(", ")}
-	              </span>
+                </span>
           }
           (osComp,agentComp)
       }
@@ -412,16 +414,16 @@ class DirectiveEditForm(
         <div>
         <b>Priority:</b>
         <span class="tw-bs">
-					<span tooltipid="priorityId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
+          <span tooltipid="priorityId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
           <div class="tooltipContent" id="priorityId">
-          	<h4> Priority </h4>
-						Priority determines which <b> unique </b> Directive will be applied.
-						<br/>
-						Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied. 
-						<br/>
-						Highest Priority is 0
+            <h4> Priority </h4>
+            Priority determines which <b> unique </b> Directive will be applied.
+            <br/>
+            Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied.
+            <br/>
+            Highest Priority is 0
           </div>
-			  </span>
+        </span>
       </div>
       override def className = "twoCol"
       override def labelClassName = "threeCol directiveInfo"
