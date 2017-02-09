@@ -815,11 +815,13 @@ a.sidebar-toggle{
   color: #FFFFFF;
 }
 /* ----- </DROPDOWN MENU>  ----- */
+
 /* GROUP PAGE */
-#groupParametersTab .page-title{
-  margin-left: 12px;
-  margin-right: 12px;
-  margin-bottom: 5px;
+
+#groupParametersTab .btn.btn-success[disabled]{
+  pointer-events: none;
+  background-color: #b4b4b4;
+  border-color: #7a7a7a;
 }
 #groupParametersTab .section-title{
   margin: 15px 13px 8px 8px;
@@ -1479,6 +1481,7 @@ form .tooltip-content p {
 /*
 *  INPUT GROUP GENERAL
 */
+
 .group-button button.btn{
   color: white;
   border-right: none;
