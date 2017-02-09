@@ -17,6 +17,7 @@
 #####################################################################################
 
 # @name Logger for Rudder - legacy interface (DEPRECATED)
+# @deprecated Use [log_rudder](#log_rudder) instead.
 # @description Logging output for Rudder reports. This interface is for compatiblity with older generic methods and techniques, and is replaced by log_rudder.
 #
 # @parameter message              The common part of the message to display
