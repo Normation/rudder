@@ -72,13 +72,11 @@ object TextField {
 
   def textInput(kind : String)(id : String) = {
       // Html template
-    def textInput = ChooseTemplate(List("templates-hidden", "components", "directiveInput") , s"input:$kind")
+    def textInput = ChooseTemplate(List("templates-hidden", "components", "directiveInput") , s"input-$kind")
 
     val css: CssSel =  ".tw-bs [id]" #> id &
     ".text-section [id]" #>  (id+"-controller")
-
     css(textInput)
-
   }
 }
 
@@ -911,7 +909,7 @@ object FileField {
 
   def fileInput(kind : String)(id : String) = {
       // Html template
-    def xml = ChooseTemplate(List("templates-hidden", "components", "directiveInput"), s"input:$kind")
+    def xml = ChooseTemplate(List("templates-hidden", "components", "directiveInput"), s"input-$kind")
 
     val css: CssSel =  ".tw-bs [id]" #> id  &
     "#fileInput [id]" #>  (id+"-fileInput") &
