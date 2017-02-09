@@ -414,8 +414,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   ////////////////////
 
   private[this] def refreshTree(selectedNode:String, workflowEnabled: Boolean) : JsCmd =  {
-    Replace(htmlId_groupTree, buildGroupTree(selectedNode, workflowEnabled)) &
-    OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();""")))
+    Replace(htmlId_groupTree, buildGroupTree(selectedNode, workflowEnabled))
   }
 
  /********************************************

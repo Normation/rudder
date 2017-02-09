@@ -297,8 +297,11 @@ function disableButton(buttonId) {
 function scrollToElement(elementId, containerSelector) {
   var container = $(containerSelector);
   // We need to remove the container offset from the elem offset so we scroll the correct amount in scroll function
-  var offset = $("#"+ elementId).offset().top - container.offset().top;
-  container.animate({ scrollTop: offset }, 500);
+  var offset = $("#"+ elementId).offset()
+  if(offset){
+    var offsetTop = offset.top - container.offset().top;
+    container.animate({ scrollTop: offsetTop }, 500);
+  }
 }
 
 function scrollToElementPopup(elementSelector, popupId){
