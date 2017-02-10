@@ -67,7 +67,9 @@ class RuleDisplayer (
   , gridId              : String
   , detailsCallbackLink : (Rule, String) => JsCmd
   , onCreateRule        : (Rule) => JsCmd
-  , showRulePopup        : (Option[Rule]) => JsCmd
+  , showRulePopup       : (Option[Rule]) => JsCmd
+  , columnCompliance    : DisplayColumn
+  , graphRecentChanges  : DisplayColumn
 ) extends DispatchSnippet with Loggable  {
 
   private[this] val ruleRepository       = RudderConfig.roRuleRepository
@@ -171,9 +173,10 @@ class RuleDisplayer (
       new RuleGrid(
           "rules_grid_zone"
         , callbackLink
-        , configService.display_changes_graph
         , directive.isDefined
         , directive
+        , columnCompliance
+        , graphRecentChanges
       )
     }
     def includeSubCategory = {
@@ -200,8 +203,8 @@ class RuleDisplayer (
       </lift:authz>
       <div style={s"margin:10px 0px 0px ${if (directive.isDefined) 0 else 50}px; float:left"}>{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></div>
       <hr class="spacer"/>
-      { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, true)  ++
-        Script(OnLoad(ruleGrid.asyncDisplayAllRules(None, true, configService.display_changes_graph().openOr(true)).applied))
+      { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined)  ++
+        Script(OnLoad(ruleGrid.asyncDisplayAllRules(None).applied))
       }
 
     </div>
