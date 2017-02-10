@@ -67,7 +67,9 @@ class RuleDisplayer (
   , gridId              : String
   , detailsCallbackLink : (Rule, String) => JsCmd
   , onCreateRule        : (Rule) => JsCmd
-  , showRulePopup        : (Option[Rule]) => JsCmd
+  , showRulePopup       : (Option[Rule]) => JsCmd
+  , columnCompliance    : DisplayColumn
+  , graphRecentChanges  : DisplayColumn
 ) extends DispatchSnippet with Loggable  {
 
   private[this] val ruleRepository       = RudderConfig.roRuleRepository
@@ -200,15 +202,16 @@ class RuleDisplayer (
       new RuleGrid(
           "rules_grid_zone"
         , callbackLink
-        , configService.display_changes_graph
         , directive.isDefined
         , directive
+        , columnCompliance
+        , graphRecentChanges
       )
     }
 
     <div>
-      { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, true, false)  ++
-        Script(OnLoad(ruleGrid.asyncDisplayAllRules(None, true, configService.display_changes_graph().openOr(true)).applied))
+      { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, false)  ++
+        Script(OnLoad(ruleGrid.asyncDisplayAllRules(None).applied))
       }
     </div>
 

@@ -83,6 +83,7 @@ import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.utils.Control.boxSequence
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.components.DisplayColumn
 
 /**
  * Validation pop-up for modification on group and directive.
@@ -405,8 +406,9 @@ class ModificationValidationPopup(
       case CreateSolo => NodeSeq.Empty
       case x if(rules.size <= 0) => NodeSeq.Empty
       case x =>
-        val cmp = new RuleGrid("remove_popup_grid", None, () => Full(false), false)
-        cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), false, false, true)
+        val noDisplay = DisplayColumn.Force(false)
+        val cmp = new RuleGrid("remove_popup_grid", None, false, None, noDisplay, noDisplay)
+        cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), false, true)
     }
   }
 
