@@ -813,7 +813,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         def noModif() = displayColumns == value
         def check() = {
           S.notice("displayColumnsMsg","")
-          Run(s"""$$("#displayColumnsSubmit").button( "option", "disabled",${noModif()});""")
+          Run(s"""$$("#displayColumnsSubmit").prop( "checked", ${noModif()} );""")
         }
 
         def submit() = {
@@ -834,10 +834,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             )
           } &
           "#displayColumnsSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _)
+            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
           } &
           "#displayColumnsSubmit *+" #> {
-            Script(Run("correctButtons();") & check())
+            check()
           }
         )
       case eb: EmptyBox =>
