@@ -90,7 +90,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     val t = time.toString("yyyy-MM-dd HH:mm:ss")
     val d = DateFormaterService.getFormatedPeriod(time, DateTime.now)
     // exceptionnaly not putting {} to remove the noide
-    <span>{label + t}</span><span style="font-size:80%; margin-left: 10px">{"↳ " + d} ago</span>
+    <span>{label + t}</span><div class="help-block">{"↳ " + d} ago</div>
   }
 
   private[this] def updateDuration = {
@@ -143,7 +143,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       case SuccessStatus(id,start,end,configurationNodes) =>
         commonStatement(start, end, "Update took", "Policies updated","text-success fa fa-check","text-success")
       case ErrorStatus(id,start,end,failure) =>
-        val popupContent = 
+        val popupContent =
             failure.messageChain match {
             case  deployementErrorMessage(chain, error) =>
               <div class="alert alert-danger" role="alert">
@@ -159,7 +159,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                                 <span id="showhidetechnicalerrors" class="glyphicon glyphicon-chevron-up up"></span>
                         </h4>
                     </div>
-                </a> 
+                </a>
                     <div id="collapseListGroup1" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="collapseListGroupHeading1" aria-expanded="true">
                         <ul id="deploymentErrorMsg" class="list-group">
                             {error.split("<-").map(x => <li class="list-group-item">{"⇨ " + x}</li>)}
@@ -168,12 +168,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                 </div>
             </div>
 
-              
+
             case _ => <span>{failure.messageChain.split("<-").map(x => Text("⇨ " + x) ++ {<br/>})}</span>
         }
-        
+
         val callback = JsRaw("$('#errorDetailsDialog').bsModal('show');") & SetHtml("errorDetailsMessage" , popupContent)
-        
+
         commonStatement(start, end, "Error occured in", "Error during policy update","text-danger fa fa-times","text-danger") ++
         <li class="footer">{ SHtml.a(Text("Details"), callback, ("href","#") , ("style","color:#a94442 !important;"))}</li>
     }
@@ -265,7 +265,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                </div>  
+                </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
       </div>
