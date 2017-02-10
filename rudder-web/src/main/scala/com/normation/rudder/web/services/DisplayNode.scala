@@ -655,21 +655,31 @@ object DisplayNode extends Loggable {
     }
 
     private def displayTabVariable(jsId:JsNodeId,sm:FullInventory) : NodeSeq = {
-    val title = sm.node.inventoryDate.map(date => "Environment variable status on %s".format(DateFormaterService.getFormatedDate(date)))
-    displayTabGrid(jsId)("var", Full(sm.node.environmentVariables),title){
+      val title = sm.node.inventoryDate.map(date => "Environment variable status on %s".format(DateFormaterService.getFormatedDate(date)))
+      displayTabGrid(jsId)("var", Full(sm.node.environmentVariables),title){
         ("Name", {x:EnvironmentVariable => Text(x.name)}) ::
         ("Value", {x:EnvironmentVariable => Text(x.value.getOrElse("Unspecified"))}) ::
         Nil
-    }
+      }
     }
 
     private def displayTabProperties(jsId:JsNodeId, node: NodeInfo) : NodeSeq = {
+      import com.normation.rudder.domain.nodes.JsonSerialisation._
+      import com.normation.rudder.authorization._
       import net.liftweb.json._
-      displayTabGrid(jsId)("props", Full(node.properties)){
-        ("Name", {x:NodeProperty => Text(x.name)}) ::
-        ("Value", {x:NodeProperty => <pre class="json-beautify" onclick="$(this).toggleClass('toggle')">{prettyRender(x.value)}</pre>}) ::
-        Nil
-      }
+      val nodeId = node.id.value
+      val jsonProperties = compactRender(node.properties.toApiJson())
+      val userHasRights = CurrentUser.checkRights(Write("node"))
+      def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties") , "nodeproperties-tab")
+
+      val css: CssSel =  "#tabPropsId [id]" #> htmlId(jsId,"sd_props_")
+      css(tabProperties) ++ Script(OnLoad(JsRaw(s"""
+        angular.bootstrap('#nodeProp', ['nodeProperties']);
+        var scope  = angular.element($$("#nodeProp")).scope();
+        scope.$$apply(function(){
+          scope.init(${jsonProperties},"${nodeId}",${userHasRights});
+        });
+      """)))
     }
 
     private def displayTabProcess(jsId:JsNodeId,sm:FullInventory) : NodeSeq = {
