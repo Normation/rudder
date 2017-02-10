@@ -124,11 +124,19 @@ function displayInventoryGraph (id,data) {
             columns: data
           , type   : 'donut'
         }
-      , donut : {
+      , donut: {
           label: {
             show: false
           }
         }
+     , tooltip: {
+        format: {
+          value: function (value, ratio, id, index) {
+            var unit = "node"
+            if (value > 1) { unit+="s" }
+            return value+" "+unit+" ("+ (ratio*100).toFixed(0) + "%)"; }
+        }
+      }
       , legend :  {
           show : false
         }
@@ -137,7 +145,7 @@ function displayInventoryGraph (id,data) {
       }
     });
 
-  // Define a 'chart' which will only display its legend with interactin with the chart defind above
+  // Define a 'chart' which will only display its legend with interacting with the chart defined above
   var legend =
     c3.generate( {
         size: {
