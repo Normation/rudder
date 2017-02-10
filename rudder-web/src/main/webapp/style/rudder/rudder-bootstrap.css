@@ -358,12 +358,12 @@
 }
 
 .form-control {
-  width:100%
+  width:100%;
 }
 
 #globalCompliance .progress {
-  height:150px;
-  padding: 30px 20px
+  height:90px;
+  margin: 33px 25px;
 }
 
 #globalCompliance .progress .progress-bar {
@@ -372,16 +372,9 @@
     font-weight: 600;
 }
 
-.tw-bs .nav-pills  > li > a {
-  border-radius : 0px;
-  color : #2e2d2d;
-  font-size: 15px;
-}
-
 #complianceGauge {
     float: left;
-    width: 75%;
-    margin-left: 12.5%;
+    width: 100%;
 }
 #gauge-value {
     font-weight: bold;
