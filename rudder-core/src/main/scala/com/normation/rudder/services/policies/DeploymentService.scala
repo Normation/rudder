@@ -86,6 +86,7 @@ import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.inventory.domain.AixOS
+import scala.concurrent.Future
 
 /**
  * The main service which deploy modified rules and
@@ -195,11 +196,14 @@ trait PromiseGenerationService extends Loggable {
       updatedNodeConfig     =  writtenNodeConfigs.map( _.nodeInfo.id )
       expectedReports       <- setExpectedReports(ruleVals, sanitizedNodeConfig.values.toSeq, nodeConfigVersions, updatedCrs.toMap, deletedCrs, updatedNodeConfig, new DateTime())  ?~! "Cannot build expected reports"
       // now, invalidate cache
-      _                     =  invalidateComplianceCache(updatedNodeConfig)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
 
     } yield {
+      //invalidate compliance may be very very long - make it async
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Future { invalidateComplianceCache(updatedNodeConfig) }
+
       logger.debug("Timing summary:")
       logger.debug("Fetch all information     : %10s ms".format(timeFetchAll))
       logger.debug("Historize names           : %10s ms".format(timeHistorize))
