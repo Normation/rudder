@@ -274,7 +274,6 @@
     <div class="inner-portlet">
       <div class="page-title">File retention</div>
       <div class="portlet-content">
-
         <div class="tw-bs">
           <div class="col-lg-12 callout-fade callout-warning">
             <div class="marker">
@@ -320,33 +319,26 @@
 
     <div class="inner-portlet">
       <div class="page-title">Logging</div>
-      <div class="portlet-content">
-
+      <div class="portlet-content tw-bs">
         <div class="lift:administration.PropertiesManagement.loggingConfiguration" id="storeAllLogsForm">
-          <div class="tw-bs">
-            <div class="col-lg-12 callout-fade callout-warning">
-              <div class="marker">
-                <span class="glyphicon glyphicon-info-sign"></span>
-              </div>
-              <p>All nodes in Rudder send reports via syslog to this Rudder root server. These logs are stored in an SQL database in order to determine compliance information displayed in this web interface. However, it can be useful to also store this information in a plain text log file, for example for statistics or debugging purposes. The option below enables this.</p>
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
             </div>
+            <p>All nodes in Rudder send reports via syslog to this Rudder root server. These logs are stored in an SQL database in order to determine compliance information displayed in this web interface. However, it can be useful to also store this information in a plain text log file, for example for statistics or debugging purposes. The option below enables this.</p>
           </div>
-
-          <hr class="spacer" />
-        <div class="deca">
-
+          <div class="deca col-xs-12">
             <form class="lift:form.ajax">
-              <div class="wbBaseField">
-                    <label class="threeCol textright" style="font-weight:bold;width: 40%;">
-                      <span style="float:left">Log all reports received to /var/log/rudder/reports/all.log: </span>
-                    </label>
-                    <input id="storeAllLogsOnFile" type="text"/>
+              <div class="form-group">
+                <label class="threeCol textright" style="width: 40%;">
+                  <span style="float:left">Log all reports received to /var/log/rudder/reports/all.log: </span>
+                </label>
+                <input id="storeAllLogsOnFile" type="text"/>
               </div>
-              <hr class="spacer"/>
               <lift:authz role="administration_write">
-                <span class="tw-bs">
+                <div class="form-group">
                   <input type="submit" value="[save]" id="loggingConfigurationSubmit"/>
-                </span>
+                </div>
                 <span class="lift:Msg?id=loggingConfiguration">[messages]</span>
               </lift:authz>
             </form>
@@ -357,42 +349,35 @@
 
     <div class="inner-portlet">
       <div class="page-title">Usage survey participation</div>
-      <div class="portlet-content">
-
+      <div class="portlet-content tw-bs">
         <div class="lift:administration.PropertiesManagement.sendMetricsConfiguration" id="sendMetrics">
-          <div class="tw-bs">
-             <div class="col-lg-12 callout-fade callout-warning">
-                <div class="marker">
-                  <span class="glyphicon glyphicon-info-sign"></span>
-                </div>
-                <p>To help the Rudder team continue to improve this software day after day, we are running a survey to collect usage statistics.</p>
-                <p>These statistics are submitted anonymously, and include overall statistics about your instance of Rudder
-                   (number of Rules, Directives, Nodes, etc). No potentially-sensitive data is included
-                   (only stock Rudder-provided techniques are examined, no hostnames, etc).
-                   We highly value your privacy, as we do our own, so we will never share individual submissions (only globally compiled statistics)
-                </p>
-                <p>
-                  If you want to check the information that is sent, just run "/opt/rudder/bin/rudder-metrics-reporting -v" on your Rudder server. This won't send any information without your consent.
-                </p>
-                <p>
-                  This information is very valuable to the development team, as it helps us focus on the features that matter most and better understand what our users care about.
-                  Please consider participating in the survey!
-                </p>
-            </div>
+          <div class="col-lg-12 callout-fade callout-warning">
+              <div class="marker">
+                <span class="glyphicon glyphicon-info-sign"></span>
+              </div>
+              <p>To help the Rudder team continue to improve this software day after day, we are running a survey to collect usage statistics.</p>
+              <p>These statistics are submitted anonymously, and include overall statistics about your instance of Rudder
+                 (number of Rules, Directives, Nodes, etc). No potentially-sensitive data is included
+                 (only stock Rudder-provided techniques are examined, no hostnames, etc).
+                 We highly value your privacy, as we do our own, so we will never share individual submissions (only globally compiled statistics)
+              </p>
+              <p>
+                If you want to check the information that is sent, just run "/opt/rudder/bin/rudder-metrics-reporting -v" on your Rudder server. This won't send any information without your consent.
+              </p>
+              <p>
+                This information is very valuable to the development team, as it helps us focus on the features that matter most and better understand what our users care about.
+                Please consider participating in the survey!
+              </p>
           </div>
-
-          <hr class="spacer" />
-          <div class="deca">
+          <div class="deca col-xs-12">
             <form class="lift:form.ajax">
-
-              <div class="wbBaseField">
+              <div class="form-group">
                 <label class="threeCol textright" for="sendMetricsCheckbox" style="font-weight:bold;width: 20%;">Send anonymous usage statistics:</label><input id="sendMetricsCheckbox" type="checkbox"/>
               </div>
-              <hr class="spacer"/>
               <lift:authz role="administration_write">
-                <span class="tw-bs">
+                <div class="form-group">
                   <input type="submit" value="Reload" id="sendMetricsSubmit"/>
-                </span>
+                </div>
                 <span class="lift:Msg?id=sendMetricsMsg">[messages]</span>
               </lift:authz>
             </form>
@@ -400,12 +385,15 @@
         </div>
       </div>
     </div>
+
     <div class="inner-portlet">
       <div class="page-title">Display compliance and recent changes columns on rule summary</div>
-      <div class="portlet-content">
-
+      <div class="portlet-content tw-bs">
         <div class="lift:administration.PropertiesManagement.displayRuleColumnConfiguration" id="displayColumns">
-          <div class="intro">
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
             <div>
               In directive configuration page, we have the possibility to choose rules for the directive. The rule 
               are presented in a summary table which look alike the one in rule page. For performance on ascetic
@@ -413,127 +401,107 @@
               The column will still be displayed on the rule page. 
             </div>
           </div>
-
-          <hr class="spacer" />
-          <div class="deca">
+          <div class="deca col-xs-12">
             <form class="lift:form.ajax">
-
-              <div class="wbBaseField">
+              <div class="form-group">
                 <label class="threeCol textright" for="displayColumnsCheckbox" style="font-weight:bold;width: 20%;">Display rule compliance columns:</label><input id="displayColumnsCheckbox" type="checkbox"/>
               </div>
-              <hr class="spacer"/>
               <lift:authz role="administration_write">
-                <input type="submit" value="Save Changes" id="displayColumnsSubmit"/>
-                <lift:Msg id="displayColumnsMsg">[messages]</lift:Msg>
+                <div class="form-group">
+                  <input type="submit" value="Save Changes" id="displayColumnsSubmit"/>
+                  <lift:Msg id="displayColumnsMsg">[messages]</lift:Msg>
+                </div>
               </lift:authz>
             </form>
           </div>
         </div>
       </div>
     </div>
+
     <div class="inner-portlet">
       <div class="page-title">Display changes graphs</div>
-      <div class="portlet-content">
-
+      <div class="portlet-content tw-bs">
         <div class="lift:administration.PropertiesManagement.displayGraphsConfiguration" id="displayGraphs">
-          <div class="tw-bs">
-            <div class="col-lg-12 callout-fade callout-warning">
-              <div class="marker">
-                <span class="glyphicon glyphicon-info-sign"></span>
-              </div>
-              <p>In Rules table, we display a graph for each Rule showing it's activity (number of repaired reports).</p>
-              <p>Unfortunately, some browsers (especially Firefox) have trouble displaying them and make Rule pages almost unusable.</p>
-              <p>If you experience slow loading of Rules pages, you can disable this feature here.</p>
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
             </div>
+            <p>In Rules table, we display a graph for each Rule showing it's activity (number of repaired reports).</p>
+            <p>Unfortunately, some browsers (especially Firefox) have trouble displaying them and make Rule pages almost unusable.</p>
+            <p>If you experience slow loading of Rules pages, you can disable this feature here.</p>
           </div>
-
-          <hr class="spacer" />
-          <div class="deca">
+          <div class="deca col-xs-12">
             <form class="lift:form.ajax">
-
-              <div class="wbBaseField">
-                <label class="threeCol textright" for="displayGraphsCheckbox" style="font-weight:bold;width: 20%;">Display changes graphs:</label><input id="displayGraphsCheckbox" type="checkbox"/>
+              <div class="form-group">
+                <label class="threeCol textright" for="displayGraphsCheckbox" style="width: 20%;">Display changes graphs:</label><input id="displayGraphsCheckbox" type="checkbox"/>
               </div>
-              <hr class="spacer"/>
               <lift:authz role="administration_write">
-                <span class="tw-bs">
-                  <input type="submit" value="Save Changes" id="displayGraphsSubmit"/>
-                </span>
+                <input type="submit" value="Save Changes" id="displayGraphsSubmit"/>
                 <lift:Msg id="displayGraphsMsg">[messages]</lift:Msg>
               </lift:authz>
             </form>
           </div>
         </div>
       </div>
-    </div>    
+    </div>
+
     <div class="inner-portlet">
       <div class="page-title">Api backward compatibility</div>
-      <div class="portlet-content">
-
+      <div class="portlet-content tw-bs">
         <div class="lift:administration.PropertiesManagement.apiMode" id="storeAllLogsForm">
-          <div class="tw-bs">
-            <div class="col-lg-12 callout-fade callout-warning">
-              <div class="marker">
-                <span class="glyphicon glyphicon-info-sign"></span>
-              </div>
-              <p> API response used to send data that may not be sent back to the API for modification.
-                 Parameter to enable a directive is 'enabled', but API response was using 'isEnabled' for that parameter, so you had to handle this case before sending data.
-                 We have harmonized response and parameters (in this <a href="http://www.rudder-project.org/redmine/issues/8687"></a>).
-                 But if you had script based on malformed response, you can enable this option.
-              </p>
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
             </div>
+            <p> API response used to send data that may not be sent back to the API for modification.
+              Parameter to enable a directive is 'enabled', but API response was using 'isEnabled' for that parameter, so you had to handle this case before sending data.
+              We have harmonized response and parameters (in this <a href="http://www.rudder-project.org/redmine/issues/8687"></a>).
+              But if you had script based on malformed response, you can enable this option.
+            </p>
           </div>
-
-          <hr class="spacer" />
-        <div class="deca">
-
+          <div class="deca col-xs-12">
             <form class="lift:form.ajax">
-              <div class="wbBaseField">
-                    <label class="threeCol textight" for="apiMode" style="font-weight:bold;width: 40%;">
-                      <span style="float:left">Enable API backward compatibility: </span>
-                    </label>
-                    <input id="apiMode" type="text"/>
+              <div class="form-group">
+                <label class="threeCol textight" for="apiMode" style="width: 40%;">
+                  Enable API backward compatibility:
+                </label>
+                <input id="apiMode" type="text"/>
               </div>
-              <hr class="spacer"/>
               <lift:authz role="administration_write">
-                <span class="tw-bs">
+                <div class="form-group">
                   <input type="submit" value="[save]" id="apiModeSubmit"/>
-                </span>
-                <lift:Msg id="apiModeMsg">[messages]</lift:Msg>
+                  <lift:Msg id="apiModeMsg">[messages]</lift:Msg>
+                </div>
               </lift:authz>
             </form>
           </div>
         </div>
       </div>
     </div>
+
     <div class="inner-portlet">
       <div class="page-title">Enable script evaluation in Directives</div>
-      <div class="portlet-content">
-
+      <div class="portlet-content tw-bs">
         <div class="lift:administration.PropertiesManagement.directiveScriptEngineConfiguration" id="directiveScriptEngine">
-          <div class="tw-bs">
-            <div class="col-lg-12 callout-fade callout-warning">
-              <div class="marker">
-                <span class="glyphicon glyphicon-info-sign"></span>
-              </div>
-              If enabled, all password fields can contain a JavaScript expression.
-              These expressions are evaluated during promise generation, and can therefore provide unique values for each node.
-              Read the <a href="/rudder-doc/_javascript_evaluation_in_directives.html">script documentation</a> for more information.
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
             </div>
+            If enabled, all password fields can contain a JavaScript expression.
+            These expressions are evaluated during promise generation, and can therefore provide unique values for each node.
+            Read the <a href="/rudder-doc/_javascript_evaluation_in_directives.html">script documentation</a> for more information.
           </div>
-
-          <hr class="spacer" />
-          <div class="deca">
+          <div class="deca col-xs-12">
             <form class="lift:form.ajax">
-              <div class="wbBaseField">
-                <label class="threeCol textright" for="directiveScriptEngineCheckbox" style="font-weight:bold;width: 30%;">Enable script evaluation in Directives:</label><input id="directiveScriptEngineCheckbox" type="checkbox"/>
+              <div class="form-group">
+                <label class="threeCol textright" for="directiveScriptEngineCheckbox" style="width: 30%;">Enable script evaluation in Directives:</label>
+                <input id="directiveScriptEngineCheckbox" type="checkbox"/>
               </div>
-              <hr class="spacer"/>
               <lift:authz role="administration_write">
-                <span class="tw-bs">
+                <div class="form-group">
                   <input type="submit" value="Save Changes" id="directiveScriptEngineSubmit"/>
-                </span>
-                <lift:Msg id="directiveScriptEngineMsg">[messages]</lift:Msg>
+                  <lift:Msg id="directiveScriptEngineMsg">[messages]</lift:Msg>
+                </div>
               </lift:authz>
             </form>
           </div>
@@ -543,28 +511,20 @@
 
     <div class="inner-portlet">
       <div class="page-title">Clear policy caches</div>
-      <div class="portlet-content">
-
-        <div class="tw-bs">
-           <div class="col-lg-12 callout-fade callout-warning">
-             <div class="marker">
-               <span class="glyphicon glyphicon-info-sign"></span>
-             </div>
-            <p>Clear cached data. This
-              will trigger a full policy update, and regenerate
-              all promise files.</p>
-          </div>
+      <div class="portlet-content tw-bs">
+        <div class="col-lg-12 callout-fade callout-warning">
+           <div class="marker">
+             <span class="glyphicon glyphicon-info-sign"></span>
+           </div>
+          <p>Clear cached data. This
+            will trigger a full policy update, and regenerate
+            all promise files.</p>
         </div>
-
-        <hr class="spacer" />
-        <div class="deca">
-          <div class="lift:administration.ClearCache.render"
-            id="clearCacheForm">
+        <div class="deca col-xs-12">
+          <div class="lift:administration.ClearCache.render" id="clearCacheForm">
             <lift:authz role="administration_write">
               <form class="lift:form.ajax">
-                <span class="tw-bs">
-                  <input id="clearCacheButton" type="submit" value="[Clear cache]" />
-                </span>
+                <input id="clearCacheButton" type="submit" value="[Clear cache]" />
                 <span class="lift:Msg?id=clearCacheNotice">[error]</span>
               </form>
             </lift:authz>
@@ -573,32 +533,24 @@
       </div>
     </div>
 
-
-
     <div class="inner-portlet">
       <div class="page-title">Manage dynamic groups</div>
-      <div class="portlet-content">
-
-        <div class="tw-bs">
-          <div class="col-lg-12 callout-fade callout-warning">
-            <div class="marker">
-              <span class="glyphicon glyphicon-info-sign"></span>
-            </div>
-            <p>Groups in Rudder can be static (fixed list of nodes) or dynamic (the list of nodes is built from a search query).</p>
-            <p>To take into account new nodes and changes to their inventory, dynamic groups must be reloaded regularly.</p>
-            <p>Currently, Rudder will automatically do this reload every <b id="dynGroupUpdateInterval">5</b> minutes (see <i><strong>/opt/rudder/etc/rudder-web.properties</strong></i>).</p>
+      <div class="portlet-content tw-bs">
+        <div class="col-lg-12 callout-fade callout-warning">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
           </div>
+          <p>Groups in Rudder can be static (fixed list of nodes) or dynamic (the list of nodes is built from a search query).</p>
+          <p>To take into account new nodes and changes to their inventory, dynamic groups must be reloaded regularly.</p>
+          <p>Currently, Rudder will automatically do this reload every <b id="dynGroupUpdateInterval">5</b> minutes (see <i><strong>/opt/rudder/etc/rudder-web.properties</strong></i>).</p>
         </div>
-
-        <hr class="spacer" />
-        <div class="deca">
-          <div class="lift:administration.DyngroupReloading.render"
-            id="dyngroupReloadingForm">
+        <div class="deca col-xs-12">
+          <div class="lift:administration.DyngroupReloading.render" id="dyngroupReloadingForm">
             <lift:authz role="administration_write">
               <form class="lift:form.ajax">
-                <span class="tw-bs">
+                <div class="form-group">
                   <input id="dyngroupReloadingButton" type="submit" value="[Reload dyngroups]" />
-                </span>
+                </div>
                 <span class="lift:msg?id=dyngroupReloadingNotice&errorClass=error">[error]</span>
               </form>
             </lift:authz>
@@ -609,25 +561,20 @@
 
     <div class="inner-portlet">
       <div class="page-title">Manage Technique library</div>
-      <div class="portlet-content">
-
-        <div class="tw-bs">
-          <div class="col-lg-12 callout-fade callout-warning">
-            <div class="marker">
-              <span class="glyphicon glyphicon-info-sign"></span>
-            </div>
-            <p>Techniques in Rudder are read from the filesystem (in <i>/var/rudder/configuration-repository/techniques</i>).</p>
-            <p>To take into account new Techniques and changes, the Technique library must be updated regularly.</p>
-            <p>Currently, Rudder will automatically do this update every <b id="techniqueLibraryUpdateInterval">5</b> minutes (see <i><strong>/opt/rudder/etc/rudder-web.properties</strong></i>).</p>
+      <div class="portlet-content tw-bs">
+        <div class="col-lg-12 callout-fade callout-warning">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
           </div>
+          <p>Techniques in Rudder are read from the filesystem (in <i>/var/rudder/configuration-repository/techniques</i>).</p>
+          <p>To take into account new Techniques and changes, the Technique library must be updated regularly.</p>
+          <p>Currently, Rudder will automatically do this update every <b id="techniqueLibraryUpdateInterval">5</b> minutes (see <i><strong>/opt/rudder/etc/rudder-web.properties</strong></i>).</p>
         </div>
 
-        <hr class="spacer" />
-        <div class="deca tw-bs technique-settings">
+        <div class="deca col-xs-12 technique-settings">
           <lift:authz role="administration_write">
             <div class="lift:administration.TechniqueLibraryManagement.reloadTechniqueButton" id="reloadTechniqueLibForm"></div>
           </lift:authz>
-          
           <div id="updateLib" class="greyscala"></div>
         </div>
       </div>
