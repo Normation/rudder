@@ -2666,6 +2666,7 @@ label span.text-fit{
 }
 #serverDetails .sInventory, #nodeInventory, #node_inventory{
   border : none !important;
+  overflow-x: hidden;
 }
 #nodeInventory .ui-tabs-nav{
 	margin-top: 5px;

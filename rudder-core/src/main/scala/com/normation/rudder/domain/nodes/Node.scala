@@ -306,8 +306,10 @@ object JsonSerialisation {
     implicit val formats = DefaultFormats
 
     private[this] def json(x: NodeProperty): JObject = (
-        ( "name"  , x.name  )
-      ~ ( "value" , x.value )
+        ( "name"   , x.name  )
+      ~ ( "value"  , x.value )
+      ~ ( "rights" , x.rights.map(_.value)
+ )
     )
 
     def dataJson(x: NodeProperty) : JField = {
