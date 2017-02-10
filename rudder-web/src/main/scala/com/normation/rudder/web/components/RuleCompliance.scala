@@ -144,10 +144,11 @@ class RuleCompliance (
         </div>
       </div>
 
-      <div id="changesChart">  </div>
+      <div id="changesChartContainer">
+      <canvas id="changesChart" >  </canvas>
       </div>
-      <hr class="spacer" />
-      <span >Changes during period <b id="selectedPeriod"> --- </b> (selected in graph above)</span>
+      </div>
+      <div class="tw-bs"><h5>Changes during period <b id="selectedPeriod"> --- </b> (selected in graph above)</h5></div>
 
       <table id="changesGrid" cellspacing="0">  </table>  ++
     Script(After(0,JsRaw(s"""
@@ -173,53 +174,18 @@ class RuleCompliance (
     } yield {
       JsRaw(s"""
         var recentChanges = ${NodeChanges.json(changesOnRule, recentChangesService.getCurrentValidIntervals(None)).toJsCmd};
-        var data = recentChanges.y
-        data.splice(0,0,'Recent changes')
-        var x = recentChanges.x
-        x.splice(0,0,'x')
-        var selectedIndex = x.length-2;
-        //recentChart variable has to be global because we need it to refresh the graph clicking on compliance tab.
-        recentChart = c3.generate({
-          data: {
-                x: 'x'
-              , columns: [ x , data ]
-              , type: 'bar'
-              , onclick: function (d, element) {
-                  selectedIndex = d.index;
-                  ${SHtml.ajaxCall(JsRaw("recentChanges.t[selectedIndex]"),  s => refreshTableChanges(Some(s.toLong)))}
-                  selectInterval(x[selectedIndex+1],element);
-                }
-              , onmouseover : function (element) {
-                changeCursor(element.value);
-              }
-              , onmouseout : function (element) {
-                changeCursor(element.value);
-              }
-            }
-          , legend : {
-              show : false
-            }
-          , bindto : '#changesChart'
-          , bar: {
-                width: {
-                    ratio: 1 // this makes bar width 50% of length between ticks
-                }
-            }
-          , axis: {
-                x: {
-                    type: 'categories'
-                }
-            }
-          , grid: {
-                x: { show: true }
-              , y: { show: true }
-            }
-          , onrendered: function () {
-              var element = document.getElementsByClassName('c3-bar-'+(selectedIndex).toString())[0];
-              selectInterval(x[selectedIndex+1],element);
+        var lastLabel = recentChanges.labels[recentChanges.labels.length -1].join(" ")
+        $$("#selectedPeriod").text(lastLabel);
+        var chart = recentChangesGraph(recentChanges,"changesChart",true);
+        $$("#changesChart").click (function(evt){
+          var activePoints = chart.getElementAtEvent(evt);
+          if (activePoints.length > 0) {
+            var label = activePoints[0]._model.label.join(" ")
+            selectedIndex = activePoints[0]._index;
+            $$("#selectedPeriod").text(label);
+            ${SHtml.ajaxCall(JsRaw("recentChanges.t[selectedIndex]"),  s => refreshTableChanges(Some(s.toLong)))}
           }
-        } );
-        createTooltip();
+        });
       """)
     }) match  {
       case Full(cmd)   => cmd

@@ -73,7 +73,6 @@ trait NodeChangesService {
    */
   def countChangesByRuleByInterval() : Box[ChangesByRule]
 
-
   /**
    * Get the changes for the given interval, which must be one of the
    * interval returned by getCurrentValidIntervals methods.
@@ -288,7 +287,6 @@ class CachedNodeChangesServiceImpl(
     ()
   }
 
-
   /*
    * It's actually just using the cache
    */
@@ -307,11 +305,12 @@ class CachedNodeChangesServiceImpl(
 
 object NodeChanges {
   //a format for interval like "2016-01-27 06:00 - 12:00"
-  val startFormat = "yyyy-MM-dd HH:mm"
-  val endFormat = " - HH:mm"
+  val day = "yyyy-MM-dd"
+  val startFormat = "HH:mm"
+  val endFormat = "- HH:mm"
 
   private[this] def displayPeriod(interval: Interval) = {
-    interval.getStart().toString(startFormat) + interval.getEnd().toString(endFormat)
+    JsArray(Str(interval.getStart().toString(day)) ::Str(interval.getStart().toString(startFormat)) :: Str(interval.getEnd().toString(endFormat)) :: Nil)
   }
 
   /**
@@ -327,8 +326,8 @@ object NodeChanges {
     }
 
     JsObj(
-        ("x" -> JsArray(data.map(a => Str(a._1))))
-      , ("y" -> JsArray(data.map(a => Num(a._2))))
+        ("labels" -> JsArray(data.map(a => a._1)))
+      , ("values" -> JsArray(data.map(a => Num(a._2))))
       , ("t" -> JsArray(data.map(a => Num(a._3))))
     )
   }
