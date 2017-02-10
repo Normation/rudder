@@ -50,6 +50,7 @@ import net.liftweb.util.ClearClearable
 import net.liftweb.util.Helpers._
 import scala.xml.NodeSeq
 import scala.xml.Text
+import com.normation.rudder.web.components.DisplayColumn
 
 object ExpectedPolicyPopup {
 
@@ -83,7 +84,8 @@ class ExpectedPolicyPopup(
     //find the list of dyn groups on which that server would be and from that, the Rules
     val rulesGrid : NodeSeq = getDependantRulesForNode match {
       case Full(seq) =>
-        (new RuleGrid("dependentRulesGrid", None, () => Full(false), false )).rulesGridWithUpdatedInfo(Some(seq), false, false, true)
+        val noDisplay = DisplayColumn.Force(false)
+        (new RuleGrid("dependentRulesGrid", None, false, None, noDisplay, noDisplay)).rulesGridWithUpdatedInfo(Some(seq), false, true)
       case e:EmptyBox =>
         val msg = "Error when trying to find dependencies for that group"
         logger.error(msg, e)
