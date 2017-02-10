@@ -33,6 +33,15 @@ bundle agent init
   },
   "key4": "value4"
 }';
+    # CFEngine 3.6 has different output
+    "ref2" string => '{
+  "key2": "value2",
+  "key3": {
+    "keyx": "valuex"
+  },
+  "key1": "value1bis",
+  "key4": "value4"
+}';
 
 }
 
@@ -55,6 +64,7 @@ bundle agent check
     
     "ok_class" expression => "variable_dict_merge_var3_kept.!variable_dict_merge_var3_repaired.!variable_dict_merge_var3_error";
     "ok_value" expression => strcmp("${result}", "${init.ref}");
+    "ok_value" expression => strcmp("${result}", "${init.ref2}");
 
     "ok"  expression => "ok_class.ok_value";
 
