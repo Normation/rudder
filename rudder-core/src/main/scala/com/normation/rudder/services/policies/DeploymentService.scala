@@ -93,7 +93,7 @@ import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookEnvPair
 import ch.qos.logback.core.db.DataSourceConnectionSource
-
+import scala.concurrent.Future
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -108,7 +108,6 @@ trait PromiseGenerationHooks {
    */
   def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
 }
-
 
 
 /**
@@ -240,7 +239,6 @@ trait PromiseGenerationService extends Loggable {
       expectedReports       <- setExpectedReports(ruleVals, writtenNodeConfigs.toSeq, updatedNodeConfigs, updatedCrs.toMap, deletedCrs, generationTime, allNodeModes)  ?~!
                                "Cannot build expected reports"
       // now, invalidate cache
-      _                     =  invalidateComplianceCache(updatedNodeConfigs.keySet)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
@@ -262,6 +260,10 @@ trait PromiseGenerationService extends Loggable {
       _                     =  logger.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
 
     } yield {
+      //invalidate compliance may be very very long - make it async
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Future { invalidateComplianceCache(updatedNodeConfigs.keySet) }
+
       logger.debug("Timing summary:")
       logger.debug("Run pre-gen scripts hooks : %10s ms".format(timeRunPreGenHooks))
       logger.debug("Run pre-gen modules hooks : %10s ms".format(timeCodePreGenHooks))

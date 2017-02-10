@@ -152,20 +152,23 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   /**
    * Invalidate some keys in the cache. That won't charge them again
    * immediately
+   *
+   * Add a "blocking" signal the Future's thread pool to give more thread to other
+   * because this one is taken for a long time.
    */
-  def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, NodeStatusReport]] = this.synchronized {
+  def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, NodeStatusReport]] = scala.concurrent.blocking { this.synchronized {
     logger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
     cache = cache -- nodeIds
     //preload new results
     checkAndUpdateCache(nodeIds)
-  }
+  } }
 
   /**
    * For the nodeIds in parameter, check that the cache is:
    * - initialized, else go find missing rule node status reports (one time for all)
    * - none reports is expired, else switch its status to "missing" for all components
    */
-  private[this] def checkAndUpdateCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, NodeStatusReport]] = this.synchronized {
+  private[this] def checkAndUpdateCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, NodeStatusReport]] = scala.concurrent.blocking { this.synchronized {
     if(nodeIdsToCheck.isEmpty) {
       Full(Map())
     } else {
@@ -214,7 +217,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         toReturn
       }
     }
-  }
+  } }
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, NodeStatusReport]] = {
     for {
