@@ -744,6 +744,10 @@ a.sidebar-toggle{
   border-color:#E2E2E2;
   border-bottom: none;
 }
+.navbar-nav .notifications-menu>.dropdown-menu>li .menu>li>a .help-block{
+  font-size:80%;
+  margin:5px 0 0 30px;
+}
 .tw-bs .navbar-nav .notifications-menu>.dropdown-menu>li .menu>li>a:hover, .navbar-nav .messages-menu .dropdown-menu>li .menu>li>a:hover, .navbar-nav .tasks-menu .dropdown-menu>li .menu>li>a:hover {
   background: #f4f4f4;
 }
