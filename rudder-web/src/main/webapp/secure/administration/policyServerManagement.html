@@ -355,6 +355,37 @@ These files are automatically removed to save on disk space. You can configure t
       </div>
     </div>
     <div class="inner-portlet">
+      <div class="page-title">Display compliance and recent changes columns on rule summary</div>
+      <div class="portlet-content">
+
+        <div class="lift:administration.PropertiesManagement.displayRuleColumnConfiguration" id="displayColumns">
+          <div class="intro">
+            <div>
+              In directive configuration page, we have the possibility to choose rules for the directive. The rule 
+              are presented in a summary table which look alike the one in rule page. For performance on ascetic
+              reason, you may want to hide compliance and recent changes columns on that table. 
+              The column will still be displayed on the rule page. 
+            </div>
+          </div>
+
+          <hr class="spacer" />
+          <div class="deca">
+            <form class="lift:form.ajax">
+
+              <div class="wbBaseField">
+                <label class="threeCol textright" for="displayColumnsCheckbox" style="font-weight:bold;width: 20%;">Display rule compliance columns:</label><input id="displayColumnsCheckbox" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+              <lift:authz role="administration_write">
+                <input type="submit" value="Save Changes" id="displayColumnsSubmit"/>
+                <lift:Msg id="displayColumnsMsg">[messages]</lift:Msg>
+              </lift:authz>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="inner-portlet">
       <div class="page-title">Display changes graphs</div>
       <div class="portlet-content">
 
@@ -383,7 +414,7 @@ These files are automatically removed to save on disk space. You can configure t
           </div>
         </div>
       </div>
-    </div>
+    </div>    
     <div class="inner-portlet">
       <div class="page-title">Api backward compatibility</div>
       <div class="portlet-content">

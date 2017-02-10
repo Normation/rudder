@@ -150,6 +150,11 @@ trait ReadConfigService {
   def display_changes_graph(): Box[Boolean]
 
   /**
+   * Should we hide compliance/recent changes column in directive screen for rule ?
+   */
+  def rudder_ui_display_ruleComplianceColumns(): Box[Boolean]
+
+  /**
    * Should we send backward compatible data from API
    */
   def api_compatibility_mode(): Box[Boolean]
@@ -246,6 +251,11 @@ trait UpdateConfigService {
   def set_display_changes_graph(displayGraph : Boolean): Box[Unit]
 
   /**
+   * Should we hide compliance/recent changes column in directive screen for rule ?
+   */
+  def set_rudder_ui_display_ruleComplianceColumns(Columns: Boolean): Box[Unit]
+
+  /**
    * Should we send backward compatible data from API
    */
   def set_api_compatibility_mode(value: Boolean): Box[Unit]
@@ -293,6 +303,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.compliance.heartbeatPeriod=1
        rudder.syslog.protocol=UDP
        display.changes.graph=true
+       rudder.ui.display.ruleComplianceColumns=true
        api.compatibility.mode=false
        rudder.featureSwitch.directiveScriptEngine=enabled
        rudder.featureSwitch.quicksearchEverything=enabled
@@ -487,8 +498,13 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    * Should we display recent changes graphs  ?
    */
   def display_changes_graph(): Box[Boolean] =  get("display_changes_graph")
-
   def set_display_changes_graph(displayGraphs : Boolean): Box[Unit] = save("display_changes_graph", displayGraphs)
+
+  /**
+   * Should we always display compliance/recent change columns ?
+   */
+  def rudder_ui_display_ruleComplianceColumns(): Box[Boolean] = get("rudder_ui_display_ruleComplianceColumns")
+  def set_rudder_ui_display_ruleComplianceColumns(displayColumns: Boolean): Box[Unit] = save("rudder_ui_display_ruleComplianceColumns", displayColumns)
 
   /**
    * Should we send backward compatible data from API
