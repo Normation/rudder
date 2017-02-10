@@ -190,6 +190,8 @@ class DirectiveEditForm(
         , (_ :Rule,_ : String)  => Noop
         , (_ : Rule)         => Noop
         , (_ : Option[Rule]) => Noop
+        , DisplayColumn.FromConfig
+        , DisplayColumn.FromConfig
         ).display
     }
 
