@@ -2693,3 +2693,13 @@ label span.text-fit{
 #ui-datepicker-div{
   z-index:99999999 !important;
 }
+
+.c3-tooltip tr{
+	white-space: nowrap;
+	font-weight: 900;
+	margin: 0 5px;
+}
+
+.c3-tooltip tr td{
+  padding: 0 5px;
+}
