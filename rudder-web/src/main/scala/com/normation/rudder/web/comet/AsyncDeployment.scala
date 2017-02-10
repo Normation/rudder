@@ -85,16 +85,21 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     case d:DeploymentStatus => deploymentStatus = d ; reRender()
   }
 
+
+  private[this] def displayTime(label: String, time: DateTime): NodeSeq = {
+    val t = time.toString("yyyy-MM-dd HH:mm:ss")
+    val d = DateFormaterService.getFormatedPeriod(time, DateTime.now)
+    // exceptionnaly not putting {} to remove the noide
+    <span>{label + t}</span><span style="font-size:80%; margin-left: 10px">{"↳ " + d} ago</span>
+  }
+
   private[this] def updateDuration = {
-    val content =
-      deploymentStatus.current match {
-        case SuccessStatus(_,_,end,_) =>Text(DateFormaterService.getFormatedPeriod(end, DateTime.now))
-        case ErrorStatus(_,_,end,_) =>Text(DateFormaterService.getFormatedPeriod(end, DateTime.now))
-        case _ =>
-          NodeSeq.Empty
+    val content = deploymentStatus.current match {
+        case SuccessStatus(_,_,end,_) => displayTime("Ended at ", end)
+        case ErrorStatus(_,_,end,_)   => displayTime("Ended at ", end)
+        case _                        => NodeSeq.Empty
     }
     SetHtml("deployment-end",content)
-
   }
 
   override def render = {
@@ -127,8 +132,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       <li>
         <ul class="menu">
           <li><a href="#" class={statusClass + " no-click"}><span class={iconClass}></span>{headText}</a></li>
-          <li><a href="#" class="no-click"><span class={statusClass +" fa fa-hourglass-start"}></span>Started at {DateFormaterService.getFormatedDate(start)}</a></li>
-          <li><a href="#" class="no-click"><span class={statusClass +" fa fa-hourglass-end"}></span>Finished <span id="deployment-end">{DateFormaterService.getFormatedPeriod(end, DateTime.now)}</span> ago</a></li>
+          <li><a href="#" class="no-click"><span class={statusClass +" fa fa-hourglass-start"}></span>{displayTime("Started at ", start)}</a></li>
+          <li><a href="#" class="no-click"><span class={statusClass +" fa fa-hourglass-end"}></span><span id="deployment-end">{displayTime("Ended at ", end)}</span></a></li>
           <li><a href="#" class="no-click"><span class={statusClass +" fa fa-clock-o"}></span>{durationText} {DateFormaterService.getFormatedPeriod(start,end)}</a></li>
         </ul>
       </li>
