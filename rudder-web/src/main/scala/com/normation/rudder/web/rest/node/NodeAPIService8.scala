@@ -71,6 +71,7 @@ import scalaj.http.Http
 import com.normation.rudder.domain.nodes.CompareProperties
 import scalaj.http.HttpOptions
 import monix.eval.Task
+import scalaj.http.HttpConstants
 
 class NodeApiService8 (
     nodeRepository : WoNodeRepository
@@ -103,7 +104,6 @@ class NodeApiService8 (
   private[this] val pipeSize = 4096
 
   def runResponse(in : InputStream)(out : OutputStream) = {
-
     val bytes : Array[Byte] = new Array(pipeSize)
     val zero = 0.toByte
     var read = 0
@@ -114,10 +114,9 @@ class NodeApiService8 (
         out.write(bytes)
         out.flush()
       }
-
     } catch {
       case e : IOException =>
-        out.write(e.getMessage.toByte)
+        out.write(s"Error when trying to contact internal remote-run API: ${e.getMessage}".toByte)
         out.flush()
     }
   }
@@ -142,20 +141,16 @@ class NodeApiService8 (
 
     val in = new PipedInputStream(pipeSize)
     val out = new PipedOutputStream(in)
-    import net.liftweb.util.Helpers.tryo
 
-    val response =
-
-      Task(
-      request.exec{
-      case (status,headers,input) =>
-        if (status >= 200 && status < 300) {
-          runResponse(input)(out)
-        } else {
-          out.write(s"An error occured when applying policy on Node '${nodeId.value}'".toByte)
-          out.flush
-        }
-      })
+    val response = Task( request.exec{ case (status,headers,is) =>
+      if (status >= 200 && status < 300) {
+        runResponse(is)(out)
+      } else {
+        out.write((s"Error ${status} occured when contacting internal remote-run API to apply " +
+                  s"classes on Node '${nodeId.value}': \n${HttpConstants.readString(is)}\n\n").getBytes)
+        out.flush
+      }
+    })
     response.runAsync.onComplete { _ => out.close() }
     Full(runResponse(in))
   }
