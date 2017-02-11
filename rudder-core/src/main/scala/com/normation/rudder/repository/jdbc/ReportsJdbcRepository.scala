@@ -170,37 +170,82 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   override def archiveEntries(date : DateTime) : Box[Int] = {
     val dateAt_0000 = date.toString("yyyy-MM-dd")
-    val copy = s"""
-      insert into ${archiveTable}
-        (id, ${common_reports_column})
-        (select id, ${common_reports_column}
-           from ${reports}
-           where executionTimeStamp < '${dateAt_0000}'
-        )
-        """
-    val delete = s"""
-      delete from ${reports} where executionTimeStamp < '${dateAt_0000}'
-    """
+    
+    // First, get the bounds for archiving reports
+    (for {
+      highestArchivedReport <- getHighestArchivedReports()
+      lowestReport          <- getLowestReports()
+      highestIdBeforeDate   <- getHighestIdBeforeDate(date)
+    } yield {
+      // compute the lower id to archive
+      val lowestToArchive = highestArchivedReport.map { highest => lowestReport match {
+            case Some(value) => Math.max(highest + 1, value) // highest +1, so that we don't take the one existing in archived reports
+            case _           => highest + 1
+         }
+      }
 
-    val vacuum = s"vacuum ${reports}"
+      val lowerBound = lowestToArchive.map { x => s" and id >= ${x} " }.getOrElse("")
 
-    logger.debug(s"""Archiving report with SQL query: [[
-                 | ${copy}
+      // If highestIdBeforeDate is None, then it means we don't have to archive anything, we can skip all this part
+      highestIdBeforeDate match {
+        case None =>
+          logger.debug(s"No reports to archive before ${dateAt_0000}; skipping")
+          Full(0)
+        case Some(id) =>
+          val higherBound = s" and id <= ${id} "
+
+    
+          val archiveQuery =  s"""
+              insert into ${archiveTable}
+                    (id, ${common_reports_column})
+              (select id, ${common_reports_column} from ${reports}
+                      where 1=1 ${lowerBound} ${higherBound}
+              )
+              """
+
+          val deleteQuery = s"""delete from ${reports} where 1=1 ${higherBound}"""
+
+
+          val vacuum = s"vacuum ${reports}"
+
+          logger.debug(s"""Archiving and deleting reports with SQL query: [[
+                 | ${archiveQuery}
+                 | ${deleteQuery}
                  |]]""".stripMargin)
 
-    (for {
-       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+          (for {
+            i <- (archiveQuery :: deleteQuery :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+            _ = logger.debug("Archiving and deleting done, starting to vacuum reports table")
             // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
-       _ <- (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).attempt.transact(xa).run
-    } yield {
-       i
+            _ <- (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).attempt.transact(xa).run
+          } yield {
+            i
+          }) match {
+            case -\/(ex) =>
+              val msg ="Could not archive entries in the database, cause is " + ex.getMessage()
+              logger.error(msg)
+              Failure(msg, Full(ex), Empty)
+            case \/-(i)  => Full(i.sum)
+          }
+      }
     }) match {
-      case -\/(ex) =>
-        val msg ="Could not archive entries in the database, cause is " + ex.getMessage()
-        logger.error(msg)
-        Failure(msg, Full(ex), Empty)
-      case \/-(i)  => Full(i.sum)
-     }
+      case Full(f) => f
+      case f@Failure(_,_,_) => f
+      case Empty => Empty
+    }
+  }
+
+  // Utilitary methods for reliable archiving of reports
+  private[this] def getHighestArchivedReports() : Box[Option[Long]] = {
+    query[Long]("select id from archivedruddersysevents order by id desc limit 1").option.attempt.transact(xa).run ?~!"Could not fetch the highest archived report in the database"
+  }
+
+  private[this] def getLowestReports() : Box[Option[Long]] = {
+    query[Long]("select id from ruddersysevents order by id asc limit 1").option.attempt.transact(xa).run ?~! "Could not fetch the lowest report in the database"
+  }
+
+  private[this] def getHighestIdBeforeDate(date : DateTime) : Box[Option[Long]] = {
+    query[Long](s"select id from ruddersysevents where executionTimeStamp < '${date.toString("yyyy-MM-dd")}' order by id desc limit 1").option.attempt.transact(xa).run ?~! s"Could not fetch the highest id before date ${date.toString("yyyy-MM-dd")} in the database"
   }
 
   override def deleteEntries(date : DateTime) : Box[Int] = {
