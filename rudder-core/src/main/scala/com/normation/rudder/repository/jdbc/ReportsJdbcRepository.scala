@@ -235,30 +235,84 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     }
   }
 
+  // Utilitary methods for reliable archiving of reports
+  private[this] def getHighestArchivedReports() : Box[Option[Long]] = {
+    jdbcTemplate.query("select id from archivedruddersysevents order by id desc limit 1",
+          IdMapper).asScala match {
+      case seq if seq.size > 1 => Failure("Too many answer for the highest archived report in the database")
+      case seq => Full(seq.headOption)
+    }
+  }
+
+  private[this] def getLowestReports() : Box[Option[Long]] = {
+    jdbcTemplate.query("select id from ruddersysevents order by id asc limit 1",
+          IdMapper).asScala match {
+      case seq if seq.size > 1 => Failure("Too many answer for the lowest report in the database")
+      case seq => Full(seq.headOption)
+    }
+  }
+
+  private[this] def getHighestIdBeforeDate(date : DateTime) : Box[Option[Long]] = {
+    println("getHighestIdBeforeDate")
+    val query = s"select id from ruddersysevents where executionTimeStamp < '${date.toString("yyyy-MM-dd")}' order by id desc limit 1"
+    jdbcTemplate.query(query, IdMapper).asScala match {
+      case seq if seq.size > 1 => Failure(s"Too many answer for the highest id before date ${date.toString("yyyy-MM-dd")} in the database")
+      case seq                 => Full(seq.headOption)
+    }
+  }
+
   override def archiveEntries(date : DateTime) : Box[Int] = {
     try{
-      val migrate = jdbcTemplate.execute(s"""
-          insert into %s
-                (id, ${common_reports_column})
-          (select id, ${common_reports_column} from %s
-        where executionTimeStamp < '%s')
-        """.format(archiveTable,reportsTable,date.toString("yyyy-MM-dd") )
-       )
+      // First, get the bounds for archiving reports
+      for {
+        highestArchivedReport <- getHighestArchivedReports()
+        lowestReport          <- getLowestReports()
+        highestIdBeforeDate   <- getHighestIdBeforeDate(date)
+      } yield {
+        // compute the lower id to archive
+        val lowestToArchive = highestArchivedReport.map { highest => lowestReport match {
+              case Some(value) => Math.max(highest + 1, value) // highest +1, so that we don't take the one existing in archived reports
+              case _           => highest + 1
+           }
+        }
 
-      logger.debug(s"""Archiving report with SQL query: [[
-                   | insert into %s (id, ${common_reports_column})
-                   | (select id, ${common_reports_column} from %s
-                   | where executionTimeStamp < '%s')
-                   |]]""".stripMargin.format(archiveTable,reportsTable,date.toString("yyyy-MM-dd")))
+        val lowerBound = lowestToArchive.map { x => s" and id >= ${x} " }.getOrElse("")
 
-      val delete = jdbcTemplate.update("""
-        delete from %s  where executionTimeStamp < '%s'
-        """.format(reportsTable,date.toString("yyyy-MM-dd") )
-      )
+        // If highestIdBeforeDate is None, then it means we don't have to archive anything, we can skip all this part
+        highestIdBeforeDate match {
+          case None =>
+            logger.debug(s"No reports to archive before ${date.toString("yyyy-MM-dd")}; skipping")
+            0
+          case Some(id) =>
+            val higherBound = s" and id <= ${id} "
 
-      jdbcTemplate.execute("vacuum %s".format(reportsTable))
+            val archiveQuery =  s"""
+              insert into ${archiveTable}
+                    (id, ${common_reports_column})
+              (select id, ${common_reports_column} from ${reportsTable}
+                      where 1=1 ${lowerBound} ${higherBound}
+              )
+            """
 
-      Full(delete)
+            val migrate = jdbcTemplate.execute(archiveQuery)
+
+            logger.debug(s"""Archived reports with SQL query: [[
+              ${archiveQuery}
+              ]] for reports before ${date.toString("yyyy-MM-dd")}""")
+
+
+            val deleteQuery = s"""delete from ${reportsTable} where 1=1 ${higherBound}"""
+            val delete = jdbcTemplate.update(deleteQuery)
+
+            logger.debug(s"""Deleted reports with SQL query: [[
+              ${deleteQuery}
+              ]] for reports before ${date.toString("yyyy-MM-dd")}""")
+
+            jdbcTemplate.execute("vacuum %s".format(reportsTable))
+
+            delete
+        }
+      }
     } catch {
        case e: DataAccessException =>
          val msg ="Could not archive entries in the database, cause is " + e.getMessage()
