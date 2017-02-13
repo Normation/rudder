@@ -298,7 +298,7 @@ object DisplayDirectiveTree extends Loggable {
     }
 
     displayCategory(directiveLib, "jstn_0").toXml ++ Script(OnLoad(JsRaw("""
-      var scopeElmnt = '#activeTechniquesTree_actions_zone'
+      var scopeElmnt = '#directiveFilter'
       if(!angular.element(scopeElmnt).scope()){
         angular.bootstrap(scopeElmnt, ['filters']);
       }

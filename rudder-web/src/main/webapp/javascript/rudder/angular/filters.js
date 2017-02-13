@@ -36,56 +36,92 @@
 */
 
 
-var app = angular.module('filters', []);
+var app = angular.module('filters', ["angucomplete-alt"]);
 
-app.controller('filterTagDirectiveCtrl', function ($scope, $http, $location, $timeout, $rootScope) {
+app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $rootScope) {
+
+  
   $scope.searchStr = "";
   $scope.showFilters = false;
   $scope.only = {"key":false , "value":false};
   $scope.newTag = {"key":""  , "value":""};
   $scope.tags = [];
   $scope.tagScopes = []
+  
+  $scope.contextPath = contextPath
+  var directiveTreeId = "#activeTechniquesTree";
+  var tableId = "#grid_rules_grid_zone";
+  
+  // Should be changed using ng-init
+  var directiveFilter = true;
+  
+  function search() {
+    if (directiveFilter) {
+      $scope.searchTree(directiveTreeId);
+      $timeout(function() {
+      adjustHeight(directiveTreeId);
+      },0);
+    } else {
+      var table = $(tableId).DataTable();
+      table.draw();
+    }
+    $scope.updateFilter();
+  }
+  
+  
   $scope.isEmptyOrBlank = function(str){
     return (!str || 0 === str.length || /^\s*$/.test(str));
   }
   $scope.clearSearch = function(){
     $scope.searchStr = "";
-    clearSearchFieldTree('#activeTechniquesTree');
-    $scope.searchTree('#activeTechniquesTree');
+    if (directiveFilter) {
+      clearSearchFieldTree('#activeTechniquesTree');
+      search();
+    } else {
+      $scope.filterGlobal('');
+    }
   }
   $scope.resetNewTag = function(){
     $scope.newTag = {"key":"" , "value":""};
   }
+  
+  function toggle() {
+    if (directiveFilter) {
+      $scope.toggleFilter('#helpTag',true);
+    } else {
+      for(x in $scope.hide){
+        if(x === 'tag'){
+          $scope.hide[x] = false;
+        }else{
+          $scope.hide[x] = true;
+        }
+      }
+      $timeout(function() {
+        $('.input-key').focus();
+      }, 0);
+    }
+  }
   $scope.modifyTag = function(index,tag){
-    $scope.toggleFilter('#helpTag',true);
+    toggle()
     $scope.newTag.key   = tag.key;
     $scope.newTag.value = tag.value;
   }
   
   $scope.addTag = function(tag){
-  	var newTag = angular.copy(tag);
-    var alreadyExist = false;
-    for(var i=0 ; i<$scope.tags.length ; i++){
-      if((newTag.key==$scope.tags[i].key)&&(newTag.value==$scope.tags[i].value)){
-        alreadyExist = true;
-        $scope.tags[i].alreadyExist = true;
-        (function(i){
-          $timeout(function() {
-            $scope.tags[i].alreadyExist = false;
-          }, 200);
-        })(i);
-      }
+    var newTag = angular.copy(tag);
+    var isNewTag = true;
+    for (var i=0; i < $scope.tags.length; i++) {
+      if(  (newTag.key   == $scope.tags[i].key)
+        && (newTag.value == $scope.tags[i].value)
+        ) {
+        isNewTag = false;
+        break;
+        }
     }
-    if(!alreadyExist){
+    if(isNewTag){
       $scope.tags.push(newTag);
-      $scope.searchTree("#activeTechniquesTree");
-      if(!tag){
-        $scope.resetNewTag();
-      }
-      $scope.updateFilter();
-      $timeout(function() {
-        adjustHeight('#activeTechniquesTree');
-      },0);
+      search();
+      $scope.resetNewTag();
     }
   }
   
@@ -96,11 +132,7 @@ app.controller('filterTagDirectiveCtrl', function ($scope, $http, $location, $ti
   $scope.removeTag = function(index){
   var tag = $scope.tags[index];
     $scope.tags.splice(index, 1);
-    $scope.searchTree('#activeTechniquesTree');
-    $timeout(function() {
-      adjustHeight('#activeTechniquesTree');
-    },0);
-    $scope.updateFilter();
+    search();
   }
   
   $scope.registerScope = function(scope){
@@ -116,8 +148,7 @@ app.controller('filterTagDirectiveCtrl', function ($scope, $http, $location, $ti
 
   $scope.clearAllTags = function(){
     $scope.tags = [];
-    $scope.updateFilter();
-    $scope.searchTree('#activeTechniquesTree');
+    search();
   }
   
   $scope.toggleFilter = function(chevron, forceOpen){
@@ -141,8 +172,7 @@ app.controller('filterTagDirectiveCtrl', function ($scope, $http, $location, $ti
     button.toggleClass('active');
     $scope.only.key = !$scope.only.key;
     $scope.only.value = false;
-    $scope.searchTree('#activeTechniquesTree');
-    $scope.updateFilter();
+    search();
   }
   
   $scope.onlyValue = function(elem){
@@ -150,8 +180,7 @@ app.controller('filterTagDirectiveCtrl', function ($scope, $http, $location, $ti
     button.toggleClass('active');
     $scope.only.value = !$scope.only.value;
     $scope.only.key = false;
-    $scope.searchTree('#activeTechniquesTree');
-    $scope.updateFilter();
+    search();
   }
   
   $scope.onlyAll = function(elem){
@@ -159,8 +188,12 @@ app.controller('filterTagDirectiveCtrl', function ($scope, $http, $location, $ti
     button.addClass('active');
     $scope.only.key   = false;
     $scope.only.value = false;
-    $scope.searchTree('#activeTechniquesTree');
-    $scope.updateFilter();
+    search();
+  }
+  
+  //Avoid compilation error using ngClass directive with '&&' condition
+  $scope.getOnlyAllValue = function(){
+    return !$scope.only.key && !$scope.only.value;
   }
 
   $scope.searchTree = function(treeId) {
@@ -175,170 +208,45 @@ app.controller('filterTagDirectiveCtrl', function ($scope, $http, $location, $ti
   $scope.refuseEnter = function(event){
     refuseEnter(event);
   }
-  
-  adjustHeight('#activeTechniquesTree');
-});
 
-
-
-
-
-/*==========  Rule filter controller, a lot to refactor ============*/
-
-
-
-app.controller('filterTagRuleCtrl', function ($scope, $http, $location, $timeout, $rootScope) {
-  $scope.tableId="#grid_rules_grid_zone";
-  $scope.searchStr = "";
-  $scope.showFilters = false;
-  $scope.only = {"key":false , "value":false};
-  $scope.newTag = {"key":""  , "value":""};
-  $scope.tags = [];
-  $scope.hide = {"search":false, "tag":true};
-  $scope.tagScopes = []
-
-  $scope.isEmptyOrBlank = function(str){
-    return (!str || 0 === str.length || /^\s*$/.test(str));
-  }
-
-  $scope.toggleTagForm = function(element, input, forceOpen){
-    for(x in $scope.hide){
-      if(x === element){
-       if(forceOpen){
-          $scope.hide[x] = false;
-       }else{
-          $scope.hide[x] = !$scope.hide[x];
-        }
-      }else{
-        $scope.hide[x] = true;
-      }
-    }
-    $timeout(function() {
-      $(input).focus();
-    }, 0);
-  }
-  $scope.removeTag = function(index){
-    var tag = $scope.tags[index];
-    $scope.tags.splice(index, 1);
-    $scope.searchTable();
-    $scope.updateFilter();
-  }
-  $scope.resetNewTag = function(){
-    $scope.newTag = {"key":"" , "value":""};
-  }
-  $scope.modifyTag = function(index,tag){
-    $scope.toggleTagForm('tag','.input-key',true);
-    $scope.newTag.key   = tag.key;
-    $scope.newTag.value = tag.value;
-  }
-  
-  $scope.registerScope = function(scope){
-    $scope.tagScopes.push(scope)
-    scope.$emit("registerScope", $rootScope)
-  }
-  
-  $rootScope.$on("addTag", function(event,tag) {
-    $scope.addTag(tag)
-  })
-  
-  $scope.addTag = function(tag){
-    
-	var newTag = angular.copy(tag ? tag : $scope.newTag);
-    var alreadyExist = false;
-    for(var i=0 ; i<$scope.tags.length ; i++){
-      if((newTag.key==$scope.tags[i].key)&&(newTag.value==$scope.tags[i].value)){
-        alreadyExist = true;
-        $scope.tags[i].alreadyExist = true;
-        (function(i){
-          $timeout(function() {
-            $scope.tags[i].alreadyExist = false;
-          }, 200);
-        })(i);
-      }
-    }
-    if(!alreadyExist){
-      $scope.tags.push(newTag);
-      $scope.searchTable();
-      if(!tag){
-        $scope.resetNewTag();
-      }else{
-        $scope.updateFilter();
-      }
-    }
-    $timeout(function() {
-      $('.input-key').focus();
-    }, 0);
-  }
-  $scope.updateFilter = function(){
-    angular.forEach($scope.tagScopes, function(scope) {
-      scope.$emit("updateFilter",{ "tags" : $scope.tags, "mode" : $scope.only})
-    })
-  }
-  
-  $scope.clearSearch = function(){
-	  $scope.strSearch =  '' ;
-	  $scope.filterGlobal('');
-  }
-  
-  $scope.toggleFilter = function(event,tree){
-    $('#form-tag').toggleClass('in');
-    $($(event.currentTarget).find('span.pull-right')).toggleClass('in');
-    $scope.showFilters = !$scope.showFilters;
-    if($scope.showFilters){
-      $('.input-key').focus();
-    }
-  }
-  
   $scope.filterGlobal = function(str) {
-    $($scope.tableId).DataTable().search(str).draw();
-  }
-  
-  $scope.onlyKey = function(elem){
-    var button = $(elem.currentTarget);
-    button.toggleClass('active');
-    $scope.only.key = !$scope.only.key;
-    $scope.only.value = false;
-    $scope.searchTable();
-    $scope.updateFilter();
-  }
-  $scope.onlyValue = function(elem){
-    var button = $(elem.currentTarget);
-    button.toggleClass('active');
-    $scope.only.value = !$scope.only.value;
-    $scope.only.key = false;
-    $scope.searchTable();
-    $scope.updateFilter();
-  }
-  //Avoid compilation error using ngClass directive with '&&' condition
-  $scope.getOnlyAllValue = function(){
-    return !$scope.only.key && !$scope.only.value;
-  }
-  
-  $scope.onlyAll = function(elem){
-    var button = $(elem.currentTarget);
-    button.addClass('active');
-    $scope.only.key   = false;
-    $scope.only.value = false;
-    $scope.searchTable();
-    $scope.updateFilter();
-  }
-  
-  $scope.clearAllTags = function(){
-    $scope.tags = [];
-    $scope.updateFilter();
-    $scope.searchTable();
-  }
-  
-  $scope.searchTable = function() {
-	  var table = $($scope.tableId).DataTable();
-	  table.draw();
-  }
-  
-  $scope.clearSearchField = function() {
-    $scope.searchStr = "";
+    $(tableId).DataTable().search(str).draw();
   }
 
-  $scope.initFilterTable = function(){
+  // Autocomplete methods
+  // Method used when a value is selected in the autocomplete
+  $scope.selectTag = function(res) {
+    if (res === undefined) {
+      $scope.newTag.key = ""
+    } else {
+    if (res.title === undefined) {
+      $scope.newTag.key = res.originalObject
+    } else {
+      $scope.newTag.key = res.originalObject.value 
+    }}
+  }
+
+  $scope.selectValue = function(res) {
+    if (res === undefined) {
+      $scope.newTag.value = ""
+    } else {
+    if (res.title === undefined) {
+      $scope.newTag.value = res.originalObject
+    } else {
+      $scope.newTag.value = res.originalObject.value 
+    } }
+  }
+  // Method used when input is changed to update data model
+  $scope.updateValue = function(res) {
+    $scope.newTag.value = res
+  }
+  $scope.updateTag = function(res) {
+    $scope.newTag.key = res
+  }
+  
+  $scope.initRule = function(isDirective){
+    directiveFilter = false
+    // Initialize filter on rule table
     $.fn.dataTable.ext.search.push(
       function( settings, data, dataIndex ){
         var containsTags;
@@ -366,7 +274,8 @@ app.controller('filterTagRuleCtrl', function ($scope, $http, $location, $timeout
       }
     );
   }
-  $scope.initFilterTable();
+  
+  adjustHeight('#activeTechniquesTree');
 });
 
 app.config(function($locationProvider) {
