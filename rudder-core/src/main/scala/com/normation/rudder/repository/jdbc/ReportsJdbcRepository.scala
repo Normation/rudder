@@ -253,7 +253,6 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   }
 
   private[this] def getHighestIdBeforeDate(date : DateTime) : Box[Option[Long]] = {
-    println("getHighestIdBeforeDate")
     val query = s"select id from ruddersysevents where executionTimeStamp < '${date.toString("yyyy-MM-dd")}' order by id desc limit 1"
     jdbcTemplate.query(query, IdMapper).asScala match {
       case seq if seq.size > 1 => Failure(s"Too many answer for the highest id before date ${date.toString("yyyy-MM-dd")} in the database")
