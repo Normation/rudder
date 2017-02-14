@@ -2398,12 +2398,6 @@ li.excluded a{
 .deprecatedTechniqueIcon {
   margin-left : 3px;
 }
-
-#displayDeprecation {
-  margin-right:5px;
-  margin-top : 2px;
-}
-
 table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
   width:100%;
   padding-left: 15px;

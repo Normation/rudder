@@ -236,9 +236,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def initTechniqueDetails(workflowEnabled: Boolean) : MemoizeTransform = SHtml.memoize {
     "#techniqueDetails *" #> ( currentTechnique match {
       case None =>
-        ".page-title *" #> "Usage" &
+        "#info-title *" #> "Usage" &
         "#details *" #> {
-          <div class="tw-bs">
             <div class="col-lg-12">
               <div class="col-lg-12 callout-fade callout-warning">
                 <div class="marker">
@@ -265,7 +264,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                 </p>
               </div>
             </div>
-          </div>
       }
 
       case Some((fullActiveTechnique,version)) =>
@@ -316,15 +314,15 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
              { if(comp.os.isEmpty) {
                NodeSeq.Empty
              } else {
-               <p><b>Supported operating systems: </b>{comp.os.mkString(", ")}</p>
+               <li><b>Supported operating systems: </b>{comp.os.mkString(", ")}</li>
              } } ++ {
              if (comp.agents.isEmpty) {
                NodeSeq.Empty
              } else {
-               <p><b>Supported agents: </b>{comp.agents.mkString(", ")}</p>
+               <li><b>Supported agents: </b>{comp.agents.mkString(", ")}</li>
              } }
            } &
-           "#techniqueDescription" #>  technique.description &
+           "#techniqueDescription *" #>  technique.description &
            "#techniqueLongDescription" #>  technique.longDescription &
            "#isSingle *" #> showIsSingle(technique) &
            "#techniqueVersion *+" #> showVersions(fullActiveTechnique, validTechniqueVersions, workflowEnabled)

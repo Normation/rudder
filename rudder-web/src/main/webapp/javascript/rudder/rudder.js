@@ -653,10 +653,21 @@ function hideFileManager(){
 }
 
 //Adjust tree height
-function adjustHeight(treeId, height){
+function adjustHeight(treeId, toolbar){
   var tree = $(treeId);
-  var offsetTop = tree.offset().top + 12;
-  var maxHeight = 'calc(100vh - '+ offsetTop + 'px)';
-  var cssProp = height ? 'height' : 'max-height'
-  tree.css(cssProp,maxHeight);
+  var maxHeight = "none";
+  if(window.innerWidth>=992){
+    var treeOffset = tree.offset();
+    if(treeOffset){
+      var toolbarHeight;
+      if(toolbar && $(toolbar).offset()){
+        toolbarHeight = parseFloat($(toolbar).css('height'));
+      }else{
+        toolbarHeight = 0;
+      }
+      var offsetTop = treeOffset.top + 15 + toolbarHeight;
+      maxHeight = 'calc(100vh - '+ offsetTop + 'px)';
+    }
+  }
+  tree.css('max-height',maxHeight);
 }

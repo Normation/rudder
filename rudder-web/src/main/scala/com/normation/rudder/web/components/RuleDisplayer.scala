@@ -298,7 +298,7 @@ class RuleDisplayer (
                     <button class="btn btn-sm btn-box-tool" data-widget="collapse"><i class="fa fa-chevron-down"></i></button>
                   </div>
                 </div>
-                <div class="box-body">
+                <div class="box-body" id="boxTreeRules">
                   <div class="row">
                     <div class="col-xs-12" id="categoryTreeParent">
                       {viewCategories(ruleCategoryTree)}
@@ -417,6 +417,6 @@ class RuleDisplayer (
           </div>
        }
       SetHtml(htmlId_popup, popupHtml) &
-      JsRaw( s""" createPopup("${htmlId_popup}") """)
+      JsRaw( s"""createPopup("${htmlId_popup}");""")
     }
 }
