@@ -283,7 +283,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
           var tooltipId = data.id+"-description";
           parent.attr("tooltipid",tooltipId);
           parent.attr("title","");
-          parent.addClass("tooltip tooltipabletr");
+          parent.addClass("tooltipabletr");
           var tooltip= $("<div></div>");
           var toolTipContainer = $("<div><h3>"+data.name+"</h3></div>");
           toolTipContainer.addClass("tooltipContent");
