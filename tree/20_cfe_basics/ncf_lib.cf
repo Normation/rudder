@@ -669,6 +669,6 @@ body classes classes_generic_return_code_list(x, kept_return_codes, repaired_ret
 body edit_defaults ncf_empty_select(select)
 {
         empty_file_before_editing => "${select}";
-        max_file_size             => "1024000";
+        max_file_size             => "25M";
         edit_backup               => "timestamp";
 }
