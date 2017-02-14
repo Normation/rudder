@@ -175,7 +175,7 @@ class NodeGrid(
           $$(this).click( function (event) {
             var source = event.target || event.srcElement;
             event.stopPropagation();
-            if(!( $$(source).get("button") || $$(source).get("input") )){
+            if(!( $$(source).is("button") || $$(source).is("input") )){
               var opened = $$(this).prop("open");
               if (opened && opened.match("opened")) {
                 $$(this).prop("open", "closed");
