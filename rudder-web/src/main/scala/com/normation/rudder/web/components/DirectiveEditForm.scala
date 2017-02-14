@@ -302,12 +302,12 @@ class DirectiveEditForm(
             processKey(event , '${htmlId_save}');
           } );
           checkMigrationButton("${currentVersion}","${versionSelectId}");
-
           $$('#${versionSelect.uniqueFieldId.getOrElse("id_not_found")}').change(
             function () {
               checkMigrationButton("${currentVersion}","${versionSelectId}")
             }
           );
+          adjustHeight("#edit-box","#directiveToolbar")
           """)
 
     )

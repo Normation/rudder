@@ -338,7 +338,7 @@ div.topQuickSearchResults.ac_results li {
   .skin-yellow.sidebar-collapse div.topQuickSearchResults.ac_results,.skin-yellow div.topQuickSearchResults.ac_results, .skin-yellow.sidebar-open	 div.topQuickSearchResults.ac_results {
     width: 120px !important;
   }
-}
+}</div>
 .tw-bs #searchInput::-webkit-input-placeholder {
  color: #964;
  -webkit-transition-duration:.3s;
@@ -876,9 +876,26 @@ a.sidebar-toggle{
   position:relative;
   opacity:1;
 }
-/* RULE PAGE */
-i#changeIconRule {
-  min-width: 25px;
+
+#details .callout-fade{
+  margin-top:15px;
+}
+#details .box-body div{
+  color:#555;
+}
+#details .box-body h4{
+  color:#333;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #eaeaea;
+  padding-bottom: 7px;
+}
+#details .box-body ul{
+  margin-left: 10px;
+  padding-left: 10px;
+  list-style-type: disc;
+}
+#details .box-body ul>li{
+  list-style-type: disc;
 }
 .search-addon{
   margin-bottom:6px;
@@ -893,15 +910,6 @@ i#changeIconRule {
 }
 .tw-bs form hr,form .tw-bs hr{
   width:100%;
-}
-#submitSearch #SubmitSearch{
-  margin-left: 7px;
-}
-label.rule-info{
-  margin-bottom:0;
-}
-label.rule-info + div{
-  color:#555;
 }
 .fake-form-control{
   float: left;
@@ -926,27 +934,6 @@ label.rule-info + div{
 .fake-form-control.textarea{
   min-height: 6em;
   height:auto;
-}
-#grid_rules_grid_zone_length label,#grid_rules_grid_zone_info{
-  font-weight:normal;
-  font-size:12px;
-}
-/* ----- </RULE FOOTER>  ----- */
-.rule-footer {
-  width: calc(100% - 230px);
-  left: 230px;
-  bottom: 0;
-}
-.skin-yellow.sidebar-collapse .rule-footer {
-  width: calc(100% - 50px);
-  left: 50px;
-}
-@media (max-width: 767px){
-  .skin-yellow.sidebar-collapse .rule-footer,.skin-yellow .rule-footer {
-    width: 100%;
-    left: 0;
-    bottom: 0;
-  }
 }
 .tw-bs .input-group.rect-padding{
 	margin-left:-3px;
@@ -1048,71 +1035,20 @@ table.tablewidth{
 	padding:0;
 	border:none;
 }
+#details{
+  background-color: #fff;
+  padding-left:0;
+  padding-right:0;
+}
 
-/* --- DIRECTIVE PAGE --- */
-.editTech{
-  margin-top:4px;
+#editForm{
+  padding:0;
 }
-.moreFilters{
-  margin-left:0 !important;
-  margin-right:4px !important;
-}
-#technicalDetails{
-	padding:0 30px 12px 30px;
-}
-#technicalDetails > .directiveTechnicalInfo:first-child{
-	margin-top:0;
-}
-#directiveDetails{
-  border-left: 15px solid #ECF0F5;
-  max-height:88vh;
-}
-#directiveDetails{
-  overflow-y:auto;
-  overflow-x:hidden;
-}
-.directiveTree {
-  padding-left: 10px;
-  padding-right: 10px;
-  padding: 0 10px;
-  overflow-y:auto;
-  overflow-x:hidden;
-}
-#directiveRulesTab {
-  margin-top: 20px;
-}
-#directiveRulesTab .box {
-  border: 1px solid #ddd;
-}
-#directiveRulesTab .box-header.with-border {
-  background-color: #f4f4f4;
-}
-#directiveRulesTab .rudder-form  input[type=checkbox] + .label-radio + .check-icon{
-  right: 7px;
-  font-size: 12px;
-  top: calc(50% - 6px);
-}
-#directiveRulesTab ul > li.rudder-form > .input-group label.form-control {
-  padding-right: 20px;
-  padding-left: 6px;
-}
-#directiveRulesTab .only-tags a.all{
-  font-size: 10px;
-  width:15px;
-}
-#directiveRulesTab .only-tags a.key{
-  font-size: 10px;
-  width:80px;
-}
-#directiveRulesTab .only-tags a.value{
-  font-size: 10px;
-  width:80px;
-}
-#directiveRulesTab .tags-container{
-  margin-top:30px;
-}
-#directiveRulesTab .only-tags .btn-xs.pull-right{
-  float:left !important;
+
+@media (min-width: 992px){
+  #boxDirectiveTree,#editForm{
+    margin-bottom:0;
+  }
 }
 .tw-bs .filters-container .input-group{
   width: 100%;
@@ -1167,8 +1103,9 @@ table.tablewidth{
 .directiveDeleteGroup .btn-danger{
 	padding-right:28px;
 }
-.fixed-footer.directive-footer .btn,.fixed-footer.rule-footer .btn{
-	min-width:80px;
+#directiveToolbar .btn,.fixed-footer.rule-footer .btn{
+  width:auto;
+  min-width:80px;
 }
 #priority select.form-control,#version select.form-control{
   width: 70px;
@@ -2293,6 +2230,9 @@ ul > li.rudder-form > .input-group.disabled *{
   margin-bottom: 14px;
   border-top-width:2px;
 }
+h3.box-title {
+  padding:0;
+}
 .nav-tabs-custom>.nav-tabs, .box-header.with-border,.nav-tabs-custom>.nav-tabs>li.active>a{
   border-color: #e2e2e2 !important;
 }
@@ -2331,6 +2271,10 @@ ul > li.rudder-form > .input-group.disabled *{
   position:relative;
   top:-2px;
   max-height: 21px;
+}
+.box-tools > .btn.tech{
+  position: relative;
+  top: -2px;
 }
 .box-tools > .btn-sm.btn-box-tool > .fa {
   font-size: 14px;
@@ -2378,6 +2322,13 @@ ul > li.rudder-form > .input-group.disabled *{
   margin-left: 7px;
   top: 1px;
 }
+
+/* JUMBOTRON */
+.rudder-jumbotron > .jumbotron{
+  background-color:transparent;
+  padding:60px;
+}
+
 @keyframes opacity-1 {
   0%   {opacity:0;visibility: visible;}
   100% {opacity:1;visibility: visible;}
