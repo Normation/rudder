@@ -199,7 +199,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
               var jTr = $(this);
               var opened = jTr.prop("open");
               var source = event.target || event.srcElement;
-              if (!( $(source).get("button"))) {
+              if (!( $(source).is("button"))) {
                 if (opened && opened.match("opened")) {
                   jTr.prop("open", "closed");
                   $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
