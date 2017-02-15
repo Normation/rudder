@@ -39,7 +39,7 @@ bundle agent initialization
       "copy classes for reporting" usebundle => _classes_copy("ncf_internals_modules_update", "ncf_init");
 
   reports:
-    cfengine::
+    info::
       "${configuration.info} Starting CFEngine ${sys.cf_version} on host ${sys.fqhost} (${sys.flavour} ${sys.arch})";
     trace::
       "${configuration.trace} File read from 10_ncf_internals: ${inputs.ncf_internals_files}";

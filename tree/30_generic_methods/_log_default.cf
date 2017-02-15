@@ -54,11 +54,11 @@ bundle agent _log_default(message, old_class_prefix, origin_class_prefix, args)
       "${configuration.debug} Promise kept, not doing anything: ${message}"
         ifvarclass => "${origin_class_prefix}_kept.!${origin_class_prefix}_repaired.!${origin_class_prefix}_not_ok";
 
-    (debug|info).!has_promiser_stack::
+    info.!has_promiser_stack::
       "${configuration.info} Promise repaired, made a change: ${message}"
         ifvarclass => "${canonified_prefix}_repaired.!${canonified_prefix}_not_ok";
 
-    (debug|info).has_promiser_stack::
+    info.has_promiser_stack::
       "${configuration.info} Promise repaired, made a change: ${message}"
         ifvarclass => "${origin_class_prefix}_repaired.!${origin_class_prefix}_not_ok";
 

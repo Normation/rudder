@@ -71,6 +71,11 @@ Test it, run:
 
 Yep, it works !
 
+You can use the following classes to control the verbosity level:
+
+* `info`: for general information about the execution
+* `debug`: for detailed output (mainly to debug ncf itself)
+* `trace`: for very detailed output (mainly to debug ncf itself)
 
 Use ncf on a policy server:
 ---------------------------

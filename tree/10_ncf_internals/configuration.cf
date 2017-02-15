@@ -79,6 +79,21 @@ bundle agent configuration
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
+      # Define ncf verbosity classes according to classes
+      # defined by the agent after verbosity options (-I, -v, -d)
+      "info"         expression => "inform_mode",
+                          scope => "namespace";
+      "debug"        expression => "verbose_mode",
+                          scope => "namespace";
+      "trace"        expression => "debug_mode",
+                          scope => "namespace";
+
+      # Make ncf log level incremental
+      "debug"        expression => "trace",
+                          scope => "namespace";
+      "info"         expression => "debug",
+                          scope => "namespace";
+
     pass3::
       # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
       # and it will always be evaluated to true otherwise

@@ -63,7 +63,7 @@ bundle common inputs
 bundle agent end
 {
   reports:
-    cfengine::
+    info::
       "${configuration.info} Finished CFEngine ${sys.cf_version} on host ${sys.fqhost} (${sys.flavour} ${sys.arch})";
 }
 

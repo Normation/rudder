@@ -50,12 +50,13 @@ bundle agent dispatcher
   reports:
     !mapper_services_exists::
       "${configuration.error} There are no services defined in service_mapping.cf. The execution is stopped";
-    mapper_services_exists::
+    info.mapper_services_exists::
       "${configuration.info} Running services, going to run bundle: ${services_array_${services}[2]} (in version '${services_array_${services}[3]}')";
 
-    cfengine::
+    info::
       "${configuration.info} Starting bundle runs..."
         classes => classes_generic("dispatcher_reports");
+    any::
       "${configuration.error} Could not run bundle ${services_array_${services}[2]} (with service path ${services_array_${services}[0]})"
         ifvarclass => canonify("dispatcher_${services_array_${services}[2]}_not_ok");
 }
@@ -72,13 +73,14 @@ bundle agent caller(service_path, service_name, service_version)
         ifvarclass => canonify("caller_reports_start_${service_name}_reached");
 
   reports:
-    cfengine::
+    info::
       "${configuration.info} Starting bundle execution: ${service_name} (with path ${service_path})"
         classes => classes_generic("caller_reports_start_${service_name}");
 
       "${configuration.info} Finished bundle execution: ${service_name} (with path ${service_path})"
         ifvarclass => canonify("caller_${service_name}_ok");
 
+    any::
       "${configuration.error} Error in bundle execution: ${service_name} (with path ${service_path})"
         ifvarclass => canonify("caller_${service_name}_not_ok");
 
