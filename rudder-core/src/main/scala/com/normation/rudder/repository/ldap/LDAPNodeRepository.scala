@@ -51,6 +51,7 @@ import com.normation.rudder.reports.HeartbeatConfiguration
 import net.liftweb.common._
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
 
 class WoLDAPNodeRepository(
     nodeDit             : NodeDit
@@ -69,10 +70,15 @@ class WoLDAPNodeRepository(
       // here goes the check that we are not updating policy server
       nodeEntry     =  mapper.nodeToEntry(node)
       result        <- con.save(nodeEntry, true, Seq()) ?~! s"Error when saving node entry in repository: ${nodeEntry}"
-      diff          = ModifyNodeDiff(oldNode, node)
-      log           <- actionLogger.saveModifyNode(modId, actor, diff, reason)
+      // only record an event log if there is an actual change
+      _             <- result match {
+                         case LDIFNoopChangeRecord(_) => Full("ok")
+                         case _                       =>
+                           val diff = ModifyNodeDiff(oldNode, node)
+                           actionLogger.saveModifyNode(modId, actor, diff, reason)
+                       }
     } yield {
-        node
+      node
     } }
   }
 }
