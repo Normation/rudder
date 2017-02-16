@@ -68,19 +68,10 @@ class FusionReportUnmarshaller(
     lastLoggedUserDatetimeFormat : String = "EEE MMM dd HH:mm"
 ) extends ParsedReportUnmarshaller with Loggable {
 
+  import OptText.optText
+
   val userLoginDateTimeFormat = DateTimeFormat.forPattern(lastLoggedUserDatetimeFormat).withLocale(Locale.ENGLISH)
   val biosDateTimeFormat = DateTimeFormat.forPattern(biosDateFormat).withLocale(Locale.ENGLISH)
-
-  /*
-   * A method that retrieve the text value of an XML and
-   * clean it:
-   * - remove leading/trailing spaces ;
-   * - remove multiple space
-   */
-  private def optText(n:NodeSeq): Option[String] = n.text match {
-    case null | "" => None
-    case s => Some(s.trim().replaceAll("""[\p{Blank}]+"""," "))
-  }
 
   //extremelly specialized convert used for optionnal field only, that
   //log the error in place of using a box
@@ -1104,5 +1095,22 @@ class FusionReportUnmarshaller(
      case None => None;
      case Some(vers) => Some(new Version(vers))
    }
+  }
+}
+
+
+object OptText {
+ /*
+   * A method that retrieve the text value of an XML and
+   * clean it:
+   * - remove leading/trailing spaces ;
+   * - remove multiple space
+   */
+  def optText(n:NodeSeq) = n.text match {
+    case null | "" => None
+    case s => s.trim().replaceAll("""[\p{Blank}]+"""," ") match {
+      case ""   => None
+      case text => Some(text)
+    }
   }
 }
