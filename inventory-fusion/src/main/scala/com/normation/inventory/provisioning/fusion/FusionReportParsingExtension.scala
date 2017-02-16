@@ -45,15 +45,5 @@ import com.normation.inventory.domain.InventoryReport
  * parse a tag and transform the report from that.
  */
 abstract class FusionReportParsingExtension extends PartialFunction[(Node,InventoryReport) , InventoryReport] {
-  /*
-   * A method that retrieve the text value of an XML and
-   * clean it:
-   * - remove leading/trailing spaces ;
-   * - remove multiple space
-   */
-  def optText(n:NodeSeq) = n.text match {
-    case null | "" => None
-    case s => Some(s.trim().replaceAll("""[\p{Blank}]+"""," "))
-  }
 
 }
