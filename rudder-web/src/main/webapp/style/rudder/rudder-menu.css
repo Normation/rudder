@@ -84,23 +84,26 @@ tbody.toggle-color > tr > td{
 tbody.toggle-color > tr.color1 > td,tbody.toggle-color > tr.color2 > td{
   padding-bottom:4px;
 }
-pre.json-beautify{
-	cursor:pointer;
-  height:40px;
-  transition-duration:.2s;
-  overflow:hidden;
-  -moz-box-shadow: inset 0 -10px 10px -10px #bdbdbd;
-  -webkit-box-shadow: inset 0 -10px 10px -10px #bdbdbd;
-  box-shadow: inset 0 -10px 10px -10px #bdbdbd;
-  position:relative;
+pre.json-beautify, .tw-bs pre.json-beautify{
+  border: none;
+  background-color: transparent;
+  border-radius: 0;
+  cursor: pointer;
+  height: 37px;
+  transition-duration: .2s;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 0;
+  white-space: initial;
+  padding-right: 25px;
 }
-pre.json-beautify.toggle{
+pre.json-beautify.toggle, .tw-bs pre.json-beautify.toggle{
   height:auto;
   -moz-box-shadow: none;
   -webkit-box-shadow: none;
   box-shadow: none;
 }
-pre.json-beautify:after{
+pre.json-beautify:after,.tw-bs pre.json-beautify:after{
   position:absolute;
   right:10px;
   top : 10px;
@@ -113,7 +116,7 @@ pre.json-beautify:after{
   -webkit-font-smoothing: antialiased;
   transition-duration:.2s;
 }
-pre.json-beautify.toggle:after{
+pre.json-beautify.toggle:after, .tw-bs pre.json-beautify.toggle:after{
   transform:rotate(90deg);
 }
 /* - MODAL 4.0 - */
@@ -122,8 +125,7 @@ pre.json-beautify.toggle:after{
   border: none;
 }
 .tw-bs .modal .modal-header {
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
+  border-radius: 0;
   border-bottom: 1px solid #f08004;
   background: #f08004;
 }
@@ -637,7 +639,7 @@ a.sidebar-toggle{
 @media (max-width: 767px){
   .tw-bs .navbar-nav .open .dropdown-menu {
     position: absolute;
-    right: 42px;
+    right: 42px;td
     float: none;
     width: 280px;
     background-color: rgb(255, 255, 255);
@@ -1019,6 +1021,71 @@ a.sidebar-toggle{
 }
 
 /* --- NODE PAGE --- */
+.errorSaving.alert-danger{
+  margin-top:10px;
+}
+.errorSaving > .fa{
+  margin-right:8px;
+}
+#addPropTable{
+  width:100%;
+}
+#addPropTable tbody > tr{
+  padding:0;
+}
+#addPropTable tbody > tr > td{
+  border-collapse: collapse;
+  padding:0;
+  vertical-align:top;
+}
+#addPropTable tbody > tr > td > .form-control{
+  min-height:33px;
+}
+#addPropTable tbody > tr > td:first-child{
+  width:235px;
+}
+#addPropTable tbody > tr > td:first-child > input.form-control{
+  border-top-right-radius:0;
+  border-bottom-right-radius:0;
+}
+#addPropTable tbody > tr > td:nth-child(2),#addPropTable tbody > tr > td:last-child{
+  width: 33px;
+}
+#addPropTable tbody > tr > td:nth-child(2) > span{
+  border-left:none;
+  border-right:none;
+  border-radius:0;
+  height: 32px;
+}
+#addPropTable tbody > tr > td:nth-child(3) > .form-control{
+  border-left-width:1px;
+  border-radius:0;
+}
+#addPropTable tbody > tr > td:nth-child(2),#addPropTable tbody > tr > td:last-child > .btn{
+  height: 33px;
+  border-top-left-radius:0;
+  border-bottom-left-radius:0;
+}
+#nodePropertiesTab_info {
+  position: relative;
+  top: 3px;
+  padding-left: 3px;
+}
+#nodeProp .btn-success.new-icon{
+  margin: 5px 0 7px 0;
+}
+#nodeProp .addon-json + textarea{
+  min-height:initial;
+}
+#nodePropertiesTab tbody > tr > td:nth-child(2){
+  padding:0;
+}
+#nodePropertiesTab thead > tr > th:last-child{
+  border-left:none;
+}
+#nodeProp table .dataTables_empty{
+  display:none;
+}
 tbody.toggle-color > tr:nth-child(odd){
   background-color: #eee;
 }
@@ -1039,6 +1106,95 @@ table.tablewidth{
   background-color: #fff;
   padding-left:0;
   padding-right:0;
+}
+
+table > tbody > tr > td.action{
+  width:80px;
+}
+.tw-bs #nodePropertiesTab_wrapper label {
+  margin-bottom: 0;
+  font-weight: normal;
+  font-size: 13.2px;
+}
+.tw-bs .dataTables_length label.text-fit{
+  font-size:13.2px;
+  margin-bottom:0;
+}
+.tw-bs .dataTables_filter label{
+  margin-bottom:0;
+}
+.tw-bs .dataTables_filter label input{
+  font-size:13.2px;
+  margin-bottom:0;
+  line-height:normal;
+  font-weight:normal;
+}
+#nodePropertiesTab > tbody > tr > td.delete-action > .fa{
+  display:none;
+  cursor:pointer;
+  font-size:18px;
+}
+#nodePropertiesTab > tbody > tr:hover > td.delete-action > .fa{
+  display:inline-block;
+}
+/* --- DIRECTIVE PAGE --- */
+.editTech{
+  margin-top:4px;
+}
+.moreFilters{
+  margin-left:0 !important;
+  margin-right:4px !important;
+}
+#technicalDetails{
+	padding:0 30px 12px 30px;
+}
+#technicalDetails > .directiveTechnicalInfo:first-child{
+	margin-top:0;
+}
+#directiveDetails{
+  border-left: 15px solid #ECF0F5;
+  max-height:88vh;
+}
+#directiveDetails{
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+.directiveTree {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding: 0 10px;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+#directiveRulesTab {
+  margin-top: 20px;
+}
+#directiveRulesTab .box {
+  border: 1px solid #ddd;
+}
+#directiveRulesTab .box-header.with-border {
+  background-color: #f4f4f4;
+}
+#directiveRulesTab .rudder-form  input[type=checkbox] + .label-radio + .check-icon{
+  right: 7px;
+  font-size: 12px;
+  top: calc(50% - 6px);
+}
+#directiveRulesTab ul > li.rudder-form > .input-group label.form-control {
+  padding-right: 20px;
+  padding-left: 6px;
+}
+#directiveRulesTab .only-tags a.all{
+  font-size: 10px;
+  width:15px;
+}
+#directiveRulesTab .only-tags a.key{
+  font-size: 10px;
+  width:80px;
+}
+#directiveRulesTab .only-tags a.value{
+  font-size: 10px;
+  width:80px;
 }
 
 #editForm{
@@ -1497,6 +1653,15 @@ form .tooltip-content p {
   /*
 *-----------------------------------------
 */
+.form-group.has-error label {
+  color: #A94442;
+}
+.form-group.has-error .form-control {
+  border-color: #A94442;
+}
+.no-margin-bottom{
+  margin-bottom:0 !important;
+}
 .no-padding{
   padding: 0 !important;
 }
@@ -2312,7 +2477,7 @@ h3.box-title {
 .box-tools > .btn > .fa,.box-tools > .btn > .glyphicon,.box-tools > .btn > .ion{
   margin-left: 6px;
 }
-.box-tools > .btn.new-icon:after{
+.btn.new-icon:after{
   content: "\f055";
   font: normal normal normal 14px/1 FontAwesome;
   font-size: 1.2em;
