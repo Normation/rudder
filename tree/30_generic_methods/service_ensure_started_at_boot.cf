@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name Service ensure at boot
+# @name Service ensure started at boot
 # @description Force a service to be started at boot
 #
 # @parameter service_name Service name (as recognized by systemd, init.d, Windows, SRC, SMF, etc...)
@@ -54,7 +54,7 @@ bundle agent service_ensure_started_at_boot(service_name)
         usebundle => service_check_started_at_boot("${service_name}");
 
       "define_at_boot"
-        usebundle  => command_execution("${service_ensure_started_at_boot.command_to_register}"),
+        usebundle  => command_execution("${command_to_register}"),
         ifvarclass => "service_check_started_at_boot_${canonified_service_name}_not_ok";
 
       "already defined"
@@ -67,8 +67,8 @@ bundle agent service_ensure_started_at_boot(service_name)
 
    any::
       "report"
-        usebundle => _logger("Ensure service ${service_name} is set at boot", "${class_prefix}"),
-       ifvarclass => "${class_prefix}_reached";
+        usebundle => _logger("Ensure service ${service_name} is started at boot time", "${class_prefix}"),
+        ifvarclass => "${class_prefix}_reached";
 
   services:
     windows::
