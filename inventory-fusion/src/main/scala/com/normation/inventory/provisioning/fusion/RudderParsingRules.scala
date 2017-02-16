@@ -42,7 +42,7 @@ import com.normation.inventory.domain._
 import net.liftweb.common._
 import java.security.MessageDigest
 import com.normation.utils.UuidRegex
-
+import com.normation.inventory.provisioning.fusion.OptText.optText
 
 /**
  * Special handling of some tags.
