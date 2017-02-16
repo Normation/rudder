@@ -2609,10 +2609,10 @@ label span.text-fit{
 }
 
 #filterLogs.reportsHeader{
-  margin:15px 0 0px 0;
+  margin:15px 0 0 0;
 }
-#filterLogs.space-top{
-  margin-top: 10px;
+#filterLogs{
+  margin-bottom:20px;
 }
 #filterLogs button{
   width: auto;
