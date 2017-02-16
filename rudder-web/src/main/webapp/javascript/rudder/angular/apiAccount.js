@@ -219,7 +219,7 @@ $scope.popupCreation = function(account,index) {
      $scope.myNewAccount.index = index;
      $("#newAccountName").focus();
   });
-  $('#newAccountPopup').bsModal('show');  
+  $('#newAccountPopup').bsModal('show');
 
   return account;
 };
