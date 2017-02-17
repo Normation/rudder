@@ -74,6 +74,12 @@ trait SettingsApi extends RestAPI {
   val kind = "settings"
 
   override protected def checkSecure : PartialFunction[Req, Boolean] = {
+    // We need to give access to node modifications rights so they can read global policy mode data
+    // Without that it will prevnet being able to modify policy mode node by node
+    case Get(key@("global_policy_mode" | "global_policy_mode_overridable") :: Nil,_) =>
+        CurrentUser.checkRights(Read("administration")) ||
+        CurrentUser.checkRights(Write("node"))          ||
+        CurrentUser.checkRights(Edit("node"))
     case Get(_,_) => CurrentUser.checkRights(Read("administration"))
     case Post(_,_) | Put(_,_) | Delete(_,_) => CurrentUser.checkRights(Write("administration")) || CurrentUser.checkRights(Edit("administration"))
     case _=> false
