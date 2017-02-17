@@ -175,7 +175,15 @@ class DirectiveEditForm(
   val displayDeprecationWarning = technique.deprecrationInfo match {
     case Some(info) =>
       ( "#deprecation-message *" #> info.message &
-        "#migrate-button *" #> migrateButton(fullActiveTechnique.techniques.keys.max,"Migrate now!","deprecation-migration")
+        "#migrate-button *" #> {
+            (for {
+              lastTechniqueVersion <- fullActiveTechnique.newestAvailableTechnique
+              if( lastTechniqueVersion.id.version != directive.techniqueVersion )
+            } yield {
+              Text("Please upgrade to a new version: ") ++
+              migrateButton(lastTechniqueVersion.id.version,"Migrate now!","deprecation-migration")
+            }).getOrElse(NodeSeq.Empty)
+        }
       )
     case None =>
       ("#deprecation-warning [class+]" #> "hidden" )
