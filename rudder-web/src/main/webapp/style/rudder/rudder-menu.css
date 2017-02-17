@@ -1155,6 +1155,9 @@ table > tbody > tr > td.action{
 .ui-widget.ui-tooltip li b{
   color : #f08004;
 }
+.text-grey-rudder{
+  color:#555;
+}
 .text-warning-rudder{
   color: #f08004;
 }
@@ -1191,7 +1194,7 @@ table > tbody > tr > td.action{
   min-width:80px;
 }
 #priority select.form-control,#version select.form-control{
-  width: 70px;
+  width: auto;
 }
 .text-bold .text-fit{
   font-weight: bold !important;
@@ -1386,7 +1389,7 @@ form .tooltip-content p {
   float: left;
   font-family: Verdana,Arial,sans-serif;
 }
-.tw-bs label > .icon-info{
+.icon-info{
   margin-left: 5px;
   color: #337ab7;
   cursor:help;
@@ -2442,6 +2445,21 @@ h3.box-title {
 .rudder-jumbotron > .jumbotron{
   background-color:transparent;
   padding:60px;
+}
+
+/* DEPRECATION */
+.deprecation-icon {
+  color: #f08004;
+  top: -5px;
+  left: -3px;
+  position: relative;
+  margin-right: -2px;
+}
+.ui-tooltip-content{
+	color:#555;
+}
+.tooltip-content .deprecation-icon{
+  left:0;
 }
 
 @keyframes opacity-1 {

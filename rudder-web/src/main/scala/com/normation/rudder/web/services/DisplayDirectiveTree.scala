@@ -179,7 +179,6 @@ object DisplayDirectiveTree extends Loggable {
 
       override def body = {
         //display information (name, etc) relative to last technique version
-
         val xml = activeTechnique.newestAvailableTechnique match {
           case Some(technique) =>
             val tooltipContent = s"""
@@ -245,52 +244,54 @@ object DisplayDirectiveTree extends Loggable {
           }
         }
 
-        val deprecated = technique.flatMap(_.deprecrationInfo) match {
+        val (isDeprecated,deprecationInfo,deprecatedIcon) = technique.flatMap(_.deprecrationInfo) match {
           case Some(info) =>
-            val tooltipId = Helpers.nextFuncName
-            <span class="fa fa-exclamation text-danger deprecatedTechniqueIcon tooltipable" style="padding-left:5px" tooltipid={tooltipId} title=""></span>
-            <div class="tooltipContent" id={tooltipId}>
-              <div>Deprecated: {info.message}</div>
-            </div>
-          case None => NodeSeq.Empty
+/*          def isDeprecated   = {
+              activeTechnique.techniques.values.forall { t => t.deprecrationInfo.isDefined }
+            }
+*/          (true, info.message,{<i class="ion ion-arrow-up-a deprecation-icon"></i>})
+          case None => (false, "", {NodeSeq.Empty})
         }
 
         val xml  = {
           val (policyMode,explanation) =
-              (globalMode.overridable,directive.policyMode) match {
-                case (Always,Some(mode)) =>
-                  (mode,"<p>This mode is an override applied to this directive. You can change it in the <i><b>directive's settings</b></i>.</p>")
-                case (Always,None) =>
-                  val expl = """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this directive in the <i><b>directive's settings</b></i>.</p>"""
-                  (globalMode.mode, expl)
-                case (Unoverridable,_) =>
-                  (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
-              }
+            (globalMode.overridable,directive.policyMode) match {
+              case (Always,Some(mode)) =>
+                (mode,"<p>This mode is an override applied to this directive. You can change it in the <i><b>directive's settings</b></i>.</p>")
+              case (Always,None) =>
+                val expl = """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this directive in the <i><b>directive's settings</b></i>.</p>"""
+                (globalMode.mode, expl)
+              case (Unoverridable,_) =>
+                (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
+            }
 
           val tooltipId = Helpers.nextFuncName
-            val tooltipContent = s"""
-              <h4>${scala.xml.Utility.escape(directive.name)}</h4>
-              <div class="tooltip-content">
-                <p>${scala.xml.Utility.escape(directive.shortDescription)}</p>
-                <div><b>Technique version:</b> ${directive.techniqueVersion.toString}</div>
-                <div>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</div>
-                ${ if(!directive.isEnabled){ <div>Disable</div> }else{NodeSeq.Empty}}
+
+          val tooltipContent = s"""
+            <h4>${scala.xml.Utility.escape(directive.name)}</h4>
+            <div class="tooltip-content directive">
+              <p>${scala.xml.Utility.escape(directive.shortDescription)}</p>
+              <div>
+                <b>Technique version:</b>
+                ${directive.techniqueVersion.toString}${deprecatedIcon}
+                ${if(isDeprecated){<p><b style="margin-left:8px;">↳ Deprecated:</b>{deprecationInfo}</p>}else{NodeSeq.Empty}}
               </div>
-            """
-          <span id={"badge-apm-"+tooltipId}>[BADGE]</span>
+              ${if(!directive.isEnabled){ <div>Disable</div>} else{NodeSeq.Empty}}
+              ${if(isAssignedTo==0){<span class="fa fa-warning text-warning-rudder min-size-icon"></span>}else{NodeSeq.Empty}}<span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
+            </div>
+          """
+          <span id={"badge-apm-"+tooltipId}>[BADGE]</span> ++
           <span class="treeDirective bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>
-            <span class="techversion">{directive.techniqueVersion.toString}</span>
+            <span class="techversion">
+              {directive.techniqueVersion.toString}
+              {deprecatedIcon}
+            </span>
             {directive.name}
-          </span> ++
-          deprecated ++
-          <span>
-          {
-            if(isAssignedTo <= 0) {
-              <span style="padding-left:5px" class="fa fa-warning text-warning-rudder"></span>
+            {if(isAssignedTo <= 0) {
+              <span class="fa fa-warning text-warning-rudder min-size-icon"></span>
             } else {
               NodeSeq.Empty
-            }
-          }
+            }}
           </span> ++
           editButton ++
           Script(JsRaw(s"""
@@ -312,7 +313,6 @@ object DisplayDirectiveTree extends Loggable {
         angular.bootstrap(scopeElmnt, ['filters']);
       }
       adjustHeight('#activeTechniquesTree');
-
       $$(".bsTooltip").bsTooltip({container: "${if(addEditLink){"#directiveTree"}else{"#boxDirectiveTree"}}"})
     """))
     directiveLib.subCategories.filterNot(_.isSystem).sortBy( _.name ).flatMap { cat => displayCategory(cat, cat.id.value).toXml }
