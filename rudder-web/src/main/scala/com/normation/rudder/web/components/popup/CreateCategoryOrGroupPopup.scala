@@ -156,10 +156,6 @@ class CreateCategoryOrGroupPopup(
         & "item-save" #> ( SHtml.ajaxSubmit("Create", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","5") % ("class","btn btn-success") )
     )(popupTemplate)
   ) ++ Script(OnLoad(initJs))
-  println("*"*10)
-  println(popupTemplate)
-  println("*"*10)
-  println(f)
   f
   }
 
