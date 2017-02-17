@@ -26,6 +26,12 @@ bundle agent init
       "service_name"  string => "crond";
     !redhat::
       "service_name"  string => "cron";
+
+  classes:
+    debian::
+      "enabled" expression => returnszero("update-rc.d cron enable", "useshell");
+    redhat::
+      "enabled" expression => returnszero("chkconfig crond on", "useshell");
 }
 
 #######################################################
