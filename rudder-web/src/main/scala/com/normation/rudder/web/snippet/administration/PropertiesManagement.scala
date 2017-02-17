@@ -728,29 +728,40 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def sendMetricsConfiguration = { xml : NodeSeq =>
     ( configService.send_server_metrics match {
       case Full(value) =>
-        var sendMetrics = value
+        var initSendMetrics = value
+        var currentSendMetrics = value
+        def noModif() = initSendMetrics == currentSendMetrics
+        def check() = {
+          S.notice("sendMetricsMsg","")
+          Run(s"""$$("#sendMetricsSubmit").button( "option", "disabled",${noModif()});""")
+        }
         def submit() = {
-          val save = configService.set_send_server_metrics(sendMetrics,CurrentUser.getActor,genericReasonMessage)
-
+          val save = configService.set_send_server_metrics(currentSendMetrics,CurrentUser.getActor,genericReasonMessage)
           S.notice("sendMetricsMsg", save match {
             case Full(_)  =>
+              initSendMetrics = currentSendMetrics
               // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
               startNewPolicyGeneration
               "'send server metrics' property updated"
             case eb: EmptyBox =>
               "There was an error when updating the value of the 'send server metrics' property"
           } )
+          check
         }
 
         ( "#sendMetricsCheckbox" #> {
             SHtml.ajaxCheckbox(
                 value.getOrElse(false)
-              , (b : Boolean) => { sendMetrics = Some(b) }
+              , (b : Boolean) => { currentSendMetrics = Some(b); check}
               , ("id","sendMetricsCheckbox")
             )
           } &
           "#sendMetricsSubmit " #> {
             SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+          }&
+          "#sendMetricsSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+
           }
         )
       case eb: EmptyBox =>
@@ -765,27 +776,30 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     ( configService.display_changes_graph() match {
       case Full(value) =>
-        var displayGraphs = value
-        def noModif() = displayGraphs == value
+        var initDisplayGraphs = value
+        var currentdisplayGraphs = value
+        def noModif() = initDisplayGraphs == currentdisplayGraphs
         def check() = {
           S.notice("displayGraphsMsg","")
           Run(s"""$$("#displayGraphsSubmit").prop("disabled",${noModif()});""")
         }
 
         def submit() = {
-          val save = configService.set_display_changes_graph(displayGraphs)
+          val save = configService.set_display_changes_graph(currentdisplayGraphs)
           S.notice("displayGraphsMsg", save match {
             case Full(_)  =>
+              initDisplayGraphs = currentdisplayGraphs
               "'display change graphs' property updated"
             case eb: EmptyBox =>
               "There was an error when updating the value of the 'display change graphs' property"
           } )
+          check
         }
 
         ( "#displayGraphsCheckbox" #> {
             SHtml.ajaxCheckbox(
                 value
-              , (b : Boolean) => { displayGraphs = b; check}
+              , (b : Boolean) => { currentdisplayGraphs = b; check}
               , ("id","displayGraphsCheckbox")
             )
           } &
@@ -809,27 +823,30 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     ( configService.rudder_ui_display_ruleComplianceColumns() match {
       case Full(value) =>
-        var displayColumns = value
-        def noModif() = displayColumns == value
+        var initDisplayColumns = value
+        var currentDisplayColumns = value
+        def noModif() = initDisplayColumns  == currentDisplayColumns
         def check() = {
           S.notice("displayColumnsMsg","")
           Run(s"""$$("#displayColumnsSubmit").prop( "checked", ${noModif()} );""")
         }
 
         def submit() = {
-          val save = configService.set_rudder_ui_display_ruleComplianceColumns(displayColumns)
+          val save = configService.set_rudder_ui_display_ruleComplianceColumns(currentDisplayColumns)
           S.notice("displayColumnsMsg", save match {
             case Full(_)  =>
+              initDisplayColumns  = currentDisplayColumns
               "'Display compliance and recent changes columns on rule summary' property updated"
             case eb: EmptyBox =>
               "There was an error when updating the value of the 'Display compliance and recent changes columns on rule summary' property"
           } )
+          check
         }
 
         ( "#displayColumnsCheckbox" #> {
             SHtml.ajaxCheckbox(
                 value
-              , (b : Boolean) => { displayColumns = b; check}
+              , (b : Boolean) => { currentDisplayColumns = b; check}
               , ("id","displayColumnsCheckbox")
             )
           } &
@@ -865,7 +882,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
 
     def noModif = (
-         initApiMode.map(_ == apiMode).getOrElse(false)
+      initApiMode.map(_ == apiMode).getOrElse(false)
     )
 
     def check() = {
@@ -900,9 +917,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ( configService.rudder_featureSwitch_directiveScriptEngine() match {
       case Full(initialValue) =>
 
-        var currentSavedValued = initialValue
+        var initSavedValued = initialValue
         var x = initialValue
-        def noModif() = x == currentSavedValued
+        def noModif() = x == initSavedValued
         def check() = {
           S.notice("directiveScriptEngineMsg","")
           Run(s"""$$("#directiveScriptEngineSubmit").prop("disabled",${noModif()});""")
@@ -912,7 +929,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           val save = configService.set_rudder_featureSwitch_directiveScriptEngine(x)
           S.notice("directiveScriptEngineMsg", save match {
             case Full(_)  =>
-              currentSavedValued = x
+              initSavedValued = x
               // If we disable this feature we want to start policy generation because some data may be invalid
               if (x == Disabled) {
                 startNewPolicyGeneration
@@ -942,6 +959,103 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       case eb: EmptyBox =>
         ( "#directiveScriptEngine" #> {
           val fail = eb ?~ "there was an error while fetching value of property: 'directive script engine'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml
+  }
+
+  def quickSearchConfiguration = { xml : NodeSeq =>
+
+    ( configService.rudder_featureSwitch_quicksearchEverything() match {
+      case Full(initialValue) =>
+        var initSavedValued = initialValue
+        var x = initialValue
+        def noModif() = x == initSavedValued
+        def check() = {
+          S.notice("quickSearchEverythingMsg","")
+          Run(s"""$$("#quickSearchEverythingSubmit").button( "option", "disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_rudder_featureSwitch_quicksearchEverything(x)
+          S.notice("quickSearchEverythingMsg", save match {
+            case Full(_)  =>
+              initSavedValued = x
+              "'quick search everything' property updated. The feature will be loaded as soon as you go to another page or reload this one."
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'quick search everything' property"
+          } )
+          check
+        }
+
+        ( "#quickSearchEverythingCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                x == Enabled
+              , (b : Boolean) => { if(b) { x = Enabled } else { x = Disabled }; check}
+              , ("id","quickSearchEverythingCheckbox")
+            )
+          } &
+          "#quickSearchEverythingSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          } &
+          "#quickSearchEverythingSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+          }
+        )
+
+      case eb: EmptyBox =>
+        ( "#quickSearchEverything" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'quick search everything'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml
+  }
+
+  def directiveNodePropertiesConfiguration = { xml : NodeSeq =>
+    import com.normation.rudder.domain.appconfig.FeatureSwitch._
+
+    ( configService.rudder_featureSwitch_directiveNodeProperties() match {
+      case Full(initialValue) =>
+        var initSavedValued = initialValue
+        var currentSavedValued = initialValue
+        def noModif() = currentSavedValued == initSavedValued
+        def check() = {
+          S.notice("directiveNodePropertiesMsg","")
+          Run(s"""$$("#directiveNodePropertiesSubmit").button( "option", "disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_rudder_featureSwitch_directiveNodeProperties(currentSavedValued)
+          S.notice("directiveNodePropertiesMsg", save match {
+            case Full(_)  =>
+              initSavedValued = currentSavedValued
+              "'directive node properties' property updated. The feature will be loaded as soon as you go to another page or reload this one."
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'directive node properties' property"
+          } )
+          check
+        }
+
+        ( "#directiveNodePropertiesCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                currentSavedValued == Enabled
+              , (b : Boolean) => { if(b) { currentSavedValued = Enabled } else { currentSavedValued = Disabled }; check}
+              , ("id","directiveNodePropertiesCheckbox")
+            )
+          } &
+          "#directiveNodePropertiesSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          } &
+          "#directiveNodePropertiesSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+          }
+        )
+
+      case eb: EmptyBox =>
+        ( "#directiveNodeProperties" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'directive node properties'"
           logger.error(fail.messageChain)
           <div class="error">{fail.messageChain}</div>
         } )
