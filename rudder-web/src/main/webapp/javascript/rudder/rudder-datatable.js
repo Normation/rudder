@@ -169,7 +169,6 @@ function recentChangesText(id) {
   // Prepare graph elem to have tooltip
   graphElem.attr("tooltipid",tooltipId);
   graphElem.attr("title","");
-  graphElem.addClass("tooltip tooltipable");
 
   // Tooltip
   var tooltip= $("<div></div>");
