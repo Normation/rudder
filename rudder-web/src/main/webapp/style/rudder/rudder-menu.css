@@ -1151,14 +1151,6 @@ table > tbody > tr > td.action{
 #technicalDetails > .directiveTechnicalInfo:first-child{
 	margin-top:0;
 }
-#directiveDetails{
-  border-left: 15px solid #ECF0F5;
-  max-height:88vh;
-}
-#directiveDetails{
-  overflow-y:auto;
-  overflow-x:hidden;
-}
 .directiveTree {
   padding-left: 10px;
   padding-right: 10px;
