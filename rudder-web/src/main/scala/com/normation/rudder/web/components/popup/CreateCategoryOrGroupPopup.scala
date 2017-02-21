@@ -129,13 +129,14 @@ class CreateCategoryOrGroupPopup(
             $('#itemTitle').text('Category');
           }
         );
+        $('input[value="Group"]').click();
      """)
   }
 
   def popupContent() : NodeSeq = {
     val f = SHtml.ajaxForm(
     (
-          "item-itemType" #> {
+          "item-itemtype" #> {
              groupGenerator match {
                case None => piItemType.toForm_!
                case Some(x) => NodeSeq.Empty
