@@ -62,6 +62,7 @@ import com.normation.rudder.domain.policies.TagName
 import com.normation.rudder.domain.policies.TagValue
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import scala.util.control.NonFatal
+import net.liftweb.common.Loggable
 
 /**
  * Correctly quote a token
@@ -82,7 +83,7 @@ object QSPattern {
  * of everything else.
  */
 
-object QSDirectiveBackend {
+object QSDirectiveBackend extends Loggable {
   import com.normation.rudder.repository.FullActiveTechnique
   import com.normation.rudder.domain.policies.Directive
   import com.normation.rudder.domain.policies.DirectiveId
@@ -123,7 +124,8 @@ object QSDirectiveBackend {
   }
 
   implicit class QSAttributeFilter(a: QSAttribute) {
-    def find(at: FullActiveTechnique, dir: Directive, token: String): Option[QuickSearchResult] = {
+
+    private[this] def toMatch(at: FullActiveTechnique, dir: Directive): Option[Set[(String,String)]] = {
 
       val enableToken  = Set("true" , "enable" , "enabled" , "isenable" , "isenabled" )
       val disableToken = Set("false", "disable", "disabled", "isdisable", "isdisabled")
@@ -135,7 +137,7 @@ object QSDirectiveBackend {
       /*
        * A set of value to check against / value to return to the user
        */
-      val toMatch: Option[Set[(String,String)]] = a match {
+      a match {
         case QSDirectiveId     => Some(Set((dir.id.value,dir.id.value)))
         case DirectiveVarName  => Some(dir.parameters.flatMap(param => param._2.map(value => (param._1, param._1+":"+ value))).toSet)
         case DirectiveVarValue => Some(dir.parameters.flatMap(param => param._2.map(value => (value, param._1+":"+ value))).toSet)
@@ -147,6 +149,8 @@ object QSDirectiveBackend {
         case Name              => Some(Set((dir.name,dir.name)))
         case IsEnabled         => Some(isEnabled)
         case Tags              => Some(dir.tags.map{ case Tag(TagName(k),TagValue(v)) => (s"$k=$v", s"$k=$v") }.toSet )
+        case TagKeys           => Some(dir.tags.map{ case Tag(TagName(k),_) => (k, k) }.toSet )
+        case TagValues         => Some(dir.tags.map{ case Tag(_,TagValue(v)) => (v, v) }.toSet )
         case NodeId            => None
         case Fqdn              => None
         case OsType            => None
@@ -169,18 +173,21 @@ object QSDirectiveBackend {
         case DirectiveIds      => None
         case Targets           => None
       }
+    }
 
-      toMatch.flatMap { set => set.find{case (s,value) => QSPattern(token).matcher(s).matches } }.map{ case (_, value) =>
-        QuickSearchResult(
-            QRDirectiveId(dir.id.value)
-          , dir.name
-          , Some(a)
-          , value
-        )
+    def find(at: FullActiveTechnique, dir: Directive, token: String): Option[QuickSearchResult] = {
+      toMatch(at,dir).flatMap { set => set.collectFirst {
+        case (s,value) if QSPattern(token).matcher(s).matches =>
+          QuickSearchResult(
+              QRDirectiveId(dir.id.value)
+            , dir.name
+            , Some(a)
+            , value
+          )
+        }
       }
     }
   }
-
 }
 
 /**
@@ -231,7 +238,7 @@ object QSLdapBackend {
 
         // transformat LDAPEntries to quicksearch results, keeping only the attribute
         // that matches the query on the result and no system entries but nodes.
-        (others ++ merged).flatMap( _.toResult(query.userToken))
+        (others ++ merged).flatMap( _.toResult(query))
       }
     }
   }
@@ -273,6 +280,8 @@ object QSLdapBackend {
       , DirectiveIds      -> A_DIRECTIVE_UUID
       , Targets           -> A_RULE_TARGET
       , Tags              -> A_SERIALIZED_TAGS
+      , TagKeys           -> A_SERIALIZED_TAGS
+      , TagValues         -> A_SERIALIZED_TAGS
     )
 
     if(m.size != QSAttribute.all.size) {
@@ -385,6 +394,8 @@ object QSLdapBackend {
         case DirectiveIds      => sub(a, token)
         case Targets           => sub(a, token)
         case Tags              => sub(a, token)
+        case TagKeys           => sub(a, token)
+        case TagValues         => sub(a, token)
       }
     }
   }
@@ -394,31 +405,43 @@ object QSLdapBackend {
    * an attribute.
    * The transformation may fail (option = none).
    */
-  implicit class LdapAttributeValueTransform(attrName: String) {
+  implicit class LdapAttributeValueTransform( a: QSAttribute) {
+    import QSAttributeLdapFilter._
 
     def transform(pattern: Pattern, value: String): Option[String] = {
-      attrName match {
-        case A_SERIALIZED_TAGS =>
-          import net.liftweb.json.parse
+
+      def parseTag(value : String, matcher : Tag => Boolean, transform :Tag => String )= {
+        import net.liftweb.json.parse
           try {
             val json = parse(value)
             CompleteJson.extractTags(json) match {
-              case Full(tags) => tags.tags.find { t =>
-                  pattern.matcher(t.tagName.name).matches || pattern.matcher(t.tagValue.value).matches
-                }.map( t => s"${t.tagName.name}=${t.tagValue.value}")
-
+              case Full(tags) => tags.tags.collectFirst { case t if matcher(t) => transform(t) }
               case _          => None
             }
           } catch {
             case NonFatal(ex) => None
           }
+      }
+
+      a match {
+        case Tags =>
+          def matcher(t : Tag) = pattern.matcher(t.tagName.name).matches || pattern.matcher(t.tagValue.value).matches
+          def transform(tag : Tag) = s"${tag.tagName.name}=${tag.tagValue.value}"
+          parseTag(value,matcher,transform)
+        case TagKeys =>
+          def matcher(t : Tag) = pattern.matcher(t.tagName.name).matches
+          def transform(tag : Tag) = tag.tagName.name
+          parseTag(value,matcher,transform)
+        case TagValues =>
+          def matcher(t : Tag) = pattern.matcher(t.tagValue.value).matches
+          def transform(tag : Tag) = tag.tagValue.value
+          parseTag(value,matcher,transform)
 
         //main case: no more transformation
         case _                 => Some(value)
       }
     }
   }
-
 
   /**
    * Build LDAP filter for a QSObject
@@ -443,7 +466,7 @@ object QSLdapBackend {
     import QuickSearchResultId._
     import QSAttributeLdapFilter._
 
-    def toResult(token: String): Option[QuickSearchResult] = {
+    def toResult(query : Query): Option[QuickSearchResult] = {
       def getId(e: LDAPEntry): Option[QuickSearchResultId] = {
         if       (e.isA(OC_NODE             )) { e(A_NODE_UUID      ).map( QRNodeId      )
         } else if(e.isA(OC_RUDDER_NODE      )) { e(A_NODE_UUID      ).map( QRNodeId      )
@@ -455,12 +478,14 @@ object QSLdapBackend {
         }
       }
 
+      val pattern = QSPattern(query.userToken)
+
       /*
        * Depending of the attribute type, we must use a different
        * match methods.
        * Returns Option[(attribute name, matching value)]
        */
-      def matchValue(a: Attribute, token: String, pattern: Pattern): Option[(String, String)] = {
+      def matchValue(a: Attribute): Option[(String, String)] = {
 
         //test a matcher against values
         def findValue(values: Array[String], test: String => Boolean): Option[(String, String)] = {
@@ -468,7 +493,7 @@ object QSLdapBackend {
         }
         //test a list of pattern matcher against values
         def testAndFindValue(testers: List[String => Boolean]): Option[(String, String)] = {
-          testers.find(f => f(token)).flatMap(findValue(a.getValues, _))
+          testers.find(f => f(query.userToken)).flatMap(findValue(a.getValues, _))
         }
 
         if(a.getName == A_OC) {
@@ -500,16 +525,17 @@ object QSLdapBackend {
       // get the attribute value matching patterns
       // if several, take only one at random. If none, that's strange, reject entry
       // also, don't look in objectClass to find the pattern
-      val pattern = QSPattern(token)
       for {
-        (attr, desc) <- (Option.empty[(String, String)] /: e.attributes) { (current, next) => (current, next ) match {
+        (attr, desc) <- (Option.empty[(QSAttribute, String)] /: e.attributes) { (current, next) => (current, next ) match {
                           case (Some(x), _) => Some(x)
                           case (None   , a) =>
                             for {
-                              (attr, value) <- matchValue(a, token, pattern)
-                              trans         <- attr.transform(pattern, value)
+                              (attr, value) <- matchValue(a)
+
+                              attribute     <- query.attributes.find { attributeNameMapping(_) == attr }
+                              trans         <- attribute.transform(pattern, value)
                             } yield {
-                              (attr, trans)
+                              (attribute, trans)
                             }
                         } }
         id           <- getId(e)
@@ -517,7 +543,7 @@ object QSLdapBackend {
       } yield {
         //prefer hostname for nodes
         val name = e(A_HOSTNAME).orElse(e(A_NAME)).getOrElse(id.value)
-        QuickSearchResult(id, name, ldapNameMapping.get(attr), desc)
+        QuickSearchResult(id, name, Some(attr), desc)
       }
     }
   }

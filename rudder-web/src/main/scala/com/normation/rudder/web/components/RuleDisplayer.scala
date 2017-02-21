@@ -237,7 +237,7 @@ class RuleDisplayer (
                 <div class="box-body">
                   <div class="row">
                     <div class="col-xs-12">
-                      <div id="showFiltersRules" ng-controller="filterTagRuleCtrl" class="filters tw-bs" ng-cloak="">
+                      <div id="showFiltersRules" ng-controller="filterTagCtrl" ng-init="initRule()" class="filters tw-bs" ng-cloak="">
                         <div class="filters-container">
                           <div class="filterTag">
                             <div class="input-group search-addon">
@@ -247,11 +247,19 @@ class RuleDisplayer (
                             <div class="form-group">
                               <label>Tags</label>
                               <div class="input-group">
-                                <input placeholder="key" class="form-control input-sm input-key" type="text" ng-model="newTag.key"/>
+                                <div id="ruleFilterKeyInput" angucomplete-alt="" placeholder="key" minlength="1" maxlength="100"
+                                     pause="500" selected-object="selectTag" remote-url="{{contextPath}}/secure/api/completion/tags/rule/key/"
+                                     remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-key"
+                                     match-class="highlight" input-changed="updateTag" override-suggestions="true">
+                                </div>
                                 <span class="input-group-addon addon-json">=</span>
-                                <input placeholder="value" class="form-control input-sm input-value" type="text" ng-model="newTag.value"/>
+                                <div id="ruleFilterValueInput" angucomplete-alt="" placeholder="value" minlength="1" maxlength="100"
+                                     pause="500" selected-object="selectValue" remote-url="{{contextPath}}/secure/api/completion/tags/rule/value/{{newTag.key}}/"
+                                     remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-value" match-class="highlight"
+                                     input-changed="updateValue" override-suggestions="true">
+                                </div>
                                 <span class="input-group-btn">
-                                  <button type="button" ng-click="addTag()" class="btn btn-success btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)); ">
+                                  <button type="button" ng-click="addTag(newTag)" class="btn btn-success btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)); ">
                                     <span class="fa fa-plus"></span>
                                   </button>
                                 </span>
