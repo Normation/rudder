@@ -53,9 +53,49 @@ case class PluginVersion(
   , micro : Int
   , prefix : String = ""
   , suffix : String = ""
-)  extends HashcodeCaching {
+) {
 
-  override def toString = prefix + major + "." + minor + "." + micro + (if(nonEmpty(suffix)) "~" + suffix else "")
+  override def toString = prefix + major + "." + minor + "." + micro + suffix
+}
+
+object PluginVersion {
+
+  /*
+   * That method will create a plugin version from a string.
+   * It may fails if the pattern is not one known for rudder plugin, which is:
+   * (A.B-)x.y(.z)(post)
+   * Where part between parenthesis are optionnal,
+   * A,B,x,y,z are non-empty list of digits,
+   * A.B are Rudder major.minor version,
+   * x.y are plugin major.minor.micro version - if micro not specified, assumed to be 0,
+   * post is any non blank/control char list (ex: ~alpha1)
+   *
+   */
+  def from(version: String): Option[PluginVersion] = {
+    //carefull: group matching nothing, like optionnal group, return null :(
+    def nonNull(s: String) = s match {
+      case null => ""
+      case x    => x
+    }
+
+    val pattern = """(\d+\.\d+-)?(\d+)\.(\d+)(\.(\d+))?(\S+)?""".r.pattern
+    val matcher = pattern.matcher(version)
+    if( matcher.matches ) {
+      val micro = matcher.group(5) match {
+        case null | "" => 0
+        case x  => x.toInt
+      }
+      Some(PluginVersion(
+          matcher.group(2).toInt
+        , matcher.group(3).toInt
+        , micro
+        , nonNull(matcher.group(1))
+        , nonNull(matcher.group(6))
+     ))
+    } else {
+      None
+    }
+  }
 }
 
 case class PluginName(value:String) extends HashcodeCaching {
@@ -146,3 +186,4 @@ trait RudderPluginDef {
   }
 
 }
+
