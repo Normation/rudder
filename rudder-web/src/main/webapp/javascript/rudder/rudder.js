@@ -669,5 +669,5 @@ function adjustHeight(treeId, toolbar){
       maxHeight = 'calc(100vh - '+ offsetTop + 'px)';
     }
   }
-  tree.css('max-height',maxHeight);
+  tree.css('height',maxHeight);
 }
