@@ -62,6 +62,16 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <version>3.0.0</version>
         <configuration>
           <attachClasses>true</attachClasses>
+          <webResources>
+            <resource>
+              <filtering>true</filtering>
+              <directory>${project.basedir}/src/main/webapp/</directory>
+              <includes>
+                <include>index.html</include>
+                <include>templates-hidden/common-layout.html</include>
+              </includes>
+            </resource>
+          </webResources>
         </configuration>
       </plugin>
       <plugin>
