@@ -404,3 +404,41 @@ hr.separator-filter-tree{
   50%  {box-shadow: 0 0 13px #c2c2c2;}
   100% {box-shadow: 0 0 0    #c2c2c2;}
 }
+
+.angucomplete-dropdown {
+	
+  background-clip: padding-box;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.176);
+  float: left;
+  font-size: 12px;
+  list-style: outside none none;
+  margin: 2px 0 0;
+  min-width: 160px;
+  padding: 5px 0;
+  position: absolute;
+  text-align: left;
+  top: 100%;
+  z-index: 1000;
+}
+
+.angucomplete-dropdown .angucomplete-title {
+  clear: both;
+  color: #333;
+  display: block;
+  font-weight: 400;
+  line-height: 1.42857;
+  padding: 3px 20px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.angucomplete-dropdown .angucomplete-title:focus, .angucomplete-dropdown .angucomplete-title:hover {
+  background-color: #f5f5f5;
+  color: #262626;
+  text-decoration: none;
+}
+	
+	

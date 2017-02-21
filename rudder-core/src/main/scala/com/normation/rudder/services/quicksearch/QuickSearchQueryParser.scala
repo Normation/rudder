@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.quicksearch
 
-
 import scala.util.parsing.combinator.RegexParsers
 import net.liftweb.common.{ Failure => FailedBox, _ }
 import com.normation.utils.Control.sequence
@@ -70,7 +69,7 @@ object QSRegexQueryParser extends RegexParsers {
    */
   def parse(value: String): Box[Query] = {
     if(value.trim.isEmpty()) {
-      FailedBox("You can search with an empty or whitespace only query")
+      FailedBox("You can't search with an empty or whitespace only query")
     } else {
       parseAll(all, value) match {
         case NoSuccess(msg   , remaining) => FailedBox(s"""Error when parsing query "${value}", error message is: ${msg}""")
@@ -88,7 +87,6 @@ object QSRegexQueryParser extends RegexParsers {
     parsed match {
       case (EmptyQuery, _) =>
         FailedBox("No query string was found (the query is only composed of whitespaces and filters)")
-
       case (CharSeq(query), filters) =>
         // get all keys, and sort them between objets/attributes/ERRORS
         val names = filters.map( _.keys).flatten.toSet
@@ -149,7 +147,6 @@ object QSRegexQueryParser extends RegexParsers {
 
   //// does not work on empty/whitespace only string, forbid them before ////
 
-
   /*
    * We want to parse a string that:
    * - starts or/and ends with 0 or more filter
@@ -199,7 +196,6 @@ object QSRegexQueryParser extends RegexParsers {
   // we need to case, because regex are bad to look-ahead and see if there is still filter after. .+? necessary to stop at first filter
   private[this] def queryInMiddle  : Parser[QueryString] = """(?iums)(.+?(?=((in:)|(is:))))""".r ^^ { x => CharSeq(x.trim) }
   private[this] def queryAtEnd     : Parser[QueryString] = """(?iums)(.+)""".r           ^^ { x => CharSeq(x.trim) }
-
 
   /////
   ///// utility methods
@@ -269,4 +265,3 @@ object QSRegexQueryParser extends RegexParsers {
     }
   }
 }
-

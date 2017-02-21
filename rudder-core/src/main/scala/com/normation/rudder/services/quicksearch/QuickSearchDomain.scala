@@ -165,6 +165,12 @@ object QSAttribute {
   final case object Tags              extends QSAttribute {
     override val name = "tags"
   }
+  final case object TagKeys            extends QSAttribute {
+    override val name = "tagKeys"
+  }
+  final case object TagValues          extends QSAttribute {
+    override val name = "tagValues"
+  }
 
   //Parameters
   final case object ParameterName  extends QSAttribute {
@@ -198,6 +204,8 @@ sealed trait QSObject { def name: String; def attributes: Set[QSAttribute] }
 object QSObject {
   import QSAttribute._
 
+  val tagsAttribute = Set(Tags, TagKeys, TagValues)
+
   final case object Common      extends QSObject { override val name = "common"
                                                    override val attributes : Set[QSAttribute] = Set(Name, Description, LongDescription, IsEnabled)
   }
@@ -211,14 +219,14 @@ object QSObject {
                                                  override val attributes : Set[QSAttribute] = Common.attributes ++ Set(GroupId, IsDynamic)
   }
   final case object Directive extends QSObject { override val name = "directive"
-                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ Set(DirectiveId, DirectiveVarName
-                                                   , DirectiveVarValue, TechniqueName, TechniqueId, TechniqueVersion, Tags)
+                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ tagsAttribute ++ Set(DirectiveId, DirectiveVarName
+                                                   , DirectiveVarValue, TechniqueName, TechniqueId, TechniqueVersion)
   }
   final case object Parameter extends QSObject { override val name = "parameter"
                                                  override val attributes : Set[QSAttribute] = Common.attributes ++ Set(ParameterName, ParameterValue)
   }
   final case object Rule      extends QSObject { override val name = "rule"
-                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ Set(RuleId, DirectiveIds, Targets, Tags)
+                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ tagsAttribute ++ Set(RuleId, DirectiveIds, Targets)
   }
 
   final val all: Set[QSObject] = sealerate.values[QSObject]
@@ -297,6 +305,7 @@ final object QSMapping {
       case DirectiveIds      => (a, Set(DirectiveIds.name, "directiveids", "id", "ids") )
       case Targets           => (a, Set(Targets.name, "target", "group", "groups") )
       case Tags              => (a, Set(Tags.name, "tag") )
+      case default           => (a, Set(default.name) )
     } }
   }.toMap
 
