@@ -290,7 +290,7 @@ class DirectiveEditForm(
       "#priority" #> piPriority.toForm_! &
       "#policyModes" #> policyModes.toForm_! &
       "#version" #> versionSelect.toForm_! &
-      "#migrate" #> migrateButton(directiveVersion.get,"Migrate") &
+      "#version *+" #> migrateButton(directiveVersion.get,"Migrate") &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class","btn btn-success") } &
@@ -513,7 +513,7 @@ class DirectiveEditForm(
 
       override def className = "form-control"
       override def labelClassName = "col-xs-12 text-bold"
-      override def subContainerClassName = "col-xs-12"
+      override def subContainerClassName = "version-group"
     }
 
   private[this] val formTracker = {
