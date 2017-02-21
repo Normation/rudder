@@ -115,7 +115,7 @@
         <span id="ruleLongDescription"></span>
       </div>
     </div>
-    <div class="row wbBaseField form-group"">
+    <div class="row wbBaseField form-group">
       <label class="col-xs-12 rule-info">Rudder ID</label>
       <div class="col-xs-12">
         <span id="rudderID"> Here comes the rudder ID </span>
@@ -138,52 +138,57 @@
       <ul id="changeRequestList"></ul>
     </div>
   </div>
+
   <div id="notifications"></div>
+  <div class="section-title spacing-title">General information</div>
 
-    <div class="section-title spacing-title">General information</div>
-    <div class="groupedEditZone tw-bs">
-      <div id="nameField">
-        Here comes the name field
+  <div class="groupedEditZone tw-bs">
+    <div class="row">
+      <div class="col-md-6 col-xs-12">
+        <div id="nameField">
+          Here comes the name field
+        </div>
+        <div id="categoryField">
+          Here comes the category field
+        </div>
+        <div id="tagField">
+          Here comes the tag field
+        </div>
+        <div id="shortDescriptionField">
+          Here comes the shortDescription field
+        </div>
+        <div id="longDescriptionField">
+          Here comes the longDescription field
+        </div>
+        <hr/>
       </div>
-		<div id="categoryField">
-		Here comes the category field
-		</div>
-    <div id="tagField">
-      Here comes the tag field
     </div>
-    <div id="shortDescriptionField">
-      Here comes the shortDescription field
-    </div>
-    <div id="longDescriptionField">
-      Here comes the longDescription field
-    </div>
-    <hr/>
-    </div>
+  </div>
 
-    <div class="groupedEditZone tw-bs">
-      <div class="section-title spacing-title">
-        Directives
-        <lift:authz role="directive_write"><a class="title-link" href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz>
-      </div>
-  <div id="directiveTree_actions_zone"  >
-    <div class="col-xs-12 tree">
-      <div class="filter-tree">
-        <div class="input-group">
-          <div class="input-group-btn">
-            <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#directiveTree', this);">
-              <span class="fa fa-folder fa-folder-open"></span>
-            </button>
-          </div>
-          <input class="form-control" placeholder="Filter" id="treeSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#directiveTree');">
-          <div class="input-group-btn">
-            <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#treeSearch', '#directiveTree');" >
-              <span class="fa fa-times"></span>
-            </button>
+  <div class="groupedEditZone tw-bs">
+    <div class="section-title spacing-title">
+      Directives
+      <lift:authz role="directive_write"><a class="title-link" href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz>
+    </div>
+    <div id="directiveTree_actions_zone"  >
+      <div class="col-xs-12 tree">
+        <div class="filter-tree">
+          <div class="input-group">
+            <div class="input-group-btn">
+              <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#directiveTree', this);">
+                <span class="fa fa-folder fa-folder-open"></span>
+              </button>
+            </div>
+            <input class="form-control" placeholder="Filter" id="treeSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#directiveTree');">
+            <div class="input-group-btn">
+              <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#treeSearch', '#directiveTree');" >
+                <span class="fa fa-times"></span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
       <div id="selectPiField"  class="col-xs-7" >
         Here comes the Directive selection field
