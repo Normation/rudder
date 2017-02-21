@@ -394,7 +394,6 @@ object RudderConfig extends Loggable {
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
   val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
 
-
   val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
   val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
 
@@ -532,14 +531,15 @@ object RudderConfig extends Loggable {
   val tokenGenerator = new TokenGeneratorImpl(32)
 
   // REST API
-  val restDeploy = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
-  val restDyngroupReload = new RestDyngroupReload(dyngroupUpdaterBatch)
-  val restTechniqueReload = new RestTechniqueReload(techniqueRepositoryImpl, uuidGen)
-  val restArchiving = new RestArchiving(itemArchiveManagerImpl,personIdentServiceImpl, uuidGen)
+  val restDeploy            = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
+  val restDyngroupReload    = new RestDyngroupReload(dyngroupUpdaterBatch)
+  val restTechniqueReload   = new RestTechniqueReload(techniqueRepositoryImpl, uuidGen)
+  val restArchiving         = new RestArchiving(itemArchiveManagerImpl,personIdentServiceImpl, uuidGen)
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
-  val restApiAccounts = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator, uuidGen)
-  val restDataSerializer = RestDataSerializerImpl(techniqueRepository,diffService, configService.api_compatibility_mode)
-  val restQuicksearch = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository))
+  val restApiAccounts       = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator, uuidGen)
+  val restDataSerializer    = RestDataSerializerImpl(techniqueRepository,diffService, configService.api_compatibility_mode)
+  val restQuicksearch       = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository))
+  val restCompletion        = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
 
   val ruleApiService2 =
     new RuleApiService2(

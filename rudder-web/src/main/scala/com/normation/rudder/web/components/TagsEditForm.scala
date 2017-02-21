@@ -42,10 +42,10 @@ class TagsEditForm(tags : Tags) extends Loggable {
 
   private[this] def tagTemplate(controllerId:String, appId : String, isEditForm  : Boolean, isRule  : Boolean) = {
 
-    val filterController = if (isRule) {
-      "filterTagRuleCtrl"
+    val filterId = if (isRule) {
+      "showFiltersRules"
     } else {
-      "filterTagDirectiveCtrl"
+      "directiveFilter"
     }
     val css: CssSel =
       "#tagsController [id]" #> (controllerId) &
@@ -57,7 +57,7 @@ class TagsEditForm(tags : Tags) extends Loggable {
       }
       var scope = angular.element($$("#${controllerId}")).scope();
       scope.$$apply(function(){
-        scope.init(  ${jsTags}, "${filterController}" ,  ${isEditForm});
+        scope.init(  ${jsTags}, "${filterId}" ,  ${isEditForm}, ${isRule});
       });
     """)))
   }

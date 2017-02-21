@@ -36,7 +36,7 @@
 */
 
 
-var app = angular.module('tags', []);
+var app = angular.module('tags', ["angucomplete-alt"]);
 
 app.controller('tagsController', function ($scope, $http, $location, $timeout, $rootScope) {
   $scope.filterScope;
@@ -47,11 +47,17 @@ app.controller('tagsController', function ($scope, $http, $location, $timeout, $
   $scope.filterKeys = [];
   $scope.filterValues = [];
 
-  $scope.init = function(tags, filterCtrl, isEditForm){
+  $scope.contextPath = contextPath
+  $scope.kind = "directive"
+  $scope.init = function(tags, filterId, isEditForm, isRuleTag){
     $scope.tags = tags;
     $scope.isEditForm = isEditForm
+    
+    if(isRuleTag) {
+      $scope.kind = "rule"
+    }
 
-    angular.element($('[ng-controller="'+filterCtrl+'"]')).scope().registerScope($rootScope)
+    angular.element($('#'+filterId)).scope().registerScope($rootScope)
   }
   
   $scope.toggleTag = function(tag){
@@ -95,6 +101,38 @@ app.controller('tagsController', function ($scope, $http, $location, $timeout, $
   $scope.removeTag = function(index){
     $scope.tags.splice(index, 1);
   }
+  
+  // Autocomplete methods
+  // Method used when a value is selected in the autocomplete
+  $scope.selectTag = function(res) {
+    if (res === undefined) {
+      $scope.newTag.key = ""
+    } else {
+    if (res.title === undefined) {
+      $scope.newTag.key = res.originalObject
+    } else {
+      $scope.newTag.key = res.originalObject.value 
+    }}
+  }
+
+  $scope.selectValue = function(res) {
+    if (res === undefined) {
+      $scope.newTag.value = ""
+    } else {
+    if (res.title === undefined) {
+      $scope.newTag.value = res.originalObject
+    } else {
+      $scope.newTag.value = res.originalObject.value 
+    } }
+  }
+  // Method used when input is changed to update data model
+  $scope.updateValue = function(res) {
+    $scope.newTag.value = res
+  }
+  $scope.updateTag = function(res) {
+    $scope.newTag.key = res
+  }
+  
   
 });
 

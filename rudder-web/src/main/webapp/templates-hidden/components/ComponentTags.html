@@ -23,9 +23,19 @@
 <tags-editform> 
   <div class="form-group">
     <div class="input-group col-xs-6">
-      <input id="newTagKey" placeholder="key" class="form-control input-sm input-key" type="text" ng-model="newTag.key">
+    
+      <div id="newTagKey" angucomplete-alt="" placeholder="key" minlength="1" maxlength="100"
+           pause="500" selected-object="selectTag" remote-url="{{contextPath}}/secure/api/completion/tags/{{kind}}/key/"
+           remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-key"
+           match-class="highlight" input-changed="updateTag" override-suggestions="true">
+      </div>
       <span class="input-group-addon addon-json">=</span>
-      <input placeholder="value" class="form-control input-sm input-value" type="text" ng-model="newTag.value">
+      
+      <div id="newTagValue" angucomplete-alt="" placeholder="value" minlength="1" maxlength="100"
+           pause="500" selected-object="selectValue" remote-url="{{contextPath}}/secure/api/completion/tags/{{kind}}/value/{{newTag.key}}/"
+           remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-value" match-class="highlight"
+           input-changed="updateValue" override-suggestions="true">
+      </div>
       <span class="input-group-btn">
         <button type="button" class="btn btn-success btn-sm" ng-disabled="newTag === undefined || newTag.key.length === 0 || newTag.value.length === 0" ng-click="addTag()"><span class="fa fa-plus"></span></button>
       </span>
