@@ -10,6 +10,15 @@
     .inner-portlet{
       padding-top: 2px;
     }
+    .btn.space-bottom{
+      margin-bottom:15px;
+    }
+    .btn.space-top{
+      margin-top:10px;
+    }
+    #actions_zone {
+      margin: 0;
+    }
     </style>
   </head>
 
@@ -31,31 +40,27 @@
             </p>
           </div>
         </div>
-
         <div class="inner-portlet-content">
           <div class="lift:configuration.ParameterManagement.display"></div>
         </div>
       </lift:authz>
     </div>
     <hr class="spacer" />
-
     <lift:authz role="directive_write">
       <div id="globalParameterForm"></div>
     </lift:authz>
-
   </div>
-    <div class="tw-bs">
-        <div id="createGlobalParameterPopup" class="modal fade" data-keyboard="true" tabindex="-1">
-            <lift:ignore>
-                This div gets the content of the CreateOrUpdateGlobalParameterPopup injected within
-            </lift:ignore>
-            <div id="createGlobalParameterContainer"></div>
-        </div>
-    </div>
-    
-    
-  <div id="deletionPopup" class="nodisplay"></div>
 
+  <div class="tw-bs">
+    <div id="createGlobalParameterPopup" class="modal fade" data-keyboard="true" tabindex="-1">
+      <lift:ignore>
+          This div gets the content of the CreateOrUpdateGlobalParameterPopup injected within
+      </lift:ignore>
+      <div id="createGlobalParameterContainer"></div>
+    </div>
+  </div>
+
+  <div id="deletionPopup" class="nodisplay"></div>
   <br/>
 </lift:surround>
 
