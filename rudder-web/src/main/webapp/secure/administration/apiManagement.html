@@ -39,7 +39,7 @@
 </head>
 
 
-<div class="portlet" ng-app="accountManagement" id="accountManagement" ng-cloak="" >
+<div class="portlet" id="accountManagement" ng-cloak="" >
   <div class="portlet-content">
     <div class="inner-portlet">
       <div class="page-title">Configure allowed accounts</div>
@@ -118,7 +118,7 @@
                       <div class="simplemodal-bottom">
                         <div class="popupButton" style="width: 98%;border-top: 1px solid #9A9A9A;margin-top: 10px;">
                           <span>
-                            <input type="submit" class="btn-primary" style="float:right;" value="Save" ng-disabled="newAccount.$pristine || newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" />
+                            <input type="submit" class="btn-primary pull-right" value="Save" ng-disabled="newAccount.$pristine || newAccount.$invalid" ng-class="{'ui-state-disabled':newAccount.$pristine || newAccount.$invalid}" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" />
                             <button class="simplemodal-close" ng-click="closePopup();newAccount.$setPristine();">Cancel</button>
                           </span>
                         </div>
@@ -147,7 +147,7 @@
                           <h2 id="areYouSure">You are about to {{myOldAccount.actionName.toLowerCase()}} an API Account.</h2>
                           <span> If you continue, any scripts using this will no longer be able to connect to Rudder's API.</span>
                         </div>
-                        <br />
+                        <br/>
                         <hr class="spacer" />
                       </div>
                       <div class="simplemodal-bottom">
