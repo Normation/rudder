@@ -17,9 +17,38 @@
 #####################################################################################
 
 # @name Service action
-# @description Trigger an action on a service using tools like systemctl, service, init.d, Windows...
+# @description Trigger an action on a service using the approriate tool
 #
-# @parameter service_name Service
+# @documentation The name of the service is the name understood by the service manager.
+#
+# The action is the name of an action as understood by the service manager for the given service.
+#
+# The supported service managers are:
+#
+# * systemd
+# * service command
+# * smf (for Solaris)
+# * SRC (for AIX)
+# * Windows services
+#
+# The name of the action is any name understood by the package manager, often including:
+#
+# * start
+# * stop
+# * restart
+# * reload
+#
+# We provide shortcuts for these actions with specific methods called `service_`*action*.
+#
+# #### Examples
+#
+# # ```
+# # To restart the apache2 service
+# service_action("apache2", "restart");
+# service_restart("apache2");
+# ```
+#
+# @parameter service_name Name of the service
 # @parameter action Action to trigger on the service (start, stop, restart, reload, ...)
 # 
 # @class_prefix service_action

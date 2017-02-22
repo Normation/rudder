@@ -18,8 +18,9 @@
 
 # @name Service reload
 # @description Reload a service using the appropriate method
+# @documentation See [service_action](#service_action) for documentation.
 #
-# @parameter service_name Service
+# @parameter service_name Name of the service
 # 
 # @class_prefix service_reload
 # @class_parameter service_name
