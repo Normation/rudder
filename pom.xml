@@ -221,6 +221,40 @@ limitations under the License.
     </plugins>
     <pluginManagement>
     <plugins>
+      <!-- configure jar everywhere -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.0.2</version>
+        <configuration>      
+          <archive>
+            <addMavenDescriptor>false</addMavenDescriptor>
+            <manifestEntries>
+              <!-- let built-by be empty - we can't remove it -->
+              <Built-By>${project.organization.name}</Built-By>
+              <Build-Time>${maven.build.timestamp}</Build-Time>
+              <version>${version}</version>
+            </manifestEntries>
+          </archive>      
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>3.0.0</version>
+        <configuration>      
+          <archive>
+            <addMavenDescriptor>false</addMavenDescriptor>
+            <manifestEntries>
+              <!-- let built-by be empty - we can't remove it -->
+              <Built-By>${project.organization.name}</Built-By>
+              <!-- And yes, manifest file must start with upper case... -->
+              <Build-Time>${maven.build.timestamp}</Build-Time>
+              <Version>${version}</Version>
+            </manifestEntries>
+          </archive>      
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.eclipse.m2e</groupId>
         <artifactId>lifecycle-mapping</artifactId>
