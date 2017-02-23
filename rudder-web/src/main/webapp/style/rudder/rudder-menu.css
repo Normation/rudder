@@ -72,7 +72,10 @@ header.main-header .logo-lg img{
 .text-align{
   text-align:center!important;
 }
-
+.pre{
+  white-space: pre-line;
+  word-break: break-word;
+}
 /* - JSON - */
 tbody.toggle-color{
   border-left:1px solid #c3c3c3;
