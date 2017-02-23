@@ -772,3 +772,310 @@ body edit_defaults ncf_empty_select(select)
         max_file_size             => "25M";
         edit_backup               => "timestamp";
 }
+
+# defines ncf_services_${service}_${action}
+#
+# Standard actions are:
+#
+# * start
+# * stop
+# * restart
+# * reload (with an alias to refresh)
+# * is-active (with an alias to status)
+# * is-active-process (in this case, the "service" parameter is the regex to match againt process list)
+# * enable
+# * disable
+# * is-enabled
+#
+# When using service, init.d or systemd, any unkown action will be passed as is to the command
+# wich allows support for try-restart, force-reload, etc.
+#
+# This bundle can be seen as a kind of service_bundle, but:
+#
+# * No concept of state, every call is an action that will be executed. State must be implemented at higher level.
+# * More supported actions, services promises are limited to start/stop/enable/disable
+# * Special actions (is-*) for checks
+#
+bundle agent ncf_services(service, action)
+{
+  vars:
+
+    ###########################################################################
+    # All actions
+    ###########################################################################
+
+    # These commands (sadly) are not completely static (as on debian 8 and upstart the outcome depends on the service)
+
+    # systemd
+    pass1.!broken_systemctl.systemctl_utility_present::
+      "action_command" string => "${paths.path[systemctl]} --no-ask-password ${action} ${service}.service";
+      "method"         string => "systemctl";
+
+    # upstart
+    pass1.!systemctl_utility_present.is_upstart_service::
+      # non-boot
+      "upstart_action_cmd[start]"      string => "/sbin/initctl start ${service}";
+      "upstart_action_cmd[stop]"       string => "/sbin/initctl stop ${service}";
+      "upstart_action_cmd[restart]"    string => "/sbin/initctl restart ${service}";
+      "upstart_action_cmd[reload]"     string => "/sbin/initctl reload ${service}";
+      "upstart_action_cmd[is-active]"  string => "/sbin/initctl status ${service} | grep -q ' start/'";
+      # boot
+      "upstart_action_cmd[enable]"     string => "${paths.path[sed]} -i '/^manual/d' /etc/init/${service}.override";
+      "upstart_action_cmd[disable]"    string => "${paths.path[echo]} manual >> /etc/init/${service}.override";
+      # this one may not be true is it was disabled by another way
+      "upstart_action_cmd[is-enabled]" string => "${paths.path[grep]} -q '^manual' /etc/init/${service}.override; test $? -ne 0";
+      "action_command"                 string => "${upstart_action_cmd[${action}]}";
+      "method"                         string => "upstart";
+
+    # svcadm/svcs
+    pass1.!systemctl_utility_present.!is_upstart_service.svcadm_utility_present::
+      # non-boot
+      "svc_action_cmd[start]"      string => "${paths.path[svcadm]} enable -s -t ${service}";
+      "svc_action_cmd[stop]"       string => "${paths.path[svcadm]} disable -s -t ${service}";
+      "svc_action_cmd[restart]"    string => "${paths.path[svcadm]} restart -s ${service}";
+      "svc_action_cmd[reload]"     string => "${paths.path[svcadm]} refresh -s ${service}";
+      "svc_action_cmd[is-active]"  string => "${paths.path[svcs]} -H ${service} | ${paths.path[grep]} '^online'";
+      # boot
+      "svc_action_cmd[enable]"     string => "${paths.path[svcadm]} enable -s ${service}";
+      "svc_action_cmd[disable]"    string => "${paths.path[svcadm]} disable -s ${service}";
+      "svc_action_cmd[is-enabled]" string => "${paths.path[svcs]} -l ${service} | ${paths.path[egrep]} '^enabled [ 	]+(true|false \(temporary\))'";
+      "action_command"             string => "${svc_action_cmd[${action}]}";
+      "method"                     string => "svcadm/svcs";
+
+    ###########################################################################
+    # Boot actions
+    ###########################################################################
+
+    # chkconfig
+    pass1.is_boot_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.chkconfig_utility_present::
+      "chkconfig_action_cmd[enable]"     string => "${paths.path[chkconfig]} ${service} on";
+      "chkconfig_action_cmd[disable]"    string => "${paths.path[chkconfig]} ${service} off";
+      "chkconfig_action_cmd[is-enabled]" string => "${paths.path[chkconfig]} --list ${service} | ${paths.path[grep]} -q -e 3:on -e B:on";
+      "action_command"                   string => "${chkconfig_action_cmd[${action}]}";
+      "method"                           string => "chkconfig";
+
+    # update-rc.d
+    # WARN: "is-enabled" will use /etc/rcX.d/ directly
+    pass1.is_boot_action.!is_check_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.update_rcd_utility_present::
+      "update_rcd_action_cmd[enable]"  string => "${paths.path[update_rc_d]} ${service} defaults";
+      "update_rcd_action_cmd[disable]" string => "${paths.path[update_rc_d]} ${service} disable";
+      "action_command"                 string => "${update_rcd_action_cmd[${action}]}";
+      "method"                         string => "update-rc.d";
+
+    # chitab/lsitab
+    pass1.is_boot_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.!update_rcd_utility_present.chitab_utility_present::
+      "chitab_action_cmd[enable]"     string => "/usr/sbin/chitab \"`lsitab -a | grep '^${service}:' | sed 's/\([^:]*\):\([^:]*\):[^:]*:\(.*\)/\1:\2:respawn:\3/'`\"";
+      "chitab_action_cmd[disable]"    string => "/usr/sbin/chitab \"`lsitab -a | grep '^${service}:' | sed 's/\([^:]*\):\([^:]*\):[^:]*:\(.*\)/\1:\2:off:\3/'`\"";
+      "lsitab_action_cmd[is-enabled]" string => "/usr/sbin/lsitab -a | ${paths.path[egrep]} '^${service}:[0-9]+:(respawn|boot|bootwait|wait|once|initdefault|sysinit):'";
+      "action_command"                string => "${lsitab_action_cmd[${action}]}";
+      "method"                        string => "lsitab/chitab";
+
+    # /etc/rcX.d/
+    pass1.is_boot_action.is_check_action.(broken_systemctl|(!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.!chitab_utility_present))::
+      "action_command" string => "${paths.path[test]} -f /etc/rc`runlevel | ${paths.path[cut]} -d' ' -f2`.d/S??${service}";
+      "method"         string => "/etc/rcX.d/";
+
+    ###########################################################################
+    # Non-boot actions
+    ###########################################################################
+
+    # service
+    # WARN: Some actions may not be supported by the init script
+    pass1.!is_boot_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.service_utility_present::
+      "action_command" string => "${paths.path[service]} ${service} ${action}",
+                   ifvarclass => "!is_check_action";
+      # is-active is mapped to "status"
+      "action_command" string => "${paths.path[service]} ${service} status",
+                   ifvarclass => "is_check_action";
+      "method"         string => "service";
+
+    # src
+    pass1.!is_boot_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.!service_utility_present.startsrc_utility_present::
+      "svc_action_cmd[start]"     string => "/usr/bin/startsrc -s ${service}";
+      "svc_action_cmd[stop]"      string => "/usr/bin/stopsrc -s ${service}";
+      "svc_action_cmd[restart]"   string => "/usr/bin/stopsrc -s ${service} && until /usr/bin/lssrc -s ${service} | ${paths.grep} -q inoperative; do ${paths.perl} -e 'select(undef,undef,undef,.25)'; done; /usr/bin/startsrc -s ${service_name}";
+      "svc_action_cmd[reload]"    string => "/usr/bin/refresh -s ${service}";
+      "svc_action_cmd[is-active]" string => "/usr/bin/lssrc -s ${service} | ${paths.path[grep]} -q 'active'";
+      "action_command"            string => "${svc_action_cmd[${action}]}";
+      "method"                    string => "src";
+
+    # init.d
+    # WARN: Some actions may not be supported by the init script
+    pass1.!is_boot_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.!service_utility_present.!startsrc_utility_present.init_d_directory_present::
+      "action_command" string => "/etc/init.d/${service} ${action}",
+                   ifvarclass => "!is_check_action";
+      # is-active is mapped to "status"
+      "action_command" string => "/etc/init.d/${service} status",
+                   ifvarclass => "is_check_action";
+      "method"         string => "/etc/init.d/";
+
+    # windows
+    # Implementation is done in services promises
+    windows::
+      "method" string => "Windows Service Manager";
+
+    ###########################################################################
+
+    any::
+      "canonified_service"        string => canonify("${service}");
+      "canonified_action"         string => canonify("${action}");
+      "canonified_action_command" string => canonify("${action_command}");
+
+      "old_class_prefix"  string => "ncf_services_${canonified_service}_${canonified_action}";
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"               slist => { "${service}", "${action}" };
+
+  defaults:
+    # status is an alias to is-active (in systemd, it is not the same thing the only difference is the output, which is not kept anyway)
+      "actual_action" string => "is-active", if_match_regex => "status";
+
+    # refresh is an alias to reload
+      "actual_action" string => "reload", if_match_regex => "refresh";
+
+  classes:
+
+    windows::
+      "is_valid_action" or => {
+                                strcmp("start", "${action}"),
+                                strcmp("stop", "${action}"),
+                                strcmp("restart", "${action}"),
+                              };
+      "is_restart_action" expression => strcmp("restart", "${action}");
+
+    any::
+      "is_process_action" expression => strcmp("is-active-process", "${action}");
+
+      "is_boot_action"  or => { 
+                                strcmp("enable", "${action}"),
+                                strcmp("disable", "${action}"),
+                                strcmp("is-enabled", "${action}")
+                              };
+
+      "is_check_action" or => {
+                                strcmp("is-active", "${action}"),
+                                strcmp("is-active-process", "${action}"),
+                                strcmp("is-enabled", "${action}")
+                              };
+
+      # Due to lack of integration between upstart and init scripts, we have to make different cases.
+      "is_upstart_service"         not => returnszero("/sbin/initctl status ${service} 2>&1 | ${paths.path[grep]} 'Unknown job'", "useshell"),
+                            ifvarclass => "initctl_utility_present";
+
+    debian_8::
+      # This is to workaround a bug in Debian Jessie, that makes systemctl is-enabled
+      # fail if run against a service that still uses SysV style scripts
+      # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=760616
+      "is_broken_action"    expression => strcmp("is-enabled", "${action}");
+      "init_script_present" expression => fileexists("/etc/init.d/${service}");
+      "broken_systemctl"    expression => "is_broken_action.init_script_present";
+
+    pass1::
+      "method_found"      expression => isvariable("method");
+
+    #####
+    # Actual command - for checks on non-windows systems
+    #####
+    pass1.is_check_action.!windows.!is_process_action.method_found::
+      "action_ok" expression => returnszero("${action_command} > /dev/null 2>&1", "useshell");
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+
+    #####
+    # Actual command - for actions on non-windows systems, non using systemd
+    #####
+    pass2.is_check_action.!windows.!is_process_action.method_found.action_ok::
+      "force_success_class"    usebundle => _classes_success("${old_class_prefix}");
+      "force_success_class"    usebundle => _classes_success("${class_prefix}");
+
+    pass2.is_check_action.!windows.!is_process_action.method_found.!action_ok::
+      "force_failure_class"    usebundle => _classes_failure("${old_class_prefix}");
+      "force_failure_class"    usebundle => _classes_failure("${class_prefix}");
+
+    # Method not found
+    pass2.(!method_found|(windows.!is_valid_action))::
+      "force_failure_class"    usebundle => _classes_failure("${old_class_prefix}");
+      "force_failure_class"    usebundle => _classes_failure("${class_prefix}");
+
+    # Classes for process check
+    pass2::
+      "force_failure_process"  usebundle => _classes_failure("${old_class_prefix}"),
+                              ifvarclass => "${old_class_prefix}_checked_not_ok";
+      "force_failure_process"  usebundle => _classes_failure("${class_prefix}"),
+                              ifvarclass => "${old_class_prefix}_checked_not_ok";
+
+      "force_success_process"  usebundle => _classes_success("${old_class_prefix}"),
+                              ifvarclass => "${old_class_prefix}_checked_ok";
+      "force_success_process"  usebundle => _classes_success("${class_prefix}"),
+                              ifvarclass => "${class_prefix}_checked_ok";
+
+  processes:
+
+    ###########################################################################
+    # is-active-process action
+    ###########################################################################
+
+    is_process_action::
+      "${service}"
+        process_count => any_count_two("${old_class_prefix}_checked_ok", "${class_prefix}_checked_ok");
+
+      "${service}"
+        # missing new_class_prefix : we cannot put 2 classes here, so we put the only one that we are sure works
+        restart_class => "${old_class_prefix}_checked_not_ok";
+
+  services:
+
+    ###########################################################################
+    # Windows - only non-boot actions
+    ###########################################################################
+
+    #####
+    # Actual command - for actions on windows systems
+    #####
+    # Restart causes the agent to fail, so we must replace it by stop and start
+    windows.is_valid_action.!is_restart_action::
+      "${service}"
+        service_policy => "${action}",
+        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    windows.is_restart_action::
+      "${service}"
+        service_policy => "stop",
+        classes        => classes_generic_two("${old_class_prefix}_stop_service", "${class_prefix}_stop_service");
+
+      "${service}"
+        service_policy => "start",
+        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+        ifvarclass     => "(!has_promiser_stack.${old_class_prefix}_stop_service_ok)|(has_promiser_stack.${class_prefix}_stop_service_ok)";
+
+  commands:
+    #####
+    # Actual command - for actions on non-windows systems
+    #####
+    # We need to use our own commands: implementation here rather than calling command_execution
+    # because of a CFEngine bug (https://dev.cfengine.com/issues/5840) that causes systemctl
+    # to fail if it can't find /dev/tty, which is the case unless using no_output => true
+    # It also avoids reporting on command_execution for all platforms
+    pass2.!is_check_action.!windows.!is_process_action.method_found::
+      "${action_command}"
+        contain => in_shell_and_silent,
+        classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  reports:
+
+    pass3.error.!method_found::
+      "${configuration.error} Could not find a supported service management method on this system";
+    pass3.error.!is_valid_action::
+      "${configuration.error} The ${action} action is not supported on Windows (use 'start', 'stop' or 'restart')";
+
+    pass3.info.method_found.(!windows|is_valid_action)::
+      "${configuration.info} Executing ${action} on ${service} using the ${method} method";
+
+    pass3.debug.method_found.!windows::
+      "${configuration.debug} Executing: '${action_command}'";
+}

@@ -36,6 +36,7 @@ bundle agent service_ensure_stopped(service_name)
     "args"                          slist => { "${service_name}" };
 
   methods:
+
     !windows::
       "check running"
         usebundle  => service_check_running("${service_name}");
@@ -62,14 +63,17 @@ bundle agent service_ensure_stopped(service_name)
         usebundle  => _classes_copy("${class_prefix}_stop_if_running", "${class_prefix}"),
         ifvarclass => "has_promiser_stack.${class_prefix}_check_running_kept";
 
+    windows::
+      "action"             usebundle => service_stop("${service_name}");
+
+      "class copy"         usebundle => _classes_copy("service_stop_${canonified_service_name}", "${old_class_prefix}"),
+                          ifvarclass => "service_stop_${canonified_service_name}_reached";
+      "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                          ifvarclass => "${class_prefix}_action_reached";
+
     any::
       "report"
         usebundle  => _log("Ensure that service ${service_name} is stopped", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass =>"(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.!${class_prefix}_reached)";
 
-  services:
-    windows::
-      "${service_name}"
-        service_policy => "stop",
-        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 }

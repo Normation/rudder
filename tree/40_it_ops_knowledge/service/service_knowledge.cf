@@ -23,6 +23,7 @@ bundle common service_knowledge
       "service_utility_present"    expression => fileexists("${paths.path[service]}");
       "chkconfig_utility_present"  expression => fileexists("${paths.path[chkconfig]}");
       "update_rcd_utility_present" expression => fileexists("${paths.path[update_rc_d]}");
+      "initctl_utility_present"    expression => fileexists("/sbin/initctl");
 
       # AIX service management utilities
       "startsrc_utility_present"   expression => fileexists("/usr/bin/startsrc");
