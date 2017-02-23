@@ -357,7 +357,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
   // recent changes as graph, with link to the edit form
   var recentChanges = {
       "mDataProp": "name"
-    , "sWidth": "10%"
+    , "sWidth": "15%"
     , "sTitle": "Recent changes"
     , "sSortDataType": "changes"
     , "sType" : "numeric"
