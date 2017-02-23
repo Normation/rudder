@@ -1024,6 +1024,9 @@ a.sidebar-toggle{
 }
 
 /* --- NODE PAGE --- */
+#submitSearch {
+  padding-left: 7px;
+}
 .errorSaving.alert-danger{
   margin-top:10px;
 }
