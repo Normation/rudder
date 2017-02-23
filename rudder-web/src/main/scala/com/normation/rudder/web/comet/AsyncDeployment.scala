@@ -169,7 +169,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             </div>
 
 
-            case _ => <span>{failure.messageChain.split("<-").map(x => Text("⇨ " + x) ++ {<br/>})}</span>
+            case _ => <div class="pre">{failure.messageChain.split("<-").map(x => Text("⇨ " + x) ++ {<br/>})}</div>
         }
 
         val callback = JsRaw("$('#errorDetailsDialog').bsModal('show');") & SetHtml("errorDetailsMessage" , popupContent)
