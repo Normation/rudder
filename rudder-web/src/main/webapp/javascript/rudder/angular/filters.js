@@ -101,10 +101,12 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
       }, 0);
     }
   }
-  $scope.modifyTag = function(index,tag){
-    toggle()
+  $scope.modifyTag = function(tag, idKey, idValue){
+    toggle();
     $scope.newTag.key   = tag.key;
     $scope.newTag.value = tag.value;
+    $scope.$broadcast('angucomplete-alt:changeInput', idKey  , tag.key  );
+    $scope.$broadcast('angucomplete-alt:changeInput', idValue, tag.value);
   }
   
   $scope.addTag = function(tag){
@@ -120,6 +122,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
     }
     if(isNewTag){
       $scope.tags.push(newTag);
+      $scope.$broadcast('angucomplete-alt:clearInput');
       search();
       $scope.resetNewTag();
     }
