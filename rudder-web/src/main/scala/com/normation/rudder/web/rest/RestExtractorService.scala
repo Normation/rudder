@@ -207,7 +207,7 @@ case class RestExtractorService (
   }
 
   private[this] def extractJsonDirectiveParam (json: JValue ): Box[Option[Map[String,Seq[String]]]] = {
-    json \\ "parameters" match {
+    json \ "parameters" match {
       case JObject(Nil) => Full(None)
       case x@JObject(_) => parseSectionVal(x).map(x => Some(SectionVal.toMapVariables(x)))
       case _            => Failure(s"The value for parameter 'parameters' is malformed.")
@@ -702,7 +702,13 @@ case class RestExtractorService (
 
   def extractDirective (params : Map[String,List[String]]) : Box[RestDirective] = {
     for {
-      name             <- extractOneValue(params, "name")(toMinimalSizeString(3)) or extractOneValue(params, "displayName")(toMinimalSizeString(3))
+      name             <- (extractOneValue(params, "name")(toMinimalSizeString(3)), extractOneValue(params, "displayName")(toMinimalSizeString(3))) match {
+                            case (res@Full(Some(name)),_) => res
+                            case (_,res@Full(Some(name))) => res
+                            case (Full(None),Full(None)) => Full(None)
+                            case (eb : EmptyBox,_) => eb
+                            case (_, eb: EmptyBox) => eb
+                          }
       shortDescription <- extractOneValue(params, "shortDescription")()
       longDescription  <- extractOneValue(params, "longDescription")()
       enabled          <- extractOneValue(params, "enabled")( toBoolean)
@@ -745,8 +751,13 @@ case class RestExtractorService (
 
   def extractDirectiveFromJSON (json : JValue) : Box[RestDirective] = {
     for {
-      name             <- extractJsonString(json, "name", toMinimalSizeString(3)) or
-                          extractJsonString(json, "displayName", toMinimalSizeString(3))
+      name             <- (extractJsonString(json, "name", toMinimalSizeString(3)), extractJsonString(json, "displayName", toMinimalSizeString(3))) match {
+                            case (res@Full(Some(name)),_) => res
+                            case (_,res@Full(Some(name))) => res
+                            case (Full(None),Full(None)) => Full(None)
+                            case (eb : EmptyBox,_) => eb
+                            case (_, eb: EmptyBox) => eb
+                          }
       shortDescription <- extractJsonString(json, "shortDescription")
       longDescription  <- extractJsonString(json, "longDescription")
       enabled          <- extractJsonBoolean(json, "enabled")
@@ -767,7 +778,7 @@ case class RestExtractorService (
       description <- extractJsonString(json, "description")
       enabled     <- extractJsonBoolean(json, "enabled")
       dynamic     <- extractJsonBoolean(json, "dynamic")
-      stringQuery <- queryParser.jsonParse(json \\ "query")
+      stringQuery <- queryParser.jsonParse(json \ "query")
       query       <- queryParser.parse(stringQuery)
       _           <- if (query.criteria.size > 0) Full("Query has at least one criteria") else Failure("Query should containt at least one criteria")
       category    <- extractJsonString(json, "category", toGroupCategoryId)
