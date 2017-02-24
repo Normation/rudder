@@ -63,8 +63,6 @@ import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.rudder.domain.nodes.MachineInfo
 
-
-
 /*
  * General logic for the cache implementation of NodeInfo.
  * The general idea is to limit at maximum:
@@ -93,7 +91,6 @@ import com.normation.rudder.domain.nodes.MachineInfo
  *   being rebuilt (so, much data on the wires, jvm gb pression, etc).
  */
 
-
 /**
  * A case class used to represent the minimal
  * information needed to get a NodeInfo
@@ -118,7 +115,6 @@ trait NodeInfoService {
    */
   def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]]
 
-
   /**
    * Get the node (not inventory).
    * Most of the info are also in node info,
@@ -126,7 +122,6 @@ trait NodeInfoService {
    * we need them.
    */
   def getNode(nodeId: NodeId): Box[Node]
-
 
   /**
    * Get all node infos.
@@ -136,7 +131,6 @@ trait NodeInfoService {
    * So it is possible that getAllIds.size > getAll.size
    */
   def getAll() : Box[Map[NodeId, NodeInfo]]
-
 
   /**
    * Get all nodes.
@@ -153,7 +147,6 @@ trait NodeInfoService {
    * @return
    */
   def getAllSystemNodeIds() : Box[Seq[NodeId]]
-
 
   /**
    * Getting something like a nodeinfo for pending / deleted nodes
@@ -201,11 +194,9 @@ object NodeInfoService {
     , A_CONTAINER_DN, A_OS_RAM, A_KEY_STATUS
   )).toSeq
 
-
   val A_MOD_TIMESTAMP = "modifyTimestamp"
 
 }
-
 
 /*
  * For test, we need a way to split the cache part from its retrieval.
@@ -315,7 +306,14 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
                            machineEntry
                          }
             ldapNode  = LDAPNodeInfo(nodeEntry, nodeInv, machineInv)
-            nodeInfo <- ldapMapper.convertEntriesToNodeInfos(ldapNode.nodeEntry, ldapNode.nodeInventoryEntry, ldapNode.machineEntry)
+            nodeInfo <- ldapMapper.convertEntriesToNodeInfos(ldapNode.nodeEntry, ldapNode.nodeInventoryEntry, ldapNode.machineEntry) match {
+                          case Full(nodeInfo) => Some(nodeInfo)
+                          case eb : EmptyBox =>
+                            val fail = eb ?~! "An error occured while updating node cache"
+                            logger.error(fail.messageChain)
+                            // for now we only log the error message, and keep a None so Node data are not updated
+                            None
+                        }
           } yield {
             (nodeInfo.id, (ldapNode,nodeInfo))
           }
@@ -323,7 +321,6 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
         (res, lastModif)
       }
     }
-
 
     //actual logic that check what to do (invalidate cache or not)
 
@@ -444,7 +441,6 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
   override final def getPendingNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, PendingInventory)
   override final def getDeletedNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, RemovedInventory)
 
-
   /**
    * Clear cache. Try a reload asynchronously, disregarding
    * the result
@@ -516,10 +512,7 @@ class NaiveNodeInfoServiceCachedImpl(
       })
   }
 
-
 }
-
-
 
 /**
  * A cache on top of node info service.
@@ -536,7 +529,6 @@ class NodeInfoServiceCachedImpl(
   , override val inventoryMapper: InventoryMapper
 ) extends NodeInfoServiceCached {
   import NodeInfoService._
-
 
  /*
    * Check if node related infos are up to date.
