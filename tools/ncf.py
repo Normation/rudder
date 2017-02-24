@@ -38,8 +38,15 @@ class NcfError(Exception):
   def __init__(self, message, details="", cause=None):
     self.message = message
     self.details = details
-    if cause is not None:
-      self.details += " caused by : " + cause.message + "\n" + cause.details
+    # try to get details from inner cause
+    try:
+      # Will not add to details if cause is None or message is None
+      self.details += " caused by : " + cause.message
+      # Will not add to details if details is None
+      self.details += "\n" + cause.details
+    except:
+      # We got an error while extending error details, just ignore it and keep current value
+      pass
 
   def __str__(self):
     return repr(self.message)
@@ -80,7 +87,7 @@ def check_output(command, env = {}):
   else:
     if VERBOSE == 1:
       sys.stderr.write("VERBOSE: Exception triggered, Command returned error code " + str(retcode) + "\n")
-    raise NcfError("Error while running post-hook command " + str(command), error)
+    raise NcfError("Error while running post-hook command " + " ".join(command), error)
 
   if VERBOSE == 1:
     sys.stderr.write("VERBOSE: Command output: '" + output + "'" + "\n")
@@ -294,7 +301,10 @@ def parse_technique_methods(technique_file):
   env = os.environ.copy()
   env['RES_OPTIONS'] = 'attempts:0'
   out = check_output(["cf-promises", "-pjson", "-f", technique_file], env=env)
-  promises = json.loads(out)
+  try:
+    promises = json.loads(out)
+  except Exception as e:
+      raise NcfError("An error occured while parsing technique '"+technique_file+"'", cause = e)
 
   # Sanity check: if more than one bundle, this is a weird file and I'm quitting
   bundle_count = 0
@@ -550,7 +560,8 @@ def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
         method_calls = parse_technique_methods(file)
         all_metadata[metadata['bundle_name']]['method_calls'] = method_calls
     except NcfError as e:
-      error = NcfError("Could not parse Technique file '" + file + "'", cause=e)
+      bundle_name = os.path.splitext(os.path.basename(file))[0]
+      error = NcfError("Could not parse Technique '"+ bundle_name+ "'", cause=e)
       errors.append(error)
       continue # skip this file, it doesn't have the right tags in - yuk!
 

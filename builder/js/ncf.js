@@ -242,7 +242,7 @@ $scope.capitaliseFirstLetter = function (string) {
 function errorNotification (message,details) {
   var errorMessage = '<b>An Error occured!</b> ' + message
   if (details !== undefined) {
-    errorMessage += '<br/>Details: ' + details
+    errorMessage += '<br/><b>Details:</b><pre>' + details +"</pre>"
   }
   ngToast.create({
       content: errorMessage
