@@ -114,7 +114,7 @@ class LDAPEntityMapper(
       case _ =>
     }
 
-    entry +=! (A_NODE_PROPERTY, node.properties.map(x => compactRender(x.toLdapJson)):_* )
+    entry +=! (A_NODE_PROPERTY, node.properties.map(x => compactRender(x.toJson)):_* )
 
     node.nodeReportingConfiguration.heartbeatConfiguration match {
       case Some(heatbeatConfiguration) =>
@@ -169,6 +169,10 @@ class LDAPEntityMapper(
           case None => Full(None)
           case Some(value) => PolicyMode.parse(value).map {Some(_) }
         }
+        properties <- sequence(e.valuesFor(A_NODE_PROPERTY).toSeq)(v => net.liftweb.json.parseOpt(v) match {
+          case Some(json) => unserializeLdapNodeProperty(json)
+          case None => Failure("Invalid data when unserializing node property")
+        })
       } yield {
         Node(
             id
@@ -182,7 +186,7 @@ class LDAPEntityMapper(
                 agentRunInterval
               , heartbeatConf
             )
-          , e.valuesFor(A_NODE_PROPERTY).map(unserializeLdapNodeProperty(_)).toSeq
+          , properties
           , policyMode
         )
       }
