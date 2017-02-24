@@ -28,6 +28,8 @@
 #
 # #### Parameters
 #
+# This section describes the genric method parameters.
+#
 # #### target_uuid
 #
 # The node you want to share this file with. The uuid of a node
