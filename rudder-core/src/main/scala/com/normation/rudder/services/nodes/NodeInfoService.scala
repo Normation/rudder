@@ -306,7 +306,14 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
                            machineEntry
                          }
             ldapNode  = LDAPNodeInfo(nodeEntry, nodeInv, machineInv)
-            nodeInfo <- ldapMapper.convertEntriesToNodeInfos(ldapNode.nodeEntry, ldapNode.nodeInventoryEntry, ldapNode.machineEntry)
+            nodeInfo <- ldapMapper.convertEntriesToNodeInfos(ldapNode.nodeEntry, ldapNode.nodeInventoryEntry, ldapNode.machineEntry) match {
+                          case Full(nodeInfo) => Some(nodeInfo)
+                          case eb : EmptyBox =>
+                            val fail = eb ?~! "An error occured while updating node cache"
+                            logger.error(fail.messageChain)
+                            // for now we only log the error message, and keep a None so Node data are not updated
+                            None
+                        }
           } yield {
             (nodeInfo.id, (ldapNode,nodeInfo))
           }
