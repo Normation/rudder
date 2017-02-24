@@ -42,7 +42,7 @@
 #
 # #### Examples
 #
-# # ```
+# ```
 # # To restart the apache2 service
 # service_action("apache2", "restart");
 # service_restart("apache2");
