@@ -57,6 +57,8 @@ import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Failure
+import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -94,7 +96,6 @@ case object Node {
   }
 }
 
-
 /*
  * Name of the owner of a node property.
  */
@@ -115,6 +116,13 @@ object NodePropertyRights {
 
   def values = ca.mrvisser.sealerate.values[NodePropertyRights]
 
+  def apply(value : String) : Box[NodePropertyRights] = {
+    value match {
+      case ReadWrite.value => Full(ReadWrite)
+      case ReadOnly.value  => Full(ReadOnly)
+      case _               => Failure(s"'${value}' is not a valid value for Node properties rights")
+    }
+  }
 }
 
 /**
@@ -170,7 +178,6 @@ object NodeProperty {
     }
   }
 }
-
 
 object CompareProperties {
   /**
@@ -296,28 +303,23 @@ object JsonSerialisation {
   import net.liftweb.json.JsonDSL._
 
   implicit class JsonNodeProperty(x: NodeProperty) {
-    def toLdapJson(): JObject = (
-        ( "name"  , x.name  )
-      ~ ( "value" , x.value )
+    def toJson(): JObject = (
+        ( "name"     , x.name  )
+      ~ ( "value"    , x.value )
+      ~ ( "rights"   , x.rights  .map(_.value) )
+      ~ ( "provider" , x.provider.map(_.value) )
     )
   }
 
   implicit class JsonNodeProperties(props: Seq[NodeProperty]) {
     implicit val formats = DefaultFormats
 
-    private[this] def json(x: NodeProperty): JObject = (
-        ( "name"   , x.name  )
-      ~ ( "value"  , x.value )
-      ~ ( "rights" , x.rights.map(_.value)
- )
-    )
-
     def dataJson(x: NodeProperty) : JField = {
       JField(x.name, x.value)
     }
 
     def toApiJson(): JArray = {
-      JArray(props.map(json(_)).toList)
+      JArray(props.map(_.toJson()).toList)
     }
 
     def toDataJson(): JObject = {
@@ -325,11 +327,18 @@ object JsonSerialisation {
     }
   }
 
-  def unserializeLdapNodeProperty(value:String): NodeProperty = {
-    import net.liftweb.json.JsonParser._
-    implicit val formats = DefaultFormats
+  def unserializeLdapNodeProperty(json:JValue): Box[NodeProperty] = {
 
-    parse(value).extract[NodeProperty]
+    for {
+       name  <- CompleteJson.extractJsonString(json, "name")
+       value <- json \ "value" match { case JNothing => Failure("Cannot be Empty")
+                                       case value => Full(value)
+                                     }
+       provider <- OptionnalJson.extractJsonString(json, "provider", p => Full(NodePropertyProvider(p)) )
+       rights   <- OptionnalJson.extractJsonString(json, "rights", NodePropertyRights(_) )
+    } yield {
+      NodeProperty(name,value,provider,rights)
+    }
   }
 
 }

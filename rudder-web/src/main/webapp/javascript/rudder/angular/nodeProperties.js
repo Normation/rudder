@@ -61,7 +61,10 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
     "sTitle" :"Value",
     "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
       var pre = $("<pre class='json-beautify' onclick='$(this).toggleClass(\"toggle\")'></pre>");
-      var content = sData != null && typeof sData === 'object' ? JSON.stringify(sData) : sData;
+      var content = sData;
+      if (sData !== null && typeof sData === 'object') {
+        content = JSON.stringify(sData, null, 2)
+      }
       $(nTd).empty();
       pre.html(content)
       $(nTd).prepend(pre);
@@ -74,11 +77,13 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
     "sTitle" :"",
     "orderable": false,
     "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      var deleteButton = $('<span class="fa fa-times text-danger" ng-click="popupDeletion(\''+sData+'\', \''+iRow+'\')" ng-if="!rights"></span>');
+      var deleteButton = $('<span class="fa fa-times text-danger" ng-click="popupDeletion(\''+sData+'\', \''+iRow+'\')"></span>');
       $(nTd).addClass('text-center delete-action');
       $(nTd).empty();
-      $(nTd).prepend(deleteButton);
-      $compile(deleteButton)($scope);
+      if (oData.rights !== "read-only") {
+        $(nTd).prepend(deleteButton);
+        $compile(deleteButton)($scope);
+      }
     }
   }];
   var overrideOptions = {
