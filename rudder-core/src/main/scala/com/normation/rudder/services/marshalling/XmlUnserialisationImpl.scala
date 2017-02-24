@@ -161,7 +161,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
       priority              <- (directive \ "priority").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! ("Missing or bad attribute 'priority' in entry type directive : " + xml)
       isSystem              <- (directive \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type directive : " + xml)
       policyMode            =  (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text) )
-      directiveIds          =  (directive \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
+      tags                  =  TagsXml.getTags( directive \ "tags")
     } yield {
       (
           TechniqueName(ptName)
@@ -176,6 +176,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
             , priority         = priority
             , _isEnabled       = isEnabled
             , isSystem         = isSystem
+            , tags             = tags
           )
         , sectionVal
       )
@@ -276,6 +277,8 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
       targets          <- sequence((rule \ "targets" \ "target")) { t => RuleTarget.unser(t.text) } ?~!
                           ("Invalid attribute in 'target' entry: " + entry)
       directiveIds     = (rule \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
+      tags             =  TagsXml.getTags( rule \ "tags")
+
     } yield {
       Rule(
           RuleId(id)
@@ -290,6 +293,7 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
         , longDescription
         , isEnabled
         , isSystem
+        , tags
       )
     }
   }

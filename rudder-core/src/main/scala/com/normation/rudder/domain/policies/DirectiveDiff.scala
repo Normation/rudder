@@ -84,6 +84,7 @@ final case class ModifyDirectiveDiff(
   , modIsActivated     : Option[SimpleDiff[Boolean]]           = None
   , modIsSystem        : Option[SimpleDiff[Boolean]]           = None
   , modPolicyMode      : Option[SimpleDiff[Option[PolicyMode]]]= None
+  , modTags            : Option[SimpleDiff[Set[Tag]]]          = None
 ) extends DirectiveSaveDiff with HashcodeCaching {
   def needDeployment : Boolean = {
     modTechniqueVersion.isDefined || modParameters.isDefined || modPriority.isDefined || modIsActivated.isDefined || modName.isDefined ||modPolicyMode.isDefined

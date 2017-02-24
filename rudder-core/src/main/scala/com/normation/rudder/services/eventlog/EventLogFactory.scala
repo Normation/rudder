@@ -366,7 +366,12 @@ class EventLogFactoryImpl(
             modifyDiff.modIsActivatedStatus.map(x =>
               SimpleDiff.booleanToXml(<isEnabled/>, x ) ) ++
             modifyDiff.modIsSystem.map(x =>
-              SimpleDiff.booleanToXml(<isSystem/>, x ) )
+              SimpleDiff.booleanToXml(<isSystem/>, x ) ) ++
+            modifyDiff.modTags.map(x =>
+              SimpleDiff.toXml[Set[Tag]](<tags/>, x){ tags =>
+                TagsXml.toXml(Tags(tags))
+              }
+            )
           }
         </rule>
       )
@@ -453,7 +458,12 @@ class EventLogFactoryImpl(
             modifyDiff.modLongDescription.map(x => SimpleDiff.stringToXml(<longDescription/>, x ) ) ++
             modifyDiff.modPriority.map(x => SimpleDiff.intToXml(<priority/>, x ) ) ++
             modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x ) ) ++
-            modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) )
+            modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) ) ++
+            modifyDiff.modTags.map(x =>
+              SimpleDiff.toXml[Set[Tag]](<tags/>, x){ tags =>
+                TagsXml.toXml(Tags(tags))
+              }
+            )
           }
         </directive>
       )

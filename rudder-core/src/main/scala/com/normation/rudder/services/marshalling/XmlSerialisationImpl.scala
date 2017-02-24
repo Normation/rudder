@@ -87,6 +87,30 @@ import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.policies.SimpleDiff
+import com.normation.rudder.domain.policies.Tags
+import com.normation.rudder.domain.policies.Tag
+import com.normation.rudder.domain.policies.TagName
+import com.normation.rudder.domain.policies.TagValue
+
+//serialize / deserialize tags
+object TagsXml {
+  def toXml(tags: Tags) = {
+    <tags>{tags.map { tag => <tag name={tag.tagName.name} value={tag.tagValue.value} />} }</tags>
+  }
+
+  //tags is the <tags> elements which contains <tag> direct children
+  def getTags(tags: NodeSeq): Tags = {
+    // utility method to extract <tag name="xxx" value="yyy" /> where neither xxx nor yyy can be empty
+    import scala.xml.Node
+    def untag(tag: Node): Option[Tag] = {
+      ( (tag \ "@name").text, (tag\ "@value").text ) match {
+        case ("", _) | (_, "") => None
+        case (name, value)     => Some(Tag(TagName(name), TagValue(value)))
+      }
+    }
+    Tags(((tags \ "tag").flatMap( untag )).toSet)
+  }
+}
 
 case class XmlSerializerImpl (
     rule        : RuleSerialisation
@@ -98,7 +122,7 @@ case class XmlSerializerImpl (
 
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
   def serialise(rule:Rule):  Elem = {
-    createTrimedElem(XML_TAG_RULE, xmlVersion) {
+    createTrimedElem(XML_TAG_RULE, xmlVersion) (
         <id>{rule.id.value}</id>
         <displayName>{rule.name}</displayName>
         <category>{rule.categoryId.value}</category>
@@ -111,8 +135,10 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
         <shortDescription>{rule.shortDescription}</shortDescription>
         <longDescription>{rule.longDescription}</longDescription>
         <isEnabled>{rule.isEnabledStatus}</isEnabled>
-        <isSystem>{rule.isSystem}</isSystem>
-    }
+        <isSystem>{rule.isSystem}</isSystem> ++ {
+          TagsXml.toXml(rule.tags)
+        }
+    )
   }
 }
 
@@ -190,6 +216,7 @@ class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisati
       ::  <isEnabled>{directive.isEnabled}</isEnabled>
       ::  <isSystem>{directive.isSystem}</isSystem>
       ::  <policyMode>{directive.policyMode.map(_.name).getOrElse("default")}</policyMode>
+      ::  TagsXml.toXml(directive.tags)
       ::  Nil
     )
   }
