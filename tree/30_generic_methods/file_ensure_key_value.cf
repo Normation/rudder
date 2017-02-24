@@ -45,6 +45,8 @@ bundle agent file_ensure_key_value(file, key, value, separator)
         edit_line     => ncf_maintain_keys_values("file_ensure_key_value.keys", "${separator}"),
         edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
+        comment       => "Editing file ${file} to set ${key}${separator}${value}";
 
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
