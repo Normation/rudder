@@ -92,16 +92,16 @@ pre.json-beautify, .tw-bs pre.json-beautify{
   background-color: transparent;
   border-radius: 0;
   cursor: pointer;
-  height: 37px;
+  max-height: 70px;
   transition-duration: .2s;
   overflow: hidden;
   position: relative;
   margin-bottom: 0;
-  white-space: initial;
   padding-right: 25px;
 }
 pre.json-beautify.toggle, .tw-bs pre.json-beautify.toggle{
   height:auto;
+  max-height:none;
   -moz-box-shadow: none;
   -webkit-box-shadow: none;
   box-shadow: none;
