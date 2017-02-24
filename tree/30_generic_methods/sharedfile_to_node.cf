@@ -19,16 +19,75 @@
 # @name Sharedfile to node
 # @description This method shares a file with another Rudder node
 # @documentation This method shares a file with another Rudder node using a unique file identifier.
-#  The file will be kept on the policy server and transmitted to the destination node's policy server if it is different.
-#  It will be kept on this server for the destination node to download as long as it is not replaced by a new
-#  file with the same id or remove by expiration of the TTL. 
-#  The TTL can be a number of second or a string of the long form "1day 2hours 3minute 4seconds" or abbreviated in the form "5h 3s"
-#  Example: 
+#
+# Read the Rudder documentation for a [high level overview of file sharing between nodes](http://www.rudder-project.org/doc/_share_files_between_nodes.html).
+#
+# The file will be kept on the policy server and transmitted to the destination node's policy server if it is different.
+# It will be kept on this server for the destination node to download as long as it is not replaced by a new
+# file with the same id or remove by expiration of the TTL. 
+#
+# #### Parameters
+#
+# #### target_uuid
+#
+# The node you want to share this file with. The uuid of a node
+# is visible in the Nodes details (in the Web interface) or by entering
+# `rudder agent info` on the target node.
+#
+# ##### file_id
+#
+# This is a name that will be used to identify the file in the target node. It should be unique
+# and describe the file content.
+#
+# ##### file_path
+#
+# The local absolute path of the file to share.
+#
+# ##### ttl
+#
+# The TTL can be:
+#
+# * A simple integer, in this case it is assumed to be a number of *seconds*
+# * A string including units indications, the possible units are:
+#
+# * *days* or *d*
+# * *hours* or *h*
+# * *minutes* or *m*
+# * *seconds* or *s*
+#
+# The ttl value can look like *1day 2hours 3minute 4seconds* or can be abbreviated in the form *5h 3s*.
+#
+# ##### file_id
+#
+# This is a name that will be used to identify the file once stored on the server. It should be unique
+# and describe the file content.
+#
+# #### Example: 
+#
+# We have a node *A*, with uuid `2bf1afdc-6725-4d3d-96b8-9128d09d353c` which wants to share
+# the `/srv/db/application.properties` with node *B* with uuid `73570beb-2d4a-43d2-8ffc-f84a6817849c`.
+#
+# We want this file to stay available for one year for node *B* on its policy server.
+#
+# The node *B* wants to download it into `/opt/application/etc/application.properties`.
+#
+# They have to agree (i.e. it has to be defined in the policies of both nodes) on the id of the file,
+# that will be used during the exchange, here it will be `application.properties`.
+#
+# To share the file, node *A* will use: 
+#
 # ```
 # sharedfile_to_node("73570beb-2d4a-43d2-8ffc-f84a6817849c", "application.properties", "/srv/db/application.properties", "356days")
 # ```
-#  Please not that this methods must be used on a Rudder agent (>=4.1) that is connected to
-#  Rudder relay or server (>=4.1)
+#
+# To download the file, node *B* will use [sharedfile_from_node](#sharedfile_from_node) with:
+#
+# ```
+# sharedfile_from_node("2bf1afdc-6725-4d3d-96b8-9128d09d353c", "application.properties", "/opt/application/etc/application.properties")
+# ```
+#
+# *INFO*: Please note that this method must be used on a Rudder agent (>=4.1) that is connected to
+# Rudder relay or server (>=4.1)
 #
 # @parameter target_uuid  which node to share the file with
 # @parameter file_id      unique name that will be used to identify the file on the receiver
