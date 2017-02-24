@@ -503,3 +503,7 @@ span.text-fit {
     transform: rotate(360deg);
   }
 }
+
+.ng-toast.ng-toast--right .ng-toast__message {
+  text-align: left;
+}
