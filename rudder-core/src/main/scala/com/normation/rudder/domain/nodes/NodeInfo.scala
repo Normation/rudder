@@ -85,6 +85,7 @@ final case class NodeInfo(
   , serverRoles    : Set[ServerRole]
   , archDescription: Option[String]
   , ram            : Option[MemorySize]
+  , timezone       : Option[NodeTimezone]
 ) extends HashcodeCaching with Loggable{
 
   val id                         = node.id
