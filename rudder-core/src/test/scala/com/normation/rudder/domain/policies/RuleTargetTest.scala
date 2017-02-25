@@ -43,7 +43,7 @@ class RuleTargetTest extends Specification with Loggable {
           , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
           , Nil, DateTime.now
           , None, UndefinedKey, Seq(), NodeId("root")
-          , "" , Set(), None, None
+          , "" , Set(), None, None, None
       )
     )
   }.toMap

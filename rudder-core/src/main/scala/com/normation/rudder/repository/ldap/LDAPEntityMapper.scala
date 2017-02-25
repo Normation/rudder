@@ -250,6 +250,10 @@ class LDAPEntityMapper(
       osDetails   <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry)
       keyStatus   <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
       serverRoles =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
+      timezone    =  (inventoryEntry(A_TIMEZONE_NAME), inventoryEntry(A_TIMEZONE_OFFSET)) match {
+                       case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
+                       case _                          => None
+                     }
     } yield {
       val machineInfo = machineEntry.flatMap { e =>
         for {
@@ -285,6 +289,7 @@ class LDAPEntityMapper(
         , serverRoles
         , inventoryEntry(A_ARCH)
         , inventoryEntry(A_OS_RAM).map{ m  => MemorySize(m) }
+        , timezone
       )
     }
   }
