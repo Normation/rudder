@@ -75,6 +75,7 @@ import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.unboundid.ldap.sdk.ModificationType.{ADD, DELETE, REPLACE}
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
+import com.normation.rudder.repository.json.DataExtractor
 
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper
@@ -145,8 +146,11 @@ class LDAPDiffMapper(
                 case A_RULE_CATEGORY =>
                   tryo(diff.copy(modCategory = Some(SimpleDiff(oldCr.categoryId , RuleCategoryId(mod.getAttribute().getValue)))))
                 case A_SERIALIZED_TAGS =>
-                  // We do not store tags in event logs for now, use current diff
-                  Full(diff)
+                  for {
+                    tags <- DataExtractor.CompleteJson.unserializeTags(mod.getAttribute.getValue)
+                  } yield {
+                    diff.copy(modTags = Some(SimpleDiff(oldCr.tags.tags, tags.tags)))
+                  }
                 case x => Failure("Unknown diff attribute: " + x)
               }
             }
@@ -241,8 +245,11 @@ class LDAPDiffMapper(
                     diff.copy(modPolicyMode = Some(SimpleDiff(oldPi.policyMode,policyMode)))
                   }
                 case A_SERIALIZED_TAGS =>
-                  // We do not store tags in event logs for now, use current diff
-                  Full(diff)
+                  for {
+                    tags <- DataExtractor.CompleteJson.unserializeTags(mod.getAttribute.getValue)
+                  } yield {
+                    diff.copy(modTags = Some(SimpleDiff(oldPi.tags.tags, tags.tags)))
+                  }
                 case x => Failure("Unknown diff attribute: " + x)
               }
             }
