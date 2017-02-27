@@ -79,7 +79,6 @@ class RestCompletion(
           toJsonError(None, e.messageChain)("quicksearch", false)
 
         case Full(results) =>
-          logger.info(results)
           toJsonResponse(None, results.map(("value",_)))("completeTags", false)
       }
 
@@ -98,7 +97,6 @@ class RestCompletion(
           toJsonError(None, e.messageChain)("quicksearch", false)
 
         case Full(results) =>
-          logger.info(results)
           toJsonResponse(None, results.map(("value",_)))("completeTags", false)
       }
 
@@ -116,7 +114,6 @@ class RestCompletion(
           toJsonError(None, e.messageChain)("quicksearch", false)
 
         case Full(results) =>
-          logger.warn(results)
           toJsonResponse(None, results.map(("value",_)))("completeTags", false)
       }
 

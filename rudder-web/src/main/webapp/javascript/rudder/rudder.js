@@ -461,6 +461,7 @@ function toggleTree(treeId, toggleButton) {
   }
   $(toggleButton).children().toggleClass('fa-folder-open');
 }
+
 var searchTree = function(inputId, treeId) {
 
   if($(inputId).val() && $(inputId).val().length >= 3) {
