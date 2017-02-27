@@ -73,6 +73,7 @@ final case class ModifyRuleDiff(
   , modIsActivatedStatus: Option[SimpleDiff[Boolean]] = None
   , modIsSystem         : Option[SimpleDiff[Boolean]] = None
   , modCategory         : Option[SimpleDiff[RuleCategoryId]] = None
+  , modTags             : Option[SimpleDiff[Set[Tag]]] = None
 ) extends RuleDiff with HashcodeCaching {
   def needDeployment : Boolean = {
     modSerial.isDefined || modTarget.isDefined || modDirectiveIds.isDefined || modIsActivatedStatus.isDefined || modName.isDefined
