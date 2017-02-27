@@ -121,6 +121,7 @@ object NodeDetailLevel {
       , "managementTechnology"
       , "properties"
       , "policyMode"
+      , "timezone"
   )
 
   val otherAllFields = List(
@@ -171,6 +172,7 @@ object NodeDetailLevel {
     val inventoryDate: NodeInfo => JValue = (inv: NodeInfo) => DateFormaterService.getFormatedDate(inv.inventoryDate)
     val properties   : NodeInfo => JValue = (inv: NodeInfo) => inv.properties.toApiJson
     val policyMode   : NodeInfo => JValue = (inv: NodeInfo) => inv.policyMode.map(_.name).getOrElse[String]("default")
+    val timezone     : NodeInfo => JValue = (inv: NodeInfo) => inv.timezone.map( t => ("name" -> t.name) ~ ("offset" -> t.offset) )
 
     val os = {
       ( inv : NodeInfo ) =>
@@ -234,6 +236,7 @@ object NodeDetailLevel {
       , ( "architectureDescription" -> arch )
       , ( "properties" -> properties )
       , ( "policyMode" -> policyMode )
+      , ( "timezone"   -> timezone   )
     )
   }
 
