@@ -397,6 +397,9 @@ object DisplayNode extends Loggable {
           <b>Total swap space:</b> {sm.node.swap.map( _.toStringMo).getOrElse("-")}<br/>
           <b>Motherboard UUID:</b> {sm.machine.map(_.id.value).getOrElse("-")}<br/>
           <b>System Serial Number:</b> {sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}<br/>
+          <b>Time Zone:</b> {sm.node.timezone.map(x =>
+              if(x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})"
+            ).getOrElse("unknown")}<br/>
         </div>
 
       <h4 class="tablemargin">Operating system details</h4>
@@ -421,7 +424,7 @@ object DisplayNode extends Loggable {
             """)))
          } }
           { displayServerRole(sm, inventoryStatus) }
-          <b>Inventory date:</b>  {sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
+          <b>Inventory date (node local time):</b>  {sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
           <b>Date inventory last received:</b>  {sm.node.receiveDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
           {creationDate.map { creation =>
             <xml:group><b>Date first accepted in Rudder:</b> {DateFormaterService.getFormatedDate(creation)}<br/></xml:group>
