@@ -55,7 +55,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
   // Should be changed using ng-init
   var directiveFilter = true;
   
-  function search() {
+  $scope.search = function () {
     if (directiveFilter) {
       $scope.searchTree(directiveTreeId);
       $timeout(function() {
@@ -76,7 +76,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
     $scope.searchStr = "";
     if (directiveFilter) {
       clearSearchFieldTree('#activeTechniquesTree');
-      search();
+      $scope.search();
     } else {
       $scope.filterGlobal('');
     }
@@ -123,7 +123,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
     if(isNewTag){
       $scope.tags.push(newTag);
       $scope.$broadcast('angucomplete-alt:clearInput');
-      search();
+      $scope.search();
       $scope.resetNewTag();
     }
   }
@@ -135,12 +135,13 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
   $scope.removeTag = function(index){
   var tag = $scope.tags[index];
     $scope.tags.splice(index, 1);
-    search();
+    $scope.search();
   }
   
   $scope.registerScope = function(scope){
     $scope.tagScopes.push(scope)
     scope.$emit("registerScope", $rootScope)
+    scope.$emit("updateFilter",{ "tags" : $scope.tags, "mode" : $scope.only})
   }
   
   $scope.updateFilter = function(){
@@ -151,7 +152,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
 
   $scope.clearAllTags = function(){
     $scope.tags = [];
-    search();
+    $scope.search();
   }
   
   $scope.toggleFilter = function(chevron, forceOpen){
@@ -175,7 +176,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
     button.toggleClass('active');
     $scope.only.key = !$scope.only.key;
     $scope.only.value = false;
-    search();
+    $scope.search();
   }
   
   $scope.onlyValue = function(elem){
@@ -183,7 +184,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
     button.toggleClass('active');
     $scope.only.value = !$scope.only.value;
     $scope.only.key = false;
-    search();
+    $scope.search();
   }
   
   $scope.onlyAll = function(elem){
@@ -191,7 +192,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
     button.addClass('active');
     $scope.only.key   = false;
     $scope.only.value = false;
-    search();
+    $scope.search();
   }
   
   //Avoid compilation error using ngClass directive with '&&' condition
@@ -205,7 +206,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
   
   $scope.clearSearchFieldTree = function(treeId) {
     $scope.searchStr = "";
-    $(treeId).jstree('searchtag', '', $scope.tags, $scope.only);
+    $scope.searchTree(treeId);
   }
   
   $scope.refuseEnter = function(event){
@@ -287,3 +288,9 @@ app.config(function($locationProvider) {
     requireBase: false
   });
 });
+
+
+function applyFilter (filterId, treeId) {
+  var scope = angular.element($("#"+filterId)).scope();
+  scope.search()
+}
