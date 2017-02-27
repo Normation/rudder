@@ -517,7 +517,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case Left(dir) => // ok, we've received a directive, show it
         updateDirectiveLibrary(workflowEnabled) &
         updateDirectiveForm(workflowEnabled)(Left(dir),None) &
-        After(0,JsRaw("""searchTree('#treeSearch', '#activeTechniquesTree');"""))
+        After(0,JsRaw("""applyFilter('directiveFilter');"""))
 
       case Right(changeRequestId) => // oh, we have a change request, go to it
         JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
