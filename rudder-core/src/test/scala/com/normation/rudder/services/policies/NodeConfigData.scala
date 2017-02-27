@@ -101,6 +101,7 @@ import com.normation.inventory.domain.AgentVersion
 import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.common.Full
 import net.liftweb.common.Box
+import com.normation.inventory.domain.NodeTimezone
 
 
 /*
@@ -156,6 +157,7 @@ object NodeConfigData {
       ).map(ServerRole(_))
     , None
     , None
+    , Some(NodeTimezone("UTC", "+00"))
   )
 
   val node1Node = Node (
@@ -185,6 +187,7 @@ object NodeConfigData {
     , Set()
     , None
     , Some(MemorySize(1460132))
+    , None
   )
 
   val nodeInventory1: NodeInventory = NodeInventory(
@@ -283,7 +286,7 @@ object NodeConfigData {
           , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
           , Nil, DateTime.now
           , Some(PublicKey("rsa public key")), UndefinedKey, Seq(), NodeId("root")
-          , "" , Set(), None, None
+          , "" , Set(), None, None, None
     )
   }).map(n => (n.id, n)).toMap
 

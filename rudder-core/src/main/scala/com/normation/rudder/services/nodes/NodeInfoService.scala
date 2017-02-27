@@ -186,12 +186,12 @@ object NodeInfoService {
     //  hostname, ips, inventoryDate, publicKey
     //, osDetails
     //, agentsName, policyServerId, localAdministratorAccountName
-    //, serverRoles, archDescription, ram
+    //, serverRoles, archDescription, ram, timezone
     , A_NODE_UUID, A_HOSTNAME, A_LIST_OF_IP, A_INVENTORY_DATE, A_PKEYS
     , A_OS_NAME, A_OS_FULL_NAME, A_OS_VERSION, A_OS_KERNEL_VERSION, A_OS_SERVICE_PACK, A_WIN_USER_DOMAIN, A_WIN_COMPANY, A_WIN_KEY, A_WIN_ID
     , A_AGENTS_NAME, A_POLICY_SERVER_UUID, A_ROOT_USER
     , A_SERVER_ROLE, A_ARCH
-    , A_CONTAINER_DN, A_OS_RAM, A_KEY_STATUS
+    , A_CONTAINER_DN, A_OS_RAM, A_KEY_STATUS, A_TIMEZONE_NAME, A_TIMEZONE_OFFSET
   )).toSeq
 
   val A_MOD_TIMESTAMP = "modifyTimestamp"
