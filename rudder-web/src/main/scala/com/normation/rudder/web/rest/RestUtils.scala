@@ -111,6 +111,12 @@ object RestUtils extends Loggable {
   }
 
   private[this] def effectiveResponse (id:Option[String], message:JValue, status:HttpStatus, action : String , prettify : Boolean) : LiftResponse = {
+    status match {
+      case _:RestError =>
+        // Log any error
+        logger.error(compactRender(message))
+      case _ => // Do nothing
+    }
     val json = ( "action" -> action ) ~
                   ( "id"     -> id ) ~
                   ( "result" -> status.status ) ~
