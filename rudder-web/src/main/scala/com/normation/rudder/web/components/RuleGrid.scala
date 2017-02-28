@@ -120,7 +120,6 @@ class RuleGrid(
   , graphRecentChanges : DisplayColumn
 ) extends DispatchSnippet with Loggable {
 
-
   private[this] sealed trait Line { val rule:Rule }
 
   private[this] case class OKLine(
@@ -411,7 +410,7 @@ class RuleGrid(
             } yield {
               val changeCount = change.values.sum
               val data = NodeChanges.json(change, recentChanges.getCurrentValidIntervals(None))
-              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds, ${changeCount})"""
+              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds, ${changeCount}, ${showChangesGraph})"""
            }
 
           JsRaw(s"""

@@ -478,7 +478,6 @@ var clearSearchFieldTree = function(inputId, treeId) {
   $(treeId).jstree('clear_search');
   return false;
 }
-var twoDigitsFormator = d3.format("02d");
 
 /* Facility to format a number on two digits */
 function formatOn2Digits(number) {
