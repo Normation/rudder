@@ -46,12 +46,14 @@ function homePage (
   createTooltip();
 
 
+  var allNodes = nodeCount.active;
   var activeNodes ="<span class='highlight'>" + nodeCount.active + "</span> Nodes."
   if (nodeCount.active === 1) {
     activeNodes = "<span class='highlight'>" + nodeCount.active + "</span> Node."
   }
   var stats = "Compliance based on "+ activeNodes
   if (nodeCount.pending !== null) {
+    allNodes += nodeCount.pending;
     var pendingNodes = nodeCount.pending.nodes + " Nodes"
     var verb = "are"
     if (nodeCount.active === 1) {
@@ -89,134 +91,98 @@ function homePage (
     }()); 
     $("#gauge-value").text(globalGauge+"%");
 
-  var height = $(window).height() / 2 ;
-  
-  var chart = c3.generate( {
-      size: { height: height }
-    , data: {
-          columns: nodeCompliance
-        , type : 'donut'
-        , order : null
-        , colors : nodeComplianceColors
-        , color: function (color, d) { return color }
-      }
-    , donut : {
-        label: {
-          format: function (v, ratio) {return (ratio * 100).toFixed(0) + '%'; }
-        }
-      }
-  } );
-  $('#nodeCompliance').append(chart.element);
+
+  doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors)
+    
 }
 
-function displayInventoryGraph (id,data) {
-  var colorPatternDonutCharts = ['rgb(54, 148, 209)', 'rgb(23, 190, 207)', 'rgb(255,113,37)', 'rgb(255, 224, 14)', 'rgb(227, 119, 194)', 'rgb(44, 160, 44)', 'rgb(255, 104, 105)', 'rgb(148, 103, 189)', 'rgb(140, 86, 75)', 'rgb(160, 160, 160)', 'rgb(155,200,50)', '#ffd203', 'rgb(132, 63, 152)'];
-    
-  var smallHeight =  $(window).height() / 4 ;
+var inventoryColors = 
+  [ 'rgb(54, 148, 209)'
+  , 'rgb(23, 190, 207)'
+  , 'rgb(255,113,37)'
+  , 'rgb(255, 224, 14)'
+  , 'rgb(227, 119, 194)'
+  , 'rgb(44, 160, 44)'
+  , 'rgb(255, 104, 105)'
+  , 'rgb(148, 103, 189)'
+  , 'rgb(140, 86, 75)'
+  , 'rgb(160, 160, 160)'
+  , 'rgb(155,200,50)'
+  , '#ffd203'
+  , 'rgb(132, 63, 152)'
+  ];
+
+function doughnutChart (id,data,count, colors) {
   
-  // The chart, without legend
-  var chart =
-    c3.generate( {
-        size: {
-          height: smallHeight 
+  var context = $("#"+id)
+
+  var chartData = {
+    labels  :  data.labels,
+    datasets:
+      [ { data           : data.values
+        , backgroundColor: colors
+      } ]
+  };
+
+  function highlight(chart, index) {
+    chart.segments
+  }
+  var chartOptions = {
+      type: 'doughnut'
+    , data: chartData
+    , options: {
+        legend: {
+          display:false
+
         }
-      , data: {
-            columns: data
-          , type   : 'donut'
+      , legendCallback: function(chart) {
+        var text = [];
+        text.push('<ul>');
+        for (var i=0; i<chart.data.datasets[0].data.length; i++) {
+            text.push('<li class="legend">');
+            text.push('<span class="legend-square" style="background-color:' + chart.data.datasets[0].backgroundColor[i] + '"></span>');
+            if (chart.data.labels[i]) {
+                text.push(chart.data.labels[i]);
+            }
+            text.push('</li>');
         }
-      , donut: {
-          label: {
-            show: false
+        text.push('</ul>');
+        return text.join("");
+      }
+      , tooltips: {
+          callbacks: {
+            label: function(tooltipItem, data) {
+              var label = data.labels[tooltipItem.index];
+              var content = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+              var unit = "node";
+              if (content > 1) {
+                unit += "s";
+              } 
+              return " " + label + ": " + content + " " + unit +" ("+ (content/count*100).toFixed(0) + "%)"
+            }
           }
         }
-     , tooltip: {
-        format: {
-          value: function (value, ratio, id, index) {
-            var unit = "node"
-            if (value > 1) { unit+="s" }
-            return value+" "+unit+" ("+ (ratio*100).toFixed(0) + "%)"; }
-        }
       }
-      , legend :  {
-          show : false
-        }
-      , color: {
-        pattern: colorPatternDonutCharts
-      }
-    });
-
-  // Define a 'chart' which will only display its legend with interacting with the chart defined above
-  var legend =
-    c3.generate( {
-        size: {
-          height: smallHeight / 3
-        }
-      , data: {
-            columns: data
-          , type : 'donut'
-        }
-     , legend :  {
-         item : {
-             onclick : function(id) {
-               // hide/show
-               chart.toggle(id)
-               // Check if we just hid or shown the data to determine action
-               var result = $.grep(chart.data.shown(), function(elem,index) {
-                 return elem.id === id;
-               });
-               if(result.length > 0){
-                 // Shown => focus
-                 chart.focus(id)
-               } else {
-                 // Hid => revert to initial state
-                 chart.revert()
-               }
-             }
-           , onmouseover : function(id) {
-               // Check if the data is hidden
-               var result = $.grep(chart.data.shown(), function(elem,index) {
-                 return elem.id === id;
-               });
-               if(result.length > 0){
-                 // Data not hidden focus
-                 chart.focus(id)
-               }
-             }
-           , onmouseout : function(id) {
-               chart.revert()
-           }
-         }
-       }
-      , color: {
-        pattern: colorPatternDonutCharts
-      }
-    });
-
-  // append charts
-  $('#'+id).append(chart.element);
-  $('#'+id+'Legend').append(legend.element);
-    
-  // Hide data of legend, undefined means to hide all data)
-  if(userAgentIsIE()){
-    $('#'+id+'Legend>.c3>svg g:first').hide();  
-  }else{
-    legend.hide(undefined, {withLegend: false});
   }
   
+  var chart = new Chart(context, chartOptions);
+  context.after(chart.generateLegend())
 }
 
 function homePageInventory (
     nodeMachines
   , nodeOses
+  , count
 ) {
-  displayInventoryGraph('nodeMachine',nodeMachines)
-  displayInventoryGraph('nodeOs', nodeOses)
+  doughnutChart('nodeMachine',nodeMachines, count, inventoryColors)
+  doughnutChart('nodeOs', nodeOses, count, inventoryColors)
 }
 
 function homePageSoftware (
-      nodeAgents
-  ) {
-  displayInventoryGraph('nodeAgents', nodeAgents)
+    nodeAgents
+  , count
+) {
+  doughnutChart('nodeAgents', nodeAgents, count, inventoryColors)
 }
 
 function userAgentIsIE() {

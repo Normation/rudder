@@ -49,7 +49,7 @@
         Global compliance
       </div>
       <div class="text-center">
-        <canvas id="complianceGauge" width="360" height="180" class=""></canvas>
+        <canvas id="complianceGauge" width="360" height="150" class=""></canvas>
         <span id="gauge-value"></span>
       </div>
     </div>
@@ -64,35 +64,34 @@
    </div>
   </div>
   <div class="row">
-   <div class="col-lg-5 col-md-4">
+   <div class="col-lg-4 col-md-4">
      <div id="nodeOverview" class="panel panel-default">
        <div class="panel-heading">Nodes by overall compliance</div>
-       <div id="nodeCompliance" class="text-align"></div>
+         <div class="col-lg-offset-1 col-lg-10 col-md-offset-1 col-md-10 col-sm-offset-1 col-sm-10">
+           <canvas id="nodeCompliance" ></canvas>
+         </div>
+         <div style="clear: both;"></div>
        <div data-lift="lazy-load"> <div data-lift="HomePage.getAllCompliance"></div> </div>
      </div>
    </div>
 
-   <div class="col-lg-7 col-md-8">
+   <div class="col-lg-8 col-md-8" id="nodeBreakdown">
        <div class="panel panel-default">
          <div class="panel-heading">Node breakdown</div>
-         <div class=" col-lg-4 col-md-4 col-sm-4">
+         <div class=" col-lg-3 col-lg-offset-1 col-md-3 col-md-offset-1 col-sm-3 col-sm-offset-1">
            <h4 class="text-center">By machine type</h4>
-           <div id="nodeMachine" class="text-align"> </div>
-           <div id="nodeMachineLegend" class="text-align"> </div>
+           <canvas id="nodeMachine" > </canvas>
          </div>
-         <div class="col-lg-4 col-md-4 col-sm-4">
+         <div class="col-lg-3 col-lg-offset-1 col-md-3 col-md-offset-1 col-sm-3 col-sm-offset-1">
            <h4 class="text-center">By OS</h4>
-           <div id="nodeOs" class="text-align"></div>
-           <div id="nodeOsLegend" class="text-align"> </div>
+           <canvas id="nodeOs"></canvas>
            <div data-lift="lazy-load"> <div data-lift="HomePage.inventoryInfo" > </div></div>
          </div>
-         <div class="col-lg-4 col-md-4 col-sm-4">
+         <div class="col-lg-3 col-lg-offset-1 col-md-3 col-md-offset-1 col-sm-3 col-sm-offset-1">
            <h4 class="text-center">By agent version</h4>
-           <div id="nodeAgents" class="text-align" >
+           <canvas id="nodeAgents" >
+           </canvas>
              <div data-lift="lazy-load"> <div data-lift="HomePage.rudderAgentVersion"></div></div>
-           </div>
-
-           <div id="nodeAgentsLegend" class="text-align"> </div>
          </div>
          <div style="clear: both;"></div>
       </div>
