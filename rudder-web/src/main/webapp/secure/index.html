@@ -64,29 +64,30 @@
    </div>
   </div>
   <div class="row">
-   <div class="col-lg-5 col-md-4">
-     <div id="nodeOverview" class="panel panel-default">
-       <div class="panel-heading">Nodes by overall compliance</div>
-       <div id="nodeCompliance" class="text-align"></div>
-       <div data-lift="lazy-load"> <div data-lift="HomePage.getAllCompliance"></div> </div>
-     </div>
-   </div>
-
-   <div class="col-lg-7 col-md-8">
+   <div class="col-lg-12 col-md-12">
        <div class="panel panel-default">
          <div class="panel-heading">Node breakdown</div>
-         <div class=" col-lg-4 col-md-4 col-sm-4">
+
+         <div class=" col-lg-3 col-md-3 col-sm-6">
+           <h4 class="text-center">By overall compliance</h4>
+           <div id="nodeCompliance" class="text-align"> </div>
+           <div data-lift="lazy-load"> <div data-lift="HomePage.getAllCompliance"></div> </div>
+         </div>
+
+         <div class=" col-lg-3 col-md-3 col-sm-6">
            <h4 class="text-center">By machine type</h4>
            <div id="nodeMachine" class="text-align"> </div>
            <div id="nodeMachineLegend" class="text-align"> </div>
          </div>
-         <div class="col-lg-4 col-md-4 col-sm-4">
+
+         <div class="col-lg-3 col-md-3 col-sm-6">
            <h4 class="text-center">By OS</h4>
            <div id="nodeOs" class="text-align"></div>
            <div id="nodeOsLegend" class="text-align"> </div>
            <div data-lift="lazy-load"> <div data-lift="HomePage.inventoryInfo" > </div></div>
          </div>
-         <div class="col-lg-4 col-md-4 col-sm-4">
+
+         <div class="col-lg-3 col-md-3 col-sm-6">
            <h4 class="text-center">By agent version</h4>
            <div id="nodeAgents" class="text-align" >
              <div data-lift="lazy-load"> <div data-lift="HomePage.rudderAgentVersion"></div></div>
