@@ -425,16 +425,16 @@ object QSLdapBackend {
 
       a match {
         case Tags =>
-          def matcher(t : Tag) = pattern.matcher(t.tagName.name).matches || pattern.matcher(t.tagValue.value).matches
-          def transform(tag : Tag) = s"${tag.tagName.name}=${tag.tagValue.value}"
+          def matcher(t : Tag) = pattern.matcher(t.name.value).matches || pattern.matcher(t.value.value).matches
+          def transform(tag : Tag) = s"${tag.name.value}=${tag.value.value}"
           parseTag(value,matcher,transform)
         case TagKeys =>
-          def matcher(t : Tag) = pattern.matcher(t.tagName.name).matches
-          def transform(tag : Tag) = tag.tagName.name
+          def matcher(t : Tag) = pattern.matcher(t.name.value).matches
+          def transform(tag : Tag) = tag.name.value
           parseTag(value,matcher,transform)
         case TagValues =>
-          def matcher(t : Tag) = pattern.matcher(t.tagValue.value).matches
-          def transform(tag : Tag) = tag.tagValue.value
+          def matcher(t : Tag) = pattern.matcher(t.value.value).matches
+          def transform(tag : Tag) = tag.value.value
           parseTag(value,matcher,transform)
 
         //main case: no more transformation

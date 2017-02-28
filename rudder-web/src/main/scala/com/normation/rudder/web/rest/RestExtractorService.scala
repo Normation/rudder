@@ -528,6 +528,13 @@ case class RestExtractorService (
     }
   }
 
+  def toTag (s : String) : Box[Tag] = {
+    import Tag._
+    val list =  s.split(":")
+    val name = list.headOption.getOrElse(s)
+    val value = list.tail.headOption.getOrElse("")
+    Full(Tag(name,value))
+  }
   def extractRule (params : Map[String,List[String]]) : Box[RestRule] = {
 
     for {
@@ -538,7 +545,7 @@ case class RestExtractorService (
       enabled          <- extractOneValue(params,"enabled")( toBoolean)
       directives       <- extractList(params,"directives")( convertListToDirectiveId)
       target           <- toRuleTarget(params,"targets")
-      tagsList         <- extractList(params, "tags")(sequence(_){ s =>  val list =  s.split(":"); Full(Tag(TagName(list.headOption.getOrElse(s)),TagValue(list.tail.headOption.getOrElse(""))))})
+      tagsList         <- extractList(params, "tags")(sequence(_)(toTag))
       tags             = tagsList.map(t => Tags(t.toSet))
     } yield {
       RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
@@ -717,10 +724,17 @@ case class RestExtractorService (
       techniqueName    <- extractOneValue(params, "techniqueName")(x => Full(TechniqueName(x)))
       techniqueVersion <- extractOneValue(params, "techniqueVersion")(x => Full(TechniqueVersion(x)))
       policyMode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault)
-      tagsList         <- extractList(params, "tags")(sequence(_){ s =>  val list =  s.split(":"); Full(Tag(TagName(list.headOption.getOrElse(s)),TagValue(list.tail.headOption.getOrElse(""))))})
+      tagsList         <- extractList(params, "tags")(sequence(_)(toTag))
       tags             = tagsList.map(t => Tags(t.toSet))
     } yield {
       RestDirective(name,shortDescription,longDescription,enabled,parameters,priority, techniqueName, techniqueVersion, policyMode,tags)
+    }
+  }
+
+  def toTagJson(json : JValue) = {
+    import Tag._
+    json match { case JObject(JField(name,JString(value)) :: Nil) => Full(Tag(name,value))
+    case _ => Failure("Not valid format for tags")
     }
   }
 

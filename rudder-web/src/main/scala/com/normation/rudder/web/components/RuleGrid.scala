@@ -685,7 +685,7 @@ class RuleGrid(
     val t5 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: callback: ${t5-t4}ms")
 
-    val tags = JsObj(line.rule.tags.map(tag => (tag.tagName.name, Str(tag.tagValue.value))).toList:_*).toJsCmd
+    val tags = JsObj(line.rule.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList:_*).toJsCmd
 
     RuleLine (
         line.rule.name
