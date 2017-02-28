@@ -176,8 +176,6 @@ class HomePage extends Loggable {
     case object DisabledChartType extends ChartType
     case class ColoredChartType(value: Double) extends ChartType
 
-
-
     ( for {
       nodeInfos <- HomePage.boxNodeInfos.get
       n2 = System.currentTimeMillis
@@ -185,6 +183,7 @@ class HomePage extends Loggable {
       n3 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Get rules: ${n3 - n2}ms")
       reports   <- reportingService.findRuleNodeStatusReports(nodeInfos.keySet, userRules)
+
       n4 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Compute Rule Node status reports for all nodes: ${n4 - n3}ms")
       _ = TimingDebugLogger.debug(s"Compute compliance: ${n4 - n2}ms")
@@ -226,14 +225,14 @@ class HomePage extends Loggable {
       }).toList
 
       val sorted = complianceDiagram.sortWith{
-        case (_:PendingChart  ,_)            => true
-        case (_:DisabledChart ,_)            => true
-        case (_:GreenChart    ,_)            => true
-        case (_:BlueChart     ,_:GreenChart) => false
-        case (_:BlueChart     ,_)            => true
-        case (_:OrangeChart   , ( _:GreenChart| _:BlueChart)) => false
-        case (_:OrangeChart   ,_)            => true
-        case (_:RedChart      ,_)            => false
+        case (_:PendingChart  ,_)            => false
+        case (_:DisabledChart ,_)            => false
+        case (_:GreenChart    ,_)            => false
+        case (_:BlueChart     ,_:GreenChart) => true
+        case (_:BlueChart     ,_)            => false
+        case (_:OrangeChart   , ( _:GreenChart| _:BlueChart)) => true
+        case (_:OrangeChart   ,_)            => false
+        case (_:RedChart      ,_)            => true
       }
 
       val numberOfNodes = complianceByNode.size
@@ -258,7 +257,10 @@ class HomePage extends Loggable {
         )
       }
 
-      val diagramData = JsArray(sorted.map(_.jsValue):_*)
+      val diagramData = sorted.foldLeft((Nil : List[JsExp], Nil : List[JsExp], Nil : List[JsExp]))
+      { case ((labels,values,colors),diag) => (diag.label :: labels, diag.value :: values, diag.color :: colors) }
+
+      val data =  JsObj("labels" -> JsArray(diagramData._1), "values" -> JsArray(diagramData._2), "colors" -> JsArray(diagramData._3))
 
       val diagramColor = JsObj(sorted.map(_.jsColor):_*)
 
@@ -277,7 +279,7 @@ class HomePage extends Loggable {
         homePage(
             ${complianceBar.toJsCmd}
           , ${globalCompliance}
-          , ${diagramData.toJsCmd}
+          , ${data.toJsCmd}
           , ${diagramColor.toJsCmd}
           , ${pendingNodes.toJsCmd}
         )""")))
@@ -297,15 +299,19 @@ class HomePage extends Loggable {
                         case Some(_: VirtualMachineType) => "Virtual"
                         case Some(PhysicalMachineType)   => "Physical"
                         case _                           => "No Machine Inventory"
-                      } }.groupBy(identity).mapValues(_.size).map{case (a,b) => JsArray(a, b)}
-      val machinesArray = JsArray(machines.toList)
-      val os = nodeInfos.values.groupBy(_.osDetails.os.name).mapValues(_.size).map{case (a,b) => JsArray(a, b)}
-      val osArray = JsArray(os.toList)
+                      } }.groupBy(identity).mapValues(_.size).foldLeft((Nil : List[JsExp], Nil : List[JsExp]))
+      { case ((labels,values),(label,value)) => (label :: labels, value :: values) }
+      val machinesArray = JsObj("labels" -> JsArray(machines._1), "values" -> JsArray(machines._2))
+      val (osLabels,osValues) = nodeInfos.values.groupBy(_.osDetails.os.name).mapValues(_.size).foldLeft((Nil : List[JsExp], Nil : List[JsExp]))
+      { case ((labels,values),(label,value)) => (label :: labels, value :: values) }
+
+      val osArray = JsObj("labels" -> JsArray(osLabels), "values" -> JsArray(osValues))
 
       Script(OnLoad(JsRaw(s"""
         homePageInventory(
             ${machinesArray.toJsCmd}
           , ${osArray.toJsCmd}
+          , ${nodeInfos.size}
         )""")))
     } ) match {
       case Full(inventory) => inventory
@@ -328,12 +334,14 @@ class HomePage extends Loggable {
      }
      TimingDebugLogger.debug(s"Get software: ${System.currentTimeMillis-n4}ms")
 
-     val agentsValue = agents.map{case (a,b) => JsArray(a, b)}
-     val agentsData =JsArray(agentsValue.toList)
+     val agentsValue = agents.toList.sortBy(_._2)(Ordering[Int]).foldLeft((Nil : List[JsExp], Nil : List[JsExp]))
+      { case ((labels,values),(label,value)) => (label :: labels, value :: values) }
+     val agentsData =  JsObj("labels" -> JsArray(agentsValue._1), "values" -> JsArray(agentsValue._2))
 
      Script(OnLoad(JsRaw(s"""
         homePageSoftware(
             ${agentsData.toJsCmd}
+          , ${agents.map(_._2).sum}
      )""")))
   }
 

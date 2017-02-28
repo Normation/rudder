@@ -576,6 +576,7 @@ a.sidebar-toggle{
   border-radius: 0px;
   color: #222D32;
   font-size: 15px;
+  padding: 7px 15px;
 }
 .tw-bs .nav > li > a:hover, .tw-bs .nav > li > a:focus, .tw-bs .nav li.dropdown > a:hover, .tw-bs .nav li.dropdown > a:focus {
   background-color: #f4f4f4;
@@ -585,7 +586,7 @@ a.sidebar-toggle{
 
 /* Global Compliance */
 .global-compliance,.global-compliance-details {
-  height: 314px;
+  height: 279px;
 }
 /* ----- </DASHBOARD>  ----- */
 /* -- <NAVBAR>  ------------ */
@@ -2608,4 +2609,16 @@ h3.box-title {
   0%   {visibility:visible;}
   1%  {visibility:hidden;}
   100% {visibility:hidden;}
+}
+
+.legend-square {
+	width : 10px;
+	height : 10px;
+	margin: 5px;
+	float:left;
+}
+
+.legend {
+	white-space: nowrap;
+	overflow : hidden;
 }

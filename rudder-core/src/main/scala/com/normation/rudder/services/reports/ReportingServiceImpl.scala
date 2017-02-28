@@ -302,7 +302,6 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       t1                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.trace(s"Compliance: get node run infos: ${t1-t0}ms")
 
-
       // that gives us configId for runs, and expected configId (some may be in both set)
       expectedConfigIds   =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfig.nodeConfigId) }
       lastrunConfigId     =  runInfos.collect {

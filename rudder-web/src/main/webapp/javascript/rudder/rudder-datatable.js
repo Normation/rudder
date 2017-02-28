@@ -118,34 +118,124 @@ function computeChangeGraph(changes, id, currentRowsIds, changeCount, displayGra
   }
 }
 
+function changesTooltip (tooltip) {
+  // Tooltip Element
+  var tooltipEl = document.getElementById('chartjs-tooltip');
+  if (!tooltipEl) {
+    tooltipEl = document.createElement('div');
+    tooltipEl.id = 'chartjs-tooltip';
+    tooltipEl.innerHTML = "<table></table>"
+    document.body.appendChild(tooltipEl);
+  }
+  // Hide if no tooltip
+  if (tooltip.opacity === 0) {
+    tooltipEl.style.opacity = 0;
+    return;
+  }
+  // Set caret Position
+  tooltipEl.classList.remove('above', 'below', 'no-transform');
+  if (tooltip.yAlign) {
+    tooltipEl.classList.add(tooltip.yAlign);
+  } else {
+    tooltipEl.classList.add('no-transform');
+  }
+  function getBody(bodyItem) {
+    return bodyItem.lines;
+  }
+  // Set Text
+  if (tooltip.body) {
+    var titleLines = tooltip.title || [];
+    var bodyLines = tooltip.body.map(getBody);
+    var innerHtml = '<thead>';
+    titleLines.forEach(function(title) {
+      innerHtml += '<tr><th>' + title + '</th></tr>';
+    });
+    innerHtml += '</thead><tbody>';
+    bodyLines.forEach(function(body, i) {
+      var colors = tooltip.labelColors[i];
+      var style = 'background:' + colors.backgroundColor;
+      style += '; border-color:' + colors.borderColor;
+      style += '; border-width: 2px'; 
+      var span = '<span class="chartjs-tooltip-key" style="' + style + '"></span>';
+      innerHtml += '<tr><td>' + span + body + '</td></tr>';
+    });
+    innerHtml += '</tbody>';
+    var tableRoot = tooltipEl.querySelector('table');
+    tableRoot.innerHTML = innerHtml;
+  }
+  var position = this._chart.canvas.getBoundingClientRect();
+  // Display, position, and set styles for font
+  tooltipEl.style.opacity = 1;
+  tooltipEl.style.left = position.left + tooltip.caretX + 'px';
+  tooltipEl.style.top = position.top + tooltip.caretY + 10 + 'px';
+  tooltipEl.style.fontFamily = tooltip._fontFamily;
+  tooltipEl.style.fontSize = tooltip.fontSize;
+  tooltipEl.style.fontStyle = tooltip._fontStyle;
+  tooltipEl.style.padding = tooltip.yPadding + 'px ' + tooltip.xPadding + 'px';
+};
+
+
+function recentChangesGraph(changes, graphId, displayFullGraph) {
+  var context = $("#"+graphId)
+
+  var chartData  = {
+    labels  : changes.labels,
+    datasets: [{
+        data : changes.values
+      , label: "changes"
+      , backgroundColor: 'rgba(54, 162, 235, 0.2)'
+      , borderWidth: 1
+      , bordercolor: 'rgba(54, 162, 235, 1)'
+    }]
+  };
+  
+  var option = {
+      legend : {
+        display : false
+      }
+    , title : {
+        display : false
+      }
+    , responsive: true
+    , maintainAspectRatio: false
+    , scales: {
+        xAxes: [{
+            display: displayFullGraph
+          , categoryPercentage:1
+          , barPercentage:1
+        }]
+      , yAxes: [{
+          display: displayFullGraph
+        }]
+      }
+    , tooltips : {
+          enabled: displayFullGraph
+        , custom: changesTooltip
+      }
+  }
+
+  return new Chart(context, {
+      type: 'bar'
+    , data: chartData
+    , options : option
+  });
+  
+  
+}
+
+var count = 0
 function generateRecentGraph(id, displayGraph) {
   if (displayGraph) {
-    var graphId = "Changes-"+id;
+    var container = $("#Changes-"+id);
+    var graphId = "canvas-"+id;
     var changes = recentChanges[id];
     if (changes !== undefined) {
-      var data = changes.y;
-      data.splice(0,0,'Recent changes');
-      var x = changes.x;
-      x.splice(0,0,'x');
-      var chart = c3.generate({
-          size: { height: 30 , width: 168 }
-        , legend: { show: false }
-        , data: {
-              x: 'x'
-            , columns: [ x, data ]
-            , type: 'area-step'
-          }
-        , axis: {
-              x: {
-                  show : false
-                , type: 'categories'
-              }
-            , y: { show : false }
-          }
-      });
-      recentGraphs[id] = chart;
+      container.empty()
+      container.append('<canvas id="'+graphId+'" height="20" ></canvas>');
 
-      $("#"+graphId).html(chart.element);
+      var myBarChart = recentChangesGraph(changes,graphId,false)
+      
+      recentGraphs[id] = myBarChart;
 
     }
   } else {
@@ -163,7 +253,7 @@ function recentChangesText(id) {
   var changes = recentChanges[id];
   var lastChanges = 0;
   if (changes !== undefined) {
-    lastChanges = changes.y[changes.y.length - 1];
+    lastChanges = changes.values[changes.values.length - 1];
   }
 
   // Prepare graph elem to have tooltip
@@ -364,7 +454,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData, "showRecentChanges");
         var id = "Changes-"+oData.id;
-        elem.append('<div id="'+id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>');
+        elem.append('<div id="'+id+'"></div>');
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
