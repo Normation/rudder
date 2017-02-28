@@ -95,7 +95,7 @@ import com.normation.rudder.domain.policies.TagValue
 //serialize / deserialize tags
 object TagsXml {
   def toXml(tags: Tags) = {
-    <tags>{tags.map { tag => <tag name={tag.tagName.name} value={tag.tagValue.value} />} }</tags>
+    <tags>{tags.map { tag => <tag name={tag.name.value} value={tag.value.value} />} }</tags>
   }
 
   //tags is the <tags> elements which contains <tag> direct children

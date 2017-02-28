@@ -45,7 +45,8 @@ import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 @RunWith(classOf[JUnitRunner])
 class TagsTest extends Specification with Loggable {
   def createTag(name:String) : Tag = {
-    Tag(TagName(name), TagValue(name + "-value"))
+    import Tag._
+    Tag(name, name + "-value")
   }
 
   val tag1 = createTag("tag1")

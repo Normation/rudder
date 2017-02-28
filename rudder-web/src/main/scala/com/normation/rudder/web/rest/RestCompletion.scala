@@ -133,7 +133,7 @@ class RestCompletionService (
     } yield {
       (for {
       tag <- lib.allDirectives.flatMap(_._2._2.tags.tags).toList
-      val name = tag.tagName.name
+      val name = tag.name.value
       if name.startsWith(matching)
       } yield {
         name
@@ -147,8 +147,8 @@ class RestCompletionService (
     } yield {
       (for {
       tag <- lib.allDirectives.flatMap(_._2._2.tags.tags).toList
-      if tagName.map(_ == tag.tagName.name).getOrElse(true)
-      value = tag.tagValue.value
+      if tagName.map(_ == tag.name.value).getOrElse(true)
+      value = tag.value.value
       if value.startsWith(matching)
       } yield {
         value
@@ -162,9 +162,9 @@ class RestCompletionService (
     } yield {
       (for {
       tag <- rules.flatMap(_.tags.tags).toList
-      if tag.tagName.name.contains(matching)
+      if tag.name.value.contains(matching)
       } yield {
-        tag.tagName.name
+        tag.name.value
       }).sorted.distinct
     }
   }
@@ -175,8 +175,8 @@ class RestCompletionService (
     } yield {
       (for {
       tag <- rules.flatMap(_.tags.tags).toList
-      if tagName.map(_ == tag.tagName.name).getOrElse(true)
-      value = tag.tagValue.value
+      if tagName.map(_ == tag.name.value).getOrElse(true)
+      value = tag.value.value
       if value.startsWith(matching)
       } yield {
         value
