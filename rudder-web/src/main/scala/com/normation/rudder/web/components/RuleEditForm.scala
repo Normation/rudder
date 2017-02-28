@@ -237,9 +237,6 @@ class RuleEditForm(
               }else{
                 $$('#changeIconRule').removeClass('fa-area-chart');
               }
-              if((target=="#ruleComplianceTab")&&(recentChart !== undefined)){
-                recentChart.flush();
-              }
             });
             """
         ))
