@@ -28,57 +28,20 @@
 bundle agent service_check_started_at_boot(service_name)
 {
   vars:
-
-    pass1.systemctl_utility_present.!broken_systemctl::
-      "command_to_check"   string => "${paths.path[systemctl]} is-enabled ${service_name}.service";
-
-    pass1.!systemctl_utility_present.chkconfig_utility_present::
-      "command_to_check"   string => "${paths.path[chkconfig]} --list ${service_name} | grep -q -e 3:on -e B:on";
-
-    pass1.!systemctl_utility_present.!chkconfig_utility_present.lsitab_utility_present::
-      "command_to_check"   string => "/usr/sbin/lsitab -a | egrep '^${service_name}:[0-9]+:(respawn|boot|bootwait|wait|once|initdefault|sysinit):'";
-
-    pass1.!systemctl_utility_present.!chkconfig_utility_present.!lsitab_utility_present.svcs_utility_present::
-      "command_to_check"   string => "${paths.path[svcs]} -l ${service_name} | egrep '^enabled [ 	]+(true|false \(temporary\))'";
-
-    (pass1.!systemctl_utility_present.!chkconfig_utility_present.!lsitab_utility_present.!svcs_utility_present)|(pass1.broken_systemctl)::
-      "command_to_check"   string => "${paths.path[test]} -f /etc/rc`runlevel | ${paths.path[cut]} -d' ' -f2`.d/S??${service_name}";
-
-    any::
-
       "canonified_service_name" string => canonify("${service_name}");
-      "canonified_command"      string => canonify("${command_to_check}");
 
       "old_class_prefix"        string => "service_check_started_at_boot_${canonified_service_name}";
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"                     slist => { "${service_name}" };
 
-  classes:
-
-      # This is to workaround a bug in Debian Jessie, that makes systemctl is-enabled
-      # fail if run against a service that still uses SysV style scripts
-      # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=760616
-      "init_script_present" expression => fileexists("/etc/init.d/${service_name}");
-      "broken_systemctl"    expression => "debian_8.init_script_present";
-
-    pass1::
-      "set_at_boot"         expression => returnszero("${command_to_check}", "useshell");
-
-    any::
-      "pass2"               expression => "pass1";
-      "pass1"               expression => "any";
-
   methods:
+      "check_enabled"      usebundle => ncf_services("${service_name}", "is-enabled");
 
-    set_at_boot::
-      "success" usebundle => _classes_success("${old_class_prefix}");
-      "success" usebundle => _classes_success("${class_prefix}");
+      "class copy"         usebundle => _classes_copy("ncf_services_${canonified_service_name}_is_enabled", "${old_class_prefix}"),
+                          ifvarclass => "ncf_services_${canonified_service_name}_is_enabled_reached";
+      "new result classes" usebundle => _classes_copy("${class_prefix}_check_enabled", "${class_prefix}"),
+                          ifvarclass => "${class_prefix}_check_enabled_reached";
 
-    pass2.!set_at_boot::
-      "failure" usebundle => _classes_failure("${old_class_prefix}");
-      "failure" usebundle => _classes_failure("${class_prefix}");
-
-    pass2::
-      "reports" usebundle => _log("Check if service ${service_name} is started at boot", "${old_class_prefix}", "${class_prefix}", @{args});
+      "reports"            usebundle => _log("Check if service ${service_name} is started at boot", "${old_class_prefix}", "${class_prefix}", @{args});
 }

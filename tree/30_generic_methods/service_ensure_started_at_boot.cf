@@ -28,19 +28,7 @@ bundle agent service_ensure_started_at_boot(service_name)
 {
   vars:
 
-    systemctl_utility_present::
-      "command_to_register" string => "${paths.path[systemctl]} enable ${service_name}.service";
 
-    !systemctl_utility_present.chkconfig_utility_present::
-      "command_to_register" string => "${paths.path[chkconfig]} ${service_name} on";
-    !systemctl_utility_present.update_rcd_utility_present::
-      "command_to_register" string => "${paths.path[update_rc_d]} ${service_name} defaults";
-
-    !systemctl_utility_present.!chkconfig_utility_present.!update_rcd_utility_present.chitab_utility_present::
-      "command_to_register" string => "/usr/sbin/chitab \"`lsitab -a | grep '^${service_name}:' | sed 's/\([^:]*\):\([^:]*\):[^:]*:\(.*\)/\1:\2:respawn:\3/'`\"";
-
-    !systemctl_utility_present.!chkconfig_utility_present.!update_rcd_utility_present.!chitab_utility_present.svcadm_utility_present::
-      "command_to_register" string => "${paths.path[svcadm]} enable ${service_name}";
     any::
 
       "canonified_service_name" string => canonify("${service_name}");
@@ -57,7 +45,7 @@ bundle agent service_ensure_started_at_boot(service_name)
         usebundle => service_check_started_at_boot("${service_name}");
 
       "define_at_boot"
-        usebundle  => command_execution("${command_to_register}"),
+        usebundle => ncf_services("${service_name}", "enable"),
         ifvarclass => "(!has_promiser_stack.service_check_started_at_boot_${canonified_service_name}_not_ok)|(has_promiser_stack.${class_prefix}_check_at_boot_not_ok)";
 
       "already defined"
@@ -69,22 +57,24 @@ bundle agent service_ensure_started_at_boot(service_name)
         ifvarclass => "${class_prefix}_check_at_boot_ok";
 
       "copy classes"
-        usebundle  => _classes_copy("command_execution_${canonified_command_name}", "${old_class_prefix}"),
+        usebundle  => _classes_copy("ncf_services_${canonified_service_name}_enable", "${old_class_prefix}"),
         ifvarclass => "service_check_started_at_boot_${canonified_service_name}_not_ok";
 
       "copy classes"
         usebundle  => _classes_copy("${class_prefix}_define_at_boot", "${class_prefix}"),
         ifvarclass => "${class_prefix}_check_at_boot_not_ok";
 
+    windows::
+      "action"             usebundle => service_start("${service_name}");
+
+      "class copy"         usebundle => _classes_copy("service_start_${canonified_service_name}", "${old_class_prefix}"),
+                          ifvarclass => "service_start_${canonified_service_name}_reached";
+      "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                          ifvarclass => "${class_prefix}_action_reached";
+
    any::
       "report"
         usebundle => _log("Ensure service ${service_name} is started at boot", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
-  services:
-    windows::
-      "${service_name}"
-        service_policy => "start",
-        service_method => bootstart,
-        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 }

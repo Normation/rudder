@@ -58,102 +58,23 @@ bundle agent service_action(service_name, action)
 {
   vars:
 
-    systemctl_utility_present::
-
-      "action_command"            string => "${paths.path[systemctl]} ${action} ${service_name}.service";
-
-    !systemctl_utility_present.service_utility_present::
-
-      "action_command"            string => "${paths.path[service]} ${service_name} ${action}";
-
-    !systemctl_utility_present.!service_utility_present.startsrc_utility_present::
-      "svc_action_cmd[restart]"   string => "/usr/bin/stopsrc -s ${service_name} && until /usr/bin/lssrc -s ${service_name} | ${paths.grep} -q inoperative; do ${paths.perl} -e 'select(undef,undef,undef,.25)'; done; /usr/bin/startsrc -s ${service_name}";
-      "svc_action_cmd[refresh]"   string => "/usr/bin/refresh -s ${service_name}";
-      "svc_action_cmd[reload]"    string => "${svc_action_cmd[refresh]}";
-      "svc_action_cmd[start]"     string => "/usr/bin/startsrc -s ${service_name}";
-      "svc_action_cmd[stop]"      string => "/usr/bin/stopsrc -s ${service_name}";
-      "action_command"            string => "${svc_action_cmd[${action}]}";
-
-    !systemctl_utility_present.!service_utility_present.!startsrc_utility_present.svcadm_utility_present::
-      "svc_action_cmd[restart]"   string => "${paths.path[svcadm]} restart -s ${service_name}";
-      "svc_action_cmd[refresh]"   string => "${paths.path[svcadm]} refresh -s ${service_name}";
-      "svc_action_cmd[reload]"    string => "${svc_action_cmd[refresh]}";
-      "svc_action_cmd[enable]"    string => "${paths.path[svcadm]} enable -s ${service_name}";
-      "svc_action_cmd[start]"     string => "${paths.path[svcadm]} enable -s -t ${service_name}";
-      "svc_action_cmd[disable]"   string => "${paths.path[svcadm]} disable -s ${service_name}";
-      "svc_action_cmd[stop]"      string => "${paths.path[svcadm]} disable -s -t ${service_name}";
-      "action_command"            string => "${svc_action_cmd[${action}]}";
-
-    !systemctl_utility_present.!service_utility_present.!startsrc_utility_present.!svcadm_utility_present.init_d_directory_present::
-
-      "action_command"            string => "/etc/init.d/${service_name} ${action}";
-
-    any::
-
       "canonified_service_name"   string => canonify("${service_name}");
-      "canonified_action_command" string => canonify("${action_command}");
+      "canonified_action" string => canonify("${action}");
 
       "old_class_prefix"          string => "service_action_${canonified_service_name}";
       "promisers"                 slist  => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"              string => canonify(join("_", "promisers"));
       "args"                      slist  => { "${service_name}", "${action}" };
 
-  classes:
-
-    windows::
-      "is_valid_action"               or => {
-                                              strcmp("start", "${action}"),
-                                              strcmp("stop", "${action}"),
-                                              strcmp("restart", "${action}"),
-                                            };
-      "is_restart_action"     expression => strcmp("restart", "${action}");
-
   methods:
 
-    service_utility_present|init_d_directory_present|startsrc_utility_present|svcadm_utility_present::
+      "action"                 usebundle => ncf_services("${service_name}", "${action}");
 
-      "action using command"      usebundle => command_execution("${action_command}");
+      "class copy"             usebundle => _classes_copy("ncf_services_${canonified_service_name}_${canonified_action}", "${old_class_prefix}"),
+                              ifvarclass => "ncf_services_${canonified_service_name}_${canonified_action}_reached";
+      "new result classes"     usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                              ifvarclass => "${class_prefix}_action_reached";
 
-      "class copy"                usebundle => _classes_copy("command_execution_${canonified_action_command}", "${old_class_prefix}");
-      "new result classes"        usebundle => _classes_copy("${class_prefix}_action_using_command", "${class_prefix}");
-
-    systemctl_utility_present|service_utility_present|init_d_directory_present|startsrc_utility_present|svcadm_utility_present|(windows.is_valid_action)::
-
-      "report"                    usebundle => _log("Run action ${action} on service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
-                                 ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
-
-    (!systemctl_utility_present.!service_utility_present.!init_d_directory_present.!startsrc_utility_present.!svcadm_utility_present.!windows)|(windows.!is_valid_action)::
-
-      "force_failure_class"       usebundle => _classes_failure("${old_class_prefix}");
-      "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
-      "report"                    usebundle => _log("Running ${action} on service ${service_name} is not possible yet on this system", "${old_class_prefix}", "${class_prefix}", @{args});
-
-  services:
-
-    # Restart causes the agent to fail, so we must replace it by stop and start
-    windows.is_valid_action.!is_restart_action::
-      "${service_name}"
-        service_policy => "${action}",
-        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
-
-    windows.is_restart_action::
-      "${service_name}"
-        service_policy => "stop",
-        classes        => classes_generic_two("${old_class_prefix}_stop_service", "${class_prefix}_stop_service");
-
-      "${service_name}"
-        service_policy => "start",
-        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-        ifvarclass     => "(!has_promiser_stack.${old_class_prefix}_stop_service_ok)|(has_promiser_stack.${class_prefix}_stop_service_ok)";
-
-  commands:
-
-    # We need to use our own commands: implementation here rather than calling command_execution
-    # because of a CFEngine bug (https://dev.cfengine.com/issues/5840) that causes systemctl
-    # to fail if it can't find /dev/tty, which is the case unless using no_output => true
-    systemctl_utility_present::
-      "${action_command}"
-        contain => in_shell_and_silent,
-        classes => classes_generic("${class_prefix}");
-
+      "report"                 usebundle => _log("Run action ${action} on service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                              ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 }

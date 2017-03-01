@@ -28,58 +28,26 @@
 bundle agent service_check_disabled_at_boot(service_name)
 {
   vars:
-
-    pass1.systemctl_utility_present::
-      "command_to_check"   string => "${paths.path[systemctl]} is-enabled ${service_name} | grep disabled";
-
-    pass1.!systemctl_utility_present.chkconfig_utility_present::
-      "command_to_check"   string => "${paths.path[chkconfig]} --list ${service_name} | grep -q `runlevel | ${paths.path[cut]} -d' ' -f2`:off";
-
-    pass1.!systemctl_utility_present.!chkconfig_utility_present.lsitab_utility_present::
-      "command_to_check"   string => "/usr/sbin/lsitab -a | egrep '^${service_name}:[0-9]+:(off):'";
-
-    pass1.!systemctl_utility_present.!chkconfig_utility_present.!lsitab_utility_present.svcs_utility_present::
-      "command_to_check"   string => "${paths.path[svcs]} -l ${service_name} | egrep '^enabled [ 	]+false'";
-
-    (pass1.!systemctl_utility_present.!chkconfig_utility_present.!lsitab_utility_present.!svcs_utility_present)|(pass1.broken_systemctl)::
-      "command_to_check"   string => "${paths.path[test]} -f /etc/rc`runlevel | ${paths.path[cut]} -d' ' -f2`.d/K??${service_name}";
-
-    any::
-
       "canonified_service_name" string => canonify("${service_name}");
-      "canonified_command"      string => canonify("${command_to_check}");
 
       "old_class_prefix"        string => "service_check_disabled_at_boot_${canonified_service_name}";
       "promisers"                slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"            string => canonify(join("_", "promisers"));
       "args"                     slist => { "${service_name}" };
 
-  classes:
-
-      # This is to workaround a bug in Debian Jessie, that makes systemctl is-enabled
-      # fail if run against a service that still uses SysV style scripts
-      # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=760616
-      "init_script_present" expression => fileexists("/etc/init.d/${service_name}");
-      "broken_systemctl"    expression => "debian_8.init_script_present";
-
-    pass1::
-      "not_set_at_boot"         expression => returnszero("${command_to_check}", "useshell");
-
-    any::
-      "pass2"               expression => "pass1";
-      "pass1"               expression => "any";
-
   methods:
+      "check_enabled"      usebundle => ncf_services("${service_name}", "is-enabled");
 
-    not_set_at_boot::
-      "success" usebundle => _classes_success("${old_class_prefix}");
-      "success" usebundle => _classes_success("${class_prefix}");
+      "success" usebundle => _classes_success("${old_class_prefix}"),
+               ifvarclass => "ncf_services_${canonified_service_name}_is_enabled_not_ok";
+      "success" usebundle => _classes_success("${class_prefix}"),
+               ifvarclass => "${class_prefix}_check_enabled_not_ok";
 
-    pass2.!not_set_at_boot::
-      "failure" usebundle => _classes_failure("${old_class_prefix}");
-      "failure" usebundle => _classes_failure("${class_prefix}");
+      "failure" usebundle => _classes_failure("${old_class_prefix}"),
+               ifvarclass => "ncf_services_${canonified_service_name}_is_enabled_ok";
+      "failure" usebundle => _classes_failure("${class_prefix}"),
+               ifvarclass => "${class_prefix}_check_enabled_ok";
 
-    pass2::
       "reports" usebundle => _log("Check if service ${service_name} is disabled at boot", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }
