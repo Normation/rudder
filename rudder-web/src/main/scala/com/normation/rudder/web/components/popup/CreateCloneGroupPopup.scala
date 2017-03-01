@@ -75,7 +75,7 @@ class CreateCloneGroupPopup(
 
   def popupTemplate = ChooseTemplate(
       List("templates-hidden", "Popup", "createCloneGroupPopup")
-    , "groups:createclonegrouppopup"
+    , "groups-createclonegrouppopup"
   )
 
   private[this] def closePopup() : JsCmd = {
