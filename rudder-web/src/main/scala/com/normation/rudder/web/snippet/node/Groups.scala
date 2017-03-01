@@ -321,6 +321,12 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
             $$.jstree.rollback(data.rlbk);
           }
         });
+        adjustHeight('#groupsTree');
+        adjustHeight('#groupDetails');
+        $$(window).on('resize',function(){
+          adjustHeight('#groupsTree');
+          adjustHeight('#groupDetails');
+        });
       """))
     )}
   }
