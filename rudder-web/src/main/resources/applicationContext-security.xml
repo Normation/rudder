@@ -76,14 +76,14 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
             login-page="/index.html"
             login-processing-url="/j_spring_security_check"
             default-target-url="/secure/index.html" 
+            authentication-failure-handler-ref="rudderWebAuthenticationFailureHandler"
             always-use-default-target="false"
-            authentication-failure-url="/index.html?login_error=true"
         />
 <!--        <remember-me />-->
 
     </http>
-
-    <!-- Disallow any session check, for demo only. A real application should enable concurrent/fixation session check  -->
+    
+    <!-- Disallow any session check -->
     <beans:bean id="sas" class="org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy" />
   
     <!-- 
