@@ -997,6 +997,9 @@ a.sidebar-toggle{
   border-top-left-radius:0;
   border-bottom-left-radius:0;
 }
+#nodePropertiesTab{
+  table-layout:fixed;
+}
 #nodePropertiesTab_info {
   position: relative;
   top: 3px;
@@ -1306,6 +1309,18 @@ form .tooltip-content p {
   background-color: #3694d1;
 }
 
+.label-provider, .dataTable .rudder-label.label-sm.label-provider {
+  background-color: #999;
+  padding:0 5px !important;
+  margin-top:4px;
+}
+.label-provider + .tooltip .tooltip-inner {
+  padding: 10px 12px !important;
+  min-width: 160px;
+  width: auto;
+  white-space: initial;
+  word-break: break-word;
+}
 .tw-bs .rudder-label.label-audit:before,.tw-bs .label-text.label-audit:after{
   content: "Audit";
 }
