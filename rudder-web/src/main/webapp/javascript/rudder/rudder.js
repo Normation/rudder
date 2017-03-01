@@ -479,11 +479,6 @@ var clearSearchFieldTree = function(inputId, treeId) {
   return false;
 }
 
-/* Facility to format a number on two digits */
-function formatOn2Digits(number) {
-  return twoDigitsFormator(number);
-}
-
 $(document).ready(function() {
   $.extend( $.fn.dataTable.ext.oSort, {
     "percent-pre": function ( a ) {
