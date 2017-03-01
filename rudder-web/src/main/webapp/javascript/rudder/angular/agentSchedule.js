@@ -158,7 +158,7 @@ cfagentScheduleModule.controller("cfagentScheduleController", function($scope) {
 
   /* Format a number on two digits, starting by 0 */
   $scope.format2Digits = function(number) {
-    return formatOn2Digits(number);
+    return ("0" + number).slice(-2);
   }
 
 });
