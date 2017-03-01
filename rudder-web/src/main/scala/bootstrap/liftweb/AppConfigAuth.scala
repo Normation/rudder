@@ -86,6 +86,15 @@ import javax.servlet.http.HttpServletResponse
 import net.liftweb.common._
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
 import org.springframework.context.support.AbstractApplicationContext
+import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
+import org.springframework.ldap.core.DirContextAdapter
+import org.springframework.ldap.core.DirContextOperations
+import java.util.Collection
+import org.xml.sax.SAXParseException
+import com.normation.rudder.web.services.UserSessionLogEvent
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
+import org.springframework.security.web.authentication.AuthenticationFailureHandler
+import org.springframework.security.authentication.BadCredentialsException
 
 /**
  * Spring configuration for user authentication.
@@ -168,6 +177,8 @@ class AppConfigAuth extends ApplicationContextAware {
       appCtx.getBean(x.springBean, classOf[AuthenticationProvider])
   }.asJava)
 
+  @Bean def rudderWebAuthenticationFailureHandler: AuthenticationFailureHandler = new RudderUrlAuthenticationFailureHandler("/index.html?login_error=true")
+
   @Bean def rudderUserDetailsService: RudderInMemoryUserDetailsService = {
     try {
       val resource = getUserResourceFile
@@ -237,7 +248,7 @@ class AppConfigAuth extends ApplicationContextAware {
 
   @Bean def restAuthenticationEntryPoint = new AuthenticationEntryPoint() {
     override def commence(request: HttpServletRequest, response: HttpServletResponse, ex: AuthenticationException) : Unit = {
-        response.sendError( HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized" )
+      response.sendError( HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized" )
     }
   }
 
@@ -260,6 +271,58 @@ class AppConfigAuth extends ApplicationContextAware {
   @Bean def userSessionLogEvent = new UserSessionLogEvent(RudderConfig.eventLogRepository, RudderConfig.stringUuidGenerator)
 
 }
+
+/*
+ * A trivial extension to the SimpleUrlAuthenticationFailureHandler that correctly log failure
+ */
+class RudderUrlAuthenticationFailureHandler(failureUrl: String) extends SimpleUrlAuthenticationFailureHandler(failureUrl) {
+  override def onAuthenticationFailure(request: HttpServletRequest, response: HttpServletResponse, exception: AuthenticationException): Unit = {
+    LogFailedLogin.warn(exception, request)
+    super.onAuthenticationFailure(request, response, exception)
+  }
+}
+
+object LogFailedLogin {
+
+  def warn(ex: AuthenticationException, request: HttpServletRequest): Unit = {
+    ApplicationLogger.warn(s"Login authentication failed for user '${getUser(ex)}' from IP '${getRemoteAddr(request)}': ${ex.getMessage}")
+  }
+
+  def getUser(ex: AuthenticationException): String = {
+    ex match {
+      case bce:BadCredentialsException =>
+        bce.getAuthentication match {
+          case user: UsernamePasswordAuthenticationToken => user.getName
+          case _                                         => "unknown"
+        }
+      case _ => "unknown"
+    }
+  }
+
+  def getRemoteAddr(request: HttpServletRequest): String = {
+    /*
+     * Of course there is not reliable way to get remote address, because of proxy, forging, etc.
+     */
+
+    // Some interesting header, get from https://gist.github.com/nioe/11477264
+    // the list seems to be roughtly correctly ordered - perhaps we don't want one, but all?
+    val headers = List("X-Forwarded-For", "Proxy-Client-IP", "WL-Proxy-Client-IP", "HTTP_CLIENT_IP", "HTTP_X_FORWARDED_FOR")
+
+    //utility to display correctly the pair header:value
+    def show(t2: Tuple2[String, String]) = t2._1+":"+t2._2
+
+    // always returns the ip addr as seen from the server, and the list of other perhaps interesting info
+    (
+      request.getRemoteAddr ::
+      headers.flatMap { header => request.getHeader(header) match {
+          case null | "" => None
+          case x => if(x.toLowerCase != "unknown") Some((header, x)) else None
+        }
+      }.groupBy(_._2).map(x => show(x._2.head)).toList
+    ).mkString("|")
+  }
+}
+
 
 /**
  *  A trivial, immutable implementation of UserDetailsService for RudderUser
@@ -339,9 +402,9 @@ class RestAuthenticationFilter(
        }
   )
 
-  private[this] def failsAuthentication(httpResponse: HttpServletResponse, eb: EmptyBox) : Unit = {
-    val e = eb ?~! "REST authentication failed"
-    logger.debug(e.messageChain)
+  private[this] def failsAuthentication(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, eb: EmptyBox) : Unit = {
+    val e = eb ?~! s"REST authentication failed from IP '${LogFailedLogin.getRemoteAddr(httpRequest)}'"
+    ApplicationLogger.warn(e.messageChain.replaceAll(" <-", ":"))
     e.rootExceptionCause.foreach( ex => logger.debug(ex))
     httpResponse.sendError( HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized" )
   }
@@ -382,7 +445,7 @@ class RestAuthenticationFilter(
               ))
               chain.doFilter(request, response)
             } else {
-              failsAuthentication(httpResponse, Failure(s"Missing or empty HTTP header ${headerName}"))
+              failsAuthentication(httpRequest, httpResponse, Failure(s"Missing or empty HTTP header ${headerName}"))
             }
 
           case token =>
@@ -390,10 +453,10 @@ class RestAuthenticationFilter(
 
             apiTokenRepository.getByToken(ApiToken(token)) match {
               case eb:EmptyBox =>
-                failsAuthentication(httpResponse, eb)
+                failsAuthentication(httpRequest, httpResponse, eb)
 
               case Full(None) =>
-                failsAuthentication(httpResponse, Failure(s"No registered token '${token}'"))
+                failsAuthentication(httpRequest, httpResponse, Failure(s"No registered token '${token}'"))
 
               case Full(Some(principal)) =>
                 if(principal.isEnabled) {
@@ -409,7 +472,7 @@ class RestAuthenticationFilter(
                   chain.doFilter(request, response)
 
                 } else {
-                  failsAuthentication(httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
+                  failsAuthentication(httpRequest, httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
                 }
             }
         }
