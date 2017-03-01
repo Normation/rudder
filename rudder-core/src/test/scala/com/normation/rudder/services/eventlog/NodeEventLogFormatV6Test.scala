@@ -102,13 +102,13 @@ class NodeEventLogFormatV6Test extends Specification {
           , modAgentRun   = None
           , modProperties = Some(SimpleDiff(
                               ArrayBuffer(
-                                NodeProperty("env_type", JString("production"), None, None)
-                              , NodeProperty("shell", JString("/bin/sh"), None, None)
+                                NodeProperty("env_type", JString("production"), None)
+                              , NodeProperty("shell", JString("/bin/sh"), None)
                               )
                             , ArrayBuffer(
-                                NodeProperty("shell", JString("/bin/sh"), None, None)
-                              , NodeProperty("env", JString("PROD"), None, None)
-                              , NodeProperty("datacenter", ("Europe" -> ("France" -> true) ), None, None)
+                                NodeProperty("shell", JString("/bin/sh"), None)
+                              , NodeProperty("env", JString("PROD"), None)
+                              , NodeProperty("datacenter", ("Europe" -> ("France" -> true) ), None)
                               )
                             ))
           , modPolicyMode = None
