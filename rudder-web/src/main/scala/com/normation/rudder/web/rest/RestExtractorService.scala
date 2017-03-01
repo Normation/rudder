@@ -608,9 +608,9 @@ case class RestExtractorService (
     extractList(params, "properties") { props =>
       val splitted = props.map { prop =>
         val parts = prop.split('=')
-        if(parts.size == 1) NodeProperty(parts(0), "", None, None)
+        if(parts.size == 1) NodeProperty(parts(0), "", None)
         //here, we should parse parts(1) and only fallback to string if not successful.
-        else NodeProperty(parts(0), parts(1), None, None)
+        else NodeProperty(parts(0), parts(1), None)
       }
       Full(splitted)
     }
@@ -643,13 +643,7 @@ case class RestExtractorService (
           case _              => None
         }
 
-        val mode = (json \ "mode") match {
-          case JString(NodePropertyRights.ReadOnly.value)  => Some(NodePropertyRights.ReadOnly)
-          case JString(NodePropertyRights.ReadWrite.value) => Some(NodePropertyRights.ReadWrite)
-          case _                                         => None
-        }
-
-        Full(NodeProperty(nameValue, value, provider, mode))
+        Full(NodeProperty(nameValue, value, provider))
       case (a, b)  =>
         Failure(s"""Error when trying to parse new property: '${compactRender(json)}'. The awaited format is: {"name": string, "value": json}""")
     }

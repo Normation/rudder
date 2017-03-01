@@ -935,15 +935,9 @@ class EventLogDetailsServiceImpl(
                            val json = tryo { jparse(value) }
                            val x = json.openOr(JString(value))
 
-                           // 'provider' and 'mode' are optionnal, default to rudder / read-write
+                           // 'provider' is optionnal, default to "default"
                            val provider = (prop \ "provider" ).headOption.map( p => NodePropertyProvider(p.text) )
-                           val mode = (prop \ "mode").headOption.map( _.text ) match {
-                             case None                                  => None
-                             case Some(NodePropertyRights.ReadOnly.value) => Some(NodePropertyRights.ReadOnly)
-                             case _                                     => Some(NodePropertyRights.ReadWrite)
-                           }
-
-                           NodeProperty(name, x, provider, mode)
+                           NodeProperty(name, x, provider)
                          }
                        }
       } yield {
