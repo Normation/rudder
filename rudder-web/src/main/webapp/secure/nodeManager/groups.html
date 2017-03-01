@@ -1,49 +1,50 @@
 <lift:surround with="common-layout" at="content">
 
 <head>
-<title>Rudder - Node Groups Management</title>
-<style>
-form select.selectComparator {
-  width: 100px;
-}
-form select.selectField {
-  width: 130px;
-}
-input.queryInputValue, select.queryInputValue {
-  width:115px !important;
-}
-</style>
+  <title>Rudder - Node Groups Management</title>
+  <link type="text/css" rel="stylesheet" href="/style/rudder/rudder-groups.css"/>
+  <style>
+    form select.selectComparator {
+      width: 100px;
+    }
+    form select.selectField {
+      width: 130px;
+    }
+    input.queryInputValue, select.queryInputValue {
+      width:115px !important;
+    }
+  </style>
 </head>
 
-<span data-list="node.Groups.head" ></span>
+<span data-list="node.Groups.head"></span>
 <div class="nodeGroupContainer">
   <div class="tw-bs col-sm">
-    <div data-lift="node.Groups.groupHierarchy">
-    <div class="page-title">Group hierarchy</div>
-    <div id="groupeTree_actions_zone" >
-      <div class="col-xs-12 tree">
-        <div class="filter-tree">
-          <div class="input-group">
-            <div class="input-group-btn">
-              <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#groupTree', this);">
-                <span class="fa fa-folder fa-folder-open"></span>
-              </button>
-            </div>
-            <input class="form-control" placeholder="Filter" id="groupSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#groupSearch', '#groupTree');">
-            <div class="input-group-btn">
-              <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" >
-                <span class="fa fa-times"></span>
-              </button>
-              <lift:Authz role="group_write">
-                <div id="newItem">Here comes the New item Button</div>
-              </lift:Authz>
+    <div id="groupsTree" data-lift="node.Groups.groupHierarchy">
+      <div class="page-title">Group hierarchy</div>
+      <div id="groupeTree_actions_zone">
+        <div class="col-xs-12 tree">
+          <div class="filter-tree">
+            <div class="input-group">
+              <div class="input-group-btn">
+                <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#groupTree', this);">
+                  <span class="fa fa-folder fa-folder-open"></span>
+                </button>
+              </div>
+              <input class="form-control" placeholder="Filter" id="groupSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#groupSearch', '#groupTree');">
+              <div class="input-group-btn">
+                <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" >
+                  <span class="fa fa-times"></span>
+                </button>
+                <lift:Authz role="group_write">
+                  <div id="newItem">Here comes the New item Button</div>
+                </lift:Authz>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <div id="groupTree" class="col-xs-12 row">Here comes the Groups Tree</div>
-    <p class="col-xs-12"><b>Note:</b> Drag'n'drop items to change the hierarchy.</p>
+      <div id="groupTree" class="col-xs-12 row">Here comes the Groups Tree</div>
+      <p class="col-xs-12"><b>Note:</b> Drag'n'drop items to change the hierarchy.</p>
     </div>
   </div>
 
@@ -54,7 +55,7 @@ input.queryInputValue, select.queryInputValue {
   </div>
 </div>
 
-  <div class="spacer"></div>
+<div class="spacer"></div>
 
 <div class="tw-bs">
   <div id="createGroupPopup" class="modal fade" data-keyboard="true" tabindex="-1">
@@ -62,7 +63,7 @@ input.queryInputValue, select.queryInputValue {
   </div>
 </div>
 
-  <div data-lift="node.Groups.detailsPopup"></div>
+<div data-lift="node.Groups.detailsPopup"></div>
 
 </lift:surround>
 
