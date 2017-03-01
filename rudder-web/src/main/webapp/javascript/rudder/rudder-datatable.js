@@ -206,6 +206,10 @@ function recentChangesGraph(changes, graphId, displayFullGraph) {
         }]
       , yAxes: [{
           display: displayFullGraph
+        , ticks: {
+              beginAtZero: true
+            , min : 0
+          }
         }]
       }
     , tooltips : {
