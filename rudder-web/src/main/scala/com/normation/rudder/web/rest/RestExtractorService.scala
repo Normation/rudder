@@ -77,7 +77,6 @@ import net.liftweb.http.Req
 import net.liftweb.json._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.domain.nodes.NodePropertyRights
 import com.normation.rudder.domain.nodes.NodePropertyProvider
 import com.normation.rudder.web.rest.parameter.RestParameter
 
