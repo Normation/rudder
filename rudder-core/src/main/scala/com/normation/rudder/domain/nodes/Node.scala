@@ -101,30 +101,6 @@ case object Node {
  */
 final case class NodePropertyProvider(value: String)
 
-sealed trait NodePropertyRights {
-  def value: String
-}
-
-object NodePropertyRights {
-
-  final object ReadWrite extends NodePropertyRights {
-    override val value = "read-write"
-  }
-  final object ReadOnly extends NodePropertyRights {
-    override val value = "read-only"
-  }
-
-  def values = ca.mrvisser.sealerate.values[NodePropertyRights]
-
-  def apply(value : String) : Box[NodePropertyRights] = {
-    value match {
-      case ReadWrite.value => Full(ReadWrite)
-      case ReadOnly.value  => Full(ReadOnly)
-      case _               => Failure(s"'${value}' is not a valid value for Node properties rights")
-    }
-  }
-}
-
 /**
  * A node property is a key/value pair + metadata.
  * For now, only metadata availables are:
@@ -140,7 +116,6 @@ final case class NodeProperty(
     name    : String
   , value   : JValue
   , provider: Option[NodePropertyProvider] // optional, default "rudder"
-  , rights  : Option[NodePropertyRights]   // optional, default, "read-write"
 ) {
   def renderValue: String = value match {
     case JString(s) => s
@@ -150,7 +125,7 @@ final case class NodeProperty(
 
 object NodeProperty {
 
-  val rudderNodePropertyProvider = NodePropertyProvider("rudder")
+  val rudderNodePropertyProvider = NodePropertyProvider("default")
 
   import net.liftweb.json.parse
   import net.liftweb.json.JsonAST.{JNothing, JString}
@@ -163,18 +138,18 @@ object NodeProperty {
    * a JString *but* a string representing and actual JSON should be
    * used as json.
    */
-  def apply(name: String, value: String, provider: Option[NodePropertyProvider], mode: Option[NodePropertyRights]): NodeProperty = {
+  def apply(name: String, value: String, provider: Option[NodePropertyProvider]): NodeProperty = {
     try {
       val v = parse(value) match {
         case JNothing => JString("")
         case json     => json
       }
-      NodeProperty(name, v, provider, mode)
+      NodeProperty(name, v, provider)
     } catch {
       case ex: ParseException =>
         // in that case, we didn't had a valid json top-level structure,
         // i.e either object or array. Use a JString with the content
-        NodeProperty(name, JString(value), provider, mode)
+        NodeProperty(name, JString(value), provider)
     }
   }
 }
@@ -208,7 +183,6 @@ object CompareProperties {
      }
     }
 
-    import NodePropertyRights._
     optNewProps match {
       case None => Full(oldProps)
       case Some(newProps) =>
@@ -220,12 +194,14 @@ object CompareProperties {
                        oldPropsMap.get(newProp.name) match {
                          case None =>
                            Full(updateOrRemoveProp(newProp))
-                         case Some(oldProp@NodeProperty(name, value, provider, rights)) => rights match {
-                             case Some(ReadOnly) if(!same(newProp.provider, provider)) =>
-                               Failure(s"You are trying to update the following property which is owned by an other provider with 'read-only' mode set: '${name}'")
-                             case _ =>
+                         case Some(oldProp@NodeProperty(name, value, provider)) =>
+                             if(same(newProp.provider, provider)) {
                                Full(updateOrRemoveProp(newProp))
-                           }
+                             } else {
+                               val old = provider.getOrElse(NodeProperty.rudderNodePropertyProvider).value
+                               val current = newProp.provider.getOrElse(NodeProperty.rudderNodePropertyProvider).value
+                               Failure(s"You can not update property '${name}' which is owned by provider '${old}' thanks to provider '${current}'")
+                             }
                        }
                      }
         } yield {
@@ -306,7 +282,6 @@ object JsonSerialisation {
     def toJson(): JObject = (
         ( "name"     , x.name  )
       ~ ( "value"    , x.value )
-      ~ ( "rights"   , x.rights  .map(_.value) )
       ~ ( "provider" , x.provider.map(_.value) )
     )
   }
@@ -335,9 +310,8 @@ object JsonSerialisation {
                                        case value => Full(value)
                                      }
        provider <- OptionnalJson.extractJsonString(json, "provider", p => Full(NodePropertyProvider(p)) )
-       rights   <- OptionnalJson.extractJsonString(json, "rights", NodePropertyRights(_) )
     } yield {
-      NodeProperty(name,value,provider,rights)
+      NodeProperty(name,value,provider)
     }
   }
 

@@ -48,7 +48,6 @@ import net.liftweb.json.JsonAST.JString
 @RunWith(classOf[JUnitRunner])
 class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher {
 
-  import NodePropertyRights._
 
   val RudderP = Some(NodeProperty.rudderNodePropertyProvider)
   val P1 = Some(NodePropertyProvider("p1"))
@@ -60,30 +59,22 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
   }
 
   val baseProps = Seq(
-      NodeProperty("000", "000", None, None)
-    , NodeProperty("001", "001", None, Some(ReadWrite))
-    , NodeProperty("002", "002", None, Some(ReadOnly))
-    , NodeProperty("003", "003", RudderP, None)
-    , NodeProperty("004", "004", RudderP, Some(ReadWrite))
-    , NodeProperty("005", "005", RudderP, Some(ReadOnly))
-    , NodeProperty("006", "006", P1, None)
-    , NodeProperty("007", "007", P1, Some(ReadWrite))
-    , NodeProperty("008", "008", P1, Some(ReadOnly))
-    , NodeProperty("009", "009", P2, None)
-    , NodeProperty("010", "010", P2, Some(ReadWrite))
-    , NodeProperty("011", "011", P2, Some(ReadOnly))
-  )
+      NodeProperty("none"   , "node"   , None   )
+    , NodeProperty("default", "default", RudderP)
+    , NodeProperty("p1"     , "p1"     , P1     )
+    , NodeProperty("p2"     , "p2"     , P2     )
+  ).sorted
 
-  "Creation of prorties" should {
+  "Creation of properties" should {
     "be ok" in {
-      val newProps = baseProps.map( p => p.copy(name = "1" + p.name.tail ) )
-      CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) mustFullEq( baseProps++newProps )
+      val newProps = baseProps.map( p => p.copy(name = p.name+"_2" ) )
+      CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) mustFullEq( (baseProps++newProps).sorted )
     }
   }
 
   "Deletion of properties" should {
     "be a noop if different keys" in {
-      val newProps = baseProps.map( p => p.copy(name = "1" + p.name.tail, value = JString("") ) )
+      val newProps = baseProps.map( p => p.copy(name = p.name+"_2", value = JString("") ) )
       CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) mustFullEq( baseProps )
     }
     "be ok with same metadata" in {
@@ -112,23 +103,25 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
       )
     }
 
-    "always fails with read-only" in {
+    "fails for different providers" in {
       List(
-          updateAndDelete(NodeProperty("002", "002", P1, None))
-        , updateAndDelete(NodeProperty("005", "005", P1, None))
-        , updateAndDelete(NodeProperty("008", "008", P2, None))
-        , updateAndDelete(NodeProperty("008", "008", None, None))
-        , updateAndDelete(NodeProperty("008", "008", RudderP, None))
+          updateAndDelete(NodeProperty("none"   , "xxx", P1))
+        , updateAndDelete(NodeProperty("none"   , "xxx", P2))
+        , updateAndDelete(NodeProperty("default", "xxx", P1))
+        , updateAndDelete(NodeProperty("default", "xxx", P2))
+        , updateAndDelete(NodeProperty("p1"     , "xxx", None))
+        , updateAndDelete(NodeProperty("p1"     , "xxx", RudderP))
+        , updateAndDelete(NodeProperty("p1"     , "xxx", P2))
+        , updateAndDelete(NodeProperty("p2"     , "xxx", None))
+        , updateAndDelete(NodeProperty("p2"     , "xxx", RudderP))
+        , updateAndDelete(NodeProperty("p2"     , "xxx", P1))
       ).flatten must contain( (res: Box[Seq[NodeProperty]]) => res must beAnInstanceOf[Failure] ).foreach
     }
 
-    "be ok with read-write" in {
+    "be ok with compatible one (default)" in {
       List(
-          updateAndDelete(NodeProperty("001", "001", P1, None))
-        , updateAndDelete(NodeProperty("004", "004", P1, None))
-        , updateAndDelete(NodeProperty("007", "007", P2, None))
-        , updateAndDelete(NodeProperty("007", "007", None, None))
-        , updateAndDelete(NodeProperty("007", "007", RudderP, None))
+          updateAndDelete(NodeProperty("none"   , "xxx", RudderP))
+        , updateAndDelete(NodeProperty("default", "xxx", None))
       ).flatten must contain( (res: Box[Seq[NodeProperty]]) => res must beAnInstanceOf[Full[_]] ).foreach
     }
   }
