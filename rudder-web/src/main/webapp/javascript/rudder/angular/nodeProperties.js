@@ -54,9 +54,27 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
   }
 
   var columnDefs = [
-    {"aTargets":[0], "mDataProp": "name" , "sWidth": "250px", "sTitle" : "Name"  }
+    {
+    "aTargets":[0],
+    "mDataProp": "name",
+    "sWidth": "20%",
+    "sTitle" : "Name",
+    "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+      $(nTd).empty();
+      var divPropName = "<div>"+ sData +"</div>";
+      $(nTd).append(divPropName);
+      if(oData.provider){
+        var span = "<span class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title=''>" + oData.provider + "</span>";
+        var badge = $(span).get(0);
+        var tooltipText = "This node property is managed by its provider ‘<b>"+ oData.provider +"</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration.";
+        badge.setAttribute("title", tooltipText);
+        $(nTd).append(badge);
+      }
+    }
+    }
   , {
     "aTargets":[1],
+    "sWidth": "75%",
     "mDataProp": "value",
     "sTitle" :"Value",
     "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
@@ -72,15 +90,15 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
    }
   , {
     "aTargets":[2],
-    "sWidth": "50px",
+    "sWidth": "5%",
     "mDataProp": "name",
     "sTitle" :"",
     "orderable": false,
     "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      var deleteButton = $('<span class="fa fa-times text-danger" ng-click="popupDeletion(\''+sData+'\', \''+iRow+'\')"></span>');
-      $(nTd).addClass('text-center delete-action');
       $(nTd).empty();
       if (oData.rights !== "read-only") {
+        var deleteButton = $('<span class="fa fa-times text-danger" ng-click="popupDeletion(\''+sData+'\', \''+iRow+'\')"></span>');
+        $(nTd).addClass('text-center delete-action');
         $(nTd).prepend(deleteButton);
         $compile(deleteButton)($scope);
       }
@@ -153,6 +171,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
       return response.status==200;
     });
   }
+  $('.rudder-label').bsTooltip();
 });
 
 app.config(function($locationProvider) {
