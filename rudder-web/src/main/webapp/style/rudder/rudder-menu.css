@@ -517,9 +517,9 @@ a.sidebar-toggle{
   height: auto;
   padding-top: 15px;
   border-top: 2px solid #EBE7E7;
-  margin-left: 20%;
-  width: 60%;
-  position:relative
+  margin-left: 15%;
+  width: 70%;
+  position:relative;
 }
 
 .highlight{

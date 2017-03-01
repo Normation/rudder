@@ -53,7 +53,7 @@ function homePage (
   }
   var stats = "Compliance based on "+ activeNodes
   if (nodeCount.pending !== null) {
-    allNodes += nodeCount.pending;
+    allNodes += nodeCount.pending.nodes;
     var pendingNodes = nodeCount.pending.nodes + " Nodes"
     var verb = "are"
     if (nodeCount.active === 1) {

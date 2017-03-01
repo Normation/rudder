@@ -362,19 +362,19 @@
 }
 
 #globalCompliance .progress {
-  height:90px;
-  margin: 33px 25px;
+  height:80px;
+  margin: 33px 30px;
 }
 
 #globalCompliance .progress .progress-bar {
-    line-height: 90px;
+    line-height:80px;
     font-size: 25px;
     font-weight: 600;
 }
 
 #complianceGauge {
-    float: left;
-    width: 100%;
+    max-width: 100%;
+    width:420px;
 }
 #gauge-value {
     font-weight: bold;
