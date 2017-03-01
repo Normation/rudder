@@ -172,10 +172,11 @@ class ShowNodeDetailsFromNode(
   def saveSchedule(nodeInfo : NodeInfo)( schedule: AgentRunInterval) : Box[Unit] = {
     val modId =  ModificationId(uuidGen.newUuid)
     val user  =  CurrentUser.getActor
-    boxNodeInfo = Full(Some(nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))))))
+    val newNodeInfo = nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))))
+    boxNodeInfo = Full(Some(newNodeInfo))
     for {
       oldNode <- nodeInfoService.getNode(nodeId)
-      result  <- nodeRepo.updateNode(nodeInfo.node, modId, user, None)
+      result  <- nodeRepo.updateNode(newNodeInfo.node, modId, user, None)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
     }
