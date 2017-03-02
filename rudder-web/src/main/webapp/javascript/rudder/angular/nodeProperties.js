@@ -68,7 +68,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
         var badge = $(span).get(0);
         var tooltipText = "This node property is managed by its provider ‘<b>"+ oData.provider +"</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration.";
         badge.setAttribute("title", tooltipText);
-        $(nTd).append(badge);
+        $(nTd).prepend(badge);
       }
     }
     }
