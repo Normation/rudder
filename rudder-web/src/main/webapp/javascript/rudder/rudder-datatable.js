@@ -1501,7 +1501,7 @@ function buildComplianceBar(compliance, minPxSize) {
       return value;
     }
   }
-  var content = $('<div class="tw-bs progress"></div>');
+  var content = $('<div class="progress"></div>');
 
   // set the default minimal size of array if not defined
   if (minPxSize === undefined) minPxSize = 20;
@@ -1612,7 +1612,9 @@ function buildComplianceBar(compliance, minPxSize) {
     content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+widthArr[6]+'" title="No report: '+noreport+'%">'+value+'%</div>');
   }
 
-  return content
+  var container = $('<div class="tw-bs"></div>');
+  container.append(content);
+  return container
 
 }
 
