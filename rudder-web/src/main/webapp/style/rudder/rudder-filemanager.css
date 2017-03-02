@@ -39,7 +39,7 @@
 }
 angular-filemanager .background-fade{
   background-color: rgba(20,20,20,.7);
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
