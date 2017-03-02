@@ -172,11 +172,6 @@ trait ReadConfigService {
   def rudder_ui_display_ruleComplianceColumns(): Box[Boolean]
 
   /**
-   * Should we send backward compatible data from API
-   */
-  def api_compatibility_mode(): Box[Boolean]
-
-  /**
    * Should we activate the script engine bar ?
    */
   def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch]
@@ -264,11 +259,6 @@ trait UpdateConfigService {
   def set_rudder_ui_display_ruleComplianceColumns(Columns: Boolean): Box[Unit]
 
   /**
-   * Should we send backward compatible data from API
-   */
-  def set_api_compatibility_mode(value: Boolean): Box[Unit]
-
-  /**
    * Should we evaluate scripts in variable values?
    */
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit]
@@ -319,7 +309,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.syslog.protocol=UDP
        display.changes.graph=true
        rudder.ui.display.ruleComplianceColumns=true
-       api.compatibility.mode=false
        rudder.policy.mode.name=${Enforce.name}
        rudder.policy.mode.overridable=true
        rudder.featureSwitch.directiveScriptEngine=enabled
@@ -513,12 +502,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    */
   def rudder_ui_display_ruleComplianceColumns(): Box[Boolean] = get("rudder_ui_display_ruleComplianceColumns")
   def set_rudder_ui_display_ruleComplianceColumns(displayColumns: Boolean): Box[Unit] = save("rudder_ui_display_ruleComplianceColumns", displayColumns)
-
-  /**
-   * Should we send backward compatible data from API
-   */
-  def api_compatibility_mode(): Box[Boolean] = get("api_compatibility_mode")
-  def set_api_compatibility_mode(value : Boolean): Box[Unit] = save("api_compatibility_mode", value)
 
   /////
   ///// Feature switches /////

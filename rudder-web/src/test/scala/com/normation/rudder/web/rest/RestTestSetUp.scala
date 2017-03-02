@@ -95,7 +95,6 @@ object RestTestSetUp {
   val restDataSerializer = RestDataSerializerImpl(
       null //techniqueRepository
     , null //diffService
-    , () => Full(false)
   )
 
   val api = APIDispatcher(restExtractorService)
