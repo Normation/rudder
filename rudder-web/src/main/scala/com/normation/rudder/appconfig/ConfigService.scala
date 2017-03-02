@@ -308,7 +308,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.compliance.heartbeatPeriod=1
        rudder.syslog.protocol=UDP
        display.changes.graph=true
-       rudder.ui.display.ruleComplianceColumns=true
+       rudder.ui.display.ruleComplianceColumns=false
        rudder.policy.mode.name=${Enforce.name}
        rudder.policy.mode.overridable=true
        rudder.featureSwitch.directiveScriptEngine=enabled
