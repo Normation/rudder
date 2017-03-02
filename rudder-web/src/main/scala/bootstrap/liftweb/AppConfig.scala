@@ -537,7 +537,7 @@ object RudderConfig extends Loggable {
   val restArchiving         = new RestArchiving(itemArchiveManagerImpl,personIdentServiceImpl, uuidGen)
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
   val restApiAccounts       = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator, uuidGen)
-  val restDataSerializer    = RestDataSerializerImpl(techniqueRepository,diffService, configService.api_compatibility_mode)
+  val restDataSerializer    = RestDataSerializerImpl(techniqueRepository,diffService)
   val restQuicksearch       = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository))
   val restCompletion        = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
 
