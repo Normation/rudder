@@ -453,40 +453,6 @@
     </div>
 
     <div class="inner-portlet">
-      <div class="page-title">Api backward compatibility</div>
-      <div class="portlet-content tw-bs">
-        <div class="lift:administration.PropertiesManagement.apiMode" id="storeAllLogsForm">
-          <div class="col-lg-12 callout-fade callout-warning">
-            <div class="marker">
-              <span class="glyphicon glyphicon-info-sign"></span>
-            </div>
-            <p> API response used to send data that may not be sent back to the API for modification.
-              Parameter to enable a directive is 'enabled', but API response was using 'isEnabled' for that parameter, so you had to handle this case before sending data.
-              We have harmonized response and parameters (in this <a href="http://www.rudder-project.org/redmine/issues/8687"></a>).
-              But if you had script based on malformed response, you can enable this option.
-            </p>
-          </div>
-          <div class="deca col-xs-12">
-            <form class="lift:form.ajax">
-              <div class="form-group">
-                <label class="threeCol textight" for="apiMode" style="width: 40%;">
-                  Enable API backward compatibility:
-                </label>
-                <input id="apiMode" type="text"/>
-              </div>
-              <lift:authz role="administration_write">
-                <div class="form-group">
-                  <input type="submit" value="[save]" id="apiModeSubmit"/>
-                  <lift:Msg id="apiModeMsg">[messages]</lift:Msg>
-                </div>
-              </lift:authz>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="inner-portlet">
       <div class="page-title">Enable script evaluation in Directives</div>
       <div class="portlet-content tw-bs">
         <div class="lift:administration.PropertiesManagement.directiveScriptEngineConfiguration" id="directiveScriptEngine">
