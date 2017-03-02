@@ -526,12 +526,6 @@ a.sidebar-toggle{
   color: #222D32;
   font-weight:700;
 }
-#globalCompliance .progress{
-  background-color: transparent;
-  border-radius: 0;
-  -webkit-box-shadow: none;
-  box-shadow: none;
-}
 .tw-bs .progress {
   margin: 3px 5px;
 }
