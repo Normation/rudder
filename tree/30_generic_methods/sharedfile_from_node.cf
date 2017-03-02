@@ -30,6 +30,7 @@
 #
 # @parameter source_uuid  which node to take the file from
 # @parameter file_id      unique name that was used to identify the file on the sender
+# @parameter_constraint file_id "regex" : "^[A-z0-9._-]+$"
 # @parameter file_path    where to put the file content
 # 
 # @class_prefix sharedfile_from_node

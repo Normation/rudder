@@ -28,7 +28,7 @@
 #
 # #### Parameters
 #
-# This section describes the genric method parameters.
+# This section describes the generic method parameters.
 #
 # #### target_uuid
 #
@@ -93,6 +93,7 @@
 #
 # @parameter target_uuid  which node to share the file with
 # @parameter file_id      unique name that will be used to identify the file on the receiver
+# @parameter_constraint file_id "regex" : "^[A-z0-9._-]+$"
 # @parameter file_path    path of the file to share
 # @parameter ttl          time to keep the file on the policy server in seconds or in human readable form (see long description)
 # @parameter_constraint ttl "regex" : "^(\\d+\\s*(days?|d))?(\\d+\\s*(hours?|h))?(\\d+\\s*(minutes?|m))?(\\d+\\s*(seconds?|s))?$"
