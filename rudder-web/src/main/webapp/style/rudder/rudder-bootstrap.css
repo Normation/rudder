@@ -460,10 +460,6 @@
 .tw-bs .modal .space-right{
     margin-right: 10px !important;
 }
-.tw-bs .modal .radioTextLabel{
-    position: relative;
-    top: 3px;
-}
 .tw-bs .form-control.errorInput {
     border-color: #A94442;
 }
