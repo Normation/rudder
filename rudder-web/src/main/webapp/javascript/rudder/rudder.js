@@ -37,27 +37,6 @@
 
 /* Event handler function */
 
-/*
-var #table_var#;
-        function fnFormatDetails ( id ) {
-          var sOut = '<span id="'+id+'" "/>';
-          return sOut;
-        }
-
-#table_var# = $('').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": ,
-            "bFilter" :,
-            "bPaginate" :,
-            "bLengthChange": ,
-            "sPaginationType": ,
-            "bJQueryUI": ,
-            // "oLanguage": ,
-            "aaSorting": [[ , "asc" ]],
-            "aoColumns": [             ]
-          })
-
-*/
 
 /**
  * Instanciate the tooltip
