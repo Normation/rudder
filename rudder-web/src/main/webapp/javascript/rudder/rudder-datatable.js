@@ -1549,67 +1549,74 @@ function buildComplianceBar(compliance, minPxSize) {
   if(okStatus != 0) {
     var text = []
     if (enforceSuccess != 0) {
-      text.push("Success (enforce): "+enforceSuccess+"% <br> ");
+      text.push("Success (enforce): "+enforceSuccess.toFixed(2)+"% <br> ");
     }
     if (compliant != 0) {
-      text.push("Compliant: "+compliant+"% <br> ");
+      text.push("Compliant: "+compliant.toFixed(2)+"% <br> ");
     }
     if (repaired != 0) {
-      text.push("Repaired: "+repaired+"% <br> ");
+      text.push("Repaired: "+repaired.toFixed(2)+"% <br> ");
     }
     if (enforceNotApplicable != 0) {
-      text.push("Not applicable (enforce): "+enforceNotApplicable+"% <br> ");
+      text.push("Not applicable (enforce): "+enforceNotApplicable.toFixed(2)+"% <br> ");
     }
     if (auditNotApplicable != 0) {
-      text.push("Not applicable (audit): "+auditNotApplicable+"% <br> ");
+      text.push("Not applicable (audit): "+auditNotApplicable.toFixed(2)+"% <br> ");
     }
     var value = compliancePercentValue(okStatus);
     content.append('<div class="progress-bar progress-bar-success" style="width:'+widthArr[0]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
+  
   if(nonCompliant != 0) {
     var text = []
-    text.push("Non compliance: "+nonCompliant+"% <br> ");
+    text.push("Non compliance: "+nonCompliant.toFixed(2)+"%");
     var value = compliancePercentValue(nonCompliant);
     content.append('<div class="progress-bar progress-bar-audit-noncompliant" style="width:'+widthArr[1]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
+  
   if(error != 0) {
     var text = []
     if (enforceError != 0) {
-      text.push("Errors (enforce): "+enforceError+"% <br> ");
+      text.push("Errors (enforce): "+enforceError.toFixed(2)+"% <br> ");
     }
     if (unknown != 0) {
-      text.push("Errors (audit): "+auditError+"% <br> ");
+      text.push("Errors (audit): "+auditError.toFixed(2)+"% <br> ");
     }
     var value = compliancePercentValue(error);
     content.append('<div class="progress-bar progress-bar-error" style="width:'+widthArr[2]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
+  
   if(unexpected != 0) {
     var text = []
     if (missing != 0) {
-      text.push("Missing reports: "+missing+"% <br> ");
+      text.push("Missing reports: "+missing.toFixed(2)+"% <br> ");
     }
     if (unknown != 0) {
-      text.push("Unknown reports: "+unknown+"% <br> ");
+      text.push("Unknown reports: "+unknown.toFixed(2)+"% <br> ");
     }
     if (badPolicyMode != 0) {
-      text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode+"% <br> ");
+      text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode.toFixed(2)+"% <br> ");
     }
     var value = compliancePercentValue(unexpected);
     content.append('<div class="progress-bar progress-bar-unknown progress-bar-striped" style="width:'+widthArr[3]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
+  
   if(pending != 0) {
     var value = compliancePercentValue(pending);
-    content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="width:'+widthArr[4]+'" title="Applying: '+pending+'%">'+value+'%</div>');
+    var tooltip = pending.toFixed(2);
+    content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="width:'+widthArr[4]+'" title="Applying: '+tooltip+'%">'+value+'%</div>');
   }
 
   if(reportsDisabled != 0) {
     var value = compliancePercentValue(reportsDisabled);
-    content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+widthArr[5]+'" title="Reports Disabled: '+reportsDisabled+'%">'+value+'%</div>')
+    var tooltip = reportsDisabled.toFixed(2);
+    content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+widthArr[5]+'" title="Reports Disabled: '+tooltip+'%">'+value+'%</div>')
   }
 
   if(noreport != 0) {
     var value = compliancePercentValue(noreport);
-    content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+widthArr[6]+'" title="No report: '+noreport+'%">'+value+'%</div>');
+    var tooltip = reportsDisabled.noreport(2);
+    content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+widthArr[6]+'" title="No report: '+tooltip+'%">'+value+'%</div>');
   }
 
   var container = $('<div class="tw-bs"></div>');
