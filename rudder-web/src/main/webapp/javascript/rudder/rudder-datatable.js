@@ -1401,16 +1401,17 @@ function buildComplianceBar(compliance, minPxSize) {
 
   if(notApplicable != 0) {
     var value = compliancePercentValue(notApplicable);
-    content.append('<div class="progress-bar progress-bar-notapplicable" style=" width:'+widthArr[0]+'" title="Not applicable: '+notApplicable+'%">'+value+'%</div>');
+    var tooltip = notApplicable.toFixed(2);
+    content.append('<div class="progress-bar progress-bar-notapplicable" style=" width:'+widthArr[0]+'" title="Not applicable: '+tooltip+'%">'+value+'%</div>');
   }
 
   if(okStatus != 0) {
     var text = []
     if (success != 0) {
-      text.push("Success: "+success+"%");
+      text.push("Success: "+success.toFixed(2)+"%");
     }
     if (repaired != 0) {
-      text.push("Repaired: "+repaired+"%");
+      text.push("Repaired: "+repaired.toFixed(2)+"%");
     }
     var value = compliancePercentValue(okStatus);
     content.append('<div class="progress-bar progress-bar-success" style="width:'+widthArr[1]+'" title="'+text.join("\n")+'">'+value+'%</div>');
@@ -1418,21 +1419,23 @@ function buildComplianceBar(compliance, minPxSize) {
 
   if(pending != 0) {
     var value = compliancePercentValue(pending);
-    content.append('<div class="progress-bar progress-bar-pending active progress-bar-striped" style="width:'+widthArr[2]+'" title="Applying: '+pending+'%">'+value+'%</div>');
+    var tooltip = pending.toFixed(2);
+    content.append('<div class="progress-bar progress-bar-pending active progress-bar-striped" style="width:'+widthArr[2]+'" title="Applying: '+tooltip+'%">'+value+'%</div>');
   }
 
   if(noreport != 0) {
     var value = compliancePercentValue(noreport);
-    content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+widthArr[3]+'" title="No report: '+noreport+'%">'+value+'%</div>');
+    var tooltip = noreport.toFixed(2);
+    content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+widthArr[3]+'" title="No report: '+tooltip+'%">'+value+'%</div>');
   }
 
   if(unexpected != 0) {
     var text = []
     if (missing != 0) {
-      text.push("Missing reports: "+missing+"%");
+      text.push("Missing reports: "+missing.toFixed(2)+"%");
     }
     if (unknown != 0) {
-      text.push("Unknown reports: "+unknown+"%");
+      text.push("Unknown reports: "+unknown.toFixed(2)+"%");
     }
     var value = compliancePercentValue(unexpected);
     content.append('<div class="progress-bar progress-bar-unknown" style="width:'+widthArr[4]+'" title="'+text.join("\n")+'">'+value+'%</div>');
@@ -1440,7 +1443,8 @@ function buildComplianceBar(compliance, minPxSize) {
 
   if(error != 0) {
     var value = compliancePercentValue(error);
-    content.append('<div class="progress-bar progress-bar-error" style="width:'+widthArr[5]+'" title="Error: '+error+'%">'+value+'%</div>');
+    var tooltip = error.toFixed(2);
+    content.append('<div class="progress-bar progress-bar-error" style="width:'+widthArr[5]+'" title="Error: '+tooltip+'%">'+value+'%</div>');
   }
 
   return content;
