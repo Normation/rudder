@@ -200,7 +200,7 @@ class Boot extends Loggable {
 
     // All the following is related to the sitemap
     val nodeManagerMenu =
-      Menu("NodeManagerHome", <i class="fa fa-sitemap"></i> ++ <span>Node Management</span>) /
+      Menu("NodeManagerHome", <i class="fa fa-sitemap"></i> ++ <span>Node management</span>) /
         "secure" / "nodeManager" / "index"  >> TestAccess( ()
             => userIsAllowed("/secure/index",Read("node")) ) submenus (
 
@@ -224,7 +224,7 @@ class Boot extends Loggable {
       )
 
     def buildManagerMenu(name:String) =
-      Menu(name+"ManagerHome", <i class="fa fa-gears"></i> ++ <span>{name.capitalize} Policy</span>) /
+      Menu(name+"ManagerHome", <i class="fa fa-gears"></i> ++ <span>{name.capitalize} policy</span>) /
         "secure" / (name+"Manager") / "index" >> TestAccess ( ()
             => userIsAllowed("/secure/index",Read("configuration")) ) submenus (
 
@@ -259,7 +259,7 @@ class Boot extends Loggable {
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Read("administration")) )
 
-        , Menu("databaseManagement", <span>Reports Database</span>) /
+        , Menu("databaseManagement", <span>Reports database</span>) /
             "secure" / "administration" / "databaseManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Read("administration")) )
@@ -268,7 +268,7 @@ class Boot extends Loggable {
             "secure" / "administration" / "techniqueLibraryManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess( () => userIsAllowed("/secure/index",Read("technique") ) )
-        , Menu("apiManagement", <span>API Accounts</span>) /
+        , Menu("apiManagement", <span>API accounts</span>) /
             "secure" / "administration" / "apiManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Read("administration")) )
@@ -313,12 +313,12 @@ class Boot extends Loggable {
                 Full(RedirectWithState("/secure/utilities/eventLogs", redirection) )
               )
 
-        , Menu("eventLogViewer", <span>Event Logs</span>) /
+        , Menu("eventLogViewer", <span>Event logs</span>) /
             "secure" / "utilities" / "eventLogs"
             >> LocGroup("utilitiesGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",Read("administration")) )
 
-        , Menu("techniqueEditor", <span>Technique Editor</span>) /
+        , Menu("techniqueEditor", <span>Technique editor</span>) /
             "secure" / "utilities" / "techniqueEditor"
             >> LocGroup("utilitiesGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",Read("technique")) )
