@@ -97,7 +97,7 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
 $scope.enableButton = function(account,index) {
   var button = $("<button class='btn btn-default'></button>");
   if (account.enabled) {
-    button.text('Disabled');
+    button.text('Disable');
     button.click( function(){
       $scope.$apply(function() {
         account.enabled = false;
@@ -105,7 +105,7 @@ $scope.enableButton = function(account,index) {
       });
     });
   } else {
-    button.text('Enabled');
+    button.text('Enable');
     button.click( function() {
       $scope.$apply(function() {
         account.enabled = true;
