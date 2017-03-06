@@ -77,6 +77,7 @@
            </label>
          </div>
        </div>
+       <lift:authz role="administration_write">
          <div class="col-xs-12 button-group-success">
            <span class="button-shape" ng-mouseover="pop=true" ng-mouseout="pop=false" ng-class="{disabled:$parent.nochange}">
              <button type="button" class="btn btn-default btn-primary-rudder" ng-class="{loading: $parent.saving === 1 }" ng-click="saveChanges()" ng-disabled="$parent.nochange" ng-mouseover="pop=true;">
@@ -96,6 +97,7 @@
              </span>
            </span>
          </div>
+       </lift:authz>
        </form>
        <div ng-if="!isGlobalForm && !globalConfiguration.overrideMode" class="col-xs-12" role="alert" ng-cloak>
          <div class="alert alert-warning">
