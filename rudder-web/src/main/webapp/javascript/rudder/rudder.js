@@ -92,10 +92,7 @@ function callPopupWithTimeout(timeout, popupName){
 }
 
 function createPopup(popupName){
-    $('#'+popupName).bsModal('show');
-    if($('#'+popupName+' #titleWorkflow').length){
-        $('#'+popupName+' .modal-dialog').addClass('modal-lg');
-    }
+  $('#'+popupName).bsModal('show');
 }
 
 function reverseErrorDetails(){
