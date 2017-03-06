@@ -138,13 +138,15 @@ bundle agent _create_current_expected_reports_file {
         create        => "true",
         edit_defaults => no_backup,
         edit_template => "${log_rudder.expected_reports_source}",
-        classes       => classes_generic("logger_rudder_temp_resfile");
+        classes       => classes_generic("logger_rudder_temp_resfile"),
+        handle        => "noreport_ncf_expected_reports_create_temp_file";
 
       # 3/ Write the final expected reports, expanded. First, delete it, then fill it
       # (can't use edit_default empty, as we are iterating over a list)
     logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired.keys_defined::
       "${log_rudder.expected_reports_file}"
-        delete        => tidy;
+        delete        => tidy,
+        handle        => "noreport_ncf_expected_reports_delete_file";
 
       "${log_rudder.expected_reports_file}"
         create        => "true",
@@ -152,7 +154,8 @@ bundle agent _create_current_expected_reports_file {
         # We use const.dollar for the two last fields to stay compatible with CFEngine 3.10 which skips undefined nested variables.
         # We will need a mecanism to insert their value when they are defined to be able to enable promiser stack-based reporting.
         edit_line     => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]};;${const.dollar}{reports[${keys}][5]};;${const.dollar}{reports[${keys}][6]}"),
-        classes       => classes_generic("logger_rudder_final_resfile");
+        classes       => classes_generic("logger_rudder_final_resfile"),
+        handle        => "noreport_ncf_expected_reports_fill_final_file";
 }
 
 # Bundle that is called only if we have v2 expected report and the promiser stack
@@ -214,7 +217,8 @@ bundle agent _clean_current_expected_reports_file {
 
   files:
       "${files_to_remove}"
-         delete => tidy;
+         delete => tidy,
+         handle => "noreport_ncf_expected_reports_delete_files";
       
 }
 
@@ -224,8 +228,9 @@ bundle agent _clean_old_expected_reports_file(days) {
 
   files:
       "${sys.workdir}/state/rudder_expected_reports\.\d+\.csv\.(tmp|res)"
-        delete => tidy,
-        file_select => days_old("${days}");
+        delete      => tidy,
+        file_select => days_old("${days}"),
+        handle      => "noreport_ncf_expected_reports_delete_old_file";
 
 }
 
