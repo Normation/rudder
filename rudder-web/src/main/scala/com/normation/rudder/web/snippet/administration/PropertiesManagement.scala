@@ -81,6 +81,14 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
   }
 
+  def disableInputs = {
+    import com.normation.rudder.authorization.Edit
+    //If user does not have the Edit("administration") right, all inputs are disabled
+    val disable = !CurrentUser.checkRights(Edit("administration"))
+    S.appendJs(JsRaw(s"""$$("input, select").prop("disabled",${disable})"""))
+    NodeSeq.Empty
+  }
+
   def dispatch = {
     case "changeMessage" => changeMessageConfiguration
     case "workflow"      => workflowConfiguration
@@ -97,6 +105,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
     case "quickSearchConfiguration" => quickSearchConfiguration
     case "directiveNodePropertiesConfiguration" => directiveNodePropertiesConfiguration
+    case "onloadScript" => _ => disableInputs
   }
 
   def changeMessageConfiguration = { xml : NodeSeq =>
@@ -150,7 +159,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       Run(
         s"""
             $$("#mandatory").prop("disabled",${!newStatus});
-            $$("#explanation").prop("disabled",${!newStatus});"""
+            $$("#explanation").prop("disabled",${!newStatus});
+         """
       )
     }
 
