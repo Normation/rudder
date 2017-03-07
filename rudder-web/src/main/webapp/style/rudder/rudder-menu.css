@@ -1177,7 +1177,8 @@ table > tbody > tr > td.action{
   margin-left: 10px;
 }
 .directiveDeleteGroup .btn-danger{
-	padding-right:28px;
+  padding-left:  20px;
+  padding-right: 20px;
 }
 #directiveToolbar .btn,.fixed-footer.rule-footer .btn{
   width:auto;
