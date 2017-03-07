@@ -1615,7 +1615,7 @@ function buildComplianceBar(compliance, minPxSize) {
 
   if(noreport != 0) {
     var value = compliancePercentValue(noreport);
-    var tooltip = reportsDisabled.noreport(2);
+    var tooltip = noreport.toFixed(2);
     content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+widthArr[6]+'" title="No report: '+tooltip+'%">'+value+'%</div>');
   }
 
