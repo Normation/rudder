@@ -72,6 +72,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.rudder.domain.nodes.{Node => RudderNode}
 import com.normation.rudder.reports.ReportingConfiguration
+import bootstrap.liftweb.StaticResourceRewrite
 
 object PendingHistoryGrid extends Loggable {
 
@@ -257,7 +258,7 @@ object PendingHistoryGrid extends Loggable {
     effectiveEvents.sortWith( (ev1,ev2) => ev1.creationDate.isBefore(ev2.creationDate)).headOption match {
       case Some(deleted) =>
         <div style="padding: 10px 15px 0">
-          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon" style="float :left; margin-right:9px; margin-top:-9px"/>
+          <img src={"/" + StaticResourceRewrite.prefix + "/images/icWarn.png"} alt="Warning!" height="32" width="32" class="warnicon" style="float :left; margin-right:9px; margin-top:-9px"/>
           <h3> {"This node was deleted on %s by %s".format(DateFormaterService.getFormatedDate(deleted.creationDate),deleted.principal.name)}</h3>
         </div>
       case None => NodeSeq.Empty

@@ -84,6 +84,7 @@ import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import org.joda.time.format.DateTimeFormat
+import bootstrap.liftweb.StaticResourceRewrite
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -364,7 +365,7 @@ class EventListDisplayer(
 
       val dialog =
       <p>
-          <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"
+          <img src={"/" + StaticResourceRewrite.prefix + "/images/icWarn.png"} alt="Warning!" height="25" width="25" class="warnicon"
             style="vertical-align: middle; padding: 0px 0px 2px 0px;"/>
           <b>{"Are you sure you want to restore configuration policy %s this change".format(action.name)}</b>
       </p>

@@ -53,13 +53,29 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <releases><enabled>false</enabled></releases>
     </repository>
   </repositories>
-
+  
   <build>
+    <resources>
+      <resource>
+        <directory>${project.basedir}/src/main/resources/</directory>
+        <excludes>
+          <exclude>version.properties</exclude>
+          <exclude>configuration.properties.sample</exclude>
+        </excludes>
+      </resource>
+      <resource>
+        <filtering>true</filtering>
+        <directory>${project.basedir}/src/main/resources/</directory>
+        <includes>
+          <include>version.properties</include>
+        </includes>
+      </resource>
+    </resources>
+    
     <plugins>
        <!-- this is needed to have Rudder plugins access rudder-web in jar format -->
        <plugin>
         <artifactId>maven-war-plugin</artifactId>
-        <version>3.0.0</version>
         <configuration>
           <attachClasses>true</attachClasses>
           <webResources>
@@ -89,7 +105,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
      <plugin>
        <groupId>org.apache.maven.plugins</groupId>
        <artifactId>maven-jar-plugin</artifactId>
-       <version>3.0.2</version>
        <executions>
          <execution>
            <goals>
@@ -105,6 +120,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       </plugin>
     </plugins>
   </build>
+  
+  <properties>
+    <!-- seriously, maven...  http://stackoverflow.com/questions/13228472/how-to-acces-maven-build-timestamp-for-resource-filtering#13228882 -->
+    <build-timestamp>${maven.build.timestamp}</build-timestamp>
+  </properties>
 
   <dependencies>
     <dependency>

@@ -67,6 +67,7 @@ import net.liftweb.util.Helpers._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.web.ChooseTemplate
+import bootstrap.liftweb.StaticResourceRewrite
 
 object NodeGroupForm {
   val templatePath = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
@@ -143,7 +144,7 @@ class NodeGroupForm(
   val pendingChangeRequestXml =
     <div id="pendingChangeRequestNotification">
       <div>
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+        <img src={"/" + StaticResourceRewrite.prefix + "/images/icWarn.png"} alt="Warning!" height="32" width="32" class="warnicon"/>
         <div style="float:left">
           The following pending change requests affect this Group, you should check that your modification is not already pending:
           <ul id="changeRequestList"/>
