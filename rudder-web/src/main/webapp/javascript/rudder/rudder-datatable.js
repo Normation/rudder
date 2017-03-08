@@ -147,17 +147,10 @@ function changesTooltip (tooltip) {
     var titleLines = tooltip.title || [];
     var bodyLines = tooltip.body.map(getBody);
     var innerHtml = '<thead>';
-    titleLines.forEach(function(title) {
-      innerHtml += '<tr><th>' + title + '</th></tr>';
-    });
+    innerHtml += '<tr><th>' + titleLines.join(" ") + '</th></tr>';
     innerHtml += '</thead><tbody>';
     bodyLines.forEach(function(body, i) {
-      var colors = tooltip.labelColors[i];
-      var style = 'background:' + colors.backgroundColor;
-      style += '; border-color:' + colors.borderColor;
-      style += '; border-width: 2px'; 
-      var span = '<span class="chartjs-tooltip-key" style="' + style + '"></span>';
-      innerHtml += '<tr><td>' + span + body + '</td></tr>';
+      innerHtml += '<tr><td>' + body + '</td></tr>';
     });
     innerHtml += '</tbody>';
     var tableRoot = tooltipEl.querySelector('table');
@@ -215,6 +208,15 @@ function recentChangesGraph(changes, graphId, displayFullGraph) {
     , tooltips : {
           enabled: displayFullGraph
         , custom: changesTooltip
+        , displayColors : false
+        , callbacks: {
+            title: function(tooltipItem, data) {
+              return tooltipItem[0].xLabel.join(" ");
+            }
+          , label: function(tooltipItem, data) {
+              return tooltipItem.yLabel + " changes over the period";
+            }
+          }
       }
   }
 
@@ -1793,123 +1795,3 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
   return table;
 }
 
-
-
-/**
- * The set of option that allows to configure chart js to be used as a sparkline.
- */
-function chartjsSparklineOption() {
-  return {
-      // Boolean - Whether to animate the chart
-      animation: false //true
-      // Number - Number of animation steps
-    , animationSteps: 60
-      // String - Animation easing effect
-    , animationEasing: "easeOutQuart"
-      // Boolean - If we should show the scale at all
-    , showScale: false //true
-      // Boolean - If we want to override with a hard coded scale
-    , scaleOverride: false
-      // ** Required if scaleOverride is true **
-      // Number - The number of steps in a hard coded scale
-    , scaleSteps: null
-      // Number - The value jump in the hard coded scale
-    , scaleStepWidth: null
-      // Number - The scale starting value
-    , scaleStartValue: null
-      // String - Colour of the scale line
-    , scaleLineColor: "rgba(0,0,0,.1)"
-      // Number - Pixel width of the scale line
-    , scaleLineWidth: 1
-      // Boolean - Whether to show labels on the scale
-    , scaleShowLabels: false //true
-      // Interpolated JS string - can access value
-    , scaleLabel: "<%=value%>"
-      // Boolean - Whether the scale should stick to integers, not floats even if drawing space is there
-    , scaleIntegersOnly: true
-      // Boolean - Whether the scale should start at zero, or an order of magnitude down from the lowest value
-    , scaleBeginAtZero: false
-      // String - Scale label font declaration for the scale label
-    , scaleFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"
-      // Number - Scale label font size in pixels
-    , scaleFontSize: 12
-      // String - Scale label font weight style
-    , scaleFontStyle: "normal"
-      // String - Scale label font colour
-    , scaleFontColor: "#666"
-      // Boolean - whether or not the chart should be responsive and resize when the browser does.
-    , responsive: false
-      // Boolean - whether to maintain the starting aspect ratio or not when responsive, if set to false, will take up entire container
-    , maintainAspectRatio: true
-      // Boolean - Determines whether to draw tooltips on the canvas or not
-    , showTooltips: true
-      // Array - Array of string names to attach tooltip events
-    , tooltipEvents: ["mousemove", "mouseout"]
-      // String - Tooltip background colour
-    , tooltipFillColor: "rgba(0,0,0,0.8)"
-      // String - Tooltip label font declaration for the scale label
-    , tooltipFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"
-      // Number - Tooltip label font size in pixels
-    , tooltipFontSize: 10 //14
-      // String - Tooltip font weight style
-    , tooltipFontStyle: "normal"
-      // String - Tooltip label font colour
-    , tooltipFontColor: "#fff"
-      // String - Tooltip title font declaration for the scale label
-    , tooltipTitleFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"
-      // Number - Tooltip title font size in pixels
-    , tooltipTitleFontSize: 10 //14
-      // String - Tooltip title font weight style
-    , tooltipTitleFontStyle: "bold"
-      // String - Tooltip title font colour
-    , tooltipTitleFontColor: "#fff"
-      // Number - pixel width of padding around tooltip text
-    , tooltipYPadding: 2 //6
-      // Number - pixel width of padding around tooltip text
-    , tooltipXPadding: 2 //6
-      // Number - Size of the caret on the tooltip
-    , tooltipCaretSize: 2 //8
-      // Number - Pixel radius of the tooltip border
-    , tooltipCornerRadius: 6
-      // Number - Pixel offset from point x to tooltip edge
-    , tooltipXOffset: 2 //10
-      // String - Template string for single tooltips
-    , tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value%> changes"
-      // String - Template string for single tooltips
-    , multiTooltipTemplate: "<%= value %>"
-      // Function - Will fire on animation progression.
-    , onAnimationProgress: function(){}
-      // Function - Will fire on animation completion.
-    , onAnimationComplete: function(){}
-
-      ///// bar specific /////
-
-
-    //Boolean - Whether the scale should start at zero, or an order of magnitude down from the lowest value
-    , scaleBeginAtZero : true
-
-    //Boolean - Whether grid lines are shown across the chart
-    , scaleShowGridLines : false
-
-    //String - Colour of the grid lines
-    , scaleGridLineColor : "rgba(0,0,0,.05)"
-
-    //Number - Width of the grid lines
-    , scaleGridLineWidth : 1
-
-    //Boolean - If there is a stroke on each bar
-    , barShowStroke : true
-
-    //Number - Pixel width of the bar stroke
-    , barStrokeWidth : 1
-
-    //Number - Spacing between each of the X value sets
-    , barValueSpacing : 0
-
-    //Number - Spacing between data sets within X values
-    , barDatasetSpacing : 0
-
-      //String - A legend template
-    , legendTemplate : "" //"<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].lineColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>"
-  };
-}
