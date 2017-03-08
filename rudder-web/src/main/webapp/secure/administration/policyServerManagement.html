@@ -555,9 +555,7 @@
           <div class="lift:administration.DyngroupReloading.render" id="dyngroupReloadingForm">
             <lift:authz role="administration_write">
               <form class="lift:form.ajax">
-                <div class="form-group">
-                  <input id="dyngroupReloadingButton" type="submit" value="[Reload dyngroups]" />
-                </div>
+                <input id="dyngroupReloadingButton" type="submit" value="[Reload dyngroups]" />
                 <span class="lift:msg?id=dyngroupReloadingNotice&errorClass=error">[error]</span>
               </form>
             </lift:authz>
@@ -581,8 +579,8 @@
         <div class="deca col-xs-12 technique-settings">
           <lift:authz role="administration_write">
             <div class="lift:administration.TechniqueLibraryManagement.reloadTechniqueButton" id="reloadTechniqueLibForm"></div>
+            <span id="updateLib"></span>
           </lift:authz>
-          <div id="updateLib" class="greyscala"></div>
         </div>
       </div>
     </div>
