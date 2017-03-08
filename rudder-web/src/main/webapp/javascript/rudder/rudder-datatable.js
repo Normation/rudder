@@ -443,7 +443,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData, "showForm");
         if (oData.status === "In application" || oData.status === "Partially applied" ) {
-          elem.append('<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>');
+          elem.append('<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+resourcesPath+'/images/ajax-loader.gif" /></center></div>');
         }
         $(nTd).empty();
         $(nTd).prepend(elem);
@@ -604,7 +604,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
           var editLink = $("<a />");
           editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
           var editIcon = $("<img />");
-          editIcon.attr("src",contextPath + "/images/icPen.png");
+          editIcon.attr("src",resourcesPath + "/images/icPen.png");
           editLink.click(function(e) {e.stopPropagation();});
           editLink.append(editIcon);
           editLink.addClass("reportIcon");
@@ -697,7 +697,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
           $(nTd).addClass("listopen tw-bs");
           var tooltipIcon = $("<img />");
-          tooltipIcon.attr("src",contextPath + "/images/ic_question_14px.png");
+          tooltipIcon.attr("src",resourcesPath + "/images/ic_question_14px.png");
           tooltipIcon.addClass("reportIcon");
           var tooltipId = oData.jsid+"-tooltip";
           tooltipIcon.attr("tooltipid",tooltipId);
@@ -713,7 +713,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
             var editLink = $("<a />");
             editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
             var editIcon = $("<img />");
-            editIcon.attr("src",contextPath + "/images/icPen.png");
+            editIcon.attr("src",resourcesPath + "/images/icPen.png");
             editLink.click(function(e) {e.stopPropagation();});
             editLink.append(editIcon);
             editLink.addClass("reportIcon");
@@ -745,7 +745,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
         var editLink = $("<a />");
         editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
         var editIcon = $("<img />");
-        editIcon.attr("src",contextPath + "/images/icPen.png");
+        editIcon.attr("src",resourcesPath + "/images/icPen.png");
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
@@ -802,7 +802,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
         $(nTd).append(document.createTextNode(oData.directive));
         $(nTd).addClass("listopen tw-bs");
         var tooltipIcon = $("<img />");
-        tooltipIcon.attr("src",contextPath + "/images/ic_question_14px.png");
+        tooltipIcon.attr("src",resourcesPath + "/images/ic_question_14px.png");
         tooltipIcon.addClass("reportIcon");
         var tooltipId = oData.jsid+"-tooltip";
         tooltipIcon.attr("tooltipid",tooltipId);
@@ -817,7 +817,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
           var editLink = $("<a />");
           editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
           var editIcon = $("<img />");
-          editIcon.attr("src",contextPath + "/images/icPen.png");
+          editIcon.attr("src",resourcesPath + "/images/icPen.png");
           editLink.click(function(e) {e.stopPropagation();});
           editLink.append(editIcon);
           editLink.addClass("reportIcon");
@@ -890,7 +890,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
         var editLink = $("<a />");
         editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}');
         var editIcon = $("<img />");
-        editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
+        editIcon.attr("src",resourcesPath + "/images/icMagnify-right.png");
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
@@ -1137,7 +1137,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, false)
         var icon = $("<img />");
-        icon.attr("src",contextPath + "/images/icMagnify-right.png");
+        icon.attr("src",resourcesPath + "/images/icMagnify-right.png");
         link.append(icon);
         link.addClass("reportIcon");
         $(nTd).append(link);
@@ -1175,7 +1175,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "sType" : "numeric"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, true)
-        var complianceBar = '<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>';
+        var complianceBar = '<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+resourcesPath+'/images/ajax-loader.gif" /></center></div>';
         link.append(complianceBar)
         $(nTd).empty();
         $(nTd).prepend(link);
@@ -1768,7 +1768,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   $('#'+gridId+' thead tr').addClass("head");
   if (!( typeof refresh === 'undefined')) {
-    var refreshButton = $("<button><img src='"+contextPath+"/images/icRefresh.png'/></button>");
+    var refreshButton = $("<button><img src='"+resourcesPath + "/images/icRefresh.png'/></button>");
     refreshButton.button();
     refreshButton.attr("title","Refresh");
     refreshButton.click( function() { refresh(); } );
@@ -1784,7 +1784,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
   $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
   
 
-  $('.dataTables_filter input').css("background","white url("+contextPath+"/images/icMagnify.png) left center no-repeat");
+  $('.dataTables_filter input').css("background","white url("+resourcesPath + "/images/icMagnify.png) left center no-repeat");
 
   if (!( typeof pickEventLogsInInterval === 'undefined')) {
     $('#filterLogs').removeClass('hide');

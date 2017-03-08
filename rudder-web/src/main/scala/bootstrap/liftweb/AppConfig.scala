@@ -325,6 +325,26 @@ object RudderConfig extends Loggable {
   //deprecated
   val BASE_URL = Try(config.getString("base.url")).getOrElse("")
 
+
+  // properties from version.properties file,
+  val (
+      rudderMajorVersion
+    , rudderFullVersion
+    , currentYear
+    , builtTimestamp
+  ) = {
+    val p = new java.util.Properties
+    p.load(this.getClass.getClassLoader.getResourceAsStream("version.properties"))
+    (
+      p.getProperty("rudder-major-version")
+    , p.getProperty("rudder-full-version")
+    , p.getProperty("current-year")
+    , p.getProperty("build-timestamp")
+    )
+  }
+
+  ApplicationLogger.info(s"Starting Rudder ${rudderFullVersion} web application [build timestamp: ${builtTimestamp}]")
+
   //
   // Theses services can be called from the outer worl/
   // They must be typed with there abstract interface, as
