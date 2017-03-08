@@ -92,7 +92,7 @@ function homePage (
     $("#gauge-value").text(globalGauge+"%");
 
 
-  doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors)
+  doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors,15);
     
 }
 
@@ -112,7 +112,7 @@ var inventoryColors =
   , 'rgb(132, 63, 152)'
   ];
 
-function doughnutChart (id,data,count, colors) {
+function doughnutChart (id,data,count, colors, limit) {
   
   var context = $("#"+id)
 
@@ -124,9 +124,6 @@ function doughnutChart (id,data,count, colors) {
       } ]
   };
 
-  function highlight(chart, index) {
-    chart.segments
-  }
   var chartOptions = {
       type: 'doughnut'
     , data: chartData
@@ -137,14 +134,19 @@ function doughnutChart (id,data,count, colors) {
         }
       , legendCallback: function(chart) {
         var text = [];
+
+        
         text.push('<ul>');
         for (var i=0; i<chart.data.datasets[0].data.length; i++) {
-            text.push('<li class="legend">');
-            text.push('<span class="legend-square" style="background-color:' + chart.data.datasets[0].backgroundColor[i] + '"></span>');
-            if (chart.data.labels[i]) {
-                text.push(chart.data.labels[i]);
-            }
-            text.push('</li>');
+          var removeHighlight = ' onmouseout="closeTooltip(event, \'' + chart.legend.legendItems[i].index + '\', \'' + id + '\')"';
+          var addHighlight    = ' onmouseover="openTooltip(event, \'' + chart.legend.legendItems[i].index + '\', \'' + id + '\')"';
+          var hideData        = ' onclick="hideChartData(event, \'' + chart.legend.legendItems[i].index + '\', \'' + id + '\')"';
+          text.push('<li class="legend" ' + hideData+ addHighlight + removeHighlight + '>');
+          text.push('<span class="legend-square"   style="background-color:' + chart.data.datasets[0].backgroundColor[i] + '"></span>');
+          if (chart.data.labels[i]) {
+              text.push(chart.data.labels[i]);
+          }
+          text.push('</li>');
         }
         text.push('</ul>');
         return text.join("");
@@ -153,20 +155,104 @@ function doughnutChart (id,data,count, colors) {
           callbacks: {
             label: function(tooltipItem, data) {
               var label = data.labels[tooltipItem.index];
+              if (label.length > limit) {
+                label = label.substring(0,limit-3)+"...";
+              }
               var content = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-              var unit = "node";
-              if (content > 1) {
-                unit += "s";
-              } 
-              return " " + label + ": " + content + " " + unit +" ("+ (content/count*100).toFixed(0) + "%)"
+              return " " + label + ": " + content + " ("+ (content/count*100).toFixed(0) + "%)";
+            }
+          , labelColor : function(tooltipItem,chart) {
+              var color = chartData.datasets[0].backgroundColor[tooltipItem.index];
+              return {
+                backgroundColor: color
+              , borderColor : color
+              }
             }
           }
+        , bodyFontSize: 12
+        , bodyFontStyle : "bold"
         }
       }
   }
   
   var chart = new Chart(context, chartOptions);
-  context.after(chart.generateLegend())
+  window[id] = chart;
+  context.after(chart.generateLegend());
+}
+
+
+// home page chart legend function
+
+// Hide data on click
+ function hideChartData (event, index, name) {
+  // Get chart data
+  var chart = event.view[name];
+  var meta = chart.getDatasetMeta(0);
+  // Hide selected data
+  meta.data[index].hidden = !meta.data[index].hidden;
+  chart.update();
+};
+
+// When hovering legend display tooltip and highlight
+function openTooltip(event ,index, name){
+  // Get chart
+  var chart = event.view[name];
+  
+  // Check if the element is already in the 'active' elements of the chart
+  if(chart.tooltip._active == undefined)
+     chart.tooltip._active = []
+  var activeElements = chart.tooltip._active;
+  
+  // Get our element
+  var requestedElem = chart.getDatasetMeta(0).data[index];
+  
+  // If already in active elements, skip
+  for(var i = 0; i < activeElements.length; i++) {
+      if(requestedElem._index == activeElements[i]._index)  
+         return;
+  }
+  // Add element
+  activeElements.push(requestedElem);
+  chart.tooltip._active = activeElements;
+  
+  // Highlight element
+  requestedElem.custom = requestedElem.custom || {};
+  requestedElem.custom.backgroundColor = Chart.helpers.getHoverColor(requestedElem._view.backgroundColor)
+  
+  chart.tooltip.update(true);
+  chart.update(0);
+  chart.draw();
+}
+
+//When mouse out of legend remove tooltip and highlight
+function closeTooltip(e ,index, name){
+  // Get chart
+  var chart = e.view[name];
+  
+  // Get active elements
+  var activeElements = chart.tooltip._active;
+  if(activeElements == undefined || activeElements.length == 0)
+    // No elements, nothing to do
+    return;
+  
+  // our element
+  var requestedElem = chart.getDatasetMeta(0).data[index];
+  
+  // Remove our element from active ones
+  for(var i = 0; i < activeElements.length; i++) {
+      if(requestedElem._index == activeElements[i]._index)  {
+         activeElements.splice(i, 1);
+         break;
+      }
+  }
+  chart.tooltip._active = activeElements;
+  chart.tooltip.update(true);
+  
+  // Remove highlight by unsetting custom attributes
+  requestedElem.custom =  {};
+  
+  chart.update(0);
+  chart.draw();
 }
 
 function homePageInventory (
@@ -174,15 +260,15 @@ function homePageInventory (
   , nodeOses
   , count
 ) {
-  doughnutChart('nodeMachine',nodeMachines, count, inventoryColors)
-  doughnutChart('nodeOs', nodeOses, count, inventoryColors)
+  doughnutChart('nodeMachine',nodeMachines, count, inventoryColors,12);
+  doughnutChart('nodeOs', nodeOses, count, inventoryColors,12);
 }
 
 function homePageSoftware (
     nodeAgents
   , count
 ) {
-  doughnutChart('nodeAgents', nodeAgents, count, inventoryColors)
+  doughnutChart('nodeAgents', nodeAgents, count, inventoryColors,14);
 }
 
 function userAgentIsIE() {
