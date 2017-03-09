@@ -19,26 +19,50 @@
 # @name Service action
 # @description Trigger an action on a service using the approriate tool
 #
-# @documentation The name of the service is the name understood by the service manager.
+# @documentation The `service_*` methods manage the services running on the system.
 #
-# The action is the name of an action as understood by the service manager for the given service.
+# #### Parameters
+#
+# ##### Service name
+#
+# The name of the service is the name understood by the service manager, except for the
+# `is-active-process` action, where it is the regex to match against the running processes list.
+#
+# ##### Action
+#
+# The action is the name of an action to run on the given service.
+# The following actions can be used:
+#
+# * `start`
+# * `stop`
+# * `restart`
+# * `reload` (or `refresh`)
+# * `is-active` (or `status`)
+# * `is-active-process` (in this case, the "service" parameter is the regex to match againt process list)
+# * `enable`
+# * `disable`
+# * `is-enabled`
+#
+# Other actions may also be used, depending on the selected service manager.
+#
+# #### Implementation
+#
+# These methods will detect the method to use according to the platform. You can run the methods with an `info`
+# verbosity level to see which service manager will be used for a given action.
 #
 # The supported service managers are:
 #
-# * systemd
-# * service command
+# * systemd (any unkown action will be passed directly)
+# * upstart
 # * smf (for Solaris)
-# * SRC (for AIX)
+# * service command (for non-boot actions, any unkown action will be passed directly)
+# * /etc/init.d scripts (for non-boot actions, any unkown action will be passed directly)
+# * SRC (for AIX) (for non-boot actions)
+# * chkconfig (for boot actions)
+# * update-rc.d (for boot actions)
+# * chitab (for boot actions)
+# * links in /etc/rcX.d (for boot actions)
 # * Windows services
-#
-# The name of the action is any name understood by the package manager, often including:
-#
-# * start
-# * stop
-# * restart
-# * reload
-#
-# We provide shortcuts for these actions with specific methods called `service_`*action*.
 #
 # #### Examples
 #
