@@ -44,6 +44,7 @@ import net.liftweb.http.js.JE._
 import net.liftweb.util._
 import com.normation.rudder.web.services.GetBaseUrlService
 import bootstrap.liftweb.RudderConfig
+import bootstrap.liftweb.StaticResourceRewrite
 
 /**
  *
@@ -57,8 +58,7 @@ class BaseUrl {
    * We still need to have a base url for some javascript
    * But now we use it as a javascript variable
    */
-  def display = Script(JsRaw("""
-    var contextPath = '%s';""".format(S.contextPath)))
+  def display = Script(JsRaw(s"""var contextPath = '${S.contextPath}'; var resourcesPath = '${S.contextPath}/${StaticResourceRewrite.prefix}'"""))
 
 /*I keep the old base url as a reminder <base href={(urlService.baseUrl getOrElse S.hostAndPath)+"/"} />*/
 }

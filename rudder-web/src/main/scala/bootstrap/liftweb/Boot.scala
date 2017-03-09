@@ -59,6 +59,10 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import java.util.Locale
+import java.util.Properties
+import net.liftweb.http.rest.RestHelper
+import org.joda.time.DateTime
+import com.normation.rudder.web.snippet.WithCachedResource
 
 /*
  * Utilities about rights
@@ -75,6 +79,30 @@ object Boot {
   }
 }
 
+
+////////// rewrites rules to remove the version from resources urls //////////
+//////////
+object StaticResourceRewrite extends RestHelper {
+  // prefix added to signal that the resource is cached
+  val prefix = s"cache-${RudderConfig.rudderFullVersion}"
+  def headers =
+    ("Cache-Control", "max-age=31556926, public") ::
+    ("Pragma", "") ::
+    ("Expires", DateTime.now.plusMonths(6).toString("EEE, d MMM yyyy HH':'mm':'ss 'GMT'")) ::
+    Nil
+
+
+  //the resource directory we want to server that way
+  val resources = Set("javascript", "style", "images")
+  serve {
+    case Get(prefix :: resource :: tail,  req) if(resources.contains(resource)) =>
+      val resourcePath = req.uri.replaceFirst(prefix+"/", "")
+      () => LiftRules.getResource(resourcePath).map(_.openStream).map { in =>
+              StreamingResponse(in, () => in.close, size = -1, headers,  cookies = Nil, code=200)
+            }
+  }
+}
+
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -83,7 +111,7 @@ class Boot extends Loggable {
 
   import Boot._
 
-  def boot {
+  def boot() {
 
     // Set locale to English to prevent having localized message in some exception message (like SAXParserException in AppConfigAuth).
     // For now we don't manage locale in Rudder so setting it to English is harmless.
@@ -115,6 +143,13 @@ class Boot extends Loggable {
       val noRedirectPaths= "/rudder-doc" :: "/ncf" :: "/ncf-builder" :: Nil
       noRedirectPaths.exists(path.startsWith)
     })
+
+    ////////// CACHE INVALIDATION FOR RESOURCES //////////
+    // Resolve resources prefixed with the cache resource prefix
+    LiftRules.statelessDispatch.append(StaticResourceRewrite)
+    // and tell lift to happen rudder version when "with-resource-id" is used
+    LiftRules.attachResourceId = (path: String) => { "/" + StaticResourceRewrite.prefix + path }
+    LiftRules.snippetDispatch.append(Map("with-cached-resource" -> WithCachedResource))
 
     // REST API
     LiftRules.statelessDispatch.append(RestStatus)
@@ -367,8 +402,8 @@ class Boot extends Loggable {
   private[this] def initPlugins(menus:List[Menu]) : List[Menu] = {
 
     //LiftSpringApplicationContext.springContext.refresh
-    import scala.collection.JavaConversions._
-    val pluginDefs = LiftSpringApplicationContext.springContext.getBeansOfType(classOf[RudderPluginDef]).values
+    import scala.collection.JavaConverters._
+    val pluginDefs = LiftSpringApplicationContext.springContext.getBeansOfType(classOf[RudderPluginDef]).values.asScala
 
     pluginDefs.foreach { plugin =>
       initPlugin(plugin)

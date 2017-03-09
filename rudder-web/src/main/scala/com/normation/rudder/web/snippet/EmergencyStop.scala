@@ -53,6 +53,7 @@ import com.normation.exceptions.TechnicalException
 import EmergencyStop._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.ChooseTemplate
+import bootstrap.liftweb.StaticResourceRewrite
 
 
 object EmergencyStop {
@@ -83,7 +84,7 @@ class EmergencyStop {
         (
             "emergency-button" #> SHtml.submit("Confirm", stop)
           & "emergency-body"   #> <h2>This button can be used to force a shutdown of the whole Rudder infastructure. Please use with caution.</h2>
-          & "emergency:img"    #> <img src="/images/btnAlert.jpg"/>
+          & "emergency:img"    #> <img src={"/" + StaticResourceRewrite.prefix + "/images/btnAlert.jpg"}/>
           & "emergency-title"  #> Text("Emergency system shutdown")
         )(panelTemplate)
 
@@ -94,7 +95,7 @@ class EmergencyStop {
                       ("class", "emergencyButton"),
                       ("title","Unlock and restart the orchestrator"))
           & "emergency-body"   #> <h2>Restart the Rudder Infrastructure.</h2>
-          & "emergency:img"    #> <img src="/images/btnAccept.jpg"/>
+          & "emergency:img"    #> <img src={"/" + StaticResourceRewrite.prefix + "/images/btnAccept.jpg"}/>
           & "emergency-title"  #> Text("Unlock and restart the orchestrator")
         )(panelTemplate)
 
