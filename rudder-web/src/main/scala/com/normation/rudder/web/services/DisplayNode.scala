@@ -71,6 +71,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import bootstrap.liftweb.StaticResourceRewrite
 
 /**
  * A service used to display details about a server
@@ -857,7 +858,7 @@ object DisplayNode extends Loggable {
     <div style="margin:5px;">
      <div>
       <div>
-          <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"
+          <img src={"/" + StaticResourceRewrite.prefix + "/images/icWarn.png"} alt="Warning!" height="25" width="25" class="warnicon"
             style="vertical-align: middle; padding: 0px 0px 2px 0px;"
           />
           <b>Are you sure you want to delete this node?</b>

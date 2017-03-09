@@ -2,8 +2,8 @@
 
 <head>
   <title>Rudder - Home</title>
-  <script type="text/javascript" src="/javascript/rudder/homePage.js"></script>
-  <script type="text/javascript" src="/javascript/gauge/gauge.min.js"></script>
+  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/homePage.js"></script>
+  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/gauge/gauge.min.js"></script>
   <style type="text/css">body {overflow-y : scroll;}</style>
 </head>
 
@@ -12,7 +12,7 @@
     <div class="col-lg-2 col-md-6">
       <div class=" panel panel-default stats">
         <div class="panel-heading">Statistics</div>
-        <div data-lift="lazy-load">
+        <div data-lift="lazy-load?template=lazy-load-spinner">
           <ul class="nav nav-pills nav-stacked navbar-rudder" style="border-radius:4px">
             <li ><a href="/secure/nodeManager/nodes">
               <span class="badge pull-right"> <div data-lift="HomePage.acceptedNodes" > </div></span>
@@ -72,7 +72,7 @@
            <canvas id="nodeCompliance" ></canvas>
          </div>
          <div style="clear: both;"></div>
-       <div data-lift="lazy-load"> <div data-lift="HomePage.getAllCompliance"></div> </div>
+       <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.getAllCompliance"></div> </div>
      </div>
    </div>
 
@@ -86,13 +86,13 @@
          <div class="col-lg-3 col-lg-offset-1 col-md-3 col-md-offset-1 col-sm-3 col-sm-offset-1">
            <h4 class="text-center">By OS</h4>
            <canvas id="nodeOs"></canvas>
-           <div data-lift="lazy-load"> <div data-lift="HomePage.inventoryInfo" > </div></div>
+           <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.inventoryInfo" > </div></div>
          </div>
          <div class="col-lg-3 col-lg-offset-1 col-md-3 col-md-offset-1 col-sm-3 col-sm-offset-1">
            <h4 class="text-center">By agent version</h4>
            <canvas id="nodeAgents" >
            </canvas>
-             <div data-lift="lazy-load"> <div data-lift="HomePage.rudderAgentVersion"></div></div>
+             <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.rudderAgentVersion"></div></div>
          </div>
          <div style="clear: both;"></div>
       </div>

@@ -79,6 +79,7 @@ import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.web.ChooseTemplate
+import bootstrap.liftweb.StaticResourceRewrite
 
 /**
  * Check for server in the pending repository and propose to
@@ -356,7 +357,7 @@ class AcceptNode extends Loggable {
           nodes
         , "acceptNodeGrid"
         , Seq( ( Text("Since")    , { e => Text(DateFormaterService.getFormatedDate(e.creationDate))})
-             , ( Text("Directive"), { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { () =>  showExpectedPolicyPopup(e) }, ("class", "smallButton") )})
+             , ( Text("Directive"), { e => SHtml.ajaxButton(<img src={"/" + StaticResourceRewrite.prefix + "/images/icPolicies.jpg"}/>, { () =>  showExpectedPolicyPopup(e) }, ("class", "smallButton") )})
              , ( Text("")         , { e => <input type="checkbox" name="serverids" value={e.id.value.toString}/>  })
           )
         , """,{ "sWidth": "60px" },{ "sWidth": "70px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""

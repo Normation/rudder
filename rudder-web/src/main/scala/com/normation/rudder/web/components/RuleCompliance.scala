@@ -65,6 +65,7 @@ import com.normation.rudder.services.reports.NodeChanges
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.js.JsObj
 import com.normation.rudder.web.ChooseTemplate
+import bootstrap.liftweb.StaticResourceRewrite
 
 object RuleCompliance {
   private def details = ChooseTemplate(
@@ -140,7 +141,7 @@ class RuleCompliance (
         Details of changes for each period are displayed below the graph. Click to change the selected period.
         </div>
         <div class="recentChange_refresh">
-          {SHtml.ajaxButton(<img src='/images/icRefresh.png'/>, () => refresh() , ("class","recentChangeGraph refreshButton btn btn-default") , ("title","Refresh"))}
+          {SHtml.ajaxButton(<img src={"/" + StaticResourceRewrite.prefix +"/images/icRefresh.png"}/>, () => refresh() , ("class","recentChangeGraph refreshButton btn btn-default") , ("title","Refresh"))}
         </div>
       </div>
 
