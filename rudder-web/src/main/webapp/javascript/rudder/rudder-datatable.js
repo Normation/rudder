@@ -271,17 +271,8 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
 
         // Description tooltip over the row
         if ( data.description.length > 0) {
-          var tooltipId = data.id+"-description";
-          parent.attr("tooltipid",tooltipId);
-          parent.attr("title","");
-          parent.addClass("tooltip tooltipabletr");
-          var tooltip= $("<div></div>");
-          var toolTipContainer = $("<div><h3>"+data.name+"</h3></div>");
-          toolTipContainer.addClass("tooltipContent");
-          toolTipContainer.attr("id",tooltipId);
-          tooltip.text(data.description);
-          toolTipContainer.append(tooltip);
-          elem.append(toolTipContainer);
+
+          elem.attr("title","<div><h3>"+data.name+"</h3>"+ data.description+"</div>");
         }
 
         // Append the content to the row
@@ -313,17 +304,8 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         elem.text(data.status);
         // If there a reasons field, add the tooltip
         if ("reasons" in data) {
-          var tooltipId = data.id+"-status";
-          elem.attr("tooltipid",tooltipId);
-          elem.attr("title","");
-          elem.addClass("tooltip tooltipable");
-          var tooltip= $("<div></div>");
-          var toolTipContainer = $("<div><h3>Reason(s)</h3></div>");
-          toolTipContainer.addClass("tooltipContent");
-          toolTipContainer.attr("id",tooltipId);
-          tooltip.text(data.reasons);
-          toolTipContainer.append(tooltip);
-          $(nTd).prepend(toolTipContainer);
+          elem.attr("title","<div><h3>Reason(s)</h3>"+ data.reasons+"</div>");
+          elem.addClass("tooltip tooltipable")
         }
         $(nTd).prepend(elem);
       }
