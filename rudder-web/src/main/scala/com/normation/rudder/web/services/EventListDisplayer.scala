@@ -300,7 +300,7 @@ class EventListDisplayer(
       case x:ModifyNodeGroup               => groupDesc(x,Text(" modified"))
       case x:DeleteNodeGroup               => groupDesc(x,Text(" deleted"))
       case x:AddNodeGroup                  => groupDesc(x,Text(" added"))
-      case x:ClearCacheEventLog            => Text("Clear caches of all nodes")
+      case x:ClearCacheEventLog            => Text("Clear caches")
       case x:UpdatePolicyServer            => Text("Change Policy Server authorized network")
       case x:ReloadTechniqueLibrary        => Text("Technique library updated")
       case x:ModifyTechnique               => techniqueDesc(x, Text(" modified"))

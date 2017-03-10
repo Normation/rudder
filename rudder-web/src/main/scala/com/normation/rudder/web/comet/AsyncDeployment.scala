@@ -196,7 +196,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       SHtml.ajaxButton(
         "Regenerate"
         , () => {
-          clearCache.action
+          clearCache.clearNodeConfigurationCache(storeEvent = true)
           Noop
         }
         , ("class","btn btn-danger")
