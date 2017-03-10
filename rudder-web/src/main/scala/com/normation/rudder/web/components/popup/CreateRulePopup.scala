@@ -117,9 +117,10 @@ class CreateOrCloneRulePopup(
         else
           NodeSeq.Empty
       }
-    & "item-notifications" #> updateAndDisplayNotifications()
     & "item-cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","5") % ("class","btn btn-default"))
     & "item-save" #> (SHtml.ajaxSubmit(if(clonedRule.isDefined) "Clone" else "Create", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","4") % ("class","btn btn-success"))
+    andThen
+      "item-notifications" #> updateAndDisplayNotifications()
     )(popupTemplate) )
   }
 

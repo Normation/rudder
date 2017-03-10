@@ -28,6 +28,7 @@ import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.ChooseTemplate
+import net.liftweb.http.S
 
 class CreateCloneGroupPopup(
   nodeGroup : Option[NodeGroup],
@@ -54,7 +55,8 @@ class CreateCloneGroupPopup(
     case "popupContent" => { _ => popupContent }
   }
 
-  def popupContent() : NodeSeq = (
+  def popupContent() : NodeSeq = {
+    S.appendJs(initJs)
     SHtml.ajaxForm( (
       "item-itemname" #> piName.toForm_!
     & "item-itemcontainer" #> piContainer.toForm_!
@@ -66,12 +68,12 @@ class CreateCloneGroupPopup(
           {f.toForm_!}
         </div>
       } }
-    & "item-notifications" #> updateAndDisplayNotifications(formTracker)
     & "item-cancel" #> (SHtml.ajaxButton( "Cancel", { () => closePopup() } ) % ( "tabindex", "6" )% ( "class", "btn btn-default" ) )
     & "item-save" #> (SHtml.ajaxSubmit( "Clone", onSubmit _ ) % ( "id", "createCOGSaveButton" ) % ( "tabindex", "5" )% ( "class", "btn btn-success" ) )
-    )(popupTemplate) ) ++ Script( OnLoad( initJs ) )
-  )
-
+    andThen
+      "item-notifications" #> updateAndDisplayNotifications(formTracker)
+    )(popupTemplate) )
+  }
 
   def popupTemplate = ChooseTemplate(
       List("templates-hidden", "Popup", "createCloneGroupPopup")
