@@ -72,27 +72,28 @@ class ClearCache extends DispatchSnippet with Loggable {
     case "render" => clearCache
   }
 
-
-  def action =  {     S.clearCurrentNotices
-
-      val modId = ModificationId(uuidGen.newUuid)
-
-      //clear agentRun cache
-      clearableCache.foreach { _.clearCache }
-
-      //clear node configuration cache
-      nodeConfigurationService.deleteAllNodeConfigurations match {
-        case empty:EmptyBox =>
-          val e = empty ?~! "Error while clearing caches"
-          e
-        case Full(set) =>
-          eventLogRepository.saveEventLog(modId,
-              ClearCacheEventLog(
+  /*
+   * This one only clear the "node configuration" cache. That will
+   * force a full regeneration of all policies
+   */
+  def clearNodeConfigurationCache(storeEvent: Boolean = true) = {
+    nodeConfigurationService.deleteAllNodeConfigurations match {
+      case eb:EmptyBox =>
+        (eb ?~! "Error while clearing node configuration cache")
+      case Full(set) =>
+        if( storeEvent ) {
+          val modId = ModificationId(uuidGen.newUuid)
+          eventLogRepository.saveEventLog(
+              modId
+            , ClearCacheEventLog(
                 EventLogDetails(
                     modificationId = Some(modId)
                   , principal = CurrentUser.getActor
                   , details = EventLog.emptyDetails
-                  , reason = None))) match {
+                  , reason = Some("Node configuration cache deleted on user request")
+                )
+              )
+          ) match {
             case eb:EmptyBox =>
               val e = eb ?~! "Error when logging the cache event"
               logger.error(e.messageChain)
@@ -101,9 +102,55 @@ class ClearCache extends DispatchSnippet with Loggable {
           }
           logger.debug("Deleting node configurations on user clear cache request")
           asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
-          Full(set)
-      }
+        }
+        Full(set)
+    }
   }
+
+  /*
+   * This method clear all caches, which are:
+   * - node configurations (force full regen)
+   * - cachedAgentRunRepository
+   * - recentChangesService
+   * - reportingServiceImpl
+   * - nodeInfoServiceImpl
+   */
+  def action =  {
+    S.clearCurrentNotices
+    val modId = ModificationId(uuidGen.newUuid)
+
+    //clear agentRun cache
+    clearableCache.foreach { _.clearCache }
+
+    //clear node configuration cache
+    (for {
+      set <- clearNodeConfigurationCache(storeEvent = false)
+      _   <- eventLogRepository.saveEventLog(
+                modId
+              , ClearCacheEventLog(
+                  EventLogDetails(
+                      modificationId = Some(modId)
+                    , principal = CurrentUser.getActor
+                    , details = EventLog.emptyDetails
+                    , reason = Some("Clearing cache for: node configuration, recent changes, compliance and node info at user request")
+                  )
+                )
+             )
+    } yield {
+      set
+    }) match {
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error when clearing caches"
+        logger.error(e.messageChain)
+        logger.debug(e.exceptionChain)
+        e
+      case Full(set) => //ok
+        logger.debug("Deleting node configurations on user clear cache request")
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+        Full("ok")
+    }
+  }
+
   def clearCache : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
     // our process method returns a
