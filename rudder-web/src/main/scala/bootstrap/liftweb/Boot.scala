@@ -190,23 +190,17 @@ class Boot extends Loggable {
 
     // Lift 3 add security rules. It's good! But we use a lot
     // of server side generated js and other things that make
-    // it extremelly impracticable for ue.
-    LiftRules.securityRules = () => {
-      SecurityRules(content = Some(ContentSecurityPolicy(
-        styleSources = List(
-          ContentSourceRestriction.UnsafeInline,
-          ContentSourceRestriction.All
-        ),
-        fontSources = List(
-          ContentSourceRestriction.All
-        ),
-        scriptSources = List(
-          ContentSourceRestriction.UnsafeEval,
-          ContentSourceRestriction.UnsafeInline,
-          ContentSourceRestriction.Self
-        )
-      )))
-    }
+    // it extremelly impracticable for us.
+    // allows everything and do not log in prod mode problems
+    LiftRules.securityRules = () => SecurityRules(
+        https               = None
+      , content             = None
+      , frameRestrictions   = None
+      , enforceInOtherModes = false
+      , logInOtherModes     = false
+      , enforceInDevMode    = false
+      , logInDevMode        = true  // this is to check that nothing is reported on dev.
+    )
 
     /*
      * For development, we override the default local calculator
