@@ -110,54 +110,50 @@ class CreateCategoryOrGroupPopup(
    */
  private[this] def initJs : JsCmd = {
     JsRaw("""
-        if($('input[value="Group"]').get(':checked')){
-          $('#createGroupHiddable').removeClass('nodisplay');
-          $('#itemTitle').text('Group');
-        }else{
-          $('#itemTitle').text('Category');
-        }
         $('input[value="Group"]').click(
           function() {
-            $('#createGroupHiddable').removeClass('nodisplay');
+            $('#createGroupHiddable').show();;
             $('#itemTitle').text('Group');
           }
         );
 
         $('input[value="Category"]').click(
           function() {
-            $('#createGroupHiddable').addClass('nodisplay');
+            $('#createGroupHiddable').hide();
             $('#itemTitle').text('Category');
           }
         );
-        $('input[value="Group"]').click();
      """)
   }
 
   def popupContent() : NodeSeq = {
-    val f = SHtml.ajaxForm(
-    (
-          "item-itemtype" #> {
-             groupGenerator match {
-               case None => piItemType.toForm_!
-               case Some(x) => NodeSeq.Empty
-             }
-          }
-        & "item-itemname" #> piName.toForm_!
-        & "item-itemcontainer" #> piContainer.toForm_!
-        & "item-itemdescription" #> piDescription.toForm_!
-        & "item-notifications" #> updateAndDisplayNotifications()
-        & "item-grouptype" #> piStatic.toForm_!
-        & "item-itemreason" #> { piReasons.map { f =>
-            <div>
-              <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
-              {f.toForm_!}
-            </div>
-            } }
-        & "item-cancel" #> ( SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","6") % ("class","btn btn-default") )
-        & "item-save" #> ( SHtml.ajaxSubmit("Create", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","5") % ("class","btn btn-success") )
-    )(popupTemplate)
-  ) ++ Script(OnLoad(initJs))
-  f
+    S.appendJs(initJs)
+    val form =
+      ( "item-itemtype" #> {
+           groupGenerator match {
+             case None => piItemType.toForm_!
+             case Some(x) => NodeSeq.Empty
+           }
+        }
+      & "#itemTitle *"    #> piItemType.get
+      & "item-itemname" #> piName.toForm_!
+      & "item-itemcontainer" #> piContainer.toForm_!
+      & "item-itemdescription" #> piDescription.toForm_!
+      & "item-grouptype" #> piStatic.toForm_!
+      & "item-itemreason" #> { piReasons.map { f =>
+          <div>
+            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+            {f.toForm_!}
+          </div>
+          } }
+      & "item-cancel" #> ( SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","6") % ("class","btn btn-default") )
+      & "item-save" #> ( SHtml.ajaxSubmit("Create", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","5") % ("class","btn btn-success") )
+      andThen
+        // Updating notification should be done at the end because it empties the form tracker
+        // and thus if done at the same time of other css selectors it will emtpy the field errors
+        "item-notifications" #> updateAndDisplayNotifications()
+      ) (popupTemplate)
+    SHtml.ajaxForm(form)
   }
 
   ///////////// fields for category settings ///////////////////

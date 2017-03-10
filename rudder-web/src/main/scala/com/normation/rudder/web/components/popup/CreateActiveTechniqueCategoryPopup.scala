@@ -82,9 +82,10 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
           "item-itemname" #> categoryName.toForm_!
         & "item-itemcontainer" #> categoryContainer.toForm_!
         & "item-itemdescription" #> categoryDescription.toForm_!
-        & "item-notifications" #> updateAndDisplayNotifications()
         & "item-cancel" #> ( SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4") % ("class","btn btn-default") )
         & "item-save" #> ( SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createATCSaveButton") % ("tabindex","3") % ("class","btn btn-success") )
+        andThen
+          "item-notifications" #> updateAndDisplayNotifications()
       )(popupTemplate)
     )
   }
