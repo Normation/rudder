@@ -49,7 +49,6 @@ import net.liftweb.util.Helpers._
 import net.liftweb.http.js._
 import JsCmds._
 
-
 /**
  * A simple class that allows to register error information
  * about a form and its fields
@@ -97,7 +96,6 @@ class FormTracker(private[this] var _fields : List[RudderBaseField] = Nil) exten
   }
 
 }
-
 
 /**
  * An abstract field that allows to generate form elements and
@@ -247,7 +245,6 @@ class WBCheckboxField(override val name:String, override val defaultValue:Boolea
   def inputField : Elem = <span>{SHtml.checkbox(value, set _, (attrs: Seq[ElemAttr]) :_*)}</span>
 }
 
-
 class WBSelectField(override val name:String, val opts : Seq[(String, String)], override val defaultValue:String = "", val attrs : Seq[(String, String)] = Seq()) extends RudderBaseField with StringValidators{
   type ValueType = String
 
@@ -281,11 +278,11 @@ class WBSelectObjField[T](override val name:String, val opts : Seq[(T, String)],
 }
 
 class WBRadioField(
-    override val name:String,
-    val opts : Seq[String],
-    override val defaultValue:String = "",
-    val displayChoiceLabel: String => NodeSeq = {label =>Text(label) },
-    val tabindex : Option[Int] = None
+  override val name         : String
+, opts                      : Seq[String]
+, override val defaultValue : String = ""
+, displayChoiceLabel        : String => NodeSeq = Text(_)
+, tabindex                  : Option[Int] = None
 ) extends RudderBaseField with StringValidators {
   type ValueType = String
 
