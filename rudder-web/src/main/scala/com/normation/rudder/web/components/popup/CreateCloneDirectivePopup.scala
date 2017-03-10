@@ -107,21 +107,20 @@ class CreateCloneDirectivePopup(
   }
 
   def popupContent() : NodeSeq = {
-
-    (
-      "#techniqueName" #> techniqueName &
-      "#itemName" #> directiveName.toForm_! &
-      "#itemDescription" #> directiveShortDescription.toForm_! &
-      "#itemReason" #> { reasons.map { f =>
+    ( "#techniqueName" #> techniqueName
+    & "#itemName" #> directiveName.toForm_!
+    & "#itemDescription" #> directiveShortDescription.toForm_!
+    & "#itemReason" #> { reasons.map { f =>
         <div>
            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
           {f.toForm_!}
         </div>
-      } } &
-      "#notifications" #> updateAndDisplayNotifications() &
-      "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4") % ("class","btn btn-default"))&
-      "#save" #> (SHtml.ajaxSubmit("Clone", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3") % ("class","btn"))
-    )(html)
+      } }
+    & "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4") % ("class","btn btn-default"))
+    & "#save" #> (SHtml.ajaxSubmit("Clone", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3") % ("class","btn"))
+    andThen
+      "#notifications" #> updateAndDisplayNotifications()
+    ) (html)
 
   }
 
