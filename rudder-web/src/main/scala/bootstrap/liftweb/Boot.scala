@@ -63,6 +63,7 @@ import java.util.Properties
 import net.liftweb.http.rest.RestHelper
 import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource
+import java.net.URLConnection
 
 /*
  * Utilities about rights
@@ -85,21 +86,35 @@ object Boot {
 object StaticResourceRewrite extends RestHelper {
   // prefix added to signal that the resource is cached
   val prefix = s"cache-${RudderConfig.rudderFullVersion}"
-  def headers =
+  def headers(others: List[(String,String)]): List[(String,String)] = {
     ("Cache-Control", "max-age=31556926, public") ::
     ("Pragma", "") ::
     ("Expires", DateTime.now.plusMonths(6).toString("EEE, d MMM yyyy HH':'mm':'ss 'GMT'")) ::
-    Nil
-
+    others
+ }
 
   //the resource directory we want to server that way
   val resources = Set("javascript", "style", "images")
   serve {
     case Get(prefix :: resource :: tail,  req) if(resources.contains(resource)) =>
       val resourcePath = req.uri.replaceFirst(prefix+"/", "")
-      () => LiftRules.getResource(resourcePath).map(_.openStream).map { in =>
-              StreamingResponse(in, () => in.close, size = -1, headers,  cookies = Nil, code=200)
-            }
+      () => {
+        for {
+          url <- LiftRules.getResource(resourcePath)
+        } yield {
+          val contentType = URLConnection.guessContentTypeFromName(url.getFile) match {
+            // if we don't know the content type, skip the header: most of the time,
+            // browsers can live whithout it, but can't with a bad value in it
+            case null                        => Nil
+            case x if(x.contains("unknown")) => Nil
+            case x                           => ("Content-Type", x) :: Nil
+          }
+          val conn = url.openConnection //will be local, so ~ efficient
+          val size = conn.getContentLength
+          val in = conn.getInputStream
+          StreamingResponse(in, () => in.close, size = size, headers(contentType),  cookies = Nil, code=200)
+        }
+      }
   }
 }
 
