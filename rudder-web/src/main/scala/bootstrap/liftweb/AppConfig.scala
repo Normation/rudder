@@ -233,6 +233,10 @@ object RudderProperties {
 object RudderConfig extends Loggable {
   import RudderProperties.config
 
+  // set the file location that contains mime info
+  System.setProperty("content.types.user.table", this.getClass.getClassLoader.getResource("content-types.properties").getPath)
+
+
   //
   // Public properties
   // Here, we define static nouns for all theses properties
