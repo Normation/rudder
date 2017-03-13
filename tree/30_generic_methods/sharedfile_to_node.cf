@@ -57,7 +57,8 @@
 # * *minutes*, *minute*, or *m*
 # * *seconds*, *second* or *s*
 #
-# The ttl value can look like *1day 2hours 3minutes 4seconds* or can be abbreviated in the form *1d 2h 3m 4s*, or without spaces *1d2h3m4s* or any combination like *1day2h 3minunte 4seconds*
+# The ttl value can look like *1day 2hours 3minutes 4seconds* or can be abbreviated in the form *1d 2h 3m 4s*, or without spaces *1d2h3m4s* or any combination like *1day2h 3minute 4seconds*
+# Any unit can be skipped, but the decreasing order needs to be respected.
 #
 # ##### file_id
 #
