@@ -55,6 +55,16 @@
   padding-right:7px;
 }
 
+@media (min-width: 992px){
+  .tw-bs .col-sm-30 {
+    width: 30%;
+  }
+  .tw-bs .col-sm-70 {
+    width: 70%;
+    padding: 0 0 0 15px;
+  }
+}
+
 /*LOGO RUDDER*/
 header.main-header .logo-mini img{
   width:35px;
@@ -419,7 +429,7 @@ a.sidebar-toggle{
 
 .rudder_col {
   background-color: rgb(236, 240, 245);
-  padding: 15px 15px 10px;
+  padding: 15px;
 }
 .content-wrapper {
   height: auto;
@@ -1191,7 +1201,7 @@ table > tbody > tr > td.action{
   font-weight: bold !important;
 }
 label.text-fit{
-	font-weight:normal !important;
+  font-weight:normal !important;
 }
 /* --- LABEL --- */
 #badge-apm{
@@ -1276,12 +1286,16 @@ form .tooltip-content p {
 .tw-bs .jstree-container-ul .rudder-label.label-sm,.dataTable .rudder-label.label-sm{
   padding: 0 !important;
   min-width: 45px !important;
-  margin-right: 6px;
+  margin-right: -1px;
+  margin-left: 0;
   position: relative;
-  top: -2px;
+  top: -1px;
   height: 18px;
   line-height: 18px;
-  font-style:normal !important;
+  font-style: normal !important;
+}
+.dataTable .rudder-label.label-sm{
+  margin-right:5px;
 }
 #nodeDetails .rudder-label{
   position: relative;
@@ -2365,14 +2379,21 @@ h3.box-title {
   color: #999;
   margin-right:10px;
 }
+.box-header.with-border.spacing{
+  padding:3px 10px;
+}
+.box-header.with-border.spacing .box-title{
+  min-height: 34px;
+  display: inline-block;
+  line-height: 34px;
+}
+.box-header.with-border.spacing >.box-tools {
+  position: static;
+}
 .box-tools > .btn-xs {
   position:relative;
   top:-2px;
   max-height: 21px;
-}
-.box-tools > .btn.tech{
-  position: relative;
-  top: -2px;
 }
 .box-tools > .btn-sm.btn-box-tool > .fa {
   font-size: 14px;

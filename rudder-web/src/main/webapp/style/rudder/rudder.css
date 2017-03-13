@@ -2146,7 +2146,7 @@ div.topQuickSearchResults.ac_results {
   color: #555
 }
 
-span.treeDirective.tooltipable {
+span.treeDirective.tooltipable,span.treeDirective.bsTooltip {
   color: #555;
   font-weight: 600;
 }

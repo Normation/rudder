@@ -224,10 +224,9 @@ object DisplayNodeGroupTree extends Loggable {
           case Some(f)                   => SHtml.a( () => f(targetInfo), xml)
         }
       }
-
     }
 
-    displayCategory(groupLib).toXml
+    groupLib.subCategories.sortBy( _.name ).flatMap { cat => displayCategory(cat).toXml }
   }
 
   //build the tree category, filtering only category with groups
