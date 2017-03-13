@@ -110,15 +110,16 @@ object DisplayDirectiveTree extends Loggable {
 
       private[this] val localOnClickDirective = onClickDirective.map( _.curried(category) )
 
-      private[this] val tooltipId = Helpers.nextFuncName
+      private[this] val tooltipContent = s"""
+        <h4>${category.name}</h4>
+        <div class="tooltip-content">
+          <p>${category.description}</p>
+        </div>
+      """
       private[this] val xml = (
-        <span class="treeActiveTechniqueCategoryName tooltipable" tooltipid={tooltipId} title="">
+        <span class="treeActiveTechniqueCategoryName bsTooltip"  data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>
           {Text(category.name)}
         </span>
-        <div class="tooltipContent" id={tooltipId}>
-          <h3>{category.name}</h3>
-          <div>{category.description}</div>
-        </div>
       )
 
       override def body = onClickCategory match {
@@ -160,7 +161,7 @@ object DisplayDirectiveTree extends Loggable {
       private[this] val localOnClickDirective = onClickDirective.map( f => f(activeTechnique) )
 
       override val attrs = (
-        ("data-jstree" -> s"""{ "type" : "template" , "state" : { "disabled" : ${ !activeTechnique.isEnabled} } }""") :: Nil
+        ("data-jstree" -> s"""{ "type" : "template" , "state" : { "disabled" : ${ !activeTechnique.isEnabled} } }""") :: ("class" -> "techniqueNode" ) :: Nil
       )
 
       override def children = {
@@ -177,18 +178,18 @@ object DisplayDirectiveTree extends Loggable {
       }
 
       override def body = {
-        val tooltipId = Helpers.nextFuncName
-
         //display information (name, etc) relative to last technique version
 
         val xml = activeTechnique.newestAvailableTechnique match {
           case Some(technique) =>
-            <span class="treeActiveTechniqueName tooltipable" tooltipid={tooltipId} title="">{technique.name}
-            </span>
-            <div class="tooltipContent" id={tooltipId}>
-              <h3>{technique.name}</h3>
-              <div>{technique.description}</div>
-            </div>
+            val tooltipContent = s"""
+              <h4>${technique.name}</h4>
+              <div class="tooltip-content">
+                <p>${technique.description}</p>
+              </div>
+            """
+            <span class="treeActiveTechniqueName bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{technique.name}</span>
+
           case None =>
             <span class="error">The technique with id ''{activeTechnique.techniqueName}'' is missing from repository</span>
         }
@@ -216,7 +217,7 @@ object DisplayDirectiveTree extends Loggable {
       val classes = {
         val includedClass = if (included.contains(directive.id)) {"included"} else ""
         val disabled = if(directive.isEnabled) "" else "disableTreeNode"
-        s"${disabled} ${includedClass}"
+        s"${disabled} ${includedClass} directiveNode"
       }
       val htmlId = s"jsTree-${directive.id.value}"
       val directiveTags = JsObj(directive.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList:_*)
@@ -228,13 +229,16 @@ object DisplayDirectiveTree extends Loggable {
       )
 
       override def body = {
-
         val editButton = {
           if (addEditLink && ! directive.isSystem) {
-            val tooltipId = Helpers.nextFuncName
+            val tooltipContent = s"""
+              <h4>${scala.xml.Utility.escape(directive.name)}</h4>
+              <div class="tooltip-content">
+                <p>Configure this Directive.</p>
+              </div>
+            """
             <span class="treeActions">
-              <span  class="tooltipable treeAction noRight directiveDetails fa fa-pencil" tooltipid={tooltipId} title="" onclick={redirectToDirectiveLink(directive.id).toJsCmd}> </span>
-              <div class="tooltipContent" id={tooltipId}><div>Configure this Directive.</div></div>
+              <span class="treeAction noRight directiveDetails fa fa-pencil bsTooltip"  data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent} onclick={redirectToDirectiveLink(directive.id).toJsCmd}> </span>
             </span>
           } else {
             NodeSeq.Empty
@@ -264,27 +268,34 @@ object DisplayDirectiveTree extends Loggable {
               }
 
           val tooltipId = Helpers.nextFuncName
-          <span class="treeDirective tooltipable" tooltipid={tooltipId} title="" ><span id={"badge-apm-"+tooltipId}>[BADGE]</span>[{directive.techniqueVersion.toString}] {directive.name}
-          {
-
-              if(isAssignedTo <= 0) {
-                <span style="padding-left:5px" class="fa fa-warning text-warning-rudder"></span>
-              } else {
-                NodeSeq.Empty
-              }
-          }
-          </span>  ++
-          Script(JsRaw(s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation.toString()}"))""")) ++
+            val tooltipContent = s"""
+              <h4>${scala.xml.Utility.escape(directive.name)}</h4>
+              <div class="tooltip-content">
+                <p>${scala.xml.Utility.escape(directive.shortDescription)}</p>
+                <div><b>Technique version:</b> ${directive.techniqueVersion.toString}</div>
+                <div>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</div>
+                ${ if(!directive.isEnabled){ <div>Disable</div> }else{NodeSeq.Empty}}
+              </div>
+            """
+          <span id={"badge-apm-"+tooltipId}>[BADGE]</span>
+          <span class="treeDirective bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>
+            <span class="techversion">{directive.techniqueVersion.toString}</span>
+            {directive.name}
+          </span> ++
           deprecated ++
+          <span>
+          {
+            if(isAssignedTo <= 0) {
+              <span style="padding-left:5px" class="fa fa-warning text-warning-rudder"></span>
+            } else {
+              NodeSeq.Empty
+            }
+          }
+          </span> ++
           editButton ++
-          <div class="tooltipContent" id={tooltipId}>
-            <h3>{directive.name}</h3>
-            <div>{directive.shortDescription}</div>
-            <div>Technique version: {directive.techniqueVersion.toString}</div>
-            <div>{s"Used in ${isAssignedTo} rules" }</div>
-              { if(!directive.isEnabled) <div>Disable</div> }
-          </div>
-
+          Script(JsRaw(s"""
+            $$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation.toString()}"))""")
+          )
         }
 
         onClickDirective match {
@@ -295,13 +306,16 @@ object DisplayDirectiveTree extends Loggable {
       }
     }
 
-    displayCategory(directiveLib, "jstn_0").toXml ++ Script(OnLoad(JsRaw("""
-      var scopeElmnt = '#directiveFilter'
+    S.appendJs(JsRaw(s"""
+      var scopeElmnt = '#directiveFilter';
       if(!angular.element(scopeElmnt).scope()){
         angular.bootstrap(scopeElmnt, ['filters']);
       }
       adjustHeight('#activeTechniquesTree');
-    """)))
+
+      $$(".bsTooltip").bsTooltip({container: "${if(addEditLink){"#directiveTree"}else{"#boxDirectiveTree"}}"})
+    """))
+    directiveLib.subCategories.filterNot(_.isSystem).sortBy( _.name ).flatMap { cat => displayCategory(cat, cat.id.value).toXml }
   }
 
 }
