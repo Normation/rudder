@@ -85,7 +85,7 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
 
   def quickSearchEveryting(html: NodeSeq) : NodeSeq = {
     val bind = (
-      "#angucomplete-ie8-quicksearch  [remote-url]" #> s"${S.contextPath}/secure/api/quicksearch/"
+      "#angucomplete-ie8-quicksearch  [remote-url]" #> s"${S.contextPath}/secure/api/quicksearch?value="
     )
     (bind(html) ++ Script(OnLoad(JsRaw(s"initQuicksearchDocinfo(${jsonDocinfo})"))))
   }
@@ -110,8 +110,6 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
 
     "'" + compact(render(objs)) + "'"
   }
-
-
 
   def quickSearchNode(html:NodeSeq) : NodeSeq = {
     def buildQuery(current: String, limit: Int): Seq[String] = {
@@ -138,7 +136,6 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
           Alert("No node was selected")
       }
     }
-
 
     //actual XML returned by the method
     <lift:form class="navbar-form navbar-left">
