@@ -118,3 +118,42 @@
 .version-group select.form-control{
   margin-right:5px;
 }
+.new-icon.tech:before{
+  content:"Edit techniques";
+}
+.tw-bs .btn.btn-box-tool{
+  padding-left:2px;
+  padding-right:2px;
+}
+.new-icon.tech + .btn.btn-box-tool > .fa{
+  margin-left:0;
+}
+@media (min-width: 991px) and (max-width: 1300px){
+  .new-icon.tech:before{
+    content:"Edit";
+    position:relative;
+    left:2px;
+  }
+  .new-icon.tech:after{
+    content:"";
+  }
+}
+.directiveNode > a.jstree-anchor, .techniqueNode > a.jstree-anchor {
+  position:relative;
+  padding-left:20px !important;
+}
+.directiveNode > a.jstree-anchor > i.fa-file-text, .techniqueNode > a.jstree-anchor > i.fa-gear{
+  position:absolute;
+  left:0;
+}
+span.techversion {
+  font-weight: 300;
+  color: #777;
+  font-size: 10px;
+}
+.directiveNode .rudder-label + .tooltip{
+  margin-left:40px;
+}
+.directiveNode .rudder-label + .tooltip .tooltip-arrow{
+  margin-left: -45px;
+}
