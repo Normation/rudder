@@ -508,10 +508,27 @@
 .tw-bs .dropdown-search .panel-heading a.collapsed .glyphicon-chevron-right{
   transform: rotate(0deg);
 }
-
 .tw-bs .navbar-form button.btn.btn-default.dropdown-toggle .glyphicon {
   color:#ccc;
   transition-duration:.2s;
+}
+.skin-yellow .sidebar-form.topbar-search-form input.form-control{
+  background-color: rgba(255, 255, 255, 0.65);
+  border: none;
+}
+.skin-yellow .sidebar-form.topbar-search-form input.form-control::-webkit-input-placeholder {
+  color: #8c6438;
+}
+.skin-yellow .sidebar-form.topbar-search-form input.form-control:-moz-placeholder {
+  color: #8c6438;
+  opacity:  1;
+}
+.skin-yellow .sidebar-form.topbar-search-form input.form-control::-moz-placeholder {
+  color: #8c6438;
+  opacity:  1;
+}
+.skin-yellow .sidebar-form.topbar-search-form input.form-control:-ms-input-placeholder {
+  color: #8c6438;
 }
 @-webkit-keyframes loading {
   0%   { transform: rotate(0deg); }
