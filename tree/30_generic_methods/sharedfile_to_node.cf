@@ -164,6 +164,6 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
       "echo | cat ${file_path}.sign - ${file_path} | ${paths.path[curl]}"
         args => "${url}?ttl=${url_ttl} -k -1 -L -X PUT -o /dev/null -s -f -H 'Content-Type: application/octet-stream' --data-binary @-",
         contain => in_shell,
-        classes => classes_generic_return_single_code_two("${old_class_prefix}_uploaded", "${class_prefix}_uploaded", "0", "22", "999"), # 22 = http 400 or above
+        classes => classes_generic_return_single_code_two("${old_class_prefix}_uploaded", "${class_prefix}_uploaded", "0", "999", "22"), # 22 = http 400 or above
         ifvarclass => "${canonified_path}_signed.(${old_class_prefix}_exist_repaired|${class_prefix}_exist_repaired)";
 }
