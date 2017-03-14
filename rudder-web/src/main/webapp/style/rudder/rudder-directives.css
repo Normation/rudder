@@ -157,3 +157,8 @@ span.techversion {
 .directiveNode .rudder-label + .tooltip .tooltip-arrow{
   margin-left: -45px;
 }
+.tooltip-content.directive .fa, .tooltip-content.directive .deprecation-icon {
+  /*min-width: 33px;*/
+  margin-right:5px;
+  text-align:center;
+}
