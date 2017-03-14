@@ -2573,3 +2573,13 @@ h3.box-title {
 	white-space: nowrap;
 	overflow : hidden;
 }
+
+.btn {
+	background-color: #6f42c1 !important;
+	color: #fff !important;
+	font-weight: bold !important
+}
+
+.btn.btn-success {
+	background-color: #2cbe4e !important
+}
