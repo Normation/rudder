@@ -226,7 +226,8 @@ object DisplayNodeGroupTree extends Loggable {
       }
     }
 
-    groupLib.subCategories.sortBy( _.name ).flatMap { cat => displayCategory(cat).toXml }
+    groupLib.subCategories.sortBy( _.name ).withFilter { keepCategory }.flatMap { cat => displayCategory(cat).toXml } ++
+    groupLib.targetInfos.sortBy( _.name ).withFilter { keepTargetInfo }.flatMap { target => displayFullRuleTargetInfo(target, onClickTarget.map(_.curried(groupLib))).toXml }
   }
 
   //build the tree category, filtering only category with groups
