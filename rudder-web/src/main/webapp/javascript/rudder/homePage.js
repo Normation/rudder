@@ -92,27 +92,27 @@ function homePage (
     $("#gauge-value").text(globalGauge+"%");
 
 
-  doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors,15);
+  doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors);
     
 }
 
 var inventoryColors = 
-  [ 'rgb(54, 148, 209)'
-  , 'rgb(23, 190, 207)'
-  , 'rgb(255,113,37)'
-  , 'rgb(255, 224, 14)'
+  [ 'rgb(54 , 148, 209)'
+  , 'rgb(23 , 190, 207)'
+  , 'rgb(255, 113, 37 )'
+  , 'rgb(255, 224, 14 )'
   , 'rgb(227, 119, 194)'
-  , 'rgb(44, 160, 44)'
+  , 'rgb(44 , 160, 44 )'
   , 'rgb(255, 104, 105)'
   , 'rgb(148, 103, 189)'
-  , 'rgb(140, 86, 75)'
+  , 'rgb(140, 86 , 75 )'
   , 'rgb(160, 160, 160)'
-  , 'rgb(155,200,50)'
-  , '#ffd203'
-  , 'rgb(132, 63, 152)'
+  , 'rgb(155, 200, 50 )'
+  , 'rgb(255, 210, 3  )'
+  , 'rgb(132, 63 , 152)'
   ];
 
-function doughnutChart (id,data,count, colors, limit) {
+function doughnutChart (id,data,count, colors) {
   
   var context = $("#"+id)
 
@@ -152,14 +152,15 @@ function doughnutChart (id,data,count, colors, limit) {
         return text.join("");
       }
       , tooltips: {
-          callbacks: {
+          enabled: false
+        , custom: function(tooltip) {
+          graphTooltip.call(this,tooltip,true)
+        }
+        ,  callbacks: {
             label: function(tooltipItem, data) {
               var label = data.labels[tooltipItem.index];
-              if (label.length > limit) {
-                label = label.substring(0,limit-3)+"...";
-              }
               var content = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-              return " " + label + ": " + content + " ("+ (content/count*100).toFixed(0) + "%)";
+              return " " + label + ": " + content + " - "+ (content/count*100).toFixed(0) + "%";
             }
           , labelColor : function(tooltipItem,chart) {
               var color = chartData.datasets[0].backgroundColor[tooltipItem.index];
@@ -260,15 +261,15 @@ function homePageInventory (
   , nodeOses
   , count
 ) {
-  doughnutChart('nodeMachine',nodeMachines, count, inventoryColors,12);
-  doughnutChart('nodeOs', nodeOses, count, inventoryColors,12);
+  doughnutChart('nodeMachine',nodeMachines, count, inventoryColors);
+  doughnutChart('nodeOs', nodeOses, count, inventoryColors);
 }
 
 function homePageSoftware (
     nodeAgents
   , count
 ) {
-  doughnutChart('nodeAgents', nodeAgents, count, inventoryColors,14);
+  doughnutChart('nodeAgents', nodeAgents, count, inventoryColors);
 }
 
 function userAgentIsIE() {
@@ -278,3 +279,4 @@ function userAgentIsIE() {
     }
     return false;
 }
+
