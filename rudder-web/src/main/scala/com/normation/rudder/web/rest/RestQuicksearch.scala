@@ -83,8 +83,14 @@ class RestQuicksearch (
   final val MAX_RES_BY_KIND = 10
 
   serve {
-    case Get("secure" :: "api" :: "quicksearch" :: token :: Nil, req) => {
+    case Get("secure" :: "api" :: "quicksearch" :: Nil, req) => {
 
+      val token = req.params.get("value") match {
+        case Some(value :: Nil) => value
+        case None               => ""
+        // Should not happen, but for now make one token from it, maybe we should only take head ?
+        case Some(values)       => values.mkString("")
+      }
       quicksearch.search(token) match {
         case eb: EmptyBox  =>
           val e = eb ?~! s"Error when looking for object containing ${token}"
