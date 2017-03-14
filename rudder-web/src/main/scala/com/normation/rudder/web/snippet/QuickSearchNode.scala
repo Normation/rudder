@@ -67,7 +67,7 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
 
   def quickSearchEveryting(html: NodeSeq) : NodeSeq = {
     val bind = (
-      "#angucomplete-ie8-quicksearch  [remote-url]" #> s"${S.contextPath}/secure/api/quicksearch/"
+      "#angucomplete-ie8-quicksearch  [remote-url]" #> s"${S.contextPath}/secure/api/quicksearch?value="
     )
     (bind(html))
   }
