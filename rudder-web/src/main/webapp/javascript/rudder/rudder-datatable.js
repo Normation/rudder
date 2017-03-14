@@ -118,54 +118,7 @@ function computeChangeGraph(changes, id, currentRowsIds, changeCount, displayGra
   }
 }
 
-function changesTooltip (tooltip) {
-  // Tooltip Element
-  var tooltipEl = document.getElementById('chartjs-tooltip');
-  if (!tooltipEl) {
-    tooltipEl = document.createElement('div');
-    tooltipEl.id = 'chartjs-tooltip';
-    tooltipEl.innerHTML = "<table></table>"
-    document.body.appendChild(tooltipEl);
-  }
-  // Hide if no tooltip
-  if (tooltip.opacity === 0) {
-    tooltipEl.style.opacity = 0;
-    return;
-  }
-  // Set caret Position
-  tooltipEl.classList.remove('above', 'below', 'no-transform');
-  if (tooltip.yAlign) {
-    tooltipEl.classList.add(tooltip.yAlign);
-  } else {
-    tooltipEl.classList.add('no-transform');
-  }
-  function getBody(bodyItem) {
-    return bodyItem.lines;
-  }
-  // Set Text
-  if (tooltip.body) {
-    var titleLines = tooltip.title || [];
-    var bodyLines = tooltip.body.map(getBody);
-    var innerHtml = '<thead>';
-    innerHtml += '<tr><th>' + titleLines.join(" ") + '</th></tr>';
-    innerHtml += '</thead><tbody>';
-    bodyLines.forEach(function(body, i) {
-      innerHtml += '<tr><td>' + body + '</td></tr>';
-    });
-    innerHtml += '</tbody>';
-    var tableRoot = tooltipEl.querySelector('table');
-    tableRoot.innerHTML = innerHtml;
-  }
-  var position = this._chart.canvas.getBoundingClientRect();
-  // Display, position, and set styles for font
-  tooltipEl.style.opacity = 1;
-  tooltipEl.style.left = position.left + tooltip.caretX + 'px';
-  tooltipEl.style.top = position.top + tooltip.caretY + 10 + 'px';
-  tooltipEl.style.fontFamily = tooltip._fontFamily;
-  tooltipEl.style.fontSize = tooltip.fontSize;
-  tooltipEl.style.fontStyle = tooltip._fontStyle;
-  tooltipEl.style.padding = tooltip.yPadding + 'px ' + tooltip.xPadding + 'px';
-};
+
 
 
 function recentChangesGraph(changes, graphId, displayFullGraph) {
@@ -207,7 +160,7 @@ function recentChangesGraph(changes, graphId, displayFullGraph) {
       }
     , tooltips : {
           enabled: displayFullGraph
-        , custom: changesTooltip
+        , custom: graphTooltip
         , displayColors : false
         , callbacks: {
             title: function(tooltipItem, data) {
