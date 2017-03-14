@@ -663,3 +663,55 @@ function adjustHeight(treeId, toolbar){
   }
   tree.css('height',maxHeight);
 }
+
+function graphTooltip (tooltip, displayColor) {
+  // Tooltip Element
+  var tooltipEl = document.getElementById('chartjs-tooltip');
+  if (!tooltipEl) {
+    tooltipEl = document.createElement('div');
+    tooltipEl.id = 'chartjs-tooltip';
+    tooltipEl.innerHTML = "<ul></ul>"
+    document.body.appendChild(tooltipEl);
+  }
+
+  // Hide if no tooltip
+  if (tooltip.opacity === 0) {
+    tooltipEl.style.opacity = 0;
+    return;
+  }
+  function getBody(bodyItem) {
+    return bodyItem.lines;
+  }
+  // Set Text
+  if (tooltip.body) {
+    var titleLines = tooltip.title || [];
+    var bodyLines = tooltip.body.map(getBody);
+    var innerHtml = ""
+    if (titleLines.length > 0) {
+      innerHtml += '<li><h4>' + titleLines.join(" ") + '</h4></li>';
+    }
+
+    bodyLines.forEach(function(body, i) {
+      var span = "";
+      if (displayColor) {
+        var colors = tooltip.labelColors[i];
+        var style = 'background:' + colors.backgroundColor;
+        style += '; border-color:' + colors.borderColor;
+        style += '; border-width: 2px';
+        var span = '<span class="legend-square" style="' + style + '"></span>'
+      }
+      innerHtml += '<li>'+ span + body + '</li>';
+    });
+    var tableRoot = tooltipEl.querySelector('ul');
+    tableRoot.innerHTML = innerHtml;
+  }
+  var position = this._chart.canvas.getBoundingClientRect();
+  // Display, position, and set styles for font
+  tooltipEl.style.opacity = 1;
+  tooltipEl.style.left = position.left + tooltip.caretX + 'px';
+  tooltipEl.style.top = position.top + tooltip.caretY + 10 + 'px';
+  tooltipEl.style.fontFamily = tooltip._bodyFontFamily;
+  tooltipEl.style.fontSize = tooltip.bodyfontSize;
+  tooltipEl.style.fontWeight = tooltip._bodyFontStyle;
+  tooltipEl.style.padding = tooltip.yPadding + 'px ' + tooltip.xPadding + 'px';
+};
