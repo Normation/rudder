@@ -193,7 +193,7 @@ class NodeGroupForm(
                    else NodeSeq.Empty
                 }
       & "group-delete" #> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class"," btn btn-danger"))
-      & "group:notifications" #> updateAndDisplayNotifications()
+      & "group-notifications" #> updateAndDisplayNotifications()
     )(html)
    }
 
