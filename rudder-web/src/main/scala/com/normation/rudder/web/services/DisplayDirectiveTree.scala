@@ -253,11 +253,24 @@ object DisplayDirectiveTree extends Loggable {
         val (isDeprecated,deprecationInfo,deprecatedIcon) =
 
         if (activeTechnique.techniques.values.forall { t => t.deprecrationInfo.isDefined }) {
-          (true, technique.flatMap(_.deprecrationInfo).get.message,{<i class="fa fa-times deprecation-icon"></i>})
+          val message = <p><b>↳ Deprecated: </b>{technique.flatMap(_.deprecrationInfo).get.message}</p>
+          (true, message,{<i class="fa fa-times deprecation-icon"></i>})
+
         } else {
           technique.flatMap(_.deprecrationInfo) match {
-            case Some(info) => (true, info.message,{<i class="ion ion-arrow-up-a deprecation-icon"></i>})
-            case None => (false, "", {NodeSeq.Empty})
+            case Some(info) =>
+              val message = <p><b>↳ Deprecated: </b>{info.message}</p>
+              (true, message,{<i class="ion ion-arrow-up-a deprecation-icon"></i>})
+
+            case None =>
+              val newestVersion = activeTechnique.newestAvailableTechnique.get.id.version
+              if(newestVersion != directive.techniqueVersion){
+                val message = <p><b>↳ New version available: </b>This Directive can be updated to version <b>{newestVersion}</b></p>
+                (false, message,{<i class="ion ion-arrow-up-a deprecation-icon migration"></i>})
+
+              }else{
+                (false, "", {NodeSeq.Empty})
+              }
           }
         }
 
@@ -282,7 +295,7 @@ object DisplayDirectiveTree extends Loggable {
               <div>
                 <b>Technique version:</b>
                 ${directive.techniqueVersion.toString}${deprecatedIcon}
-                ${if(isDeprecated){<p><b style="margin-left:8px;">↳ Deprecated: </b>{deprecationInfo}</p>}else{NodeSeq.Empty}}
+                ${deprecationInfo}
               </div>
               ${if(!directive.isEnabled){ <div>Disable</div>} else{NodeSeq.Empty}}
               ${if(isAssignedTo==0){<span class="fa fa-warning text-warning-rudder min-size-icon"></span>}else{NodeSeq.Empty}}<span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
