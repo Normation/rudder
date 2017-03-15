@@ -7,9 +7,14 @@ execution.
 By default, a hook directory contains a template example and a Readme.txt file
 explaining the generalities about hooks and the specificities of that hook (parameters, etc).
 
-*Hooks must be executable*. All executable file will be used as hooks, and
-non executable one will be ignored (which allows to put other files in these
+*Hooks must be executable*. All executable files will be used as hooks EXCEPT if
+they end with one of the extensions listed in */opt/rudder/etc/rudder-web.properties
+for property *rudder.hooks.ignore-suffixes*. A common convention is to use the *.disabled* 
+suffixe to do so. 
+
+Non executable files will be ignored (which allows to put other files in these
 directories, like a readme, for example).
+
 
 *Hooks parameter are passed by environment variable*. Rudder will fill dedicated
 environment variable for each hooks.

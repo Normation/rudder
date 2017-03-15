@@ -107,12 +107,13 @@ trait Cf3PromisesFileWriterService {
 }
 
 class Cf3PromisesFileWriterServiceImpl(
-    techniqueRepository: TechniqueRepository
-  , pathComputer       : PathComputer
-  , logNodeConfig      : NodeConfigurationLogger
-  , prepareTemplate    : PrepareTemplateVariables
-  , fillTemplates      : FillTemplatesService
-  , HOOKS_D            : String
+    techniqueRepository  : TechniqueRepository
+  , pathComputer         : PathComputer
+  , logNodeConfig        : NodeConfigurationLogger
+  , prepareTemplate      : PrepareTemplateVariables
+  , fillTemplates        : FillTemplatesService
+  , HOOKS_D              : String
+  , HOOKS_IGNORE_SUFFIXES: List[String]
 ) extends Cf3PromisesFileWriterService with Loggable {
 
   val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
@@ -218,7 +219,7 @@ class Cf3PromisesFileWriterServiceImpl(
                               s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
-      nodePreMvHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-ready")
+      nodePreMvHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
       preMvHooks       <- sequencePar(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
@@ -236,7 +237,7 @@ class Cf3PromisesFileWriterServiceImpl(
                             res
                           }
       movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
-      nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished")
+      nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
       postMvHooks      <- sequencePar(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
