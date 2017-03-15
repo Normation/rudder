@@ -138,27 +138,3 @@
     content:"";
   }
 }
-.directiveNode > a.jstree-anchor, .techniqueNode > a.jstree-anchor {
-  position:relative;
-  padding-left:20px !important;
-}
-.directiveNode > a.jstree-anchor > i.fa-file-text, .techniqueNode > a.jstree-anchor > i.fa-gear{
-  position:absolute;
-  left:0;
-}
-span.techversion {
-  font-weight: 300;
-  color: #777;
-  font-size: 10px;
-}
-.directiveNode .rudder-label + .tooltip{
-  margin-left:40px;
-}
-.directiveNode .rudder-label + .tooltip .tooltip-arrow{
-  margin-left: -45px;
-}
-.tooltip-content.directive .fa, .tooltip-content.directive .deprecation-icon {
-  /*min-width: 33px;*/
-  margin-right:5px;
-  text-align:center;
-}
