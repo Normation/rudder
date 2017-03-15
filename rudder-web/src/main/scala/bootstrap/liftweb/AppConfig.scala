@@ -316,6 +316,12 @@ object RudderConfig extends Loggable {
   // The base directory for hooks. I'm not sure it needs to be configurable
   // as we only use it in generation.
   val HOOKS_D = "/opt/rudder/etc/hooks.d"
+  val HOOKS_IGNORE_SUFFIXES = config.getString("rudder.hooks.ignore-suffixes").split(",").toList.flatMap { s =>
+    s.trim match {
+      case "" => None
+      case x  => Some(x)
+    }
+  }
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
@@ -1407,6 +1413,7 @@ object RudderConfig extends Loggable {
     , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService)
     , new FillTemplatesService()
     , HOOKS_D
+    , HOOKS_IGNORE_SUFFIXES
   )
 
   //must be here because of circular dependency if in techniqueRepository
@@ -1462,6 +1469,7 @@ object RudderConfig extends Loggable {
       , configService.rudder_featureSwitch_directiveScriptEngine
       , configService.rudder_global_policy_mode
       , HOOKS_D
+      , HOOKS_IGNORE_SUFFIXES
   )}
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentAgent = {

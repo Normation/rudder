@@ -53,6 +53,7 @@ import net.liftweb.common.Full
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 import net.liftweb.util.Helpers.tryo
+import scala.io.Source
 
 /*
  * The goal of that file is to give a simple abstraction to run hooks in
@@ -198,9 +199,10 @@ object RunHooks {
 
   /**
    * Get the hooks set for the given directory path.
-   *
+   * Hooks must be executable and not ends with one of the
+   * non-executable extensions.
    */
-   def getHooks(basePath: String): Box[Hooks] = {
+   def getHooks(basePath: String, ignoreSuffixes: List[String]): Box[Hooks] = {
      tryo {
        val dir = new File(basePath)
        // Check that dir exists before looking in it
@@ -210,10 +212,18 @@ object RunHooks {
            file match {
              case f if (f.isDirectory) => None
              case f =>
-               if (f.canExecute) {
-                 Some(f.getName)
+               if(f.canExecute) {
+                 val name = f.getName
+                 //compare ignore case (that's why it's a regienMatches) extension and name
+                 ignoreSuffixes.find(suffix => name.regionMatches(true, name.length - suffix.length, suffix, 0, suffix.length)) match {
+                   case Some(suffix) =>
+                     HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because suffix '${suffix}' is in the ignore list")
+                     None
+                   case None      =>
+                     Some(f.getName)
+                 }
                } else {
-                 HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission?")
+                 HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission if not expected behavior.")
                  None
                }
            }

@@ -100,6 +100,7 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import java.security.Policy.PolicyDelegate
+import com.normation.BoxSpecMatcher
 
 /**
  * Details of tests executed in each instances of
@@ -108,7 +109,7 @@ import java.security.Policy.PolicyDelegate
  * of that file.
  */
 @RunWith(classOf[JUnitRunner])
-class WriteSystemTechniquesTest extends Specification with Loggable with ContentMatchers with AfterAll with AfterEach {
+class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll with AfterEach {
 
   //just a little sugar to stop hurting my eyes with new File(blablab, plop)
   implicit class PathString(root: String) {
@@ -213,6 +214,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with Content
     , prepareTemplateVariable
     , new FillTemplatesService()
     , "/opt/rudder/etc/hooks.d"
+    , Nil
   )
 
   //////////// end init ////////////
@@ -544,12 +546,12 @@ class WriteSystemTechniquesTest extends Specification with Loggable with Content
     }
 
     "correctly write the expected promises files with defauls installation" in {
-      writeRootNodeConfigWithUserDirectives()
+      (writeRootNodeConfigWithUserDirectives() mustFull) and
       compareWith("root-default-install")
     }
 
     "correctly write the expected promises files when 2 directives configured" in {
-      writeRootNodeConfigWithUserDirectives(clock, rpm)
+      (writeRootNodeConfigWithUserDirectives(clock, rpm) mustFull) and
       compareWith("root-with-two-directives",
            """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
         :: """.*add:default:==:.*"""                               //rpm reports
@@ -576,7 +578,15 @@ class WriteSystemTechniquesTest extends Specification with Loggable with Content
       )
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now)
+      promiseWritter.writeTemplate(
+          root.id
+        , Set(root.id)
+        , Map(root.id -> rnc)
+        , Map(root.id -> NodeConfigId("root-cfg-id"))
+        , Map()
+        , globalPolicyMode
+        , DateTime.now
+      ).openOrThrowException("Can not write template!")
 
       rootGeneratedPromisesDir/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/no-group.cf")
     }
@@ -601,7 +611,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with Content
       )
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now)
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now).openOrThrowException("Can not write template!")
 
       rootGeneratedPromisesDir/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
     }
