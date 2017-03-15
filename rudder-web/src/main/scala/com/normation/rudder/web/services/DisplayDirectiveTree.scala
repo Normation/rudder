@@ -140,7 +140,7 @@ object DisplayDirectiveTree extends Loggable {
         category.activeTechniques
           // We only want to keep technique that satifies keepTechnque, that are not systems
           // and that have at least one version not deprecated (deprecationInfo empty)
-          .filter( at => keepTechnique(at) && !at.isSystem && at.techniques.values.exists { _.deprecrationInfo.isEmpty })
+          .filter( at => keepTechnique(at) && !at.isSystem && ( at.directives.length > 0 ||  at.techniques.values.exists { _.deprecrationInfo.isEmpty }))
           // We want our technique sorty by human name, default to bundle name in case we don't have any version but that should not happen
           .sortBy( at => at.newestAvailableTechnique.map(_.name).getOrElse(at.techniqueName.value ))
           .map   ( at => displayActiveTechnique(at, localOnClickTechnique, localOnClickDirective) )
