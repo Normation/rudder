@@ -2465,15 +2465,18 @@ h3.box-title {
   position: relative;
   margin-right: -2px;
 }
+.deprecation-icon.migration {
+  color: #999;
+}
 img.deprecation-icon{
   height:14px;
   color:initial;
 }
-.ui-tooltip-content{
-  color:#555;
-}
 .tooltip-content .deprecation-icon{
   left:0;
+}
+.tooltip-content p > b:first-child{
+  margin-left:8px;
 }
 .deprecation-icon.fa-times{
   left:-2px;
@@ -2484,6 +2487,29 @@ img.deprecation-icon{
 }
 .treeActiveTechniqueName.isDeprecated{
   text-decoration:line-through;
+}
+.directiveNode > a.jstree-anchor, .techniqueNode > a.jstree-anchor {
+  position:relative;
+  padding-left:20px !important;
+}
+.directiveNode > a.jstree-anchor > i.fa-file-text, .techniqueNode > a.jstree-anchor > i.fa-gear{
+  position:absolute;
+  left:0;
+}
+span.techversion {
+  font-weight: 300;
+  color: #777;
+  font-size: 10px;
+}
+.directiveNode .rudder-label + .tooltip{
+  margin-left: 80px;
+}
+.directiveNode .rudder-label + .tooltip .tooltip-arrow{
+  margin-left: -85px;
+}
+.tooltip-content.directive .fa, .tooltip-content.directive .deprecation-icon {
+  margin-right:5px;
+  text-align:center;
 }
 @keyframes opacity-1 {
   0%   {opacity:0;visibility: visible;}
