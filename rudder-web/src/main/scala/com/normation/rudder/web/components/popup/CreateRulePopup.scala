@@ -186,7 +186,6 @@ class CreateOrCloneRulePopup(
   private[this] def closePopup() : JsCmd = {
       JsRaw("""
         $('#createRulePopup').bsModal('hide');
-        $('#settingsTab').bsTab('show');
       """)
   }
   /**
