@@ -549,19 +549,19 @@ rudder.server-roles.cfengine-mission-portal=autodetect
 
 #
 # Command line tools used to check the validity of generated promises
-# DEPRECATED: that command isn't use anymore. Please use a hook into
-#             /opt/rudder/etc/hooks.d/node-policy-generated for that
-#
-rudder.community.checkpromises.command=/var/rudder/cfengine-community/bin/cf-promises
-rudder.nova.checkpromises.command=/bin/true
+# DEPRECATED: these commands aren't used anymore. This task is now managed by hook:
+#             /opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check
+#             
+#rudder.community.checkpromises.command=/var/rudder/cfengine-community/bin/cf-promises
+#rudder.nova.checkpromises.command=/bin/true
 
 #
 # Command to force the server to reload its promises
 # This will be run every time promises are regenerated on the root server
-# DEPRECATED: that command isn't use anymore. Please use a hook into
-#             /opt/rudder/etc/hooks.d/policy-generation-finished for that
+# DEPRECATED: that command isn't used anymore. This task is now managed by hook:
+#             /opt/rudder/etc/hooks.d/policy-generation-finished/50-reload-policy-file-server
 #
-rudder.cfengine.reload.server.command=/opt/rudder/bin/rudder-reload-cf-serverd
+#rudder.cfengine.reload.server.command=/opt/rudder/bin/rudder-reload-cf-serverd
 
 
 #
