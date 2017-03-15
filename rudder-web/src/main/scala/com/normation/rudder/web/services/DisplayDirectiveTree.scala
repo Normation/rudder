@@ -160,6 +160,10 @@ object DisplayDirectiveTree extends Loggable {
 
       private[this] val localOnClickDirective = onClickDirective.map( f => f(activeTechnique) )
 
+      def isDeprecated   = {
+        activeTechnique.techniques.values.forall { t => t.deprecrationInfo.isDefined }
+      }
+
       override val attrs = (
         ("data-jstree" -> s"""{ "type" : "template" , "state" : { "disabled" : ${ !activeTechnique.isEnabled} } }""") :: ("class" -> "techniqueNode" ) :: Nil
       )
@@ -173,6 +177,7 @@ object DisplayDirectiveTree extends Loggable {
                   x
                 , activeTechnique.techniques.get(x.techniqueVersion)
                 , localOnClickDirective
+                , activeTechnique
               )
           }
       }
@@ -187,7 +192,7 @@ object DisplayDirectiveTree extends Loggable {
                 <p>${technique.description}</p>
               </div>
             """
-            <span class="treeActiveTechniqueName bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{technique.name}</span>
+            <span class={if(isDeprecated){"treeActiveTechniqueName isDeprecated bsTooltip"}else{"treeActiveTechniqueName bsTooltip"}} data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{technique.name}</span>
 
           case None =>
             <span class="error">The technique with id ''{activeTechnique.techniqueName}'' is missing from repository</span>
@@ -205,6 +210,7 @@ object DisplayDirectiveTree extends Loggable {
         directive        : Directive
       , technique        : Option[Technique]
       , onClickDirective : Option[Directive => JsCmd]
+      , activeTechnique  : FullActiveTechnique
     ) : JsTreeNode = new JsTreeNode {
 
       private[this] val configService  = RudderConfig.configService
@@ -244,13 +250,15 @@ object DisplayDirectiveTree extends Loggable {
           }
         }
 
-        val (isDeprecated,deprecationInfo,deprecatedIcon) = technique.flatMap(_.deprecrationInfo) match {
-          case Some(info) =>
-/*          def isDeprecated   = {
-              activeTechnique.techniques.values.forall { t => t.deprecrationInfo.isDefined }
-            }
-*/          (true, info.message,{<i class="ion ion-arrow-up-a deprecation-icon"></i>})
-          case None => (false, "", {NodeSeq.Empty})
+        val (isDeprecated,deprecationInfo,deprecatedIcon) =
+
+        if (activeTechnique.techniques.values.forall { t => t.deprecrationInfo.isDefined }) {
+          (true, technique.flatMap(_.deprecrationInfo).get.message,{<i class="fa fa-times deprecation-icon"></i>})
+        } else {
+          technique.flatMap(_.deprecrationInfo) match {
+            case Some(info) => (true, info.message,{<i class="ion ion-arrow-up-a deprecation-icon"></i>})
+            case None => (false, "", {NodeSeq.Empty})
+          }
         }
 
         val xml  = {
@@ -274,7 +282,7 @@ object DisplayDirectiveTree extends Loggable {
               <div>
                 <b>Technique version:</b>
                 ${directive.techniqueVersion.toString}${deprecatedIcon}
-                ${if(isDeprecated){<p><b style="margin-left:8px;">↳ Deprecated:</b>{deprecationInfo}</p>}else{NodeSeq.Empty}}
+                ${if(isDeprecated){<p><b style="margin-left:8px;">↳ Deprecated: </b>{deprecationInfo}</p>}else{NodeSeq.Empty}}
               </div>
               ${if(!directive.isEnabled){ <div>Disable</div>} else{NodeSeq.Empty}}
               ${if(isAssignedTo==0){<span class="fa fa-warning text-warning-rudder min-size-icon"></span>}else{NodeSeq.Empty}}<span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
