@@ -86,6 +86,16 @@ header.main-header .logo-lg img{
   white-space: pre-line;
   word-break: break-word;
 }
+.legend-square {
+  width : 10px;
+  height : 10px;
+  margin: 5px;
+  float:left;
+}
+.legend {
+  white-space: nowrap;
+  overflow : hidden;
+}
 /* - JSON - */
 tbody.toggle-color{
   border-left:1px solid #c3c3c3;
@@ -1223,8 +1233,8 @@ label.text-fit{
   padding: 0 !important;
   color: #222D32;
   text-align: left !important;
-  width: 280px;
-  max-width: 280px;
+  width: 360px;
+  max-width: 360px;
   font-size: 12px;
   box-shadow: 0px 0px 5px rgba(0, 0, 0, .12);
   border-radius: 0px;
@@ -2455,13 +2465,26 @@ h3.box-title {
   position: relative;
   margin-right: -2px;
 }
+img.deprecation-icon{
+  height:14px;
+  color:initial;
+}
 .ui-tooltip-content{
-	color:#555;
+  color:#555;
 }
 .tooltip-content .deprecation-icon{
   left:0;
 }
-
+.deprecation-icon.fa-times{
+  left:-2px;
+  margin-right: 2px;
+}
+.tooltip-content .deprecation-icon.fa-times{
+  left: 2px;
+}
+.treeActiveTechniqueName.isDeprecated{
+  text-decoration:line-through;
+}
 @keyframes opacity-1 {
   0%   {opacity:0;visibility: visible;}
   100% {opacity:1;visibility: visible;}
@@ -2578,16 +2601,4 @@ h3.box-title {
   0%   {visibility:visible;}
   1%  {visibility:hidden;}
   100% {visibility:hidden;}
-}
-
-.legend-square {
-	width : 10px;
-	height : 10px;
-	margin: 5px;
-	float:left;
-}
-
-.legend {
-	white-space: nowrap;
-	overflow : hidden;
 }
