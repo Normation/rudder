@@ -119,4 +119,6 @@ object Constants {
   val XML_TAG_API_ACCOUNT = "apiAccount"
   val XML_TAG_GLOBAL_PROPERTY = "globalProperty"
 
+  val HOOKS_IGNORE_FILE_NAME = "non-exec-extensions.txt"
+
 }
