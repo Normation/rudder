@@ -138,7 +138,7 @@ trait PromiseGenerationService extends Loggable {
 
     val result = for {
       //fetch all - yep, memory is cheap... (TODO: size of that for 1000 nodes, 100 rules, 100 directives, 100 groups ?)
-      preHooks            <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started")
+      preHooks            <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started", HOOKS_IGNORE_SUFFIXES)
       _                   <- RunHooks.syncRun(preHooks, HookEnvPairs.build( ("RUDDER_GENERATION_DATETIME", generationTime.toString) ), systemEnv)
       timeRunPreGenHooks  =  (System.currentTimeMillis - initialTime)
       _                   =  logger.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
@@ -243,7 +243,7 @@ trait PromiseGenerationService extends Loggable {
       _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime         =  System.currentTimeMillis
-      postHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-finished")
+      postHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-finished", HOOKS_IGNORE_SUFFIXES)
       updatedNodeIds        =  updatedNodeConfigs.keySet.map( _.value )
       _                     <- RunHooks.syncRun(
                                    postHooks
@@ -314,6 +314,7 @@ trait PromiseGenerationService extends Loggable {
   // base folder for hooks. It's a string because there is no need to get it from config
   // file, it's just a constant.
   def HOOKS_D                : String
+  def HOOKS_IGNORE_SUFFIXES  : List[String]
 
   /*
    * From global configuration and node modes, build node modes
@@ -503,6 +504,7 @@ class PromiseGenerationServiceImpl (
   , override val getScriptEngineEnabled: () => Box[FeatureSwitch]
   , override val getGlobalPolicyMode: () => Box[GlobalPolicyMode]
   , override val HOOKS_D: String
+  , override val HOOKS_IGNORE_SUFFIXES: List[String]
 ) extends PromiseGenerationService with
   PromiseGeneration_performeIO with
   PromiseGeneration_buildRuleVals with
