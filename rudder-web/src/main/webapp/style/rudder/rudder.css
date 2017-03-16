@@ -212,7 +212,7 @@ form hr {
    clear: both;
 }
 form select {
-   width: 130px;
+   width: auto;
    padding: 2px;
    background-color: #f8f8f8;
    border: 1px solid #b4b3a8;
