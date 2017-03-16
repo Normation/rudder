@@ -441,9 +441,6 @@ Tableau
   border-left: 1px solid #B4B3A8;
 }
 
-#grid_rules_grid_zone {
-  width:100%;
-}
 #grid_rules_grid_zone .tw-bs a{
   color:#333;
 }
@@ -733,6 +730,7 @@ table.noMarginGrid {
 #grid_rules_grid_zone {
   border-right: 1px solid #B4B3A8;
   width: 100%;
+  table-layout: fixed;
 }
 
 .paginate_disabled_previous, .paginate_enabled_previous, .paginate_disabled_next, .paginate_enabled_next {
