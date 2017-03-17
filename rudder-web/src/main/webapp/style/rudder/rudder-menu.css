@@ -2004,6 +2004,20 @@ hr.separation{
   border-color: #122b40;
 }
 
+#pendingNodeConfirm_wrapper .ui-widget-header{
+  background-color:transparent;
+  margin-top: 20px;
+}
+#pendingNodeConfirm_wrapper .ui-widget-header .dataTables_filter{
+  float:left;
+  text-align:left;
+}
+#pendingNodeConfirm_wrapper .ui-widget-header .dataTables_filter input{
+  margin-left:5px;
+}
+#pendingNodeConfirm{
+  margin-top:10px;
+}
 /* SPINNERS */
 .btn i.fa-spin {
   position: absolute;
