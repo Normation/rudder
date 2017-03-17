@@ -1560,7 +1560,6 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
 
 // Create a table from its id, data, columns, custom params, context patch and refresh function
 function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId, pickEventLogsInInterval) {
-
   var defaultParams = {
       "asStripeClasses": [ 'color1', 'color2' ]
     , "bAutoWidth": false
