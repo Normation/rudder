@@ -363,10 +363,10 @@ class AcceptNode extends Loggable {
           nodes
         , "acceptNodeGrid"
         , Seq( ( Text("Since")    , { e => Text(DateFormaterService.getFormatedDate(e.creationDate))})
-             , ( Text("Directive"), { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { () =>  showExpectedPolicyPopup(e) }, ("class", "smallButton") )})
+             , ( Text("Directive"), { e => SHtml.ajaxButton(<span class="tw-bs"><i class="glyphicon glyphicon-search"></i></span>, { () =>  showExpectedPolicyPopup(e) }, ("class", "smallButton") )})
              , ( Text("")         , { e => <input type="checkbox" name="serverids" value={e.id.value.toString}/>  })
           )
-        , """,{ "sWidth": "60px" },{ "sWidth": "70px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
+        , """,{ "sWidth": "60px" },{ "sWidth": "30px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
         , true
       )
     }

@@ -373,6 +373,9 @@ Tableau
   border-left: 1px solid #B4B3A8;
   border-right: 1px solid #B4B3A8;
 }
+#acceptNodeGrid > tbody > tr > td:nth-child(5),#acceptNodeGrid > tbody > tr > td:nth-child(6){
+  text-align:center;
+}
 #pending_server_history {
   width:100%;
   border-left: 1px solid #B4B3A8;
@@ -1459,7 +1462,7 @@ p img {
 }
 .newservertable{
   max-height: 300px;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 .newservercell{
   overflow:scroll;
