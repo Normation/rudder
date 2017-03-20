@@ -12,4 +12,4 @@
 
 # Signal to cf-serverd that it shall look-up the new promises
 
-/opt/rudder/bin/rudder-reload-cf-serverd
+exec /opt/rudder/bin/rudder-reload-cf-serverd

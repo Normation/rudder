@@ -9,5 +9,5 @@
 
 # Correct all file permissions
 
-/bin/chmod -R u-x,u+rwX,go-rwx "${RUDDER_NEXT_POLICIES_DIRECTORY}"
+exec /bin/chmod -R u-x,u+rwX,go-rwx "${RUDDER_NEXT_POLICIES_DIRECTORY}"
 
