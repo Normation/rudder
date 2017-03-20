@@ -14,11 +14,11 @@ if [ -z "${RUDDER_NEXT_POLICIES_DIRECTORY}" ]; then
 else 
   case "${RUDDER_AGENT_TYPE}" in
     "cfengine-community")
-      /var/rudder/cfengine-community/bin/cf-promises -f "${RUDDER_NEXT_POLICIES_DIRECTORY}/promises.cf"
+      exec /var/rudder/cfengine-community/bin/cf-promises -f "${RUDDER_NEXT_POLICIES_DIRECTORY}/promises.cf"
     ;;
   
     "cfengine-nova")
-      /var/cfengine/bin/cf-promises -f "${RUDDER_NEXT_POLICIES_DIRECTORY}/promises.cf"
+      exec /var/cfengine/bin/cf-promises -f "${RUDDER_NEXT_POLICIES_DIRECTORY}/promises.cf"
     ;;
   
     *)
