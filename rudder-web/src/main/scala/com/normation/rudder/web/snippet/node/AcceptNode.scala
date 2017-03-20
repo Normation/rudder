@@ -358,7 +358,7 @@ class AcceptNode {
             (Text("Since"),
                    {e => Text(DateFormaterService.getFormatedDate(e.creationDate))}),
             (Text("Directive"),
-                  { e => SHtml.ajaxButton(<img src="/images/icMagnify-right.png"/>, {
+                  { e => SHtml.ajaxButton(<span class="tw-bs"><i class="glyphicon glyphicon-search"></i></span>, {
                       () =>  showExpectedPolicyPopup(e)
                     }, ("class", "smallButton")
                    )
@@ -369,7 +369,7 @@ class AcceptNode {
                 })
 
         ),
-        """,{ "sWidth": "60px" },{ "sWidth": "70px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
+        """,{ "sWidth": "60px" },{ "sWidth": "30px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
         ,true
       )
     , "accept" ->
