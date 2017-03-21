@@ -84,29 +84,40 @@ case class RoReportsExecutionRepositoryImpl (
       }
     }
 
-    nodeIds.map( _.value).toList.toNel match {
-      case None => Full(Map())
-      case Some(nodes) =>
+    // map node id to // ('node-id') // to use in values
+    nodeIds.map(id => s"('${id.value}')").toList match {
+      case Nil => Full(Map())
+      case nodes =>
+        // we can't use "Fragments.in", because of: https://github.com/tpolecat/doobie/issues/426
+        // so we use:
+        //  WITH  temp (id) AS (VALUES (a), (b), ...here some thousands more...)
+        //  SELECT * FROM othertable INNER JOIN temp ON temp.id == othertable.id
 
-        // notice that we can't use pgInClause because we don't have any way
-        // to interpolate the actual value of in - sql""" """ is more
-        // than just interpolation. Need to check perfomances.
+        val innerFromFrag = (
+          fr"""from (""" ++
+          Fragment.const(s"""with tempnodeids (id) as (values ${nodes.mkString(",")} )""") ++
+          fr"""
+               select distinct on (nodeid)
+                 nodeid, date, nodeconfigid, complete, insertionid
+               from reportsexecution
+               inner join tempnodeids on tempnodeids.id = reportsexecution.nodeid
+               where complete = true
+          """ ++
+          fr""" ) as r """
+        )
+
+        //the whole query
+
         (for {
           // Here to make the query faster, we distinct only on the reportexecution to get the last run
           // but we need to get the matching last entry on nodeconfigurations.
           // I didn't find any better solution than doing a distinct on the table
-          runs <- (fr"""select r.nodeid, r.date, r.nodeconfigid, r.complete, r.insertionid,
-                         c.nodeid, c.nodeconfigid, c.begindate, c.enddate, c.configuration from
-                         (
-                           select distinct on (nodeid)
-                              nodeid, date, nodeconfigid, complete, insertionid
-                              from reportsexecution
-                              where complete = true
-                              and """ ++ Fragments.in(fr"nodeid", nodes) ++
-                      fr"""order by nodeid, insertionid desc
-                         ) as r
-                         left outer join nodeconfigurations as c
-                          on r.nodeId = c.nodeid and r.nodeconfigid = c.nodeconfigid
+          runs <- (fr""" select r.nodeid, r.date, r.nodeconfigid, r.complete, r.insertionid,
+                         c.nodeid, c.nodeconfigid, c.begindate, c.enddate, c.configuration
+                   """ ++
+                   innerFromFrag ++
+                   fr""" left outer join nodeconfigurations as c
+                         on r.nodeId = c.nodeid and r.nodeconfigid = c.nodeconfigid
                      """).query[
                           //
                           // For some reason unknown of me, if we use Option[NodeId] for the parameter,
