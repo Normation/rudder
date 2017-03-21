@@ -117,6 +117,7 @@ class UpdateDynamicGroups(
     private var updateId = 0L
     private var currentState: DynamicGroupUpdaterStates = IdleUdater
     private var onePending = false
+    private var needDeployment = false
     private[this] val isAutomatic = updateInterval > 0
     private[this] val realUpdateInterval = {
       if (updateInterval < DYNGROUP_MINIMUM_UPDATE_INTERVAL && isAutomatic) {
@@ -141,9 +142,9 @@ class UpdateDynamicGroups(
                 val error = (e?~! "Error when trying to get the list of dynamic group to update")
 
             }
-          case _:StartProcessing if(!onePending) => onePending = true
+          case _:StartDynamicUpdate if(!onePending) => onePending = true
           case _ =>
-            logger.error("Ignoring start dynamic group update request because another update is in progress")
+            logger.debug("Ignoring start dynamic group update request because another update is in progress")
         }
     }
 
@@ -181,11 +182,15 @@ class UpdateDynamicGroups(
         logger.trace("***** Get result for process: " + id)
 
         currentState = IdleUdater
-        //if one update is pending, immediatly start one other
 
+        var retriggerDeployment = false
+
+        // If one update is pending, immediatly start one other
+        // It should not clear the needDeployement
         if(onePending) {
           onePending = false
           logger.debug("Immediatly start another update process: pending request")
+          retriggerDeployment = true // launching an update can take a bit of time to change the effective status
           this ! DelayedUpdate
         }
 
@@ -193,7 +198,10 @@ class UpdateDynamicGroups(
         val format = "yyyy/MM/dd HH:mm:ss"
         logger.debug("Dynamic group update started at %s, ended at %s".format(start.toString(format), end.toString(format)))
 
-        var needDeployment = false
+         // Do not clear the needDeployment state if there is a running dynamic group update
+        if ((retriggerDeployment == false) && (currentState == IdleUdater)) {
+          needDeployment = false
+        }
 
         for {
           (id,boxRes) <- results
@@ -214,8 +222,11 @@ class UpdateDynamicGroups(
               }
           }
         }
-        if (needDeployment) {
+
+        // Deploy only if not updating the group
+        if ((currentState == IdleUdater) && (retriggerDeployment == false) && (needDeployment)) {
           asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+          needDeployment = false
         }
 
       //
@@ -233,6 +244,7 @@ class UpdateDynamicGroups(
         //
         case StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds)) => {
           logger.trace("***** Start a new update, id: " + processId)
+          currentState = StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds))
           try {
             val results = for {
               dynGroupId <- dynGroupIds
