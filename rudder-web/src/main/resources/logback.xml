@@ -297,6 +297,20 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </logger>
   -->
 
+  <!--
+    SQL Queries
+    ===========
+    Information about SQL queries executed (timing, status, etc). 
+    At debug level, you only get queries that returned a bad status or
+    takes more than 100ms to complete. 
+    At trace, you get them all. 
+  -->
+  <logger name="sql" level="off" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
+    <appender-ref ref="STDOUT" />
+  </logger>
+
 
 
   <!--

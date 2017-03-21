@@ -64,17 +64,31 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     sql"select * from nodes where endtime is null".query[DB.SerializedNodes[Long]].vector.transact(xa).run
   }
 
-  def updateNodes(nodes: Seq[NodeInfo], closable: Seq[String]): Unit = {
-    (nodes.map(x => x.id.value).toList ++ closable).toNel.map { toClose =>
 
-      (for {
-        updated  <- (fr"update nodes set endtime = ${Some(DateTime.now)} where endtime is null and " ++ Fragments.in(fr"nodeid", toClose)).update.run
-        inserted <- Update[DB.SerializedNodes[Unit]](
-                      "insert into nodes (nodeid, nodename, nodedescription, starttime, endtime) values (?, ?, ?, ?, ?)"
-                    ).updateMany(nodes.map(DB.Historize.fromNode).toList)
-      } yield {
-        ()
-      }).transact(xa).run
+  private[this] def updateQuery(idList: List[String], table: String, id: String) = {
+    idList match {
+      case Nil => None
+      case ids =>
+        val values = ids.map(x => s"('${x}')").mkString(",")
+        Some(
+          Fragment.const(s"update ${table} ") ++ fr"set endtime = ${Some(DateTime.now)} where endtime is null and " ++
+          Fragment.const(s"${id} in (values ${values} )")
+        )
+    }
+  }
+
+  def updateNodes(nodes: Seq[NodeInfo], closable: Seq[String]): Unit = {
+    updateQuery(nodes.map(_.id.value).toList ++ closable, "nodes", "nodeid") match {
+      case None              =>  //nothing to do
+      case Some(updateQuery) =>
+        (for {
+          updated  <- updateQuery.update.run
+          inserted <- Update[DB.SerializedNodes[Unit]](
+                        "insert into nodes (nodeid, nodename, nodedescription, starttime, endtime) values (?, ?, ?, ?, ?)"
+                      ).updateMany(nodes.map(DB.Historize.fromNode).toList)
+        } yield {
+          ()
+        }).transact(xa).run
     }
   }
 
@@ -87,9 +101,14 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
 
     val action = for {
       groups     <- sql"""select id, groupid, groupname, groupdescription, nodecount, groupstatus, starttime, endtime
-                          from groups where endtime is null""".query[DB.SerializedGroups[Long]].vector
-      joinGroups <- groups.map( _.id).toNel.foldMap { joinIds =>
-                      (fr"select grouppkeyid, nodeid from groupsnodesjoin where " ++ Fragments.in(fr"grouppkeyid", joinIds)).query[DB.SerializedGroupsNodes].vector
+                          from groups where endtime is null""".query[DB.SerializedGroups[Long]].list
+      joinGroups <- groups.map(g => s"(${g.id})").toNel.foldMap { joinIds =>
+                      (
+                        Fragment.const(s"with tempgroupid (id) as (values ${joinIds.toList.mkString(",")} )") ++
+                        fr"""select grouppkeyid, nodeid from groupsnodesjoin
+                             inner join tempgroupid on tempgroupid.id = groupsnodesjoin.grouppkeyid
+                          """
+                      ).query[DB.SerializedGroupsNodes].vector
                     }(Monoid.liftMonoid)
     } yield {
       val byIds = joinGroups.groupBy(_.groupPkeyId)
@@ -101,17 +120,18 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
 
 
   def updateGroups(groups : Seq[NodeGroup], closable : Seq[String]): Unit = {
-    (groups.map(x => x.id.value).toList ++ closable).toNel.map { toClose =>
-
-      (for {
-        updated  <- (fr"update groups set endtime = ${Some(DateTime.now)} where endtime is null and " ++ Fragments.in(fr"groupid", toClose)).update.run
-        inserted <- Update[DB.SerializedGroups[Unit]](
-                      "insert into groups (groupid, groupname, groupdescription, nodecount, groupstatus, starttime, endtime) values (?, ?, ?, ?, ?, ?, ?)"
-                    ).updateMany(groups.map(DB.Historize.fromNodeGroup).toList)
-      } yield {
-        ()
-      }).transact(xa).run
-    }
+    updateQuery(groups.map(_.id.value).toList ++ closable, "groups", "groupid") match {
+      case None              =>  //nothing to do
+      case Some(updateQuery) =>
+        (for {
+          updated  <- updateQuery.update.run
+          inserted <- Update[DB.SerializedGroups[Unit]](
+                        "insert into groups (groupid, groupname, groupdescription, nodecount, groupstatus, starttime, endtime) values (?, ?, ?, ?, ?, ?, ?)"
+                      ).updateMany(groups.map(DB.Historize.fromNodeGroup).toList)
+        } yield {
+          ()
+        }).transact(xa).run
+      }
   }
 
   def getAllOpenedDirectives(): Seq[DB.SerializedDirectives[Long]] = {
@@ -125,20 +145,26 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       directives : Seq[(Directive, ActiveTechnique, Technique)]
     , closable : Seq[String]
   ): Unit = {
-    (directives.map(x => x._1.id.value).toList ++ closable).toNel.map { toClose =>
-      (for {
-        updated  <- (fr"update directives set endtime = ${Some(DateTime.now)} where endtime is null and " ++ Fragments.in(fr"directiveid", toClose)).update.run
-        inserted <- Update[DB.SerializedDirectives[Unit]]("""
-                      insert into directives (directiveid, directivename, directivedescription, priority, techniquename,
-                      techniquehumanname, techniquedescription, techniqueversion, starttime, endtime) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """).updateMany(directives.map(DB.Historize.fromDirective).toList)
-      } yield {
-        ()
-      }).transact(xa).run
+    updateQuery(directives.map(_._1.id.value).toList ++ closable, "directives", "directiveid") match {
+      case None              =>  //nothing to do
+      case Some(updateQuery) =>
+        (for {
+          updated  <- updateQuery.update.run
+          inserted <- Update[DB.SerializedDirectives[Unit]]("""
+                        insert into directives (directiveid, directivename, directivedescription, priority, techniquename,
+                        techniquehumanname, techniquedescription, techniqueversion, starttime, endtime) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                      """).updateMany(directives.map(DB.Historize.fromDirective).toList)
+        } yield {
+          ()
+        }).transact(xa).run
     }
   }
 
   def getAllOpenedRules() : Seq[Rule] = {
+    def joinIdsFrag(joinIds: NonEmptyList[Long]) = {
+      Fragment.const(s"rulepkeyid in ( values ${joinIds.toList.map(x => s"(${x.toString})").mkString(",")} )")
+    }
+
     (for {
       rules      <- sql"""select rulepkeyid, ruleid, serial, categoryid, name, shortdescription,
                                  longdescription, isenabled, starttime, endtime
@@ -148,12 +174,12 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       groups     <- ruleIds.foldMap { joinIds =>
                         (fr"""select rulepkeyid, targetserialisation
                               from rulesgroupjoin
-                              where """ ++ Fragments.in(fr"rulepkeyid", joinIds)).query[DB.SerializedRuleGroups].vector
+                              where """ ++ joinIdsFrag(joinIds)).query[DB.SerializedRuleGroups].vector
                     }(Monoid.liftMonoid)
       directives <- ruleIds.foldMap { joinIds =>
                         (fr"""select rulepkeyid, directiveid
                               from rulesdirectivesjoin
-                              where """ ++ Fragments.in(fr"rulepkeyid", joinIds)).query[DB.SerializedRuleDirectives].vector
+                              where """ ++ joinIdsFrag(joinIds)).query[DB.SerializedRuleDirectives].vector
                     }(Monoid.liftMonoid)
     } yield {
         val dMap = directives.groupBy(_.rulePkeyId)
@@ -192,14 +218,15 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
 
     val now = DateTime.now
 
-
-    (rules.map(x => x.id.value).toList ++ closable).toNel.map { toClose =>
-      (for {
-        updated  <- (fr"update rules set endtime = ${Some(DateTime.now)} where endtime is null and " ++ Fragments.in(fr"ruleid", toClose)).update.run.transact(xa)
-        inserted <- rules.map(r => insertRule(now)(r).transact(xa)).toList.sequence
-      } yield {
-        ()
-      }).run
+    updateQuery(rules.map(_.id.value).toList ++ closable, "rules", "ruleid") match {
+      case None              =>  //nothing to do
+      case Some(updateQuery) =>
+        (for {
+          updated  <- updateQuery.update.run.transact(xa)
+          inserted <- rules.map(r => insertRule(now)(r).transact(xa)).toList.sequence
+        } yield {
+          ()
+        }).run
     }
   }
 

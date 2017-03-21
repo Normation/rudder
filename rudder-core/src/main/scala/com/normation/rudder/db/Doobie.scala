@@ -54,6 +54,9 @@ import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import scala.language.implicitConversions
 import com.normation.rudder.services.reports.RunAndConfigInfo
+import org.slf4j.LoggerFactory
+import doobie.util.log.ExecFailure
+import doobie.util.log.ProcessingFailure
 
 /**
  *
@@ -68,6 +71,43 @@ class Doobie(datasource: DataSource) {
 }
 
 object Doobie {
+
+  implicit val slf4jBoobieLogger: LogHandler = {
+    object DoobieLogger extends Logger {
+      override protected def _logger = LoggerFactory.getLogger("sql")
+    }
+
+
+    LogHandler {
+      // we could log only if exec duration is more than X ms, etc.
+      case doobie.util.log.Success(s, a, e1, e2) =>
+        val total = (e1 + e2).toMillis
+        val msg = s"""Successful Statement Execution [${total} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
+          |  ${s.lines.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+          | arguments = [${a.mkString(", ")}]
+        """.stripMargin
+        if(total > 100) { //more than that => debug level, not trace
+          DoobieLogger.debug(msg)
+        } else {
+          DoobieLogger.trace(msg)
+        }
+
+      case ProcessingFailure(s, a, e1, e2, t) =>
+        DoobieLogger.debug(s"""Failed Resultset Processing [${(e1 + e2).toMillis} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
+          |  ${s.lines.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+          | arguments = [${a.mkString(", ")}]
+          |   failure = ${t.getMessage}
+        """.stripMargin)
+
+      case ExecFailure(s, a, e1, t) =>
+        DoobieLogger.debug(s"""Failed Statement Execution [${e1.toMillis} ms exec (failed)]
+          |  ${s.lines.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+          | arguments = [${a.mkString(", ")}]
+          |   failure = ${t.getMessage}
+        """.stripMargin)
+    }
+  }
+
 
   /**
    * Utility method that maps a scalaz either into a Lift Box.
