@@ -144,16 +144,17 @@ class FindExpectedReportsJdbcRepository(
    * The property "returnedMam.keySet = nodeIds" holds.
    */
   override def getCurrentExpectedsReports(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[NodeExpectedReports]]] = {
-    nodeIds.toList.toNel match {
-      case None => Full(Map())
-      case Some(ids) =>
-
+    if(nodeIds.isEmpty) {
+      Full(Map())
+    } else {
         val t0 = System.currentTimeMillis
         (for {
-          configs <- (fr"""
+          configs <- (Fragment.const(s"with tempnodeid (id) as (values ${nodeIds.map(x => s"('${x.value}')").mkString(",")})") ++
+                      fr"""
                        select nodeid, nodeconfigid, begindate, enddate, configuration
                        from nodeconfigurations
-                       where enddate is null and """ ++ Fragments.in(fr"nodeid", ids)
+                       inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
+                       where enddate is null"""
                      ).query[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].vector
         } yield {
           val t1 =  System.currentTimeMillis
@@ -217,21 +218,27 @@ class UpdateExpectedReportsJdbcRepository(
   def saveNodeExpectedReports(configs: List[NodeExpectedReports]): Box[List[NodeExpectedReports]] = {
 
     PolicyLogger.expectedReports.debug(s"Saving ${configs.size} nodes expected reports")
-    configs.map(_.nodeId).toNel match {
-      case None          => Full(Nil)
-      case Some(nodeIds) =>
+    configs.map(x => s"('${x.nodeId.value}')") match {
+      case Nil     => Full(Nil)
+      case nodeIds =>
 
+        val withFrag = Fragment.const(s"with tempnodeid (id) as (values ${nodeIds.mkString(",")})")
 
         type A = \/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
-        val getConfigs: \/[Throwable, List[A]] = (fr"""
+        val getConfigs: \/[Throwable, List[A]] = (
+                        withFrag ++ fr"""
                            select nodeid, nodeconfigid, begindate, enddate, configuration
                            from nodeconfigurations
-                           where enddate is NULL and """ ++ Fragments.in(fr"nodeid", nodeIds)
+                           inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
+                           where enddate is NULL"""
                         ).query[A].list.attempt.transact(xa).run
 
         type B = (NodeId, Vector[NodeConfigIdInfo])
-        val getInfos: \/[Throwable, List[B]] = (fr"""
-                            select node_id, config_ids from nodes_info where """ ++ Fragments.in(fr"node_id", nodeIds)
+        val getInfos: \/[Throwable, List[B]] = (
+                            withFrag ++ fr"""
+                              select node_id, config_ids from nodes_info
+                              inner join tempnodeid on tempnodeid.id = nodes_info.node_id
+                            """
                           ).query[B].list.attempt.transact(xa).run
 
         // common part: find old configs and node config info for all config to update
