@@ -91,6 +91,8 @@ class CheckInitUserTemplateLibrary(
                   val msg = e.messageChain.split("<-").mkString("\n ->")
                   ApplicationLogger.warn(msg)
                   logger.debug(e.exceptionChain)
+                  // Even if complete reload failed, we need to trigger a policy deployment, as otherwise it will never be done
+                  asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
               }
               root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
               root +=! (A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
