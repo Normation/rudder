@@ -414,7 +414,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <logger name="net.liftweb.util.TimeHelpers" level="warn" />
   <logger name="net.liftweb.http.CometActor" level="warn" />
   <logger name="net.liftweb.http.SessionMaster" level="warn" />
-  
+
+  <!--
+    We don't need logs about each autoCommit for postgresql connection
+   -->
+  <logger name="com.zaxxer.hikari" level="warn" />
+
   <!-- Uncomment to have precise log about LDAP queries done by the node search engine -->
 <!--   <logger name="com.normation.rudder.services.queries.InternalLDAPQueryProcessor" level="debug" /> -->
 
