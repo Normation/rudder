@@ -807,7 +807,7 @@ bundle agent ncf_services(service, action)
     # These commands (sadly) are not completely static (as on debian 8 and upstart the outcome depends on the service)
 
     # systemd
-    pass1.!broken_systemctl.systemctl_utility_present::
+    pass1.!is_init_service.systemctl_utility_present::
       "action_command" string => "${paths.path[systemctl]} --no-ask-password ${action} ${service}.service";
       "method"         string => "systemctl";
 
@@ -847,7 +847,7 @@ bundle agent ncf_services(service, action)
     ###########################################################################
 
     # chkconfig
-    pass1.is_boot_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.chkconfig_utility_present::
+    pass1.is_boot_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.chkconfig_utility_present::
       "chkconfig_action_cmd[enable]"     string => "${paths.path[chkconfig]} ${service} on";
       "chkconfig_action_cmd[disable]"    string => "${paths.path[chkconfig]} ${service} off";
       "chkconfig_action_cmd[is-enabled]" string => "${paths.path[chkconfig]} --list ${service} | ${paths.path[grep]} -q -e 3:on -e B:on";
@@ -856,7 +856,7 @@ bundle agent ncf_services(service, action)
 
     # update-rc.d
     # WARN: "is-enabled" will use /etc/rcX.d/ directly
-    pass1.is_boot_action.!is_check_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.update_rcd_utility_present::
+    pass1.is_boot_action.!is_check_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.update_rcd_utility_present::
       "update_rcd_action_cmd[enable]"  string => "${paths.path[update_rc_d]} ${service} defaults";
       "update_rcd_action_cmd[disable]" string => "${paths.path[update_rc_d]} ${service} disable";
       "action_command"                 string => "${update_rcd_action_cmd[${action}]}";
@@ -871,7 +871,7 @@ bundle agent ncf_services(service, action)
       "method"                        string => "lsitab/chitab";
 
     # /etc/rcX.d/
-    pass1.is_boot_action.is_check_action.(broken_systemctl|(!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.!chitab_utility_present))::
+    pass1.is_boot_action.is_check_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.!chitab_utility_present::
       "action_command" string => "${paths.path[test]} -f /etc/rc`runlevel | ${paths.path[cut]} -d' ' -f2`.d/S??${service}";
       "method"         string => "/etc/rcX.d/";
 
@@ -881,7 +881,7 @@ bundle agent ncf_services(service, action)
 
     # service
     # WARN: Some actions may not be supported by the init script
-    pass1.!is_boot_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.service_utility_present::
+    pass1.!is_boot_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.service_utility_present::
       "action_command" string => "${paths.path[service]} ${service} ${action}",
                    ifvarclass => "!is_check_action";
       # is-active is mapped to "status"
@@ -901,7 +901,7 @@ bundle agent ncf_services(service, action)
 
     # init.d
     # WARN: Some actions may not be supported by the init script
-    pass1.!is_boot_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.!service_utility_present.!startsrc_utility_present.init_d_directory_present::
+    pass1.!is_boot_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.!service_utility_present.!startsrc_utility_present.is_init_service::
       "action_command" string => "/etc/init.d/${service} ${action}",
                    ifvarclass => "!is_check_action";
       # is-active is mapped to "status"
@@ -927,10 +927,10 @@ bundle agent ncf_services(service, action)
       "args"               slist => { "${service}", "${action}" };
 
   defaults:
-    # status is an alias to is-active (in systemd, it is not the same thing the only difference is the output, which is not kept anyway)
+      # status is an alias to is-active (in systemd, it is not the same thing the only difference is the output, which is not kept anyway)
       "actual_action" string => "is-active", if_match_regex => "status";
 
-    # refresh is an alias to reload
+      # refresh is an alias to reload
       "actual_action" string => "reload", if_match_regex => "refresh";
 
   classes:
@@ -962,16 +962,11 @@ bundle agent ncf_services(service, action)
       "is_upstart_service"         not => returnszero("/sbin/initctl status ${service} 2>&1 | ${paths.path[grep]} 'Unknown job'", "useshell"),
                             ifvarclass => "initctl_utility_present";
 
-    debian_8::
-      # This is to workaround a bug in Debian Jessie, that makes systemctl is-enabled
-      # fail if run against a service that still uses SysV style scripts
-      # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=760616
-      "is_broken_action"    expression => strcmp("is-enabled", "${action}");
-      "init_script_present" expression => fileexists("/etc/init.d/${service}");
-      "broken_systemctl"    expression => "is_broken_action.init_script_present";
+      # Due to compatibility issues when mixing init.d/service and systemctl calls, we use the init script when present
+      "is_init_service"     expression => fileexists("/etc/init.d/${service}");
 
     pass1::
-      "method_found"      expression => isvariable("method");
+      "method_found"        expression => isvariable("method");
 
     #####
     # Actual command - for checks on non-windows systems

@@ -50,6 +50,9 @@
 # These methods will detect the method to use according to the platform. You can run the methods with an `info`
 # verbosity level to see which service manager will be used for a given action.
 #
+# WARNING: Due to compatibility issues when mixing calls to systemctl and service/init.d,
+# when an init script exists, we will not use systemctl compatibility layer but directly service/init.d.
+#
 # The supported service managers are:
 #
 # * systemd (any unkown action will be passed directly)
