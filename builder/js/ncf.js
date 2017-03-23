@@ -858,7 +858,7 @@ $scope.groupMethodsByCategory = function () {
     }
     var saveError = function(action, data) {
       $scope.$broadcast('endSaving');
-      $scope.handle_error("while "+action+" Technique '"+ data.technique.name+"'")
+      return $scope.handle_error("while "+action+" Technique '"+ data.technique.name+"'")
     }
 
     // Actually save the technique through API
