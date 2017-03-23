@@ -159,12 +159,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${commons-io-version}</version>
     </dependency>
     
-    <dependency>
-      <groupId>io.monix</groupId>
-      <artifactId>monix-eval_${scala-binary-version}</artifactId>
-      <version>${monix-version}</version>
-    </dependency>
-        
     <!-- Testing Liftweb -->
     <dependency>
       <groupId>net.liftweb</groupId>

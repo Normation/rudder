@@ -84,6 +84,11 @@ import scala.language.postfixOps
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
+import monix.execution.Scheduler
+import monix.eval.TaskSemaphore
+import monix.eval.Task
+import scala.concurrent.Await
+import monix.execution.ExecutionModel
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -147,6 +152,58 @@ class Cf3PromisesFileWriterServiceImpl(
     }
   }
 
+  /*
+   * For all the writing part, we want to limit the number of concurrent workers on two aspects:
+   * - we want an I/O threadpool, which knows what to do when a thread is blocked for a long time,
+   *   and risks thread exaustion
+   *   (it can happens, since we have a number of files to write, some maybe big)
+   * - we want to limit the total number of concurrent execution to avoid blowming up the number
+   *   of open files, concurrent hooks, etc. This is not directly linked to the number of CPU,
+   *   but clearly there is no point having a pool of 4 threads for 1000 nodes which will
+   *   fork 1000 times for hooks - even if there is 4 threads used for that.
+   *
+   * That means that we want something looking like a sequencePar interface, but with:
+   * - a common thread pool, i/o oriented
+   * - a common max numbers of concurrent tasks.
+   *   I believe it should be common to all steps because it's mostly on the same machine - but
+   *   for now, that doesn't really matter, since each step is bloking (ie wait before next).
+   *   A parallelism around the thread pool sizing (by default, number of CPU) seems ok.
+   *
+   * here, f must not throws execption.
+   *
+   */
+  def parrallelSequence[U,T](seq: Seq[U])(f:U => Box[T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Seq[T]] = {
+    import scala.concurrent.duration._
+    // compact format a Failure(msg1, Failure(msg2, ...)) in to a Failure("msg1; msg2")
+    def compactFailure[A](b: Box[A]): Box[A] = {
+      b match {
+        case f:Failure =>
+          Failure(f.messageChain.replaceAll("<-", ";"), f.rootExceptionCause, Empty)
+        case x => x
+      }
+    }
+
+    //transform the sequence in tasks, gather results unordered
+    val tasks = Task.gather(seq.map { action =>
+      semaphore.greenLight(Task(f(action)))
+    })
+
+   // give a timeout for the whole tasks sufficiently large.
+   // Hint: CF-promise taking 2s by node, for 10 000 nodes, on
+   // 4 cores => ~85 minutes...
+   // It is here mostly as a safeguard for generation which went wrong -
+   // we will already have timeout at the thread level for stalling threads.
+   val timeout = 2.hours
+
+   //exec
+   for {
+     updated       <- tryo(Await.result(tasks.runAsync, timeout))
+     gatherErrors  <- compactFailure(bestEffort(updated)(identity))
+   } yield {
+     gatherErrors
+   }
+  }
+
   /**
    * Write templates for node configuration that changed since the last write.
    *
@@ -160,6 +217,9 @@ class Cf3PromisesFileWriterServiceImpl(
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
   ) : Box[Seq[NodeConfiguration]] = {
+
+
+
 
     val nodeConfigsToWrite = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
     val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
@@ -198,15 +258,27 @@ class Cf3PromisesFileWriterServiceImpl(
     import scala.collection.JavaConverters._
     val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
 
+    implicit val semaphore = TaskSemaphore(maxParallelism = {
+      //the same logic than the one used for scala pool size is used to keep some consistency
+      //by default, use the number of core, or the configured number.
+      //see https://github.com/scala/scala/blob/2.12.x/src/library/scala/concurrent/impl/ExecutionContextImpl.scala#L92
+      (try System.getProperty("scala.concurrent.context.maxThreads", "x1") catch {
+        case e: SecurityException => "x1"
+      }) match {
+        case s if s.charAt(0) == 'x' => (Runtime.getRuntime.availableProcessors * s.substring(1).toDouble).ceil.toInt
+        case other => other.toInt
+      }})
+    implicit val scheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
+
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
       templates        <- readTemplateFromFileSystem(techniqueIds)
-      preparedPromises <- sequencePar(configAndPaths) { case agentNodeConfig =>
+      preparedPromises <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode)
                          }
-      promiseWritten   <- sequencePar(preparedPromises) { prepared =>
+      promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
                               _ <- writeExpectedReportsCsv(prepared.paths, prepared.expectedReportsCsv, GENEREATED_CSV_FILENAME)
@@ -214,13 +286,13 @@ class Cf3PromisesFileWriterServiceImpl(
                               "OK"
                             }
                           }
-     propertiesWritten <- sequencePar(configAndPaths) { case agentNodeConfig =>
+     propertiesWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                             writeNodePropertiesFile(agentNodeConfig) ?~!
                               s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
       nodePreMvHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
-      preMvHooks       <- sequencePar(configAndPaths) { agentNodeConfig =>
+      preMvHooks       <- parrallelSequence(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
                             val res = RunHooks.syncRun(
@@ -238,7 +310,7 @@ class Cf3PromisesFileWriterServiceImpl(
                           }
       movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
       nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
-      postMvHooks      <- sequencePar(configAndPaths) { agentNodeConfig =>
+      postMvHooks      <- parrallelSequence(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
                             val res = RunHooks.syncRun(
@@ -307,7 +379,9 @@ class Cf3PromisesFileWriterServiceImpl(
     }
   }
 
-  private[this] def readTemplateFromFileSystem(techniqueIds: Set[TechniqueId]) : Box[Map[TechniqueResourceId, TechniqueTemplateCopyInfo]] = {
+  private[this] def readTemplateFromFileSystem(
+      techniqueIds: Set[TechniqueId]
+  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[TechniqueResourceId, TechniqueTemplateCopyInfo]] = {
 
     //list of (template id, template out path)
     val templatesToRead = for {
@@ -319,7 +393,7 @@ class Cf3PromisesFileWriterServiceImpl(
 
     val now = System.currentTimeMillis()
 
-    val res = (sequencePar(templatesToRead) { case (templateId, templateOutPath) =>
+    val res = (parrallelSequence(templatesToRead) { case (templateId, templateOutPath) =>
       for {
         copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
           optInputStream match {
