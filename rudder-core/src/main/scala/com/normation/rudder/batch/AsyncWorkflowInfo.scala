@@ -48,6 +48,6 @@ class AsyncWorkflowInfo extends LiftActor with Loggable with ListenerManager {
   def createUpdate = WorkflowUpdate
 
   override protected def lowPriority = {
-    case WorkflowUpdate => updateListeners _
+    case WorkflowUpdate => updateListeners()
   }
 }
