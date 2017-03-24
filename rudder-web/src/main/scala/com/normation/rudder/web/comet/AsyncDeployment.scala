@@ -85,14 +85,16 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     case d:DeploymentStatus => deploymentStatus = d ; reRender()
   }
 
-
   private[this] def displayTime(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ss")
     val d = DateFormaterService.getFormatedPeriod(time, DateTime.now)
     // exceptionnaly not putting {} to remove the noide
     <span>{label + t}</span><div class="help-block">{"↳ " + d} ago</div>
   }
-
+  private[this] def displayDate(label: String, time: DateTime): NodeSeq = {
+    val t = time.toString("yyyy-MM-dd HH:mm:ss")
+    <span class="dropdown-header">{label + t}</span>
+  }
   private[this] def updateDuration = {
     val content = deploymentStatus.current match {
         case SuccessStatus(_,_,end,_) => displayTime("Ended at ", end)
@@ -138,6 +140,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         </ul>
       </li>
     }
+    def loadingStatement(start : DateTime) = {
+      <li class="dropdown-header">Policies building...</li>
+      <li>{displayDate("Started at ", start)}</li>
+    }
+    deploymentStatus.processing match {
+      case IdleDeployer =>
     deploymentStatus.current match {
       case NoStatus => <li class="dropdown-header">Policy update status unavailable</li>
       case SuccessStatus(id,start,end,configurationNodes) =>
@@ -176,6 +184,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
         commonStatement(start, end, "Error occured in", "Error during policy update","text-danger fa fa-times","text-danger") ++
         <li class="footer">{ SHtml.a(Text("Details"), callback, ("href","#") , ("style","color:#a94442 !important;"))}</li>
+    }
+    case _ => loadingStatement(DateTime.now())
     }
   }
 
