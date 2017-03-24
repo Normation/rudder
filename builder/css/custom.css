@@ -247,16 +247,47 @@ textarea.form-control {
     padding: 0 10px;
 }
 
-.fixed-footer {
-    text-align: center;
-    background-color: white;
-    position: fixed;
-    z-index: 100;
-    bottom: 0px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+#methodBlock{
+  vertical-align:top;
+  padding-left:0px;
 }
-
+#methodBlock > div:first-child{
+  padding-left:15px;
+  margin-bottom:95px;
+}
+.fixed-footer {
+  text-align: center;
+  background-color: white;
+  position: fixed;
+  z-index: 100;
+  bottom: 0px;
+  padding-top: 0;
+  border-right:0;
+  padding-bottom: 0;
+}
+.container > .fixed-footer{
+  z-index:50;
+  padding: 10px 15px;
+}
+@media screen and (max-width: 992px) {
+  #methodBlock{
+    position: static;
+    float: left;
+    width: 100%;
+    margin-bottom: 60px;
+  }
+  #methodBlock > div:first-child{
+    margin-bottom: 0;
+  }
+  #methodBlock .fixed-footer {
+    position: relative;
+    padding-right: 0;
+    z-index:10;
+  }
+  .container > .fixed-footer{
+    border-top: 1px solid #ccc;
+  }
+}
 .right-margin {
     margin-right: 10px;
 }
