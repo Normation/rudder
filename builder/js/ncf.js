@@ -724,6 +724,7 @@ $scope.groupMethodsByCategory = function () {
 
   // Remove method on specified index
   $scope.removeMethod= function(index) {
+    $scope.selectedMethod = undefined;
     $scope.selectedTechnique.method_calls.splice(index, 1);
   }
 
