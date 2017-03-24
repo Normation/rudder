@@ -253,7 +253,7 @@ object DisplayDirectiveTree extends Loggable {
         val (isDeprecated,deprecationInfo,deprecatedIcon) =
 
         if (activeTechnique.techniques.values.forall { t => t.deprecrationInfo.isDefined }) {
-          val message = <p><b>↳ Deprecated: </b>{technique.flatMap(_.deprecrationInfo).get.message}</p>
+          val message = <p><b>↳ Deprecated: </b>{technique.flatMap(_.deprecrationInfo).map(_.message).getOrElse("this technique is deprecated.")}</p>
           (true, message,{<i class="fa fa-times deprecation-icon"></i>})
 
         } else {
