@@ -283,8 +283,8 @@
                 </button>
                 <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default pull-right right-margin" ng-click="resetTechnique()">Reset</button>
             </div>
-            <div class="col-md-5 ncf_col" style="vertical-align:top; padding-left:0px;" ng-if="selectedMethod !== undefined">
-                <div style="padding-left:15px;margin-bottom:95px;">
+            <div class="col-md-5 ncf_col" id="methodBlock" ng-if="selectedMethod !== undefined">
+                <div>
                     <div class="title">Method</div>
                     <h3 >{{getMethodName(selectedMethod)}}
                         <button ng-disabled="! canResetMethod()" class="btn btn-default pull-right top-margin" ng-click="resetMethod()">Reset</button>
@@ -375,20 +375,20 @@
                     </h4>
                     <form class="form-horizontal editForm" name="editForm">
                         <div class="form-group"  style="margin-bottom:3px;margin-top:3px">
-                            <label class="col-sm-1 control-label" style="padding-top:0; font-size:13px;">Success:</label>
-                            <div class="col-sm-11" style="padding-left:25px;">
+                            <label class="col-md-2 col-sm-1 col-xs-12 text-left control-label" style="padding-top:0; font-size:13px;">Success:</label>
+                            <div class="col-md-10 col-sm-11 col-xs-12">
                                 <input ng-readonly="true" type="text" id="techniqueName" class="form-control input-xs" value="{{getClassKind(selectedMethod,'kept')}}" style="cursor:text">
                             </div>
                         </div>
                         <div class="form-group"  style="margin-bottom:3px">
-                            <label class="col-sm-1 control-label" style="padding-top:0; font-size:13px;">Repaired:</label>
-                            <div class="col-sm-11" style="padding-left:25px;">
+                            <label class="col-md-2 col-sm-1 col-xs-12 text-left control-label" style="padding-top:0; font-size:13px;">Repaired:</label>
+                            <div class="col-md-10 col-sm-11 col-xs-12">
                                 <input ng-readonly="true" type="text" id="techniqueName" class="form-control input-xs" value="{{getClassKind(selectedMethod,'repaired')}}" style="cursor:text">
                             </div>
                         </div>
                         <div class="form-group" style="margin-bottom:3px">
-                            <label for="error" class="col-sm-1 control-label" style="padding-top:0; font-size:13px;">Error:</label>
-                            <div class="col-sm-11" style="padding-left:25px;">
+                            <label for="error" class="col-md-2 col-sm-1 col-xs-12 text-left control-label" style="padding-top:0; font-size:13px;">Error:</label>
+                            <div class="col-md-10 col-sm-11 col-xs-12">
                                 <input ng-readonly="true" type="text" id="techniqueName" class="form-control input-xs" value="{{getClassKind(selectedMethod,'error')}}" style="cursor:text">
                             </div>
                         </div>
