@@ -69,6 +69,26 @@ label.rule-info + div{
   width: calc(100% - 50px);
   left: 50px;
 }
+.new-icon.category:before{
+  content:"New category";
+}
+.tw-bs .btn.btn-box-tool{
+  padding-left:2px;
+  padding-right:2px;
+}
+.new-icon.category + .btn.btn-box-tool > .fa{
+  margin-left:0;
+}
+@media (min-width: 991px) and (max-width: 1300px){
+  .new-icon.category:before{
+    content:"New";
+    position:relative;
+    left:2px;
+  }
+  .new-icon.category:after{
+    content:"";
+  }
+}
 @media (max-width: 767px){
   .skin-yellow.sidebar-collapse .rule-footer,.skin-yellow .rule-footer {
     width: 100%;
