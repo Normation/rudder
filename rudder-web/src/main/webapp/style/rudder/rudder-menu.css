@@ -2494,6 +2494,15 @@ img.deprecation-icon{
 .tooltip-content p > b:first-child{
   margin-left:8px;
 }
+.tooltip-content.policy-mode p > b{
+  margin-left:0 !important;
+}
+.tooltip-content.policy-mode.audit p > b{
+  color:#3694d1;
+}
+.tooltip-content.policy-mode.enforce p > b{
+  color:#9BC832;
+}
 .deprecation-icon.fa-times{
   left:-2px;
   margin-right: 2px;

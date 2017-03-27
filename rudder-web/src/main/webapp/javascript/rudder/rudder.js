@@ -563,7 +563,7 @@ $(document).ready(function() {
 function policyModeTooltip(kind, policyName, explanation){
   var tooltip = "" +
     "<h4>Agent Policy Mode </h4>" +
-    "<div class='tooltip-content'>"+
+    "<div class='tooltip-content policy-mode "+policyName+"'>"+
     "<p>This "+ kind +" is in <b>"+ policyName +"</b> mode.</p>"+
     "<p>"+ explanation +"</p>"+
     "</div>";
@@ -582,10 +582,16 @@ function createTextAgentPolicyMode(isNode, currentPolicyMode, explanation){
 }
 
 
-function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation){
+function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation, container){
   var policyMode = currentPolicyMode.toLowerCase();
   var labelType  = "label-"+policyMode;
-  var span = "<span class='rudder-label label-sm "+ labelType +"' data-toggle='tooltip' data-placement='top' data-html='true' title=''></span>";
+  var dataContainer;
+  if(container && $(container).length){
+    dataContainer = "data-container='" + container + "'";
+  }else{
+    dataContainer = "";
+  }
+  var span = "<span class='rudder-label label-sm "+ labelType +"' data-toggle='tooltip' data-placement='top' data-html='true' "+ dataContainer +" title=''></span>";
   var badge = $(span).get(0);
   var tooltip = policyModeTooltip(elmnt, policyMode, explanation);
   badge.setAttribute("title", tooltip);
