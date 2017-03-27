@@ -117,7 +117,7 @@ object DisplayDirectiveTree extends Loggable {
         </div>
       """
       private[this] val xml = (
-        <span class="treeActiveTechniqueCategoryName bsTooltip"  data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>
+        <span class="treeActiveTechniqueCategoryName bsTooltip" data-toggle="tooltip" data-placement="top" data-container="#editRuleZonePortlet" data-html="true" title={tooltipContent}>
           {Text(category.name)}
         </span>
       )
@@ -316,7 +316,7 @@ object DisplayDirectiveTree extends Loggable {
           </span> ++
           editButton ++
           Script(JsRaw(s"""
-            $$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation.toString()}"))""")
+            $$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation.toString()}", "#boxDirectiveTree"))""")
           )
         }
 
@@ -334,7 +334,7 @@ object DisplayDirectiveTree extends Loggable {
         angular.bootstrap(scopeElmnt, ['filters']);
       }
       adjustHeight('#activeTechniquesTree');
-      $$(".bsTooltip").bsTooltip({container: "${if(addEditLink){"#directiveTree"}else{"#boxDirectiveTree"}}"})
+      $$(".bsTooltip").bsTooltip({container: "${if(addEditLink){"#editRuleZonePortlet"}else{"#boxDirectiveTree"}}"})
     """))
     directiveLib.subCategories.filterNot(_.isSystem).sortBy( _.name ).flatMap { cat => displayCategory(cat, cat.id.value).toXml }
   }
