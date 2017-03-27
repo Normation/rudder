@@ -138,7 +138,7 @@ class RuleDisplayer (
   }
   def actionButtonCategory =
                if (directive.isEmpty) {
-                SHtml.ajaxButton("New Category", () => showCategoryPopup(None), ("class" -> "new-icon btn btn-success btn-sm"))
+                SHtml.ajaxButton("", () => showCategoryPopup(None), ("class" -> "new-icon category btn btn-success btn-sm"))
               } else {
                 NodeSeq.Empty
               }
