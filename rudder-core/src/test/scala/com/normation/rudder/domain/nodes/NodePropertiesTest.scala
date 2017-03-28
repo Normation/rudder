@@ -103,13 +103,18 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
       )
     }
 
-    "fails for different providers" in {
+    "works is providers goes from default to an other" in {
       List(
           updateAndDelete(NodeProperty("none"   , "xxx", P1))
         , updateAndDelete(NodeProperty("none"   , "xxx", P2))
         , updateAndDelete(NodeProperty("default", "xxx", P1))
         , updateAndDelete(NodeProperty("default", "xxx", P2))
-        , updateAndDelete(NodeProperty("p1"     , "xxx", None))
+      ).flatten must contain( (res: Box[Seq[NodeProperty]]) => res must beAnInstanceOf[Full[_]] ).foreach
+    }
+
+    "fails for different, non default providers" in {
+      List(
+          updateAndDelete(NodeProperty("p1"     , "xxx", None))
         , updateAndDelete(NodeProperty("p1"     , "xxx", RudderP))
         , updateAndDelete(NodeProperty("p1"     , "xxx", P2))
         , updateAndDelete(NodeProperty("p2"     , "xxx", None))
@@ -117,6 +122,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
         , updateAndDelete(NodeProperty("p2"     , "xxx", P1))
       ).flatten must contain( (res: Box[Seq[NodeProperty]]) => res must beAnInstanceOf[Failure] ).foreach
     }
+
 
     "be ok with compatible one (default)" in {
       List(
