@@ -118,7 +118,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     // mutable, default values won't be used (if error in property => edit form is not displayed)
     var enabled = initEnabled.getOrElse(false)
     var mandatory = configService.rudder_ui_changeMessage_mandatory.getOrElse(false)
-    var explanation = configService.rudder_ui_changeMessage_explanation.getOrElse("Please enter a message explaining the reason for this change.")
+    var explanation = configService.rudder_ui_changeMessage_explanation.getOrElse("Please enter a reason explaining this change.")
 
     def submit = {
 
@@ -227,8 +227,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       "#restoreExplanation " #> {
         initExplanation.map{ s:String =>
-          ajaxButton(<span>Reset to default</span>, () => { explanation = "Please enter a message explaining the reason for this change."
-            Run("""$("#explanation").val("Please enter a message explaining the reason for this change.");""") & check()
+          ajaxButton(<span>Reset to default</span>, () => { explanation = "Please enter a reason explaining this change."
+            Run("""$("#explanation").val("Please enter a reason explaining this change.");""") & check()
 
             }  ,("class","defaultButton"), ("id","restoreExplanation"))
         }.getOrElse(NodeSeq.Empty)
