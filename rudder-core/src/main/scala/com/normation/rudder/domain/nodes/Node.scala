@@ -171,8 +171,14 @@ object CompareProperties {
   def updateProperties(oldProps: Seq[NodeProperty], optNewProps: Option[Seq[NodeProperty]]): Box[Seq[NodeProperty]] = {
 
     //when we compare providers, we actually compared them with "none" replaced by RudderProvider
-    def same(p1: Option[NodePropertyProvider], p2: Option[NodePropertyProvider]) = {
-       p1.getOrElse(NodeProperty.rudderNodePropertyProvider) == p2.getOrElse(NodeProperty.rudderNodePropertyProvider)
+    //if the old provider is None/default, it can always be updated by new
+    def canBeUpdated(old: Option[NodePropertyProvider], newer: Option[NodePropertyProvider]) = {
+      old match {
+        case None | Some(NodeProperty.rudderNodePropertyProvider) =>
+          true
+        case Some(p1) =>
+          p1 == newer.getOrElse(NodeProperty.rudderNodePropertyProvider)
+      }
     }
     //check if the prop should be removed or updated
     def updateOrRemoveProp(prop: NodeProperty): Either[String, NodeProperty] = {
@@ -195,7 +201,7 @@ object CompareProperties {
                          case None =>
                            Full(updateOrRemoveProp(newProp))
                          case Some(oldProp@NodeProperty(name, value, provider)) =>
-                             if(same(newProp.provider, provider)) {
+                             if(canBeUpdated(old = provider, newer = newProp.provider)) {
                                Full(updateOrRemoveProp(newProp))
                              } else {
                                val old = provider.getOrElse(NodeProperty.rudderNodePropertyProvider).value
