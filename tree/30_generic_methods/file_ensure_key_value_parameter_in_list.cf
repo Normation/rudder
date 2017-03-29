@@ -53,7 +53,11 @@
 bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separator, parameter, parameter_separator, leading_char_separator, closing_char_separator)
 {
   vars:
-      "class_prefix" string => canonify("file_ensure_key_value_parameter_in_list_${file}");
+      "old_class_prefix" string => canonify("file_ensure_key_value_parameter_in_list_${file}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist => { "${file}", "${key}", "${key_value_separator}", "${parameter}", "${parameter_separator}", "${leading_char_separator}", "${closing_char_separator}" };
+
 
       "escaped_key"  string => escape("${key}");
       "escaped_parameter" string => escape("${parameter}");
@@ -86,7 +90,7 @@ bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separa
       "${file}"
         edit_line     => ncf_add_parameter_in_list("${key}", "${key_value_separator}", "${parameter_separator}", "${parameter}"),
         edit_defaults => ncf_empty_select("false"),
-        classes       => classes_generic("${class_prefix}"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
         # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
         comment       => "Editing file ${file} to set parameter ${parameter} for key ${key}";
 
@@ -94,7 +98,7 @@ bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separa
       "${file}"
         edit_line     => ncf_add_parameter_in_list_with_enclosing_chars("${key}", "${key_value_separator}", "${parameter_separator}", "${parameter}", "${leading_char_separator}", "${closing_char_separator}"),
         edit_defaults => ncf_empty_select("false"),
-        classes       => classes_generic("${class_prefix}"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
         # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
         comment       => "Editing file ${file} to set parameter ${leading_char_separator} ${parameter} ${closing_char_separator} for key ${key}";
 
@@ -102,24 +106,30 @@ bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separa
       "${file}"
         edit_line     => insert_lines("${key}${key_value_separator}${leading_char_separator}${parameter}${closing_char_separator}"),
         edit_defaults => ncf_empty_select("false"),
-        classes       => classes_generic("${class_prefix}"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
         # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
         comment       => "Adding into file ${file} key ${key} with value ${leading_char_separator} ${parameter} ${closing_char_separator}";
 
 
   methods:
-    pass2::
+    pass2.has_promiser_stack::
       "success class" usebundle  => _classes_success("${class_prefix}"),
                       ifvarclass => "line_with_parameter_present";
       "error_class"   usebundle => _classes_failure("${class_prefix}"),
                       ifvarclass => "invalid_enclosing";
 
+    pass2.!has_promiser_stack::
+      "success class" usebundle  => _classes_success("${old_class_prefix}"),
+                      ifvarclass => "line_with_parameter_present";
+      "error_class"   usebundle => _classes_failure("${old_class_prefix}"),
+                      ifvarclass => "invalid_enclosing";
+
     pass2.!invalid_enclosing.!line_with_key_present::
-      "report"   usebundle => _logger("Ensure ${parameter} in line ${key}${key_value_separator} values in ${file}", "${class_prefix}");
+      "report"   usebundle => _log("Ensure ${parameter} in line ${key}${key_value_separator} values in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     pass2.!invalid_enclosing.line_with_key_present::
-      "report"   usebundle => _logger("Add key non existing ${key} with value ${leading_char_separator} ${parameter} ${closing_char_separator} in ${file}", "${class_prefix}");
+      "report"   usebundle => _log("Add key non existing ${key} with value ${leading_char_separator} ${parameter} ${closing_char_separator} in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     pass2.invalid_enclosing::
-      "report"   usebundle => _logger("Ensure ${parameter} in line ${key}${key_value_separator} values in ${file} must have either no enclosing character, or two, but not only one", "${class_prefix}");
+      "report"   usebundle => _log("Ensure ${parameter} in line ${key}${key_value_separator} values in ${file} must have either no enclosing character, or two, but not only one", "${old_class_prefix}", "${class_prefix}", @{args});
 }
