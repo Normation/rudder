@@ -2444,6 +2444,7 @@ h3.box-title {
   color: #fff !important;
   border: 1px solid #2173a9 !important;
   border-bottom:none !important;
+  padding: 5px 10px !important;
 }
 .toggleTabFilter.updateTable:active{
   box-shadow: inset 0 0 4px 1px #286090;
