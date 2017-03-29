@@ -1,0 +1,84 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Directory absent
+# @description Ensure a directory's absence
+# @documentation If `recursive` is false, only an empty directory can be deleted.
+#
+# @parameter target     Directory to remove
+# @parameter recursive  Should deletion be recursive, "true" or "false" (defaults to "false")
+# @parameter_constraint recursive "allow_empty_string" : true
+#
+# @class_prefix directory_absent
+# @class_parameter target
+
+bundle agent directory_absent(target, recursive)
+{
+  vars:
+      "class_prefix"     string => canonify("directory_absent_${target}");
+
+  defaults:
+      "recursive"        string => "false", if_match_regex => "";
+
+  classes:
+      "is_recursive" expression => strcmp("true", "${recursive}");
+
+    pass2::
+      "directory_exists_after" expression => isdir("${target}");
+      "target_exists_after"    expression => fileexists("${target}");
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+
+    pass1.is_recursive::
+      "${target}/."
+        delete        => tidy,
+        file_select   => all,
+        depth_search  => recurse_with_base("inf"),
+        classes       => classes_generic("${class_prefix}_inside");
+
+    pass1::
+      "${target}/."
+        delete        => tidy,
+        file_select   => all,
+        classes       => classes_generic("${class_prefix}"),
+        ifvarclass    => "!${class_prefix}_inside_error";
+
+  methods:
+    pass3::
+      # If target was not empty, we need to trigger an error manually as the files promise will be kept
+      # Because of https://tracker.mender.io/browse/CFE-1570
+      "fail_if_not_empty"   usebundle  => _classes_failure("${class_prefix}"),
+                            ifvarclass => "directory_exists_after";
+      "clean_if_not_empty"  usebundle  => _classes_sanitize("${class_prefix}"),
+                            ifvarclass => "directory_exists_after";
+
+      # Use classes of the first promise when it failed
+      "copy_inside_error"   usebundle  => _classes_copy("${class_prefix}_inside", "${class_prefix}"),
+                            ifvarclass => "${class_prefix}_inside_error";
+
+      "report" usebundle => _logger("Remove directory ${target}", "${class_prefix}");
+
+  reports:
+    pass3.info.target_exists_after.!directory_exists_after::
+      "${configuration.info} Found a non-directory object with the name ${target} while ensuring this directory did not exist";
+}
