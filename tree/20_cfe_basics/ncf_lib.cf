@@ -772,3 +772,38 @@ body edit_defaults ncf_empty_select(select)
         max_file_size             => "25M";
         edit_backup               => "timestamp";
 }
+
+
+# Add parameter in key->values line, where -> is key_value_separator
+bundle edit_line ncf_add_parameter_in_list(key, key_value_separator, parameter_separator, parameter) {
+  vars:
+      "escaped_key" string => escape("${key}");
+
+
+  replace_patterns:
+      "^(${escaped_key}\s*${key_value_separator}\s*)(.*)$"
+        replace_with => ncf_add_parameter_with_separator("${parameter}", "${parameter_separator}");
+}
+
+# Add parameter in key->[values] line, where -> is key_value_separator and [ ] are leading and closing char separator
+bundle edit_line ncf_add_parameter_in_list_with_enclosing_chars(key, key_value_separator, parameter_separator, parameter, leading_char_separator, closing_char_separator) {
+  vars:
+      "escaped_key" string => escape("${key}");
+      "escaped_leading_char" string =>  escape("${leading_char_separator}");
+      "escaped_closing_char" string =>  escape("${closing_char_separator}");
+
+  replace_patterns:
+      "^(${escaped_key}\s*${key_value_separator}\s*)(${escaped_leading_char})(.*)(${escaped_closing_char})\s*$"
+        replace_with => ncf_add_parameter_with_separator_and_enclosing_characters("${parameter}", "${parameter_separator}");
+}
+
+body replace_with ncf_add_parameter_with_separator(parameter, parameter_separator) {
+ occurrences => "first";
+ replace_value => "${match.1}${match.2}${parameter_separator}${parameter}";
+}
+
+body replace_with ncf_add_parameter_with_separator_and_enclosing_characters(parameter, parameter_separator) {
+ occurrences => "first";
+ replace_value => "${match.1}${match.2}${match.3}${parameter_separator}${parameter}${match.4}";
+}
+

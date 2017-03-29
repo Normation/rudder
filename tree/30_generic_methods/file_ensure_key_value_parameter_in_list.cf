@@ -1,0 +1,125 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File ensure key value parameter in list
+# @description Ensure that one parameter exists in a list of parameters, on one single line, in the right hand side of a key->values line
+# @documentation Edit the file, and ensure it contains the defined parameter in the list of values on the right hand side of a key->values line.
+# If the parameter is not there, it will be added at the end, separated by parameter_separator.
+# Optionnaly, you can define leading and closing character to enclose the parameters
+# If the key does not exist in the file, it will be added in the file, along with the parameter
+#
+# #### Example
+# 
+# If you have an initial file (`/etc/default/grub`) containing
+# 
+# ```
+# GRUB_CMDLINE_XEN="dom0_mem=16G"
+# ```
+#
+# To add parameter `dom0_max_vcpus=32` in the right hand side of the line, you'll need the following policy
+#
+# ```
+# file_ensure_key_value_parameter_in_list("/etc/default/grub", "GRUB_CMDLINE", "=", "dom0_max_vcpus=32", " ", "\"", "\"");
+# ```
+#
+# @parameter file File name to edit
+# @parameter key Full key name
+# @parameter key_value_Separator character used to separate key and value in a key-value line
+# @parameter parameter String representing the sub-value to ensure is present in the list of parameters that form the value part of that line
+# @parameter parameter_separator Character used to separate parameters in the list
+# @parameter leading_char_separator leading character of the parameters
+# @parameter closing_char_separator closing character of the parameters
+# @parameter_constraint leading_char_separator "allow_empty_string" : true
+# @parameter_constraint closing_char_separator "allow_empty_string" : true
+#
+# @class_prefix file_ensure_key_value_parameter_in_list
+# @class_parameter file
+
+bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separator, parameter, parameter_separator, leading_char_separator, closing_char_separator)
+{
+  vars:
+      "class_prefix" string => canonify("file_ensure_key_value_parameter_in_list_${file}");
+
+      "escaped_key"  string => escape("${key}");
+      "escaped_parameter" string => escape("${parameter}");
+
+      "escaped_leading_char" string =>  escape("${leading_char_separator}");
+      "escaped_closing_char" string =>  escape("${closing_char_separator}");
+
+  classes:
+      "leading_char_defined"               not => strcmp("${leading_char_separator}", "");
+      "closing_char_defined"               not => strcmp("${closing_char_separator}", "");
+
+      "invalid_enclosing"           expression => "(leading_char_defined.!closing_char_defined)|(!leading_char_defined.closing_char_defined)";
+      "defined_enclosing"           expression => "leading_char_defined.closing_char_defined";
+
+    defined_enclosing.!pass1::
+      "line_with_parameter_present" expression => regline("^(${key}\s*${key_value_separator}\s*)${escaped_leading_char}.*(${parameter_separator})?${parameter}(${parameter_separator})?.*(${escaped_closing_char})\s*$", "${file}");
+
+    !defined_enclosing.!invalid_enclosing.!pass1::
+      "line_with_parameter_present" expression => regline("^(${key}\s*${key_value_separator}\s*).*(${parameter_separator})?${parameter}(${parameter_separator})?.*$", "${file}");
+
+    !pass1::
+      "line_with_key_present"       expression => regline("^(${key}\s*${key_value_separator}\s*).*$", "${file}");
+
+    any::
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+    line_with_key_present.!line_with_parameter_present.!invalid_enclosing.!defined_enclosing::
+      "${file}"
+        edit_line     => ncf_add_parameter_in_list("${key}", "${key_value_separator}", "${parameter_separator}", "${parameter}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic("${class_prefix}"),
+        # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
+        comment       => "Editing file ${file} to set parameter ${parameter} for key ${key}";
+
+    line_with_key_present.!line_with_parameter_present.!invalid_enclosing.defined_enclosing::
+      "${file}"
+        edit_line     => ncf_add_parameter_in_list_with_enclosing_chars("${key}", "${key_value_separator}", "${parameter_separator}", "${parameter}", "${leading_char_separator}", "${closing_char_separator}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic("${class_prefix}"),
+        # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
+        comment       => "Editing file ${file} to set parameter ${leading_char_separator} ${parameter} ${closing_char_separator} for key ${key}";
+
+    !line_with_key_present.!invalid_enclosing::
+      "${file}"
+        edit_line     => insert_lines("${key}${key_value_separator}${leading_char_separator}${parameter}${closing_char_separator}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic("${class_prefix}"),
+        # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
+        comment       => "Adding into file ${file} key ${key} with value ${leading_char_separator} ${parameter} ${closing_char_separator}";
+
+
+  methods:
+    pass2::
+      "success class" usebundle  => _classes_success("${class_prefix}"),
+                      ifvarclass => "line_with_parameter_present";
+      "error_class"   usebundle => _classes_failure("${class_prefix}"),
+                      ifvarclass => "invalid_enclosing";
+
+    pass2.!invalid_enclosing.!line_with_key_present::
+      "report"   usebundle => _logger("Ensure ${parameter} in line ${key}${key_value_separator} values in ${file}", "${class_prefix}");
+
+    pass2.!invalid_enclosing.line_with_key_present::
+      "report"   usebundle => _logger("Add key non existing ${key} with value ${leading_char_separator} ${parameter} ${closing_char_separator} in ${file}", "${class_prefix}");
+
+    pass2.invalid_enclosing::
+      "report"   usebundle => _logger("Ensure ${parameter} in line ${key}${key_value_separator} values in ${file} must have either no enclosing character, or two, but not only one", "${class_prefix}");
+}
