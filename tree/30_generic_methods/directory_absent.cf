@@ -30,7 +30,10 @@
 bundle agent directory_absent(target, recursive)
 {
   vars:
-      "class_prefix"     string => canonify("directory_absent_${target}");
+      "old_class_prefix" string => canonify("directory_absent_${target}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist => { "${target}", "${recursive}" };
 
   defaults:
       "recursive"        string => "false", if_match_regex => "";
@@ -54,29 +57,34 @@ bundle agent directory_absent(target, recursive)
         delete        => tidy,
         file_select   => all,
         depth_search  => recurse_with_base("inf"),
-        classes       => classes_generic("${class_prefix}_inside");
+        classes       => classes_generic_two("${old_class_prefix}_inside", "${class_prefix}_inside");
 
     pass1::
       "${target}/."
         delete        => tidy,
         file_select   => all,
-        classes       => classes_generic("${class_prefix}"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
         ifvarclass    => "!${class_prefix}_inside_error";
 
   methods:
-    pass3::
-      # If target was not empty, we need to trigger an error manually as the files promise will be kept
-      # Because of https://tracker.mender.io/browse/CFE-1570
-      "fail_if_not_empty"   usebundle  => _classes_failure("${class_prefix}"),
-                            ifvarclass => "directory_exists_after";
-      "clean_if_not_empty"  usebundle  => _classes_sanitize("${class_prefix}"),
-                            ifvarclass => "directory_exists_after";
 
+    # If target was not empty, we need to trigger an error manually as the files promise will be kept
+    # Because of https://tracker.mender.io/browse/CFE-1570
+    pass3.directory_exists_after.has_promiser_stack::
+      "fail_if_not_empty"   usebundle  => _classes_failure("${class_prefix}");
+      "clean_if_not_empty"  usebundle  => _classes_sanitize("${class_prefix}");
+    pass3.directory_exists_after.!has_promiser_stack::
+      "fail_if_not_empty"   usebundle  => _classes_failure("${old_class_prefix}");
+      "clean_if_not_empty"  usebundle  => _classes_sanitize("${old_class_prefix}");
+
+    pass3::
       # Use classes of the first promise when it failed
       "copy_inside_error"   usebundle  => _classes_copy("${class_prefix}_inside", "${class_prefix}"),
                             ifvarclass => "${class_prefix}_inside_error";
+      "copy_inside_error"   usebundle  => _classes_copy("${old_class_prefix}_inside", "${old_class_prefix}"),
+                            ifvarclass => "${old_class_prefix}_inside_error";
 
-      "report" usebundle => _logger("Remove directory ${target}", "${class_prefix}");
+      "report" usebundle => _log("Remove directory ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   reports:
     pass3.info.target_exists_after.!directory_exists_after::
