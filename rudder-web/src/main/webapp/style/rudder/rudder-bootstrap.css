@@ -367,8 +367,8 @@
 }
 
 #globalCompliance .progress .progress-bar {
-    line-height:80px;
-    font-size: 25px;
+    line-height: 90px;
+    font-size: 16px;
     font-weight: 600;
 }
 
