@@ -1603,7 +1603,6 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
   } );
 
   $('.dataTables_filter input').attr("placeholder", "Filter");
-  $('.dataTables_filter input').css("background","white url("+contextPath+"/images/icMagnify.png) left center no-repeat");
 
   if (!( typeof pickEventLogsInInterval === 'undefined')) {
     $('#filterLogs').removeClass('hide');
