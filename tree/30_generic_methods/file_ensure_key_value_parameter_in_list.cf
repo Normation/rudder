@@ -44,6 +44,8 @@
 # @parameter parameter_separator Character used to separate parameters in the list
 # @parameter leading_char_separator leading character of the parameters
 # @parameter closing_char_separator closing character of the parameters
+# @parameter_constraint key_value_separator "allow_whitespace_string" : true
+# @parameter_constraint parameter_separator "allow_whitespace_string" : true
 # @parameter_constraint leading_char_separator "allow_empty_string" : true
 # @parameter_constraint closing_char_separator "allow_empty_string" : true
 #
