@@ -1646,12 +1646,10 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
   $("#"+gridId+"_wrapper .dataTables_refresh button").tooltip({position:{my:"left+40 bottom-10",collision: "flipfit"}});
 
   $('.dataTables_filter input').attr("placeholder", "Filter");
+
   $('.tw-bs .modal .dataTables_filter input').addClass("form-control"); 
   $('#grid_remove_popup_grid').parent().addClass("table-responsive");
   $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
-  
-
-  $('.dataTables_filter input').css("background","white url("+contextPath+"/images/icMagnify.png) left center no-repeat");
 
   if (!( typeof pickEventLogsInInterval === 'undefined')) {
     $('#filterLogs').removeClass('hide');
