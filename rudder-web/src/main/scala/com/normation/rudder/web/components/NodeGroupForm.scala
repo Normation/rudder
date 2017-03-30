@@ -224,7 +224,7 @@ class NodeGroupForm(
   private[this] val groupStatic = {
     new WBRadioField(
         "Group type",
-        Seq("static", "dynamic"),
+        Seq("dynamic", "static"),
         if(nodeGroup.isDynamic) "dynamic" else "static",
         {
            //how to display label ? Capitalize, and with a tooltip
