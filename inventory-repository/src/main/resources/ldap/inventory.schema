@@ -220,7 +220,7 @@ attributetype ( InventoryAttributes:300.1
 attributetype ( InventoryAttributes:300.2
   NAME 'localAdministratorAccountName'
   DESC 'The local administrator account name (login) on the node'
-  EQUALITY caseIgnoreMatch
+  EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
@@ -241,14 +241,14 @@ attributetype ( InventoryAttributes:300.4
 attributetype ( InventoryAttributes:300.5
   NAME 'localAccountName'
   DESC 'A local account name (login) on the server'
-  EQUALITY caseIgnoreMatch
+  EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
 attributetype ( InventoryAttributes:300.6
   NAME 'lastLoggedUser'
   DESC 'Login of the last logged user'
-  EQUALITY caseIgnoreMatch
+  EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
