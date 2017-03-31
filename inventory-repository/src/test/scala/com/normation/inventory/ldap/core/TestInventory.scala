@@ -49,6 +49,10 @@ import net.liftweb.common.Empty
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Box
+import com.unboundid.ldap.sdk.Attribute
+import com.unboundid.ldap.sdk.Modification
+import com.unboundid.ldap.sdk.ModificationType
+import org.specs2.matcher.MatchResult
 
 
 /**
@@ -174,11 +178,21 @@ class TestInventory extends Specification {
         i + x
       }
 
-
-
       ldap.server.countEntries === numEntries
     }
 
+    "can add case-ignore-match equals localaccounts" in {
+      val dn = "nodeId=node0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
+      //it throws exception if not success
+      ldap.server.modify(dn, new Modification(ModificationType.ADD, "localAccountName", "TEST", "test"))
+
+      (try {
+        ldap.server.assertValueExists(dn, "localAccountName", java.util.Arrays.asList("TEST","test"))
+        ok("success")
+      } catch {
+        case ae: AssertionError => ko(ae.getMessage)
+      }):MatchResult[Any]
+    }
   }
 
 
@@ -398,3 +412,4 @@ class TestInventory extends Specification {
   }
 
 }
+
