@@ -943,6 +943,16 @@ $scope.groupMethodsByCategory = function () {
     window.top.location.reload();
   }
 
+  $scope.checkMissingParameters = function(parameters){
+    var result = false;
+    for(var i=0; i<parameters.length; i++) {
+      if(parameters[i].constraints.allow_empty_string === false && !parameters.value && parameters[i].$errors.length <= 0){
+        result = true;
+      }
+    }
+    return result;
+  }
+
   $scope.reloadData();
   $scope.setPath();
 });
