@@ -93,31 +93,22 @@ trait JsonTagExtractor[M[_]] extends JsonExctractorUtils[M] {
 
    parseOpt(value) match {
       case Some(json) => extractTags(json)
-      case _ => Failure("Invalid JSON serialization for Tags ${value}")
+      case _ => Failure(s"Invalid JSON serialization for Tags ${value}")
     }
   }
 
+  def convertToTag(jsonTag : JValue): Box[M[Tag]] = {
+      for {
+        tagName <- extractJsonString(jsonTag, "key", s => Full(TagName(s)))
+        tagValue <- extractJsonString(jsonTag, "value", s => Full(TagValue(s)))
+      } yield {
+        monad.apply2(tagName, tagValue)( (k,v) => Tag(k,v))
+      }
+  }
+
   def extractTags(value:JValue): Box[M[Tags]] = {
-    value match {
-      case JArray(jsonTags) =>
-        for {
-          tags <-
-           sequence(jsonTags) {
-             jsonTag =>
-               for {
-                 tagName <- extractJsonString(jsonTag, "key", s => Full(TagName(s)))
-                 tagValue <- extractJsonString(jsonTag, "value", s => Full(TagValue(s)))
-               } yield {
-                 monad.apply2(tagName, tagValue)( (k,v) => Tag(k,v))
-               }
-           }
-        } yield {
-          import scalaz.Scalaz.listInstance
-          val tagMonad = monad.sequence(tags.toList)
-          monad.apply(tagMonad){ t:List[Tag] => Tags(t.toSet)}
-        }
-      case _ => Failure("Invalid JSON serialization for Tags ${value}")
-    }
+
+    extractJsonArray(value)(convertToTag).map(monad.apply(_)(tags => Tags(tags.toSet))) ?~! s"Invalid JSON serialization for Tags ${value}"
   }
 
 }
