@@ -239,7 +239,7 @@ object RestUtils extends Loggable {
   }
 
   type WorkflowType = (EventActor, Option[String], String, String) => Box[JValue]
-  def workflowResponse (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id : Option[String]) (function : WorkflowType , req : Req, errorMessage : String, defaultName : String)(implicit action : String) : LiftResponse = {
+  def workflowResponse (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id : Option[String]) (function : Box[WorkflowType] , req : Req, errorMessage : String, defaultName : String)(implicit action : String) : LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
     ( for {
@@ -247,7 +247,7 @@ object RestUtils extends Loggable {
       actor = RestUtils.getActor(req)
       crName <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(defaultName))
       crDesc = restExtractor.extractChangeRequestDescription(req)
-      result <- function(actor,reason, crName, crDesc)
+      result <- function.flatMap { _(actor,reason, crName, crDesc) }
     } yield {
       result
     } ) match {
