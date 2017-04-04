@@ -696,7 +696,7 @@ case class RestExtractorService (
   def extractDirective(req : Req) : Box[RestDirective] = {
     req.json match {
       case Full(json) => extractDirectiveFromJSON(json)
-      case _ => extractDirective(req.params)
+      case _          => extractDirective(req.params)
     }
   }
 
@@ -740,7 +740,7 @@ case class RestExtractorService (
       directives       <- extractJsonListString(json, "directives")(convertListToDirectiveId)
       target           <- toRuleTarget(json, "targets")
       enabled          <- extractJsonBoolean(json,"enabled")
-      tags             <- extractTags(json \ "tags")
+      tags             <- extractTags(json \ "tags") ?~! "Error when extracting Rule tags"
     } yield {
       RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
     }
@@ -773,7 +773,7 @@ case class RestExtractorService (
       techniqueName    <- extractJsonString(json, "techniqueName", x => Full(TechniqueName(x)))
       techniqueVersion <- extractJsonString(json, "techniqueVersion", x => Full(TechniqueVersion(x)))
       policyMode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault)
-      tags             <- extractTags(json \ "tags")
+      tags             <- extractTags(json \ "tags")  ?~! "Error when extracting Directive tags"
     } yield {
       RestDirective(name,shortDescription,longDescription,enabled,parameters,priority,techniqueName,techniqueVersion,policyMode,tags)
     }
