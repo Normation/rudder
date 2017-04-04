@@ -99,8 +99,8 @@ trait JsonExctractorUtils[A[_]] {
     }
   }
 
-  def extractJsonArray[T] (json: JValue, key: String)( convertTo: JValue => Box[A[T]] ): Box[A[List[T]]] = {
-    json \ key match {
+  def extractJsonArray[T] (json: JValue)( convertTo: JValue => Box[A[T]] ): Box[A[List[T]]] = {
+    json  match {
       case JArray(values) =>
         for {
           converted <- sequence(values) { convertTo(_) }
@@ -109,7 +109,7 @@ trait JsonExctractorUtils[A[_]] {
           monad.sequence(converted.toList)
         }
       case JNothing   => emptyValue
-      case _              => Failure(s"Not a good value for parameter ${key}")
+      case _          => Failure(s"Invalid json to extract a json array, current value is: ${compactRender(json)}")
     }
   }
 }
