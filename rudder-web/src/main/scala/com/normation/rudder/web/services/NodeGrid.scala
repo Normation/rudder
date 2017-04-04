@@ -149,9 +149,9 @@ class NodeGrid(
               "sSearch": ""
             },
             "aoColumns": [
-              { "sWidth": "180px" },
-              { "sWidth": "190px" },
-              { "sWidth": "100px" } ${aoColumns}
+              { "sWidth": "30%" },
+              { "sWidth": "27%" },
+              { "sWidth": "20%" } ${aoColumns}
             ],
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25 ,
