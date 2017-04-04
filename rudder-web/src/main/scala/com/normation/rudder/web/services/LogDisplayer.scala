@@ -100,8 +100,6 @@ class LogDisplayer(
 
       val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
 
-      println("**** got string: " + jsonInterval)
-
       (for {
         parsed   <- tryo(parse(jsonInterval)) ?~! s"Error when trying to parse '${jsonInterval}' as a JSON datastructure with fields 'start' and 'end'"
         startStr <- parsed \ "start" match {
