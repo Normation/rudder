@@ -100,7 +100,6 @@ class ItemArchiveManagerImpl(
   override val gitModificationRepository = gitModificationRepo
   ///// implementation /////
 
-
   // Clean a directory only if it exists, all exception are catched by the tryo
   private[this] def cleanExistingDirectory (directory : File) : Box[Unit] = {
     tryo {
@@ -127,7 +126,6 @@ class ItemArchiveManagerImpl(
       (archiveAll,saveUserLib._2)
     }
   }
-
 
   private[this] def exportRuleCategories(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String]) = {
     for {
@@ -264,8 +262,6 @@ class ItemArchiveManagerImpl(
   }
   ////////// Import //////////
 
-
-
   override def importAll(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing full archive with id '%s'".format(archiveId.value))
     for {
@@ -301,7 +297,6 @@ class ItemArchiveManagerImpl(
       archiveId
     }
   }
-
 
   private[this] def importRulesAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing rules archive with id '%s'".format(archiveId.value))
@@ -473,11 +468,18 @@ case class PartialArchive(directory:String) extends ArchiveMode {
   def configureCheckout(coCmd:CheckoutCommand) = coCmd.addPath(directory)
 }
 
-object GroupArchive            extends PartialArchive("groups/")
-object RuleArchive             extends PartialArchive("rules/")
-object TechniqueLibraryArchive extends PartialArchive("directives/")
-object ParameterArchive       extends PartialArchive("parameters/")
+object GroupArchive     extends PartialArchive("groups/")
+object RuleArchive      extends PartialArchive("rules/")
+object DirectiveArchive extends PartialArchive("directives/")
+object ncfArchive       extends PartialArchive("ncf/")
+object ParameterArchive extends PartialArchive("parameters/")
 
+case object TechniqueLibraryArchive extends ArchiveMode {
+
+  def configureRm(rmCmd:RmCommand) = DirectiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
+
+  def configureCheckout(coCmd:CheckoutCommand) = DirectiveArchive.configureCheckout(ncfArchive.configureCheckout(coCmd))
+}
 case object FullArchive extends ArchiveMode {
 
   def configureRm(rmCmd:RmCommand) =
