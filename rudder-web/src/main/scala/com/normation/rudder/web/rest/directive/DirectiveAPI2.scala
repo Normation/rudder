@@ -77,7 +77,7 @@ class DirectiveAPI2 (
   }
 
   type WorkflowType = RestUtils.WorkflowType
-  def workflowResponse ( function : WorkflowType, req : Req, errorMessage : String, id : Option[String], defaultName : String)(implicit action : String) : LiftResponse = {
+  def workflowResponse ( function : Box[WorkflowType], req : Req, errorMessage : String, id : Option[String], defaultName : String)(implicit action : String) : LiftResponse = {
     RestUtils.workflowResponse(restExtractor, dataName, uuidGen, id)(function, req, errorMessage, defaultName)
   }
 
@@ -95,11 +95,11 @@ class DirectiveAPI2 (
 
     case Put(Nil, req) => {
       implicit var action = "createDirective"
-      for {
-        restDirective <- restExtractor.extractDirective(req) ?~! s"Could not extract values from request."
+      val response = for {
+        restDirective <- restExtractor.extractDirective(req) ?~! s"Could not extract values from request"
         directiveId <- restExtractor.extractId(req)(x => Full(DirectiveId(x))).map(_.getOrElse(DirectiveId(uuidGen.newUuid)))
         optCloneId <- restExtractor.extractString("source")(req)(x => Full(DirectiveId(x)))
-        result = optCloneId match {
+        result <- optCloneId match {
           case None =>
             apiV2.createDirective(directiveId,restDirective)
           case Some(cloneId) =>
@@ -107,18 +107,15 @@ class DirectiveAPI2 (
             apiV2.cloneDirective(directiveId, restDirective, cloneId)
         }
       } yield {
-        val id = Some(directiveId.value)
-        actionResponse(result, req, "Could not create Directives", id)
+        result
       }
+
+      actionResponse(response, req, "Could not create Directive", None)
     }
 
     case Delete(id :: Nil, req) => {
       implicit val action = "deleteDirective"
-      for {
-        result <- apiV2.deleteDirective(DirectiveId(id))
-      } yield {
-        workflowResponse(result,req, s"Could not delete Directive '$id'", Some(id),s"Delete Directive '${id}' from API")
-      }
+      workflowResponse(apiV2.deleteDirective(DirectiveId(id)),req, s"Could not delete Directive '$id'", Some(id),s"Delete Directive '${id}' from API")
     }
 
     case Post(id:: "check" :: Nil, req) => {
@@ -135,12 +132,14 @@ class DirectiveAPI2 (
     case Post(id:: Nil, req) => {
       val directiveId = DirectiveId(id)
       implicit val action = "updateDirective"
-      for {
+      val response = for {
         restDirective <- restExtractor.extractDirective(req) ?~! s"Could not extract values from request."
         result <- apiV2.updateDirective(directiveId,restDirective)
       } yield {
-        workflowResponse(result, req, s"Could not update Directive '${id}'", Some(id), s"Update Directive '${id}' from API")
+        result
       }
+
+      workflowResponse(response, req, s"Could not update Directive '${id}'", Some(id), s"Update Directive '${id}' from API")
     }
   }
 }
