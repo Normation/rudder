@@ -65,7 +65,7 @@ class RestGetGitCommitAsZip(
                                    .appendLiteral('T')
                                    .append(DateTimeFormat.forPattern("hhmmss")).toFormatter
 
-  val directiveFiles = List("directives","techniques", "parameters")
+  val directiveFiles = List("directives","techniques", "parameters", "ncf")
 
   val ruleFiles = List("rules","ruleCategories")
 
@@ -83,7 +83,6 @@ class RestGetGitCommitAsZip(
 
     case Get("api" :: "archives" :: "zip" :: "all"        :: commitId :: Nil, req) =>
       getZip(commitId, allFiles, "all")
-
 
     /*
      * same archives methods for the authenticated part only. That is needed until
