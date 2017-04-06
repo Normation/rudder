@@ -188,6 +188,9 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   $scope.selectedMethod;
   // Are we authenticated on the interface
   $scope.authenticated = false;
+  // Open/Close by default the Conditions box
+  $scope.conditionIsOpen = false;
+
   var usingRudder = false;
 
   $scope.CForm = {};
@@ -519,6 +522,7 @@ $scope.groupMethodsByCategory = function () {
 
   // Select a method in a technique
   $scope.selectMethod = function(method_call) {
+    $scope.conditionIsOpen = method_call.class_context != "any";
     if(angular.equals($scope.selectedMethod,method_call) ) {
       $scope.selectedMethod = undefined;
       // Scroll to the previously selected method category
