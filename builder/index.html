@@ -284,9 +284,9 @@
                         <button ng-disabled="! canResetMethod()" class="btn btn-default pull-right top-margin" ng-click="resetMethod()">Reset</button>
                     </h3>
                     <accordion>
-                        <accordion-group ng-init="isopen = false" is-open="isopen">
+                        <accordion-group is-open="conditionIsOpen">
                             <accordion-heading>
-                                <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
+                                <i class="glyphicon" ng-class="{'glyphicon-chevron-down': conditionIsOpen, 'glyphicon-chevron-right': !conditionIsOpen}"></i>
                                 Conditions
                             </accordion-heading>
                             <div class="form-group condition-form" id="os-form">
