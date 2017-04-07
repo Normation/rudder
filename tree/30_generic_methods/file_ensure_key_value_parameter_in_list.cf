@@ -39,7 +39,7 @@
 #
 # @parameter file File name to edit
 # @parameter key Full key name
-# @parameter key_value_Separator character used to separate key and value in a key-value line
+# @parameter key_value_separator character used to separate key and value in a key-value line
 # @parameter parameter String representing the sub-value to ensure is present in the list of parameters that form the value part of that line
 # @parameter parameter_separator Character used to separate parameters in the list
 # @parameter leading_char_separator leading character of the parameters
