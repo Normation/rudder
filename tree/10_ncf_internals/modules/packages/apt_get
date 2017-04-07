@@ -1,23 +1,10 @@
 #!/bin/sh
-"true" '''\'
-PYTHON_BINS="/usr/bin/python /usr/bin/python3"
-
-for python_bin in $PYTHON_BINS;
-do
-  if [ -f "$python_bin" ]; then
-    exec "$python_bin" "$0" "$@"
-  fi
-done
-
-exit 127
+''':'
+# First try to run this script with python3, else run with python
+command -v python3 >/dev/null 2>/dev/null  \
+    && exec python3 "$0" "$@" \
+    || exec python  "$0" "$@"
 '''
-
-# This script is CFEngine's masterfiles yum script:
-# https://github.com/cfengine/masterfiles/blob/master/modules/packages/apt_get
-
-# Licensed under:
-# MIT Public License
-# Copyright (C) 2012-2014 CFEngine AS
 
 import sys
 import os
@@ -25,6 +12,8 @@ import subprocess
 import re
 
 PY3 = sys.version_info > (3,)
+
+dpkg_options = ["--force-confold", "--force-confdef"]
 
 dpkg_cmd = os.environ.get('CFENGINE_TEST_DPKG_CMD', "/usr/bin/dpkg")
 dpkg_deb_cmd = os.environ.get('CFENGINE_TEST_DPKG_DEB_CMD', "/usr/bin/dpkg-deb")
@@ -222,10 +211,10 @@ def one_package_argument(name, arch, version, is_apt_install):
                                     "-W", name + ":*"],
                                    stdout=subprocess.PIPE, stderr=NULLFILE)
         for line in process.stdout:
-            # The space before "installed" is important, because it can be "not-installed".
             if PY3:
               line = line.decode("utf-8")
-            if '=' in line:
+            # The space before "installed" is important, because it can be "not-installed".
+            if "=" in line:
                 arch, stat = line.split("=", 1)
                 if stat.find(" installed") >=  0:
                     archs.append(arch)
@@ -279,6 +268,10 @@ def package_arguments_builder(is_apt_install):
         elif line.startswith("Architecture="):
             arch = line.split("=", 1)[1].rstrip()
 
+        elif line.startswith("options="):
+            global apt_get_options
+            apt_get_options.append(line.split("=", 1)[1].rstrip())
+
     if name:
         args.extend(one_package_argument(name, arch, version, is_apt_install))
 
@@ -286,32 +279,32 @@ def package_arguments_builder(is_apt_install):
 
 
 def repo_install():
-    cmd_line = [apt_get_cmd] + apt_get_options + ["install"]
-
     args = package_arguments_builder(True)
+
+    cmd_line = [apt_get_cmd] + apt_get_options + ["install"]
 
     if (not args):
         return 0
 
-    # Convert list of tuples into two lists so that first element of each 
+    # Convert list of tuples into two lists so that first element of each
     # tuple belongs to list 'a1' and the second one to list 'a2'.
     a1, a2 =  map(list, zip(*args))
 
     # For 'repo_insrtall' both 'a1' and 'a2' should be equal so we can operate
-    # on 'a1' elements only. 
+    # on 'a1' elements only.
     if a1:
         return subprocess_call(cmd_line + a1, stdout=NULLFILE)
     return 0
 
 def remove():
-    cmd_line = [apt_get_cmd] + apt_get_options + ["remove"]
-
     args = package_arguments_builder(False)
+
+    cmd_line = [apt_get_cmd] + apt_get_options + ["remove"]
 
     if (not args):
         return 0
 
-    # Convert list of tuples into two lists so that first element of each 
+    # Convert list of tuples into two lists so that first element of each
     # tuple belongs to list 'a1' and the second one to list 'a2'.
     #
     # In case of multi arch support elements of 'a1' list should not contain
@@ -321,7 +314,7 @@ def remove():
 
     # As there seems to be no unified method to remove packages matching
     # native OS architecture we are trying first to remove packages providing
-    # just a package name and if this call is failing we are trying 
+    # just a package name and if this call is failing we are trying
     # 'package_name:architecture' approach.
     ret = subprocess_call(cmd_line + a1, stdout=NULLFILE)
     if ret != 0 and a1 != a2:
@@ -330,7 +323,7 @@ def remove():
     return ret
 
 def file_install():
-    cmd_line = [dpkg_cmd, "-i"]
+    cmd_line = [dpkg_cmd] + dpkg_options + ["-i"]
 
     found = False
     for line in sys.stdin:
