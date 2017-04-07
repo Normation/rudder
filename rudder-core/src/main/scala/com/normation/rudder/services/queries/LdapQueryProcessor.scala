@@ -59,11 +59,6 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.domain.nodes.MachineInfo
 
-
-
-
-
-
 /*
  * We have two type of filters:
  * * pure LDAP filters that can be directly translated to LDAP ones
@@ -78,7 +73,6 @@ final case class LDAPFilter(f:Filter) extends ExtendedFilter with HashcodeCachin
 sealed trait SpecialFilter extends ExtendedFilter
 final case class RegexFilter(attributeName:String, regex:String) extends SpecialFilter with HashcodeCaching
 final case class NotRegexFilter(attributeName:String, regex:String) extends SpecialFilter with HashcodeCaching
-
 
 /*
  * An NodeQuery differ a little from a Query because it's component are sorted in two way :
@@ -104,7 +98,6 @@ case class LDAPNodeQuery(
   , objectTypesFilters: Map[DnType, Map[String,Set[ExtendedFilter]]]
 ) extends HashcodeCaching
 
-
 case class RequestLimits (
   val subRequestTimeLimit:Int,
   val subRequestSizeLimit:Int,
@@ -113,7 +106,6 @@ case class RequestLimits (
 ) extends HashcodeCaching
 
 object DefaultRequestLimits extends RequestLimits(0,0,0,0)
-
 
 /**
  * Processor that translates Queries into LDAP search operations
@@ -126,7 +118,6 @@ class AccepetedNodesLDAPQueryProcessor(
   , processor      : InternalLDAPQueryProcessor
   , nodeInfoService: NodeInfoService
 ) extends QueryProcessor with Loggable {
-
 
   private[this] case class QueryResult(
       nodeEntry     : LDAPEntry
@@ -184,7 +175,6 @@ class AccepetedNodesLDAPQueryProcessor(
     }
   }
 
-
   override def process(query:Query) : Box[Seq[NodeInfo]] = {
     //only keep the one of the form Full(...)
     queryAndChekNodeId(query, NodeInfoService.nodeInfoAttributes, None).map { seq => seq.flatMap {
@@ -208,7 +198,6 @@ class PendingNodesLDAPQueryChecker(
     val checker:InternalLDAPQueryProcessor
 ) extends QueryChecker {
 
-
   override def check(query:Query, limitToNodeIds:Seq[NodeId]) : Box[Seq[NodeId]] = {
     for {
       entries <- checker.internalQueryProcessor(query, Seq("1.1"), Some(limitToNodeIds))
@@ -220,7 +209,6 @@ class PendingNodesLDAPQueryChecker(
     }
   }
 }
-
 
 /**
  * Generic interface for LDAP query processor.
@@ -264,7 +252,6 @@ class InternalLDAPQueryProcessor(
     //log start query
     logger.debug("[%s] Start search for %s".format(debugId, query.toString))
 
-
     //TODO : with AND and empty set, we could return early
 
     /*
@@ -288,7 +275,6 @@ class InternalLDAPQueryProcessor(
       case Full(x) => x
       case e:EmptyBox => return e
     } }
-
 
     //then, actually execute queries
     val dnMapMapSets : Map[DnType, Map[String,Set[DN]]] =
@@ -338,7 +324,6 @@ class InternalLDAPQueryProcessor(
         dnMapSet map { dn => nodeJoinFilters(dnType)(dn) }
       }).toSeq
 
-
     //now, build last filter depending on comparator :
     //or : just OR everything
     //and: and in Set, or between them so that: Set(a,b), Set(c,d) => OR( (a and c), (a and d), (b and c), (b and d) )
@@ -367,8 +352,6 @@ class InternalLDAPQueryProcessor(
         }
     }
 
-
-
     //final query, add "match only server id" filter if needed
     val rt = nodeObjectTypes.copy(filter = finalLdapFilter)
 
@@ -390,7 +373,6 @@ class InternalLDAPQueryProcessor(
 
     res
   }
-
 
   /**
    * That method allows to post-process a list of nodes based on
@@ -603,7 +585,6 @@ class InternalLDAPQueryProcessor(
     }
   }
 
-
   /**
    * That method allows to transform a list of extended filter to
    * the corresponding list of pure LDAP filter and pure special filter.
@@ -730,48 +711,48 @@ class InternalLDAPQueryProcessor(
    */
   private def normalize(query:Query) : Box[LDAPNodeQuery] = {
 
-    //validate that we knows the requested object type
-    if(!objectTypes.isDefinedAt(query.returnType.value))
-      return Failure("The requested type '%s' is not know".format(query.returnType))
+    def groupFilterByLdapRequest() = {
+      // Validate that we know the requested object type
+      if (objectTypes.isDefinedAt(query.returnType.value)) {
+        for {
+          // Compute in one go all data for a filter, fails if one filter fails to build
+          filtersWithQueryData <- sequence(query.criteria) {
+            case crit@CriterionLine(ot,a,comp,value) => {
+              val objectType = ot.objectType
+              // Validate that for each object type in criteria, we know it
+              if(objectTypes.isDefinedAt(objectType)) {
+                val tpe = if(objectType == "nodeAndPolicyServer") "node" else objectType
 
-    //validate that for each object type in criteria, we know it
-    query.criteria foreach { cl =>
-      if(!objectTypes.isDefinedAt(cl.objectType.objectType))
-        return Failure("The object type '%s' is not know in criteria %s".format(cl.objectType.objectType,cl))
+                val filter : Box[ExtendedFilter] = comp match {
+                  case Regex => a.buildRegex(a.name,value)
+                  case NotRegex => a.buildNotRegex(a.name,value)
+                  case _ => Full(LDAPFilter(a.buildFilter(comp,value)))
+                }
+                // all data we need, _1 is the ldap dn, _2 the object type, _3 the filter
+                filter.map(f => (objectDnTypes(objectType),tpe, f))
+              } else {
+                Failure(s"The object type '${objectType}' is not know in criteria ${crit}")
+              }
+            }
+          }
+        } yield {
+          // group 'filter'(_3) by objectType (_1), then by LDAPObjectType (_2)
+          filtersWithQueryData.groupBy(_._1).mapValues(_.groupBy(_._2).mapValues(_.map(_._3).toSet))
+        }
+      } else {
+        Failure(s"The requested type '${query.returnType}' is not know")
+      }
     }
 
-    //group criteria by objectType, and map value to LDAPObjectType
-    val groupedSetFilter: Map[DnType, Map[String,Set[ExtendedFilter]]] = {
-      query.criteria.groupBy(c => c.objectType.objectType) map { case (objectType,seq) =>
-
-        //here, we have a special case for "node" and "nodeAndPolicyServer" that
-        //are in fact the same "objectType".
-        //Question: should it just be a "normal" post-process not at that level,
-        //but higher ? Why is it a type ?
-        val tpe = if(objectType == "nodeAndPolicyServer") "node" else objectType
-
-        (tpe , (seq map { case CriterionLine(ot,a,comp,value) =>
-          (comp match {
-            case Regex => a.buildRegex(a.name,value)
-            case NotRegex => a.buildNotRegex(a.name,value)
-            case _ => LDAPFilter(a.buildFilter(comp,value))
-          }) : ExtendedFilter
-        }).toSet)
-      }
-    }.groupBy { case (objectType, v) => objectDnTypes(objectType) }
-
-
-    val nodeFilters = groupedSetFilter.get(QueryNodeDn).flatMap( _.get("node").map( _.toSet) )
-    val otherFilters = groupedSetFilter.flatMap { case(dn, map) =>
-      val setFilter = map.flatMap { case (objectType, x) =>
-        if(objectType == "node") None
-        else Some(objectType -> x)
-      }
-      if(setFilter.isEmpty) None
-      else Some( dn -> setFilter )
+    for {
+      groupedSetFilter <- groupFilterByLdapRequest()
+      // Get only filters applied to nodes (NodeDn and 'node' objectType)
+      nodeFilters      =  groupedSetFilter.get(QueryNodeDn).flatMap ( _.get("node") )
+      // Get the other filters, by only removing those with 'node' objectType ... maybe we could do a partition here, or even do it above
+      otherFilters     =  groupedSetFilter.mapValues(_.filterKeys { _ != "node" }).filterNot( _._2.isEmpty)
+    } yield {
+      LDAPNodeQuery(nodeFilters, query.composition, otherFilters)
     }
-
-    Full(LDAPNodeQuery(nodeFilters, query.composition, otherFilters))
   }
 
 }
