@@ -72,6 +72,8 @@ import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import bootstrap.liftweb.StaticResourceRewrite
+import com.normation.rudder.hooks.HookReturnCode.Interrupt
+import com.normation.rudder.hooks.HookReturnCode
 
 /**
  * A service used to display details about a server
@@ -884,19 +886,55 @@ object DisplayNode extends Loggable {
 
   private[this] def removeNode(nodeId: NodeId) : JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
+    import com.normation.rudder.services.servers.DeletionResult._
     removeNodeService.removeNode(nodeId, modId, CurrentUser.getActor) match {
-      case Full(entry) =>
+      case Full(Success) =>
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
         onSuccess
-
+      case Full(PostHookFailed(postHook)) =>
+        val message = s"Node '${nodeId.value}' was deleted, but an error occured while running post-deletion hooks"
+        logger.error(message)
+        logger.error(postHook.msg)
+        onFailure(nodeId, message, postHook.msg, Some(postHook))
+      case Full(PreHookFailed(int : Interrupt)) =>
+        val message = s"Node '${nodeId.value}' deletion was interrupted because one of the pre-deletion hooks exited with interrupt code (${int.code})"
+        logger.warn(message)
+        logger.warn(int.msg)
+        onFailure(nodeId, message, int.msg, Some(int))
+      case Full(PreHookFailed(hook)) =>
+        val message = s"Node '${nodeId.value}' was not deleted, since an error occurred while running pre-deletion hooks"
+        logger.error(message)
+        logger.error(hook.msg)
+        onFailure(nodeId, message,hook.msg, Some(hook))
       case eb:EmptyBox =>
-        val e = eb ?~! "Could not remove node %s from Rudder".format(nodeId.value)
+        val message = s"Could not remove Node '${nodeId.value}' from Rudder"
+        val e = eb ?~! "There was an error while deleting Node"
         logger.error(e.messageChain)
-        onFailure(nodeId)
+        onFailure(nodeId, message, e.messageChain, None)
     }
   }
 
-  private[this] def onFailure(nodeId: NodeId) : JsCmd = {
+  private[this] def onFailure(nodeId: NodeId, message : String, details : String, hookError : Option[HookReturnCode.Error]) : JsCmd = {
+
+    val hookDetails = {
+      hookError match {
+        case Some(error) =>
+          { if (error.stdout.size > 0) {
+            <b>stdout</b>
+            <pre>{error.stdout}</pre>
+          } else {
+            NodeSeq.Empty
+          } } ++ {
+          if (error.stderr.size > 0) {
+            <b>stderr</b>
+            <pre>{error.stderr}</pre>
+          } else {
+            NodeSeq.Empty
+          } }
+        case None => NodeSeq.Empty
+      }
+    }
+
     val popupHtml =
     <div class="modal-backdrop fade in" style="height: 100%;"></div>
     <div class="modal-dialog">
@@ -907,15 +945,13 @@ object DisplayNode extends Loggable {
                     <span class="sr-only">Close</span>
                 </div>
                 <h4 class="modal-title">
-                    Error while removing a node from Rudder
+                    Error during Node deletion
                 </h4>
             </div>
             <div class="modal-body">
-                <h4 class="text-center">
-                    <p>There was an error while deleting the Node with ID :</p>
-                    <p><b class="text-danger">{nodeId.value}</b></p>
-                    <p>Please contact your administrator.</p>
-                </h4>
+                <h4>{message}</h4>
+                <p>{details}</p>
+                {hookDetails}
             </div>
             <div class="modal-footer">
                 <button class="btn btn-default" type="button" data-dismiss="modal">
