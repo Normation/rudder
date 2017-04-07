@@ -1,12 +1,5 @@
 #!/usr/bin/python
 
-# This script is CFEngine's masterfiles yum script:
-# https://github.com/cfengine/masterfiles/blob/master/modules/packages/yum
-
-# Licensed under:
-# MIT Public License
-# Copyright (C) 2012-2014 CFEngine AS
-
 import sys
 import os
 import subprocess

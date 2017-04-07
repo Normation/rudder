@@ -6,9 +6,6 @@
 
 ## Copyright (c) 2015, John D. "Trix" Farrar <trix@basement.net>
 
-# This script is CFEngine's masterfiles yum script:
-# https://github.com/cfengine/masterfiles/blob/master/modules/packages/pkg
-
 ## pkgng module for CFEngine 3.7+
 
 
