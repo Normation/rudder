@@ -1,0 +1,109 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File ensure key value parameter not in list
+# @description Ensure that a parameter doesn't exist in a list of parameters, on one single line, in the right hand side of a key->values line
+# @documentation Edit the file, and ensure it does not contain the defined parameter in the list of values on the right hand side of a key->values line.
+# If the parameter is there, it will be removed. Please note that the parameter can be a regular expression. It will also remove any whitespace character between the parameter and parameter_separator
+# Optionnaly, you can define leading and closing character to enclose the parameters
+#
+# #### Example
+# 
+# If you have an initial file (`/etc/default/grub`) containing
+# 
+# ```
+# GRUB_CMDLINE_XEN="dom0_mem=16G dom0_max_vcpus=32"
+# ```
+#
+# To remove parameter `dom0_max_vcpus=32` in the right hand side of the line, you'll need the following policy
+#
+# ```
+# file_ensure_key_value_parameter_not_in_list("/etc/default/grub", "GRUB_CMDLINE", "=", "dom0_max_vcpus=32", " ", "\"", "\"");
+# ```
+#
+# @parameter file File name to edit
+# @parameter key Full key name
+# @parameter key_value_separator character used to separate key and value in a key-value line
+# @parameter parameter_regex Regular expression matching the sub-value to ensure is not present in the list of parameters that form the value part of that line
+# @parameter parameter_separator Character used to separate parameters in the list
+# @parameter leading_char_separator leading character of the parameters
+# @parameter closing_char_separator closing character of the parameters
+# @parameter_constraint key_value_separator "allow_whitespace_string" : true
+# @parameter_constraint parameter_separator "allow_whitespace_string" : true
+# @parameter_constraint leading_char_separator "allow_empty_string" : true
+# @parameter_constraint closing_char_separator "allow_empty_string" : true
+#
+# @class_prefix file_ensure_key_value_parameter_not_in_list
+# @class_parameter file
+
+bundle agent file_ensure_key_value_parameter_not_in_list(file, key, key_value_separator, parameter_regex, parameter_separator, leading_char_separator, closing_char_separator)
+{
+  vars:
+      "class_prefix" string => canonify("file_ensure_key_value_parameter_not_in_list_${file}");
+
+      "escaped_key"  string => escape("${key}");
+      "escaped_parameter" string => escape("${parameter_regex}");
+
+      "escaped_leading_char" string =>  escape("${leading_char_separator}");
+      "escaped_closing_char" string =>  escape("${closing_char_separator}");
+
+  classes:
+      "leading_char_defined"               not => strcmp("${leading_char_separator}", "");
+      "closing_char_defined"               not => strcmp("${closing_char_separator}", "");
+
+      "invalid_enclosing"           expression => "(leading_char_defined.!closing_char_defined)|(!leading_char_defined.closing_char_defined)";
+      "defined_enclosing"           expression => "leading_char_defined.closing_char_defined";
+
+    defined_enclosing.!pass1::
+      "line_with_parameter_present" expression => regline("^(${key}\s*${key_value_separator}\s*)${escaped_leading_char}.*(${parameter_separator})?${parameter_regex}(${parameter_separator})?.*(${escaped_closing_char})\s*$", "${file}");
+
+    !defined_enclosing.!invalid_enclosing.!pass1::
+      "line_with_parameter_present" expression => regline("^(${key}\s*${key_value_separator}\s*).*(${parameter_separator})?${parameter_regex}(${parameter_separator})?.*$", "${file}");
+
+    !pass1::
+      "line_with_key_present"       expression => regline("^(${key}\s*${key_value_separator}\s*).*$", "${file}");
+
+    any::
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+    line_with_parameter_present.!invalid_enclosing::
+      "${file}"
+        edit_line     => ncf_remove_parameter_in_list("${key}", "${key_value_separator}", "${parameter_separator}", "${parameter_regex}", "${leading_char_separator}", "${closing_char_separator}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic("${class_prefix}"),
+        # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
+        comment       => "Editing file ${file} to remove parameter ${leading_char_separator} ${parameter_regex} ${closing_char_separator} for key ${key}";
+
+  methods:
+    pass2::
+      "success class" usebundle  => _classes_success("${class_prefix}"),
+                      ifvarclass => "!line_with_parameter_present";
+      "error_class"   usebundle => _classes_failure("${class_prefix}"),
+                      ifvarclass => "invalid_enclosing";
+
+    pass2.!invalid_enclosing.line_with_key_present::
+      "report"   usebundle => _logger("Ensure ${parameter_regex} is not in ${key}${key_value_separator} values in ${file}", "${class_prefix}");
+
+    pass2.!invalid_enclosing.!line_with_key_present::
+      "report"   usebundle => _logger("Non existing key ${key} with value ${leading_char_separator} ${parameter_regex} ${closing_char_separator} in ${file}", "${class_prefix}");
+
+    pass2.invalid_enclosing::
+      "report"   usebundle => _logger("Ensure not ${parameter_regex} in line ${key}${key_value_separator} values in ${file} must have either no enclosing character, or two, but not only one", "${class_prefix}");
+}
