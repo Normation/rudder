@@ -308,18 +308,26 @@ def generate_rudder_reporting(technique):
   for method_call in filter_calls:
 
     method_name = method_call['method_name']
+    if method_call['method_name'].startswith("_"):
+      continue
     generic_method = generic_methods[method_name]
 
     key_value = method_call["args"][generic_method["class_parameter_id"]-1]
-    # this regex allows to canonify everything except variables
-    regex = re.compile("[^\$\{\}a-zA-Z0-9_](?![^{}]+})|\$(?!{)")
     # to match cfengine behaviour we need to treat utf8 as if it was ascii (see #7195)
     # string should be unicode string (ie u'') which is the case if they are read from files opened with encoding="utf-8"
     key_value = key_value.encode("utf-8").decode("iso-8859-1") 
+
+    # this regex allows to canonify everything except variables
+    regex = re.compile("[^\$\{\}a-zA-Z0-9_](?![^{}]+})|\$(?!{)")
     key_value_canonified = regex.sub("_", key_value)
 
+    # escape double quote
+    regex_quote = re.compile(r'(?<!\\)"', flags=re.UNICODE )
+    escaped_key_value = regex_quote.sub('\\"', key_value)
+
+
     class_prefix = generic_method["class_prefix"]+"_"+key_value_canonified
-    logger_rudder_call = '"dummy_report" usebundle => logger_rudder("' + generic_method['name'] + ' ' + key_value + ' if ' + method_call['class_context'] + '", "' + class_prefix +'")'
+    logger_rudder_call = '"dummy_report" usebundle => logger_rudder("' + generic_method['name'] + ' ' + escaped_key_value + ' if ' + method_call['class_context'] + '", "' + class_prefix +'")'
     logger_rudder_call = logger_rudder_call.replace("&", "\\&")
 
     # Always add an empty line for readability

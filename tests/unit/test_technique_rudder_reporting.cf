@@ -1,0 +1,16 @@
+bundle agent bla_rudder_reporting
+{
+  methods:
+
+    !(cfengine)::
+      "dummy_report" usebundle => _classes_noop("service_start_${bla.apache_package_name}");
+      "dummy_report" usebundle => logger_rudder("Service start ${bla.apache_package_name} if cfengine", "service_start_${bla.apache_package_name}");
+
+    !(cfengine)::
+      "dummy_report" usebundle => _classes_noop("package_install_openssh_server");
+      "dummy_report" usebundle => logger_rudder("Package install openssh-server if cfengine", "package_install_openssh_server");
+
+    !(cfengine)::
+      "dummy_report" usebundle => _classes_noop("command_execution__bin_echo__test_");
+      "dummy_report" usebundle => logger_rudder("Command execution /bin/echo \"test\" if cfengine", "command_execution__bin_echo__test_");
+}

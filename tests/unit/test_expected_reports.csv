@@ -3,3 +3,4 @@
 bla;;package_install_${bla.apache_package_name};;@@RUDDER_ID@@;;Package install version;;${bla.apache_package_name}
 bla;;service_start_${bla.apache_package_name};;@@RUDDER_ID@@;;Service start;;${bla.apache_package_name}
 bla;;package_install_openssh-server;;@@RUDDER_ID@@;;Package install;;openssh-server
+bla;;command_execution_/bin/echo "test";;@@RUDDER_ID@@;;Command execution;;/bin/echo "test"
