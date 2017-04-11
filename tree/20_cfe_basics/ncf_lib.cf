@@ -1098,6 +1098,20 @@ bundle edit_line ncf_add_parameter_in_list_with_enclosing_chars(key, key_value_s
         replace_with => ncf_add_parameter_with_separator_and_enclosing_characters("${parameter}", "${parameter_separator}");
 }
 
+# Remove parameter_regex in  key->[values] line, where -> is key_value_separator and [ ] are leading and closing char separator. Note: any whitespace between parameter_regex and parameter_separator will be also removed
+bundle edit_line ncf_remove_parameter_in_list(key, key_value_separator, parameter_separator, parameter_regex, leading_char_separator, closing_char_separator) {
+  vars:
+      "escaped_key" string => escape("${key}");
+      "escaped_leading_char" string =>  escape("${leading_char_separator}");
+      "escaped_closing_char" string =>  escape("${closing_char_separator}");
+
+  replace_patterns:
+      "^(${escaped_key}\s*${key_value_separator}\s*${escaped_leading_char}.*)(${parameter_separator}+\s*${parameter_regex}|${parameter_regex}\s*${parameter_separator}+)(.*${escaped_closing_char})\s*$"
+        replace_with => value("${match.1}${match.3}");
+
+}
+
+
 body replace_with ncf_add_parameter_with_separator(parameter, parameter_separator) {
  occurrences => "first";
  replace_value => "${match.1}${match.2}${parameter_separator}${parameter}";
