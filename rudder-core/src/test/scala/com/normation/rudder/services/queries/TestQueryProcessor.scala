@@ -503,7 +503,36 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
-    testQueries(q1 :: q2 :: Nil)
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"foo?=.*ar" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    testQueries(q1 :: q2 :: q3 :: Nil)
+  }
+
+  @Test def failingRequestOnProperties() {
+    // Failing request, see #10570
+    val failingRegexRequest =
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"foo" }
+      ] }""")
+    failingRegexRequest match {
+      case Full(query) =>
+        val result =
+        queryProcessor.process(query) match {
+          case Full(_) => true
+          case _ => false
+        }
+        assertFalse("regex Query with wrong data for node properties should fail", result)
+      case eb:EmptyBox =>
+        throw new Exception("Failing regexp query is not a valid query")
+    }
   }
 
   @Test def unsortedQueries() {
@@ -539,9 +568,9 @@ class TestQueryProcessor extends Loggable {
 
       assertEquals("[%s]Duplicate entries in result: %s".format(name,found),
           found.size.toLong,found.distinct.size.toLong)
-      assertEquals("[%s]Size differ between awaited and found entry set  (process)\n Found: %s\n Wants: %s".
+      assertEquals("[%s]Size differ between awaited and found entry set  (process) Found: %s Wants: %s".
           format(name,found,ids),ids.size.toLong,found.size.toLong)
-      assertTrue("[%s]Entries differ between awaited and found entry set (process)\n Found: %s\n Wants: %s".
+      assertTrue("[%s]Entries differ between awaited and found entry set (process) Found: %s Wants: %s".
           format(name,found,ids),found.forall { f => ids.exists( f == _) })
 
       logger.debug("Testing with expected entries")

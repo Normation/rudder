@@ -88,7 +88,6 @@ trait SpecialComparator extends BaseComparator
 case object Regex extends SpecialComparator { override val id = "regex" }
 case object NotRegex extends SpecialComparator { override val id = "notRegex" }
 
-
 sealed trait KeyValueComparator extends BaseComparator
 case object HasKey extends KeyValueComparator { override val id = "hasKey" }
 
@@ -138,8 +137,8 @@ sealed trait CriterionType  extends ComparatorList {
   //transform the given value to its LDAP string value
   def toLDAP(value:String) : Box[String]
 
-  def buildRegex(attribute:String,value:String):RegexFilter = RegexFilter(attribute,value)
-  def buildNotRegex(attribute:String,value:String):NotRegexFilter = NotRegexFilter(attribute,value)
+  def buildRegex(attribute:String,value:String): Box[RegexFilter] = Full(RegexFilter(attribute,value))
+  def buildNotRegex(attribute:String,value:String): Box[NotRegexFilter] = Full(NotRegexFilter(attribute,value))
 
   //build the ldap filter for given attribute name and comparator
   def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter =
@@ -342,7 +341,6 @@ case object OstypeComparator extends CriterionType {
     }
   }
 
-
   override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
     SHtml.select(
       (osTypes map (e => (e,e))).toSeq,
@@ -438,7 +436,7 @@ case object EditorComparator extends CriterionType {
   override def toLDAP(value:String) = Full(value)
 }
 
-case class JsonComparator(key:String, splitter:String = "", numericvalue:Boolean = false) extends TStringComparator {
+case class JsonComparator(key:String, splitter:String = "", numericvalue:Boolean = false) extends TStringComparator with Loggable {
   override val comparators = HasKey +: BaseComparators.comparators
 
   def splitJson(attribute:String, value:String) = {
@@ -457,7 +455,7 @@ case class JsonComparator(key:String, splitter:String = "", numericvalue:Boolean
           s""""${attval._1}":"${attval._2}""""
       ) )
     } else {
-      Failure("not enough argument")
+      Failure(s"Could not  split attribute '${attribute}'  of value '${value}' with splitter '${splitter}'")
     }
   }
 
@@ -469,14 +467,22 @@ case class JsonComparator(key:String, splitter:String = "", numericvalue:Boolean
     }
   }
 
-  override def buildRegex(attribute:String,value:String) : RegexFilter = {
-    val regexp = ".*%s.*".format(splitJson(attribute,value).getOrElse(Nil).mkString(".*"))
-    RegexFilter(key,regexp)
+  override def buildRegex(attribute:String,value:String) : Box[RegexFilter] = {
+    for {
+      splitted <- splitJson(attribute,value)
+      regexp = s".*${splitted.mkString(".*")}.*"
+    } yield {
+      RegexFilter(key,regexp)
+    }
   }
 
-  override def buildNotRegex(attribute:String,value:String) : NotRegexFilter = {
-    val regexp = ".*%s.*".format(splitJson(attribute,value).getOrElse(Nil).mkString(".*"))
-    NotRegexFilter(key,regexp)
+  override def buildNotRegex(attribute:String,value:String) : Box[NotRegexFilter] = {
+    for {
+      splitted <- splitJson(attribute,value)
+      regexp = s".*${splitted.mkString(".*")}.*"
+    } yield {
+      NotRegexFilter(key,regexp)
+    }
   }
 
   override def buildFilter(attributeName:String, comparator:CriterionComparator,value:String) : Filter = {
@@ -498,7 +504,6 @@ case class JsonComparator(key:String, splitter:String = "", numericvalue:Boolean
   }
 }
 
-
 case class Criterion(val name:String, val cType:CriterionType) extends HashcodeCaching {
   require(name != null && name.length > 0, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
@@ -509,7 +514,6 @@ case class Criterion(val name:String, val cType:CriterionType) extends HashcodeC
 
   def buildFilter(comp:CriterionComparator,value:String) = cType.buildFilter(name,comp,value)
 }
-
 
 case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) extends HashcodeCaching {
   require(objectType.length > 0, "Unique identifier for line must be defined")
