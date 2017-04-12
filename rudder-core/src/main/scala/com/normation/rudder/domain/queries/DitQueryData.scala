@@ -63,7 +63,6 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
  *
  */
 
-
 /*
  * Type of DN on which we can make join
  *
@@ -263,7 +262,6 @@ class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
 
   val criteriaMap : SortedMap[String,ObjectCriterion] = SortedMap[String,ObjectCriterion]() ++ (criteriaSet map { crit => (crit.objectType,crit) })
 
-
 /*
  * * "baseDn" of the object type to search for
  * * "scope" to use to retrieve object
@@ -308,7 +306,7 @@ case class LDAPObjectType(
   val nodeObjectTypes = objectTypes("node")
 
   //"kind" of each object type
-  val objectDnTypes = Map(
+  val objectDnTypes  : Map[String,DnType] = Map(
     "software" -> QuerySoftwareDn,
     "node" -> QueryNodeDn,
     "nodeAndPolicyServer" -> QueryNodeDn,
@@ -358,8 +356,6 @@ case class LDAPObjectType(
     //,"groupOfDns" -> A_MEMBER
   )
 
-
-
   //how do you create a filter from a DN,
   //when you want to query such an object
   val nodeJoinFilters = Map[DnType, DN => Filter](
@@ -372,6 +368,5 @@ case class LDAPObjectType(
   require(objectTypes.keySet == objectDnTypes.keySet, "Opbject type definition inconsistent between objectTypes and objectDnTypes")
   require(objectTypes.keySet == joinAttributes.keySet, "Opbject type definition inconsistent between objectTypes and joinAttributes")
   require(objectTypes.keySet == joinAttributes.keySet, "Opbject type definition inconsistent between objectTypes and joinAttributes")
-
 
 }
