@@ -24,8 +24,9 @@ bundle agent bla {
     cfengine::
       "ph2" usebundle => service_start("${bla.apache_package_name}");
       "ph3" usebundle => package_install("openssh-server");
+      "ph4" usebundle => command_execution("/bin/echo \"test\"");
     !cfengine::
-      "ph4" usebundle => _logger("NA", "NA");
+      "ph5" usebundle => _logger("NA", "NA");
 
 
 }
