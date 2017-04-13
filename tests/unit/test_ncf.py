@@ -113,8 +113,8 @@ class TestNcf(unittest.TestCase):
     expected = [  { 'method_name': u'package_install_version', 'promiser': u'ph1', 'args': [u'${bla.apache_package_name}', u'2.2.11'], 'class_context': u'any' },
         { 'method_name': u'service_start', 'promiser': u'ph2', 'args': [u'${bla.apache_package_name}'], 'class_context': u'cfengine' },
         { 'method_name': u'package_install', 'promiser': u'ph3', 'args': [u'openssh-server'], 'class_context': u'cfengine' },
-        { 'method_name': 'command_execution', 'args': ['/bin/echo "test"'], 'class_context': 'cfengine'},
-        { 'method_name': u'_logger', 'promiser': u'ph4', 'args': [u'NA', u'NA'], 'class_context': u'!cfengine' },
+        { 'method_name': u'command_execution', 'promiser': u'ph4', 'args': ['/bin/echo "test"'], 'class_context': 'cfengine'},
+        { 'method_name': u'_logger', 'promiser': u'ph5', 'args': [u'NA', u'NA'], 'class_context': u'!cfengine' },
                ]
     self.assertEqual(bundle_calls, expected)
 
@@ -124,8 +124,8 @@ class TestNcf(unittest.TestCase):
     expected = [  { 'method_name': u'package_install_version', 'promiser': u'ph1', 'args': [u'${bla.apache_package_name}', u'2.2.11'], 'class_context': u'any' },
         { 'method_name': u'service_start', 'promiser': u'ph2', 'args': [u'${bla.apache_package_name}'], 'class_context': u'cfengine' },
         { 'method_name': u'package_install', 'promiser': u'ph3', 'args': [u'openssh-server'], 'class_context': u'cfengine' },
-        { 'method_name': 'command_execution', 'args': ['/bin/echo "test"'], 'class_context': 'cfengine'},
-        { 'method_name': u'_logger', 'promiser': u'ph4', 'args': [u'NA', u'NA'], 'class_context': u'!cfengine' },
+        { 'method_name': u'command_execution', 'promiser': u'ph4', 'args': ['/bin/echo "test"'], 'class_context': 'cfengine'},
+        { 'method_name': u'_logger', 'promiser': u'ph5', 'args': [u'NA', u'NA'], 'class_context': u'!cfengine' },
                ]
     self.assertEqual(bundle_calls, expected)
 
