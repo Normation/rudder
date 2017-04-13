@@ -51,6 +51,9 @@ class TestNcfRudder(unittest.TestCase):
     with open(self.test_metadata_xml_file) as fd:
       self.test_metadata_xml_content = fd.read()
 
+    self.test_rudder_reporting_file = os.path.realpath('test_technique_rudder_reporting.cf')
+    with open(self.test_rudder_reporting_file) as fd:
+      self.test_rudder_reporting_content = fd.read()
 
     # Testing Techniques with quote
     self.test_technique_with_quote_file = os.path.realpath('test_technique_with_quote.cf')
@@ -74,6 +77,13 @@ class TestNcfRudder(unittest.TestCase):
     metadata_xml_string = ncf_rudder.get_technique_metadata_xml(self.technique_metadata)
     expected_metadata_pure_xml = self.test_metadata_xml_content
     self.assertEqual(expected_metadata_pure_xml, metadata_xml_string)
+
+  def test_rudder_reporting_from_technique(self):
+    """The rudder-reporting.cf content generated from a ncf technique must match the reporting we expect for our technique"""
+    rudder_reporting_string = ncf_rudder.generate_rudder_reporting(self.technique_metadata)
+    expected_rudder_reporting = self.test_rudder_reporting_content
+    self.assertEqual(expected_rudder_reporting, rudder_reporting_string)
+
 
   def test_path_for_technique_dir(self):
     root_path = '/tmp/ncf_rudder_tests'

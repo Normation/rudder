@@ -9,6 +9,11 @@
     </FILE>
   </FILES>
   <SECTIONS>
+    <SECTION component="true" multivalued="true" name="Command execution">
+      <REPORTKEYS>
+        <VALUE><![CDATA[/bin/echo "test"]]></VALUE>
+      </REPORTKEYS>
+    </SECTION>
     <SECTION component="true" multivalued="true" name="Package install">
       <REPORTKEYS>
         <VALUE><![CDATA[openssh-server]]></VALUE>
