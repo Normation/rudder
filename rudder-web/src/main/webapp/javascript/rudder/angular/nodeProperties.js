@@ -134,8 +134,16 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
     function checkNameUnicity(property, index, array) {
       return property.name == $scope.newProperty.name;
     }
+    var propertyToSave = angular.copy($scope.newProperty)
+    var newValue = propertyToSave.value
+    try {
+      newValue = JSON.parse(propertyToSave.value)
+    } catch(e) {
+      // Do nothing if error we keep the current value
+    }
+    propertyToSave.value = newValue
     var data = {
-        "properties": [ $scope.newProperty ]
+        "properties": [ propertyToSave ]
       , 'reason' : "Add property '"+$scope.newProperty.name+"' to Node '"+currentNodeId+"'"
     };
     $http.post($scope.urlAPI, data).then(function successCallback(response) {
@@ -143,7 +151,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
       //Check if new property's name is already used or not.
       $scope.alreadyUsed = $scope.properties.some(checkNameUnicity);
       if(!$scope.alreadyUsed){
-        $scope.properties.push(angular.copy($scope.newProperty));
+        $scope.properties.push(propertyToSave);
         $scope.resetNewProperty();
         $('#newPropPopup').bsModal('hide');
         $scope.newPropForm.$setPristine();
