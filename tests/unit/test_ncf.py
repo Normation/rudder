@@ -111,6 +111,7 @@ class TestNcf(unittest.TestCase):
     expected = [  { 'method_name': 'package_install_version', 'args': ['${bla.apache_package_name}', '2.2.11'], 'class_context': 'any' },
                   { 'method_name': 'service_start', 'args': ['${bla.apache_package_name}'], 'class_context': 'cfengine' },
                   { 'method_name': 'package_install', 'args': ['openssh-server'], 'class_context': 'cfengine' },
+                  { 'method_name': 'command_execution', 'args': ['/bin/echo "test"'], 'class_context': 'cfengine'},
                   { 'method_name': '_logger', 'args': ['NA', 'NA'], 'class_context': '!cfengine' },
                ]
     self.assertEqual(bundle_calls, expected)
@@ -121,6 +122,7 @@ class TestNcf(unittest.TestCase):
     expected = [  { 'method_name': 'package_install_version', 'args': ['${bla.apache_package_name}', '2.2.11'], 'class_context': 'any' },
                   { 'method_name': 'service_start', 'args': ['${bla.apache_package_name}'], 'class_context': 'cfengine' },
                   { 'method_name': 'package_install', 'args': ['openssh-server'], 'class_context': 'cfengine' },
+                  { 'method_name': 'command_execution', 'args': ['/bin/echo "test"'], 'class_context': 'cfengine'},
                   { 'method_name': '_logger', 'args': ['NA', 'NA'], 'class_context': '!cfengine' },
                ]
     self.assertEqual(bundle_calls, expected)
