@@ -116,6 +116,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
     , "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
   };
 
+  var currentNodeId;
   $scope.init = function(properties, nodeId, right){
     if(!right){
       columnDefs[2].sClass = "hidden";
@@ -124,6 +125,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
     $scope.overrideOptions = overrideOptions;
     //Get current node properties
     $scope.properties = properties;
+    currentNodeId = nodeId;
     $scope.urlAPI = contextPath + '/secure/api/latest/nodes/'+ nodeId;
     $($scope.tableId).dataTable().fnAddData($scope.properties);
   }
@@ -132,9 +134,10 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
     function checkNameUnicity(property, index, array) {
       return property.name == $scope.newProperty.name;
     }
-    var data = {"properties":[
-      $scope.newProperty
-    ]};
+    var data = {
+        "properties": [ $scope.newProperty ]
+      , 'reason' : "Add property '"+$scope.newProperty.name+"' to Node '"+currentNodeId+"'"
+    };
     $http.post($scope.urlAPI, data).then(function successCallback(response) {
       $scope.errorSaving = false;
       //Check if new property's name is already used or not.
@@ -156,7 +159,11 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
     $('#deletePropPopup').bsModal('show');
   };
   $scope.deleteProperty = function(){
-    var data = {"properties":[{"name":$scope.deletedProperty.name, "value":""}]};
+    var data = {
+        "properties":[{"name":$scope.deletedProperty.name, "value":""}]
+      , 'reason' : "Delete property '"+$scope.deletedProperty.name+"' to Node '"+currentNodeId+"'"
+    };
+    
     $scope.errorDeleting = false;
     $http.post($scope.urlAPI, data).then(function successCallback(response) {
       $('#deletePropPopup').bsModal('hide');
