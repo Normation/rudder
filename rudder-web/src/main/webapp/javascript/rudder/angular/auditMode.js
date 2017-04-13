@@ -49,8 +49,13 @@ app.factory('configGlobalFactory', function ($http){
                  });
                }
  , save      : function(mode){
+               var overridableReason = "overridable"
+               if (!mode.overrideMode) {
+                 overridableReason = "not overridable"
+               }
 	             var data = { 'global_policy_mode' : mode.policyMode
 	                        , 'global_policy_mode_overridable' : mode.overrideMode
+	                        , 'reason' : "Change global policy mode to '"+mode.policyMode+"' ("+overridableReason+")"
 	                        };
 	             return $http.post(this.url, data).then(function successCallback(response) {
 	               return response.status==200;
@@ -85,13 +90,16 @@ app.factory('configNodeFactory', function ($http){
                    });
                  }
  ,   save      : function(mode){
-	               var data = {'policyMode' : mode.policyMode};
-	               return $http.post(this.url, data).then(function successCallback(response) {
-	                 return response.status==200;
-	               }, function errorCallback(response) {
-	                 return response.status==200;
-	               });
-	             }
+                   var data = {
+                       'policyMode' : mode.policyMode
+                     , 'reason' : "Change policy mode of node '"+nodeId+" to '"+mode.policyMode+"'"
+                   };
+                   return $http.post(this.url, data).then(function successCallback(response) {
+                     return response.status==200;
+                   }, function errorCallback(response) {
+                     return response.status==200;
+                   });
+	               }
     };
     return this;
     }
