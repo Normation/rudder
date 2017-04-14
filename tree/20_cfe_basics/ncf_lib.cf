@@ -818,7 +818,7 @@ bundle agent ncf_services(service, action)
       "upstart_action_cmd[stop]"       string => "/sbin/initctl stop ${service}";
       "upstart_action_cmd[restart]"    string => "/sbin/initctl restart ${service}";
       "upstart_action_cmd[reload]"     string => "/sbin/initctl reload ${service}";
-      "upstart_action_cmd[is-active]"  string => "/sbin/initctl status ${service} | grep -q ' start/'";
+      "upstart_action_cmd[is-active]"  string => "/sbin/initctl status ${service} 2>&1 | grep -q ' start/'";
       # boot
       "upstart_action_cmd[enable]"     string => "${paths.path[sed]} -i '/^manual/d' /etc/init/${service}.override";
       "upstart_action_cmd[disable]"    string => "${paths.path[echo]} manual >> /etc/init/${service}.override";
@@ -850,7 +850,7 @@ bundle agent ncf_services(service, action)
     pass1.is_boot_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.chkconfig_utility_present::
       "chkconfig_action_cmd[enable]"     string => "${paths.path[chkconfig]} ${service} on";
       "chkconfig_action_cmd[disable]"    string => "${paths.path[chkconfig]} ${service} off";
-      "chkconfig_action_cmd[is-enabled]" string => "${paths.path[chkconfig]} --list ${service} | ${paths.path[grep]} -q -e 3:on -e B:on";
+      "chkconfig_action_cmd[is-enabled]" string => "${paths.path[chkconfig]} --list ${service} 2>&1 | ${paths.path[grep]} -q -e 3:on -e B:on";
       "action_command"                   string => "${chkconfig_action_cmd[${action}]}";
       "method"                           string => "chkconfig";
 
@@ -972,7 +972,7 @@ bundle agent ncf_services(service, action)
     # Actual command - for checks on non-windows systems
     #####
     pass1.is_check_action.!windows.!is_process_action.method_found::
-      "action_ok" expression => returnszero("${action_command} > /dev/null 2>&1", "useshell");
+      "action_ok" expression => returnszero("${action_command} 2>&1 > /dev/null", "useshell");
 
     any::
       "pass3" expression => "pass2";
