@@ -25,6 +25,7 @@
 # @parameter key Key to define
 # @parameter value Value to define
 # @parameter separator Separator between key and value (for example "=" or " ")
+# @parameter_constraint separator "allow_whitespace_string" : true
 #
 # @class_prefix file_ensure_key_value
 # @class_parameter file
