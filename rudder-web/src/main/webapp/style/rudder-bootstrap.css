@@ -762,3 +762,23 @@ body .tw-bs {
 .tw-bs textarea.monospace-font{
   min-height:100px;
 }
+.tw-bs .input-group-sm input[type=text].form-control.monospace-font {
+  min-height: 30px;
+  height: auto;
+}
+.tw-bs  .input-group-sm.text-section{
+  height:100%;
+}
+.tw-bs .input-group-sm span.input-group-btn {
+  vertical-align: top;
+  height:100%;
+  border: 1px solid #ccc;
+  border-top-left-radius:4px;
+  border-bottom-left-radius:4px;
+}
+.tw-bs .input-group-sm span.input-group-btn > .btn {
+  height: 100%;
+  padding: 0 10px;
+  box-sizing:content-box;
+  border:none;
+}
