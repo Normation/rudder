@@ -552,7 +552,8 @@ function parseSearchHash(nodeIdCallback, queryCallback) {
 function updateHashString(key, value) {
   var hash = parseURLHash();
   hash[key] = value;
-  window.location.hash = "#" + JSON.stringify(hash);
+  var baseUrl = window.location.href.split('#')[0];
+  window.location.replace(baseUrl + '#' + JSON.stringify(hash));
 }
 
 $(document).ready(function() {
