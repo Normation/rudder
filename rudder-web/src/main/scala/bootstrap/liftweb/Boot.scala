@@ -252,11 +252,10 @@ class Boot extends Loggable {
       // if we can't get the workflow property, default to false
       // (don't give rights if you don't know)
       def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
-
       Menu("UtilitiesHome", <span>Utilities</span>) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>
-          if (workflowEnabled || CurrentUser.checkRights(Read("administration")) || CurrentUser.checkRights(Read("technique")))
+          if ((workflowEnabled && (CurrentUser.checkRights(Read("validator")) || CurrentUser.checkRights(Read("deployer")))) || CurrentUser.checkRights(Read("administration")) || CurrentUser.checkRights(Read("technique")))
             Empty
           else
              Full(RedirectWithState("/secure/index", redirection))
@@ -271,7 +270,7 @@ class Boot extends Loggable {
             "secure" / "utilities" / "changeRequests"
             >> LocGroup("utilitiesGroup")
             >> TestAccess ( () =>
-              if (workflowEnabled)
+              if (workflowEnabled && (CurrentUser.checkRights(Read("validator")) || CurrentUser.checkRights(Read("deployer"))))
                 Empty
               else
                 Full(RedirectWithState("/secure/utilities/eventLogs", redirection ) )
@@ -281,7 +280,7 @@ class Boot extends Loggable {
             "secure" / "utilities" / "changeRequest"
             >> Hidden
             >> TestAccess ( () =>
-              if (workflowEnabled)
+              if (workflowEnabled && (CurrentUser.checkRights(Read("validator")) || CurrentUser.checkRights(Read("deployer"))))
                 Empty
               else
                 Full(RedirectWithState("/secure/utilities/eventLogs", redirection) )
