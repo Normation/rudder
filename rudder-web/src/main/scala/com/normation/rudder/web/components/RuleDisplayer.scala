@@ -185,7 +185,7 @@ class RuleDisplayer (
     if (directive.isDefined) {
       NodeSeq.Empty
     } else {
-      SHtml.ajaxButton("New Rule", () => showRulePopup(None), ("class" -> "new-icon btn btn-sm btn-success"))
+      SHtml.ajaxButton("Create Rule", () => showRulePopup(None), ("class" -> "new-icon btn btn-sm btn-success"))
     }
   }
 
