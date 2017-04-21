@@ -49,6 +49,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import net.liftweb.common.Full
 import com.normation.rudder.domain.Constants
+import net.liftweb.common.Failure
 
 
 
@@ -70,13 +71,17 @@ class PathComputerTest extends Specification {
   ////////////////////////// test //////////////////////////
 
   "The paths for " should {
+    "the root node should raise an error" in {
+      pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.mapValues(_.nodeInfo)) must beAnInstanceOf[Failure]
+    }
+
     "the nodeConfig should be " in {
-      pathComputer.computeBaseNodePath(node1.id, root.id, allNodeConfig) must
+      pathComputer.computeBaseNodePath(node1.id, root.id, allNodeConfig.mapValues(_.nodeInfo)) must
       beEqualTo(Full(NodePromisesPaths(node1.id,"/var/rudder/share/node1/rules", "/var/rudder/share/node1/rules.new", "/var/rudder/backup/node1/rules")))
     }
 
     "the nodeConfig2, behind a relay should be " in {
-      pathComputer.computeBaseNodePath(node2.id, root.id, allNodeConfig) must
+      pathComputer.computeBaseNodePath(node2.id, root.id, allNodeConfig.mapValues(_.nodeInfo)) must
       beEqualTo(Full(NodePromisesPaths(node2.id, "/var/rudder/share/node1/share/node2/rules", "/var/rudder/share/node1/share/node2/rules.new", "/var/rudder/backup/node1/share/node2/rules")))
     }
   }
