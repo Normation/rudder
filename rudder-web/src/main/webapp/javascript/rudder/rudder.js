@@ -581,7 +581,6 @@ function createTextAgentPolicyMode(isNode, currentPolicyMode, explanation){
   return badge;
 }
 
-
 function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation, container){
   var policyMode = currentPolicyMode.toLowerCase();
   var labelType  = "label-"+policyMode;
