@@ -156,7 +156,7 @@ class ReportDisplayer(
               (id.endDate match {
                 case None =>
                   s"This is expected, the node is reporting on the previous configuration policy and should report on the new one at latest" +
-                  " ${expirationDateTime.toString(dateFormat)}. Previous known states are displayed below."
+                  s" ${expirationDateTime.toString(dateFormat)}. Previous known states are displayed below."
                 case Some(exp) =>
                   s"This is unexpected, since the node is reporting on a configuration policy that expired at ${exp.toString(dateFormat)}."
               }) +
