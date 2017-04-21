@@ -231,8 +231,8 @@ object DisplayDirectiveTree extends Loggable {
             val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
               <span  class="tooltipable treeAction noRight directiveDetails fa fa-pencil" tooltipid={tooltipId} title="" onclick={redirectToDirectiveLink(directive.id).toJsCmd}> </span>
-						  <div class="tooltipContent" id={tooltipId}><div>Configure this Directive.</div></div>
-						</span>
+				<div class="tooltipContent" id={tooltipId}><div>Configure this Directive.</div></div>
+			</span>
           } else {
             NodeSeq.Empty
           }
