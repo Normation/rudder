@@ -121,6 +121,10 @@
 .new-icon.tech:before{
   content:"Edit techniques";
 }
+.btn.new-icon.no-icon:after{
+  content: "";
+  margin: 0;
+}
 .tw-bs .btn.btn-box-tool{
   padding-left:2px;
   padding-right:2px;
@@ -132,7 +136,6 @@
   .new-icon.tech:before{
     content:"Edit";
     position:relative;
-    left:2px;
   }
   .new-icon.tech:after{
     content:"";
