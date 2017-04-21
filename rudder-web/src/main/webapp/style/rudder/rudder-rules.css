@@ -70,7 +70,7 @@ label.rule-info + div{
   left: 50px;
 }
 .new-icon.category:before{
-  content:"New category";
+  content:"Add category";
 }
 .tw-bs .btn.btn-box-tool{
   padding-left:2px;
@@ -81,7 +81,7 @@ label.rule-info + div{
 }
 @media (min-width: 991px) and (max-width: 1300px){
   .new-icon.category:before{
-    content:"New";
+    content:"Add";
     position:relative;
     left:2px;
   }
