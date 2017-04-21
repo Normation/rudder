@@ -231,8 +231,6 @@ object DisplayDirectiveTree extends Loggable {
              $$('#${htmlId} .treeActions').show();
              $$('#${htmlId} a:first').addClass("treeOver jstree-hovered");
            } );
-
-
            $$('#${htmlId}').hover( function(e) {
              $$('.treeActions').hide();
              $$('.treeOver').removeClass("treeOver jstree-hovered");
@@ -242,10 +240,13 @@ object DisplayDirectiveTree extends Loggable {
              $$('.treeOver').removeClass("treeOver jstree-hovered");
              $$('#${htmlId} .treeActions').hide();
            } );
-
            $$('#${htmlId} .treeActions').click( function(e) {
              e.stopPropagation();
            } );
+           $$(window).on('resize',function(){
+             adjustHeight('.rudder_col > .col','#footer');
+           });
+           adjustHeight('.rudder_col > .col','#footer');
            """))
 
       override def body = {
@@ -255,8 +256,8 @@ object DisplayDirectiveTree extends Loggable {
             val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
               <img src="/images/icPen.png" class="tooltipable treeAction noRight directiveDetails" tooltipid={tooltipId} title="" onclick={redirectToDirectiveLink(directive.id).toJsCmd}/>
-						  <div class="tooltipContent" id={tooltipId}><div>Configure this Directive.</div></div>
-						</span>
+              <div class="tooltipContent" id={tooltipId}><div>Configure this Directive.</div></div>
+            </span>
           } else {
             NodeSeq.Empty
           }

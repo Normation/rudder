@@ -717,3 +717,16 @@ function updateHashString(key, value) {
   hash[key] = value;
   window.location.hash = "#" + JSON.stringify(hash);
 }
+
+//Adjust tree height
+function adjustHeight(treeId, toolbar){
+  var tree = $(treeId);
+  var maxHeight;
+  var treeOffset = tree.offset();
+  if(treeOffset){
+    var toolbarHeight = (toolbar && $(toolbar).offset()) ? parseFloat($(toolbar).css('height')) : 0;
+    var offsetTop = treeOffset.top + 15 + toolbarHeight;
+    maxHeight = 'calc(100vh - '+ offsetTop + 'px)';
+  }
+  tree.css('height',maxHeight);
+}
