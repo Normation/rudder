@@ -94,6 +94,7 @@ import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookEnvPair
 import ch.qos.logback.core.db.DataSourceConnectionSource
 import scala.concurrent.Future
+import com.normation.rudder.hooks.HooksImplicits
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -135,6 +136,8 @@ trait PromiseGenerationService extends Loggable {
     //plus the script environment variables used as script parameters
     import scala.collection.JavaConverters._
     val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
+
+    import HooksImplicits._
 
     val result = for {
       //fetch all - yep, memory is cheap... (TODO: size of that for 1000 nodes, 100 rules, 100 directives, 100 groups ?)
