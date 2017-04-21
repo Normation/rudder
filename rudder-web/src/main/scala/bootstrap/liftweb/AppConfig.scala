@@ -1673,6 +1673,9 @@ object RudderConfig extends Loggable {
       , nodeReadWriteMutex
       , nodeInfoServiceImpl
       , updateExpectedRepo
+      , pathComputer
+      , HOOKS_D
+      , HOOKS_IGNORE_SUFFIXES
   )
 
   /**

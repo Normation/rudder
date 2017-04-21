@@ -48,6 +48,8 @@ import net.liftweb.common.Full
 import net.liftweb.common.Box
 import com.normation.rudder.domain.Constants
 import org.apache.commons.io.FilenameUtils
+import com.normation.rudder.domain.nodes.NodeInfo
+import net.liftweb.common.Failure
 
 
 /**
@@ -57,10 +59,11 @@ import org.apache.commons.io.FilenameUtils
  */
 trait PathComputer {
 
-  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration]): Box[NodePromisesPaths]
+  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeInfo]): Box[NodePromisesPaths]
 
   def getRootPath(agentType : AgentType) : String
 }
+
 
 
 
@@ -93,16 +96,20 @@ class PathComputerImpl(
    * @param searchedNodeConfiguration : the machine we search
    * @return
    */
-  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration]): Box[NodePromisesPaths] = {
-    for {
-      path <- recurseComputePath(rootNodeId, searchedNodeId, "/"  + searchedNodeId.value, allNodeConfigs)
-    } yield {
-      NodePromisesPaths(
-          searchedNodeId
-        , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix)
-        , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix + newPostfix)
-        , FilenameUtils.normalize(backupFolder + path + promisesPrefix)
-      )
+  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeInfo]): Box[NodePromisesPaths] = {
+    if(searchedNodeId == rootNodeId) {
+      Failure("ComputeBaseNodePath can not be used to get the (special) root paths")
+    } else {
+      for {
+        path <- recurseComputePath(rootNodeId, searchedNodeId, "/"  + searchedNodeId.value, allNodeConfigs)
+      } yield {
+        NodePromisesPaths(
+            searchedNodeId
+          , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix)
+          , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix + newPostfix)
+          , FilenameUtils.normalize(backupFolder + path + promisesPrefix)
+        )
+      }
     }
   }
 
@@ -131,21 +138,21 @@ class PathComputerImpl(
    * @param path
    * @return
    */
-  private def recurseComputePath(fromNodeId: NodeId, toNodeId: NodeId, path : String, allNodeConfig: Map[NodeId, NodeConfiguration]) : Box[String] = {
+  private def recurseComputePath(fromNodeId: NodeId, toNodeId: NodeId, path : String, allNodeConfig: Map[NodeId, NodeInfo]) : Box[String] = {
     if (fromNodeId == toNodeId) {
       Full(path)
     } else {
       for {
         toNode <- Box(allNodeConfig.get(toNodeId)) ?~! s"Missing node with id ${toNodeId.value} when trying to build the promise files path for node ${fromNodeId.value}"
-        pid    =  toNode.nodeInfo.policyServerId
+        pid    =  toNode.policyServerId
         parent <- Box(allNodeConfig.get(pid)) ?~! s"Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the promise files for node ${fromNodeId.value}"
         result <- parent match {
-                    case root if root.nodeInfo.id == NodeId("root") =>
+                    case root if root.id == NodeId("root") =>
                         // root is a specific case, it is the root of everything
-                        recurseComputePath(fromNodeId, root.nodeInfo.id, path, allNodeConfig)
+                        recurseComputePath(fromNodeId, root.id, path, allNodeConfig)
 
                     case policyParent =>
-                        recurseComputePath(fromNodeId, policyParent.nodeInfo.id, policyParent.nodeInfo.id.value + "/" + relativeShareFolder + "/" + path, allNodeConfig)
+                        recurseComputePath(fromNodeId, policyParent.id, policyParent.id.value + "/" + relativeShareFolder + "/" + path, allNodeConfig)
                   }
       } yield {
         result

@@ -218,9 +218,6 @@ class Cf3PromisesFileWriterServiceImpl(
     , generationTime  : DateTime
   ) : Box[Seq[NodeConfiguration]] = {
 
-
-
-
     val nodeConfigsToWrite = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
     val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
     val techniqueIds = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
@@ -306,7 +303,7 @@ class Cf3PromisesFileWriterServiceImpl(
                                         , systemEnv
                             )
                             HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
-                            res
+                            Full(res)
                           }
       movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
       nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
@@ -324,7 +321,7 @@ class Cf3PromisesFileWriterServiceImpl(
                                         , systemEnv
                             )
                             HooksLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
-                            res
+                            Full(res)
                           }
     } yield {
       val ids = movedPromises.map { _.nodeId }.toSet
@@ -368,7 +365,7 @@ class Cf3PromisesFileWriterServiceImpl(
                       , pathComputer.getRootPath(agentType) + backupFileExtension
                     ))
                   } else {
-                    pathComputer.computeBaseNodePath(config.nodeInfo.id, rootNodeConfigId, allNodeConfigs).map { case NodePromisesPaths(id, base, news, backup) =>
+                    pathComputer.computeBaseNodePath(config.nodeInfo.id, rootNodeConfigId, allNodeConfigs.mapValues(_.nodeInfo)).map { case NodePromisesPaths(id, base, news, backup) =>
                         val postfix = agentType.toRulesPath
                         NodePromisesPaths(id, base + postfix, news + postfix, backup + postfix)
                     }
@@ -532,7 +529,6 @@ class Cf3PromisesFileWriterServiceImpl(
     }
 
   }
-
 
   ///////////// utilities /////////////
 

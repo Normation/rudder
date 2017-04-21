@@ -1,0 +1,21 @@
+= policy-generation-node-finished
+
+== When/What ?
+
+This directory contains hooks executed before a node is deleted.
+
+Typically, these hooks interact with external services using
+knowledge to validate if the node should actually be deleted. 
+
+== Parameters
+
+Hooks parameters are passed by environment variable:
+
+- RUDDER_NODEID: the nodeId
+- RUDDER_NODE_POLICY_SERVER: the node policy server id
+- RUDDER_NODE_ROLES: a comma separated list of node's server role name
+- RUDDER_POLICIES_DIRECTORY_CURRENT: the full path of the base directory containing policies for that node
+- RUDDER_POLICIES_DIRECTORY_NEW: the full path of the base directory containing next policies for that node (during a generation)
+- RUDDER_POLICIES_DIRECTORY_ARCHIVE: the full path of the base directory containing previous policies for that node
+
+ 
