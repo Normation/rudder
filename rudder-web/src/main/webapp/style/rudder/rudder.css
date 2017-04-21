@@ -2716,4 +2716,12 @@ label span.text-fit{
 #changesChartContainer {
 	height: 40vh;
 }
-
+.c3-tooltip tr td{
+  padding: 0 5px;
+}
+#changeDisplay > .ui-tabs-panel.ui-widget-content{
+  position: relative;
+  width: 100%;
+  border-top: none;
+  top: -2px;
+}
