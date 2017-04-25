@@ -247,6 +247,7 @@ object DisplayDirectiveTree extends Loggable {
              adjustHeight('.rudder_col > .col','#footer');
            });
            adjustHeight('.rudder_col > .col','#footer');
+           $$('.col.col-sm').on('scroll',function(){$$('.ui-tooltip').hide();});
            """))
 
       override def body = {
