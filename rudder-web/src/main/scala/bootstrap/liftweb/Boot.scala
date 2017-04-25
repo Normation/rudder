@@ -245,7 +245,7 @@ class Boot extends Loggable {
         , Menu("apiManagement", <span>API Accounts</span>) /
             "secure" / "administration" / "apiManagement"
             >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Read("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Write("administration")) )
       )
 
     def utilitiesMenu = {
