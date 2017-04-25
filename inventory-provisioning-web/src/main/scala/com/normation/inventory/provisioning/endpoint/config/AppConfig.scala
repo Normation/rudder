@@ -292,6 +292,8 @@ class AppConfig {
       , WAITING_QUEUE_SIZE
       , fullInventoryRepository
       , new InventoryDigestServiceV1(fullInventoryRepository)
+      , rwLdapConnectionProvider
+      , pendingNodesDit
     )
   }
 }
