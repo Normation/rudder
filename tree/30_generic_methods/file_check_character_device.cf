@@ -23,7 +23,7 @@
 # file is a character device, or `file_check_character_device_${file_name}_{not_ok, reached, not_kept, failed}` if
 # the file is not a character device or does not exist
 #
-# @parameter file_name File name
+# @parameter file_name File name (absolute path on the target node)
 # 
 # @class_prefix file_check_character_device
 # @class_parameter file_name

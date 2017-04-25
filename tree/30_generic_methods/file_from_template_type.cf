@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name File from template with type
-# @description This is a bundle to build a file from a template
+# @description Build a file from a template
 # @documentation These methods write a file based on a provided template and the
 # data available to the agent.
 # 
@@ -97,8 +97,8 @@
 #
 # @agent_version >=3.6
 #
-# @parameter source_template Source file containing a template to be expanded
-# @parameter destination     Destination file
+# @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
+# @parameter destination     Destination file (absolute path on the target node)
 # @parameter template_type   Template type (cfengine, jinja2 or mustache)
 #
 # @class_prefix file_from_template

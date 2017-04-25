@@ -24,8 +24,8 @@
 # if it is not a symbolic link, or any of the files does not exist. The symlink's path is resolved to the 
 # absolute path and checked against the target file's path, which must also be an absolute path.
 #
-# @parameter symlink Symbolic link (absolute path)
-# @parameter target Target file (absolute path)
+# @parameter symlink Symbolic link (absolute path on the target node)
+# @parameter target Target file (absolute path on the target node)
 # 
 # @class_prefix file_check_symlinkto
 # @class_parameter symlink

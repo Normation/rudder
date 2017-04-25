@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name File copy from remote source recurse
-# @description This is a bundle to ensure that a file or directory is copied from a remote source
+# @description Ensure that a file or directory is copied from a policy server
 # @documentation This method requires that the policy server is configured to accept
 # copy of the source file or directory from the agents it will be applied to.
 # 
@@ -31,8 +31,8 @@
 # /var/rudder/configuration-repository/shared-files/PATH_TO_YOUR_DIRECTORY_OR_FILE
 # ```
 #
-# @parameter source      Source file 
-# @parameter destination Destination file
+# @parameter source      Source file (absolute path on the policy server)
+# @parameter destination Destination file (absolute path on the target node)
 # @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
 # 
 # @class_prefix file_copy_from_remote_source
