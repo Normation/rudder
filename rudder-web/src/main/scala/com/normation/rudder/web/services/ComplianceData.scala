@@ -264,6 +264,9 @@ object ComputePolicyMode {
  *
  */
 
+
+
+
 /*
  *   Javascript object containing all data to create a line about a change in the DataTable
  *   { "nodeName" : Name of the node [String]
@@ -283,10 +286,10 @@ case class ChangeLine (
   val json = {
     JsObj (
         ( "nodeName"      -> nodeName.getOrElse(report.nodeId.value) )
-      , ( "message"       -> report.message )
-      , ( "directiveName" -> directiveName.getOrElse(report.directiveId.value) )
-      , ( "component"     -> report.component )
-      , ( "value"         -> report.keyValue )
+      , ( "message"       -> escapeHTML(report.message) )
+      , ( "directiveName" -> escapeHTML(directiveName.getOrElse(report.directiveId.value)) )
+      , ( "component"     -> escapeHTML(report.component) )
+      , ( "value"         -> escapeHTML(report.keyValue) )
       , ( "executionDate" -> DateFormaterService.getFormatedDate(report.executionTimestamp ))
     )
   }
@@ -343,7 +346,7 @@ case class RuleComplianceLine (
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "rule"       ->  rule.name )
+        ( "rule"       -> escapeHTML(rule.name) )
       , ( "compliance" -> jsCompliance(compliance) )
       , ( "compliancePercent"       -> compliance.compliance)
       , ( "id"         -> rule.id.value )
@@ -384,10 +387,10 @@ case class DirectiveComplianceLine (
 ) extends JsTableLine {
   val json =  {
     JsObj (
-        ( "directive"        -> directive.name )
+        ( "directive"        -> escapeHTML(directive.name) )
       , ( "id"               -> directive.id.value )
-      , ( "techniqueName"    -> techniqueName )
-      , ( "techniqueVersion" -> techniqueVersion.toString )
+      , ( "techniqueName"    -> escapeHTML(techniqueName) )
+      , ( "techniqueVersion" -> escapeHTML(techniqueVersion.toString) )
       , ( "compliance"       -> jsCompliance(compliance))
       , ( "compliancePercent"       -> compliance.compliance)
       , ( "details"          -> details.json )
@@ -420,7 +423,7 @@ case class NodeComplianceLine (
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "node"       -> nodeInfo.hostname )
+        ( "node"       -> escapeHTML(nodeInfo.hostname) )
       , ( "compliance" -> jsCompliance(compliance))
       , ( "compliancePercent"       -> compliance.compliance)
       , ( "id"         -> nodeInfo.id.value )
@@ -454,7 +457,7 @@ case class ComponentComplianceLine (
 
   val json = {
     JsObj (
-        ( "component"   -> component )
+        ( "component"   -> escapeHTML(component) )
       , ( "compliance"  -> jsCompliance(compliance))
       , ( "compliancePercent"       -> compliance.compliance)
       , ( "details"     -> details.json )
@@ -486,10 +489,10 @@ case class ValueComplianceLine (
 
   val json = {
     JsObj (
-        ( "value"       -> value )
+        ( "value"       -> escapeHTML(value) )
       , ( "status"      -> status )
       , ( "statusClass" -> statusClass )
-      , ( "messages"    -> JsArray(messages.map{ case(s, m) => JsObj(("status" -> s), ("value" -> m))}))
+      , ( "messages"    -> JsArray(messages.map{ case(s, m) => JsObj(("status" -> s), ("value" -> escapeHTML(m)))}))
       , ( "compliance"  -> jsCompliance(compliance))
       , ( "compliancePercent"       -> compliance.compliance)
       //unique id, usable as DOM id - rules, directives, etc can
