@@ -19,7 +19,7 @@
 # @name File create
 # @description Create a file if it doesn't exist
 #
-# @parameter target     File to create
+# @parameter target     File to create (absolute path on the target node)
 #
 # @class_prefix file_create
 # @class_parameter target

@@ -23,8 +23,8 @@
 # two files `${file_name_1}` and `${file_name_2}` are hard links of each other, or `file_check_hardlink_${file_name_1}_{not_ok, reached, not_kept, failed}` if
 # if the files are not hard links.
 #
-# @parameter file_name_1   File name #1
-# @parameter file_name_2   File name #2
+# @parameter file_name_1   File name #1 (absolute path on the target node)
+# @parameter file_name_2   File name #2 (absolute path on the target node)
 # 
 # @class_prefix file_check_hardlink
 # @class_parameter file_name_1

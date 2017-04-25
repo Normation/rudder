@@ -36,7 +36,7 @@
 # file_ensure_key_value_parameter_not_in_list("/etc/default/grub", "GRUB_CMDLINE", "=", "dom0_max_vcpus=32", " ", "\"", "\"");
 # ```
 #
-# @parameter file File name to edit
+# @parameter file File name to edit (absolute path on the target node)
 # @parameter key Full key name
 # @parameter key_value_separator character used to separate key and value in a key-value line
 # @parameter parameter_regex Regular expression matching the sub-value to ensure is not present in the list of parameters that form the value part of that line
