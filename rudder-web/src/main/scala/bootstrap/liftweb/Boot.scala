@@ -133,10 +133,6 @@ class Boot extends Loggable {
     // If one day we handle it in Rudder we should start from here by modifying code here..
     Locale.setDefault(Locale.ENGLISH)
 
-    ////////// bootstraps checks //////////
-    val checks = RudderConfig.allBootstrapChecks
-    checks.checks()
-
     LiftRules.early.append( {req: provider.HTTPRequest => req.setCharacterEncoding("UTF-8")})
     LiftRules.ajaxStart = Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
     LiftRules.ajaxEnd = Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)

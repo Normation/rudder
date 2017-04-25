@@ -889,6 +889,12 @@ object RudderConfig extends Loggable {
         ApplicationLogger.info(p)
       }
     }
+
+    ////////// bootstraps checks //////////
+    // they must be out of Lift boot() because that method
+    // is encapsulated in a try/catch ( see net.liftweb.http.provider.HTTPProvider.bootLift )
+    val checks = RudderConfig.allBootstrapChecks
+    checks.checks()
   }
 
   //
@@ -1699,7 +1705,8 @@ object RudderConfig extends Loggable {
   private[this] lazy val ruleCategoriesDirectory = new File(new File(RUDDER_DIR_GITROOT),ruleCategoriesDirectoryName)
 
   lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
-      new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
+      new CheckConnections(dataSourceProvider, rwLdap)
+    , new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
         roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen, asyncDeploymentAgentImpl) //new CheckDirectiveBusinessRules()
