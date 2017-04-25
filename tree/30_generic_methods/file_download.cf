@@ -24,7 +24,7 @@
 # It tries `curl` first, and `wget` as fallback.
 #
 # @parameter source      URL to download from
-# @parameter destination File destination
+# @parameter destination File destination (absolute path on the target node)
 # 
 # @class_prefix file_download
 # @class_parameter destination

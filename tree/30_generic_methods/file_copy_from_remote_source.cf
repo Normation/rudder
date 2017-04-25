@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name File copy from remote source
-# @description This is a bundle to ensure that a file or directory is copied from a remote source
+# @description Ensure that a file or directory is copied from a policy server
 # @documentation *Note*: This method uses CFEngine file copy protocol, and can only download files from
 # the policy server. To download a file from an external source, you can use
 # HTTP with the [file_download](#file_download) method.
@@ -36,8 +36,8 @@
 # /var/rudder/configuration-repository/shared-files/PATH_TO_YOUR_FILE
 # ```
 #
-# @parameter source      Source file 
-# @parameter destination Destination file
+# @parameter source      Source file (absolute path on the policy server)
+# @parameter destination Destination file (absolute path on the target node)
 # 
 # @class_prefix file_copy_from_remote_source
 # @class_parameter destination

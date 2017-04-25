@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name Permissions type recursion
-# @description This is a bundle to ensure that a file or directory is present and has the right mode/owner/group
+# @description Ensure that a file or directory is present and has the right mode/owner/group
 #
 # @parameter path      Path to edit
 # @parameter mode      Mode of the path to edit

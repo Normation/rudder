@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name File from a mustache template
-# @description This is a bundle to build a file from a mustache template
+# @description Build a file from a mustache template
 # @documentation See [file_from_template_type](#file_from_template_type) for general documentation about
 # templates usage.
 #
@@ -163,8 +163,8 @@
 #
 # @agent_version >=3.6
 #
-# @parameter source_template Source file containing a template to be expanded
-# @parameter destination     Destination file
+# @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
+# @parameter destination     Destination file (absolute path on the target node)
 #
 # @class_prefix file_from_template
 # @class_parameter destination
