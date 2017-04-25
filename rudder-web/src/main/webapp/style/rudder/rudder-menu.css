@@ -664,6 +664,9 @@ a.sidebar-toggle{
   background: rgba(0,0,0,0.1);
   color: #f6f6f6;
 }
+.main-header .navbar .nav>li> a#logout{
+  max-height:50px;
+}
 .notifications-menu .rudder-badge {
   position: relative;
   left: 7px;
