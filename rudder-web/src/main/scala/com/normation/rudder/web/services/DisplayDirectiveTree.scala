@@ -315,8 +315,7 @@ object DisplayDirectiveTree extends Loggable {
             }}
           </span> ++
           editButton ++
-          Script(JsRaw(s"""
-            $$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation.toString()}", "#boxDirectiveTree"))""")
+          Script(JsRaw(s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation.toString()}", "#boxDirectiveTree"));""")
           )
         }
 
@@ -334,6 +333,7 @@ object DisplayDirectiveTree extends Loggable {
         angular.bootstrap(scopeElmnt, ['filters']);
       }
       adjustHeight('#activeTechniquesTree');
+      $$('#activeTechniquesTree').on('scroll',function(){$$('.tooltip').hide();});
       $$(".bsTooltip").bsTooltip({container: "${if(addEditLink){"#editRuleZonePortlet"}else{"#boxDirectiveTree"}}"})
     """))
     directiveLib.subCategories.filterNot(_.isSystem).sortBy( _.name ).flatMap { cat => displayCategory(cat, cat.id.value).toXml }

@@ -44,6 +44,8 @@ import org.springframework.web.context.support.WebApplicationContextUtils
 import org.springframework.core.io.{ClassPathResource => CPResource,FileSystemResource => FSResource}
 import java.io.File
 import com.typesafe.config.ConfigException
+import com.normation.rudder.domain.logger.ApplicationLogger
+import javax.servlet.UnavailableException
 
 /**
  * A context loader listener for initializing Spring webapp context
@@ -85,8 +87,24 @@ class LiftInitContextListener extends ContextLoaderListener {
     /// init all our non-spring services ///
 
     val ms = System.currentTimeMillis()
-    RudderConfig.init
+    /*
+     * translate exception to UnavailableException
+     *
+     * Note that that won't work for most exception thrown in RudderConfig, due to
+     * current arch: RudderConfig init all object in its constructor, and that will
+     * throw a java.lang.ExceptionInInitializerError (which can't be catched here,
+     * because it happens out of our scope, before init).
+     * None the less, that error will also stop jetty for that context, which is
+     * what we want in the end (it will be not so nice, thought)
+     */
 
+    try {
+      RudderConfig.init
+    } catch {
+      case ex if(!ex.isInstanceOf[UnavailableException]) =>
+        ApplicationLogger.error("Fatal error during boot", ex)
+        throw new UnavailableException("An unrecoverable error occured during boot")
+    }
 
     //init Spring
 
