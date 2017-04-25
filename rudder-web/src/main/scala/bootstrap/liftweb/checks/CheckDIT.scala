@@ -43,7 +43,6 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import javax.servlet.UnavailableException
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.ldap.sdk.RwLDAPConnection
 
 /**
@@ -67,7 +66,7 @@ class CheckDIT(
   override def checks() : Unit = {
 
     def FAIL(msg:String) = {
-      ApplicationLogger.error(msg)
+      logger.error(msg)
       throw new UnavailableException(msg)
     }
 
@@ -117,10 +116,10 @@ class CheckDIT(
         e <- ditEntries.toList
       } yield {
         if(con.exists(e.dn)) {
-          ApplicationLogger.debug("DIT entry '%s' already in LDAP directory, nothing to do".format(e.dn))
+          logger.debug("DIT entry '%s' already in LDAP directory, nothing to do".format(e.dn))
           (Full(e),e.dn)
         } else {
-          ApplicationLogger.info("Missing DIT entry '%s', trying to add it".format(e.dn))
+          logger.info("Missing DIT entry '%s', trying to add it".format(e.dn))
           (con.save(e), e.dn)
         }
       }).filter { //only keep those on error, and check if the resulting list is empty
@@ -142,7 +141,7 @@ class CheckDIT(
       case Full(_) => //ok
     }
 
-    ApplicationLogger.info("All the required DIT entries are present in the LDAP directory")
+    logger.info("All the required DIT entries are present in the LDAP directory")
   }
 
 }
