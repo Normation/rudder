@@ -87,10 +87,10 @@ case class ChangeLine (
   val json = {
     JsObj (
         ( "nodeName" -> nodeName.getOrElse(report.nodeId.value) )
-      , ( "message" -> report.message )
-      , ( "directiveName" -> directiveName.getOrElse(report.directiveId.value) )
-      , ( "component"         -> report.component )
-      , ( "value"    -> report.keyValue )
+      , ( "message" -> xml.Utility.escape(report.message) )
+      , ( "directiveName" -> xml.Utility.escape(directiveName.getOrElse(report.directiveId.value)) )
+      , ( "component"         -> xml.Utility.escape(report.component) )
+      , ( "value"    -> xml.Utility.escape(report.keyValue) )
       , ( "executionDate"       -> DateFormaterService.getFormatedDate(report.executionTimestamp ))
     )
   }
@@ -144,7 +144,7 @@ case class RuleComplianceLine (
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "rule"       ->  rule.name )
+        ( "rule"       ->  xml.Utility.escape(rule.name) )
       , ( "compliance" -> jsCompliance(compliance) )
       , ( "compliancePercent"       -> compliance.compliance)
       , ( "id"         -> rule.id.value )
@@ -180,10 +180,10 @@ case class DirectiveComplianceLine (
 
   val json =  {
     JsObj (
-        ( "directive"        -> directive.name )
+        ( "directive"        -> xml.Utility.escape(directive.name) )
       , ( "id"               -> directive.id.value )
-      , ( "techniqueName"    -> techniqueName )
-      , ( "techniqueVersion" -> techniqueVersion.toString )
+      , ( "techniqueName"    -> xml.Utility.escape(techniqueName) )
+      , ( "techniqueVersion" -> xml.Utility.escape(techniqueVersion.toString) )
       , ( "compliance"       -> jsCompliance(compliance))
       , ( "compliancePercent"       -> compliance.compliance)
       , ( "details"          -> details.json )
@@ -213,7 +213,7 @@ case class NodeComplianceLine (
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "node"       -> nodeInfo.hostname )
+        ( "node"       -> xml.Utility.escape(nodeInfo.hostname) )
       , ( "compliance" -> jsCompliance(compliance))
       , ( "compliancePercent"       -> compliance.compliance)
       , ( "id"         -> nodeInfo.id.value )
@@ -245,7 +245,7 @@ case class ComponentComplianceLine (
 
   val json = {
     JsObj (
-        ( "component"   -> component )
+        ( "component"   -> xml.Utility.escape(component) )
       , ( "compliance"  -> jsCompliance(compliance))
       , ( "compliancePercent"       -> compliance.compliance)
       , ( "details"     -> details.json )
@@ -277,10 +277,10 @@ case class ValueComplianceLine (
 
   val json = {
     JsObj (
-        ( "value"       -> value )
+        ( "value"       -> xml.Utility.escape(value) )
       , ( "status"      -> status )
       , ( "statusClass" -> statusClass )
-      , ( "messages"    -> JsArray(messages.map{ case(s, m) => JsObj(("status" -> s), ("value" -> m))}))
+      , ( "messages"    -> JsArray(messages.map{ case(s, m) => JsObj(("status" -> s), ("value" -> xml.Utility.escape(m)))}))
       , ( "compliance"  -> jsCompliance(compliance))
       , ( "compliancePercent"       -> compliance.compliance)
       //unique id, usable as DOM id - rules, directives, etc can
