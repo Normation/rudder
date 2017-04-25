@@ -73,6 +73,9 @@ import com.normation.inventory.services.provisioning.ReportUnmarshaller
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
 import com.normation.inventory.domain.InventoryReport
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.inventory.ldap.core.InventoryDit
 
 object FusionReportEndpoint{
   val printer = PeriodFormat.getDefault
@@ -81,11 +84,13 @@ object FusionReportEndpoint{
 
 @Controller
 class FusionReportEndpoint(
-    unmarshaller : ReportUnmarshaller
-  , reportSaver  : ReportSaver[Seq[LDIFChangeRecord]]
-  , maxQueueSize : Int
-  , repo         : FullInventoryRepository[Seq[LDIFChangeRecord]]
-  , digestService: InventoryDigestServiceV1
+    unmarshaller    : ReportUnmarshaller
+  , reportSaver     : ReportSaver[Seq[LDIFChangeRecord]]
+  , maxQueueSize    : Int
+  , repo            : FullInventoryRepository[Seq[LDIFChangeRecord]]
+  , digestService   : InventoryDigestServiceV1
+  , ldap            : LDAPConnectionProvider[RwLDAPConnection]
+  , nodeInventoryDit: InventoryDit
 ) extends Loggable {
 
 
@@ -155,25 +160,51 @@ class FusionReportEndpoint(
       )
     }
 
-    def save(report: InventoryReport) = {
+    /*
+     * Before actually trying to save, check that LDAP is up to at least
+     * avoid the case where we are telling the use "everything is fine"
+     * but just fail after.
+     */
+    def save(reportName: String, report: InventoryReport) = {
+      checkLdapAlive match {
+        case Full(ok) =>
 
-      val canDo = synchronized {
-        if(queueSize.incrementAndGet(1) <= maxQueueSize) {
-          // the decrement will be done by the report processor
-          true
-        } else {
-          // clean the not used increment
-          queueSize.decrement(1)
-          false
-        }
+          val canDo = synchronized {
+            if(queueSize.incrementAndGet(1) <= maxQueueSize) {
+              // the decrement will be done by the report processor
+              true
+            } else {
+              // clean the not used increment
+              queueSize.decrement(1)
+              false
+            }
+          }
+
+          if(canDo) {
+            //queue the inventory processing
+            reportProcess.onNext(report)
+            new ResponseEntity("Inventory correctly received and sent to inventory processor.\n", HttpStatus.ACCEPTED)
+          } else {
+            new ResponseEntity("Too many inventories waiting to be saved.\n", HttpStatus.SERVICE_UNAVAILABLE)
+          }
+
+        case eb: EmptyBox =>
+          val e = (eb ?~! s"There is an error with the LDAP backend preventing acceptation of inventory '${reportName}'")
+          logger.error(e.messageChain)
+          new ResponseEntity(e.messageChain, HttpStatus.INTERNAL_SERVER_ERROR)
       }
+    }
 
-      if(canDo) {
-        //queue the inventory processing
-        reportProcess.onNext(report)
-        new ResponseEntity("Inventory correctly received and sent to inventory processor.\n", HttpStatus.ACCEPTED)
-      } else {
-        new ResponseEntity("Too many inventories waiting to be saved.\n", HttpStatus.SERVICE_UNAVAILABLE)
+    /*
+     * A method that check LDAP health status.
+     * It must be quick and simple.
+     */
+    def checkLdapAlive: Box[String] = {
+      for {
+        con <- ldap
+        res <- con.get(nodeInventoryDit.NODES.dn, "1.1")
+      } yield {
+        "ok"
       }
     }
 
@@ -208,7 +239,7 @@ class FusionReportEndpoint(
                       // For now we set the status to certified since we want pending inventories to have their inventory signed
                       // When we will have a 'pending' status for keys we should set that value instead of certified
                       val certifiedReport = report.copy(node = report.node.copyWithMain(main => main.copy(keyStatus = CertifiedKey)))
-                      save(certifiedReport)
+                      save(inventory, certifiedReport)
                     } else {
                       // Signature is not valid, reject inventory
                       val msg = s"Rejecting Inventory '${inventory}' for Node '${report.node.main.id.value}' because signature is not valid, you can update the inventory key by running the following command '/opt/rudder/bin/rudder-keys change-key ${report.node.main.id.value} <your new public key>'"
@@ -238,7 +269,7 @@ class FusionReportEndpoint(
                 digestService.getKey(report) match {
                   // Status is undefined => We accept unsigned inventory
                   case Full((_,UndefinedKey)) => {
-                    save(report)
+                    save(inventory, report)
                   }
                   // We are in certified state, refuse inventory with no signature
                   case Full((_,CertifiedKey))  =>
