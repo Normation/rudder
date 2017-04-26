@@ -112,7 +112,7 @@ class LiftInitContextListener extends ContextLoaderListener {
     try {
       RudderConfig.init
     } catch {
-      case ex =>
+      case ex: Throwable =>
         ApplicationLogger.error("Fatal error during boot, Rudder will stop now", ex)
         //make the JVM throw the exception
         ThrowIllegalAccessException.referenceMe
