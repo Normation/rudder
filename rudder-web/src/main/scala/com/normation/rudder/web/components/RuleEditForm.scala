@@ -168,10 +168,6 @@ class RuleEditForm(
   private[this] val getRootRuleCategory = RudderConfig.roRuleCategoryRepository.getRootCategory _
   private[this] val configService       = RudderConfig.configService
 
-  private[this] val usedDirectiveIds = roRuleRepository.getAll().getOrElse(Seq()).flatMap { case r =>
-    r.directiveIds.map( id => (id -> r.id))
-  }.groupBy( _._1 ).mapValues( _.size).toSeq
-
   //////////////////////////// public methods ////////////////////////////
   val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
 
@@ -269,6 +265,10 @@ class RuleEditForm(
   }
 
   private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, globalMode : GlobalPolicyMode) : NodeSeq = {
+
+    val usedDirectiveIds = roRuleRepository.getAll().getOrElse(Seq()).flatMap { case r =>
+      r.directiveIds.map( id => (id -> r.id))
+    }.groupBy( _._1 ).mapValues( _.size).toSeq
 
     //is't there an other way to do that? We already have the target/name
     //in the tree, so there's just the existing id to find back
