@@ -97,7 +97,7 @@ class CheckDIT(
           FAIL { "There is some required entries missing in the LDAP directory: %s".format(
             list.map {
               case (Failure(m,_,_), dn) => "%s (error message: %s)".format(dn.toString, m)
-              case (Empty,dn) => "%s (no error message)".format(dn.toString)
+              case (Empty,dn) => dn.toString
               case _ => "" //strange...
             }.mkString(" | ")
           )}
@@ -130,7 +130,7 @@ class CheckDIT(
           FAIL { "There is some required entries missing in the LDAP directory: %s".format(
             list.map {
               case (Failure(m,_,_), dn) => "%s (error message: %s)".format(dn.toString, m)
-              case (Empty,dn) => "%s (no error message)".format(dn.toString)
+              case (Empty,dn) => dn.toString
               case _ => "" //strange...
             }.mkString(" | ")
           )}
