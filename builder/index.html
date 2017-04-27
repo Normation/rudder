@@ -246,19 +246,16 @@
                               </h4>
                               <br style="clear:both"/>
                               <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index">
-
                                 <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter" >
                                 <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple>
                                   <div class="text-danger" ng-message="constraint">
                                     Invalid constraint for parameter: '{{parameter.name}}'
                                   </div>
                                 </ng-messages>
-                                <ng-messages ng-if="!getClassParameter(method_call) && parameter.$errors.length <= 0">
-                                  <div class="requiredParameters">
-                                    <span class="glyphicon glyphicon-exclamation-sign"></span>
-                                    Required parameters missing
-                                  </div>
-                                </ng-messages>
+                              </div>
+                              <div class="requiredParameters" ng-if="checkMissingParameters(method_call.parameters)">
+                                <span class="glyphicon glyphicon-exclamation-sign"></span>
+                                Required parameters missing
                               </div>
                               <div class="pull-left method-param" >
                                 <div ng-if="getClassParameter(method_call)">
