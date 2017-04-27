@@ -227,10 +227,12 @@ html, body, .Override.container{
     font-size: 14px;
 }
 
+.table-ncf > tbody > tr > td {
+  word-break: break-word;
+}
 .table-ncf > tbody > tr:hover > td {
     background-color: #E8E8E8;
 }
-
 textarea.form-control {
   resize:none;
   min-height:34px;
