@@ -92,7 +92,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   def dispatch = {
     case "render" =>
       policyServers match {
-        case e:EmptyBox =>  errorMessage(e)
+        case e:EmptyBox =>  errorMessage("#allowedNetworksForm", e)
         case Full(seq) =>
           // we need to order the seq to have root first
           val sortedSeq =  Constants.ROOT_POLICY_SERVER_ID +: seq.filter(x => x != Constants.ROOT_POLICY_SERVER_ID)
@@ -102,11 +102,11 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   }
 
 
-  def errorMessage(b:EmptyBox) = {
+  def errorMessage(htmlId: String, b:EmptyBox) = {
     val error = b ?~! "Error when processing allowed network"
     logger.debug(error.messageChain, b)
 
-    "#allowedNetworksForm *" #> { (x:NodeSeq) =>
+    s"${htmlId} *" #> { (x:NodeSeq) =>
       <div class="error">
       <p>An error occured when trying to get the list of existing allowed networks</p>
       {
@@ -123,7 +123,6 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   def renderForm(policyServerId: NodeId) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
     val allowedNetworksFormId = "allowedNetworksForm" + policyServerId.value
-    val currentNets = psService.getAuthorizedNetworks(policyServerId)
 
     val policyServerName = nodeInfoService.getNodeInfo(policyServerId) match {
       case Full(Some(nodeInfo)) =>
@@ -137,6 +136,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         <span class="error">Unknown hostname</span>
     }
 
+    val currentNets = psService.getAuthorizedNetworks(policyServerId)
     val allowedNetworks = allowedNetworksMap.getOrElseUpdate(policyServerId,
         Buffer() ++ currentNets.getOrElse(Nil).map(n => VH(net = n)))
 
@@ -179,7 +179,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
             Replace(allowedNetworksFormId, outerXml.applyAgain) &
             successPopup
-          case e:EmptyBox => SetHtml(allowedNetworksFormId,errorMessage(e)(outerXml.applyAgain))
+          case e:EmptyBox => SetHtml(allowedNetworksFormId,errorMessage(s"#${allowedNetworksFormId}", e)(outerXml.applyAgain))
         }
 
       } else Noop
@@ -200,32 +200,36 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
 
     //process the list of networks
-    "#allowedNetworksForm [id]" #> allowedNetworksFormId andThen
-    "#policyServerDetails" #> <h3>{"Allowed networks for policy server "}{policyServerName} {s"(Rudder ID: ${policyServerId.value})"}</h3> &
-    "#allowNetworkFields *" #> { (xml:NodeSeq) =>
-      allowedNetworks.flatMap { case VH(i,net) =>
-        val id = "network_"+ i
+    currentNets match {
+      case eb: EmptyBox => errorMessage("#allowedNetworksForm", eb)
+      case _            =>
+        "#allowedNetworksForm [id]" #> allowedNetworksFormId andThen
+        "#policyServerDetails" #> <h3>{"Allowed networks for policy server "}{policyServerName} {s"(Rudder ID: ${policyServerId.value})"}</h3> &
+        "#allowNetworkFields *" #> { (xml:NodeSeq) =>
+          allowedNetworks.flatMap { case VH(i,net) =>
+            val id = "network_"+ i
 
-        (
-          ".deleteNetwork" #> SHtml.ajaxSubmit("-", () => delete(i)) &
-          "errorClass=error [id]" #> ("error" + id) &
-          ".networkField [name]" #> id andThen
-          ".networkField" #> SHtml.text(net,  {x =>
-            allowedNetworks.find { case VH(y,_) => y==i }.foreach{ v => v.net = x }
-          },  "id" -> id)
-        )(xml)
-      }
-    }  &
-    "#addNetworkButton" #> SHtml.ajaxSubmit("Add a network", add _) &
-    "#submitAllowedNetwork" #> {
-      SHtml.ajaxSubmit("Save changes", process _,("id","submitAllowedNetwork")) ++ Script(
-          OnLoad (
-              JsRaw(""" correctButtons(); """) &
-              JsRaw("""$(".networkField").keydown( function(event) {
-            processKey(event , 'submitAllowedNetwork')
-          } );
-          """)
-          ) )
+            (
+              ".deleteNetwork" #> SHtml.ajaxSubmit("-", () => delete(i)) &
+              "errorClass=error [id]" #> ("error" + id) &
+              ".networkField [name]" #> id andThen
+              ".networkField" #> SHtml.text(net,  {x =>
+                allowedNetworks.find { case VH(y,_) => y==i }.foreach{ v => v.net = x }
+              },  "id" -> id)
+            )(xml)
+          }
+        }  &
+        "#addNetworkButton" #> SHtml.ajaxSubmit("Add a network", add _) &
+        "#submitAllowedNetwork" #> {
+          SHtml.ajaxSubmit("Save changes", process _,("id","submitAllowedNetwork")) ++ Script(
+              OnLoad (
+                  JsRaw(""" correctButtons(); """) &
+                  JsRaw("""$(".networkField").keydown( function(event) {
+                processKey(event , 'submitAllowedNetwork')
+              } );
+              """)
+              ) )
+        }
     }
   }
 
