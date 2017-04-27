@@ -183,6 +183,7 @@ object DisplayDirectiveTree extends Loggable {
       }
 
       override def body = {
+        val tooltipId = Helpers.nextFuncName
         //display information (name, etc) relative to last technique version
         val xml = activeTechnique.newestAvailableTechnique match {
           case Some(technique) =>
@@ -190,10 +191,16 @@ object DisplayDirectiveTree extends Loggable {
               <h4>${technique.name}</h4>
               <div class="tooltip-content">
                 <p>${technique.description}</p>
+                ${if(!activeTechnique.isEnabled){<div>This Technique is currently disabled.</div>}else{NodeSeq.Empty}}
               </div>
             """
-            <span class={if(isDeprecated){"treeActiveTechniqueName isDeprecated bsTooltip"}else{"treeActiveTechniqueName bsTooltip"}} data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{technique.name}</span>
-
+            val className = {
+              val defaultClass  = "treeActiveTechniqueName bsTooltip"
+              val disabledClass = if(!activeTechnique.isEnabled){"is-disabled"}else{""}
+              val deprecatedClass = if(isDeprecated){"isDeprecated"}else{""}
+              s"${defaultClass} ${disabledClass} ${deprecatedClass}"
+            }
+            <span class={className} data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{technique.name}</span>
           case None =>
             <span class="error">The technique with id ''{activeTechnique.techniqueName}'' is missing from repository</span>
         }
@@ -221,8 +228,9 @@ object DisplayDirectiveTree extends Loggable {
 
       val classes = {
         val includedClass = if (included.contains(directive.id)) {"included"} else ""
-        val disabled = if(directive.isEnabled) "" else "disableTreeNode"
+        val disabled = if(directive.isEnabled) "" else "is-disabled"
         s"${disabled} ${includedClass} directiveNode"
+
       }
       val htmlId = s"jsTree-${directive.id.value}"
       val directiveTags = JsObj(directive.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList:_*)
@@ -297,8 +305,8 @@ object DisplayDirectiveTree extends Loggable {
                 ${directive.techniqueVersion.toString}${deprecatedIcon}
                 ${deprecationInfo}
               </div>
-              ${if(!directive.isEnabled){ <div>Disable</div>} else{NodeSeq.Empty}}
               ${if(isAssignedTo==0){<span class="fa fa-warning text-warning-rudder min-size-icon"></span>}else{NodeSeq.Empty}}<span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
+              ${ if(!directive.isEnabled) <div>This Directive is currently disabled.</div> else NodeSeq.Empty }
             </div>
           """
           <span id={"badge-apm-"+tooltipId}>[BADGE]</span> ++

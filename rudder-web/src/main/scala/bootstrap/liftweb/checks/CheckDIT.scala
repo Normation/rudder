@@ -44,6 +44,8 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import javax.servlet.UnavailableException
 import com.normation.ldap.sdk.RwLDAPConnection
+import com.unboundid.ldap.sdk.DN
+import com.normation.utils.Control.sequence
 
 /**
  * This class check that all DIT entries needed for the application
@@ -140,6 +142,37 @@ class CheckDIT(
       case Empty => FAIL("Error when checking for mandatory entries on the DIT. No message was left.")
       case Full(_) => //ok
     }
+
+    //check Root Policy Server entries (from init-policy-server.ldif)
+    val dns = List(
+        "nodeId=root,ou=Nodes,cn=rudder-configuration"
+      , "nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
+      , "nodeGroupId=hasPolicyServer-root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration"
+      , "ruleTarget=policyServer:root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration"
+      , "directiveId=root-distributePolicy,activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration"
+      , "directiveId=common-root,activeTechniqueId=common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration"
+      , "ruleId=root-DP,ou=Rules,ou=Rudder,cn=rudder-configuration"
+      , "ruleId=hasPolicyServer-root,ou=Rules,ou=Rudder,cn=rudder-configuration"
+    ).map(s => new DN(s))
+
+    (for {
+      con <- ldap
+      ok  <- sequence(dns) { dn =>
+               if(con.exists(dn)) {
+                 Full("ok")
+               } else {
+                 Failure(s"Missing required entry '${dn}'. This is most likelly because Rudder was not initialized. Please run /opt/rudder/bin/rudder-init to set it up.")
+               }
+             }
+    } yield {
+      ok
+    }) match {
+      case eb: EmptyBox =>
+        val e = (eb ?~! "Error when checking for mandatory entries for 'root' server in the DIT.")
+        FAIL(e.messageChain)
+      case Full(_)      => //ok
+    }
+
 
     logger.info("All the required DIT entries are present in the LDAP directory")
   }
