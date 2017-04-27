@@ -18,7 +18,6 @@ li { list-style-type: disc  }
 </head><body>
 <div id="login">
   <div class="logo"><h1><img alt="Rudder" src="/files/logoRudder.jpg" height="111" width="511"></h1></div>
-
     <div class="logo">
       <h2>Error 404: Page not found</h2>
       <div style="margin-top: 20px;color: #fff;font-size: 1.2em">
@@ -28,6 +27,7 @@ li { list-style-type: disc  }
           <li>A non-existing URL</li>
           <li>An essential component (LDAP or PostgreSQL) that is not accessible</li>
           <li>The web application being unable to load</li>
+          <li>A non initialised Rudder installation. Please run /opt/rudder/bin/rudder-init to set it up</li>
         </ul>
         More information can be found in the Rudder webapp log file in /var/log/rudder/webapp/ on the Rudder server.
       </div>
