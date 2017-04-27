@@ -504,6 +504,7 @@ button.btn-save.saving span.saving{
 span.text-fit {
   font-weight: normal;
 }
+
 @-webkit-keyframes saving {
   0% {
     -ms-transform: rotate(0deg);
