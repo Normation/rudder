@@ -159,6 +159,14 @@ def write_rudder_reporting_file(path,technique):
   file.close()
 
 
+def escape_entities( str ):
+    str = str.replace("&", "&amp;")
+    str = str.replace("<", "&lt;")
+    str = str.replace(">", "&gt;")
+    str = str.replace("\"", "&quot;")
+    str = str.replace("'", "&apos;")
+    return str
+
 def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = False):
   """Get metadata xml for a technique as string"""
 
@@ -166,8 +174,8 @@ def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = Fa
   generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
 
   content = []
-  content.append('<TECHNIQUE name="'+technique_metadata['name']+'">')
-  content.append('  <DESCRIPTION>'+technique_metadata['description']+'</DESCRIPTION>')
+  content.append('<TECHNIQUE name="'+escape_entities(technique_metadata['name'])+'">')
+  content.append('  <DESCRIPTION>'+escape_entities(technique_metadata['description'])+'</DESCRIPTION>')
   content.append('  <BUNDLES>')
   content.append('    <NAME>'+ technique_metadata['bundle_name'] + '</NAME>')
   if include_rudder_reporting:
