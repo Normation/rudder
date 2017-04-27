@@ -175,17 +175,26 @@ object DisplayDirectiveTree extends Loggable {
       }
 
       override def body = {
-        val tooltipId = Helpers.nextFuncName
+        val className = {
+          val defaultClass  = "treeActiveTechniqueName tooltipable"
+          val disabledClass = if(!activeTechnique.isEnabled){"is-disabled"}else{""}
+          s"${defaultClass} ${disabledClass}"
+        }
 
+        val tooltipId = Helpers.nextFuncName
         //display information (name, etc) relative to last technique version
 
         val xml = activeTechnique.newestAvailableTechnique match {
           case Some(technique) =>
-            <span class="treeActiveTechniqueName tooltipable" tooltipid={tooltipId} title="">{technique.name}
+            <span class={className} tooltipid={tooltipId} title="">{technique.name}
             </span>
             <div class="tooltipContent" id={tooltipId}>
               <h3>{technique.name}</h3>
               <div>{technique.description}</div>
+              {if(!activeTechnique.isEnabled){
+                <div>This Technique is currently disabled.</div>
+              }
+              }
             </div>
           case None =>
             <span class="error">The technique with id ''{activeTechnique.techniqueName}'' is missing from repository</span>
@@ -213,8 +222,8 @@ object DisplayDirectiveTree extends Loggable {
 
       val classes = {
         val includedClass = if (included.contains(directive.id)) {"included"} else ""
-        val disabled = if(directive.isEnabled) "" else "disableTreeNode"
-        s"${disabled} ${includedClass}"
+        val disabled = if(directive.isEnabled) "" else "is-disabled"
+        s"${includedClass} ${disabled}"
       }
       val htmlId = s"jsTree-${directive.id.value}"
       override val attrs = (
@@ -282,9 +291,8 @@ object DisplayDirectiveTree extends Loggable {
             <div>{directive.shortDescription}</div>
             <div>Technique version: {directive.techniqueVersion.toString}</div>
             <div>{s"Used in ${isAssignedTo} rules" }</div>
-              { if(!directive.isEnabled) <div>Disable</div> }
+              { if(!directive.isEnabled) <div>This Directive is currently disabled.</div> }
             </div>
-
         }
 
         onClickDirective match {
