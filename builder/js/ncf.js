@@ -949,7 +949,7 @@ $scope.groupMethodsByCategory = function () {
   $scope.checkMissingParameters = function(parameters){
     var result = false;
     for(var i=0; i<parameters.length; i++) {
-      if(parameters[i].constraints.allow_empty_string === false && !parameters.value && parameters[i].$errors.length <= 0){
+      if(parameters[i].constraints.allow_empty_string === false && !parameters[i].value && parameters[i].$errors.length <= 0){
         result = true;
       }
     }
