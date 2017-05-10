@@ -51,16 +51,25 @@ sealed abstract class AgentType {
   // Tag used in fusion inventory ( > 2.3 )
   lazy val tagValue = s"cfengine-${this}".toLowerCase
   def toRulesPath() : String
+
+  // the name to look for in the inventory to know the agent version
+  def inventorySoftwareName: String
+  // and a transformation function from reported software version name to agent version name
+  def toAgentVersionName(softwareVersionName: String): String
 }
 
 final case object NOVA_AGENT extends AgentType with HashcodeCaching {
   override def toString() = A_NOVA_AGENT
   override def toRulesPath() = "/cfengine-nova"
+  override val inventorySoftwareName = "cfengine nova"
+  override def toAgentVersionName(softwareVersionName: String) = s"cfe-${softwareVersionName}"
 }
 
 final case object COMMUNITY_AGENT extends AgentType with HashcodeCaching {
   override def toString() = A_COMMUNITY_AGENT
   override def toRulesPath() = "/cfengine-community"
+  override val inventorySoftwareName = "rudder-agent"
+  override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
 }
 
 object AgentType {
