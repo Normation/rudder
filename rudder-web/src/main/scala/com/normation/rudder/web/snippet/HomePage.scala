@@ -70,6 +70,9 @@ import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
 import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
+import com.normation.inventory.domain.NOVA_AGENT
+import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.AgentType
 
 sealed trait ComplianceLevelPieChart{
   def color : String
@@ -358,14 +361,23 @@ class HomePage extends Loggable {
 
     val n1 = System.currentTimeMillis
     for {
-      con <- ldap
+      con              <- ldap
       nodeInfos        <- HomePage.boxNodeInfos.get
       n2               =  System.currentTimeMillis
-      agentSoftEntries =  con.searchOne(acceptedNodesDit.SOFTWARE.dn, EQ(A_NAME, "rudder-agent"))
+      agentSoftEntries =  con.searchOne(acceptedNodesDit.SOFTWARE.dn, OR(AgentType.allValues.map(t => EQ(A_NAME, t.inventorySoftwareName)):_*))
       agentSoftDn      =  agentSoftEntries.map(_.dn.toString).toSet
 
       agentSoft        <- sequence(agentSoftEntries){ entry =>
-                            mapper.softwareFromEntry(entry) ?~! "Error when mapping LDAP entry %s to a software".format(entry)
+                            (mapper.softwareFromEntry(entry) ?~! "Error when mapping LDAP entry %s to a software".format(entry)).map { s =>
+                              //here, we want to use Agent Version display name, not the software one
+                              s.name match {
+                                case None => s
+                                case Some(name) => name.toLowerCase match {
+                                  case NOVA_AGENT.inventorySoftwareName => s.copy(version = s.version.map(v => new Version(NOVA_AGENT.toAgentVersionName(v.value))))
+                                  case                                _ => s
+                                }
+                              }
+                            }
                           }
       n3               =  System.currentTimeMillis
       _                =  TimingDebugLogger.debug(s"Get agent software entries: ${n3-n2}ms")
@@ -406,8 +418,8 @@ class HomePage extends Loggable {
 
       // Format different version naming type into one
       def formatVersion (version : String) : String= {
-        // All that is before '.release' (rpm relases, like 3.0.6.release), OR all until first dash ( debian releases, like 3.0.6~wheezy)
-        val versionRegexp = "(.+)(?=\\.release)|([^-]+)".r
+        // All that is before '.release' (rpm relases, like 3.0.6.release), OR all until first dash ( debian releases, like 3.0.6-wheezy)
+        val versionRegexp = "(cfe-)?((.+)(?=\\.release)|([^-]+))".r
         versionRegexp.
           findFirstIn(version).
           getOrElse(version).
