@@ -175,4 +175,23 @@ class TestReportParsing extends Specification with Loggable {
       hostname == "WIN-AI8CLNPLOV5.eu-west-1.compute.internal"
     }
   }
+
+  "Agent version" should {
+    "be found for community agent" in {
+      val version = parser.parse("fusion-report/sles-11-sp1-64-2011-09-02-12-00-43.ocs").node.agents(0).version
+      version must beEqualTo(Some(AgentVersion("2.3.0.beta1~git-1")))
+    }
+
+    "be found for nova agent" in {
+      val version = parser.parse("fusion-report/WIN-2017-rudder-4-1.ocs").node.agents(0).version
+      version must beEqualTo(Some(AgentVersion("cfe-3.7.4.65534")))
+    }
+
+    "be unknown if rudder agent is missing" in {
+      val version = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents(0).version
+      version must beEqualTo(None)
+    }
+
+  }
+
 }
