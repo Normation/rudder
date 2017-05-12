@@ -243,12 +243,7 @@ object DisplayDirectiveTree extends Loggable {
            $$('#${htmlId} .treeActions').click( function(e) {
              e.stopPropagation();
            } );
-           $$(window).on('resize',function(){
-             adjustHeight('.rudder_col > .col','#footer');
-           });
-           adjustHeight('.rudder_col > .col','#footer');
-           $$('.col.col-sm').on('scroll',function(){$$('.ui-tooltip').hide();});
-           """))
+         """))
 
       override def body = {
 
@@ -303,7 +298,15 @@ object DisplayDirectiveTree extends Loggable {
       }
     }
 
-    displayCategory(directiveLib, "jstn_0").toXml ++ Script(JsRaw("$('.treeActions').hide();"))
+    displayCategory(directiveLib, "jstn_0").toXml ++ Script(OnLoad(JsRaw("""
+      $('.treeActions').hide();
+      $(window).on('resize',function(){
+        adjustHeight('.rudder_col > .col','#footer');
+      });
+      adjustHeight('.rudder_col > .col','#footer');
+      $('.col.col-sm').on('scroll',function(){$$('.ui-tooltip').hide();});
+    """)))
+
 
   }
 
