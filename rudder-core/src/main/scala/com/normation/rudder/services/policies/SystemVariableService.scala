@@ -406,7 +406,7 @@ class SystemVariableServiceImpl(
       ""
     } else {
       nodeGroups.map { case (id, name) =>
-        s""""by_uuid[${id}]" ${" "*(nodeMaxString-id.size)} string => "${name}",\n""" +
+        s""""by_uuid[${id}]" ${" "*(nodeMaxString-id.size)} string => "${name.replace("\"", "\\\"")}",\n""" +
         s"""            ${" "*(nodeMaxString)        }   meta => { "inventory", "attribute_name=rudder_groups" };"""
       }.mkString("\n")
     }
