@@ -10,6 +10,7 @@ import sys
 import os
 import subprocess
 import re
+from distutils.version import LooseVersion
 
 PY3 = sys.version_info > (3,)
 
@@ -22,11 +23,26 @@ dpkg_query_cmd = os.environ.get('CFENGINE_TEST_DPKG_QUERY_CMD', "/usr/bin/dpkg-q
 dpkg_output_format = "Name=${Package}\nVersion=${Version}\nArchitecture=${Architecture}\n"
 dpkg_status_format = "Status=${Status}\n" + dpkg_output_format
 
+apt_get_cmd = os.environ.get('CFENGINE_TEST_APT_GET_CMD', "/usr/bin/apt-get")
+
+# Some options only work with specific versions of apt, so we must know the
+# current version in order to do the right thing.
+apt_version = subprocess.Popen([ apt_get_cmd , '-v'],
+    stdout=subprocess.PIPE, universal_newlines=True).communicate()[0]
+apt_version = apt_version.splitlines()[0].split(' ')[1]
+
 apt_get_options = ["-o", "Dpkg::Options::=--force-confold",
                    "-o", "Dpkg::Options::=--force-confdef",
-                   "-y",
-                   "--force-yes"]
-apt_get_cmd = os.environ.get('CFENGINE_TEST_APT_GET_CMD', "/usr/bin/apt-get")
+                   "-y"]
+
+if LooseVersion(apt_version) < LooseVersion("1.1"):
+    apt_get_options.append("--force-yes")
+
+else:
+    # The --force-yes option was deprecated in apt-get 1.1
+    apt_get_options.extend( [ "--allow-downgrades",
+                              "--allow-remove-essential",
+                              "--allow-change-held-packages"])
 
 os.environ['DEBIAN_FRONTEND'] = "noninteractive"
 os.environ['LC_ALL'] = "C"
@@ -166,15 +182,18 @@ def list_updates(online):
         # Note multiple repositories in this one:
         #   Inst linux-libc-dev [2.6.32-48squeeze4] (2.6.32-48squeeze6 Debian:6.0.10/oldstable, Debian-Security:6.0/oldoldstable [amd64])
         #
+        # Another example (note the addition of jessie:jessie without a comma):
+        #   Inst rudder-agent [4.1.0~rc1-jessie0] (4.1.0-jessie0 release/4.1.0-2 jessie:jessie [amd64])
+        #
         #                               name                   old version       new version
         #                                 |                         |                 |
         #                         /-------+-------\              /--+--\       /------+-------\
-        match = re.match("^Inst\s+(?P<name>[^\s:]+)(?::\S+)?\s+\[[^\]\s]+\]\s+\((?P<version>\S+)" +
+        match = re.match("^Inst\s+(?P<name>[^\s:]+)(?::\S+)?\s+\[[^]\s]+\]\s+\((?P<version>\S+)" +
 
-        #                         repository(ies)                arch (might be optional)
-        #                               |                          |
-        #                    /----------+----------\     /---------+---------\
-                         "\s+[^\s]+(?:\s+[^)\[\]\s]+)*(\s+\[(?P<arch>[^]\s]+)\])?\).*", line)
+        #                repository(ies)      arch (might be optional)
+        #                       |               |
+        #                    /--+-\   /---------+---------\
+                         "\s+[^[)]*(\s\[(?P<arch>[^]\s]+)\])?\).*", line)
 
         if match is not None:
             sys.stdout.write("Name=" + match.group("name") + "\n")
@@ -286,12 +305,12 @@ def repo_install():
     if (not args):
         return 0
 
-    # Convert list of tuples into two lists so that first element of each
+    # Convert list of tuples into two lists so that first element of each 
     # tuple belongs to list 'a1' and the second one to list 'a2'.
     a1, a2 =  map(list, zip(*args))
 
     # For 'repo_insrtall' both 'a1' and 'a2' should be equal so we can operate
-    # on 'a1' elements only.
+    # on 'a1' elements only. 
     if a1:
         return subprocess_call(cmd_line + a1, stdout=NULLFILE)
     return 0
@@ -304,7 +323,7 @@ def remove():
     if (not args):
         return 0
 
-    # Convert list of tuples into two lists so that first element of each
+    # Convert list of tuples into two lists so that first element of each 
     # tuple belongs to list 'a1' and the second one to list 'a2'.
     #
     # In case of multi arch support elements of 'a1' list should not contain
@@ -314,7 +333,7 @@ def remove():
 
     # As there seems to be no unified method to remove packages matching
     # native OS architecture we are trying first to remove packages providing
-    # just a package name and if this call is failing we are trying
+    # just a package name and if this call is failing we are trying 
     # 'package_name:architecture' approach.
     ret = subprocess_call(cmd_line + a1, stdout=NULLFILE)
     if ret != 0 and a1 != a2:
