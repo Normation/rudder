@@ -341,6 +341,9 @@ object DisplayDirectiveTree extends Loggable {
         angular.bootstrap(scopeElmnt, ['filters']);
       }
       adjustHeight('#activeTechniquesTree');
+      $$('#showFiltersDirective').on('click', function () {
+        setTimeout(function(){adjustHeight('#activeTechniquesTree');}, 550);
+      });
       $$('#activeTechniquesTree').on('scroll',function(){$$('.tooltip').hide();});
       $$(".bsTooltip").bsTooltip({container: "${if(addEditLink){"#editRuleZonePortlet"}else{"#boxDirectiveTree"}}"})
     """))
