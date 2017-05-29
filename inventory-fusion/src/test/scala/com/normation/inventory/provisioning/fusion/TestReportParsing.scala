@@ -46,7 +46,6 @@ import scala.xml.XML
 import java.io.File
 import com.normation.inventory.domain._
 
-
 /**
  * A simple test class to check that the demo data file is up to date
  * with the schema (there may still be a desynchronization if both
@@ -114,7 +113,6 @@ class TestReportParsing extends Specification with Loggable {
 
   "A node with Rudder roles" should {
 
-
     val report = parser.parse("fusion-report/node-with-server-role-attribute.ocs")
 
     "correctly add roles"in {
@@ -130,7 +128,6 @@ class TestReportParsing extends Specification with Loggable {
       report.node.timezone must beEqualTo(Some(NodeTimezone("CEST", "+0200")))
     }
   }
-
 
   "Agent in Inventory" should {
 
@@ -154,6 +151,11 @@ class TestReportParsing extends Specification with Loggable {
       agents must be empty
     }
 
+    "should have dsc agent agent when using rudder-agent based on dsc" in {
+      val agents = parser.parse("fusion-report/dsc-agent.ocs").node.agents.map(_.name).toList
+      agents == (DSC_AGENT :: Nil)
+    }
+
   }
 
   "Parsing Windows 2012" should {
@@ -168,7 +170,6 @@ class TestReportParsing extends Specification with Loggable {
         val hostname = parser.parse("fusion-report/signed_inventory.ocs").node.main.hostname
         hostname == "node1"
      }
-
 
     "get WIN-AI8CLNPLOV5.eu-west-1.compute.internal as the hostname" in {
       val hostname = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.hostname

@@ -72,8 +72,15 @@ final case object COMMUNITY_AGENT extends AgentType with HashcodeCaching {
   override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
 }
 
+final case object DSC_AGENT extends AgentType with HashcodeCaching {
+  override def toString() = A_DSC_AGENT
+  override def toRulesPath() = "/dsc"
+  override val inventorySoftwareName = "rudder-agent"
+  override def toAgentVersionName(softwareVersionName: String) = "dsc-"+softwareVersionName
+}
+
 object AgentType {
-  def allValues = NOVA_AGENT :: COMMUNITY_AGENT :: Nil
+  def allValues = NOVA_AGENT :: COMMUNITY_AGENT  :: DSC_AGENT :: Nil
 
   def fromValue(value : String) : Box[AgentType] = {
     // Check if the value is correct compared to the agent tag name (fusion > 2.3) or its toString value (added by CFEngine)
@@ -93,14 +100,12 @@ object AgentType {
  */
 final case class AgentVersion(value: String)
 
-
 final case class AgentInfo(
     name   : AgentType
     //for now, the version must be an option, because we don't add it in the inventory
     //and must try to find it from packages
   , version: Option[AgentVersion]
 )
-
 
 object AgentInfoSerialisation {
   import net.liftweb.json.JsonDSL._
@@ -154,5 +159,3 @@ object AgentInfoSerialisation {
     )
   }
 }
-
-

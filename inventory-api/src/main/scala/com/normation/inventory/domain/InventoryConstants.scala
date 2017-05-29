@@ -41,6 +41,5 @@ object InventoryConstants {
 
 	val A_NOVA_AGENT = "Nova"
 	val A_COMMUNITY_AGENT = "Community"
+	val A_DSC_AGENT = "windows-dsc"
 }
-
-
