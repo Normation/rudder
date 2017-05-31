@@ -130,6 +130,7 @@ import com.normation.rudder.web.rest.compliance.ComplianceAPIService
 import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterServiceImpl
 import com.normation.rudder.services.policies.write.PathComputerImpl
 import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
+import com.normation.rudder.services.policies.write.BuildBundleSequence
 import com.typesafe.config.ConfigException
 import org.apache.commons.io.FileUtils
 import com.normation.templates.FillTemplatesService
@@ -139,6 +140,7 @@ import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.web.rest.settings.SettingsAPI8
 import com.normation.rudder.web.rest.sharedFiles.SharedFilesAPI
+import com.normation.rudder.web.rest.node.NodeApiService2
 
 /**
  * Define a resource for configuration.
@@ -1416,7 +1418,7 @@ object RudderConfig extends Loggable {
       techniqueRepositoryImpl
     , pathComputer
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
-    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService)
+    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService, new BuildBundleSequence(systemVariableSpecService))
     , new FillTemplatesService()
     , HOOKS_D
     , HOOKS_IGNORE_SUFFIXES
@@ -1524,8 +1526,7 @@ object RudderConfig extends Loggable {
   }
 
   private[this] lazy val nodeConfigurationServiceImpl: NodeConfigurationService = new NodeConfigurationServiceImpl(
-      rudderCf3PromisesFileWriterService
-    , new LdapNodeConfigurationHashRepository(rudderDit, rwLdap)
+      new LdapNodeConfigurationHashRepository(rudderDit, rwLdap)
   )
 //  private[this] lazy val licenseService: CfeEnterpriseLicenseService = new CfeEnterpriseLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
   private[this] lazy val reportingServiceImpl = new CachedReportingServiceImpl(

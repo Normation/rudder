@@ -49,8 +49,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 import com.normation.cfclerk.services.DummyTechniqueRepository
-import scala.collection.immutable.Set
-import scala.language.implicitConversions
 import org.joda.time.DateTime
 
 
@@ -83,9 +81,7 @@ class DirectiveAgregationTest {
           activeTechniqueId1
         , "name"
         , "DESCRIPTION"
-        , Seq()
-        , Seq()
-        , Seq()
+        , Nil
         , trackerVariableSpec
         , SectionSpec(name="root", children=Seq())
         , None
@@ -95,9 +91,7 @@ class DirectiveAgregationTest {
           activeTechniqueId2
         , "name"
         , "DESCRIPTION"
-        , Seq()
-        , Seq()
-        , Seq()
+        , Nil
         , trackerVariableSpec
         , SectionSpec(name="root", children=Seq())
         , None
@@ -105,9 +99,11 @@ class DirectiveAgregationTest {
       )
   ) )
 
+  val systemVariableServiceSpec = new SystemVariableSpecServiceImpl()
   val prepareTemplate = new PrepareTemplateVariablesImpl(
       techniqueRepository
-    , new SystemVariableSpecServiceImpl()
+    , systemVariableServiceSpec
+    , new BuildBundleSequence(systemVariableServiceSpec)
   )
 
   def createDirectiveWithBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
@@ -172,7 +168,7 @@ class DirectiveAgregationTest {
   def arrayedDirectiveTest() {
 
     val newTechniqueId = TechniqueId(TechniqueName("name"), TechniqueVersion("1.0"))
-    def newTechnique = Technique(newTechniqueId, "tech" + newTechniqueId, "", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
+    def newTechnique = Technique(newTechniqueId, "tech" + newTechniqueId, "", Nil, TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
 
     val instance = new Cf3PolicyDraft("id", newTechnique, DateTime.now, Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"),
         directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None, isSystem = false)

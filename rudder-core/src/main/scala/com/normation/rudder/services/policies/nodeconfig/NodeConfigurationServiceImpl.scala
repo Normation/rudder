@@ -39,16 +39,10 @@ package com.normation.rudder.services.policies.nodeconfig
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.services.policies.write.Cf3PolicyDraft
-import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.utils.Control.sequence
+import com.normation.rudder.services.policies.BundleOrder
+import com.normation.utils.Control._
 import net.liftweb.common._
 import org.joda.time.DateTime
-import com.normation.rudder.services.policies.write.Cf3PolicyDraft
-import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
-import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterService
-import com.normation.rudder.services.policies.BundleOrder
 
 
 /**
@@ -61,8 +55,7 @@ import com.normation.rudder.services.policies.BundleOrder
  *
  */
 class NodeConfigurationServiceImpl(
-    policyTranslator    : Cf3PromisesFileWriterService
-  , repository          : NodeConfigurationHashRepository
+    repository: NodeConfigurationHashRepository
 ) extends NodeConfigurationService with Loggable {
 
   //delegate to repository for nodeconfig persistence
@@ -74,7 +67,7 @@ class NodeConfigurationServiceImpl(
 
   def sanitize(targets : Seq[NodeConfiguration]) : Box[Map[NodeId, NodeConfiguration]] = {
 
-    /**
+    /*
      * Sanitize directive to the node configuration, returning a new node configuration with
      * updated directives.
      *

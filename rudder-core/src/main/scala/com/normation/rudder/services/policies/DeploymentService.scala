@@ -77,7 +77,7 @@ import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
-import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterService
+import com.normation.rudder.services.policies.write.PolicyWriterService
 import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -499,7 +499,7 @@ class PromiseGenerationServiceImpl (
   , override val complianceModeService : ComplianceModeService
   , override val agentRunService : AgentRunIntervalService
   , override val complianceCache  : CachedFindRuleNodeStatusReports
-  , override val promisesFileWriterService: Cf3PromisesFileWriterService
+  , override val promisesFileWriterService: PolicyWriterService
   , override val getAgentRunInterval: () => Box[Int]
   , override val getAgentRunSplaytime: () => Box[Int]
   , override val getAgentRunStartHour: () => Box[Int]
@@ -859,7 +859,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
   def nodeConfigurationService : NodeConfigurationService
   def woRuleRepo: WoRuleRepository
-  def promisesFileWriterService: Cf3PromisesFileWriterService
+  def promisesFileWriterService: PolicyWriterService
 
   /**
    * That methode remove node configurations for nodes not in allNodes.
