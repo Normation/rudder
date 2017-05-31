@@ -306,7 +306,6 @@ class FusionReportUnmarshaller(
       )
     }
 
-
     (xml \\ "RUDDER").headOption match {
       case Some(rudder) =>
         // Fetch all the agents configuration
@@ -319,9 +318,8 @@ class FusionReportUnmarshaller(
              policyServerId <- boxFromOption(optText(agentXML \\ "POLICY_SERVER_UUID") ,"could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
           } yield {
             //cfkey is not mandatory
-            val cfKey = optText(agentXML \ "CFENGINE_KEY")
-
-            (agentType, rootUser, policyServerId, cfKey)
+            val agentKey = optText(agentXML \ "AGENT_KEY").orElse(optText(agentXML \ "CFENGINE_KEY"))
+            (agentType, rootUser, policyServerId, agentKey)
           }
           agent match {
             case eb: EmptyBox =>
@@ -1104,7 +1102,6 @@ class FusionReportUnmarshaller(
    }
   }
 }
-
 
 object OptText {
  /*
