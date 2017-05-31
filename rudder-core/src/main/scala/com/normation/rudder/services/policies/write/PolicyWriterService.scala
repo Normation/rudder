@@ -37,64 +37,52 @@
 
 package com.normation.rudder.services.policies.write
 
-import java.io.File
-import java.io.IOException
-import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TechniqueTemplate
-import com.normation.cfclerk.exceptions.VariableException
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.repository.LicenseRepository
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.hooks.HooksLogger
+import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLogger
+import com.normation.templates.FillTemplatesService
+import com.normation.templates.STVariable
 import com.normation.utils.Control._
-import org.antlr.stringtemplate.StringTemplate
+import java.io.File
+import java.io.IOException
+import monix.eval.Task
+import monix.eval.TaskSemaphore
+import monix.execution.ExecutionModel
+import monix.execution.Scheduler
+import net.liftweb.common._
+import net.liftweb.json.JsonAST
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.util.Helpers.tryo
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
-import org.joda.time.LocalDate
-import org.joda.time.LocalTime
-import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
-import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
-import scala.io.Codec
-import com.normation.templates.FillTemplatesService
-import com.normation.templates.STVariable
-import com.normation.rudder.domain.nodes.NodeProperty
-import net.liftweb.json.JsonAST.JValue
-import scala.util.Try
-import scala.util.Success
-import scala.util.{Failure => FailTry}
-import com.normation.rudder.domain.Constants
-import net.liftweb.json.JsonAST
-import net.liftweb.json.Printer
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import scala.language.postfixOps
-import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.hooks.HooksLogger
-import monix.execution.Scheduler
-import monix.eval.TaskSemaphore
-import monix.eval.Task
 import scala.concurrent.Await
-import monix.execution.ExecutionModel
+import scala.io.Codec
+import scala.util.{ Failure => FailTry }
+import scala.util.Success
+import scala.util.Try
 
 /**
  * Write promises for the set of nodes, with the given configs.
  * Requires access to external templates files.
  */
-trait Cf3PromisesFileWriterService {
+trait PolicyWriterService {
 
   /**
    * Write templates for node configuration that changed since the last write.
@@ -119,10 +107,9 @@ class Cf3PromisesFileWriterServiceImpl(
   , fillTemplates        : FillTemplatesService
   , HOOKS_D              : String
   , HOOKS_IGNORE_SUFFIXES: List[String]
-) extends Cf3PromisesFileWriterService with Loggable {
+) extends PolicyWriterService with Loggable {
 
   val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
-  val GENEREATED_CSV_FILENAME = "rudder_expected_reports.csv"
 
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
@@ -130,8 +117,8 @@ class Cf3PromisesFileWriterServiceImpl(
   private[this] def writeNodePropertiesFile (agentNodeConfig: AgentNodeConfiguration) = {
 
     def generateNodePropertiesJson(properties : Seq[NodeProperty]): JValue = {
-      import net.liftweb.json.JsonDSL._
       import com.normation.rudder.domain.nodes.JsonSerialisation._
+      import net.liftweb.json.JsonDSL._
       ( "properties" -> properties.toDataJson())
     }
 
@@ -264,7 +251,8 @@ class Cf3PromisesFileWriterServiceImpl(
       }) match {
         case s if s.charAt(0) == 'x' => (Runtime.getRuntime.availableProcessors * s.substring(1).toDouble).ceil.toInt
         case other => other.toInt
-      }})
+      }
+    })
     implicit val scheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
 
     //interpret HookReturnCode as a Box
@@ -274,23 +262,39 @@ class Cf3PromisesFileWriterServiceImpl(
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
       templates        <- readTemplateFromFileSystem(techniqueIds)
+
+      //////////
+      // nothing agent specific before that
+      //////////
+
+
       preparedPromises <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
-                           val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                           prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode)
-                         }
+                            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
+                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode)
+                          }
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
-                              _ <- writeExpectedReportsCsv(prepared.paths, prepared.expectedReportsCsv, GENEREATED_CSV_FILENAME)
+                              _ <- WriteAllAgentSpecificFiles.write(prepared)
                             } yield {
                               "OK"
                             }
                           }
-     propertiesWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+
+      //////////
+      // nothing agent specific after that
+      //////////
+
+      propertiesWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                             writeNodePropertiesFile(agentNodeConfig) ?~!
                               s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
+
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
+
+      /// perhaps that should be a post-hook somehow ?
+      // and perhaps we should have an AgentSpecific global pre/post write
+
       nodePreMvHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
       preMvHooks       <- parrallelSequence(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
@@ -379,21 +383,29 @@ class Cf3PromisesFileWriterServiceImpl(
     }
   }
 
+  /*
+   * We are returning a map where keys are (TechniqueResourceId, AgentType) because
+   * for a given resource IDs, you can have different out path for different agent.
+   */
   private[this] def readTemplateFromFileSystem(
       techniqueIds: Set[TechniqueId]
-  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[TechniqueResourceId, TechniqueTemplateCopyInfo]] = {
+  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]] = {
 
     //list of (template id, template out path)
     val templatesToRead = for {
       technique <- techniqueRepository.getByIds(techniqueIds.toSeq)
-      template  <- technique.templates
+      template  <- technique.agentConfigs.flatMap(cfg => cfg.templates.map(t => (t.id, cfg.agentType, t.outPath)))
     } yield {
-      (template.id, template.outPath)
+      template
     }
 
     val now = System.currentTimeMillis()
 
-    val res = (parrallelSequence(templatesToRead) { case (templateId, templateOutPath) =>
+    /*
+     * NOTE : this is inefficient and store in a lot of multiple time the same content
+     * if only the outpath change for two differents agent type.
+     */
+   val res = (parrallelSequence(templatesToRead) { case (templateId, agentType, templateOutPath) =>
       for {
         copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
           optInputStream match {
@@ -407,7 +419,7 @@ class Cf3PromisesFileWriterServiceImpl(
           }
         }
       } yield {
-        (copyInfo.id, copyInfo)
+        ((copyInfo.id, agentType), copyInfo)
       }
     }).map( _.toMap)
 
@@ -415,18 +427,8 @@ class Cf3PromisesFileWriterServiceImpl(
     res
   }
 
-  private[this] def writeExpectedReportsCsv(paths: NodePromisesPaths, csv: ExpectedReportsCsv, csvFilename: String): Box[String] = {
-    val path = new File(paths.newFolder, csvFilename)
-    for {
-        _ <- tryo { FileUtils.writeStringToFile(path, csv.lines.mkString("\n"), Codec.UTF8.charSet) } ?~!
-               s"Can not write the expected reports CSV file at path '${path.getAbsolutePath}'"
-    } yield {
-      path.getAbsolutePath
-    }
-  }
-
   private[this] def writePromises(
-      paths            : NodePromisesPaths
+      paths             : NodePromisesPaths
     , preparedTechniques: Seq[PreparedTechnique]
   ) : Box[NodePromisesPaths] = {
     // write the promises of the current machine and set correct permission
@@ -447,6 +449,7 @@ class Cf3PromisesFileWriterServiceImpl(
       paths
     }
   }
+
 
   /**
    * For agent needing it, copy licences to the correct path

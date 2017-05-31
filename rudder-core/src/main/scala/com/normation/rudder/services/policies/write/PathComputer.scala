@@ -43,10 +43,8 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.AgentType
 import net.liftweb.common.Loggable
 import com.normation.exceptions.BusinessException
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import net.liftweb.common.Full
 import net.liftweb.common.Box
-import com.normation.rudder.domain.Constants
 import org.apache.commons.io.FilenameUtils
 import com.normation.rudder.domain.nodes.NodeInfo
 import net.liftweb.common.Failure

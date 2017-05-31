@@ -40,37 +40,37 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.rudder.services.policies.write.BuildBundleSequence._
-import com.normation.cfclerk.domain.Bundle
+import com.normation.cfclerk.domain.BundleName
 import com.normation.rudder.domain.policies.PolicyMode
 
 @RunWith(classOf[JUnitRunner])
 class PrepareTemplateVariableTest extends Specification {
 
   val bundles = Seq(
-      ("Global configuration for all nodes/20. Install jdk version 1.0"                   , Bundle("Install_jdk_rudder_reporting"))
-    , ("Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)", Bundle("check_zmd_settings"))
-    , ("""Nodes only/Name resolution version "3.0" and counting"""                        , Bundle("check_dns_configuration"))
-    , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle("check_apt_package_installation"))
-    , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle("check_apt_package_installation2"))
-  ).map { case(x,y) => TechniqueBundles(Promiser(x), Nil, y::Nil, Nil, false, false, PolicyMode.Enforce) }
+      ("Global configuration for all nodes/20. Install jdk version 1.0"                   , Bundle(ReportId("not used"), BundleName("Install_jdk_rudder_reporting")))
+    , ("Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)", Bundle(ReportId("not used"), BundleName("check_zmd_settings")))
+    , ("""Nodes only/Name resolution version "3.0" and counting"""                        , Bundle(ReportId("not used"), BundleName("check_dns_configuration")))
+    , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle(ReportId("not used"), BundleName("check_apt_package_installation")))
+    , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle(ReportId("not used"), BundleName("check_apt_package_installation2")))
+  ).map { case(x,y) => TechniqueBundles(Directive(x), Nil, y::Nil, Nil, false, false, PolicyMode.Enforce) }
 
   // Ok, now I can test
   "Preparing the string for writting usebundle of directives" should {
 
     "correctly write nothing at all when the list of bundle is emtpy" in {
-      formatMethodsUsebundle(Seq()) === ""
+      CfengineBundleVariables.formatMethodsUsebundle(Seq()) === List("")
     }
 
     "write exactly - including escaped quotes" in {
 
       //spaces inserted at the begining of promises in rudder_directives.cf are due to string template, not the formated string - strange
 
-      formatMethodsUsebundle(bundles) ===
-raw""""Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
+      CfengineBundleVariables.formatMethodsUsebundle(bundles) ===
+List(raw""""Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
      |"Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => check_zmd_settings;
      |"Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => check_dns_configuration;
      |"Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => check_apt_package_installation;
-     |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => check_apt_package_installation2;""".stripMargin
+     |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => check_apt_package_installation2;""".stripMargin)
     }
 
   }

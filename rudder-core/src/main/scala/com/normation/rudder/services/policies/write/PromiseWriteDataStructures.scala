@@ -75,7 +75,8 @@ case class AgentNodeConfiguration(
  * - the expected reports csv file content
  */
 final case class AgentNodeWritableConfiguration(
-    paths             : NodePromisesPaths
+    agentType         : AgentType
+  , paths             : NodePromisesPaths
   , preparedTechniques: Seq[PreparedTechnique]
   , expectedReportsCsv: ExpectedReportsCsv
 )
