@@ -148,7 +148,7 @@ final case class Cf3PolicyDraft(
     } yield {
       variableMap.get(variable.spec.name) match {
         case None => Some(variable)
-        case Some(values) => if(values == variable.values) None else Some(variable)
+        case Some(otherVar) => if(otherVar.values == variable.values) None else Some(variable)
       }
     }).flatten.map(x => (x.spec.name, x)).toMap
 
