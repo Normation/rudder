@@ -75,8 +75,8 @@ final case object COMMUNITY_AGENT extends AgentType with HashcodeCaching {
 final case object DSC_AGENT extends AgentType with HashcodeCaching {
   override def toString() = A_DSC_AGENT
   override def toRulesPath() = "/dsc"
-  override val inventorySoftwareName = "rudder-agent"
-  override def toAgentVersionName(softwareVersionName: String) = "dsc-"+softwareVersionName
+  override val inventorySoftwareName = "Rudder agent"
+  override def toAgentVersionName(softwareVersionName: String) = softwareVersionName+" (dsc)"
 }
 
 object AgentType {
