@@ -303,7 +303,14 @@ object DisplayDirectiveTree extends Loggable {
       }
     }
 
-    displayCategory(directiveLib, "jstn_0").toXml
+    displayCategory(directiveLib, "jstn_0").toXml ++ Script(OnLoad(JsRaw("""
+      $('.treeActions').hide();
+      $(window).on('resize',function(){
+        adjustHeight('.rudder_col > .col','#footer');
+      });
+      adjustHeight('.rudder_col > .col','#footer');
+      $('.col.col-sm').on('scroll',function(){$$('.ui-tooltip').hide();});
+    """)))
   }
 
 }
