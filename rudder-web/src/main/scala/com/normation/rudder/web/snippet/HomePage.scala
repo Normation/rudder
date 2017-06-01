@@ -73,6 +73,7 @@ import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.NOVA_AGENT
 import com.normation.inventory.domain.COMMUNITY_AGENT
 import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.DSC_AGENT
 
 sealed trait ComplianceLevelPieChart{
   def color : String
@@ -373,8 +374,11 @@ class HomePage extends Loggable {
                               s.name match {
                                 case None => s
                                 case Some(name) => name.toLowerCase match {
-                                  case NOVA_AGENT.inventorySoftwareName => s.copy(version = s.version.map(v => new Version(NOVA_AGENT.toAgentVersionName(v.value))))
-                                  case                                _ => s
+                                  case NOVA_AGENT.inventorySoftwareName =>
+                                    s.copy(version = s.version.map(v => new Version(NOVA_AGENT.toAgentVersionName(v.value))))
+                                  case ag if ag == DSC_AGENT.inventorySoftwareName.toLowerCase =>
+                                    s.copy(version = s.version.map(v => new Version(DSC_AGENT.toAgentVersionName(v.value))))
+                                  case _ => s
                                 }
                               }
                             }
