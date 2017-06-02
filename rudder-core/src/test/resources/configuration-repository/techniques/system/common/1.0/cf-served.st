@@ -34,13 +34,6 @@ bundle server access_rules
   access:
 
     policy_server|role_rudder_relay_promises_only::
-      &if(NOVA)&
-      "&UUID&"
-        handle        => "policy_server_uuid",
-        resource_type => "literal",
-        admit         => {".*"};
-      &endif&
-
       "${def.dir_masterfiles}"
         handle  => "grant_access_policy",
         comment => "Grant access to the policy updates",
@@ -72,7 +65,7 @@ bundle server access_rules
 
       &endif&
 
-    &if(NOVA)&
+  &if(NOVA)&
     role_rudder_cfengine_mission_portal::
       "${query_types}"
         handle             => "server_access_grant_${query_types}_for_hub",
@@ -80,41 +73,59 @@ bundle server access_rules
         resource_type      => "query",
         report_data_select => rudder_data_select_policy_hub,
         admit              => { ${def.policy_server}, @{sys.ip_addresses} }; # an enterprise policy server needs to be able to contact itself
-    &endif&
 
+  &endif&
 
     any::
   &if(SKIPIDENTIFY)&
-    &MANAGED_NODES_NAME, MANAGED_NODES_ID : {host, uuid |
+    &MANAGED_NODES_NAME, MANAGED_NODES_ID, MANAGED_NODES_KEY: {host, uuid, key |
       "/var/rudder/share/&uuid&/"
-        maproot => { string_downcase(escape("&host&"))  },
-        admit   => { string_downcase(escape("&host&"))  };
+        maproot    => { string_downcase(escape("&host&"))  },
+        admit      => { string_downcase(escape("&host&"))  },
+        admit_keys => { "&key&" };
 
-     } &
+      "/var/rudder/shared-files/&uuid&/"
+        maproot    => { string_downcase(escape("&host&"))  },
+        admit      => { string_downcase(escape("&host&"))  },
+        admit_keys => { "&key&" };
+
+    } &
   &else&
-    &MANAGED_NODES_NAME, MANAGED_NODES_ID : {host, uuid |
+    &MANAGED_NODES_NAME, MANAGED_NODES_ID, MANAGED_NODES_KEY : {host, uuid, key |
       "/var/rudder/share/&uuid&/"
-        maproot => { host2ip("&host&"), string_downcase(escape("&host&"))  },
-        admit   => { host2ip("&host&"), string_downcase(escape("&host&"))  };
+        maproot    => { host2ip("&host&"), string_downcase(escape("&host&"))  },
+        admit      => { host2ip("&host&"), string_downcase(escape("&host&"))  },
+        admit_keys => { "&key&" };
 
-     } &
+      "/var/rudder/shared-files/&uuid&/"
+        maproot    => { host2ip("&host&"), string_downcase(escape("&host&"))  },
+        admit      => { host2ip("&host&"), string_downcase(escape("&host&"))  },
+        admit_keys => { "&key&" };
+
+    } &
   &endif&
 
 &endif&
-    policy_server_set::
-      # Allow server to remotely run the agent
-      "${sys.workdir}/bin/cf-agent"
+
+    # Allow server to remotely run the agent
+    # Using ${sys.cf_agent} fails, as cf-serverd cannot canonize its path
+    windows::
+      "${sys.workdir}\bin\cf-agent.exe"
         admit   => { host2ip("${server_info.cfserved}"), string_downcase(escape("${server_info.cfserved}")) };
 
-  &if(NOVA)&
-      "${query_types}"
-        handle => "server_access_grant_${query_types}_for_hosts",
-        comment => "Grant ${query_types} reporting query for the hub on the hosts",
-        resource_type => "query",
-        report_data_select => rudder_data_select_host,
-        admit => { ${def.policy_server}, @{sys.ip_addresses} };
-  &endif&
+    !windows::
+      "${g.rudder_command}" comment => "Grant access to rudder agent command for cfruncommand",
+        admit => { host2ip("${server_info.cfserved}"), string_downcase(escape("${server_info.cfserved}")) };
 
+&if(NOVA)&
+    enterprise_edition::
+      "${query_types}"
+        handle             => "server_access_grant_${query_types}_for_hosts",
+        comment            => "Grant ${query_types} reporting query for the hub on the hosts",
+        resource_type      => "query",
+        report_data_select => rudder_data_select_host,
+        admit              => { ${def.policy_server}, @{sys.ip_addresses} };
+&endif&
 
   roles:
       # Allow user root to set any class
@@ -128,15 +139,17 @@ bundle common def
         string  => translatepath("${sys.workdir}/policy_server.dat"),
         comment => "Path to file containing address to policy server";
 
-   # Use localhost as default policy_server if no policy_server.dat exists
-    policy_server_set::
+      # Use "rudder" as default policy_server if no policy_server.dat exists
       "policy_server"
-        string  => readfile("${policy_server_file}", 2048),
+        string  => ifelse(fileexists("${policy_server_file}"),
+                          readfile("${policy_server_file}", 2048),
+                          "rudder"),
         comment => "IP address or hostname to locate your policy host.";
-    !policy_server_set::
-      "policy_server"
-        string  => "rudder",
-        comment => "IP address by default without ${def.policy_server_file} file";
+
+    !windows::
+      "cf_runagent_shell" 
+        string  => "/bin/sh",
+        comment => "Define path to shell used by cf-runagent";
 
     any::
 
@@ -144,21 +157,21 @@ bundle common def
 
    # List here the IP masks that we grant access to on the server
 
-&if(AUTHORIZED_NETWORKS)&
     policy_server::
       "acl" slist => {
       "127.0.0.0/8" , "::1",
+&if(AUTHORIZED_NETWORKS)&
       host2ip("${def.policy_server}"), # the policy server can connect to a relay
       &AUTHORIZED_NETWORKS:{net|"&net&",}&
-    };
 &endif&
-    !policy_server.policy_server_set::
-      "acl" slist => {
-      "${def.policy_server}", host2ip("${def.policy_server}")
+
     };
 
-  classes:
-      "policy_server_set" expression => fileexists("${def.policy_server_file}");
+    !policy_server::
+      "acl" slist => {
+      "${def.policy_server}", host2ip("${def.policy_server}")
+      };
+
 }
 
 
@@ -171,6 +184,7 @@ body server control
           &MANAGED_NODES_NAME: {
           "&it&"};separator=", "&
           &endif&
+
         }; #trustkey allows the exchange of keys
 
         allowconnects     => {
@@ -179,6 +193,7 @@ body server control
           &MANAGED_NODES_NAME: {
           "&it&"};separator=", "&
           &endif&
+
         };
 
         allowallconnects  => {
@@ -187,7 +202,9 @@ body server control
           &MANAGED_NODES_NAME: {
           "&it&"};separator=", "&
           &endif&
+
         };
+
 &else&
         trustkeysfrom     => {
           @{def.acl} ,
@@ -195,6 +212,7 @@ body server control
           &MANAGED_NODES_NAME: {
           host2ip("&it&"), "&it&"};separator=", "&
           &endif&
+
         }; #trustkey allows the exchange of keys
 
         allowconnects     => {
@@ -203,7 +221,9 @@ body server control
           &MANAGED_NODES_NAME: {
           host2ip("&it&"), "&it&"};separator=", "&
           &endif&
+
         };
+
 
         allowallconnects  => {
           @{def.acl} ,
@@ -211,12 +231,31 @@ body server control
           &MANAGED_NODES_NAME: {
           host2ip("&it&"), "&it&"};separator=", "&
           &endif&
+
         };
+
 &endif&
+
         maxconnections    => "1000";
         logallconnections => "true";
 
-        cfruncommand      => "${sys.workdir}/bin/cf-agent -f failsafe.cf \&\& ${sys.workdir}/bin/cf-agent";
+        allowlegacyconnects => {
+            host2ip("${def.policy_server}"), # the policy server can connect
+            &if(AUTHORIZED_NETWORKS)&
+            &AUTHORIZED_NETWORKS:{net|"&net&",}&
+            &endif&
+
+        };
+
+      windows::
+        cfruncommand => "${sys.cf_agent} -I -D cfruncommand -f \"failsafe.cf\"  \&
+                        ${sys.cf_agent} -I -D cfruncommand";
+
+      !windows::
+        # last single quote in cfruncommand is left open, so that
+        # arguments (like -K and --remote-bundles) are properly appended.
+        cfruncommand => "${g.rudder_command} agent run -uR";
+
         allowusers        => {
           "&POLICYSERVER_ADMIN&",
           &MANAGED_NODES_ADMIN : {admin | "&admin&" };separator=", "&
@@ -255,7 +294,7 @@ body runagent control
 
     community_edition.!debug_port::
         port => "&COMMUNITYPORT&";
-    community_edition.debug_port::
+    debug_port::
         port => "5310";
 }
 &endif&
@@ -268,9 +307,10 @@ body report_data_select rudder_data_select_host
 # reporting value) should be prefixed with an underscore. By default the policy
 # framework explicitly excludes these variables and classes from collection.
 {
-    metatags_include => { "inventory", "report" };
-    metatags_exclude => { "noreport" };
-    monitoring_include => { ".*" };
+    metatags_include       => { "inventory", "report" };
+    metatags_exclude       => { "noreport" };
+    monitoring_include     => { ".*" };
+    promise_handle_exclude => { "noreport_.*" };
 }
 
 body report_data_select rudder_data_select_policy_hub
@@ -280,8 +320,9 @@ body report_data_select rudder_data_select_policy_hub
 # reporting value) should be prefixed with an underscore. By default the policy
 # framework explicitly excludes these variables and classes from collection.
 {
-    metatags_include => { "inventory", "report" };
-    metatags_exclude => { "noreport" };
-    monitoring_include => { ".*" };
+    metatags_include       => { "inventory", "report" };
+    metatags_exclude       => { "noreport" };
+    monitoring_include     => { ".*" };
+    promise_handle_exclude => { "noreport_.*" };
 }
 &endif&
