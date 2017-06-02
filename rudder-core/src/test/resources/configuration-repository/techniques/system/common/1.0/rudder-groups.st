@@ -29,7 +29,7 @@
 #  - group_64f85ba8_39c7_418a_a099_24c2c2909dfd
 #  - group_serveurs_pre_prod
 #  and vars:
-#  - "by_uuid[64f85ba8-39c7-418a-a099-24c2c2909dfd]" = "Serveurs pré-prod"
+#  - by_uuid["64f85ba8-39c7-418a-a099-24c2c2909dfd"] = "Serveurs pré-prod"
 # More over, each value of the array will have an attribute "meta": { "inventory", "attribute_name=rudder_groups" }
 #
 bundle common rudder_groups {

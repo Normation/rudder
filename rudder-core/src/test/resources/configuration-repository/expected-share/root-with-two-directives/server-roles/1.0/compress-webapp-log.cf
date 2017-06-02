@@ -28,6 +28,6 @@ bundle agent compress_webapp_log
     "/var/log/rudder/webapp"
       file_select => date_pattern("${log_compress_delay}", "@{logs_patern}"),
       depth_search => recurse("0"),
-      transformer => "${g.gzip} \"${this.promiser}\"";
+      transformer => "${g.gzip} -fq \"${this.promiser}\"";
 
 }

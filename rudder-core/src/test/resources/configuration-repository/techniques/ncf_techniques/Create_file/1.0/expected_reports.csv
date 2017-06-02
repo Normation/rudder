@@ -1,0 +1,4 @@
+# This file contains one line per report expected by Rudder from this technique
+# Format: technique_name;;class_prefix_${key};;@@RUDDER_ID@@;;component name;;component key
+Create_file;;directory_create_/tmp/foo;;@@RUDDER_ID@@;;Directory create;;/tmp/foo
+Create_file;;file_create_/tmp/foo/bar;;@@RUDDER_ID@@;;File create;;/tmp/foo/bar

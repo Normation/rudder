@@ -58,5 +58,6 @@ bundle common virtualMachines
     windows::
       "VirtualBoxInstalled" not => regcmp("", "${virtual_box_install_path}");
 &endif&
+
 }
 

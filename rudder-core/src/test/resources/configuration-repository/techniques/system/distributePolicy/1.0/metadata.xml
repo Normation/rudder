@@ -41,11 +41,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       <OUTPATH>distributePolicy/rsyslog.conf/rudder-rsyslog-relay.conf</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </TML>
-    <TML name="rudder-ncf-conf">
-      <OUTPATH>distributePolicy/ncf/ncf.conf</OUTPATH>
+    <TML name="nodeslist.json">
+      <OUTPATH>distributePolicy/1.0/nodeslist.json</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </TML>
   </TMLS>
+
+  <FILES>
+    <FILE name="rudder-ncf-conf">
+      <OUTPATH>distributePolicy/ncf/ncf.conf</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </FILE>
+  </FILES>
 
   <SYSTEMVARS>
     <NAME>CMDBENDPOINT</NAME>
@@ -56,6 +63,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>MANAGED_NODES_IP</NAME>
     <NAME>AUTHORIZED_NETWORKS</NAME>
     <NAME>NOVA</NAME>
+    <NAME>RUDDER_REPORTS_DB_NAME</NAME>
+    <NAME>RUDDER_REPORTS_DB_USER</NAME>
+    <NAME>SUB_NODES_NAME</NAME>
+    <NAME>SUB_NODES_ID</NAME>
+    <NAME>SUB_NODES_KEYHASH</NAME>
+    <NAME>SUB_NODES_SERVER</NAME>
   </SYSTEMVARS>
 
   <SECTIONS>

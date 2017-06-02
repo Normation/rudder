@@ -51,31 +51,30 @@ bundle agent generic_alive_check(app)
 
     root_server::
 
-      "any" usebundle => generic_process_check_process(".*java.*/opt/rudder/jetty7/start.jar", "rudder-jetty", "jetty", "true", "false"),
+      "any" usebundle => service_restart("rudder-jetty"),
         ifvarclass => "site_alivecheck_restart_jetty_${sitename}",
         classes => set_persist_classes("site_alivecheck_jetty_restarted_${sitename}", "site_down_once_${sitename}" ,"0");
 
-
     pass3.root_server::
 
-      "any" usebundle => rudder_common_report("server-roles", "result_success", "&TRACKINGKEY&", "Check ${app} status", "None", "The ${site_to_check} web application is running"),
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "&TRACKINGKEY&", "Check ${app} status", "None", "The ${site_to_check} web interface is running"),
         ifvarclass => "site_ok.!site_down_once_${sitename}";
 
-      "any" usebundle => rudder_common_report("server-roles", "result_error", "&TRACKINGKEY&", "Check ${app} status", "None", "This is the first time the ${site_to_check} web application failed to respond. Deferring the restart."),
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "&TRACKINGKEY&", "Check ${app} status", "None", "This is the first time the ${site_to_check} web interface failed to respond. Deferring the restart."),
         ifvarclass => "site_down_once_${sitename}.!site_alivecheck_restart_jetty_${sitename}";
 
-      "any" usebundle => rudder_common_report("server-roles", "result_error", "&TRACKINGKEY&", "Check ${app} status", "None", "The ${site_to_check} web application failed to respond for the second time. Restarting jetty NOW !"),
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "&TRACKINGKEY&", "Check ${app} status", "None", "The ${site_to_check} web interface failed to respond for the second time. Restarting jetty NOW!"),
         ifvarclass => "site_alivecheck_restart_jetty_${sitename}";
 
     pass3.(policy_server.!root_server)::
 
-      "any" usebundle => rudder_common_report("server-roles", "result_success", "&TRACKINGKEY&", "Check ${app} status", "None", "The ${site_to_check} web application check do not need to be done on relay servers. Skipping...");
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "&TRACKINGKEY&", "Check ${app} status", "None", "The ${site_to_check} web interface check do not need to be done on relay servers. Skipping.");
 
   commands:
 
     root_server::
 
-      "/usr/bin/curl -s ${site_to_check} |/bin/grep -q OK"
+      "/usr/bin/curl --proxy '' --max-time 240 -s ${site_to_check} |/bin/grep -q OK"
         contain => in_shell_silent,
         classes => set_persist_classes_alivecheck("site_ok", "${failed_result_class}", "@{generic_alive_check.cleanup_failed_classes}", "${site_failure_persist_time}"),
         comment => "Checking if ${site_to_check} is alive";

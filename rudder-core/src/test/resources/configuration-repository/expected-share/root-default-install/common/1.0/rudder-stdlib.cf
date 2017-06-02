@@ -1,0 +1,128 @@
+#####################################################################################
+# Copyright 2012 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+#
+# Rudder Promise Body and Bundle Library
+#
+# This library includes standardized bundles and bodies to be used as part of the
+# "best practices" in the Techniques writing
+#
+
+##################################################
+# files bundles
+##################################################
+
+#
+# Insert the standard Rudder disclaimer into a file
+#
+bundle edit_line rudder_common_disclaimer
+{
+  vars:
+      "file_edit_header" string => "${rudder_parameters.rudder_file_edit_header}";
+
+  defaults:
+      "file_edit_header" string => "#############################################################
+### This file is protected by your Rudder infrastructure. ###
+### Manually editing the file might lead your Rudder      ###
+### infrastructure to change back the server's            ###
+### configuration and/or to raise a compliance alert.     ###
+#############################################################
+",
+        if_match_regex => "${const.dollar}{rudder_parameters.rudder_file_edit_header}";
+
+  insert_lines:
+      "${file_edit_header}"
+        location    => start,
+        insert_type => "preserve_block";
+}
+
+# Select lines for deletion
+# Select the lines that are not in the list (complete line match)
+body delete_select rudder_delete_if_not_in_list(lines_to_delete)
+{
+  delete_if_not_match_from_list => { @{lines_to_delete} };
+}
+#
+# Select files older than X months
+#
+body file_select rudder_common_months_old(months)
+{
+  mtime       => irange(0,ago(0,"${months}",0,0,0,0));
+  file_result => "mtime";
+}
+
+#
+# Select files older than X days
+#
+body file_select rudder_common_days_old(days)
+{
+  mtime       => irange(0,ago(0,0,"${days}",0,0,0));
+  file_result => "mtime";
+}
+
+#
+# Select files older than X hours
+#
+body file_select rudder_common_hours_old(hours)
+{
+  mtime       => irange(0,ago(0,0,0,"${hours}",0,0));
+  file_result => "mtime";
+}
+
+#
+# Select files older than X minutes
+#
+body file_select rudder_common_minutes_old(minutes)
+{
+  mtime       => irange(0,ago(0,0,0,0,"${minutes}",0));
+  file_result => "mtime";
+}
+
+# enforce content of section
+bundle edit_line rudder_ensure_section_content(section_start, section_end, content)
+{
+  vars:
+      "csection"              string => canonify("${section_start}");
+      "escaped_section_start" string => escape(${section_start});
+      "escaped_section_end"   string => escape(${section_end});
+
+  classes:
+      # Detect if section is already there
+      "has_${csection}" expression => regline("${escaped_section_start}", "${edit.filename}");
+
+  delete_lines:
+      ".*"
+        select_region => rudder_section_selector("${escaped_section_start}", "${escaped_section_end}"),
+        ifvarclass => "has_${csection}";
+
+  insert_lines:
+      # Insert new, empty section if it doesn't exist already.
+      "${section_start}
+${section_end}"
+        insert_type => "preserve_block",
+        ifvarclass => "!has_${csection}";
+
+      # Insert missing lines into the section
+      "${content}"
+        select_region => rudder_section_selector("${escaped_section_start}", "${escaped_section_end}");
+}
+
+body select_region rudder_section_selector(section_start, section_end)
+{
+  select_start => "${section_start}";
+  select_end   => "${section_end}";
+}

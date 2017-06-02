@@ -1,0 +1,47 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# This file is the main entry points for the bundle sequence for 
+# Rudder user directives. It is actually a list of method calls, and not
+# a bundle sequence, which allows to add the technique or directives 
+# names as promiser. 
+
+body file control {
+
+  inputs => {
+    "Create_file/1.0/rudder_reporting.cf",
+    "Create_file/1.0/Create_file.cf",
+    "packageManagement/1.0/packageManagement.cf",
+  };
+
+}
+
+
+bundle agent rudder_directives {
+
+  methods:
+      "50-rule-technique-ncf/Create a file"           usebundle => set_dry_run_mode("false");
+      "50-rule-technique-ncf/Create a file"           usebundle => current_technique_report_info("Create_file");
+      "50-rule-technique-ncf/Create a file"           usebundle => Create_file;
+      "50-rule-technique-ncf/Create a file"           usebundle => Create_file_rudder_reporting;
+      "60-rule-technique-std-lib/Package management." usebundle => set_dry_run_mode("false");
+      "60-rule-technique-std-lib/Package management." usebundle => package_management;
+      "remove_dry_run_mode"                           usebundle => set_dry_run_mode("false");
+
+}
+
