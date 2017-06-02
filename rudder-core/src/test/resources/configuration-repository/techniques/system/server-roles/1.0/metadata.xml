@@ -27,19 +27,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <TML name="password-check"/>
     <TML name="postgres-check"/>
     <TML name="logrotate-check"/>
-    <TML name="compress-webapp-log"/>
-    <TML name="rudder-logrotate">
-      <OUTPATH>server-roles/logrotate.conf/rudder</OUTPATH>
-      <INCLUDED>false</INCLUDED>
-    </TML>
     <TML name="technique-reload"/>
-    <TML name="servers-by-role"/>
     <TML name="rudder-server-roles">
       <OUTPATH>rudder-server-roles.conf</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </TML>
     <TML name="metrics-reporting"/>
   </TMLS>
+
+  <FILES>
+    <FILE name="compress-webapp-log.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="compress-ldap-backups.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="servers-by-role.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="rudder-logrotate">
+      <OUTPATH>server-roles/logrotate.conf/rudder</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </FILE>
+  </FILES>
 
   <BUNDLES>
     <NAME>root_component_check</NAME>

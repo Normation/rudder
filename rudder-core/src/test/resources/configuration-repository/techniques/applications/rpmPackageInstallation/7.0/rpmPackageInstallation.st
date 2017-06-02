@@ -33,7 +33,7 @@ bundle agent check_rpm_package_installation {
       &RPM_PACKAGE_CHECK_INTERVAL:{check_interval |"rpm_package_check_interval" string => "&check_interval&";
       }&
 
-      "package_number" int => readstringarrayidx("rpm_data","${sys.workdir}/inputs/rpmPackageInstallation/7.0/rpmPackageInstallationData", "#[^\n]*",":",9000,1600000);
+      "package_number" int => readstringarrayidx("rpm_data","${this.promise_dirname}/rpmPackageInstallationData", "#[^\n]*",":",9000,1600000);
 &! We need to use the i0 notation to have indexes starting at 0, as in readstringarrayidx !&
 
       &RPM_PACKAGE_REDLIST:{name |"rpm_package[&i0&]" string => "&name&";
@@ -149,7 +149,7 @@ bundle agent check_rpm_package_installation {
       # Case 3: We do have a version defined
       "${rpm_package[${index_rpmpkg}]}"
         package_policy   => "${rpm_data[${index_rpmpkg}][0]}",
-        package_method   => generic_nobulk("30"),
+        package_method   => generic_nobulk_version("30"),
         package_select   => "${rpm_data[${index_rpmpkg}][2]}",
         package_version  => "${rpm_version[${index_rpmpkg}]}",
         classes => rudder_common_classes_persist("rpm_package_installation_${index_rpmpkg}", "${rpm_package_check_interval}"),
@@ -255,6 +255,55 @@ body package_method generic_nobulk(rpm_pkg_timeout) {
     package_update_command => "/usr/bin/zypper --non-interactive update";
     package_verify_command => "/usr/bin/zypper --non-interactive verify$";
   
+  SuSE_10.!zypper_version_ok::
+    package_list_command => "/bin/rpm -qa --queryformat \"i | repos | %{name} | %{version}-%{release} | %{arch}\n\"";
+    package_list_update_ifelapsed => "${rpm_pkg_timeout}";
+    package_installed_regex => "i.*";
+    package_list_name_regex    => "[^|]+\|[^|]+\|\s+([^\s]+).*";
+    package_list_version_regex => "[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
+    package_list_arch_regex    => "[^|]+\|[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
+    package_name_convention => "${name}";
+    package_add_command => "/usr/bin/rug install -y";
+    package_delete_command => "/usr/bin/rug remove -y";
+    package_update_command => "/usr/bin/rug update -y";
+    package_verify_command => "/usr/bin/rug verify -y$"; # $ means no args
+}
+
+body package_method generic_nobulk_version(rpm_pkg_timeout) {
+
+
+    package_version_less_command  => "${rudder_rpm_knowledge.rpm_compare_less}";
+    package_version_equal_command => "${rudder_rpm_knowledge.rpm_compare_equal}";
+
+    package_changes => "individual";
+
+  redhat::
+    package_list_command          => "/bin/rpm -qa --qf '%{name} %{version}-%{release} %{arch}\n'";
+    package_list_name_regex       => "^(\S+?)\s\S+?\s\S+$";
+    package_list_version_regex    => "^\S+?\s(\S+?)\s\S+$";
+    package_list_arch_regex       => "^\S+?\s\S+?\s(\S+)$";
+    package_installed_regex       => ".*";
+    package_name_convention       => "${name}-${version}";
+    package_list_update_ifelapsed => "${rpm_pkg_timeout}";
+    package_add_command           => "/usr/bin/yum ${redhat_knowledge.yum_options} -y install";
+    package_delete_command        => "/bin/rpm -e";
+    package_update_command        => "/usr/bin/yum ${redhat_knowledge.yum_options} -y update";
+    package_verify_command        => "/bin/rpm -V";
+
+
+  zypper_version_ok::
+    package_list_command => "/bin/rpm -qa --queryformat \"i | repos | %{name} | %{version}-%{release} | %{arch}\n\"";
+    package_list_update_ifelapsed => "${rpm_pkg_timeout}";
+    package_installed_regex => "i.*";
+    package_list_name_regex => "[^|]+\|[^|]+\|\s+([^\s]+).*";
+    package_list_version_regex => "[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
+    package_list_arch_regex => "[^|]+\|[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
+    package_name_convention => "${name}=${version}";
+    package_add_command => "/usr/bin/zypper --non-interactive install";
+    package_delete_command => "/usr/bin/zypper --non-interactive remove --force-resolution";
+    package_update_command => "/usr/bin/zypper --non-interactive update";
+    package_verify_command => "/usr/bin/zypper --non-interactive verify$";
+
   SuSE_10.!zypper_version_ok::
     package_list_command => "/bin/rpm -qa --queryformat \"i | repos | %{name} | %{version}-%{release} | %{arch}\n\"";
     package_list_update_ifelapsed => "${rpm_pkg_timeout}";

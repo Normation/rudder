@@ -14,20 +14,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
-<!--
-    This is the rpmPackageInstallation PT.
-    Compatibility : Linux RedHat like
-
-It is intended to install the defined packages, by OS,
-and to ensure certain parameters are met, such as the
-presence of a package, and if not met to enforce them.
--->
-
-<TECHNIQUE name="Package management for RHEL / CentOS / SuSE / RPM systems">
+<TECHNIQUE name="Packages (RHEL/CentOS/SuSE/RPM)">
   <DESCRIPTION>This technique operates on individual packages.
 
   It will ensure that the defined packages are installed, up-to-date or removed using the yum/zypper package manager.</DESCRIPTION>
-  
+
+  <DEPRECATED>This technique is deprecated, use "Package Management" instead.</DEPRECATED>  
   <MULTIINSTANCE>true</MULTIINSTANCE>
   <COMPATIBLE>
     <OS version=">= 4 (Nahant)">RHEL / CentOS</OS>
@@ -126,8 +118,8 @@ presence of a package, and if not met to enforce them.
             <VALUE><![CDATA[>=]]></VALUE>
           </ITEM>
           <ITEM>
-            <LABEL><![CDATA[>=]]> This version or any earlier one</LABEL>
-            <VALUE><![CDATA[>=]]></VALUE>
+            <LABEL><![CDATA[<=]]> This version or any earlier one</LABEL>
+            <VALUE><![CDATA[<=]]></VALUE>
           </ITEM>
           <ITEM>
             <LABEL><![CDATA[>]]> Any later version</LABEL>

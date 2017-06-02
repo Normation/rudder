@@ -22,10 +22,12 @@
 
 body common control
 {
-        bundlesequence     => { "init_files", "update" };
+        bundlesequence     => { "check_uuid", "init_files", "update_action" };
 
-        inputs             => { "common/1.0/update.cf", "common/1.0/rudder_stdlib_core.cf" };
+        inputs             => { "common/1.0/update.cf" };
         output_prefix      => "rudder";
+
+        protocol_version   => "2";
 }
 
 body agent control {
@@ -45,7 +47,7 @@ bundle common g
       "rudder_tools_files_unix"   slist => { "send-clean.sh",
                                              "cpuid-linux-V1.0.sh",
                                              "vmware_info.sh",
-                                             "check_rsyslog_version",
+                                             "check-rsyslog-version",
                                              "apache-vhost.tpl",
                                            };
 
@@ -59,6 +61,8 @@ bundle common g
       "rudder_base_sbin"         string => "${rudder_base}/sbin"; #folder where tools are installed
       "rudder_tools"             string => "${rudder_var}/tools";
       "rudder_ncf"               string => "${rudder_var}/ncf";
+      "uuid_file"                string => "${rudder_base}/etc/uuid.hive";
+      "rudder_disable_server_file" string => "${rudder_base}/etc/disable-policy-distribution";
 
 &if(NOVA)&
     windows::
@@ -68,6 +72,8 @@ bundle common g
       "rudder_sbin"              string => "${rudder_base}\sbin";
       "rudder_tools"             string => "${rudder_sbin}";
       "rudder_ncf"               string => "${rudder_var}\ncf";
+      "uuid_file"                string => "${rudder_base}\etc\uuid.hive";
+      "rudder_disable_server_file" string => "${rudder_base}\etc\disable-policy-distribution";
 
       "rudder_tools_files_windows" slist => {
                                               # Rudder utilities
@@ -97,13 +103,13 @@ bundle common g
                                               "nxlog-ce-2.8.1248.msi",
                                               "nxlog.conf"
                                             };
-
 &endif&
+
     SuSE::
       "rudder_tools_files_suse"    slist => { "openvpn-2.2.1-1.x86_64.rpm",
                                               "openvpn-2.2.1-1.i686.rpm",
                                               "zypper-repo.tpl",
-                                              "check_zypper_version",
+                                              "check-zypper-version",
                                               "checkzmd.pl",
                                             };
     any::
@@ -114,7 +120,7 @@ bundle common g
                                               "checkroute.pl",
                                             }, policy => "ifdefined";
 
-      "uuid"                     string => "&UUID&";
+      "uuid"                     string => readfile("${g.uuid_file}", 60);
       "excludedreps"             slist  => { "\.X11", ".*kde.*", "\.svn", "perl" };
       "ncf_local_excludedreps"    slist => { "50_techniques", @{g.excludedreps}};
       "rudder_tools_origin"      string => "/var/rudder/tools";
@@ -136,8 +142,9 @@ bundle common g
       # The time at which the execution started
 &if(NOVA)&
     windows.!cygwin::
-      "execRun"                  string => execresult("\"${g.rudder_sbin}\getDate.bat\"", "noshell");
+      "execRun"                  string => execresult("c:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command \"'{0:yyyy-MM-dd HH:mm:sszzz}' -f (get-date)\"", "noshell");
 &endif&
+
     android::
       "execRun"                  string => execresult("/system/xbin/date \"+%Y-%m-%d %T+02:00\"", "noshell");
     (!windows|cygwin).!android::
@@ -151,8 +158,6 @@ bundle common g
 bundle common rudder_roles
 {
   classes:
-      # Abort if no uuid is defined
-      "should_not_continue" not        => fileexists("${g.uuid_file}");
       # Policy Server is a machine which delivers promises
       "policy_server"       expression => strcmp("root","${g.uuid}");
       # Root Server is the top policy server machine
@@ -168,7 +173,7 @@ bundle common rudder_roles
 bundle agent init_files
 {
   vars:
-      "components"            slist  => { "cf-agent", "cf-serverd", "cf-execd", "cf-monitord", "cf-promises", "cf-runagent", "cf-key", "cf-hub" };
+      "components"            slist  => { "cf-agent", "cf-serverd", "cf-execd", "cf-monitord", "cf-promises", "cf-runagent", "cf-key" };
 
     nova_edition::
       "cfengine_install_path" string => "/usr/local";
@@ -222,14 +227,6 @@ body copy_from cp(from,server)
 
 }
 
-body copy_from copy_digest(from)
-{
-        source      => "${from}";
-        copy_backup => "false";
-        preserve    => "true";
-        compare     => "digest";
-}
-
 body action immediate
 {
         ifelapsed => "0";
@@ -247,11 +244,6 @@ body delete tidy
         rmdirs   => "true";
 }
 
-body action WarnOnly
-{
-        action_policy => "warn";
-}
-
 body file_select exclude(name)
 {
         leaf_name  => { "${name}"};
@@ -267,11 +259,8 @@ body file_select by_fullname(names)
 }
 
 
-# Copied from CFEngine stdlib
-body classes always(x)
-
 # Define a class no matter what the outcome of the promise is
-
+body classes always(x)
 {
   promise_repaired => { "${x}" };
   promise_kept => { "${x}" };

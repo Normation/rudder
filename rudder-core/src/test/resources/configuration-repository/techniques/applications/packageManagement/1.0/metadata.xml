@@ -1,0 +1,160 @@
+<!--
+Copyright 2016 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, Version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<TECHNIQUE name="Packages">
+  <DESCRIPTION>This technique operates on individual packages.
+
+  It will ensure that the defined packages are in the desired state using the appropriate package manager.</DESCRIPTION>
+  
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <COMPATIBLE>
+    <OS version=">= 4">RHEL / CentOS</OS>
+    <OS version=">= 10 SP1">SuSE LES / DES / OpenSuSE</OS>
+    <OS version=">= 5">Debian / Ubuntu</OS>
+    <OS version=">= 10">FreeBSD</OS>
+    <AGENT version=">= 3.7.0">cfengine-community</AGENT>
+  </COMPATIBLE>
+
+  <BUNDLES>
+    <NAME>package_management</NAME>
+  </BUNDLES>
+
+  <TMLS>
+    <TML name="packageManagement"/>
+  </TMLS>
+
+  <TRACKINGVARIABLE>
+    <SAMESIZEAS>PACKAGE_LIST</SAMESIZEAS>
+  </TRACKINGVARIABLE>
+  
+  <SECTIONS>
+    <SECTION name="Package" multivalued="true" component="true" componentKey="PACKAGE_LIST">
+      <INPUT>
+        <NAME>PACKAGE_LIST</NAME>
+        <DESCRIPTION>Package name (or path)</DESCRIPTION>
+        <LONGDESCRIPTION>You can use a path to install a local package, when using the "present" state.</LONGDESCRIPTION>
+      </INPUT>
+      <SELECT1>
+        <NAME>PACKAGE_STATE</NAME>
+        <DESCRIPTION>Package state</DESCRIPTION>
+        <ITEM>
+          <LABEL>Present</LABEL>
+          <VALUE>present</VALUE>
+        </ITEM>
+        <ITEM>
+          <LABEL>Absent</LABEL>
+          <VALUE>absent</VALUE>
+        </ITEM>
+        <CONSTRAINT>
+          <DEFAULT>present</DEFAULT>
+        </CONSTRAINT>
+      </SELECT1>
+      <SECTION name="Package version" component="false">
+        <SELECT1>
+          <NAME>PACKAGE_VERSION</NAME>
+          <DESCRIPTION>Package version</DESCRIPTION>
+          <ITEM>
+            <LABEL>Any version</LABEL>
+            <VALUE>any</VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL>Latest available version</LABEL>
+            <VALUE>latest</VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL>This specific version:</LABEL>
+            <VALUE>specific</VALUE>
+          </ITEM>
+          <CONSTRAINT>
+            <DEFAULT>any</DEFAULT>
+          </CONSTRAINT>
+        </SELECT1>
+        <INPUT>
+          <NAME>PACKAGE_VERSION_SPECIFIC</NAME>
+          <DESCRIPTION>Specific package version</DESCRIPTION>
+          <CONSTRAINT>
+            <MAYBEEMPTY>true</MAYBEEMPTY>
+          </CONSTRAINT>
+        </INPUT>
+      </SECTION>
+      <SECTION name="Package architecture" component="false">
+        <SELECT1>
+          <NAME>PACKAGE_ARCHITECTURE</NAME>
+          <DESCRIPTION>Package architecture</DESCRIPTION>
+          <ITEM>
+            <LABEL>Default architecture</LABEL>
+            <VALUE>default</VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL>This specific architecture:</LABEL>
+            <VALUE>specific</VALUE>
+          </ITEM>
+          <CONSTRAINT>
+            <DEFAULT>default</DEFAULT>
+          </CONSTRAINT>
+        </SELECT1>
+        <INPUT>
+          <NAME>PACKAGE_ARCHITECTURE_SPECIFIC</NAME>
+          <DESCRIPTION>Specific package architecture</DESCRIPTION>
+          <CONSTRAINT>
+            <MAYBEEMPTY>true</MAYBEEMPTY>
+          </CONSTRAINT>
+        </INPUT>
+      </SECTION>
+      <SECTION name="Package manager" component="false">
+        <SELECT1>
+          <NAME>PACKAGE_MANAGER</NAME>
+          <DESCRIPTION>Package manager</DESCRIPTION>
+          <LONGDESCRIPTION>This can be used to override auto-detection of the package manager.</LONGDESCRIPTION>
+          <ITEM>
+            <LABEL>Default package manager</LABEL>
+            <VALUE>default</VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL>yum/rpm</LABEL>
+            <VALUE>yum</VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL>apt/dpkg</LABEL>
+            <VALUE>apt</VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL>zypper/rpm</LABEL>
+            <VALUE>zypper</VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL>pkg</LABEL>
+            <VALUE>pkg</VALUE>
+          </ITEM>
+          <CONSTRAINT>
+            <DEFAULT>default</DEFAULT>
+          </CONSTRAINT>
+        </SELECT1>
+      </SECTION>
+      <SECTION name="Post-modification script" component="true" componentKey="PACKAGE_LIST">
+        <INPUT>
+          <NAME>PACKAGE_POST_HOOK_COMMAND</NAME>
+          <DESCRIPTION>Command to run after changes on this package</DESCRIPTION>
+          <CONSTRAINT>
+            <TYPE>textarea</TYPE>
+            <MAYBEEMPTY>true</MAYBEEMPTY>
+          </CONSTRAINT>
+        </INPUT>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>
+
