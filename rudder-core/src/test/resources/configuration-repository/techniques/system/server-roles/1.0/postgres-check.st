@@ -48,13 +48,13 @@ bundle agent root_postgres_check
 
     # Report about the configuration file editing
     pass3.SuSE.psql_conf_ok.!psql_conf_updated.!psql_conf_update_error::
-      "any" usebundle => rudder_common_report("server-roles", "result_success", "&TRACKINGKEY&", "Check PostgreSQL configuration", "None", "The SuSE specific postgresql configuration is present");
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "&TRACKINGKEY&", "Check PostgreSQL configuration", "None", "The SuSE specific PostgreSQL configuration is present");
 
     pass3.SuSE.psql_conf_updated.!psql_conf_update_error::
-      "any" usebundle => rudder_common_report("server-roles", "result_repaired", "&TRACKINGKEY&", "Check PostgreSQL configuration", "None", "The SuSE specific postgresql configuration has been added");
+      "any" usebundle => rudder_common_report("server-roles", "result_repaired", "&TRACKINGKEY&", "Check PostgreSQL configuration", "None", "The SuSE specific PostgreSQL configuration has been added");
 
     pass3.SuSE.psql_conf_update_error::
-      "any" usebundle => rudder_common_report("server-roles", "result_error", "&TRACKINGKEY&", "Check PostgreSQL configuration", "None", "The SuSE specific postgresql configuration could not be added");
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "&TRACKINGKEY&", "Check PostgreSQL configuration", "None", "The SuSE specific PostgreSQL configuration could not be added");
 
     # Reports about Postgres restart status
     pass3.SuSE.service_restart_postgresql_repaired::
@@ -64,6 +64,6 @@ bundle agent root_postgres_check
       "any" usebundle => rudder_common_report("server-roles", "result_error", "&TRACKINGKEY&", "Check PostgreSQL configuration", "None", "PostgreSQL restart has failed! Rudder is most certainly broken...");
 
     pass3.!SuSE::
-      "any" usebundle => rudder_common_report("server-roles", "result_success", "&TRACKINGKEY&", "Check PostgreSQL configuration", "None", "Their is no need of specific postgresql configuration on this system");
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "&TRACKINGKEY&", "Check PostgreSQL configuration", "None", "There is no need of specific PostgreSQL configuration on this system");
 
 }

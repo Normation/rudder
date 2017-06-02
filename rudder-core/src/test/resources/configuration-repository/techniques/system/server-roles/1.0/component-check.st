@@ -36,26 +36,22 @@ bundle agent root_component_check
       "service[rudder_slapd][name]"                    string => "slapd";
       "service[rudder_slapd][binary]"                  string => "/opt/rudder/libexec/slapd";
       "service[rudder_slapd][service]"                 string => "rudder-slapd";
-      "service[rudder_slapd][check_on_relay_server]"   string => "false";
 
       "service[rudder_jetty][name]"                    string => "jetty";
       "service[rudder_jetty][binary]"                  string => ".*java.*/opt/rudder/jetty7/start.jar";
       "service[rudder_jetty][service]"                 string => "rudder-jetty";
-      "service[rudder_jetty][check_on_relay_server]"   string => "false";
 
       "service[rudder_reports][name]"                  string => "postgresql";
-      "service[rudder_reports][binary]"                string => "postgres: writer process";
+      "service[rudder_reports][binary]"                string => "postgres:.* writer process";
       "service[rudder_reports][service]"               string => "postgresql";
-      "service[rudder_reports][check_on_relay_server]" string => "false";
 
       "service[apache][name]"                          string => "apache";
       "service[apache][binary]"                        string => "${apache_dist_specific_name}";
       "service[apache][service]"                       string => "${apache_dist_specific_name}";
-      "service[apache][check_on_relay_server]"         string => "true";
 
       "index" slist => getindices("service");
 
-      # Reporting
+      # Reporting
       "root_integrity_check"                           slist => { "Check configuration-repository folder",  "Check configuration-repository GIT lock" };
       "root_password_check_ldap"                       slist => { "Check LDAP in rudder-webapp.properties", "Check LDAP credentials" };
       "root_password_check_psql"                       slist => { "Check SQL in rudder-webapp.properties",  "Check SQL credentials" };
@@ -67,55 +63,53 @@ bundle agent root_component_check
 
     # This is to be done only if the package rudder-server-root is present
     role_rudder_server_root::
-      # Password management is expected to be done manually in case of a splitted/relayed installation for now.
+      # Password management is expected to be done manually in case of a splitted/relayed installation for now.
       "any" usebundle => root_password_check_ldap;
-      "any" usebundle => root_password_check_psql;
       "any" usebundle => root_password_check_file;
+      "any" usebundle => root_password_check_psql;
+      "any" usebundle => root_password_security;
       "any" usebundle => root_password_restart_jetty;
 
     !role_rudder_server_root::
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "${root_password_check_ldap}", "None", "Checking LDAP passwords is unnecessary on this machine, skipping..."
+          "${root_password_check_ldap}", "None", "Checking LDAP passwords is unnecessary on this machine, skipping."
         );
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "${root_password_check_psql}", "None", "Checking SQL passwords is unnecessary on this machine, skipping..."
+          "${root_password_check_psql}", "None", "Checking SQL passwords is unnecessary on this machine, skipping."
         );
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
           "Check rudder-passwords.conf and pgpass files", "None", "Checking the password files is unnecessary on this machine, skipping..."
         );
 
-    # Do this if this is the root_server or a relay server
+    # Do this if this is the root_server or a relay server
     root_server|(policy_server.!role_rudder_relay_promises_only)::
       "any" usebundle => root_networks_check;
       "any" usebundle => root_password_check_dav;
-      "any" usebundle => generic_process_check_process("${service[apache][binary]}", "${service[apache][service]}", "${service[apache][name]}", "false", "${service[apache][check_on_relay_server]}");
+      "any" usebundle => generic_process_check_process("${service[apache][binary]}", "${service[apache][service]}", "${service[apache][name]}");
       "any" usebundle => generic_process_check_bootstart("${service[apache][binary]}", "${service[apache][service]}", "${service[apache][name]}");
 
     !(root_server|policy_server)|role_rudder_relay_promises_only::
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check allowed networks configuration", "None", "Checking the allowed networks configuration is unnecessary on this machine, skipping..."
+          "Check allowed networks configuration", "None", "Checking the allowed networks configuration is unnecessary on this machine, skipping."
         );
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check WebDAV credentials", "None", "Checking WebDAV credentials is unnecessary on this machine, skipping..."
+          "Check WebDAV credentials", "None", "Checking WebDAV credentials is unnecessary on this machine, skipping."
         );
 
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check apache process", "None", "Checking apache process state is unnecessary on this machine, skipping..."
+          "Check apache process", "None", "Checking apache process state is unnecessary on this machine, skipping."
         );
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check apache boot script", "None", "Checking apache boot settings is unnecessary on this machine, skipping..."
+          "Check apache boot script", "None", "Checking apache boot settings is unnecessary on this machine, skipping."
         );
 
     role_rudder_jetty::
-      "any" usebundle => generic_process_check_process("${service[rudder_jetty][binary]}", "${service[rudder_jetty][service]}", "${service[rudder_jetty][name]}", "false", "${service[rudder_jetty][check_on_relay_server]}");
+      "any" usebundle => generic_process_check_process("${service[rudder_jetty][binary]}", "${service[rudder_jetty][service]}", "${service[rudder_jetty][name]}");
       "any" usebundle => compress_webapp_log;
 
     !role_rudder_jetty::
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check jetty process", "None", "Checking jetty process state is unnecessary on this machine, skipping..."
-        );
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check jetty boot script", "None", "Checking jetty boot settings is unnecessary on this machine, skipping..."
+          "Check jetty process", "None", "Checking jetty process state is unnecessary on this machine, skipping."
         );
 
     role_rudder_webapp::
@@ -125,10 +119,10 @@ bundle agent root_component_check
 
     !role_rudder_webapp::
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "${root_integrity_check}", "None", "Checking configuration-repository is unnecessary on this machine, skipping..."
+          "${root_integrity_check}", "None", "Checking configuration-repository is unnecessary on this machine, skipping."
         );
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check rudder status", "None", "Checking rudder webapp status is unnecessary on this machine, skipping..."
+          "Check rudder status", "None", "Checking rudder web interface status is unnecessary on this machine, skipping."
         );
 
     role_rudder_inventory_endpoint::
@@ -136,35 +130,33 @@ bundle agent root_component_check
 
     !role_rudder_inventory_endpoint::
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check endpoint status", "None", "Checking rudder inventory endpoint status is unnecessary on this machine, skipping..."
+          "Check endpoint status", "None", "Checking rudder inventory endpoint status is unnecessary on this machine, skipping."
         );
 
     role_rudder_inventory_ldap::
-      "any" usebundle => generic_process_check_process("${service[rudder_slapd][binary]}", "${service[rudder_slapd][service]}", "${service[rudder_slapd][name]}", "false", "${service[rudder_slapd][check_on_relay_server]}");
+      "any" usebundle => generic_process_check_process("${service[rudder_slapd][binary]}", "${service[rudder_slapd][service]}", "${service[rudder_slapd][name]}");
+      "any" usebundle => compress_ldap_backups;
 
     !role_rudder_inventory_ldap::
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check slapd process", "None", "Checking slapd process state is unnecessary on this machine, skipping..."
-        );
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check slapd boot script", "None", "Checking slapd boot settings is unnecessary on this machine, skipping..."
+          "Check slapd process", "None", "Checking slapd process state is unnecessary on this machine, skipping."
         );
 
     role_rudder_reports::
       "any" usebundle => root_postgres_check;
-      "any" usebundle => generic_process_check_process("${service[rudder_reports][binary]}", "${service[rudder_reports][service]}", "${service[rudder_reports][name]}", "false", "${service[rudder_reports][check_on_relay_server]}");
+      "any" usebundle => generic_process_check_process("${service[rudder_reports][binary]}", "${service[rudder_reports][service]}", "${service[rudder_reports][name]}");
       "any" usebundle => generic_process_check_bootstart("${service[rudder_reports][binary]}", "${service[rudder_reports][service]}", "${service[rudder_reports][name]}");
 
     !role_rudder_reports::
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check PostgreSQL configuration", "None", "Checking PostgreSQL configuration is unnecessary on this machine, skipping..."
+          "Check PostgreSQL configuration", "None", "Checking PostgreSQL configuration is unnecessary on this machine, skipping."
         );
 
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check postgresql process", "None", "Checking postgresql process state is unnecessary on this machine, skipping..."
+          "Check postgresql process", "None", "Checking postgresql process state is unnecessary on this machine, skipping."
         );
       "any" usebundle => rudder_common_report("${technique_name}", "result_na", "&TRACKINGKEY&",
-          "Check postgresql boot script", "None", "Checking postgresql boot settings is unnecessary on this machine, skipping..."
+          "Check postgresql boot script", "None", "Checking postgresql boot settings is unnecessary on this machine, skipping."
         );
 
 }

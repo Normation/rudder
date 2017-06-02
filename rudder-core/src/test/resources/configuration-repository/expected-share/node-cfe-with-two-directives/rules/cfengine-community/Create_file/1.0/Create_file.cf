@@ -1,0 +1,15 @@
+# @name Create a file
+# @description Create a file and a directory
+# @version 1.0
+
+bundle agent Create_file
+{
+  vars:
+    "class_prefix" string => canonify(join("_", "this.callers_promisers"));
+
+  methods:
+    "method_call" usebundle => directory_create("/tmp/foo"),
+      ifvarclass => concat("any");
+    "method_call" usebundle => file_create("/tmp/foo/bar"),
+      ifvarclass => concat("directory_create__tmp_foo_ok");
+}
