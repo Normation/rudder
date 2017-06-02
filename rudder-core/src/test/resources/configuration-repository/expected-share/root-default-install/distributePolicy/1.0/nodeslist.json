@@ -1,0 +1,8 @@
+{
+      "root": {
+        "hostname": "server.rudder.local",
+        "key-hash": "sha256:",
+        "policy-server": "root"
+      }
+    
+}

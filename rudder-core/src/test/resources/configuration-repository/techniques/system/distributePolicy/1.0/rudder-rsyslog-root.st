@@ -52,6 +52,8 @@ $ActionQueueSaveOnShutdown on
 # eventtype : the severity
 # policy : the policy name
 
+#  format is @@Policy@@State@@RuleId@@DirectiveId@@VersionId@@Component@@Key@@ExecutionTimeStamp##NodeId@#HumanReadableMessage
+
 $template RudderReportsFormat,"insert into RudderSysEvents (executionDate, nodeId, ruleId, directiveId, serial, Component, KeyValue, executionTimeStamp, eventType, msg, Policy) values ('%timereported:::date-rfc3339%','%msg:R,ERE,1,DFLT:.*##(.*)@#.*--end%', '%msg:R,ERE,1,DFLT:.*@@.*@@.*@@(.*)@@.*@@.*@@.*@@.*@@[^#]*##.*--end%' , '%msg:R,ERE,1,ZERO:.*@@.*@@.*@@.*@@(.*)@@.*@@.*@@.*@@[^#]*##.*--end%', '%msg:R,ERE,1,DFLT:.*@@.*@@.*@@.*@@.*@@(.*)@@.*@@.*@@[^#]*##.*--end%', '%msg:R,ERE,1,DFLT:.*@@.*@@.*@@.*@@.*@@.*@@(.*)@@.*@@[^#]*##.*--end%', '%msg:R,ERE,1,DFLT:.*@@.*@@.*@@.*@@.*@@.*@@.*@@(.*)@@[^#]*##.*--end%', '%msg:R,ERE,1,DFLT:.*@@.*@@.*@@.*@@.*@@.*@@.*@@.*@@([^#]*)##.*--end%', '%msg:R,ERE,1,DFLT:.*@@.*@@(.*)@@.*@@.*@@.*@@.*@@.*@@[^#]*##.*--end%', '%msg:R,ERE,1,DFLT:.*@#(.*)--end%', '%msg:R,ERE,1,DFLT:.*@@(.*)@@.*@@.*--end%' )",stdsql
 
 # Filtering by content
@@ -61,13 +63,15 @@ $template RudderReportsFormat,"insert into RudderSysEvents (executionDate, nodeI
 # The report format is @@Policy@@State@@RuleId@@DirectiveId@@VersionId@@Component@@Key@@ExecutionTimeStamp##NodeId@#HumanReadableMessage
 #
 # 1 - Send every matching report in the database...
-:msg, ereregex, "R: @@[ a-zA-Z0-9_\-]+?@@[a-zA-Z0-9_\-]{1,64}?@@[a-zA-Z0-9\-]+@@[a-zA-Z0-9\-]+?@@[0-9]+?@@.*?@@.*?@@[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{1,2}:[0-9]{2}##[a-zA-Z0-9\-]+?@#.*"  :ompgsql:${install_rsyslogd.rudder_postgres_server},rudder,rudder,${p.psql_password[2]};RudderReportsFormat
+:msg, ereregex, "R: @@[ a-zA-Z0-9_\-]+?@@[a-zA-Z0-9_\-]{1,64}?@@[a-zA-Z0-9\-]+@@[a-zA-Z0-9\-]+?@@[0-9]+?@@.*?@@.*?@@[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{1,2}:[0-9]{2}##[a-zA-Z0-9\-]+?@#.*"  :ompgsql:${install_rsyslogd.rudder_postgres_server},${install_rsyslogd.rudder_reports_db_name},${install_rsyslogd.rudder_reports_db_user},${p.psql_password[2]};RudderReportsFormat
 
 # 2 - Drop the remaining rudder logs to prevent local storage cluttering 
 
 ## Syslog messages from "rudder"   
 :programname, contains, "rudder" ~
+:programname, contains, "cf-agent" ~
 
 ## Syslog messages from "rudder" forwarded from AIX
 :msg, ereregex, "from .*: rudder" ~
+:msg, ereregex, "from .*: cf-agent" ~
 

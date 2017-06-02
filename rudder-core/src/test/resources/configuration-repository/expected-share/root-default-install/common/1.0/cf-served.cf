@@ -28,7 +28,6 @@ bundle server access_rules
   access:
 
     policy_server|role_rudder_relay_promises_only::
-
       "${def.dir_masterfiles}"
         handle  => "grant_access_policy",
         comment => "Grant access to the policy updates",
@@ -58,19 +57,28 @@ bundle server access_rules
 
 
 
-
     any::
           "/var/rudder/share/root/"
-            maproot => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  },
-            admit   => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  };
+            maproot    => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  },
+            admit      => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  },
+            admit_keys => { "MD5=" };
 
-         
-    policy_server_set::
-      # Allow server to remotely run the agent
-      "${sys.workdir}/bin/cf-agent"
+          "/var/rudder/shared-files/root/"
+            maproot    => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  },
+            admit      => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  },
+            admit_keys => { "MD5=" };
+
+        
+
+    # Allow server to remotely run the agent
+    # Using ${sys.cf_agent} fails, as cf-serverd cannot canonize its path
+    windows::
+      "${sys.workdir}\bin\cf-agent.exe"
         admit   => { host2ip("${server_info.cfserved}"), string_downcase(escape("${server_info.cfserved}")) };
 
-
+    !windows::
+      "${g.rudder_command}" comment => "Grant access to rudder agent command for cfruncommand",
+        admit => { host2ip("${server_info.cfserved}"), string_downcase(escape("${server_info.cfserved}")) };
 
   roles:
       # Allow user root to set any class
@@ -84,15 +92,17 @@ bundle common def
         string  => translatepath("${sys.workdir}/policy_server.dat"),
         comment => "Path to file containing address to policy server";
 
-   # Use localhost as default policy_server if no policy_server.dat exists
-    policy_server_set::
+      # Use "rudder" as default policy_server if no policy_server.dat exists
       "policy_server"
-        string  => readfile("${policy_server_file}", 2048),
+        string  => ifelse(fileexists("${policy_server_file}"),
+                          readfile("${policy_server_file}", 2048),
+                          "rudder"),
         comment => "IP address or hostname to locate your policy host.";
-    !policy_server_set::
-      "policy_server"
-        string  => "rudder",
-        comment => "IP address by default without ${def.policy_server_file} file";
+
+    !windows::
+      "cf_runagent_shell" 
+        string  => "/bin/sh",
+        comment => "Define path to shell used by cf-runagent";
 
     any::
 
@@ -105,13 +115,13 @@ bundle common def
       "127.0.0.0/8" , "::1",
       host2ip("${def.policy_server}"), # the policy server can connect to a relay
       "192.168.49.0/24",
-    };    !policy_server.policy_server_set::
-      "acl" slist => {
-      "${def.policy_server}", host2ip("${def.policy_server}")
     };
 
-  classes:
-      "policy_server_set" expression => fileexists("${def.policy_server_file}");
+    !policy_server::
+      "acl" slist => {
+      "${def.policy_server}", host2ip("${def.policy_server}")
+      };
+
 }
 
 
@@ -121,22 +131,42 @@ body server control
           @{def.acl} ,
 
                     host2ip("server.rudder.local"), "server.rudder.local"
+
         }; #trustkey allows the exchange of keys
 
         allowconnects     => {
           @{def.acl} ,
 
                     host2ip("server.rudder.local"), "server.rudder.local"
+
         };
+
 
         allowallconnects  => {
           @{def.acl} ,
 
                     host2ip("server.rudder.local"), "server.rudder.local"
-        };        maxconnections    => "1000";
+
+        };
+
+        maxconnections    => "1000";
         logallconnections => "true";
 
-        cfruncommand      => "${sys.workdir}/bin/cf-agent -f failsafe.cf && ${sys.workdir}/bin/cf-agent";
+        allowlegacyconnects => {
+            host2ip("${def.policy_server}"), # the policy server can connect
+            "192.168.49.0/24",
+
+        };
+
+      windows::
+        cfruncommand => "${sys.cf_agent} -I -D cfruncommand -f \"failsafe.cf\"  &
+                        ${sys.cf_agent} -I -D cfruncommand";
+
+      !windows::
+        # last single quote in cfruncommand is left open, so that
+        # arguments (like -K and --remote-bundles) are properly appended.
+        cfruncommand => "${g.rudder_command} agent run -uR";
+
         allowusers        => {
           "root",
           "root" 
@@ -166,6 +196,6 @@ body runagent control
 
     community_edition.!debug_port::
         port => "5309";
-    community_edition.debug_port::
+    debug_port::
         port => "5310";
 }

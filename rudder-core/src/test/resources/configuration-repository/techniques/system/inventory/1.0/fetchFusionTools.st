@@ -22,14 +22,12 @@
 
 bundle agent fetchFusionTools
 {
-
-
   packages:
 
     debian::
       "curl"
         package_policy  => "add",
-        package_method  => apt,
+        package_method  => generic,
         classes => rudder_common_classes("fetchFusionTools_install_curl"),
         comment => "Installing curl using apt";
     redhat::
@@ -41,8 +39,7 @@ bundle agent fetchFusionTools
 
   methods:
     fetchFusionTools_install_curl_error::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all", "inventory-all", "00", "Installing 'curl' failed. Inventory registration will fail if curl is unavailable");
-
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "inventory", "None", "Installing 'curl' failed. Inventory registration will fail if curl is unavailable");
 }
 
 body perms myperms

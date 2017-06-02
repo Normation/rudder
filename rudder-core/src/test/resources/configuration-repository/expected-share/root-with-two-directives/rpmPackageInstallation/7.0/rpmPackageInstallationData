@@ -19,6 +19,6 @@
 # List of packages to manage
 # Format of the file
 # action:version_definition:version_comparaison:trackingkey
-add:default:==:1c64c0ad-c5a3-42fb-8b1e-493b77a04cc4@@98ab50ad-8681-4db7-845b-27c5e3617a27@@70
+add:default:==:rule2@@directive2@@2
 
 
