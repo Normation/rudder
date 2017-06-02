@@ -20,12 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
   <TMLS>
     <TML name="cf-served"/>
-    <TML name="rudder_lib" />
-    <TML name="rudder_stdlib" />
-    <TML name="rudder_stdlib_core" />
-    <TML name="internal_security" />
-    <TML name="nxlog_activation"/>
-    <TML name="cron_setup" />
+    <TML name="rudder-lib" />
+    <TML name="rudder-stdlib-core" />
+    <TML name="internal-security" />
+    <TML name="nxlog-activation"/>
+    <TML name="cron-setup" />
     <TML name="site"/>
     <TML name="update"/>
     <TML name="failsafe">
@@ -36,38 +35,55 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       <OUTPATH>promises.cf</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </TML>
-    <TML name="rudder_directives">
-      <OUTPATH>rudder_directives.cf</OUTPATH>
+    <TML name="rudder-directives">
+      <OUTPATH>rudder-directives.cf</OUTPATH>
     </TML>
-    <TML name="rudder_system_directives">
-      <OUTPATH>rudder_system_directives.cf</OUTPATH>
+    <TML name="rudder-system-directives">
+      <OUTPATH>rudder-system-directives.cf</OUTPATH>
     </TML>
-    <TML name="rudder_agent_community_cron">
-      <OUTPATH>common/cron/rudder_agent_community_cron</OUTPATH>
-      <INCLUDED>false</INCLUDED>
-    </TML>
-    <TML name="rudder_agent_nova_cron">
-      <OUTPATH>common/cron/rudder_agent_nova_cron</OUTPATH>
+    <TML name="rudder-promises-generated">
+      <OUTPATH>rudder-promises-generated</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </TML>
     <TML name="rudder_promises_generated">
       <OUTPATH>rudder_promises_generated</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </TML>
-    <TML name="rudder_parameters"/>
-    <TML name="check_zypper"/>
+    <TML name="rudder-parameters"/>
     <TML name="run_interval">
       <OUTPATH>run_interval</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </TML>
-    <TML name="minicurl">
-      <OUTPATH>common/utilities/minicurl</OUTPATH>
-      <INCLUDED>false</INCLUDED>
-    </TML>
-    <TML name="environment-variables"/>
     <TML name="restart-services"/>
     <TML name="rudder-groups"/>
   </TMLS>
+
+  <FILES>
+    <FILE name="rudder-stdlib.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="check-zypper.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="environment-variables.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="properties.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="rudder-agent-community-cron">
+      <OUTPATH>common/cron/rudder-agent-community-cron</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </FILE>
+    <FILE name="rudder-agent-nova-cron">
+      <OUTPATH>common/cron/rudder-agent-nova-cron</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </FILE>
+    <FILE name="minicurl">
+      <OUTPATH>common/utilities/minicurl</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </FILE>
+  </FILES>
 
   <SYSTEMVARS>
     <NAME>AUTHORIZED_NETWORKS</NAME>
@@ -87,6 +103,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>SYSLOGPORT</NAME>
     <NAME>MANAGED_NODES_NAME</NAME>
     <NAME>MANAGED_NODES_ID</NAME>
+    <NAME>MANAGED_NODES_KEY</NAME>
     <NAME>MANAGED_NODES_ADMIN</NAME> 
     <NAME>DENYBADCLOCKS</NAME>
     <NAME>SKIPIDENTIFY</NAME>
@@ -109,6 +126,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <!-- The following sections are for reporting only, variable are defined in the main section below -->
     <SECTION name="Red Button" component="true" />
     <SECTION name="Update" component="true" />
+    <SECTION name="ncf Initialization" component="true" />
     <SECTION name="Security parameters" component="true" />
     <SECTION name="Log system for reports" component="true" />
     <SECTION name="CRON Daemon" component="true" />

@@ -45,12 +45,14 @@ bundle common g
 
     !windows::
       "rudder_bin"                 string => "${rudder_base}/bin";
+      "rudder_command"             string => "${rudder_bin}/rudder";
       "rudder_sbin"                string => "${rudder_base}/sbin";
       "rudder_var_tmp"             string => "${rudder_var}/tmp"; # tmp generated data
       "rudder_base_sbin"           string => "${rudder_base}/sbin"; #folder where tools are installed
       "rudder_inventories"         string => "${rudder_var}/inventories";
-      "uuid_file"                  string => "${rudder_base}/etc/uuid.hive";
       "rudder_disable_agent_file"  string => "${rudder_base}/etc/disable-agent";
+      "rudder_disable_server_file" string => "${rudder_base}/etc/disable-policy-distribution";
+      "rudder_disable_inventory_file" string => "${rudder_base}/etc/disable-inventory";
       "rudder_tools"               string => "${rudder_var}/tools";
       "rudder_ncf"                 string => "${rudder_var}/ncf";
       "crontab"                    string => "/etc/crontab";
@@ -66,11 +68,12 @@ bundle common g
       "rudder_inventories"         string => "${rudder_var}\inventories";
       "rudder_base_sbin_arg"       string => "${sys.winprogdir}\Rudder\sbin"; # for the installer command line
       "rudder_tools"               string => "${rudder_sbin}";
-      "rudder_ncf"                 string => "${rudder_base}\ncf";
+      "rudder_ncf"                 string => "${rudder_var}\ncf";
       "escaped_workdir"            string => escape("${sys.workdir}");
       "rudder_curl"                string => "\"${rudder_base_sbin}\curl\curl.exe\"";
-      "uuid_file"                  string => "${rudder_base}\etc\uuid.hive";
       "rudder_disable_agent_file"  string => "${rudder_base}\etc\disable-agent";
+      "rudder_disable_server_file" string => "${rudder_base}\etc\disable-policy-distribution";
+      "rudder_disable_inventory_file" string => "${rudder_base}\etc\disable-inventory";
 
     aix::
 
@@ -86,7 +89,8 @@ bundle common g
       "gzip"                       string => "/bin/gzip";
 
     any::
-      "uuid"                        string => readfile("${g.uuid_file}", 60);
+      "uuid_file"                   string => "${rudder_roles.uuid_file}";
+      "uuid"                        string => "${rudder_roles.uuid}";
       "server_shares_folder"        string => "/var/rudder/share/${uuid}/promises/shares";
       "rudder_var_reports"          string => "${rudder_var}/reports";
       "davuser"                     string => "&DAVUSER&";
@@ -120,13 +124,14 @@ bundle common g
 
     # The time at which the execution started
     windows.!cygwin::
-      "execRun"                    string => execresult("\"${g.rudder_sbin}\getDate.bat\"", "noshell");
+      "execRun"                    string => execresult("c:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command \"'{0:yyyy-MM-dd HH:mm:sszzz}' -f (get-date)\"", "noshell");
     android::
       "execRun"                    string => execresult("/system/xbin/date \"+%Y-%m-%d %T%z\" | sed 's/\([-+][0-9][0-9]\)\([0-9][0-9]\)$/\1:\2/'", "useshell");
     (!windows|cygwin).!android::
       # We would like to use date's "--rfc-3339=second" option here, but it is not available on older OSes (RHEL 3/4, AIX 5...)
       "execRun"                    string => execresult("/bin/date -u \"+%Y-%m-%d %T+00:00\"", "noshell");
 
+    any::
       # Heartbeat interval, in minutes. Only used when in "changes-only" compliance mode
       # In this mode, we should only send a "StartRun"/"EndRun" message pair if changes occur,
       # or if this interval has elapsed since we last sent one
@@ -136,8 +141,8 @@ bundle common g
 
   classes:
 
-    # Utilities
-    "gzip_installed"                 expression => isexecutable("${rudder_gzip}");
+    # Utilities
+    "gzip_installed"                 expression => isexecutable("${gzip}");
     "curl_installed"                 expression => isexecutable("${rudder_curl}");
 
     # Roles

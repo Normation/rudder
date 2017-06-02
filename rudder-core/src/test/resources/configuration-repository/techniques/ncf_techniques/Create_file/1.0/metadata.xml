@@ -1,0 +1,27 @@
+<TECHNIQUE name="Create a file">
+  <DESCRIPTION>Create a file and a directory</DESCRIPTION>
+  <BUNDLES>
+    <NAME>Create_file</NAME>
+    <NAME>Create_file_rudder_reporting</NAME>
+  </BUNDLES>
+  <TMLS>
+    <TML name="rudder_reporting"/>
+  </TMLS>
+  <FILES>
+    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/Create_file/Create_file.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+  </FILES>
+  <SECTIONS>
+    <SECTION component="true" multivalued="true" name="Directory create">
+      <REPORTKEYS>
+        <VALUE><![CDATA[/tmp/foo]]></VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION component="true" multivalued="true" name="File create">
+      <REPORTKEYS>
+        <VALUE><![CDATA[/tmp/foo/bar]]></VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

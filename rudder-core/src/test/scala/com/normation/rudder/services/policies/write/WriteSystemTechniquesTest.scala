@@ -61,7 +61,6 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.SyslogUDP
 import com.normation.rudder.repository.xml.LicenseRepositoryXML
 import com.normation.rudder.services.policies.BundleOrder
-import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.RudderServerRole
 import com.normation.rudder.services.policies.SystemVariableServiceImpl
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLoggerImpl
@@ -94,13 +93,13 @@ import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.AllTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.licenses.NovaLicense
-import org.specs2.specification.AfterEach
 import com.normation.templates.FillTemplatesService
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
-import java.security.Policy.PolicyDelegate
 import com.normation.BoxSpecMatcher
+import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.rudder.domain.nodes.NodeInfo
 
 /**
  * Details of tests executed in each instances of
@@ -109,7 +108,7 @@ import com.normation.BoxSpecMatcher
  * of that file.
  */
 @RunWith(classOf[JUnitRunner])
-class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll with AfterEach {
+class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll {
 
   //just a little sugar to stop hurting my eyes with new File(blablab, plop)
   implicit class PathString(root: String) {
@@ -131,11 +130,6 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
 
   val EXPECTED_SHARE = configurationRepositoryRoot/"expected-share"
 
-  //where the "/var/rudder/share" file is for tests:
-  val SHARE = abstractRoot/"share"
-
-  val rootGeneratedPromisesDir = SHARE/"root"
-
   val variableSpecParser = new VariableSpecParser
   val policyParser: TechniqueParser = new TechniqueParser(
       variableSpecParser,
@@ -154,13 +148,6 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
             )
 
   val techniqueRepository = new TechniqueRepositoryImpl(reader, Seq(), new StringUuidGeneratorImpl())
-  val pathComputer = new PathComputerImpl(
-      SHARE.getParent
-    , SHARE.getName
-    , abstractRoot.getAbsolutePath + "/backup"
-    , rootGeneratedPromisesDir.getAbsolutePath // community will go under our share
-    , "/" // we don't want to use that one
-  )
   val licenseRepo = new LicenseRepositoryXML("we_don_t_have_license")
   val logNodeConfig = new NodeConfigurationLoggerImpl(abstractRoot + "/lognodes")
   val policyServerManagement = new PolicyServerManagementService() {
@@ -207,15 +194,38 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     , systemVariableServiceSpec
   )
 
-  val promiseWritter = new Cf3PromisesFileWriterServiceImpl(
-      techniqueRepository
-    , pathComputer
-    , logNodeConfig
-    , prepareTemplateVariable
-    , new FillTemplatesService()
-    , "/opt/rudder/etc/hooks.d"
-    , Nil
-  )
+
+  /*
+   * We parametrize the output of file writing with a sub-directory name,
+   * so that we can keep each write in it's own directory for debug.
+   */
+  def getPromiseWritter(label: String) = {
+
+    //where the "/var/rudder/share" file is for tests:
+    val SHARE = abstractRoot/s"share-${label}"
+
+    val rootGeneratedPromisesDir = SHARE/"root"
+
+    val pathComputer = new PathComputerImpl(
+        SHARE.getParent + "/"
+      , SHARE.getName
+      , abstractRoot.getAbsolutePath + "/backup"
+      , rootGeneratedPromisesDir.getAbsolutePath // community will go under our share
+      , "/" // we don't want to use entreprise agent root path
+    )
+
+    val promiseWritter = new Cf3PromisesFileWriterServiceImpl(
+        techniqueRepository
+      , pathComputer
+      , logNodeConfig
+      , prepareTemplateVariable
+      , new FillTemplatesService()
+      , "/opt/rudder/etc/hooks.d"
+      , Nil
+    )
+
+    (rootGeneratedPromisesDir, promiseWritter)
+  }
 
   //////////// end init ////////////
 
@@ -224,12 +234,6 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     if(System.getProperty("tests.clean.tmp") != "false") {
       logger.info("Deleting directory " + abstractRoot.getAbsolutePath)
       FileUtils.deleteDirectory(abstractRoot)
-    }
-  }
-  override def after: Any = {
-    if(System.getProperty("tests.clean.tmp") != "false") {
-      logger.info("Deleting directory " + rootGeneratedPromisesDir.getAbsoluteFile)
-      FileUtils.deleteDirectory(rootGeneratedPromisesDir)
     }
   }
 
@@ -267,10 +271,14 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
   // set up root node configuration
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  import com.normation.rudder.services.policies.NodeConfigData.{root, rootNodeConfig}
+  import com.normation.rudder.services.policies.NodeConfigData.{root, node1, rootNodeConfig}
 
-  // only root in our "all nodes"
-  val allNodesInfo = Map(root.id -> root)
+  //a test node - CFEngine
+  val nodeId = NodeId("c8813416-316f-4307-9b6a-ca9c109a9fb0")
+  val cfeNode = node1.copy(node = node1.node.copy(id = nodeId, name = nodeId.value))
+
+  val allNodesInfo_rootOnly = Map(root.id -> root)
+  val allNodesInfo_cfeNode = Map(root.id -> root, cfeNode.id -> cfeNode)
 
   //the group lib
   val emptyGroupLib = FullNodeGroupCategory(
@@ -286,8 +294,8 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
       targetInfos = List(
           FullRuleTargetInfo(
               FullGroupTarget(
-                  GroupTarget(NodeGroupId("c8813416-316f-4307-9b6a-ca9c109a9fb0"))
-                , NodeGroup(NodeGroupId("c8813416-316f-4307-9b6a-ca9c109a9fb0")
+                  GroupTarget(NodeGroupId("a-group-for-root-only"))
+                , NodeGroup(NodeGroupId("a-group-for-root-only")
                     , "Serveurs [€ðŋ] cassés"
                     , "Liste de l'ensemble de serveurs cassés à réparer"
                     , None
@@ -337,23 +345,23 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
   //root has 4 system directive, let give them some variables
   //
   val commonTechnique = techniqueRepository.get(TechniqueId(TechniqueName("common"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
-  val commonVariables = {
+  def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
        spec("ALLOWEDNETWORK").toVariable(Seq("192.168.0.0/16"))
-     , spec("OWNER").toVariable(Seq(root.localAdministratorAccountName))
-     , spec("UUID").toVariable(Seq(root.id.value))
-     , spec("POLICYSERVER_ID").toVariable(Seq(root.policyServerId.value))
-     , spec("POLICYSERVER").toVariable(Seq(allNodesInfo(root.policyServerId).hostname))
-     , spec("POLICYSERVER_ADMIN").toVariable(Seq(allNodesInfo(root.policyServerId).localAdministratorAccountName))
+     , spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName))
+     , spec("UUID").toVariable(Seq(nodeId.value))
+     , spec("POLICYSERVER_ID").toVariable(Seq(allNodeInfos(nodeId).policyServerId.value))
+     , spec("POLICYSERVER").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).hostname))
+     , spec("POLICYSERVER_ADMIN").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).localAdministratorAccountName))
      ).map(v => (v.spec.name, v)).toMap
   }
 
-  val common = Cf3PolicyDraft(
+  def common(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = Cf3PolicyDraft(
       id              = Cf3PolicyDraftId(RuleId("hasPolicyServer-root"), DirectiveId("common-root"))
     , technique       = commonTechnique
     , techniqueUpdateTime = DateTime.now
-    , variableMap     = commonVariables
+    , variableMap     = commonVariables(nodeId, allNodeInfos)
     , trackerVariable = commonTechnique.trackerVariableSpec.toVariable(Seq())
     , priority        = 0
     , serial          = 2
@@ -436,7 +444,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
   )
 
   //
-  // Two user directives: clock management and rpm
+  // Three user directives: clock management, rpm, package and a ncf one: Create_file
   //
   val clockTechnique = techniqueRepository.get(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersion("3.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
   val clockVariables = {
@@ -495,12 +503,114 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     , isSystem        = false
   )
 
+  val pkgTechnique = techniqueRepository.get(TechniqueId(TechniqueName("packageManagement"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  val pkgVariables = {
+     val spec = pkgTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+     Seq(
+         spec("PACKAGE_LIST").toVariable(Seq("htop"))
+       , spec("PACKAGE_STATE").toVariable(Seq("present"))
+       , spec("PACKAGE_VERSION").toVariable(Seq("latest"))
+       , spec("PACKAGE_VERSION_SPECIFIC").toVariable(Seq(""))
+       , spec("PACKAGE_ARCHITECTURE").toVariable(Seq("default"))
+       , spec("PACKAGE_ARCHITECTURE_SPECIFIC").toVariable(Seq(""))
+       , spec("PACKAGE_MANAGER").toVariable(Seq("default"))
+       , spec("PACKAGE_POST_HOOK_COMMAND").toVariable(Seq(""))
+     ).map(v => (v.spec.name, v)).toMap
+  }
+  val pkg = Cf3PolicyDraft(
+      id              = Cf3PolicyDraftId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f"))
+    , technique       = pkgTechnique
+    , techniqueUpdateTime = DateTime.now
+    , variableMap     = pkgVariables
+    , trackerVariable = pkgTechnique.trackerVariableSpec.toVariable(Seq())
+    , priority        = 5
+    , serial          = 0
+    , modificationDate= DateTime.now
+    , ruleOrder       = BundleOrder("60-rule-technique-std-lib")
+    , directiveOrder  = BundleOrder("Package management.")
+    , overrides       = Set()
+    , policyMode      = Some(PolicyMode.Enforce)
+    , isSystem        = false
+  )
+
+
+  val ncf1Technique = techniqueRepository.get(TechniqueId(TechniqueName("Create_file"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  val ncf1Variables = {
+     val spec = ncf1Technique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+     Seq(
+         spec("expectedReportKey Directory create").toVariable(Seq("directory_create_/tmp/foo"))
+       , spec("expectedReportKey File create").toVariable(Seq("file_create_/tmp/foo/bar"))
+     ).map(v => (v.spec.name, v)).toMap
+  }
+  val ncf1 = Cf3PolicyDraft(
+      id              = Cf3PolicyDraftId(RuleId("208716db-2675-43b9-ab57-bfbab84346aa"), DirectiveId("16d86a56-93ef-49aa-86b7-0d10102e4ea9"))
+    , technique       = ncf1Technique
+    , techniqueUpdateTime = DateTime.now
+    , variableMap     = ncf1Variables
+    , trackerVariable = ncf1Technique.trackerVariableSpec.toVariable(Seq())
+    , priority        = 5
+    , serial          = 0
+    , modificationDate= DateTime.now
+    , ruleOrder       = BundleOrder("50-rule-technique-ncf")
+    , directiveOrder  = BundleOrder("Create a file")
+    , overrides       = Set()
+    , policyMode      = Some(PolicyMode.Enforce)
+    , isSystem        = false
+  )
+
+  //////////////
+
+
   // Allows override in policy mode, but default to audit
   val globalPolicyMode = GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always)
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // actual tests
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  def getSystemVars(nodeInfo: NodeInfo, allNodeInfos: Map[NodeId, NodeInfo], allGroups: FullNodeGroupCategory) = {
+    systemVariableService.getSystemVariables(
+                         nodeInfo, allNodeInfos, allGroups, noLicense
+                       , globalSystemVariables, globalAgentRun, globalComplianceMode
+                     ).openOrThrowException("I should get system variable in tests")
+  }
+
+  /// For root, we are using the same system variable and base root node config
+  // the root node configuration
+  val baseRootNodeConfig = rootNodeConfig.copy(
+      policyDrafts = Set(common(root.id, allNodesInfo_rootOnly), serverRole, distributePolicy, inventoryAll)
+    , nodeContext  = getSystemVars(root, allNodesInfo_rootOnly, groupLib)
+    , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+  )
+
+  val cfeNodeConfig = NodeConfigData.node1NodeConfig.copy(
+      nodeInfo   = cfeNode
+    , parameters = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+  )
+
+  // A global list of files to ignore because variable content (like timestamp)
+  def filterGeneratedFile(f: File): Boolean = {
+    f.getName match {
+        case "rudder_promises_generated" | "rudder-promises-generated" => false
+        case _                                                         => true
+    }
+  }
+
+  //write a config
+
+  def compareWith(path: File, expectedPath: String, ignoreRegex: List[String] = Nil) = {
+    /*
+     * And compare them with expected, modulo the configId and the name
+     * of the (temp) directory where we wrote them
+     */
+    path must haveSameFilesAs(EXPECTED_SHARE/expectedPath)
+      .withFilter ( filterGeneratedFile _ )
+      .withMatcher(ignoreSomeLinesMatcher(
+           """.*rudder_node_config_id" string => .*"""
+        :: """.*string => "/.*/configuration-repository.*"""
+        :: ignoreRegex
+      ))
+  }
 
   sequential
 
@@ -512,47 +622,25 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
   }
 
   "A root node, with no node connected" should {
-
-    def writeRootNodeConfigWithUserDirectives(userDrafts: Cf3PolicyDraft*) = {
-      // system variables for root
-      val systemVariables = systemVariableService.getSystemVariables(
-          root, allNodesInfo, groupLib, noLicense
-        , globalSystemVariables, globalAgentRun, globalComplianceMode
-      ).openOrThrowException("I should get system variable in tests")
-
-      // the root node configuration
-      val rnc = rootNodeConfig.copy(
-          policyDrafts = Set(common, serverRole, distributePolicy, inventoryAll) ++ userDrafts
-        , nodeContext  = systemVariables
-        , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+    def writeNodeConfigWithUserDirectives(promiseWritter: Cf3PromisesFileWriterService, userDrafts: Cf3PolicyDraft*) = {
+      val rnc = baseRootNodeConfig.copy(
+          policyDrafts = baseRootNodeConfig.policyDrafts ++ userDrafts
       )
 
       // Actually write the promise files for the root node
       promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now)
     }
 
-    def compareWith(expected: String, ignoreRegex: List[String] = Nil) = {
-      /*
-       * And compare them with expected, modulo the configId and the name
-       * of the (temp) directory where we wrote them
-       */
-      rootGeneratedPromisesDir must haveSameFilesAs(EXPECTED_SHARE/expected)
-        .withFilter { f => f.getName != "rudder_promises_generated" }
-        .withMatcher(ignoreSomeLinesMatcher(
-             """.*rudder_node_config_id" string => .*"""
-          :: """.*string => "/.*/configuration-repository.*"""
-          :: ignoreRegex
-        ))
-    }
-
     "correctly write the expected promises files with defauls installation" in {
-      (writeRootNodeConfigWithUserDirectives() mustFull) and
-      compareWith("root-default-install")
+      val (rootPath, writter) = getPromiseWritter("root-default")
+      (writeNodeConfigWithUserDirectives(writter) mustFull) and
+      compareWith(rootPath, "root-default-install")
     }
 
     "correctly write the expected promises files when 2 directives configured" in {
-      (writeRootNodeConfigWithUserDirectives(clock, rpm) mustFull) and
-      compareWith("root-with-two-directives",
+      val (rootPath, writter) = getPromiseWritter("root-2-directives")
+      (writeNodeConfigWithUserDirectives(writter, clock, rpm) mustFull) and
+      compareWith(rootPath, "root-with-two-directives",
            """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
         :: """.*add:default:==:.*"""                               //rpm reports
         :: Nil
@@ -560,35 +648,75 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     }
   }
 
+  "A CFEngine node, with two directives" should {
+
+    val rnc = rootNodeConfig.copy(
+        policyDrafts = Set(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll)
+      , nodeContext  = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
+      , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+    )
+
+    val cfeNC = cfeNodeConfig.copy(
+        nodeInfo     = cfeNode
+      , policyDrafts = Set(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, pkg, ncf1)
+      , nodeContext  = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+    )
+
+    "correctly get the expected policy files" in {
+      val (rootPath, writter) = getPromiseWritter("cfe-node")
+      // Actually write the promise files for the root node
+      val writen = writter.writeTemplate(
+            root.id
+          , Set(root.id, cfeNode.id)
+          , Map(root.id -> rnc, cfeNode.id -> cfeNC)
+          , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
+          , Map(), globalPolicyMode, DateTime.now
+      )
+
+      (writen mustFull) and
+      compareWith(rootPath.getParentFile/cfeNode.id.value, "node-cfe-with-two-directives",
+           """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
+        :: """.*add:default:==:.*"""                               //rpm reports
+        :: Nil
+      )
+    }
+
+
+  }
+
   "rudder-group.st template" should {
 
-    "correctly write nothing (no quotes) when no groups" in {
-
+    def getRootNodeConfig(groupLib: FullNodeGroupCategory) = {
       // system variables for root
       val systemVariables = systemVariableService.getSystemVariables(
-          root, allNodesInfo, emptyGroupLib, noLicense
+          root, allNodesInfo_rootOnly, groupLib, noLicense
         , globalSystemVariables, globalAgentRun, globalComplianceMode
       ).openOrThrowException("I should get system variable in tests")
 
       // the root node configuration
-      val rnc = rootNodeConfig.copy(
-          policyDrafts = Set(common, serverRole, distributePolicy, inventoryAll)
+      rootNodeConfig.copy(
+          policyDrafts = Set(common(root.id, allNodesInfo_rootOnly), serverRole, distributePolicy, inventoryAll)
         , nodeContext  = systemVariables
         , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
       )
 
+    }
+
+    "correctly write nothing (no quotes) when no groups" in {
+      val (rootPath, writter) = getPromiseWritter("group-1")
+
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(
+      writter.writeTemplate(
           root.id
         , Set(root.id)
-        , Map(root.id -> rnc)
+        , Map(root.id -> getRootNodeConfig(emptyGroupLib))
         , Map(root.id -> NodeConfigId("root-cfg-id"))
         , Map()
         , globalPolicyMode
         , DateTime.now
       ).openOrThrowException("Can not write template!")
 
-      rootGeneratedPromisesDir/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/no-group.cf")
+      rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/no-group.cf")
     }
 
     "correctly write the classes and by_uuid array when groups" in {
@@ -596,24 +724,14 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
       // make a group lib without "all" target so that it's actually different than the full one,
       // so that we don't have false positive due to bad directory cleaning
       val groupLib2 = groupLib.copy(targetInfos = groupLib.targetInfos.take(groupLib.targetInfos.size - 1))
-
-      // system variables for root
-      val systemVariables = systemVariableService.getSystemVariables(
-          root, allNodesInfo, groupLib2, noLicense
-        , globalSystemVariables, globalAgentRun, globalComplianceMode
-      ).openOrThrowException("I should get system variable in tests")
-
-      // the root node configuration
-      val rnc = rootNodeConfig.copy(
-          policyDrafts = Set(common, serverRole, distributePolicy, inventoryAll)
-        , nodeContext  = systemVariables
-        , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
-      )
+      val rnc = getRootNodeConfig(groupLib2)
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now).openOrThrowException("Can not write template!")
+      val (rootPath, writter) = getPromiseWritter("group-2")
 
-      rootGeneratedPromisesDir/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
+      writter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now).openOrThrowException("Can not write template!")
+
+      rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
     }
   }
 }

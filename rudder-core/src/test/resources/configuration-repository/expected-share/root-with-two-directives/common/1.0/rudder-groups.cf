@@ -29,31 +29,31 @@
 #  - group_64f85ba8_39c7_418a_a099_24c2c2909dfd
 #  - group_serveurs_pre_prod
 #  and vars:
-#  - "by_uuid[64f85ba8-39c7-418a-a099-24c2c2909dfd]" = "Serveurs pré-prod"
+#  - by_uuid["64f85ba8-39c7-418a-a099-24c2c2909dfd"] = "Serveurs pré-prod"
 # More over, each value of the array will have an attribute "meta": { "inventory", "attribute_name=rudder_groups" }
 #
 bundle common rudder_groups {
 
   vars:
-      "by_uuid[c8813416-316f-4307-9b6a-ca9c109a9fb0]"  string => "Serveurs [€ðŋ] cassés",
-                                                         meta => { "inventory", "attribute_name=rudder_groups" };
-      "by_uuid[policyServer:root]"                     string => "special:policyServer_root",
-                                                         meta => { "inventory", "attribute_name=rudder_groups" };
-      "by_uuid[special:all]"                           string => "special:all",
-                                                         meta => { "inventory", "attribute_name=rudder_groups" };
+      "by_uuid[a-group-for-root-only]"      string => "Serveurs [€ðŋ] cassés",
+                                              meta => { "inventory", "attribute_name=rudder_groups" };
+      "by_uuid[policyServer:root]"          string => "special:policyServer_root",
+                                              meta => { "inventory", "attribute_name=rudder_groups" };
+      "by_uuid[special:all]"                string => "special:all",
+                                              meta => { "inventory", "attribute_name=rudder_groups" };
 
   classes:
-      "group_c8813416_316f_4307_9b6a_ca9c109a9fb0"  expression => "any",
-                                                          meta => { "inventory", "attribute_name=rudder_groups" };
-      "group_serveurs_______casses"                 expression => "any",
-                                                          meta => { "inventory", "attribute_name=rudder_groups" };
-      "group_policyserver_root"                     expression => "any",
-                                                          meta => { "inventory", "attribute_name=rudder_groups" };
-      "group_special_policyserver_root"             expression => "any",
-                                                          meta => { "inventory", "attribute_name=rudder_groups" };
-      "group_special_all"                           expression => "any",
-                                                          meta => { "inventory", "attribute_name=rudder_groups" };
-      "group_special_all"                           expression => "any",
-                                                          meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_a_group_for_root_only"      expression => "any",
+                                               meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_serveurs_______casses"      expression => "any",
+                                               meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_policyserver_root"          expression => "any",
+                                               meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_special_policyserver_root"  expression => "any",
+                                               meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_special_all"                expression => "any",
+                                               meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_special_all"                expression => "any",
+                                               meta => { "inventory", "attribute_name=rudder_groups" };
 
 }
