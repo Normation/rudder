@@ -60,7 +60,6 @@ case class FileSystem(
   , totalSpace  : Option[MemorySize] = None
 ) extends NodeElement with HashcodeCaching
 
-
 case class Network (
     name        : String
   , description : Option[String] = None
@@ -121,7 +120,6 @@ object InetAddressUtils {
       case e:java.net.UnknownHostException => None
     }
 }
-
 
 sealed trait OsType {
   def kernelName : String
@@ -223,7 +221,6 @@ object BsdType {
 case object UnknownBsdType extends BsdType with HashcodeCaching { val name = "UnknownBSD" }
 case object FreeBSD        extends BsdType with HashcodeCaching { val name = "FreeBSD"  }
 
-
 /**
  * The different OS type. For now, we know:
  * - Linux
@@ -248,7 +245,6 @@ case class UnknownOS(
   , override val servicePack   : Option[String]  = None
   , override val kernelVersion : Version = new Version("N/A")
 ) extends OsDetails(UnknownOSType, fullName, version, servicePack, kernelVersion) with HashcodeCaching
-
 
 case class Linux(
     override val os            : OsType
@@ -291,9 +287,6 @@ case class Windows(
   , productKey                 : Option[String] = None
   , productId                  : Option[String] = None
 ) extends OsDetails(os, fullName, version, servicePack, kernelVersion) with HashcodeCaching
-
-
-
 
 case class NodeSummary(
     id : NodeId
@@ -345,9 +338,8 @@ case class NodeInventory(
   , archDescription      : Option[String]     = None
   , lastLoggedUser       : Option[String]     = None
   , lastLoggedUserTime   : Option[DateTime]   = None
-  , agents               : Seq[AgentInfo] = Seq()
-  , publicKeys           : Seq[PublicKey] = Seq()
-  , serverIps            : Seq[String]    = Seq()
+  , agents               : Seq[AgentInfo]     = Seq()
+  , serverIps            : Seq[String]        = Seq()
   , machineId            : Option[(MachineUuid,InventoryStatus)] = None //if we want several ids, we would have to ass an "alternate machine" field
   , softwareIds          : Seq[SoftwareUuid]        = Seq()
   , accounts             : Seq[String]              = Seq()

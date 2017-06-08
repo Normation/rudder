@@ -45,6 +45,7 @@ import net.liftweb.common._
 import scala.xml.XML
 import java.io.File
 import com.normation.inventory.domain._
+import com.normation.inventory.domain.AgentType._
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -132,28 +133,28 @@ class TestReportParsing extends Specification with Loggable {
   "Agent in Inventory" should {
 
     "should be empty when there is no agent" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.name).toList
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.agentType).toList
       agents must be empty
     }
 
     "should have one agent when using community" in {
-    val agents = parser.parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agents.map(_.name).toList
-      agents == (COMMUNITY_AGENT :: Nil)
+    val agents = parser.parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agents.map(_.agentType).toList
+      agents == (CfeCommunity :: Nil)
     }
 
     "should have two agent when using community and nova" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents.map(_.name).toList
-      agents == (COMMUNITY_AGENT :: NOVA_AGENT :: Nil)
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents.map(_.agentType).toList
+      agents == (CfeCommunity :: CfeEnterprise :: Nil)
     }
 
     "should be empty when there is two agents, using two different policy servers" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.name).toList
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.agentType).toList
       agents must be empty
     }
 
     "should have dsc agent agent when using rudder-agent based on dsc" in {
-      val agents = parser.parse("fusion-report/dsc-agent.ocs").node.agents.map(_.name).toList
-      agents == (DSC_AGENT :: Nil)
+      val agents = parser.parse("fusion-report/dsc-agent.ocs").node.agents.map(_.agentType).toList
+      agents == (Dsc :: Nil)
     }
 
   }

@@ -37,7 +37,6 @@
 
 package com.normation.inventory.domain
 
-
 import com.normation.utils.Utils._
 import com.normation.utils.HashcodeCaching
 import org.bouncycastle.openssl.PEMParser
@@ -45,12 +44,12 @@ import java.io.StringReader
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import net.liftweb.common._
+import org.bouncycastle.cert.X509CertificateHolder
 
 /**
  * A file that contains all the simple data types, like Version,
  * MemorySize, Manufacturer, etc.
  */
-
 
 /**
  * A simple class to denote a manufacturer
@@ -63,10 +62,30 @@ final case class Manufacturer(name:String) extends HashcodeCaching { assert(!isE
  */
 final case class SoftwareEditor(val name:String) extends HashcodeCaching { assert(!isEmpty(name)) }
 
+sealed trait SecurityToken {
+  def key : String
+}
+
+case object SecurityToken {
+  def kind(token : SecurityToken) = {
+    token match {
+      case _: PublicKey   => PublicKey.kind
+      case _: Certificate => Certificate.kind
+    }
+  }
+
+}
+
+object PublicKey {
+  val kind = "publicKey"
+}
+object Certificate {
+  val kind = "certificate"
+}
 /**
  * A simple class to denote a software cryptographic public key
  */
-final case class PublicKey(value : String) extends HashcodeCaching { assert(!isEmpty(value))
+final case class PublicKey(value : String) extends SecurityToken with HashcodeCaching { assert(!isEmpty(value))
 
   // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
   val key = {
@@ -93,6 +112,32 @@ final case class PublicKey(value : String) extends HashcodeCaching { assert(!isE
 
 }
 
+final case class Certificate(value : String) extends SecurityToken with HashcodeCaching { assert(!isEmpty(value))
+
+  // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
+  val key = {
+    if (value.startsWith("-----BEGIN CERTIFICATE-----")) {
+      value
+    } else {
+      s"""-----BEGIN CERTIFICATE-----
+      |${value.grouped(80).mkString("\n")}
+      |-----END CERTIFICATE-----""".stripMargin
+    }
+  }
+  def cert : Box[X509CertificateHolder] = {
+    try {
+      val reader = new PEMParser(new StringReader(key))
+      reader.readObject() match {
+        case a : X509CertificateHolder =>
+          Full(a)
+        case _ => Failure(s"Key '${key}' cannot be parsed as a valid certificate")
+      }
+    } catch {
+      case e:Exception => Failure(s"Key '${key}' cannot be parsed as a valid certificate")
+    }
+  }
+
+}
 
 /**
  * A simple class to denote version

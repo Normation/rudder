@@ -67,7 +67,6 @@ class UseExistingNodeIdFinder(inventoryDitService:InventoryDitService, ldap:LDAP
   }
 }
 
-
 /*
  * Retrieve the id from the cfengine public key
  */
@@ -78,7 +77,7 @@ class ComparePublicKeyIdFinder(
 ) extends NodeInventoryDNFinder with Loggable {
 
   override def tryWith(entity:NodeInventory) : Box[(NodeId,InventoryStatus)] = {
-    val keys = entity.publicKeys
+    val keys = entity.agents.map(_.securityToken)
     if(keys.size > 0) {
       val keysFilter = OR((keys.map( k => EQ(A_PKEYS,k.key))):_*)
 

@@ -39,6 +39,7 @@ package com.normation.inventory.provisioning
 package fusion
 
 import com.normation.inventory.domain._
+import com.normation.inventory.domain.AgentType._
 import com.normation.inventory.provisioning.fusion._
 import java.io.InputStream
 import org.joda.time.DateTime
@@ -292,34 +293,43 @@ class FusionReportUnmarshaller(
 
     // as a temporary solution, we are getting information from packages
 
-    val versions = {
-      def findAgent(software: Seq[Software], agentType: AgentType) = (
-        software.find(p => p.name.getOrElse("")
-                .toLowerCase.contains(agentType.inventorySoftwareName     ))
-                .flatMap(s => s.version.map(v => AgentVersion(agentType.toAgentVersionName(v.value))))
-      )
-      Map[AgentType, Option[AgentVersion]](
-          // for nova, we get the cfengine version, which not exactly what we want, but still better than nothing
-          (NOVA_AGENT      , findAgent(report.applications, NOVA_AGENT))
-          // for community, we only want rudder-agent version
-        , (COMMUNITY_AGENT , findAgent(report.applications, COMMUNITY_AGENT))
-      )
-    }
+    def findAgent(software: Seq[Software], agentType: AgentType) = (
+      software.find(p => p.name.getOrElse("")
+              .toLowerCase.contains(agentType.inventorySoftwareName     ))
+              .flatMap(s => s.version.map(v => AgentVersion(agentType.toAgentVersionName(v.value))))
+    )
 
     (xml \\ "RUDDER").headOption match {
       case Some(rudder) =>
         // Fetch all the agents configuration
-        val agents = ((rudder \\ "AGENT").map { agentXML =>
+        val agents = (rudder \\ "AGENT").flatMap { agentXML =>
           val agent = for {
              agentName <- boxFromOption(optText(agentXML \ "AGENT_NAME"), "could not parse agent name (tag AGENT_NAME) from rudder specific inventory")
              agentType <- (AgentType.fromValue(agentName))
 
              rootUser  <- boxFromOption(optText(agentXML \\ "OWNER") ,"could not parse rudder user (tag OWNER) from rudder specific inventory")
              policyServerId <- boxFromOption(optText(agentXML \\ "POLICY_SERVER_UUID") ,"could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
+
+             optCert = optText(agentXML \ "AGENT_CERT")
+             optKey  = optText(agentXML \ "AGENT_KEY").orElse(optText(agentXML \ "CFENGINE_KEY"))
+             securityToken : SecurityToken <- agentType match {
+               case Dsc => optCert match {
+                 case Some(cert) => Full(Certificate(cert))
+                 case None => Failure("could not parse agent certificate (tag AGENT_CERT), which is mandatory for dsc agent")
+               }
+               case _         =>
+                 (optCert,optKey) match {
+                   case (Some(cert),_)   => Full(Certificate(cert))
+                   case (None,Some(key)) => Full(PublicKey(key))
+                   case (None,None) => Failure("could not parse agent security Token (tag AGENT_KEY/CFENGINE_KEY/AGENT_CERT), which is mandatory for cfengine agent")
+                 }
+             }
+
           } yield {
-            //cfkey is not mandatory
-            val agentKey = optText(agentXML \ "AGENT_KEY").orElse(optText(agentXML \ "CFENGINE_KEY"))
-            (agentType, rootUser, policyServerId, agentKey)
+
+            val version = findAgent(report.applications,agentType)
+
+            (AgentInfo(agentType,version,securityToken), rootUser, policyServerId)
           }
           agent match {
             case eb: EmptyBox =>
@@ -328,7 +338,7 @@ class FusionReportUnmarshaller(
               e
             case Full(x) => Full(x)
           }
-        }).flatten
+        }
 
         ( for {
             agentOK  <- if(agents.size < 1) {
@@ -341,7 +351,6 @@ class FusionReportUnmarshaller(
 
             policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
           } yield {
-            val keys = agents.map{case (_,_,_,key) => key.map(PublicKey)}.flatten
 
             report.copy (
               node = report.node.copy (
@@ -350,8 +359,7 @@ class FusionReportUnmarshaller(
                     , policyServerId = NodeId(policyServerId)
                     , id = NodeId(uuid)
                   )
-                , agents = agents.map(t => AgentInfo(t._1, versions.get(t._1).flatten))
-                , publicKeys = keys
+                , agents = agents.map(_._1)
               )
             )
         } ) match {

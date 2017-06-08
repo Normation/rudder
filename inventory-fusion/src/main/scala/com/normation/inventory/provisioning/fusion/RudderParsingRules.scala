@@ -43,6 +43,7 @@ import net.liftweb.common._
 import java.security.MessageDigest
 import com.normation.utils.UuidRegex
 import com.normation.inventory.provisioning.fusion.OptText.optText
+import com.normation.inventory.domain.AgentType.Dsc
 
 /**
  * Special handling of some tags.
@@ -138,7 +139,6 @@ object RudderMachineIdParsing extends FusionReportParsingExtension with Loggable
   }
 }
 
-
 /**
  * <PROCESSORS>
  *
@@ -178,24 +178,6 @@ object RudderCpuParsing extends FusionReportParsingExtension with Loggable {
 }
 
 /**
-* <CFKEY>
-*/
-class RudderPublicKeyParsing(keyNormalizer:PrintedKeyNormalizer) extends FusionReportParsingExtension {
-  override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "CFKEY" }
-  override def apply(x:(Node,InventoryReport)) : InventoryReport = {
-    optText(x._1) match {
-      case None => x._2
-      case Some(key) =>
-        keyNormalizer(key) match {
-          case "" => x._2 //we have an empty key !
-          case k => x._2.copy( node = x._2.node.copy( publicKeys = (new PublicKey(key) +: x._2.node.publicKeys ) ) )
-
-        }
-    }
-  }
-}
-
-/**
 * <USER>
 */
 object RudderRootUserParsing extends FusionReportParsingExtension {
@@ -208,7 +190,6 @@ object RudderRootUserParsing extends FusionReportParsingExtension {
   }
 }
 
-
 /**
 * <AGENTSNAME>
 */
@@ -218,14 +199,29 @@ object RudderAgentNameParsing extends FusionReportParsingExtension with Loggable
     x._2.copy( node = x._2.node.copy( agents = x._2.node.agents ++ processAgentName(x._1) ) )
   }
   def processAgentName(xml:NodeSeq) : Seq[AgentInfo] = {
-    (xml \ "AGENTNAME").flatMap(e => optText(e).flatMap( a =>
-      AgentType.fromValue(a) match {
-        case Full(x) => Full(AgentInfo(x, None))
-        case e:EmptyBox =>
-          logger.error("Ignore agent type '%s': unknown value. Authorized values are %s".format(a, AgentType.allValues.mkString(", ")))
+
+      val keys   =  (xml \ "CFKEY").map { optText }
+      val agents = (xml \ "AGENTNAME").map( optText)
+
+      agents.zipAll(keys, None  , None).flatMap{
+        case (None,None) => Empty
+        case (None,Some(_)) => Empty
+          // A key but no agent, skip
+        case (Some(agent), None) =>
+          // No key error
+          logger.error(s"No key for agent ${agent} defined, a key is mandatory")
           Empty
+        case (Some(agent),Some(key)) =>
+          AgentType.fromValue(agent) match {
+          case Full(Dsc) =>
+            Failure("Dsc agent cannot be added using AGENTNAME tag")
+          case Full(agent) =>
+            Full(AgentInfo(agent, None, PublicKey(key)))
+          case e:EmptyBox =>
+            logger.error("Ignore agent type '%s': unknown value. Authorized values are %s".format(agent, AgentType.allValues.mkString(", ")))
+            Empty
+        }
       }
-    ) )
   }
 }
 
@@ -244,5 +240,3 @@ object RudderServerRoleParsing extends FusionReportParsingExtension {
     (xml \ "SERVER_ROLE").flatMap(e => optText(e).map(ServerRole(_)))
   }
 }
-
-

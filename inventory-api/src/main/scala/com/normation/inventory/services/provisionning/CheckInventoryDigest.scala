@@ -44,9 +44,7 @@ import java.security.PublicKey
 import org.apache.commons.io.IOUtils
 import javax.xml.bind.DatatypeConverter
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
-import com.normation.inventory.domain._
-
-
+import com.normation.inventory.domain.{ PublicKey => AgentKey, _ }
 
 /**
  * We are using a simple date structure that handle the digest file
@@ -108,26 +106,36 @@ class ParseInventoryDigestFileV1 extends ParseInventoryDigestFile with Loggable 
 
 trait CheckInventoryDigest {
 
-
   /**
    * Here, we want to calculate the digest. The good library for that is most likely
    * bouncy castle: https://www.bouncycastle.org/
    */
-  def check(pubKey: PublicKey, digest: InventoryDigest, inventoryStream: InputStream): Box[Boolean] = {
-    try {
-      val signature = Signature.getInstance("SHA512withRSA", "BC");
-      signature.initVerify(pubKey);
-      val data = IOUtils.toByteArray(inventoryStream)
-      signature.update(data);
-      digest match {
-        case InventoryDigestV1(_,digest) =>
-        val sig = DatatypeConverter.parseHexBinary(digest)
+  def check(securityToken: SecurityToken, digest: InventoryDigest, inventoryStream: InputStream): Box[Boolean] = {
+    securityToken match {
+      case rudderKey : com.normation.inventory.domain.PublicKey =>
+        rudderKey.publicKey match {
+          case Full(pubKey) =>
+            try {
+              val signature = Signature.getInstance("SHA512withRSA", "BC");
+              signature.initVerify(pubKey);
+              val data = IOUtils.toByteArray(inventoryStream)
+              signature.update(data);
+              digest match {
+                case InventoryDigestV1(_,digest) =>
+                val sig = DatatypeConverter.parseHexBinary(digest)
 
-        Full(signature.verify(sig))
-      }
-    } catch {
-      case e : Exception =>
-        Failure(e.getMessage())
+                Full(signature.verify(sig))
+              }
+            } catch {
+              case e : Exception =>
+                Failure(e.getMessage())
+            }
+          case eb : EmptyBox =>
+            eb
+        }
+
+      // We don't sign with certificate for now
+      case _ : Certificate => Full(true)
     }
   }
 
@@ -138,7 +146,7 @@ trait CheckInventoryDigest {
  */
 trait GetKey {
 
-  def getKey (receivedInventory  : InventoryReport) : Box[(PublicKey, KeyStatus)]
+  def getKey (receivedInventory  : InventoryReport) : Box[(SecurityToken, KeyStatus)]
 
 }
 
@@ -151,14 +159,13 @@ class InventoryDigestServiceV1(
    * either an inventory has already been treated before, it will look into ldap repository
    * or if there was no inventory before, it will look for the key in the received inventory
    */
-  def getKey (receivedInventory  : InventoryReport) : Box[(PublicKey, KeyStatus)] = {
+  def getKey (receivedInventory  : InventoryReport) : Box[(SecurityToken, KeyStatus)] = {
 
-    def extractKey (node : NodeInventory) : Box[(PublicKey)]= {
+    def extractKey (node : NodeInventory) : Box[SecurityToken]= {
       for {
-        cfengineKey <- Box(node.publicKeys.headOption) ?~! "There is no public key in inventory"
-        publicKey <- cfengineKey.publicKey
+        agent <- Box(node.agents.headOption) ?~! "There is no public key in inventory"
       } yield {
-        publicKey
+        agent.securityToken
       }
     }
 
@@ -167,17 +174,23 @@ class InventoryDigestServiceV1(
         val status = storedInventory.node.main.keyStatus
         val inventory  : NodeInventory = status  match {
           case UndefinedKey =>
-            storedInventory.node.publicKeys.headOption match {
+            storedInventory.node.agents.map(_.securityToken).headOption match {
               case None =>
                 // There is no key and status is undefined, use received key
                 receivedInventory.node
-              case Some(key) =>
-                key.publicKey match {
-                  // Stored key is valid, use it !
-                  case Full(_) =>  storedInventory.node
-                  // Key stored is not valid and status is undefined try received key,
-                  // There treat the case of the bootstrapped key for rudder root server
-                  case _ => receivedInventory.node
+              case Some(securityToken) =>
+                securityToken match {
+                  case key : AgentKey =>
+                    key.publicKey match {
+                      // Stored key is valid, use it !
+                      case Full(_) =>  storedInventory.node
+                      // Key stored is not valid and status is undefined try received key,
+                      // There treat the case of the bootstrapped key for rudder root server
+                      case _ => receivedInventory.node
+                    }
+                  case cert : Certificate =>
+                    // We don't sign inventory with cert for now, use sorted one
+                    storedInventory.node
                 }
             }
           // Certified node always use stored inventory key
