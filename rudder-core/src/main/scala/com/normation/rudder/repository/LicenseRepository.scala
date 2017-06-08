@@ -37,7 +37,7 @@
 
 package com.normation.rudder.repository
 
-import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common.Box
 
@@ -53,5 +53,5 @@ trait LicenseRepository {
    * If new licences were added on the underlying storage,
    * they are retrieved.
    */
-  def getAllLicense() : Box[Map[NodeId, NovaLicense]]
+  def getAllLicense() : Box[Map[NodeId, CfeEnterpriseLicense]]
 }

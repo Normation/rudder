@@ -434,12 +434,12 @@ object DisplayNode extends Loggable {
           }.getOrElse(NodeSeq.Empty) }
           <b>Rudder agent version:</b> {sm.node.agents.map(_.version.map(_.value)).headOption.flatten.getOrElse("Not found")
           }<br/>
-          <b>Agent name:</b> {sm.node.agents.map(_.name.fullname).mkString(";")}<br/>
+          <b>Agent name:</b> {sm.node.agents.map(_.agentType.fullname).mkString(";")}<br/>
           <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
           { displayPolicyServerInfos(sm) }<br/>
           {
-            sm.node.publicKeys.headOption match {
-              case Some(key) =>
+            sm.node.agents.headOption match {
+              case Some(agent) =>
                 val checked = (sm.node.main.status, sm.node.main.keyStatus) match {
                   case (AcceptedInventory, CertifiedKey) => <span class="tw-bs">
                                                               <span class="glyphicon glyphicon-ok text-success tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
@@ -457,7 +457,7 @@ object DisplayNode extends Loggable {
                 }
                 val publicKeyId          = s"publicKey-${sm.node.main.id.value}"
                 <b><a href="#" onclick={s"$$('#publicKey-${sm.node.main.id.value}').toggle(300); return false;"}>Display Node key {checked}</a></b>
-                <div style="width=100%; overflow:auto;"><pre id={s"publicKey-${sm.node.main.id.value}"} style="display:none;">{key.key}</pre></div> ++
+                <div style="width=100%; overflow:auto;"><pre id={s"publicKey-${sm.node.main.id.value}"} style="display:none;">{agent.securityToken.key}</pre></div> ++
                 Script(OnLoad(JsRaw(s"""createTooltip();""")))
               case None => NodeSeq.Empty
             }
@@ -551,9 +551,9 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private def displayPublicKeys(node:NodeInventory) : NodeSeq = <b>Public Key(s): </b> ++ {if(node.publicKeys.isEmpty) {
+  private def displayPublicKeys(node:NodeInventory) : NodeSeq = <b>Public Key(s): </b> ++ {if(node.agents.map(_.securityToken).isEmpty) {
           Text(DEFAULT_COMPONENT_KEY)
-        } else <ul>{node.publicKeys.zipWithIndex.flatMap{ case (x,i) => (<b>{"[" + i + "] "}</b> ++ {Text(x.key.grouped(65).toList.mkString("\n"))})}}</ul> }
+        } else <ul>{node.agents.map(_.securityToken).zipWithIndex.flatMap{ case (x,i) => (<b>{"[" + i + "] "}</b> ++ {Text(x.key.grouped(65).toList.mkString("\n"))})}}</ul> }
 
   private def displayNodeInventoryInfo(node:NodeInventory) : NodeSeq = {
     val details : NodeSeq = node.main.osDetails match {

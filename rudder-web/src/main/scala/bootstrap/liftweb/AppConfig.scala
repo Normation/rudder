@@ -1527,7 +1527,7 @@ object RudderConfig extends Loggable {
       rudderCf3PromisesFileWriterService
     , new LdapNodeConfigurationHashRepository(rudderDit, rwLdap)
   )
-//  private[this] lazy val licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
+//  private[this] lazy val licenseService: CfeEnterpriseLicenseService = new CfeEnterpriseLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
   private[this] lazy val reportingServiceImpl = new CachedReportingServiceImpl(
       new ReportingServiceImpl(
           findExpectedRepo

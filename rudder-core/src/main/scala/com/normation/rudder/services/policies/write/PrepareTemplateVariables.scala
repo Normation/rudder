@@ -54,8 +54,8 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.exceptions.VariableException
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.inventory.domain.COMMUNITY_AGENT
-import com.normation.inventory.domain.NOVA_AGENT
+import com.normation.inventory.domain.AgentType.CfeCommunity
+import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.BundleOrder
@@ -124,8 +124,8 @@ class PrepareTemplateVariablesImpl(
     val generationTimestamp = DateTime.now().getMillis
 
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
-        systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == NOVA_AGENT     ) Seq("true") else Seq())
-      , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == COMMUNITY_AGENT) Seq("true") else Seq())
+        systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == CfeEnterprise     ) Seq("true") else Seq())
+      , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == CfeCommunity) Seq("true") else Seq())
       , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
     ).map(x => (x.spec.name, x)).toMap
 

@@ -41,7 +41,7 @@ import java.io.FileNotFoundException
 import scala.xml.Elem
 import scala.xml.XML
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.exceptions.ParsingException
 import com.normation.rudder.repository.LicenseRepository
 import org.xml.sax.SAXParseException
@@ -53,7 +53,7 @@ import net.liftweb.common.Loggable
 
 class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with Loggable {
 
-  override def getAllLicense(): Box[Map[NodeId, NovaLicense]] = {
+  override def getAllLicense(): Box[Map[NodeId, CfeEnterpriseLicense]] = {
     logger.debug(s"Loading document ${licenseFile}")
     try {
       val doc = loadLicenseFile()
@@ -61,7 +61,7 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with 
       val licenses = (for {
         elt <- (doc \\"licenses" \ "license")
       } yield {
-        NovaLicense.parseXml(elt)
+        CfeEnterpriseLicense.parseXml(elt)
       })
       Full(licenses.map(x => (x.uuid, x)).toMap)
     } catch {

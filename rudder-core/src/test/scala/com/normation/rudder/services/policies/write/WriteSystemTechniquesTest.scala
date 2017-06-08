@@ -92,7 +92,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.AllTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.templates.FillTemplatesService
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
@@ -339,7 +339,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
 
   val globalSystemVariables = systemVariableService.getGlobalSystemVariables(globalAgentRun).openOrThrowException("I should get global system variable in test!")
 
-  val noLicense = Map.empty[NodeId, NovaLicense]
+  val noLicense = Map.empty[NodeId, CfeEnterpriseLicense]
 
   //
   //root has 4 system directive, let give them some variables
