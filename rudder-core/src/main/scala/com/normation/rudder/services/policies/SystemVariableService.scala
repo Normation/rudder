@@ -46,6 +46,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain._
+import com.normation.inventory.domain.AgentType._
 import net.liftweb.common._
 import org.slf4j.{ Logger, LoggerFactory }
 import com.normation.rudder.exceptions.LicenseException
@@ -61,7 +62,7 @@ import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.SyslogProtocol
-import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -75,7 +76,7 @@ trait SystemVariableService {
       nodeInfo              : NodeInfo
     , allNodeInfos          : Map[NodeId, NodeInfo]
     , allGroups             : FullNodeGroupCategory
-    , allLicences           : Map[NodeId, NovaLicense]
+    , allLicences           : Map[NodeId, CfeEnterpriseLicense]
     , globalSystemVariables : Map[String, Variable]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode  ) : Box[Map[String, Variable]]
@@ -205,7 +206,7 @@ class SystemVariableServiceImpl(
         nodeInfo              : NodeInfo
       , allNodeInfos          : Map[NodeId, NodeInfo]
       , allGroups             : FullNodeGroupCategory
-      , allLicenses           : Map[NodeId, NovaLicense]
+      , allLicenses           : Map[NodeId, CfeEnterpriseLicense]
       , globalSystemVariables : Map[String, Variable]
       , globalAgentRun        : AgentRunInterval
       , globalComplianceMode  : ComplianceMode
@@ -254,11 +255,11 @@ class SystemVariableServiceImpl(
 
     val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable().copyWithSavedValue(varNodeRoleValue)
 
-    // Set the licences for the Nova
-    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
+    // Set the licences for the CfeEnterprise
+    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(CfeEnterprise)) {
       allLicenses.get(nodeInfo.policyServerId) match {
         case None =>
-          logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered Nova license. You will have to get one if you run more than 25 nodes")
+          logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered CfeEnterprise license. You will have to get one if you run more than 25 nodes")
           //that's the default value
           "25"
         case Some(x) => x.licenseNumber.toString
@@ -345,7 +346,7 @@ class SystemVariableServiceImpl(
 
       val varManagedNodes      = systemVariableSpecService.get("MANAGED_NODES_NAME" ).toVariable(children.map(_.hostname))
       val varManagedNodesId    = systemVariableSpecService.get("MANAGED_NODES_ID"   ).toVariable(children.map(_.id.value))
-      val varManagedNodesKey   = systemVariableSpecService.get("MANAGED_NODES_KEY"  ).toVariable(children.map(n => s"MD5=${n.cfengineKeyHash}"))
+      val varManagedNodesKey   = systemVariableSpecService.get("MANAGED_NODES_KEY"  ).toVariable(children.map(n => s"MD5=${n.securityTokenHash}"))
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(children.map(_.localAdministratorAccountName).distinct.sorted)
 

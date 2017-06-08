@@ -251,7 +251,16 @@ class LDAPEntityMapper(
                           case x :: Nil => Full(x)
                           case _ => Failure(s"Too many policy servers for a Node '${node.id.value}'. Entry details: ${inventoryEntry}")
                         }
-      agentsName  <- sequence(inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq) {AgentInfoSerialisation.parseCompatNonJson}
+      keys =  inventoryEntry.valuesFor(A_PKEYS).map(Some(_))
+
+      agentsName  <- {
+        val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
+        sequence(agents.zipAll(keys,None,None)) {
+          case (Some(agent),key) => AgentInfoSerialisation.parseCompatNonJson(agent,key)
+          case (None,key) =>
+              Failure(s"There was a public key defined for Node ${node.id.value}, without a releated agent defined, it should not happen")
+        }
+      }
       osDetails   <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry)
       keyStatus   <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
       serverRoles =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
@@ -283,10 +292,6 @@ class LDAPEntityMapper(
         , osDetails
         , inventoryEntry.valuesFor(A_LIST_OF_IP).toList
         , dateTime
-        , inventoryEntry(A_PKEYS).flatMap { s => s.trim match {
-                                            case "" => None
-                                            case x  => Some(PublicKey(x))
-                                          } }
         , keyStatus
         , scala.collection.mutable.Seq() ++ agentsName
         , NodeId(policyServerId)

@@ -47,8 +47,8 @@ import com.normation.cfclerk.domain.TechniqueTemplate
 import com.normation.cfclerk.exceptions.VariableException
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.COMMUNITY_AGENT
-import com.normation.inventory.domain.NOVA_AGENT
+import com.normation.inventory.domain.AgentType.CfeCommunity
+import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
@@ -67,7 +67,7 @@ import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
-import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import scala.io.Codec
 import com.normation.templates.FillTemplatesService
 import com.normation.templates.STVariable
@@ -105,7 +105,7 @@ trait Cf3PromisesFileWriterService {
     , nodesToWrite  : Set[NodeId]
     , allNodeConfigs: Map[NodeId, NodeConfiguration]
     , versions      : Map[NodeId, NodeConfigId]
-    , allLicenses   : Map[NodeId, NovaLicense]
+    , allLicenses   : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
   ) : Box[Seq[NodeConfiguration]]
@@ -213,7 +213,7 @@ class Cf3PromisesFileWriterServiceImpl(
     , nodesToWrite    : Set[NodeId]
     , allNodeConfigs  : Map[NodeId, NodeConfiguration]
     , versions        : Map[NodeId, NodeConfigId]
-    , allLicenses     : Map[NodeId, NovaLicense]
+    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
   ) : Box[Seq[NodeConfiguration]] = {
@@ -355,7 +355,7 @@ class Cf3PromisesFileWriterServiceImpl(
     }
 
     sequence( agentConfig )  { case (agentInfo, config) =>
-      val agentType = agentInfo.name
+      val agentType = agentInfo.agentType
       for {
         paths <- if(rootNodeConfigId == config.nodeInfo.id) {
                     Full(NodePromisesPaths(
@@ -448,12 +448,12 @@ class Cf3PromisesFileWriterServiceImpl(
   /**
    * For agent needing it, copy licences to the correct path
    */
-  private[this] def copyLicenses(agentNodeConfigurations: Seq[AgentNodeConfiguration], licenses: Map[NodeId, NovaLicense]): Box[Seq[AgentNodeConfiguration]] = {
+  private[this] def copyLicenses(agentNodeConfigurations: Seq[AgentNodeConfiguration], licenses: Map[NodeId, CfeEnterpriseLicense]): Box[Seq[AgentNodeConfiguration]] = {
 
     sequence(agentNodeConfigurations) { case x @ AgentNodeConfiguration(config, agentType, paths) =>
 
       agentType match {
-        case NOVA_AGENT =>
+        case CfeEnterprise =>
           logger.debug("Writing licence for nodeConfiguration  " + config.nodeInfo.id);
           val sourceLicenceNodeId = if(config.nodeInfo.isPolicyServer) {
             config.nodeInfo.id

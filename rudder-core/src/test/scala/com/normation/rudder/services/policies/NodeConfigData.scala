@@ -44,7 +44,7 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.AgentInfo
 import com.normation.inventory.domain.AgentVersion
-import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.Debian
 import com.normation.inventory.domain.EnvironmentVariable
 import com.normation.inventory.domain.Linux
@@ -95,7 +95,6 @@ import org.joda.time.DateTime
 import scala.collection.SortedMap
 import scala.language.implicitConversions
 
-
 /*
  * This file is a container for testing data that are a little boring to
  * define, like node info, node config, etc. so that their declaration
@@ -133,8 +132,8 @@ object NodeConfigData {
     , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
     , List("127.0.0.1", "192.168.0.100")
     , DateTime.now
-    , None, UndefinedKey
-    , Seq(AgentInfo(COMMUNITY_AGENT, Some(AgentVersion("4.0.0"))))
+    , UndefinedKey
+    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey("test")))
     , rootId
     , rootAdmin
     , Set( //by default server roles for root
@@ -172,8 +171,8 @@ object NodeConfigData {
     , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
     , List("192.168.0.10")
     , DateTime.now
-    , None, UndefinedKey
-    , Seq(AgentInfo(COMMUNITY_AGENT, Some(AgentVersion("4.0.0"))))
+    , UndefinedKey
+    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey("test")))
     , rootId
     , admin1
     , Set()
@@ -202,7 +201,6 @@ object NodeConfigData {
     , lastLoggedUser       = None
     , lastLoggedUserTime   = None
     , agents               = Seq()
-    , publicKeys           = Seq()
     , serverIps            = Seq()
     , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
     , softwareIds          = Seq()
@@ -257,7 +255,6 @@ object NodeConfigData {
     , isRootServer= false
   )
 
-
   /**
    * Some more nodes
    */
@@ -277,11 +274,10 @@ object NodeConfigData {
           , None
           , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
           , Nil, DateTime.now
-          , Some(PublicKey("rsa public key")), UndefinedKey, Seq(), NodeId("root")
+          , UndefinedKey, Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"))), NodeId("root")
           , "" , Set(), None, None, None
     )
   }).map(n => (n.id, n)).toMap
-
 
   /**
    *   ************************************************************************
@@ -311,7 +307,6 @@ object NodeConfigData {
     )
   )).toMap
 
-
   val fngc = FullNodeGroupCategory (
       NodeGroupCategoryId("test_root")
     , ""
@@ -319,7 +314,6 @@ object NodeConfigData {
     , Nil
     , fullRuleTargetInfos.values.toList
   )
-
 
   /**
    *   ************************************************************************
@@ -345,7 +339,6 @@ object NodeConfigData {
 
   val directives = FullActiveTechniqueCategory(ActiveTechniqueCategoryId("root"), "root", "root", Nil, fat1 :: Nil)
 
-
     /**
    *   ************************************************************************
    *                         Some rules
@@ -354,6 +347,5 @@ object NodeConfigData {
 
    val r1 = Rule("r1", "r1", 1, "cat1")
    val r2 = Rule("r2", "r2", 1, "cat1")
-
 
 }

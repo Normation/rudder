@@ -70,10 +70,10 @@ import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
 import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
-import com.normation.inventory.domain.NOVA_AGENT
-import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.AgentType.CfeEnterprise
+import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.DSC_AGENT
+import com.normation.inventory.domain.AgentType.Dsc
 
 sealed trait ComplianceLevelPieChart{
   def color : String
@@ -369,15 +369,15 @@ class HomePage extends Loggable {
       agentSoftDn      =  agentSoftEntries.map(_.dn.toString).toSet
 
       agentSoft        <- sequence(agentSoftEntries){ entry =>
-                            (mapper.softwareFromEntry(entry) ?~! "Error when mapping LDAP entry %s to a software".format(entry)).map { s =>
+                            (mapper.softwareFromEntry(entry) ?~! s"Error when mapping LDAP entry ${entry} to a software").map { s =>
                               //here, we want to use Agent Version display name, not the software one
                               s.name match {
                                 case None => s
                                 case Some(name) => name.toLowerCase match {
-                                  case NOVA_AGENT.inventorySoftwareName =>
-                                    s.copy(version = s.version.map(v => new Version(NOVA_AGENT.toAgentVersionName(v.value))))
-                                  case ag if ag == DSC_AGENT.inventorySoftwareName.toLowerCase =>
-                                    s.copy(version = s.version.map(v => new Version(DSC_AGENT.toAgentVersionName(v.value))))
+                                  case CfeEnterprise.inventorySoftwareName =>
+                                    s.copy(version = s.version.map(v => new Version(CfeEnterprise.toAgentVersionName(v.value))))
+                                  case ag if ag == Dsc.inventorySoftwareName.toLowerCase =>
+                                    s.copy(version = s.version.map(v => new Version(Dsc.toAgentVersionName(v.value))))
                                   case _ => s
                                 }
                               }

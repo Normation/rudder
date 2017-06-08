@@ -37,7 +37,7 @@
 package com.normation.rudder.services.policies.write
 
 import com.normation.cfclerk.domain.Variable
-import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.AgentType._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.reports.ReportingConfiguration
@@ -50,8 +50,6 @@ import org.specs2.runner.JUnitRunner
 import net.liftweb.common.Full
 import com.normation.rudder.domain.Constants
 import net.liftweb.common.Failure
-
-
 
 @RunWith(classOf[JUnitRunner])
 class PathComputerTest extends Specification {
