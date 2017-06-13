@@ -960,7 +960,7 @@ bundle agent ncf_services(service, action)
 
       # Due to lack of integration between upstart and init scripts, we have to make different cases.
       "is_upstart_service"         not => returnszero("/sbin/initctl status ${service} 2>&1 | ${paths.path[grep]} 'Unknown job' > /dev/null", "useshell"),
-                            ifvarclass => "initctl_utility_present";
+                            ifvarclass => "ubuntu.initctl_utility_present";
 
       # Due to compatibility issues when mixing init.d/service and systemctl calls, we use the init script when present
       "is_init_service"     expression => fileexists("/etc/init.d/${service}");
