@@ -5,13 +5,39 @@
   <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-groups.css"/>
   <style>
     form select.selectComparator {
-      width: 100px;
+      width: 100%;
     }
     form select.selectField {
-      width: 130px;
+      width: 100%;
     }
-    input.queryInputValue, select.queryInputValue {
-      width:115px !important;
+    #queryParameters{
+      overflow-x:auto;
+    }
+    #query_lines{
+      width:100%;
+      table-layout:fixed;
+    }
+    #query_lines td{
+      white-space: nowrap;}
+    #query_lines tbody tr td input, #query_lines tbody tr td select.selectField, #query_lines tbody tr td input.queryInputValue, #query_lines tbody tr td select.queryInputValue{
+      width:100%;
+    }
+    #query_lines tbody tr td:first-child{
+      width:130px;
+    }
+    #query_lines tbody tr td:nth-child(2){
+      width:170px;
+    }
+    #query_lines tbody tr td:nth-child(3){
+      width: 140px;
+    }
+    #query_lines tbody tr td:nth-child(5),#query_lines tbody tr td.last{
+      width:25px;
+    }
+    @media screen and (max-width: 1200px){
+      #query_lines tbody tr td:nth-child(4){
+        width :250px;
+      }
     }
   </style>
 </head>

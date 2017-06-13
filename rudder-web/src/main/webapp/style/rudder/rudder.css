@@ -342,9 +342,9 @@ form select.selectField {
 }
 
 input.queryInputValue, select.queryInputValue {
-  width:280px !important;
-  margin: 0px !important;
-  padding: 0px !important;
+  width:280px;
+  margin: 0px;
+  padding: 0px;
 
 }
 
