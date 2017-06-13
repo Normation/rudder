@@ -561,11 +561,13 @@ def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
       result = parse_technique_metadata(content)
       metadata = result["result"]
       warnings.extend(result["warnings"])
-      all_metadata[metadata['bundle_name']] = metadata
 
       if include_methods_calls:
         method_calls = parse_technique_methods(file)
-        all_metadata[metadata['bundle_name']]['method_calls'] = method_calls
+        metadata['method_calls'] = method_calls
+      
+      all_metadata[metadata['bundle_name']] = metadata
+
     except NcfError as e:
       bundle_name = os.path.splitext(os.path.basename(file))[0]
       error = NcfError("Could not parse Technique '"+ bundle_name+ "'", cause=e)
@@ -589,6 +591,7 @@ def get_all_generic_methods_metadata(alt_path = ''):
       result = parse_generic_method_metadata(content)
       metadata = result["result"]
       warnings.extend(result["warnings"])
+      metadata["dsc_support"] = os.path.exists("/var/rudder/configuration-repository/dsc/ncf/30_generic_methods/"+metadata["bundle_name"] + ".ps1")
       all_metadata[metadata['bundle_name']] = metadata
     except NcfError as e:
       error = NcfError("Could not parse generic method in '" + file + "'", cause=e )
