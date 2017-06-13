@@ -40,6 +40,7 @@ package com.normation.rudder.web.components
 import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormatterBuilder
 import org.joda.time.Duration
+import org.joda.time.chrono.ISOChronology
 
 object DateFormaterService {
 
@@ -66,7 +67,7 @@ object DateFormaterService {
 
   def formatPeriod(duration:Duration) : String = {
     if(duration.getMillis < 1000) "less than 1 s"
-    else periodFormatter.print(duration.toPeriod)
+    else periodFormatter.print(duration.toPeriod(ISOChronology.getInstanceUTC))
   }
 
   def getFormatedPeriod(start : DateTime, end : DateTime) : String = {
