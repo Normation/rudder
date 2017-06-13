@@ -54,8 +54,6 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.exceptions.VariableException
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.inventory.domain.COMMUNITY_AGENT
-import com.normation.inventory.domain.NOVA_AGENT
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.BundleOrder
