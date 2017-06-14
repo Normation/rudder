@@ -16,6 +16,3 @@ Architecture=x86_64
 Name=package_6
 Version=6.5
 Architecture=i686
-Name=package_7
-Version=6.5
-Architecture=

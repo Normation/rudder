@@ -821,3 +821,251 @@ body replace_with ncf_add_parameter_with_separator_and_enclosing_characters(para
  replace_value => "${match.1}${match.2}${match.3}${parameter_separator}${parameter}${match.4}";
 }
 
+bundle agent ncf_package(name, version, architecture, provider, state, options)
+{
+  vars:
+      "canonified_name"  string => canonify("${name}");
+      "old_class_prefix" string => "ncf_package_${state}_${canonified_name}";
+      "promisers"        slist  => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"     string => canonify(join("_", "promisers"));
+      "args"             slist  => { "${name}", "${version}", "${architecture}", "${provider}", "${state}", "${options}" };
+
+    # Build string vars used for reporting
+
+    # State
+    state_present::
+      "state_description" string => "Presence";
+    !state_present::
+      "state_description" string => "Absence";
+
+    # Architecture
+    architecture_specified::
+      "architecture_description" string => " for ${architecture} architecture ";
+    !architecture_specified::
+      "architecture_description" string => " ";
+
+    # Version
+    version_latest::
+      "version_description" string => "in latest available version";
+    !version_specified::
+      "version_description" string => "in any version";
+    version_specified.!version_latest::
+      "version_description" string => "in version ${version}";
+    
+    # Log message
+    any::
+      "message" string => "${state_description} of package ${name}${architecture_description}${version_description}";
+
+  defaults:
+      "version"      string => "any", if_match_regex => "";
+      "architecture" string => "default", if_match_regex => "";
+      "provider"     string => "default", if_match_regex => "";
+      # Select the default packager for this platform if "default"
+      "provider"     string => "${package_module_knowledge.platform_default}", if_match_regex => "default";
+      "state"      string => "present", if_match_regex => "";
+
+  classes:
+      "version_latest"  expression => strcmp("latest", "${version}");
+      # As "latest" is understood by package promises,
+      # the only special case is "any", which maps to
+      # no specified version in the promise
+      "version_specified"      not => strcmp("any", "${version}");
+
+      "state_present" expression => strcmp("present", "${state}");
+
+      # If architecture is not specified, do not add it to the promise.
+      # The package module will pick the default one for the local platform
+      "architecture_specified" not => strcmp("default", "${architecture}");
+
+      # Select the right package manager
+      # The default one has already been selected if needed using mackage_module_knowledge
+      "use_apt_provider" expression => strcmp("apt", "${provider}");
+      "use_yum_provider" expression => strcmp("yum", "${provider}");
+      "use_zypper_provider" expression => strcmp("zypper", "${provider}");
+      "use_pkg_provider" expression => strcmp("pkg", "${provider}");
+      # Used in tests
+      "use_test_provider" expression => strcmp("test", "${provider}");
+
+    any::
+      "supported_provider" expression => "use_apt_provider|use_yum_provider|use_zypper_provider|use_pkg_provider|use_test_provider";
+    
+
+  packages:
+
+    # Unfortunately, we have to duplicate the 4 cases for each supported package module
+
+    #### apt ####
+
+    use_apt_provider.architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => apt_get,
+          architecture   => "${architecture}",
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_apt_provider.architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => apt_get,
+          architecture   => "${architecture}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_apt_provider.!architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => apt_get,
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_apt_provider.!architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => apt_get,
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    #### yum ####
+
+    use_yum_provider.architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => yum,
+          architecture   => "${architecture}",
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_yum_provider.architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => yum,
+          architecture   => "${architecture}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_yum_provider.!architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => yum,
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_yum_provider.!architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => yum,
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    #### zypper ####
+
+    use_zypper_provider.architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => zypper,
+          architecture   => "${architecture}",
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_zypper_provider.architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => zypper,
+          architecture   => "${architecture}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_zypper_provider.!architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => zypper,
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_zypper_provider.!architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => zypper,
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    #### pkg ####
+
+    use_pkg_provider.architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => pkg,
+          architecture   => "${architecture}",
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_pkg_provider.architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => pkg,
+          architecture   => "${architecture}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_pkg_provider.!architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => pkg,
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_pkg_provider.!architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => pkg,
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    #### test ####
+
+    use_test_provider.architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => test,
+          architecture   => "${architecture}",
+          version        => "${version}",
+          options        => { "test_db" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_test_provider.architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => test,
+          architecture   => "${architecture}",
+          options        => { "test_db" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_test_provider.!architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => test,
+          version        => "${version}",
+          options        => { "test_db" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_test_provider.!architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => test,
+          options        => { "test_db" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+    !supported_provider::
+      "force failure class" usebundle => _classes_failure("${class_prefix}");
+      "force failure class" usebundle => _classes_failure("${old_class_prefix}");
+}

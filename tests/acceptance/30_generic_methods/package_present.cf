@@ -49,13 +49,13 @@ bundle agent test
   methods:
     # version
     "any" usebundle => package_present("package_1", "", "", "test");
-    "any" usebundle => package_present("package_2", "3.3", "", "test"); 
-    "any" usebundle => package_present("package_3", "latest", "", "test");
+    "any" usebundle => package_state("package_2", "3.3", "", "test", "present"); 
+    "any" usebundle => package_state_options("package_3", "latest", "", "test", "present", "");
     "any" usebundle => package_present("package_4", "any", "", "test");
     # architecture
     "any" usebundle => package_present("package_5", "", "x86_64", "test"); 
     "any" usebundle => package_present("package_6", "6.5", "i686", "test");
-    "any" usebundle => package_present("package_7", "6.5", "default", "test");
+    "any" usebundle => package_absent("package_7", "6.5", "default", "test");
 }
 
 bundle agent check {
@@ -65,7 +65,7 @@ bundle agent check {
 
   classes:
      "ok" expression => returnszero("${file_diff_test}", "useshell"),
-     ifvarclass => "package_present_package_1_reached";
+     ifvarclass => "package_present_package_1_ok.package_state_package_2_ok.package_present_package_2_ok.package_state_options_package_3_ok.package_present_package_3_ok.package_present_package_4_ok.package_present_package_5_ok.package_present_package_6_ok.package_absent_package_7_ok";
 
   reports:
     ok::

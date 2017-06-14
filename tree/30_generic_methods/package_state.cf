@@ -117,11 +117,34 @@
 # @parameter_constraint state "allow_empty_string" : true
 # @parameter_constraint state "select" : [ "", "present", "absent" ]
 # 
-# @class_prefix package_${state}
+# @class_prefix package_state
 # @class_parameter name
 
 bundle agent package_state(name, version, architecture, provider, state)
 {
+  vars:
+
+      "canonified_name"           string => canonify("${name}");
+      "canonified_state"          string => canonify("${state}");
+
+      "old_class_prefix"          string => "package_state_${canonified_name}";
+      "promisers"                 slist  => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"              string => canonify(join("_", "promisers"));
+      "args"                      slist  => { "${name}", "${state}" };
+
   methods:
-    "enforce state" usebundle => package_state_options("${name}", "${version}", "${architecture}", "${provider}", "${state}", "");
+
+      "action"                 usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "${state}", "");
+
+      "class copy"             usebundle => _classes_copy("ncf_package_${canonified_state}_${canonified_name}", "${old_class_prefix}"),
+                              ifvarclass => "ncf_package_${canonified_state}_${canonified_name}_reached";
+      "new result classes"     usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                              ifvarclass => "${class_prefix}_action_reached";
+
+      # For compatibility with previous version of the generic method
+      "class copy compat"      usebundle => _classes_copy("ncf_package_${canonified_state}_${canonified_name}", "package_${canonified_state}_${canonified_name}"),
+                              ifvarclass => "ncf_package_${canonified_state}_${canonified_name}_reached";
+
+      "report"                 usebundle => _log("${ncf_package.message}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                              ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 }
