@@ -34,6 +34,24 @@
 
 bundle agent package_absent(name, version, architecture, provider)
 {
+  vars:
+
+      "canonified_name"           string => canonify("${name}");
+
+      "old_class_prefix"          string => "package_absent_${canonified_name}";
+      "promisers"                 slist  => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"              string => canonify(join("_", "promisers"));
+      "args"                      slist  => { "${name}", "${state}" };
+
   methods:
-    "enforce absence" usebundle => package_state("${name}", "${version}", "${architecture}", "${provider}", "absent");
+
+      "action"                 usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "absent", "");
+
+      "class copy"             usebundle => _classes_copy("ncf_package_absent_${canonified_name}", "${old_class_prefix}"),
+                              ifvarclass => "ncf_package_absent_${canonified_name}_reached";
+      "new result classes"     usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                              ifvarclass => "${class_prefix}_action_reached";
+              
+      "report"                 usebundle => _log("${ncf_package.message}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                              ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 }
