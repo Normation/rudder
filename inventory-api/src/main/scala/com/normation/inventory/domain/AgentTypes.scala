@@ -47,9 +47,9 @@ import com.normation.utils.HashcodeCaching
  */
 sealed abstract class AgentType {
   def toString : String
-  def fullname : String = "CFEngine "+this
+  def fullname : String
   // Tag used in fusion inventory ( > 2.3 )
-  lazy val tagValue = s"cfengine-${this}".toLowerCase
+  def tagValue : String
   def toRulesPath : String
 
   // the name to look for in the inventory to know the agent version
@@ -63,6 +63,8 @@ object AgentType {
 
   final case object CfeEnterprise extends AgentType with HashcodeCaching {
     override def toString    = A_NOVA_AGENT
+    override def fullname : String = "CFEngine "+this
+    override def tagValue = s"cfengine-${A_NOVA_AGENT}".toLowerCase
     override def toRulesPath = "/cfengine-nova"
     override val inventorySoftwareName = "cfengine nova"
     override def toAgentVersionName(softwareVersionName: String) = s"cfe-${softwareVersionName}"
@@ -70,6 +72,8 @@ object AgentType {
 
   final case object CfeCommunity extends AgentType with HashcodeCaching {
     override def toString    = A_COMMUNITY_AGENT
+    override def fullname : String = "CFEngine "+this
+    override def tagValue = s"cfengine-${A_COMMUNITY_AGENT}".toLowerCase
     override def toRulesPath = "/cfengine-community"
     override val inventorySoftwareName = "rudder-agent"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
@@ -77,6 +81,8 @@ object AgentType {
 
   final case object Dsc extends AgentType with HashcodeCaching {
     override def toString    = A_DSC_AGENT
+    override def fullname : String = "Rudder Windows DSC"
+    override def tagValue = "windows-dsc"
     override def toRulesPath = "/dsc"
     override val inventorySoftwareName = "Rudder agent"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName+" (dsc)"
