@@ -396,7 +396,7 @@ case object OsNameComparator extends CriterionType {
 case object AgentComparator extends CriterionType {
   import com.normation.inventory.domain.InventoryConstants._
 
-  val agentTypes = List(A_NOVA_AGENT,A_COMMUNITY_AGENT)
+  val agentTypes = List(A_NOVA_AGENT,A_COMMUNITY_AGENT, A_DSC_AGENT)
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
