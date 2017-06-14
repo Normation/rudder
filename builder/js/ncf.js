@@ -1,6 +1,5 @@
 'use strict';
 
-
 // Helpers functions
 
 // Swap two two items in an array based on their index
@@ -205,7 +204,6 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       $scope.path = path;
     }
   };
-
   // Callback when an element is dropped on the list of method calls
   // return the element that will be added, if false do not add anything
   $scope.dropCallback = function(elem, nextIndex, type){
@@ -336,7 +334,90 @@ $scope.isSelected = function(technique) {
 $scope.isSelectedMethod = function(method) {
   return angular.equals($scope.selectedMethod,method);
 };
+$scope.getSessionStorage = function(){
+  $scope.resetFlags();
+  var deleted = true;
+  var t1,t2   = undefined;
+  t1 = JSON.parse(sessionStorage.getItem('selectedTechnique'));
+  t2 = JSON.parse(sessionStorage.getItem('originalTechnique'));
+  if(t2 !== null && t2.bundle_name === "") t2.bundle_name=undefined;
+  $scope.originalTechnique = angular.copy(t2);
+  if(t1 !== null){
+    $scope.restoreFlag  = true;
+    $scope.selectedTechnique = angular.copy(t1);
+    if(t2.bundle_name !== undefined){
+      //Not a new technique
+      var existingTechnique = $scope.techniques.find(function(technique){return technique.bundle_name === t2.bundle_name })
+      if (existingTechnique !== undefined) {
+        //$scope.originalTechnique = angular.copy(existingTechnique);
+        if(t2.hasOwnProperty('saving'))existingTechnique.saving   = false;
+        if(t2.hasOwnProperty('isClone'))existingTechnique.isClone = false;
+        if(!angular.equals(t2, existingTechnique)){
+          $scope.conflictFlag = true;
+          var modalInstance = $modal.open({
+            templateUrl: 'RestoreWarningModal.html',
+            controller: RestoreWarningModalCtrl,
+            backdrop : 'static',
+            resolve: {
+              technique: function () {
+                return $scope.selectedTechnique;
+              }
+              , editForm  : function() { return  $scope.editForm }
+            }
+          });
+          modalInstance.result.then(function (doSave) {
+            $scope.originalTechnique = existingTechnique;
+            if (doSave) {
+              $scope.selectedTechnique = angular.copy($scope.originalTechnique);
+              $scope.resetFlags();
+            }else{
+              $scope.keepChanges();
+            }
+          });
+        }
+        deleted=false;
+      }
+      $scope.suppressFlag = (deleted && !$scope.conflictFlag && $scope.originalTechnique.bundle_name !== undefined);
+      if(!$scope.conflictFlag && !deleted){
+        $scope.originalTechnique = existingTechnique;
+      }
+    }// else : New technique
+  }// else : Empty session storage
+}
 
+$scope.$watch('selectedTechnique', function(newValue, oldValue) {
+  $scope.updateItemSessionStorage('selectedTechnique', oldValue, newValue);
+},true);
+$scope.$watch('originalTechnique', function(newValue, oldValue) {
+  $scope.updateItemSessionStorage('originalTechnique', oldValue, newValue);
+},true);
+
+$scope.clearSessionStorage = function(){
+  sessionStorage.removeItem('selectedTechnique');
+  sessionStorage.removeItem('originalTechnique');
+  $scope.resetFlags();
+}
+
+$scope.resetFlags = function(){
+  $scope.restoreFlag  = false;
+  $scope.suppressFlag = false;
+  $scope.conflictFlag = false;
+}
+
+$scope.keepChanges = function(){
+  $scope.restoreFlag  = false;
+}
+$scope.updateItemSessionStorage = function(item, oldTechnique, newTechnique){
+  //Checking oldTechnique allows us to not clear the session storage when page is loading so $scope.selectedTechnique and $scope.originalTechnique are still undefined.
+  if(oldTechnique && !newTechnique){
+    $scope.clearSessionStorage();
+  } else if(newTechnique){
+    var savedTechnique = angular.copy(newTechnique);
+    if(savedTechnique.name        === undefined) savedTechnique.name        = "";
+    if(savedTechnique.bundle_name === undefined) savedTechnique.bundle_name = "";
+    sessionStorage.setItem(item, JSON.stringify(savedTechnique));
+  }
+}
 // Call ncf api to get techniques
 $scope.getTechniques = function () {
 
@@ -350,6 +431,7 @@ $scope.getTechniques = function () {
           var technique = toTechUI(technique_raw);
           $scope.techniques.push(technique);
         });
+        $scope.getSessionStorage();
       } else {
         errorNotification( "Error while fetching techniques", "Data received via api are invalid")
       }
@@ -383,7 +465,7 @@ $scope.getMethodsAndTechniques = function () {
       // Display single errors
       $.each( response.errors, function(index, error) {
         errorNotification(error.message,error.details)
-      })
+      });
     } ).
     error($scope.handle_error(" while fetching generic methods"));
 };
@@ -424,6 +506,9 @@ $scope.groupMethodsByCategory = function () {
   // Click on a Technique
   // Select it if it was not selected, unselect it otherwise
   $scope.selectTechnique = function(technique) {
+    $scope.restoreFlag  = false;
+    $scope.suppressFlag = false;
+    $scope.conflictFlag = false;
     // Always clean Selected methods and display methods list
      $scope.selectedMethod = undefined;
     // Check if that technique is the same as the original selected one
@@ -568,12 +653,12 @@ $scope.groupMethodsByCategory = function () {
 
   // Check if a technique has not been changed, and if we can use reset function
   $scope.isUnchanged = function(technique) {
-    return angular.equals(technique, $scope.originalTechnique);
+    return (!$scope.suppressFlag && angular.equals(technique, $scope.originalTechnique));
   };
 
   // Check if a technique has been saved,
   $scope.isNotSaved = function() {
-    return $scope.originalTechnique.bundle_name === undefined;
+    return $scope.originalTechnique !== undefined && $scope.originalTechnique.bundle_name === undefined;
   };
 
   // Check if a method has not been changed, and if we can use reset function
@@ -722,7 +807,7 @@ $scope.groupMethodsByCategory = function () {
   // Check if the selected technique is correct
   // selected technique is correct if:
   // * There is at least one method call
-  $scope.checkSelectedTechnique= function() {
+  $scope.checkSelectedTechnique = function() {
      var res = $scope.selectedTechnique.method_calls.length === 0;
      if ($scope.selectedTechnique.isClone) {
        return res
@@ -764,6 +849,7 @@ $scope.groupMethodsByCategory = function () {
   $scope.resetTechnique = function() {
     $scope.editForm.$setPristine();
     $scope.selectedTechnique=angular.copy($scope.originalTechnique);
+    $scope.resetFlags();
     $scope.$broadcast('endSaving');
     // Reset selected method too
     if ($scope.selectedMethod !== undefined) {
@@ -832,7 +918,6 @@ $scope.groupMethodsByCategory = function () {
     // make a copy of data so we don't lose the selected technique
     var technique = angular.copy($scope.selectedTechnique);
     var origin_technique = angular.copy($scope.originalTechnique);
-
     // transform technique so it is valid to send to API:
     var ncfTechnique = toTechNcf(technique);
     var data = { "path" :  $scope.path, "technique" : ncfTechnique }
@@ -840,7 +925,7 @@ $scope.groupMethodsByCategory = function () {
     // Update selected technique if it's still the same technique
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
-        $scope.$broadcast('endSaving');
+      $scope.$broadcast('endSaving');
       // Transform back ncfTechnique to UITechnique, that will make it ok
       var savedTechnique = toTechUI(ncfTechnique);
 
@@ -855,7 +940,7 @@ $scope.groupMethodsByCategory = function () {
         // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
         $scope.selectedMethod = undefined;
       }
-
+      $scope.resetFlags();
       ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
       // Find index of the technique in the actual tree of technique (look for original technique)
       var index = findIndex($scope.techniques,origin_technique);
@@ -1020,6 +1105,15 @@ var SaveChangesModalCtrl = function ($scope, $modalInstance, technique, editForm
 
   $scope.cancel = function () {
     $modalInstance.dismiss('cancel');
+  };
+};
+
+var RestoreWarningModalCtrl = function ($scope, $modalInstance, technique, editForm) {
+  $scope.save = function() {
+    $modalInstance.close(true);
+  }
+  $scope.discard = function () {
+    $modalInstance.close(false);
   };
 };
 

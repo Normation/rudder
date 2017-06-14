@@ -41,6 +41,10 @@ hr {
     background-image: linear-gradient(#FFA033, #EE7F00 50%, #B86200);
     color: #EEEEEE;
 }
+.modal-body .alert{
+  margin: 10px 0 -10px 0;
+}
+
 .btn-ncf {
     background-image: linear-gradient(#FFA033, #EE7F00 50%, #B86200);
     border-color: #B86200;
@@ -82,7 +86,7 @@ hr {
 }
 
 .panel-body {    
-    padding:0;
+    padding: 15px 0 0 0;
 }
 
 a:hover {
@@ -489,7 +493,12 @@ button.btn-save.saving span.saving{
 span.text-fit {
   font-weight: normal;
 }
-
+.btn-group-alert {
+  margin-top: 10px;
+}
+.btn-group-alert > .btn:first-child {
+  margin-right: 8px;
+}
 @-webkit-keyframes saving {
   0% {
     -ms-transform: rotate(0deg);
