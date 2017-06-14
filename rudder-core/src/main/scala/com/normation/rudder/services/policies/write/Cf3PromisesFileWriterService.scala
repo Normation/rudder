@@ -267,6 +267,9 @@ class Cf3PromisesFileWriterServiceImpl(
       }})
     implicit val scheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
 
+    //interpret HookReturnCode as a Box
+    import com.normation.rudder.hooks.HooksImplicits.hooksReturnCodeToBox
+
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
@@ -303,7 +306,7 @@ class Cf3PromisesFileWriterServiceImpl(
                                         , systemEnv
                             )
                             HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
-                            Full(res)
+                            res
                           }
       movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
       nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
@@ -321,7 +324,7 @@ class Cf3PromisesFileWriterServiceImpl(
                                         , systemEnv
                             )
                             HooksLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
-                            Full(res)
+                            res
                           }
     } yield {
       val ids = movedPromises.map { _.nodeId }.toSet
