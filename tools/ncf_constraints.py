@@ -24,7 +24,7 @@ def return_constraint(result, error_message):
 
 def select( parameter_value, accepted_result):
   result = parameter_value in accepted_result
-  error_message = "Value not in accepted values: "+ str(accepted_result)
+  error_message = "Value not in accepted values: "+ str(json.dumps(accepted_result))
   return return_constraint(result, error_message)
 
 def max_length( parameter_value, max_size):
