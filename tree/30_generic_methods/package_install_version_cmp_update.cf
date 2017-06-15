@@ -125,7 +125,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
     version_not_specified.!local_package.redhat::
       "${package_name}"
                         package_policy => "${update_policy}",
-                        package_method => yum_rpm,
+                        package_method => yum_rpm_no_version,
                         classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action         => policy("${action}");
 
