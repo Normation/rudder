@@ -22,6 +22,43 @@ bundle common ncf_const {
       "s" string => " ";
 }
 
+body package_method yum_rpm_no_version
+{
+  package_changes => "bulk";
+  package_list_command => "/bin/rpm -qa --qf '%{name}.%{arch} %{version}-%{release}\n'";
+  package_patch_list_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
+
+  package_list_name_regex    => "([^.]+).*";
+  package_list_version_regex => "[^\s]\s+([^\s]+).*";
+  package_list_arch_regex    => "[^.]+\.([^\s]+).*";
+
+  package_installed_regex => ".*";
+  package_name_convention => "$(name)";
+
+  # just give the package name to rpm to delete, otherwise it gets "name.*" (from package_name_convention above)
+  package_delete_convention => "$(name)";
+
+  # set it to "0" to avoid caching of list during upgrade
+  package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
+  package_list_update_ifelapsed => "240";
+
+  package_patch_installed_regex => "^\s.*";
+  package_patch_name_regex    => "([^.]+).*";
+  package_patch_version_regex => "[^\s]\s+([^\s]+).*";
+  package_patch_arch_regex    => "[^.]+\.([^\s]+).*";
+
+
+      package_add_command    => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y install";
+      package_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y update";
+      package_patch_command  => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y update";
+      package_delete_command => "$(rpm_knowledge.call_rpm) -e --nodeps";
+      package_verify_command => "$(rpm_knowledge.call_rpm) -V";
+      package_noverify_returncode => "1";
+      package_version_less_command => "$(redhat_knowledge.rpm_compare_less)";
+      package_version_equal_command => "$(redhat_knowledge.rpm_compare_equal)";
+}
+
+
 # Install packages using yum localinstall, disable package caching
 body package_method redhat_local_install
 {
