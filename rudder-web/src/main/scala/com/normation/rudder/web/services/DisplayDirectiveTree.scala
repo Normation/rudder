@@ -334,7 +334,6 @@ object DisplayDirectiveTree extends Loggable {
         }
       }
     }
-
     S.appendJs(JsRaw(s"""
       var scopeElmnt = '#directiveFilter';
       if(!angular.element(scopeElmnt).scope()){
@@ -344,7 +343,6 @@ object DisplayDirectiveTree extends Loggable {
       $$('#showFiltersDirective').on('click', function () {
         setTimeout(function(){adjustHeight('#activeTechniquesTree');}, 550);
       });
-      $$('#activeTechniquesTree').on('scroll',function(){$$('.tooltip').hide();});
       $$(".bsTooltip").bsTooltip({container: "${if(addEditLink){"#editRuleZonePortlet"}else{"#boxDirectiveTree"}}"})
     """))
     directiveLib.subCategories.filterNot(_.isSystem).sortBy( _.name ).flatMap { cat => displayCategory(cat, cat.id.value).toXml }
