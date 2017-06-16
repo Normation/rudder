@@ -221,13 +221,12 @@
   text-align: center;
   background-color: white;
   position: fixed;
-  bottom: 50px;
+  bottom: 55px;
   padding-top: 10px;
   border-left-width: 0px;
   margin-left: 0px;
   padding-bottom: 10px;
   border-top:5px #DDDDDD solid;
-  border-right:5px #DDDDDD solid;
   margin-left:-15px;
   padding-left:15px;
   padding-right:15px;
@@ -236,7 +235,7 @@
 }
 
 .directive-footer{
-  width:65.8%
+  width:68%
 }
 
 .rule-footer{
