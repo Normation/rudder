@@ -46,6 +46,8 @@ import com.normation.inventory.domain.AgentType
 import com.normation.utils.Control.sequence
 import net.liftweb.common.Full
 import net.liftweb.common.Failure
+import com.normation.cfclerk.domain.SystemVariable
+import com.normation.cfclerk.domain.Variable
 
 /*
  * This file contain agent-type specific logic used during the policy
@@ -166,7 +168,7 @@ object DscAgentSpecificGeneration extends AgentSpecificGeneration {
   override def handle(agentType: AgentType): Boolean = agentType == AgentType.Dsc
 
   override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
-    writeSystemVarJson(cfg.paths)
+    writeSystemVarJson(cfg.paths, cfg.systemVariables)
   }
 
   import BuildBundleSequence.{InputFile, TechniqueBundles, BundleSequenceVariables}
@@ -179,14 +181,45 @@ object DscAgentSpecificGeneration extends AgentSpecificGeneration {
 
 
   // just write an empty file for now
-  private[this] def writeSystemVarJson(paths: NodePromisesPaths) =  {
+  private[this] def writeSystemVarJson(paths: NodePromisesPaths, variables: Map[String, Variable]) =  {
     val path = new File(paths.newFolder, "rudder.json")
     for {
-        _ <- tryo { FileUtils.writeStringToFile(path, """{ "comment":"for now, an empty file" }""" + "\n", Codec.UTF8.charSet) } ?~!
+        _ <- tryo { FileUtils.writeStringToFile(path, systemVariableToJson(variables) + "\n", Codec.UTF8.charSet) } ?~!
                s"Can not write json parameter file at path '${path.getAbsolutePath}'"
     } yield {
       AgentSpecificFile(path.getAbsolutePath) :: Nil
     }
   }
 
+  private[this] def systemVariableToJson(vars: Map[String, Variable]): String = {
+    //only keep system variables, sort them by name
+    import net.liftweb.json._
+
+    //remove these system vars (perhaps they should not even be there, in fact)
+    val filterOut = Set(
+        "SUB_NODES_ID"
+      , "SUB_NODES_KEYHASH"
+      , "SUB_NODES_NAME"
+      , "SUB_NODES_SERVER"
+      , "MANAGED_NODES_ADMIN"
+      , "MANAGED_NODES_ID"
+      , "MANAGED_NODES_IP"
+      , "MANAGED_NODES_KEY"
+      , "MANAGED_NODES_NAME"
+      , "COMMUNITY", "NOVA"
+      , "BUNDLELIST", "INPUTLIST"
+    )
+
+    val systemVars = vars.toList.sortBy( _._2.spec.name ).collect { case (_, v: SystemVariable) if(!filterOut.contains(v.spec.name)) =>
+      // if the variable is multivalued, create an array, else just a String
+      val value = if(v.spec.multivalued) {
+        JArray(v.values.toList.map(JString))
+      } else {
+        JString(v.values.headOption.getOrElse(""))
+      }
+      JField(v.spec.name, value)
+    }
+
+    prettyRender(JObject(systemVars))
+  }
 }
