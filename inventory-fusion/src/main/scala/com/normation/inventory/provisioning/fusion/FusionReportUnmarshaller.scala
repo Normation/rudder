@@ -40,22 +40,16 @@ package fusion
 
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.AgentType._
-import com.normation.inventory.provisioning.fusion._
-import java.io.InputStream
+import com.normation.inventory.domain.NodeTimezone
+import com.normation.inventory.services.provisioning._
+import com.normation.utils.StringUuidGenerator
+import java.net.InetAddress
+import java.util.Locale
+import net.liftweb.common._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import java.util.Locale
-import com.normation.utils.StringUuidGenerator
-import com.normation.utils.Utils._
-import java.net.InetAddress
-import scala.xml._
-import org.xml.sax.SAXParseException
-import net.liftweb.common._
-import com.normation.inventory.domain.InventoryConstants._
-import com.normation.inventory.services.provisioning._
 import org.joda.time.format.DateTimeFormatter
-import com.normation.utils.Control.sequence
-import com.normation.inventory.domain.NodeTimezone
+import scala.xml._
 
 class FusionReportUnmarshaller(
     uuidGen:StringUuidGenerator,
@@ -724,7 +718,7 @@ class FusionReportUnmarshaller(
   }
 
   def processNetworks(n : NodeSeq) : Option[Network] = {
-    import InetAddressUtils._
+    import com.normation.inventory.domain.InetAddressUtils._
     //in fusion report, we may have several IP address separated by comma
     def getAddresses(addressString : String) : Seq[InetAddress] = {
       for {

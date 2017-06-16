@@ -39,7 +39,7 @@ package com.normation.inventory.ldap.core
 
 import LDAPConstants._
 import com.normation.inventory.domain._
-import com.unboundid.ldap.sdk.{Version => UVersion, _ }
+import com.unboundid.ldap.sdk.{Version => _, _ }
 import com.normation.ldap.sdk._
 import com.normation.ldap.sdk.schema.LDAPObjectClass
 import org.joda.time.DateTime
@@ -47,7 +47,6 @@ import net.liftweb.common._
 import net.liftweb.json._
 import Box._
 import java.net.InetAddress
-import java.net.UnknownHostException
 import InetAddressUtils._
 import com.normation.utils.Control.sequence
 import com.normation.inventory.domain.NodeTimezone

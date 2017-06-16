@@ -37,67 +37,103 @@
 
 package com.normation.inventory.domain
 
-import InventoryConstants._
 import net.liftweb.common._
-import com.normation.utils.HashcodeCaching
+
 
 /**
  * The enumeration holding the values for the agent
- *
  */
-sealed abstract class AgentType {
-  def toString : String
-  def fullname : String
-  // Tag used in fusion inventory ( > 2.3 )
-  def tagValue : String
-  def toRulesPath : String
+sealed trait AgentType {
+  /*
+   * this is the default agent identifier, the main name, used in:
+   * - in hooks: RUDDER_AGENT_TYPE: dsc (cfengine-community, cfengine-nova)
+   * - in technique metadata: <AGENT type="dsc">...</AGENT> (cfengine-community, cfengine-nova)
+   * - in serialisation
+   */
+  def id: String
 
-  // the name to look for in the inventory to know the agent version
+  //yeah, you know, java
+  final override def toString() : String = id
+
+  /*
+   * This is the old, short name, which used to be used in LDAP "agentName"
+   * attribute and in (very old) fusion inventory reports (i.e: community, nova).
+   */
+  def oldShortName: String
+
+  /*
+   * - in User facing UI: "Rudder (Windows DSC)" ("CFEngine Community" => "Rudder (CFEngine Community)", "CFEngine Enterprise")
+   */
+  def displayName: String
+
+  /*
+   * - for policy generation: /var/rudder/share/xxxx/rules/dsc (/rules/cfengine-community, /rules/cfengine-nova)
+   */
+  def toRulesPath: String
+
+  /*
+   * This is the list of <AGENTNAME> to look for in fusion inventory report of LDAP
+   * to choose the agent type.
+   * - in inventory report: <AGENTNAME>dsc</AGENTNAME> ("Community" => "cfengine-community", "Nova" => "cfengine-nova")
+   * - in LDAP agentName attribute
+   * This is a set, because we want to accept renaming along the way.
+   * Everything must be lower case in it.
+   * It is most likely Set(id, oldShortName)
+   */
+  def inventoryAgentNames: Set[String]
+
+  /*
+   *  the name to look for in the inventory to know the agent version (when not reported in <AGENT><VERSION>)
+   *  - for inventory software name (i.e package name in software): rudder-agent-dsc ("rudder-agent", "cfengine nova")
+   */
   def inventorySoftwareName: String
-  // and a transformation function from reported software version name to agent version name
+  // and a transformation function from reported software version name to agent version name, internal use only
   def toAgentVersionName(softwareVersionName: String): String
 
 }
 
 object AgentType {
 
-  final case object CfeEnterprise extends AgentType with HashcodeCaching {
-    override def toString    = A_NOVA_AGENT
-    override def fullname : String = "CFEngine "+this
-    override def tagValue = s"cfengine-${A_NOVA_AGENT}".toLowerCase
-    override def toRulesPath = "/cfengine-nova"
+  final case object CfeEnterprise extends AgentType {
+    override def id           = "cfengine-nova"
+    override def oldShortName = "nova"
+    override def displayName  = "CFEngine Enterprise"
+    override def toRulesPath  = "/cfengine-nova"
+    override def inventoryAgentNames   = Set("cfengine-nova", "nova")
     override val inventorySoftwareName = "cfengine nova"
     override def toAgentVersionName(softwareVersionName: String) = s"cfe-${softwareVersionName}"
   }
 
-  final case object CfeCommunity extends AgentType with HashcodeCaching {
-    override def toString    = A_COMMUNITY_AGENT
-    override def fullname : String = "CFEngine "+this
-    override def tagValue = s"cfengine-${A_COMMUNITY_AGENT}".toLowerCase
-    override def toRulesPath = "/cfengine-community"
+  final case object CfeCommunity extends AgentType {
+    override def id           = "cfengine-community"
+    override def oldShortName = "community"
+    override def displayName  = "Rudder (CFEngine Community)"
+    override def toRulesPath  = "/cfengine-community"
+    override def inventoryAgentNames   = Set("cfengine-community", "community")
     override val inventorySoftwareName = "rudder-agent"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
   }
 
-  final case object Dsc extends AgentType with HashcodeCaching {
-    override def toString    = A_DSC_AGENT
-    override def fullname : String = "Rudder Windows DSC"
-    override def tagValue = "windows-dsc"
-    override def toRulesPath = "/dsc"
-    override val inventorySoftwareName = "Rudder agent"
-    override def toAgentVersionName(softwareVersionName: String) = softwareVersionName+" (dsc)"
+  final case object Dsc extends AgentType {
+    override def id           = "dsc"
+    override def oldShortName = "dsc"
+    override def displayName  = "Rudder (Windows DSC)"
+    override def toRulesPath  = "/dsc"
+    override def inventoryAgentNames   = Set("dsc")
+    override val inventorySoftwareName = "rudder-agent-dsc"
+    override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
   }
 
-  def allValues = CfeEnterprise :: CfeCommunity  :: Dsc :: Nil
+  def allValues = ca.mrvisser.sealerate.values[AgentType]
 
   def fromValue(value : String) : Box[AgentType] = {
     // Check if the value is correct compared to the agent tag name (fusion > 2.3) or its toString value (added by CFEngine)
     def checkValue( agent : AgentType) = {
-      value.toLowerCase == agent.toString.toLowerCase || value.toLowerCase == agent.tagValue.toLowerCase
+      agent.inventoryAgentNames.contains(value.toLowerCase)
     }
 
     allValues.find(checkValue)  match {
-      case None => Failure(s"Wrong type of value for the agent '${value}'")
+      case None        => Failure(s"Wrong type of value for the agent '${value}'")
       case Some(agent) => Full(agent)
     }
   }
@@ -109,7 +145,7 @@ object AgentType {
 final case class AgentVersion(value: String)
 
 final case class AgentInfo(
-    agentType   : AgentType
+    agentType     : AgentType
     //for now, the version must be an option, because we don't add it in the inventory
     //and must try to find it from packages
   , version       : Option[AgentVersion]
@@ -126,7 +162,7 @@ object AgentInfoSerialisation {
 
     def toJsonString =
       compactRender(
-          ("agentType" -> agent.agentType.toString())
+          ("agentType" -> agent.agentType.id)
         ~ ("version"   -> agent.version.map( _.value ))
         ~ ("securityToken" ->
               ("value" -> agent.securityToken.key)
