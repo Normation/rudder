@@ -63,6 +63,7 @@ import org.joda.time.DateTime
 import scala.io.Codec
 import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain.TechniqueFile
+import com.normation.cfclerk.domain.SystemVariable
 
 trait PrepareTemplateVariables {
 
@@ -121,7 +122,9 @@ class PrepareTemplateVariablesImpl(
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
         systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == CfeEnterprise     ) Seq("true") else Seq())
       , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == CfeCommunity) Seq("true") else Seq())
+      , systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.toString))
       , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
+
     ).map(x => (x.spec.name, x)).toMap
 
     for {
@@ -142,7 +145,7 @@ class PrepareTemplateVariablesImpl(
           Seq()
       })
 
-      AgentNodeWritableConfiguration(agentNodeConfig.agentType, agentNodeConfig.paths, preparedTemplate.values.toSeq, csv)
+      AgentNodeWritableConfiguration(agentNodeConfig.agentType, agentNodeConfig.paths, preparedTemplate.values.toSeq, csv, allSystemVars)
     }
   }
 

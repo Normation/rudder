@@ -801,10 +801,9 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
       compareWith(rootPath.getParentFile/dscNode.id.value, "node-dsc-with-one-directive",
            """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
         :: """.*add:default:==:.*"""                               //rpm reports
+        :: """.*/test-rudder-config-repo-.*""" //config repos path with timestamp
         :: Nil
       )
     }
-
-
   }
 }

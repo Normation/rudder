@@ -286,9 +286,9 @@ class Cf3PromisesFileWriterServiceImpl(
       //////////
 
       propertiesWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
-                            writeNodePropertiesFile(agentNodeConfig) ?~!
-                              s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
-                          }
+                             writeNodePropertiesFile(agentNodeConfig) ?~!
+                               s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
+                           }
 
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
 
