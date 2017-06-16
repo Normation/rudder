@@ -572,7 +572,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
 
   //////////////
 
-  val dscAgentTechnique = techniqueRepository.get(TechniqueId(TechniqueName("dsc-agent"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  val dscAgentTechnique = techniqueRepository.get(TechniqueId(TechniqueName("dsc-common"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
   val dscAgentVariables = {
      val spec = dscAgentTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq[Variable](
