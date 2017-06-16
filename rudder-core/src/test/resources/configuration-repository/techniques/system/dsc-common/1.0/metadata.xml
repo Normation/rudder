@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   <DESCRIPTION>System technique for the DSC Agent</DESCRIPTION>
   <SYSTEM>true</SYSTEM>
 
-  <AGENT type="windows-dsc">
+  <AGENT type="dsc">
     <TMLS>
       <TML name="rudder-directives">
         <OUTPATH>rudder-directives.ps1</OUTPATH>

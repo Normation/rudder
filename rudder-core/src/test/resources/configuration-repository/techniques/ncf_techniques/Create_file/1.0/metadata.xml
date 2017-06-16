@@ -12,7 +12,7 @@
       <INCLUDED>true</INCLUDED>
     </FILE>
   </FILES>
-  <AGENT type="windows-dsc">
+  <AGENT type="dsc">
     <BUNDLES>
       <NAME>Create_file</NAME>
     </BUNDLES>

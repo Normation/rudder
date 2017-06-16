@@ -171,7 +171,7 @@ trait TStringComparator extends CriterionType {
       comparator match {
         case Regex | NotRegex =>
           try {
-            val ok = java.util.regex.Pattern.compile(v) //yes, ok is not used, side effect are fabulous
+            val ok = java.util.regex.Pattern.compile(v) //yes, ok is not used, side effect are fabulous! KEEP IT
             Full(v)
           } catch {
             case ex: java.util.regex.PatternSyntaxException => Failure(s"The regular expression '${v}' is not valid. Expected regex syntax is the java one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html", Full(ex), Empty)
@@ -394,9 +394,12 @@ case object OsNameComparator extends CriterionType {
 }
 
 case object AgentComparator extends CriterionType {
-  import com.normation.inventory.domain.InventoryConstants._
 
-  val agentTypes = List(A_NOVA_AGENT,A_COMMUNITY_AGENT, A_DSC_AGENT)
+  /*
+   * We are using 'oldShortName' because we are matching on substring,
+   * and that name was used in the past.
+   */
+  val agentTypes = AgentType.allValues.toList.map(a => (a.oldShortName, a.displayName)).sortBy( _._2 )
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
@@ -414,8 +417,8 @@ case object AgentComparator extends CriterionType {
 
   override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
     SHtml.select(
-      (agentTypes map (e => (e,e))).toSeq,
-      { if(agentTypes.contains(value)) Full(value) else Empty},
+      agentTypes,
+      Box(agentTypes.find( _._1 == value )).map( _._1),
       func,
       attrs:_*
     )
