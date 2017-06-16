@@ -191,6 +191,11 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Open/Close by default the Conditions box
   $scope.conditionIsOpen = false;
 
+  //Generic methods filters
+  $scope.filter = {
+    compatibility:"all"
+  }
+
   var usingRudder = false;
 
   $scope.CForm = {};
@@ -478,6 +483,55 @@ $scope.groupMethodsByCategory = function () {
       return checkVersion($scope.minor_OS);
   }
 
+  $scope.checkFilterCategory = function(methods){
+    switch($scope.filter.compatibility){
+      case "dsc":
+        for(var i=0 ; i<methods.length ; i++){
+          if(methods[i].dsc_support){
+            return true;
+          }
+        }
+        break;
+
+      case "classic":
+        for(var i=0 ; i<methods.length ; i++){
+          if(!methods[i].dsc_support){
+            return true;
+          }
+        }
+        break;
+
+      case "all":
+        return true;
+    }
+    return false;
+  }
+  $scope.checkFilterMethod = function(method){
+    switch($scope.filter.compatibility){
+      case "dsc":
+        return method.dsc_support;
+
+      case "classic":
+        return !method.dsc_support;
+
+      case "all":
+        return true;
+    }
+    return false;
+  }
+
+  $scope.getIconClassByAgentType = function(methodName){
+    /* Icon classes :
+        - DSC     : 'dsc-icon'
+        - Classic : 'glyphicon glyphicon-cog classic-icon'
+    */
+    for(var method in $scope.generic_methods){
+      if(($scope.generic_methods[method].bundle_name == methodName)&&($scope.generic_methods[method].dsc_support)){
+        return 'dsc-icon';
+      }
+    }
+    return 'glyphicon glyphicon-cog classic-icon';
+  }
   // Function used when changing os type
   $scope.updateOSType = function() {
     // Reset selected OS
@@ -542,11 +596,12 @@ $scope.groupMethodsByCategory = function () {
   function toMethodCall(bundle) {
     var original_index = undefined;
     var call = {
-        "method_name" : bundle.bundle_name
+        "method_name"    : bundle.bundle_name
       , "original_index" : original_index
-      , "class_context" : "any"
+      , "class_context"  : "any"
+      , "dsc_support"    : bundle.dsc_support ? true : false
       , "parameters": bundle.parameter.map(function(v,i) {
-        v["value"] = undefined 
+        v["value"] = undefined
         return  v;
       })
     }
@@ -835,7 +890,7 @@ $scope.groupMethodsByCategory = function () {
     // Update selected technique if it's still the same technique
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
-        $scope.$broadcast('endSaving');
+      $scope.$broadcast('endSaving');
       // Transform back ncfTechnique to UITechnique, that will make it ok
       var savedTechnique = toTechUI(ncfTechnique);
 

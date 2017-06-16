@@ -228,11 +228,12 @@
                                       <i class="glyphicon " ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
                                     </button>
                                 </div>
-                                  <span class="pull-left">
+                                  <span class="pull-left method-name">
                                     {{getMethodName(method_call)}}
                                     <a ng-click="$event.stopPropagation();" target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{getMethodBundleName(method_call)}}">
                                       <i class="glyphicon glyphicon-info-sign method-actions"></i>
                                     </a>
+                                    <i class="{{getIconClassByAgentType(method_call.method_name)}}"></i>
                                   </span>
                                 <br style="clear:both"/>
                                 <small class="pull-left method-margin" >
@@ -278,7 +279,7 @@
             <div class="col-md-5 ncf_col" id="methodBlock" ng-if="selectedMethod !== undefined">
                 <div>
                     <div class="title">Method</div>
-                    <h3 >{{getMethodName(selectedMethod)}}
+                    <h3 >{{getMethodName(selectedMethod)}}<i class="{{getIconClassByAgentType(selectedMethod.method_name)}}"></i>
                         <button ng-disabled="! canResetMethod()" class="btn btn-default pull-right top-margin" ng-click="resetMethod()">Reset</button>
                     </h3>
                     <accordion>
@@ -387,41 +388,72 @@
                     </form>
                 </div>
             </div>
-
-                    <div class="col-lg-4 col-md-4 col-sm-10 col-xs-8 generic-methods ncf_col" ng-if="selectedMethod === undefined">
-                        <div class="title">Library</div>
-                        <h3 >Generic methods</h3>
-                        <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory"  >
-                            <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}} </h4>
-                            <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" dnd-disable-if="!selectedTechnique" ng-class="{'disabled':!selectedTechnique}">
-                              <div class="input-group">
-                                <span class="input-group-addon cursorMove"><b>:::</b></span>
-                                <div class="panel-heading" style="overflow:hidden">
-                                    <h4 class="panel-title">
-                                        <span class="pull-left"> {{method.name}}
-                                            <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method, kind)}}">
-                                                <i class="glyphicon glyphicon-info-sign method-actions"></i>
-                                            </a>
-                                        </span>
-                                        <br style="clear:both"/>
-                                        <small class="pull-left method-margin" >
-                                            {{method.description}}
-                                        </small>
-                                    </h4>
-                                </div>
-                              </div>
-                            </li>
-                        </ul>
+            <div class="col-lg-4 col-md-4 col-sm-10 col-xs-8 generic-methods ncf_col" ng-if="selectedMethod === undefined">
+                <div class="title">Library</div>
+                <h3 >Generic methods</h3>
+                <div class="panel-group" id="filters" role="tablist" aria-multiselectable="true">
+                  <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="filterTitle">
+                      <h4 class="panel-title">
+                        <a role="button" data-toggle="collapse" data-parent="#filters" href="#collapseFilters" aria-expanded="true" aria-controls="collapseFilters">
+                          Filters
+                          <i class="glyphicon glyphicon-chevron-down pull-right"></i>
+                        </a>
+                      </h4>
                     </div>
-                    <div class="col-lg-1 col-md-1 col-sm-2 col-xs-4 ncf_col no-padding" class="bs-sidebar navbar" ng-if="selectedMethod === undefined">
-                        <ul class="nav bs-sidenav" id="categories-list">
-                          <h4 id="categories">Categories</h4>
-                            <li ng-repeat="(kind,methods) in methodsByCategory" class="active">
-                                <a href="" ng-click="scroll(kind)">{{capitaliseFirstLetter(kind)}} </a>
-                            </li>
-                        </ul>
+                    <div id="collapseFilters" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="filterTitle">
+                      <div class="panel-body">
+                        <label>Agent type</label>
+                        <br/>
+                        <div class="btn-group">
+                          <button class="btn btn-default" ng-class="{active:filter.compatibility == 'all'}" ng-click="filter.compatibility='all'">
+                            All
+                          </button>
+                          <button class="btn btn-default classic-filter" ng-class="{active:filter.compatibility == 'classic'}" ng-click="filter.compatibility='classic'">
+                            Classic
+                            <i class="glyphicon glyphicon-cog classic-icon"></i>
+                          </button>
+                          <button class="btn btn-default dsc-filter" ng-class="{active:filter.compatibility == 'dsc'}" ng-click="filter.compatibility='dsc'">
+                            DSC
+                            <i class="dsc-icon"></i>
+                          </button>
+                        </div>
+                      </div>
                     </div>
-
+                  </div>
+                </div>
+                <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory" ng-if="checkFilterCategory(methods)">
+                    <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}}</h4>
+                    <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" ng-show="checkFilterMethod(method)">
+                      <div class="input-group">
+                        <span class="input-group-addon cursorMove"><b>:::</b></span>
+                        <div class="panel-heading" style="overflow:hidden">
+                            <h4 class="panel-title">
+                                <span class="pull-left"> {{method.name}}
+                                    <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method, kind)}}">
+                                        <i class="glyphicon glyphicon-info-sign method-actions"></i>
+                                    </a>
+                                </span>
+                                <i class="dsc-icon" ng-if="method.dsc_support"></i>
+                                <i class="glyphicon glyphicon-cog classic-icon" ng-if="!method.dsc_support"></i>
+                                <br style="clear:both"/>
+                                <small class="pull-left method-margin" >
+                                    {{method.description}}
+                                </small>
+                            </h4>
+                        </div>
+                      </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-lg-1 col-md-1 col-sm-2 col-xs-4 ncf_col no-padding" class="bs-sidebar navbar" ng-if="selectedMethod === undefined">
+                <ul class="nav bs-sidenav" id="categories-list">
+                  <h4 id="categories">Categories</h4>
+                    <li ng-repeat="(kind,methods) in methodsByCategory" class="active">
+                        <a href="" ng-click="scroll(kind)">{{capitaliseFirstLetter(kind)}} </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </body>
 </html>

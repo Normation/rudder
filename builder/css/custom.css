@@ -513,7 +513,95 @@ button.btn-save.saving span.saving{
 span.text-fit {
   font-weight: normal;
 }
-
+.generic-methods .panel-title{
+  position: relative;
+}
+#filterTitle{
+  padding: 0;
+}
+#filterTitle > h4 > a{
+  padding: 5px 8px;
+  display: block;
+  text-decoration: none !important;
+}
+#filterTitle > h4 > a > .glyphicon{
+  font-size: 12px;
+  position: relative;
+  top: 3px;
+  transition-duration: .4s;
+}
+#filterTitle > h4 > a.collapsed > .glyphicon{
+  transform: rotate(-90deg);
+}
+#collapseFilters > .panel-body{
+  padding: 8px;
+}
+#collapseFilters > .panel-body > .input-group > label{
+  cursor: pointer;
+}
+.dsc-icon,.classic-icon{
+  position: absolute;
+  right: 0;
+  display: inline-block;
+}
+.classic-icon{
+  top: 2px;
+  color: #999;
+}
+#methods .btn-method .method-name{
+  position: relative;
+  padding-right: 25px;
+}
+#methods .btn-method .dsc-icon,#methods .btn-method .classic-icon{
+  position: absolute;
+  top: -3px;
+  right: 1px;
+}
+#methods .btn-method .classic-icon{
+  top: 1px;
+  right: 2px;
+}
+.dsc-icon{
+  background-image: url("dsc-icon.svg");
+  top: -2px;
+  height: 23px;
+  width: 16px;
+}
+.btn.dsc-filter{
+  padding-right: 32px;
+  color: #440e62;
+}
+.btn.classic-filter{
+  padding-right: 27px;
+  color: #555;
+}
+.btn.classic-filter .classic-icon{
+  right: 6px;
+  top: 9px;
+}
+.btn.dsc-filter .dsc-icon{
+  right: 10px;
+  top: 4px;
+}
+.btn.dsc-filter.active{
+  background-color: #440e62;
+  color: #fff;
+  border-color: #290041;
+}
+.btn.dsc-filter.active .dsc-icon{
+  background-image: url("dsc-icon-white.svg");
+}
+.title + h3 .dsc-icon{
+  position: relative;
+  top: 2px;
+  margin-left: 10px;
+}
+.title + h3 .classic-icon{
+  position: relative;
+  top: 1px;
+  margin-left: 10px;
+  font-size: 16px;
+}
 @-webkit-keyframes saving {
   0% {
     -ms-transform: rotate(0deg);
