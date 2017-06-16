@@ -123,7 +123,7 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
-      "${canonified_path}_signed" expression => and( fileexists("${file_path}.sign"), isnewerthan("${file_path}.sign","${file_path}") );
+      "${canonified_path}_signed" and => { fileexists("${file_path}.sign"), isnewerthan("${file_path}.sign","${file_path}") };
 
       # classes for _classes_combine_ifthenelse
       "${old_class_prefix}_exist_true" expression => "${old_class_prefix}_exist_kept";
