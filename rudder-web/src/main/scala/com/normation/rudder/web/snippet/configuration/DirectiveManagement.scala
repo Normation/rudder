@@ -218,6 +218,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         }
 
         buildDirectiveTree('#${htmlId_activeTechniquesTree}', [ directiveId ], '${S.contextPath}', 1);
+        $$(window).on('resize',function(){
+          adjustHeight('.rudder_col > .col','#footer');
+        });
+        adjustHeight('.rudder_col > .col','#footer');
+        $$('.col.col-sm').on('scroll',function(){$$('.ui-tooltip').hide();});
         createTooltip();
     """)
   }
