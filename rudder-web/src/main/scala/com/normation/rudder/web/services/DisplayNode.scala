@@ -434,7 +434,7 @@ object DisplayNode extends Loggable {
           }.getOrElse(NodeSeq.Empty) }
           <b>Rudder agent version:</b> {sm.node.agents.map(_.version.map(_.value)).headOption.flatten.getOrElse("Not found")
           }<br/>
-          <b>Agent name:</b> {sm.node.agents.map(_.agentType.fullname).mkString(";")}<br/>
+          <b>Agent name:</b> {sm.node.agents.map(_.agentType.displayName).mkString(";")}<br/>
           <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
           { displayPolicyServerInfos(sm) }<br/>
           {

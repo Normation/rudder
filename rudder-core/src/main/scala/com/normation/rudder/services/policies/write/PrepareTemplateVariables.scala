@@ -141,7 +141,7 @@ class PrepareTemplateVariablesImpl(
           logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: creating lines for expected reports CSV files")
           prepareReportingDataForMetaTechnique(container, rudderIdCsvTag)
         case _ => // DSC_AGENT or other
-          logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: not creating lines for expected reports CSV files - agent type '${agentNodeConfig.agentType.fullname}' does not need them")
+          logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: not creating lines for expected reports CSV files - agent type '${agentNodeConfig.agentType.id}' does not need them")
           Seq()
       })
 
