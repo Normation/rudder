@@ -504,10 +504,8 @@ class LDAPEntityMapper(
           case Some(q) => cmdbQueryParser(q) match {
             case Full(x) => Full(Some(x))
             case eb:EmptyBox =>
-              val error = eb ?~! "Error when parsing query for node group persisted at DN '%s' (name: '%s'), that seems to be an inconsistency. You should modify that group".format(
-                  e.dn, name
-              )
-              logger.error(error)
+              val error = eb ?~! s"Error when parsing query for node group persisted at DN '${e.dn}' (name: '${name}'), that seems to be an inconsistency. You should modify that group"
+              logger.error(error.messageChain)
               Full(None)
           }
         }

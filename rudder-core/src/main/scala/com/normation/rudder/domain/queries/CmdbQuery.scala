@@ -393,13 +393,24 @@ case object OsNameComparator extends CriterionType {
     )
 }
 
+/*
+ * Agent comparator is kind of scpecial, because it needs to accomodate to the following cases:
+ * - historically, agent names were only "Nova" and "Community" (understood "cfengine", of course)
+ * - then, we changed in 4.2 to normalized "cfengine-community" and "cfengine-nova" (plus "dsc")
+ *   (but old agent are still "Nova" and "Community"
+ * - and we want a subcase "anything cfengine based" (because it is important for generation, for
+ *   group "haspolicyserver-*" and rule "inventory-all")
+ *
+ *   So we do actually need a special agent type "cfengine", and hand craft the buildFilter for it.
+ */
 case object AgentComparator extends CriterionType {
 
+  val ANY_CFENGINE = "cfengine"
   /*
    * We are using 'oldShortName' because we are matching on substring,
    * and that name was used in the past.
    */
-  val agentTypes = AgentType.allValues.toList.map(a => (a.oldShortName, a.displayName)).sortBy( _._2 )
+  val agentTypes = ( (ANY_CFENGINE, "Any CFEngine based agent") :: AgentType.allValues.toList.map(a => (a.oldShortName, a.displayName))).sortBy( _._2 )
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
@@ -407,11 +418,20 @@ case object AgentComparator extends CriterionType {
   }
   override def toLDAP(value:String) = Full(value)
 
+  private[this] def filterAgent(agent: String) = SUB(A_AGENTS_NAME, null, Array(agent), null)
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
     comparator match {
       //for equals and not equals, check value for jocker
-      case Equals => SUB(A_AGENTS_NAME, null, Array(value), null)
-      case _ => NOT(SUB(A_AGENTS_NAME, null, Array(value), null))
+      case Equals =>
+        value match {
+          case ANY_CFENGINE => OR(filterAgent(AgentType.CfeCommunity.oldShortName), filterAgent(AgentType.CfeEnterprise.oldShortName))
+          case x            => filterAgent(x)
+        }
+      case _ => //actually, this is meant to be "not equals"
+        value match {
+          case ANY_CFENGINE => NOT(OR(filterAgent(AgentType.CfeCommunity.oldShortName), filterAgent(AgentType.CfeEnterprise.oldShortName)))
+          case x            => NOT(filterAgent(x))
+        }
     }
   }
 
