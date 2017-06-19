@@ -279,6 +279,9 @@ class TwoValidationStepsWorkflowServiceImpl(
         WorkflowAction("Deploy",actions)
       case Deployed.id   => NoWorkflowAction
       case Cancelled.id  => NoWorkflowAction
+      case WorkflowNodeId(x) =>
+        logger.warn(s"An unknow workflow state was reached with ID: '${x}'. It is likely to be a bug, please report it")
+        NoWorkflowAction
     }
   }
 
@@ -297,6 +300,9 @@ class TwoValidationStepsWorkflowServiceImpl(
       case Deployment.id => if (authorizedRoles.contains("deployer") && canDeploy)  Seq((Cancelled.id,stepDeploymentToCancelled _)) else Seq()
       case Deployed.id   => Seq()
       case Cancelled.id  => Seq()
+      case WorkflowNodeId(x) =>
+        logger.warn(s"An unknow workflow state was reached with ID: '${x}'. It is likely to be a bug, please report it")
+        Seq()
     }
   }
 
@@ -307,6 +313,9 @@ class TwoValidationStepsWorkflowServiceImpl(
       case Deployment.id => authorizedRoles.contains("deployer")
       case Deployed.id   => false
       case Cancelled.id  => false
+      case WorkflowNodeId(x) =>
+        logger.warn(s"An unknow workflow state was reached with ID: '${x}'. It is likely to be a bug, please report it")
+        false
     }
   }
 
@@ -316,6 +325,9 @@ class TwoValidationStepsWorkflowServiceImpl(
       case Deployment.id => true
       case Deployed.id   => false
       case Cancelled.id  => false
+      case WorkflowNodeId(x) =>
+        logger.warn(s"An unknow workflow state was reached with ID: '${x}'. It is likely to be a bug, please report it")
+        false
     }
   }
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] = {
