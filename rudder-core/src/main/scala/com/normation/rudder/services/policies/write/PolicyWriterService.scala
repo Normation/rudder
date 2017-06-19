@@ -305,7 +305,7 @@ class Cf3PromisesFileWriterServiceImpl(
                                                                  ("RUDDER_GENERATION_DATETIME", generationTime.toString)
                                                                , ("RUDDER_NODEID", nodeId)
                                                                , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
-                                                               , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.tagValue)
+                                                               , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.id)
                                                              )
                                         , systemEnv
                             )
@@ -323,7 +323,7 @@ class Cf3PromisesFileWriterServiceImpl(
                                                                ("RUDDER_GENERATION_DATETIME", generationTime.toString)
                                                              , ("RUDDER_NODEID", nodeId)
                                                              , ("RUDDER_POLICIES_DIRECTORY", agentNodeConfig.paths.baseFolder)
-                                                             , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.tagValue)
+                                                             , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.id)
                                                            )
                                         , systemEnv
                             )
