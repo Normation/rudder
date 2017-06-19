@@ -159,6 +159,20 @@ description: All nodes excluding Rudder server components
 isEnabled: TRUE
 isSystem: TRUE
 
+dn: nodeGroupId=all-nodes-with-cfengine-agent,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: nodeGroup
+objectClass: top
+cn: All nodes with a CFEngine based agent
+description: All nodes known by Rudder with a CFEngine based agent (Rudder or CFEngine Enterprise)
+isDynamic: TRUE
+nodeGroupId: all-nodes-with-cfengine-agent
+nodeId: root
+isSystem: TRUE
+isEnabled: TRUE
+jsonNodeGroupQuery: {"select":"nodeAndPolicyServer","composition":"And","where":[
+  {"objectType":"node","attribute":"agentName","comparator":"eq","value":"cfengine"}
+  ]}
+
 # Active technique library
 dn: techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: techniqueCategory
@@ -251,7 +265,7 @@ dn: ruleId=inventory-all,ou=Rules,ou=Rudder,cn=rudder-configuration
 objectClass: rule
 objectClass: top
 ruleId: inventory-all
-ruleTarget: special:all
+ruleTarget: group:all-nodes-with-cfengine-agent
 directiveId: inventory-all
 cn: Rudder system policy: daily inventory
 description: Inventory
