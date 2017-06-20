@@ -154,6 +154,22 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                         )
       // end
     , SystemVariableSpec(
+                 "MANAGED_NODES_CERT_UUID" , "UUID of node with certificate"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                   "MANAGED_NODES_CERT_CN" , "CN of certificate of the node"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                  "MANAGED_NODES_CERT_PEM" , "PEM encoded certificate of the node"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                   "MANAGED_NODES_CERT_DN" , "DN of certificate of the node"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
                      "AUTHORIZED_NETWORKS" , "Networks authorized to connect to the policy server"
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
