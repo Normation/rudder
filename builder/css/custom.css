@@ -312,7 +312,7 @@ ul[dnd-list] .dndPlaceholder {
 }
 
 #methods .dndDraggingSource {
-      display: none;
+  display: none;
 }
 
 .btn.btn-method {
@@ -321,7 +321,14 @@ ul[dnd-list] .dndPlaceholder {
   text-align: left;
   white-space: normal;
 }
-
+.btn.btn-method.disabled {
+  pointer-events: visible;
+  cursor: not-allowed !important;
+}
+.btn.btn-method.disabled .cursorMove{
+  pointer-events: visible;
+  cursor: not-allowed !important;
+}
 ul[dnd-list] {
   min-height: 70px;
   padding: 15px 0 40px 0;
@@ -334,7 +341,7 @@ ul[dnd-list] {
 }
 
 #no-methods {
-  z-index= -1;
+  z-index: -1;
   position:absolute;
   border-style : dashed;
   white-space: normal;
