@@ -50,6 +50,9 @@ bundle agent package_state_options(name, version, architecture, provider, state,
       "class_prefix"              string => canonify(join("_", "promisers"));
       "args"                      slist  => { "${name}", "${state}" };
 
+  defaults:
+      "state"                     string => "present", if_match_regex => "";
+
   methods:
 
       "action"                 usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "${state}", "${options}");
