@@ -43,14 +43,14 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.slf4j.LoggerFactory
 
-class NovaLicense(val uuid : NodeId, val licenseNumber : Int, val expirationDate : DateTime, val file : String)
+class CfeEnterpriseLicense(val uuid : NodeId, val licenseNumber : Int, val expirationDate : DateTime, val file : String)
 
-object NovaLicense {
+object CfeEnterpriseLicense {
 
-  val LOGGER = LoggerFactory.getLogger(classOf[NovaLicense])
+  val LOGGER = LoggerFactory.getLogger(classOf[CfeEnterpriseLicense])
 
-  def parseXml(node: NodeSeq) : NovaLicense  = {
+  def parseXml(node: NodeSeq) : CfeEnterpriseLicense  = {
     LOGGER.info("Reading license of node {} ", (node\"uuid").text);
-    new NovaLicense( NodeId((node\"uuid").text), (node\"licenseNumber").text.toInt, ISODateTimeFormat.dateTimeParser.parseDateTime((node\"expirationDate").text), (node\"file").text)
+    new CfeEnterpriseLicense( NodeId((node\"uuid").text), (node\"licenseNumber").text.toInt, ISODateTimeFormat.dateTimeParser.parseDateTime((node\"expirationDate").text), (node\"file").text)
   }
 }

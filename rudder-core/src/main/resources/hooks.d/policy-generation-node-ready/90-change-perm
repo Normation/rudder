@@ -9,5 +9,15 @@
 
 # Correct all file permissions
 
-exec /bin/chmod -R u-x,u+rwX,go-rwx "${RUDDER_NEXT_POLICIES_DIRECTORY}"
 
+/bin/chmod -R u-x,u+rwX,g-w,g+rx,o-rwx "${RUDDER_NEXT_POLICIES_DIRECTORY}"
+r1=$?
+/bin/chgrp -R rudder-policy-reader "${RUDDER_NEXT_POLICIES_DIRECTORY}"
+r2=$?
+/bin/chmod u-x,u+rwX,g-w,g+rx,o-rwx "${RUDDER_NEXT_POLICIES_DIRECTORY}/.."
+r3=$?
+/bin/chgrp rudder-policy-reader "${RUDDER_NEXT_POLICIES_DIRECTORY}/.."
+r4=$?
+
+# Return aggregated error code
+[ $r1 -eq 0 ] && [ $r2 -eq 0 ] && [ $r3 -eq 0 ] && [ $r4 -eq 0 ]

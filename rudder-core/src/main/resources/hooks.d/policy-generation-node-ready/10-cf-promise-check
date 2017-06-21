@@ -21,6 +21,11 @@ else
       exec /var/cfengine/bin/cf-promises -f "${RUDDER_NEXT_POLICIES_DIRECTORY}/promises.cf"
     ;;
   
+    "windows-dsc")
+      # Not checking dsc agent policies for now
+      exit 0
+    ;;
+  
     *)
       #unknown agent type
       echo "Agent type ${RUDDER_AGENT_TYPE} for node ${RUDDER_NODEID} is not supported"

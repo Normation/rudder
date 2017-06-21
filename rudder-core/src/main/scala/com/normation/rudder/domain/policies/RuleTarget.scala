@@ -355,7 +355,7 @@ object RuleTarget extends Loggable {
           unserJson(parse(s))
         } catch {
           case e : Exception =>
-            logger.error(s"Error when trying to read the following serialized Rule target as a composite target (other case where not relevant): '${s}'. Reported parsing error cause was: ${e.getMessage}")
+            logger.error(s"Error when trying to read the following serialized Rule target as a composite target: '${s}'. Reported parsing error cause was: ${e.getMessage}")
             None
         }
     }

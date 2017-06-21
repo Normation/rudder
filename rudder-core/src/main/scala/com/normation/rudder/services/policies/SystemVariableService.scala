@@ -46,6 +46,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain._
+import com.normation.inventory.domain.AgentType._
 import net.liftweb.common._
 import org.slf4j.{ Logger, LoggerFactory }
 import com.normation.rudder.exceptions.LicenseException
@@ -61,12 +62,13 @@ import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.SyslogProtocol
-import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
+import  com.normation.rudder.domain.nodes.CFEngineKey
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]]
@@ -75,7 +77,7 @@ trait SystemVariableService {
       nodeInfo              : NodeInfo
     , allNodeInfos          : Map[NodeId, NodeInfo]
     , allGroups             : FullNodeGroupCategory
-    , allLicences           : Map[NodeId, NovaLicense]
+    , allLicences           : Map[NodeId, CfeEnterpriseLicense]
     , globalSystemVariables : Map[String, Variable]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode  ) : Box[Map[String, Variable]]
@@ -205,7 +207,7 @@ class SystemVariableServiceImpl(
         nodeInfo              : NodeInfo
       , allNodeInfos          : Map[NodeId, NodeInfo]
       , allGroups             : FullNodeGroupCategory
-      , allLicenses           : Map[NodeId, NovaLicense]
+      , allLicenses           : Map[NodeId, CfeEnterpriseLicense]
       , globalSystemVariables : Map[String, Variable]
       , globalAgentRun        : AgentRunInterval
       , globalComplianceMode  : ComplianceMode
@@ -254,11 +256,11 @@ class SystemVariableServiceImpl(
 
     val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable().copyWithSavedValue(varNodeRoleValue)
 
-    // Set the licences for the Nova
-    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
+    // Set the licences for the CfeEnterprise
+    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(CfeEnterprise)) {
       allLicenses.get(nodeInfo.policyServerId) match {
         case None =>
-          logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered Nova license. You will have to get one if you run more than 25 nodes")
+          logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered CfeEnterprise license. You will have to get one if you run more than 25 nodes")
           //that's the default value
           "25"
         case Some(x) => x.licenseNumber.toString
@@ -343,14 +345,27 @@ class SystemVariableServiceImpl(
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val children = childrenByPolicyServer.getOrElse(nodeInfo.id, Nil).sortBy( _.id.value )
 
-      val varManagedNodes      = systemVariableSpecService.get("MANAGED_NODES_NAME" ).toVariable(children.map(_.hostname))
-      val varManagedNodesId    = systemVariableSpecService.get("MANAGED_NODES_ID"   ).toVariable(children.map(_.id.value))
-      val varManagedNodesKey   = systemVariableSpecService.get("MANAGED_NODES_KEY"  ).toVariable(children.map(n => s"MD5=${n.cfengineKeyHash}"))
-      //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
-      val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(children.map(_.localAdministratorAccountName).distinct.sorted)
+
+      // Sort these children by agent
+      // Each node may have several agent type, so we need to "unfold" agents per children
+      val childerNodesList = children.map(node => (node.agentsName.map(agent => agent -> node))).flatten
+      val (nodesAgentWithCFEKey, nodesAgentWithCertificate) = childerNodesList.partition(x => x._1.securityToken match {
+                                                        case key : PublicKey => true
+                                                        case _ => false
+                                                      }
+                                                    )
 
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
-      val varManagedNodesIp = systemVariableSpecService.get("MANAGED_NODES_IP"      ).toVariable(children.flatMap(_.ips).distinct.sorted)
+      val nodesWithCFEKey = nodesAgentWithCFEKey.map(_._2).sortBy( _.id.value )
+
+      val varManagedNodes      = systemVariableSpecService.get("MANAGED_NODES_NAME" ).toVariable(nodesWithCFEKey.map(_.hostname))
+      val varManagedNodesId    = systemVariableSpecService.get("MANAGED_NODES_ID"   ).toVariable(nodesWithCFEKey.map(_.id.value))
+      val varManagedNodesKey   = systemVariableSpecService.get("MANAGED_NODES_KEY"  ).toVariable(nodesWithCFEKey.map(n => s"MD5=${n.securityTokenHash}"))
+      //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
+      val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(nodesWithCFEKey.map(_.localAdministratorAccountName).distinct.sorted)
+
+      //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
+      val varManagedNodesIp = systemVariableSpecService.get("MANAGED_NODES_IP"      ).toVariable(nodesWithCFEKey.flatMap(_.ips).distinct.sorted)
 
       // same kind of variable but for ALL childrens, not only direct one:
       val allChildren = {
@@ -374,10 +389,32 @@ class SystemVariableServiceImpl(
         addWithSubChildren(children)
       }
 
-      val varSubNodesName    = systemVariableSpecService.get("SUB_NODES_NAME"   ).toVariable(allChildren.map(_.hostname))
-      val varSubNodesId      = systemVariableSpecService.get("SUB_NODES_ID"     ).toVariable(allChildren.map(_.id.value))
-      val varSubNodesServer  = systemVariableSpecService.get("SUB_NODES_SERVER" ).toVariable(allChildren.map(_.policyServerId.value))
-      val varSubNodesKeyhash = systemVariableSpecService.get("SUB_NODES_KEYHASH").toVariable(allChildren.map(n => s"sha256:${n.sha256KeyHash}"))
+      // Each node may have several agent type, so we need to "unfold" agents per children
+      val subNodesList = allChildren.map(node => (node.agentsName.map(agent => agent -> node))).flatten
+
+      val varSubNodesName    = systemVariableSpecService.get("SUB_NODES_NAME"   ).toVariable(subNodesList.map(_._2.hostname))
+      val varSubNodesId      = systemVariableSpecService.get("SUB_NODES_ID"     ).toVariable(subNodesList.map(_._2.id.value))
+      val varSubNodesServer  = systemVariableSpecService.get("SUB_NODES_SERVER" ).toVariable(subNodesList.map(_._2.policyServerId.value))
+      val varSubNodesKeyhash = systemVariableSpecService.get("SUB_NODES_KEYHASH").toVariable(subNodesList.map(n => s"sha256:${n._2.sha256KeyHash}"))
+
+
+      // Construct the system variables for nodes with certificates
+      val nodesWithCertificate = nodesAgentWithCertificate.flatMap {case (agent, node) =>
+        agent.securityToken match {
+          // A certificat, we return it
+          case cert:Certificate => Some((node, cert, cert.cert))
+          case _                => None
+        }
+      }
+      val varManagedNodesCertificate = systemVariableSpecService.get("MANAGED_NODES_CERT_PEM").toVariable(nodesWithCertificate.map(_._2.value))
+
+      val varManagedNodesCertDN = systemVariableSpecService.get("MANAGED_NODES_CERT_DN").toVariable(nodesWithCertificate.map(_._3.map(_.getSubject.toString).openOr("")))
+
+      // get the CN, based on https://stackoverflow.com/questions/2914521/how-to-extract-cn-from-x509certificate-in-java
+      val varManagedNodesCertCN = systemVariableSpecService.get("MANAGED_NODES_CERT_CN").toVariable(nodesWithCertificate.map(_._3.map(_.getSubject.getRDNs().apply(0).getFirst().getValue().toString).openOr("")))
+
+      val varManagedNodesCertUUID = systemVariableSpecService.get("MANAGED_NODES_CERT_UUID").toVariable(nodesWithCertificate.map(_._1.id.value))
+
 
       //Reports DB (postgres) DB name and DB user
       val varReportsDBname = systemVariableSpecService.get("RUDDER_REPORTS_DB_NAME").toVariable(Seq(reportsDbName))
@@ -397,6 +434,10 @@ class SystemVariableServiceImpl(
         , varSubNodesId
         , varSubNodesServer
         , varSubNodesKeyhash
+        , varManagedNodesCertificate
+        , varManagedNodesCertDN
+        , varManagedNodesCertCN
+        , varManagedNodesCertUUID
       ) map (x => (x.spec.name, x))
     } else {
       Map()

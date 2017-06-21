@@ -92,26 +92,30 @@ class TechniqueTest extends Specification {
       technique.providesExpectedReports == true
     }
 
-    "have bundle list: 'bundle1,bundle2'" in {
-      technique.bundlesequence.map( _.name ) === Seq("bundle1","bundle2")
+    "have bundle list: 'bundle1,bundle2' for each agent" in {
+      technique.agentConfigs.map( _.bundlesequence.map( _.value ))  must contain( beEqualTo(Seq("bundle1","bundle2"))).foreach
     }
 
-    "have templates 'tml1, tml2, tml3'" in {
-      technique.templates.map( _.id.name ) === Seq("tml1", "tml2", "tml3")
+    "have templates 'tml1, tml2, tml3' for each agent" in {
+      technique.agentConfigs.map( _.templates.map( _.id.name )) must contain( beEqualTo( Seq("tml1", "tml2", "tml3"))).foreach
+    }
+
+    def getTemplateByid(technique: Technique, name: String) = {
+      technique.agentConfigs.head.templates.find( _.id == TechniqueResourceIdByName(technique.id, name)).getOrElse(throw new Exception(s"Test must contain resource '${name}'"))
     }
 
     "'tml1' is included and has default outpath" in {
-      val tml = technique.templatesMap(TechniqueResourceIdByName(id,"tml1"))
+      val tml = getTemplateByid(technique, "tml1")
       tml.included === true and tml.outPath === "foo/1.0/tml1.cf"
     }
 
     "'tml2' is included and has tml2.bar outpath" in {
-      val tml = technique.templatesMap(TechniqueResourceIdByName(id,"tml2"))
+      val tml = getTemplateByid(technique, "tml2")
       tml.included === true and tml.outPath === "tml2.bar"
     }
 
     "'tml3' is not included and has default outpath" in {
-      val tml = technique.templatesMap(TechniqueResourceIdByName(id,"tml3"))
+      val tml = getTemplateByid(technique, "tml3")
       tml.included === false and tml.outPath === "foo/1.0/tml3.cf"
     }
 

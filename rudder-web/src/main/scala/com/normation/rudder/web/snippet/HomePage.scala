@@ -41,27 +41,16 @@ package com.normation.rudder.web.snippet
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.BuildFilter._
-import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.repository.RoRuleRepository
 import JE._
-import net.liftweb.http.SHtml._
-import com.normation.ldap.sdk.RoLDAPConnection
 import bootstrap.liftweb.RudderConfig
 import com.normation.ldap.sdk.FALSE
 import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.inventory.domain.AcceptedInventory
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.InventoryStatus
-import com.normation.inventory.domain.Software
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.Control.sequence
@@ -70,9 +59,9 @@ import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
 import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
-import com.normation.inventory.domain.NOVA_AGENT
-import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.AgentType.Dsc
 
 sealed trait ComplianceLevelPieChart{
   def color : String
@@ -144,7 +133,6 @@ class HomePage extends Loggable {
   private[this] val nodeDit          = RudderConfig.nodeDit
   private[this] val rudderDit        = RudderConfig.rudderDit
   private[this] val reportingService = RudderConfig.reportingService
-  private[this] val softwareService  = RudderConfig.readOnlySoftwareDAO
   private[this] val mapper           = RudderConfig.ldapInventoryMapper
   private[this] val roRuleRepo       = RudderConfig.roRuleRepository
 
@@ -353,28 +341,31 @@ class HomePage extends Loggable {
    */
   private[this] def getRudderAgentVersion() : Box[Map[String, Int]] = {
     import com.normation.ldap.sdk._
-    import com.normation.ldap.sdk.BuildFilter.{EQ,OR}
-    import com.normation.inventory.ldap.core.LDAPConstants.{A_NAME, A_SOFTWARE_UUID, A_NODE_UUID, A_SOFTWARE_DN}
+    import com.normation.ldap.sdk.BuildFilter.{SUB,OR}
+    import com.normation.inventory.ldap.core.LDAPConstants.{A_NAME, A_NODE_UUID, A_SOFTWARE_DN}
     import com.unboundid.ldap.sdk.DN
 
     val unknown = new Version("Unknown")
 
-    val n1 = System.currentTimeMillis
     for {
       con              <- ldap
       nodeInfos        <- HomePage.boxNodeInfos.get
       n2               =  System.currentTimeMillis
-      agentSoftEntries =  con.searchOne(acceptedNodesDit.SOFTWARE.dn, OR(AgentType.allValues.map(t => EQ(A_NAME, t.inventorySoftwareName)):_*))
+      agentSoftEntries =  con.searchOne(acceptedNodesDit.SOFTWARE.dn, OR(AgentType.allValues.toList.map(t => SUB(A_NAME, null, Array(t.inventorySoftwareName), null)):_*))
       agentSoftDn      =  agentSoftEntries.map(_.dn.toString).toSet
 
       agentSoft        <- sequence(agentSoftEntries){ entry =>
-                            (mapper.softwareFromEntry(entry) ?~! "Error when mapping LDAP entry %s to a software".format(entry)).map { s =>
+                            (mapper.softwareFromEntry(entry) ?~! s"Error when mapping LDAP entry ${entry} to a software").map { s =>
                               //here, we want to use Agent Version display name, not the software one
                               s.name match {
                                 case None => s
-                                case Some(name) => name.toLowerCase match {
-                                  case NOVA_AGENT.inventorySoftwareName => s.copy(version = s.version.map(v => new Version(NOVA_AGENT.toAgentVersionName(v.value))))
-                                  case                                _ => s
+                                // only keep before first "." because in some case, the distrib reports "rudder-agent.x86-64"
+                                case Some(name) => name.toLowerCase.split("""\.""").head match {
+                                  case CfeEnterprise.inventorySoftwareName =>
+                                    s.copy(version = s.version.map(v => new Version(CfeEnterprise.toAgentVersionName(v.value))))
+                                  case ag if ag == Dsc.inventorySoftwareName.toLowerCase =>
+                                    s.copy(version = s.version.map(v => new Version(Dsc.toAgentVersionName(v.value))))
+                                  case _ => s
                                 }
                               }
                             }
@@ -402,7 +393,6 @@ class HomePage extends Loggable {
     } yield {
 
       val agentMap = agentSoft.map(x => (x.id.value, x)).toMap
-      val agents = agentMap.keySet
 
       val agentVersionByNodeEntries = nodeEntries.map { e =>
         (
@@ -414,7 +404,12 @@ class HomePage extends Loggable {
       }.toMap.mapValues{_.maxBy(_.value)} // Get the max version available
 
       // take back the initial set of nodes to be sure to have one agent for each
-      val allAgents = nodeInfos.keySet.toSeq.map(nodeId => agentVersionByNodeEntries.getOrElse(nodeId, unknown) )
+      val allAgents = nodeInfos.keySet.toSeq.map(nodeId => agentVersionByNodeEntries.get(nodeId) match {
+        case Some(v) => v
+        case None    =>
+          logger.debug(s"Node with ID '${nodeId.value}' have an unknow agent version")
+          unknown
+      })
 
       // Format different version naming type into one
       def formatVersion (version : String) : String= {
