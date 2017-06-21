@@ -45,7 +45,7 @@ import net.liftweb.common._
 import scala.xml.XML
 import java.io.File
 import com.normation.inventory.domain._
-
+import com.normation.inventory.domain.AgentType._
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -114,7 +114,6 @@ class TestReportParsing extends Specification with Loggable {
 
   "A node with Rudder roles" should {
 
-
     val report = parser.parse("fusion-report/node-with-server-role-attribute.ocs")
 
     "correctly add roles"in {
@@ -131,27 +130,31 @@ class TestReportParsing extends Specification with Loggable {
     }
   }
 
-
   "Agent in Inventory" should {
 
-    "should be empty when there is no agent" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.name).toList
+    "be empty when there is no agent" in {
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.agentType).toList
       agents must be empty
     }
 
-    "should have one agent when using community" in {
-    val agents = parser.parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agents.map(_.name).toList
-      agents == (COMMUNITY_AGENT :: Nil)
+    "have one agent when using community" in {
+    val agents = parser.parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agents.map(_.agentType).toList
+      agents == (CfeCommunity :: Nil)
     }
 
-    "should have two agent when using community and nova" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents.map(_.name).toList
-      agents == (COMMUNITY_AGENT :: NOVA_AGENT :: Nil)
+    "have two agent when using community and nova" in {
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents.map(_.agentType).toList
+      agents == (CfeCommunity :: CfeEnterprise :: Nil)
     }
 
-    "should be empty when there is two agents, using two different policy servers" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.name).toList
+    "be empty when there is two agents, using two different policy servers" in {
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.agentType).toList
       agents must be empty
+    }
+
+    "have dsc agent agent when using rudder-agent based on dsc" in {
+      val agents = parser.parse("fusion-report/dsc-agent.ocs").node.agents.map(_.agentType).toList
+      agents == (Dsc :: Nil)
     }
 
   }
@@ -168,7 +171,6 @@ class TestReportParsing extends Specification with Loggable {
         val hostname = parser.parse("fusion-report/signed_inventory.ocs").node.main.hostname
         hostname == "node1"
      }
-
 
     "get WIN-AI8CLNPLOV5.eu-west-1.compute.internal as the hostname" in {
       val hostname = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.hostname

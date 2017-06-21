@@ -47,15 +47,13 @@ import scala.xml.XML
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import java.io.File
-import com.normation.inventory.domain.COMMUNITY_AGENT
-import com.normation.inventory.domain.NOVA_AGENT
+import com.normation.inventory.domain.AgentType._
 import com.normation.inventory.domain.Windows
 import com.normation.inventory.domain.Windows2012
 import com.normation.inventory.services.provisioning.PreUnmarshall
 import java.io.InputStream
 import org.xml.sax.SAXParseException
 import scala.xml.NodeSeq
-
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -107,7 +105,6 @@ class TestPreUnmarshaller extends Specification {
         val linux = post.check("fusion-report/signed_inventory.ocs")
         linux.toOption must not beNone
      }
-
 
     "With a valid inventory in Windows" in {
       val windows = post.check("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs")

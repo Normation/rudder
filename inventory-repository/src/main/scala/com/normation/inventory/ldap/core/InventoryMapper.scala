@@ -39,7 +39,7 @@ package com.normation.inventory.ldap.core
 
 import LDAPConstants._
 import com.normation.inventory.domain._
-import com.unboundid.ldap.sdk.{Version => UVersion, _ }
+import com.unboundid.ldap.sdk.{Version => _, _ }
 import com.normation.ldap.sdk._
 import com.normation.ldap.sdk.schema.LDAPObjectClass
 import org.joda.time.DateTime
@@ -47,11 +47,9 @@ import net.liftweb.common._
 import net.liftweb.json._
 import Box._
 import java.net.InetAddress
-import java.net.UnknownHostException
 import InetAddressUtils._
 import com.normation.utils.Control.sequence
 import com.normation.inventory.domain.NodeTimezone
-
 
 class DateTimeSerializer extends Serializer[DateTime] {
   private val IntervalClass = classOf[DateTime]
@@ -122,7 +120,6 @@ class InventoryMapper(
        Software(id,name,desc,version,editor,releaseDate,lic)
     }
   }
-
 
   ////////////////////////////////////////////////////////////////////
   ///////////////////////// Machine Elements /////////////////////////
@@ -350,7 +347,6 @@ class InventoryMapper(
 
   ///////////////////////// Video /////////////////////////
 
-
   def entryFromVideo(elt:Video,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.VIDEO.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
@@ -426,7 +422,6 @@ class InventoryMapper(
     root.setOpt(machine.name,A_NAME,{x:String => x})
     root.setOpt(machine.manufacturer,A_MANUFACTURER, {x:Manufacturer => x.name})
     root.setOpt(machine.systemSerialNumber,A_SERIAL_NUMBER, {x:String => x})
-
 
     val tree = LDAPTree(root)
     //now, add machine elements as children
@@ -555,7 +550,6 @@ class InventoryMapper(
 
   ///////////////////////// Networks /////////////////////////
 
-
   def entryFromNetwork(elt:Network, dit:InventoryDit, serverId:NodeId) : LDAPEntry = {
     val e = dit.NODES.NETWORK.model(serverId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
@@ -602,7 +596,6 @@ class InventoryMapper(
 
     ///////////////////////// VM INFO /////////////////////////
 
-
   def entryFromVMInfo(elt:VirtualMachine, dit:InventoryDit, serverId:NodeId) : LDAPEntry = {
     val e = dit.NODES.VM.model(serverId,elt.uuid.value)
     e.setOpt(elt.description, A_DESCRIPTION,  {x:String => x})
@@ -633,10 +626,7 @@ class InventoryMapper(
     }
   }
 
-
   //////////////////Node/ NodeInventory /////////////////////////
-
-
 
   // User defined properties : the regexp that the data should abide by
   // {KEY}VALUE
@@ -720,7 +710,6 @@ class InventoryMapper(
     root.setOpt(server.inventoryDate, A_INVENTORY_DATE, { x: DateTime => GeneralizedTime(x).toString })
     root.setOpt(server.receiveDate, A_RECEIVE_DATE, { x: DateTime => GeneralizedTime(x).toString })
     root +=! (A_AGENTS_NAME, server.agents.map(x => x.toJsonString):_*)
-    root +=! (A_PKEYS, server.publicKeys.map(x => x.key):_*)
     root +=! (A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString):_*)
     root +=! (A_EV, server.environmentVariables.map(x => Serialization.write(x)):_*)
     root +=! (A_PROCESS, server.processes.map(x => Serialization.write(x)):_*)
@@ -867,9 +856,17 @@ class InventoryMapper(
       hostname <- requiredAttr(A_HOSTNAME)
       rootUser <- requiredAttr(A_ROOT_USER)
       policyServerId <- requiredAttr(A_POLICY_SERVER_UUID)
-      agentNames <- sequence(entry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
-                      AgentInfoSerialisation.parseCompatNonJson(x) //compat to be able to migrate easely from Rudder < 4.0
-                    }
+      publicKeys = entry.valuesFor(A_PKEYS).map(Some(_))
+      agentNames <- {
+          val agents = entry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
+          val agentWithKeys = agents.zipAll(publicKeys, None,None).filter(_._1.isDefined)
+          sequence(agentWithKeys) {
+            case (Some(agent),key) =>
+              AgentInfoSerialisation.parseCompatNonJson(agent,key)
+            case _ =>
+              Failure("Should not happen")
+          }
+        }
       //now, look for the OS type
       osDetails <- mapOsDetailsFromEntry(entry)
       //now, optionnal things
@@ -928,7 +925,6 @@ class InventoryMapper(
          , lastLoggedUser
          , lastLoggedUserTime
          , agentNames
-         , publicKeys.toSeq
          , serverIps
          , machineId
          , softwareIds

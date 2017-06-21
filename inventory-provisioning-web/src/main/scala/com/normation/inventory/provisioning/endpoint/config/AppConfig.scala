@@ -109,7 +109,6 @@ class AppConfig {
   @Bean
   def removedNodesDit = new InventoryDit(REMOVED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Removed Servers")
 
-
   @Bean
   def inventoryDitService = new InventoryDitServiceImpl(pendingNodesDit,acceptedNodesDit, removedNodesDit)
 
@@ -130,7 +129,6 @@ class AppConfig {
             RudderPolicyServerParsing ::
             RudderMachineIdParsing ::
             RudderCpuParsing ::
-            new RudderPublicKeyParsing(keyNorm) ::
             RudderRootUserParsing ::
             RudderAgentNameParsing ::
             RudderServerRoleParsing ::
@@ -205,7 +203,6 @@ class AppConfig {
         NamedNodeInventoryDNFinderAction("use_existing_id", new UseExistingNodeIdFinder(inventoryDitService,roLdapConnectionProvider,acceptedNodesDit.BASE_DN.getParent))
     ))
 
-
   @Bean
   def machineFinder() : MachineDNFinderAction =
     new MachineDNFinderService(Seq(
@@ -265,7 +262,6 @@ class AppConfig {
     , postCommitPipeline
   )
 
-
   /*
    * configure the file handler
    */
@@ -275,7 +271,6 @@ class AppConfig {
     c.setMaxUploadSize(10000000)
     c
   }
-
 
   /*
    * The REST end point where OCSi report are

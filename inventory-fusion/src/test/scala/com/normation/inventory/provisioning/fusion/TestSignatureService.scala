@@ -34,7 +34,6 @@
 *************************************************************************************
 */
 
-
 package com.normation.inventory.provisioning.fusion
 
 import org.junit.runner._
@@ -48,7 +47,7 @@ import java.security.PublicKey
 import com.normation.inventory.domain.KeyStatus
 import java.security.Security
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-
+import com.normation.inventory.domain.SecurityToken
 
 @RunWith(classOf[JUnitRunner])
 class TestSignatureService extends Specification with Loggable {
@@ -87,19 +86,19 @@ class TestSignatureService extends Specification with Loggable {
      * either an inventory has already been treated before, it will look into ldap repository
      * or if there was no inventory before, it will look for the key in the received inventory
      */
-    def getKey (receivedInventory  : InventoryReport) : Box[(PublicKey, KeyStatus)] = {
+    def getKey (receivedInventory  : InventoryReport) : Box[(SecurityToken, KeyStatus)] = {
       for {
-        cfengineKey <- Box(receivedInventory.node.publicKeys.headOption) ?~! "There is no public key in inventory"
+        cfengineKey <- Box(receivedInventory.node.agents.headOption) ?~! "There is no public key in inventory"
         keyStatus = receivedInventory.node.main.keyStatus
-        publicKey <- cfengineKey.publicKey
+        publicKey = cfengineKey.securityToken//.publicKey
       } yield {
-      (publicKey,keyStatus)
+        (publicKey,keyStatus)
       }
     }
   }
 
   val keyNorm = new PrintedKeyNormalizer
-  val extension = new RudderPublicKeyParsing(keyNorm)
+  val extension = RudderAgentNameParsing
 
   val parser = new FusionReportUnmarshaller(
       new StringUuidGeneratorImpl
@@ -125,7 +124,6 @@ class TestSignatureService extends Specification with Loggable {
       }
     }
   }
-
 
   "a signed report" should {
     "Be ok if checked with correct signature" in {
