@@ -497,8 +497,8 @@ object DscBundleVariables extends AgentFormatBundleVariables {
 
     (bundleSeq.flatMap { technique =>
       val auditOnly = technique.policyMode match {
-        case PolicyMode.Audit => "true"
-        case _                => "false"
+        case PolicyMode.Audit => "-AuditOnly"
+        case _                => ""
       }
 
       technique.bundleSequence.map { bundle =>
@@ -506,7 +506,7 @@ object DscBundleVariables extends AgentFormatBundleVariables {
         if(technique.isSystem) {
           s"""  ${bundle.name.value} -ReportId ${bundle.id.value}"""
         } else {
-          s"""  ${bundle.name.value} -ReportId ${bundle.id.value} -TechniqueName "${technique.promiser.value}"  -AuditOnly $$${auditOnly}"""
+          s"""  ${bundle.name.value} -ReportId ${bundle.id.value} -TechniqueName "${technique.promiser.value}" ${auditOnly}"""
         }
       }
     }.mkString( "\n")) :: Nil
