@@ -261,7 +261,7 @@ class BuildBundleSequence(systemVariableSpecService: SystemVariableSpecService) 
         }.flatten.toList
         Full(TechniqueBundles(name, Nil, techniqueBundles, Nil, technique.isSystem, technique.providesExpectedReports, policyMode))
       case None =>
-        Failure(s"Node with id '${nodeId.value}' is configured with agent type='${agentType.toString}' but technique '${technique.id.toString}' is not compatible with that agent type.")
+        Failure(s"Node with id '${nodeId.value}' is configured with agent type='${agentType.toString}' but technique '${technique.id.toString}' applying via Directive '${name.value}' is not compatible with that agent type.")
     }
   }
 
