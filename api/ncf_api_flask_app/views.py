@@ -12,7 +12,7 @@ NCF_TOOLS_DIR = '/usr/share/ncf/tools'
 sys.path[0:0] = [NCF_TOOLS_DIR]
 
 default_path = ""
-use_rudder_auth = False
+use_rudder_auth = True
 
 import ncf
 import ncf_constraints
