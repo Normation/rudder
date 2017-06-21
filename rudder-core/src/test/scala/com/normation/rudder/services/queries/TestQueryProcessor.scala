@@ -45,7 +45,6 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.domain.queries._
 import net.liftweb.common._
 import com.normation.rudder.domain._
-import com.normation.rudder.services.queries._
 import com.unboundid.ldap.sdk.DN
 import com.normation.ldap.ldif._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
@@ -53,7 +52,6 @@ import com.normation.ldap.sdk._
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
 import com.normation.rudder.services.nodes.NaiveNodeInfoServiceCachedImpl
 
 /*
@@ -138,7 +136,7 @@ class TestQueryProcessor extends Loggable {
       con.search("cn=rudder-configuration", Sub, BuildFilter.ALL).size
     }).openOrThrowException("For tests")
 
-    val expected = 41+30  //bootstrap + inventory-sample
+    val expected = 42+30  //bootstrap + inventory-sample
     assert(expected == s, s"Not found the expected number of entries in test LDAP directory [expected: ${expected}, found: ${s}], perhaps the demo entries where not correctly loaded")
   }
 

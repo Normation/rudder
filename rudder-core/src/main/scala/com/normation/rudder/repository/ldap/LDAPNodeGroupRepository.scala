@@ -791,7 +791,7 @@ class WoLDAPNodeGroupRepository(
                         case (false, true) => Failure("You can not modify a non system group (%s) with that method".format(oldGroup.name))
                         case _ => Full(oldGroup)
                       }
-      exists       <- if (checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id))
+      exists       <- if (checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id) && !onlyUpdateNodes)
                         Failure(s"Cannot change the group name to ${nodeGroup.name} : there is already a group with the same name")
                       else
                         Full(Unit)
