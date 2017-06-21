@@ -393,7 +393,7 @@
                         <h3 >Generic methods</h3>
                         <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory"  >
                             <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}} </h4>
-                            <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" >
+                            <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" dnd-disable-if="!selectedTechnique" ng-class="{'disabled':!selectedTechnique}">
                               <div class="input-group">
                                 <span class="input-group-addon cursorMove"><b>:::</b></span>
                                 <div class="panel-heading" style="overflow:hidden">

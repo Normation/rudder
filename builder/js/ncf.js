@@ -556,8 +556,10 @@ $scope.groupMethodsByCategory = function () {
 
   // Add a method to the technique
   $scope.addMethod = function(bundle) {
-    var call = toMethodCall(bundle);
-    $scope.selectedTechnique.method_calls.push(call);
+    if ($scope.selectedTechnique) {
+      var call = toMethodCall(bundle);
+      $scope.selectedTechnique.method_calls.push(call);
+    }
   };
 
   // Check if a technique has not been changed, and if we can use reset function
@@ -949,7 +951,7 @@ $scope.groupMethodsByCategory = function () {
   $scope.checkMissingParameters = function(parameters){
     var result = false;
     for(var i=0; i<parameters.length; i++) {
-      if(parameters[i].constraints.allow_empty_string === false && !parameters[i].value && parameters[i].$errors.length <= 0){
+      if(parameters[i].constraints.allow_empty_string === false && !parameters[i].value && (parameters[i].$errors && parameters[i].$errors.length <= 0)){
         result = true;
       }
     }
