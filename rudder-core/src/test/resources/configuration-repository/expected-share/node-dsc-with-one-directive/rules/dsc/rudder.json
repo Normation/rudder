@@ -14,7 +14,7 @@
   "MODIFIED_FILES_TTL":"30",
   "NODEROLE":"  classes: \n    \"policy_server\" expression => \"any\";",
   "RUDDER_DIRECTIVES_INPUTS":"",
-  "RUDDER_DIRECTIVES_SEQUENCE":"  Create_file -ReportId 208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0 -TechniqueName \"50-rule-technique-ncf/Create a file\"  -AuditOnly $false",
+  "RUDDER_DIRECTIVES_SEQUENCE":"  Create_file -ReportId 208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0 -TechniqueName \"50-rule-technique-ncf/Create a file\" ",
   "RUDDER_HEARTBEAT_INTERVAL":"4",
   "RUDDER_NODE_CONFIG_ID":"dsc-node-cfg-id",
   "RUDDER_NODE_GROUPS_CLASSES":"\"group_special_all\"  expression => \"any\",\n                           meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"  expression => \"any\",\n                           meta => { \"inventory\", \"attribute_name=rudder_groups\" };",

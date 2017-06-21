@@ -491,7 +491,7 @@ object DscBundleVariables extends AgentFormatBundleVariables {
   }
 
   /*
-   * Method for formating list of "TechniqueName -ReportId XXX -TechniqueName "the name" -AuditMode $true  "
+   * Method for formating list of "TechniqueName -ReportId XXX -TechniqueName "the name" -AuditMode"
    */
   def formatMethodsUsebundle(bundleSeq: Seq[TechniqueBundles]): List[String] = {
 
