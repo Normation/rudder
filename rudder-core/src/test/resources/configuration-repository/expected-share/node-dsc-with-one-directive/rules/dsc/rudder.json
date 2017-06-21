@@ -2,7 +2,7 @@
   "AGENT_RUN_INTERVAL":"5",
   "AGENT_RUN_SCHEDULE":" \"Min00\", \"Min05\", \"Min10\", \"Min15\", \"Min20\", \"Min25\", \"Min30\", \"Min35\", \"Min40\", \"Min45\", \"Min50\", \"Min55\" ",
   "AGENT_RUN_SPLAYTIME":"0",
-  "AGENT_TYPE":"windows-dsc",
+  "AGENT_TYPE":"dsc",
   "AUTHORIZED_NETWORKS":"192.168.49.0/24",
   "CFENGINE_OUTPUTS_TTL":"7",
   "CMDBENDPOINT":"http://localhost:8080/endpoint/upload/",
