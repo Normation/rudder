@@ -39,6 +39,7 @@ package com.normation.cfclerk.domain
 
 import com.normation.utils.Utils._
 import com.normation.utils.HashcodeCaching
+import com.normation.inventory.domain.AgentType
 
 
 /**
@@ -69,6 +70,13 @@ case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends O
   }
 }
 
+final case class AgentConfig(
+    agentType: AgentType
+  , templates              : Seq[TechniqueTemplate]
+  , files                  : Seq[TechniqueFile]
+  , bundlesequence         : Seq[BundleName]
+)
+
 /**
  * A structure containing all informations about a technique deprecation
  */
@@ -86,9 +94,7 @@ case class Technique(
     id                     : TechniqueId
   , name                   : String
   , description            : String
-  , templates              : Seq[TechniqueTemplate]
-  , files                  : Seq[TechniqueFile]
-  , bundlesequence         : Seq[Bundle]
+  , agentConfigs           : List[AgentConfig]
   , trackerVariableSpec    : TrackerVariableSpec
   , rootSection            : SectionSpec //be careful to not split it from the TechniqueId, else you will not have the good spec for the version
   , deprecrationInfo       : Option[TechniqueDeprecationInfo]
@@ -105,17 +111,10 @@ case class Technique(
   require(nonEmpty(name), "Name is required in policy")
 
   /**
-   * Utity method that retrieve the map of all template full name for that policy
+   * Utity method that retrieve all templates IDs
+   * Be carefull, you will get all templates for all agents
    */
-  val templatesMap: Map[TechniqueResourceId, TechniqueTemplate] = templates.map(t => (t.id, t)).toMap
-
-  def toLongString: String = {
-    "## %s [%s-%s] ## \n  -> unique:%-5s \n  -> %s\n  -> templates: %s".format(
-      name, id.name.value, id.version.toString,
-      if (isMultiInstance) "false" else "true",
-      description,
-      templates.mkString(" : "))
-  }
+  val templatesIds: Set[TechniqueResourceId] = agentConfigs.flatMap(cfg => cfg.templates.map(_.id)).toSet
 
   val getAllVariableSpecs = this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
 }
@@ -124,7 +123,7 @@ case class Technique(
 /**
  * The representation of a bundle name, used for the bundlesequence
  */
-case class Bundle(name : String) extends HashcodeCaching
+case class BundleName(value : String) extends HashcodeCaching
 
 object Technique {
   def normalizeName(name: String): String = {

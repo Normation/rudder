@@ -154,6 +154,22 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                         )
       // end
     , SystemVariableSpec(
+                 "MANAGED_NODES_CERT_UUID" , "UUID of node with certificate"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                   "MANAGED_NODES_CERT_CN" , "CN of certificate of the node"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                  "MANAGED_NODES_CERT_PEM" , "PEM encoded certificate of the node"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                   "MANAGED_NODES_CERT_DN" , "DN of certificate of the node"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
                      "AUTHORIZED_NETWORKS" , "Networks authorized to connect to the policy server"
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
@@ -291,6 +307,11 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                         )
     , SystemVariableSpec(
                  "RUDDER_NODE_GROUPS_VARS" , "The array of group_UUID => group_NAME for the node, in a formatted string"
+                                           , multivalued = false
+                                           , isUniqueVariable = true
+                        )
+    , SystemVariableSpec(
+                              "AGENT_TYPE" , "The normalised name of the agent type (cfengine-community, dsc, etc)"
                                            , multivalued = false
                                            , isUniqueVariable = true
                         )

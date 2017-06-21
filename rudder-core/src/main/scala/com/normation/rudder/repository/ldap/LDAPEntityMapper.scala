@@ -251,7 +251,16 @@ class LDAPEntityMapper(
                           case x :: Nil => Full(x)
                           case _ => Failure(s"Too many policy servers for a Node '${node.id.value}'. Entry details: ${inventoryEntry}")
                         }
-      agentsName  <- sequence(inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq) {AgentInfoSerialisation.parseCompatNonJson}
+      keys =  inventoryEntry.valuesFor(A_PKEYS).map(Some(_))
+
+      agentsName  <- {
+        val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
+        sequence(agents.zipAll(keys,None,None)) {
+          case (Some(agent),key) => AgentInfoSerialisation.parseCompatNonJson(agent,key)
+          case (None,key) =>
+              Failure(s"There was a public key defined for Node ${node.id.value}, without a releated agent defined, it should not happen")
+        }
+      }
       osDetails   <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry)
       keyStatus   <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
       serverRoles =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
@@ -283,10 +292,6 @@ class LDAPEntityMapper(
         , osDetails
         , inventoryEntry.valuesFor(A_LIST_OF_IP).toList
         , dateTime
-        , inventoryEntry(A_PKEYS).flatMap { s => s.trim match {
-                                            case "" => None
-                                            case x  => Some(PublicKey(x))
-                                          } }
         , keyStatus
         , scala.collection.mutable.Seq() ++ agentsName
         , NodeId(policyServerId)
@@ -499,10 +504,8 @@ class LDAPEntityMapper(
           case Some(q) => cmdbQueryParser(q) match {
             case Full(x) => Full(Some(x))
             case eb:EmptyBox =>
-              val error = eb ?~! "Error when parsing query for node group persisted at DN '%s' (name: '%s'), that seems to be an inconsistency. You should modify that group".format(
-                  e.dn, name
-              )
-              logger.error(error)
+              val error = eb ?~! s"Error when parsing query for node group persisted at DN '${e.dn}' (name: '${name}'), that seems to be an inconsistency. You should modify that group"
+              logger.error(error.messageChain)
               Full(None)
           }
         }

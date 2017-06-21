@@ -2,7 +2,7 @@
   <DESCRIPTION>Create a file and a directory</DESCRIPTION>
   <BUNDLES>
     <NAME>Create_file</NAME>
-    <NAME>Create_file_rudder_reporting</NAME>
+    <NAME agent="cfe">Create_file_rudder_reporting</NAME>
   </BUNDLES>
   <TMLS>
     <TML name="rudder_reporting"/>
@@ -12,6 +12,17 @@
       <INCLUDED>true</INCLUDED>
     </FILE>
   </FILES>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Create_file</NAME>
+    </BUNDLES>
+    <TMLS></TMLS>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Create_file/1.0/Create_file.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
   <SECTIONS>
     <SECTION component="true" multivalued="true" name="Directory create">
       <REPORTKEYS>

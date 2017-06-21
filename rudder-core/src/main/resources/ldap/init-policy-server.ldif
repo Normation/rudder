@@ -102,7 +102,10 @@ nodeGroupId: hasPolicyServer-root
 nodeId: root
 isSystem: TRUE
 isEnabled: TRUE
-jsonNodeGroupQuery: {"select":"nodeAndPolicyServer","composition":"And","where":[{"objectType":"node","attribute":"policyServerId","comparator":"eq","value":"root"}]}
+jsonNodeGroupQuery: {"select":"nodeAndPolicyServer","composition":"And","where":[
+ {"objectType":"node","attribute":"policyServerId","comparator":"eq","value":"root"},
+ {"objectType":"node","attribute":"agentName","comparator":"eq","value":"cfengine"}
+ ]}
 
 dn: ruleTarget=policyServer:root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: specialRuleTarget

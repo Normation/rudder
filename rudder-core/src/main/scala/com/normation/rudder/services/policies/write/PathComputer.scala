@@ -37,20 +37,17 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.normation.inventory.domain.NOVA_AGENT
-import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.AgentType.CfeEnterprise
+import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.AgentType
 import net.liftweb.common.Loggable
 import com.normation.exceptions.BusinessException
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import net.liftweb.common.Full
 import net.liftweb.common.Box
-import com.normation.rudder.domain.Constants
 import org.apache.commons.io.FilenameUtils
 import com.normation.rudder.domain.nodes.NodeInfo
 import net.liftweb.common.Failure
-
 
 /**
  * Utility tool to compute the path of a server promises (and others information) on the rootMachine
@@ -64,10 +61,6 @@ trait PathComputer {
   def getRootPath(agentType : AgentType) : String
 }
 
-
-
-
-
 /**
  * Utility tool to compute the path of a machine promises (and others information) on the rootMachine
  *
@@ -79,7 +72,6 @@ class PathComputerImpl(
     , communityAgentRootPath: String // "/var/rudder/cfengine-community/inputs"
     , enterpriseAgentRootPath: String // "/var/cfengine/inputs"
 ) extends PathComputer with Loggable {
-
 
   private[this] val promisesPrefix = "/rules"
   private[this] val newPostfix = ".new"
@@ -120,12 +112,11 @@ class PathComputerImpl(
    */
   def getRootPath(agentType : AgentType) : String = {
     agentType match {
-        case NOVA_AGENT => enterpriseAgentRootPath
-        case COMMUNITY_AGENT => communityAgentRootPath
+        case CfeEnterprise => enterpriseAgentRootPath
+        case CfeCommunity => communityAgentRootPath
         case x => throw new BusinessException("Unrecognized agent type: %s".format(x))
     }
   }
-
 
   /**
    * Return the path from a machine to another, excluding the top rootNode

@@ -188,7 +188,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
     "...and version 2.0" in techniques(1).version === TechniqueVersion("2.0")
     ".... that DOES NOT provide expected_reports.csv" in infos.techniques(techniques(1).name)(techniques(1).version).providesExpectedReports === false
     "...with 3 templates" in {
-      infos.techniques(techniques(0).name)(techniques(0).version).templates.toSet === Set(
+      infos.techniques(techniques(0).name)(techniques(0).version).agentConfigs(0).templates.toSet === Set(
         TechniqueTemplate(tmlId, s"p1_1/1.0/${tmlId.name}.cf", true)
       , TechniqueTemplate(templateId, s"bob.txt", false)
       , TechniqueTemplate(template2Id, s"p1_1/1.0/${template2Id.name}.cf", true)
@@ -204,7 +204,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       assertResourceContent(template2Id, true, template2Content)
     }
     "...with 2 files" in {
-      infos.techniques(techniques(0).name)(techniques(0).version).files.toSet === Set(
+      infos.techniques(techniques(0).name)(techniques(0).version).agentConfigs(0).files.toSet === Set(
         TechniqueFile(file1, s"p1_1/1.0/${file1.name}", false)
       , TechniqueFile(file2, s"file2", false)
       )

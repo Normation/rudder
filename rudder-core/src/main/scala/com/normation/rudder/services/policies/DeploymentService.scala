@@ -77,11 +77,11 @@ import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
-import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterService
+import com.normation.rudder.services.policies.write.PolicyWriterService
 import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -303,7 +303,7 @@ trait PromiseGenerationService extends Loggable {
   def getAllInventories(): Box[Map[NodeId, NodeInventory]]
   def getGlobalComplianceMode(): Box[GlobalComplianceMode]
   def getGlobalAgentRun() : Box[AgentRunInterval]
-  def getAllLicenses(): Box[Map[NodeId, NovaLicense]]
+  def getAllLicenses(): Box[Map[NodeId, CfeEnterpriseLicense]]
   def getAgentRunInterval    : () => Box[Int]
   def getAgentRunSplaytime   : () => Box[Int]
   def getAgentRunStartHour   : () => Box[Int]
@@ -367,7 +367,7 @@ trait PromiseGenerationService extends Loggable {
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
     , allGroups             : FullNodeGroupCategory
-    , allLicenses           : Map[NodeId, NovaLicense]
+    , allLicenses           : Map[NodeId, CfeEnterpriseLicense]
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
@@ -436,7 +436,7 @@ trait PromiseGenerationService extends Loggable {
       rootNodeId      : NodeId
     , updated         : Map[NodeId, NodeConfigId]
     , allNodeConfig   : Map[NodeId, NodeConfiguration]
-    , allLicenses     : Map[NodeId, NovaLicense]
+    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
   ) : Box[Set[NodeConfiguration]]
@@ -499,7 +499,7 @@ class PromiseGenerationServiceImpl (
   , override val complianceModeService : ComplianceModeService
   , override val agentRunService : AgentRunIntervalService
   , override val complianceCache  : CachedFindRuleNodeStatusReports
-  , override val promisesFileWriterService: Cf3PromisesFileWriterService
+  , override val promisesFileWriterService: PolicyWriterService
   , override val getAgentRunInterval: () => Box[Int]
   , override val getAgentRunSplaytime: () => Box[Int]
   , override val getAgentRunStartHour: () => Box[Int]
@@ -568,7 +568,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = roInventoryRepository.getAllNodeInventories(AcceptedInventory)
   override def getGlobalComplianceMode(): Box[GlobalComplianceMode] = complianceModeService.getGlobalComplianceMode
   override def getGlobalAgentRun(): Box[AgentRunInterval] = agentRunService.getGlobalAgentRun()
-  override def getAllLicenses(): Box[Map[NodeId, NovaLicense]] = licenseRepository.getAllLicense()
+  override def getAllLicenses(): Box[Map[NodeId, CfeEnterpriseLicense]] = licenseRepository.getAllLicense()
   override def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId] = {
      rules.filter(r => ruleApplicationStatusService.isApplied(r, groupLib, directiveLib, allNodeInfos) match {
       case _:AppliedStatus => true
@@ -591,7 +591,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
     , allGroups             : FullNodeGroupCategory
-    , allLicenses           : Map[NodeId, NovaLicense]
+    , allLicenses           : Map[NodeId, CfeEnterpriseLicense]
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
@@ -859,7 +859,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
   def nodeConfigurationService : NodeConfigurationService
   def woRuleRepo: WoRuleRepository
-  def promisesFileWriterService: Cf3PromisesFileWriterService
+  def promisesFileWriterService: PolicyWriterService
 
   /**
    * That methode remove node configurations for nodes not in allNodes.
@@ -996,7 +996,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       rootNodeId      : NodeId
     , updated         : Map[NodeId, NodeConfigId]
     , allNodeConfigs  : Map[NodeId, NodeConfiguration]
-    , allLicenses     : Map[NodeId, NovaLicense]
+    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
   ) : Box[Set[NodeConfiguration]] = {
