@@ -21,7 +21,7 @@ else
       exec /var/cfengine/bin/cf-promises -f "${RUDDER_NEXT_POLICIES_DIRECTORY}/promises.cf"
     ;;
   
-    "windows-dsc")
+    "dsc")
       # Not checking dsc agent policies for now
       exit 0
     ;;
