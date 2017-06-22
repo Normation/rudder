@@ -13,7 +13,7 @@ if [ -z "${RUDDER_NEXT_POLICIES_DIRECTORY}" ]; then
   exit 1;
 else 
   case "${RUDDER_AGENT_TYPE}" in
-    "windows-dsc")
+    "dsc")
       /usr/bin/zip -mr ${RUDDER_NEXT_POLICIES_DIRECTORY}/rudder.zip ${RUDDER_NEXT_POLICIES_DIRECTORY}/*
     ;;
 
