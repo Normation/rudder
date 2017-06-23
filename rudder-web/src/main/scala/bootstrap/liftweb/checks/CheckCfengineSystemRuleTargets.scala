@@ -55,6 +55,8 @@ import net.liftweb.common.Full
 import scala.util.control.NonFatal
 import net.liftweb.common.Logger
 import com.unboundid.ldap.sdk.RDN
+import java.io.File
+import java.io.FileInputStream
 
 /**
  * The goal of that check is to help migration of Rudder version < 4.2
@@ -113,21 +115,34 @@ class CheckCfengineSystemRuleTargets(
   }
 
   override def checks() : Unit = {
-    val entries = {
-      val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap/init-policy-server.ldif" :: Nil)
-      try {
-        import scala.collection.JavaConverters._
-        bootstrapLDIFs.map(ldif => LDIFReader.readEntries(this.getClass.getClassLoader.getResourceAsStream(ldif)).asScala).flatten.map { e =>
-          (e.getParsedDN, e)
-        }.toMap
-      } catch {
-        case NonFatal(ex) =>
-          //not sure if we should stop Rudder start-up in that case by throwing a boot exception, but it seems likely
-          FAIL(s"Error when trying to read bootstrap data about system configuration: ${ex.getMessage}")
+    val (entries, paths) = {
+      val bootstrapLDIFs = ("bootstrap.ldif" :: "init-policy-server.ldif" :: Nil)
+      val rudderConfigBasePath = "/opt/rudder/share/"
+
+      //we need to check for entries first in the standard rudder config path, then as fallback on classpath
+      import scala.collection.JavaConverters._
+      //build pair of (entries, pathFromWhereEntriesCome)
+      val pairs = bootstrapLDIFs.map{ ldif =>
+        val file = new File(rudderConfigBasePath, ldif)
+        val (is, path) = if(file.exists && file.canRead) {
+          (new FileInputStream(file), file.getAbsolutePath)
+        } else {
+          (this.getClass.getClassLoader.getResourceAsStream("ldap/" + ldif), "classpath:ldap/"+ldif)
+        }
+        try {
+          (LDIFReader.readEntries(is).asScala, path)
+        } catch {
+          case NonFatal(ex) =>
+            //not sure if we should stop Rudder start-up in that case by throwing a boot exception, but it seems likely
+            FAIL(s"Error when trying to read bootstrap data from '${path}' about system configuration: ${ex.getMessage}")
+        }
       }
+      (pairs.map(_._1).flatten.map { e => (e.getParsedDN, e) }.toMap, pairs.map(_._2))
     }
 
-    def failMissingEntryMsg(dn: DN) = FAIL(s"Missing required system entry in bootstrap data (likely a bug, please report): '${dn.toString}'")
+    def failMissingEntryMsg(dn: DN, optAttr: Option[String] = None) = {
+      FAIL(s"Missing required system entry in bootstrap data [${paths.mkString(";")}] (likely a bug, please report): '${dn.toString}'${optAttr.map(a => "-> " + a).getOrElse("")}")
+    }
 
     //we must have the following entries in the ldif
     // system group for all node managed by CFEngine agent
@@ -141,7 +156,11 @@ class CheckCfengineSystemRuleTargets(
     val systemGroupDN = new DN("groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration")
     def hasPolicyServerDN(uuid: String) = new DN(new RDN(s"nodeGroupId", s"hasPolicyServer-${uuid}"), systemGroupDN)
     val hasPolicyServerTemplateEntry = entries.getOrElse(hasPolicyServerDN("root"), failMissingEntryMsg(hasPolicyServerDN("root")))
-    val hasPolicyServerGroupQueryTemplate = hasPolicyServerTemplateEntry.getAttribute("jsonNodeGroupQuery").getValue
+    val queryAttr = "jsonNodeGroupQuery"
+    val hasPolicyServerGroupQueryTemplate = hasPolicyServerTemplateEntry.getAttribute(queryAttr) match {
+      case null => failMissingEntryMsg(hasPolicyServerDN("root"), Some(queryAttr))
+      case attr => attr.getValue
+    }
     def hasPolicyServer(uuid: String): LDAPEntry = {
       val entry = hasPolicyServerTemplateEntry.duplicate()
       // use '"' in the replace to make clearer that we search for "root" which is the exact value we want to replace to "node-actual-uuid"
