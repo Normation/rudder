@@ -64,16 +64,16 @@ class CheckDSCSystemPolicy(
 
   override def checks() : Unit = {
 
-    val dscGroup = LDAPEntry(new DN("nodeGroupId=dsc-based-agent,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration"),
+    val dscGroup = LDAPEntry(new DN("nodeGroupId=all-nodes-with-dsc-agent,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration"),
         new Attribute("objectClass", "nodeGroup", "top")
       , new Attribute("cn", "All nodes with a Rudder Windows DSC agent")
       , new Attribute("isDynamic", TRUE.toLDAPString)
-      , new Attribute("nodeGroupId", "dsc-based-agent")
+      , new Attribute("nodeGroupId", "all-nodes-with-dsc-agent")
       , new Attribute("description", "All nodes with a Rudder Windows DSC agent")
       , new Attribute("isEnabled", TRUE.toLDAPString)
       , new Attribute("isSystem", TRUE.toLDAPString)
       , new Attribute("jsonNodeGroupQuery", """{"select":"nodeAndPolicyServer","composition":"And","where":[
-                                              |{"objectType":"node","attribute":"policyServerId","comparator":"eq","value":"root"}
+                                              |{"objectType":"node","attribute":"agentName","comparator":"eq","value":"dsc"}
                                               |]}""".stripMargin.replaceAll("""\n""", "")) //needed to have consistant value regarding spacestored in LDAP
     )
 
@@ -105,7 +105,7 @@ class CheckDSCSystemPolicy(
       , new Attribute("cn", "Rudder system policy: base configuration for DSC based agent")
       , new Attribute("description", "Rudder system policy: base configuration for DSC based agent")
       , new Attribute("longDescription", "This rule manage based configuration for DSC agent")
-      , new Attribute("ruleTarget", "group:dsc-based-agent")
+      , new Attribute("ruleTarget", "group:all-nodes-with-dsc-agent")
       , new Attribute("directiveId", "dsc-common-all")
       , new Attribute("isEnabled", TRUE.toLDAPString)
       , new Attribute("isSystem", TRUE.toLDAPString)

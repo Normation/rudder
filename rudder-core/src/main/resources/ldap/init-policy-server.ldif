@@ -80,6 +80,7 @@ localAccountName: root
 cn: root
 localAdministratorAccountName: root
 nodeHostname: %%POLICY_SERVER_HOSTNAME%%
+publicKey: Dummy public key
 PolicyServerId: root
 inventoryDate: 19700101000000+0200
 receiveDate: 19700101000000+0200

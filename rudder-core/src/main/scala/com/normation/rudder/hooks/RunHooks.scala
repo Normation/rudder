@@ -191,8 +191,11 @@ object RunHooks {
             HooksLogger.trace(s"  -> results: ${msg}")
             HooksLogger.trace(s"  -> stdout : ${result.stdout}")
             HooksLogger.trace(s"  -> stderr : ${result.stderr}")
-            if(       result.code <= 0 ) {
+            if(       result.code == 0 ) {
               Ok(result.stdout, result.stderr)
+            } else if(result.code < 0 ) { // this should not happen, and/or is likely a system error (bad !#, etc)
+              //using script error because we do have an error code and it can help in some case
+              ScriptError(result.code, result.stdout, result.stderr, msg)
             } else if(result.code >= 1  && result.code <= 31 ) { // error
               ScriptError(result.code, result.stdout, result.stderr, msg)
             } else if(result.code >= 32 && result.code <= 64) { // warning
