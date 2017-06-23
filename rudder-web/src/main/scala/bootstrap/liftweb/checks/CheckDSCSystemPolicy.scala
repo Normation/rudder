@@ -105,7 +105,7 @@ class CheckDSCSystemPolicy(
       , new Attribute("cn", "Rudder system policy: base configuration for DSC based agent")
       , new Attribute("description", "Rudder system policy: base configuration for DSC based agent")
       , new Attribute("longDescription", "This rule manage based configuration for DSC agent")
-      , new Attribute("ruleTarget", "group:dsc-based-agent")
+      , new Attribute("ruleTarget", "group:all-nodes-with-dsc-agent")
       , new Attribute("directiveId", "dsc-common-all")
       , new Attribute("isEnabled", TRUE.toLDAPString)
       , new Attribute("isSystem", TRUE.toLDAPString)
