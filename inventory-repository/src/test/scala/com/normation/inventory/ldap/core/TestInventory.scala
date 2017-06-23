@@ -85,7 +85,7 @@ class TestInventory extends Specification {
   val baseDN = "cn=rudder-configuration"
 
 
-  val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
+  val bootstrapLDIFs = ("ldap-data/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
     this.getClass.getClassLoader.getResource(name).getPath
   }
 

@@ -203,7 +203,12 @@ object AgentInfoSerialisation {
         case invalidJson =>
           tokenDefault match {
             case Some(default) => Full(PublicKey(default))
-            case None => Failure(s"Invalid value for security token, ${compactRender(invalidJson)}, and no public key were stored")
+            case None =>
+              val error = invalidJson match {
+                case JNothing => "no value define for security token"
+                case x        => compactRender(invalidJson)
+              }
+              Failure(s"Invalid value for security token: ${error}, and no public key were stored")
           }
       }
     }
