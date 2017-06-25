@@ -81,7 +81,7 @@ def get_ps1_content(technique_metadata, generic_methods):
   content.append("  [CmdletBinding()]")
   content.append("  param (")
   content.append("      [parameter(Mandatory=$true)]")
-  content.append("      [string]$reportIdentifier,")
+  content.append("      [string]$reportId,")
   content.append("      [parameter(Mandatory=$true)]")
   content.append("      [string]$techniqueName,")
   content.append("      [switch]$auditOnly")
@@ -90,7 +90,7 @@ def get_ps1_content(technique_metadata, generic_methods):
   content.append("  $local_classes = New-ClassContext")
   content.append("")
 
-  generic_params = " -reportIdentifier $reportIdentifier -techniqueName $techniqueName -auditOnly:$auditOnly)"
+  generic_params = " -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly)"
   for method_call in technique_metadata["method_calls"]:
    
     method = generic_methods[method_call["method_name"]]
@@ -143,9 +143,9 @@ def update_technique_metadata(technique_metadata):
   bundle_name = technique_metadata["bundle_name"]
   metadata_file = '/var/rudder/configuration-repository/techniques/ncf_techniques/'+bundle_name+"/1.0/metadata.xml"
   metadata_tree = (xml.etree.ElementTree.parse(metadata_file)).getroot()
-  agent_element = metadata_tree.find("./AGENT[@type='rudder-dsc']")
+  agent_element = metadata_tree.find("./AGENT[@type='dsc']")
   if agent_element is None:
-    agent_element=xml.etree.ElementTree.fromstring('<AGENT type="rudder-dsc"></AGENT>')
+    agent_element=xml.etree.ElementTree.fromstring('<AGENT type="dsc"></AGENT>')
     metadata_tree.append(agent_element)
 
   bundles_meta = "<BUNDLES><NAME>"+bundle_name+"</NAME></BUNDLES>"
@@ -154,7 +154,7 @@ def update_technique_metadata(technique_metadata):
   files = xml.etree.ElementTree.fromstring(files_meta)
 
   agent_element.clear()
-  agent_element.set("type", "rudder-dsc")
+  agent_element.set("type", "dsc")
   agent_element.append(bundles)
   agent_element.append(files)
 
