@@ -271,6 +271,20 @@ final case class LogTraceReport(
   val severity = Reports.LOG_TRACE
 }
 
+final case class RudderControlReport(
+    executionDate      : DateTime
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends LogReports with HashcodeCaching {
+  val severity = Reports.CONTROL
+}
+
 object Reports {
 
   val logger = LoggerFactory.getLogger(classOf[Reports])
@@ -328,6 +342,9 @@ object Reports {
       case LOG_TRACE => new LogTraceReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, componentValue, executionTimestamp, message )
 
+      case CONTROL => new RudderControlReport(executionDate, ruleId, directiveId, nodeId,
+              serial, component, componentValue, executionTimestamp, message )
+
       case _ =>
         logger.error(s"Invalid report type ${severity} for directive ${directiveId}")
         new UnknownReport(executionDate, ruleId, directiveId, nodeId,
@@ -361,6 +378,8 @@ object Reports {
   val LOG_WARN        = "log_warn"
   val LOG_WARNING     = "log_warning"
   val LOG_REPAIRED    = "log_repaired"
+
+  val CONTROL         = "control"
 
   // these ones are for enforce mode
   val RESULT_SUCCESS       = "result_success"
