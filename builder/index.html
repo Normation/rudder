@@ -319,14 +319,14 @@
                             </div>
                             <form name="CForm.form">
                                 <div class="form-group condition-form">
-                                  <label class="control-label" for="advanced">Other CFEngine classes:</label>
+                                  <label class="control-label" for="advanced">Other classes:</label>
                                   <input type="text" class="form-control" name="cfClasses" id="advanced" aria-describedby="helpBlock" ng-change="updateClassContext()" ng-model="selectedMethod.advanced_class" ng-pattern="/^\S+$/">
                                   <div ng-messages="CForm.form.cfClasses.$error" role="alert">
                                     <div ng-message="pattern" class="text-danger">This field cannot contain whitespace</div>
                                   </div>
                                 </div>
                                 <div class="form-group condition-form">
-                                  <label for="class_context">CFEngine class context:</label>
+                                  <label for="class_context">Class context:</label>
                                   <input ng-readonly="true" type="text" id="" name="cfClassContext" class="form-control" ng-model="selectedMethod.class_context" style="cursor:text" ng-maxlength="2048">
                                   <span class="text-danger" ng-show="CForm.form.cfClassContext.$error.maxlength">
                                     Classes over 2048 characters are currently not supported.
