@@ -170,7 +170,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   override def archiveEntries(date : DateTime) : Box[Int] = {
     val dateAt_0000 = date.toString("yyyy-MM-dd")
-    
+
     // First, get the bounds for archiving reports
     (for {
       highestArchivedReport <- getHighestArchivedReports()
@@ -194,7 +194,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
         case Some(id) =>
           val higherBound = s" and id <= ${id} "
 
-    
+
           val archiveQuery =  s"""
               insert into ${archiveTable}
                     (id, ${common_reports_column})
@@ -344,8 +344,9 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
            Composite[T].xmap(
                (t: T       ) => {
                  val optNodeConfigId = t._3.flatMap(version => version match {
-                   case nodeConfigVersionRegex(v) => Some(NodeConfigId(v))
-                   case _                         => None
+                   case "" => None
+                   case v  => Some(NodeConfigId(v))
+
                  })
                  AgentRun(AgentRunId(NodeId(t._1), t._2), optNodeConfigId, t._4, t._5)
                }
@@ -354,16 +355,16 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
            )
          }
         val getRunsQuery = """select distinct
-                            |  T.nodeid, T.executiontimestamp, coalesce(C.msg, '') as nodeconfigid, coalesce(C.iscomplete, false) as complete, T.insertionid
+                            |  T.nodeid, T.executiontimestamp, coalesce(C.keyvalue, '') as nodeconfigid, coalesce(C.iscomplete, false) as complete, T.insertionid
                             |from
                             |  (select nodeid, executiontimestamp, min(id) as insertionid from ruddersysevents where id > ? and id <= ? group by nodeid, executiontimestamp) as T
                             |left join
                             |  (select
-                            |    true as iscomplete, nodeid, executiontimestamp, msg
+                            |    true as iscomplete, nodeid, executiontimestamp, keyvalue
                             |  from
                             |    ruddersysevents where id > ? and id <= ? and
-                            |    ruleId like 'hasPolicyServer%' and
-                            |    component = 'common' and keyValue = 'EndRun'
+                            |    eventtype = 'control' and
+                            |    component = 'end'
                             |  ) as C
                             |on T.nodeid = C.nodeid and T.executiontimestamp = C.executiontimestamp""".stripMargin
 
