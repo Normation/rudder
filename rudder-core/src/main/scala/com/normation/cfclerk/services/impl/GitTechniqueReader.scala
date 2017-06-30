@@ -157,11 +157,22 @@ class GitTechniqueReader(
     }
   }
 
+  private final case class NoRootCategory(msg: String) extends Exception(msg)
 
   private[this] var currentTechniquesInfoCache : TechniquesInfo = {
     try {
       processRevTreeId(revisionProvider.currentRevTreeId)
     } catch {
+      case NoRootCategory(msg) =>
+        logger.error(s"The stored Git revision does not provide a root category.xml, which is mandatory. Error message was: ${msg}")
+        val newRevTreeId = revisionProvider.getAvailableRevTreeId
+        if(newRevTreeId != revisionProvider.currentRevTreeId) {
+          logger.error(s"Trying to load last available revision of the technique library to unstuck the situation.")
+          revisionProvider.setCurrentRevTreeId(newRevTreeId)
+          processRevTreeId(newRevTreeId)
+        } else {
+          sys.error("Please add a root category.xml and commit it before restarting Rudder.")
+        }
       case e:MissingObjectException => //ah, that commit is not know on our repos
         logger.error("The stored Git revision for the last version of the known Technique Library was not found in the local Git repository. " +
             "That may happen if a commit was reverted, the Git repository was deleted and created again, or if LDAP datas where corrupted. Loading the last available Techique library version.")
@@ -566,13 +577,13 @@ class GitTechniqueReader(
 
       var root = maybeCategories.get(RootTechniqueCategoryId) match {
           case None =>
-            sys.error("Missing techniques root category in Git, expecting category descriptor for Git path: '%s'".format(
-              repo.db.getWorkTree.getPath + canonizedRelativePath.map( "/" + _ + "/" + categoryDescriptorName).getOrElse("")))
+            val path = repo.db.getWorkTree.getPath + canonizedRelativePath.map( "/" + _ + "/" + categoryDescriptorName).getOrElse("")
+            throw new NoRootCategory(s"Missing techniques root category in Git, expecting category descriptor for Git path: '${path}'")
           case Some(sub:SubTechniqueCategory) =>
             logger.error("Bad type for root category in the Technique Library. Please check the hierarchy of categories")
-            sys.error("Bad type for root category, found: " + sub)
+            throw new NoRootCategory(s"Bad type for root category in the Technique Library, found: '${sub}'. Please check the hierarchy of categories")
           case Some(r:RootTechniqueCategory) => r
-        }
+      }
 
       //update subcategories
       techniqueInfos.subCategories.toSeq.foreach {
