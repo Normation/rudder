@@ -48,6 +48,9 @@ import net.liftweb.common._
 import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.inventory.domain.AgentType
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueVersion
 
 
 
@@ -128,7 +131,10 @@ object BuildBundleSequence {
    * of bundle name, correctly sorted.
    */
   final case class TechniqueBundles(
+      // Human readable name of the "Rule name / Directive name" for that list of bundle
       promiser               : Directive
+      // identifier of the technique from which that list of bundle derive (that's the one without spaces and only ascii chars)
+    , techniqueId            : TechniqueId
     , pre                    : List[Bundle]
     , main                   : List[Bundle]
       // pre- and post-bundle sequence are simple bundle
@@ -259,7 +265,7 @@ class BuildBundleSequence(systemVariableSpecService: SystemVariableSpecService) 
             Nil
           }
         }.flatten.toList
-        Full(TechniqueBundles(name, Nil, techniqueBundles, Nil, technique.isSystem, technique.providesExpectedReports, policyMode))
+        Full(TechniqueBundles(name, technique.id, Nil, techniqueBundles, Nil, technique.isSystem, technique.providesExpectedReports, policyMode))
       case None =>
         Failure(s"Node with id '${nodeId.value}' is configured with agent type='${agentType.toString}' but technique '${technique.id.toString}' applying via Directive '${name.value}' is not compatible with that agent type.")
     }
@@ -418,7 +424,8 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
     //before each technique, set the correct mode
     private[this] val audit   = Bundle(ReportId("internal"), BundleName("""set_dry_run_mode("true")"""))
     private[this] val enforce = Bundle(ReportId("internal"), BundleName("""set_dry_run_mode("false")"""))
-    private[this] val cleanup = TechniqueBundles(Directive("remove_dry_run_mode"), Nil, enforce :: Nil, Nil, false, false, PolicyMode.Enforce)
+    val dryRun = TechniqueId(TechniqueName("remove_dry_run_mode"), TechniqueVersion("1.0"))
+    private[this] val cleanup = TechniqueBundles(Directive(dryRun.name.value), dryRun, Nil, enforce :: Nil, Nil, false, false, PolicyMode.Enforce)
   }
 
 
@@ -506,10 +513,10 @@ object DscBundleVariables extends AgentFormatBundleVariables {
         if(technique.isSystem) {
           s"""  ${bundle.name.value} -ReportId ${bundle.id.value}"""
         } else {
-          s"""  ${bundle.name.value} -ReportId ${bundle.id.value} -TechniqueName "${technique.promiser.value}" ${auditOnly}"""
+          s"""  # ${technique.promiser.value}
+             |  ${bundle.name.value} -ReportId ${bundle.id.value} -TechniqueName "${technique.techniqueId.name.value}" ${auditOnly}""".stripMargin
         }
       }
     }.mkString( "\n")) :: Nil
   }
-
 }
