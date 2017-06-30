@@ -23,5 +23,6 @@ function Call_Directives(
   [string] $class = $null
   ) {
 
-  Create_file -ReportId 208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0 -TechniqueName "50-rule-technique-ncf/Create a file" 
+  # 50-rule-technique-ncf/Create a file
+  Create_file -ReportId 208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0 -TechniqueName "Create_file" 
 }
