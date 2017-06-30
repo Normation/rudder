@@ -13,7 +13,9 @@
   "DENYBADCLOCKS":"true",
   "MODIFIED_FILES_TTL":"30",
   "NODEROLE":"  classes: \n    \"policy_server\" expression => \"any\";",
-  "RUDDER_DIRECTIVES_INPUTS":"",
+  "RUDDER_DIRECTIVES_INPUTS":[
+    "Create_file/1.0/Create_file.ps1"
+  ],
   "RUDDER_DIRECTIVES_SEQUENCE":"  # 50-rule-technique-ncf/Create a file\n  Create_file -ReportId 208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0 -TechniqueName \"Create_file\" ",
   "RUDDER_HEARTBEAT_INTERVAL":"4",
   "RUDDER_NODE_CONFIG_ID":"dsc-node-cfg-id",
