@@ -490,8 +490,8 @@ object DscBundleVariables extends AgentFormatBundleVariables {
         Nil
         // no specific pre/post bundles added for DSC
       , formatMethodsUsebundle(sytemBundles)
-        // no use of input files in DSC
-      , Nil
+        // the list of path will be an array in rudder.json
+      , userInputs.map( _.path )
         // no specific pre/post bundles added for DSC
       , formatMethodsUsebundle(userBundles)
     )
