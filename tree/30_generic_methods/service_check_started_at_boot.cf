@@ -42,7 +42,7 @@ bundle agent service_check_started_at_boot(service_name)
       "command_to_check"   string => "${paths.path[svcs]} -l ${service_name} | egrep '^enabled [ 	]+(true|false \(temporary\))'";
 
     (pass1.!systemctl_utility_present.!chkconfig_utility_present.!lsitab_utility_present.!svcs_utility_present)|(pass1.broken_systemctl)::
-      "command_to_check"   string => "${paths.path[test]} -f /etc/rc`runlevel | ${paths.path[cut]} -d' ' -f2`.d/S??${service_name}";
+      "command_to_check"   string => "${paths.path[test]} -f /etc/rc`/sbin/runlevel | ${paths.path[cut]} -d' ' -f2`.d/S??${service_name}";
 
     any::
 
