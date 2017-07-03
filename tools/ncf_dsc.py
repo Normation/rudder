@@ -25,10 +25,18 @@ from pprint import pprint
 
 # MAIN FUNCTIONS called by command line parsing
 ###############################################
+dsc_ncf_path = "/var/rudder/configuration-repository/dsc/ncf"
+dsc_techniques_path = os.path.join(dsc_ncf_path,"50_techniques")
+rudder_ncf_path = "/var/rudder/configuration-repository/ncf"
+
+def check_dsc_techniques_path():
+  if not os.path.exists(dsc_techniques_path):
+    os.makedirs(dsc_techniques_path)
 
 def convert_all_to_dsc(root_path):
-  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['techniques']
-  methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
+  techniques = ncf.get_all_techniques_metadata(alt_path=rudder_ncf_path)['data']['techniques']
+  methods = ncf.get_all_generic_methods_metadata(alt_path=rudder_ncf_path)['data']['generic_methods']
+  check_dsc_techniques_path()
   ret = 0
   for technique, metadata in techniques.items():
     try:
@@ -42,8 +50,9 @@ def convert_all_to_dsc(root_path):
 
 
 def convert_one_to_dsc(destination_path, bundle_name):
-  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['techniques']
-  methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
+  techniques = ncf.get_all_techniques_metadata(alt_path=rudder_ncf_path)['data']['techniques']
+  methods = ncf.get_all_generic_methods_metadata(alt_path=rudder_ncf_path)['data']['generic_methods']
+  check_dsc_techniques_path()
   if bundle_name in techniques.keys():
     try:
       metadata = techniques[bundle_name]
@@ -62,7 +71,7 @@ def write_dsc_technique(technique_metadata, generic_methods):
   """ write expected_reports.csv file from a technique, to a path """
   content = get_ps1_content(technique_metadata, generic_methods)
   technique_name = technique_metadata["bundle_name"]
-  file = codecs.open(os.path.realpath(os.path.join("/var/rudder/configuration-repository/ncf/50_techniques", technique_name + ".ps1" )), "w", encoding="utf-8")
+  file = codecs.open(os.path.realpath(os.path.join(dsc_techniques_path, technique_name + ".ps1" )), "w", encoding="utf-8")
   file.write(content)
   file.close()
 
@@ -150,7 +159,7 @@ def update_technique_metadata(technique_metadata):
 
   bundles_meta = "<BUNDLES><NAME>"+bundle_name+"</NAME></BUNDLES>"
   bundles = xml.etree.ElementTree.fromstring(bundles_meta)
-  files_meta='<FILES><FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/'+bundle_name+'.ps1"><INCLUDED>true</INCLUDED></FILE></FILES>'
+  files_meta='<FILES><FILE name="RUDDER_CONFIGURATION_REPOSITORY/dsc/ncf/50_techniques/'+bundle_name+'.ps1"><INCLUDED>true</INCLUDED></FILE></FILES>'
   files = xml.etree.ElementTree.fromstring(files_meta)
 
   agent_element.clear()
