@@ -909,7 +909,7 @@ bundle agent ncf_services(service, action)
 
     # /etc/rcX.d/
     pass1.is_boot_action.is_check_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.!chitab_utility_present::
-      "action_command" string => "${paths.path[test]} -f /etc/rc`runlevel | ${paths.path[cut]} -d' ' -f2`.d/S??${service}";
+      "action_command" string => "${paths.path[test]} -f /etc/rc`/sbin/runlevel | ${paths.path[cut]} -d' ' -f2`.d/S??${service}";
       "method"         string => "/etc/rcX.d/";
 
     ###########################################################################
