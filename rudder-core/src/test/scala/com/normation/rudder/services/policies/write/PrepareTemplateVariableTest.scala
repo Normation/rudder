@@ -42,9 +42,14 @@ import org.specs2.runner._
 import com.normation.rudder.services.policies.write.BuildBundleSequence._
 import com.normation.cfclerk.domain.BundleName
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.domain.TechniqueName
 
 @RunWith(classOf[JUnitRunner])
 class PrepareTemplateVariableTest extends Specification {
+
+  def TID(s: String) = TechniqueId(TechniqueName(s), TechniqueVersion("1.0"))
 
   val bundles = Seq(
       ("Global configuration for all nodes/20. Install jdk version 1.0"                   , Bundle(ReportId("not used"), BundleName("Install_jdk_rudder_reporting")))
@@ -52,7 +57,7 @@ class PrepareTemplateVariableTest extends Specification {
     , ("""Nodes only/Name resolution version "3.0" and counting"""                        , Bundle(ReportId("not used"), BundleName("check_dns_configuration")))
     , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle(ReportId("not used"), BundleName("check_apt_package_installation")))
     , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle(ReportId("not used"), BundleName("check_apt_package_installation2")))
-  ).map { case(x,y) => TechniqueBundles(Directive(x), Nil, y::Nil, Nil, false, false, PolicyMode.Enforce) }
+  ).map { case(x,y) => TechniqueBundles(Directive(x), TID("not-used-here"), Nil, y::Nil, Nil, false, false, PolicyMode.Enforce) }
 
   // Ok, now I can test
   "Preparing the string for writting usebundle of directives" should {
