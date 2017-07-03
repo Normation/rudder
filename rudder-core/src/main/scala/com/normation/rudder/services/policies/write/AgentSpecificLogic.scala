@@ -216,7 +216,8 @@ object DscAgentSpecificGeneration extends AgentSpecificGeneration {
 
     val systemVars = vars.toList.sortBy( _._2.spec.name ).collect { case (_, v: SystemVariable) if(!filterOut.contains(v.spec.name)) =>
       // if the variable is multivalued, create an array, else just a String
-      val value = if(v.spec.multivalued) {
+      // special case for RUDDER_DIRECTIVES_INPUTS - also an array
+      val value = if(v.spec.multivalued || v.spec.name == "RUDDER_DIRECTIVES_INPUTS") {
         JArray(v.values.toList.map(JString))
       } else {
         JString(v.values.headOption.getOrElse(""))
