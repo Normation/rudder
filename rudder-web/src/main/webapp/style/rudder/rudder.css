@@ -2027,19 +2027,15 @@ td.nestedImg{
    border-right:1px dotted;
 }
 
-td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.EnforceRepaired,td.AuditCompliant,td.Compliant,td.NotApplicable,td.Success{
+td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.AuditCompliant,td.Compliant,td.NotApplicable,td.Success{
   background-color:#9bc832;
-  color: #fff;
-}
-td.Unexpected,td.BadPolicyMode {
-  background-color: #c9302c;
   color: #fff;
 }
 td.AuditNonCompliant,td.NonCompliant {
   background-color:#ff7125;
   color: #fff;
 }
-td.Missing,td.EnforceError,td.AuditError,td.Error{
+td.Missing,td.EnforceError,td.AuditError,td.Error,td.Unexpected,td.BadPolicyMode {
   background-color:#c9302c;
   color: #fff;
 }
@@ -2051,7 +2047,10 @@ td.Disabled, td.NoAnswer {
   background-color: #b4b4b4;
   color: #fff;
 }
-
+td.Repaired{
+  background-color: #F5DD4D;
+  color: #333;
+}
 td.details{
   border:none;
 }
