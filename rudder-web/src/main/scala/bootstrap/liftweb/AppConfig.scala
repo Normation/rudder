@@ -127,6 +127,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import scala.util.Try
+import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
 
 /**
  * Define a resource for configuration.
@@ -425,6 +426,8 @@ object RudderConfig extends Loggable {
     , reportingServiceImpl
     , nodeInfoServiceImpl
   )
+
+  val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
   val ldapInventoryMapper = inventoryMapper
@@ -1404,8 +1407,9 @@ object RudderConfig extends Loggable {
       techniqueRepositoryImpl
     , pathComputer
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
-    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService, new BuildBundleSequence(systemVariableSpecService))
+    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService, new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles))
     , new FillTemplatesService()
+    , writeAllAgentSpecificFiles
     , HOOKS_D
     , HOOKS_IGNORE_SUFFIXES
   )
