@@ -99,7 +99,7 @@ def get_ps1_content(technique_metadata, generic_methods):
   content.append("  $local_classes = New-ClassContext")
   content.append("")
 
-  generic_params = " -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly)"
+  generic_params = " -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly"
   for method_call in technique_metadata["method_calls"]:
    
     method = generic_methods[method_call["method_name"]]
@@ -120,7 +120,7 @@ def get_ps1_content(technique_metadata, generic_methods):
 
       dsc_bundle_name = bundle_name_to_dsc(method_call["method_name"])
  
-      call = "$local_classes = Merge-ClassContext $local_classes $(" + dsc_bundle_name + " " + method_params + generic_params
+      call = "$local_classes = Merge-ClassContext $local_classes $(" + dsc_bundle_name + " " + method_params + generic_params + ")"
       # Do we need to check class on the agent ?
       if method_call['class_context'] != "any":
        
