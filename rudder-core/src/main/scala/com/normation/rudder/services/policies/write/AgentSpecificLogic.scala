@@ -46,8 +46,6 @@ import com.normation.inventory.domain.AgentType
 import com.normation.utils.Control.sequence
 import net.liftweb.common.Full
 import net.liftweb.common.Failure
-import com.normation.cfclerk.domain.SystemVariable
-import com.normation.cfclerk.domain.Variable
 
 /*
  * This file contain agent-type specific logic used during the policy
@@ -88,15 +86,24 @@ trait WriteAgentSpecificFiles {
   def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]]
 }
 
+trait AgentSpecificGeneration extends AgentSpecificGenerationHandle with AgentFormatBundleVariables with WriteAgentSpecificFiles
 
 // the pipeline of processing for the specific writes
-object WriteAllAgentSpecificFiles extends WriteAgentSpecificFiles {
+class WriteAllAgentSpecificFiles extends WriteAgentSpecificFiles {
 
   /**
-   * Ordered list of handlers
+   * Ordered list of handlers, init with the default agent (cfenfine for linux)
    */
-  var pipeline: List[AgentSpecificGenerationHandle with WriteAgentSpecificFiles with AgentFormatBundleVariables] =  {
-    CFEngineAgentSpecificGeneration :: DscAgentSpecificGeneration :: Nil
+  private[this] var pipeline: List[AgentSpecificGeneration] =  {
+    CFEngineAgentSpecificGeneration :: Nil
+  }
+
+  /**
+   * Add the support for a new agent generation type.
+   */
+  def addAgentSpecificGeneration(agent: AgentSpecificGeneration): Unit = synchronized {
+    //add at the end of the pipeline new generation
+    pipeline = pipeline :+ agent
   }
 
   override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
@@ -124,11 +131,9 @@ object WriteAllAgentSpecificFiles extends WriteAgentSpecificFiles {
       case Some(h) => Full(h.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles))
     }
   }
-
 }
 
 
-trait AgentSpecificGeneration extends AgentSpecificGenerationHandle with AgentFormatBundleVariables with WriteAgentSpecificFiles
 
 object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
   val GENEREATED_CSV_FILENAME = "rudder_expected_reports.csv"
@@ -157,74 +162,5 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
     } yield {
       AgentSpecificFile(path.getAbsolutePath) :: Nil
     }
-  }
-}
-
-/*
- * This will go in the plugin, and will be contributed somehow at config time.
- */
-object DscAgentSpecificGeneration extends AgentSpecificGeneration {
-
-  override def handle(agentType: AgentType): Boolean = agentType == AgentType.Dsc
-
-  override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
-    writeSystemVarJson(cfg.paths, cfg.systemVariables)
-  }
-
-  import BuildBundleSequence.{InputFile, TechniqueBundles, BundleSequenceVariables}
-  override def getBundleVariables(
-      systemInputs: List[InputFile]
-    , sytemBundles: List[TechniqueBundles]
-    , userInputs  : List[InputFile]
-    , userBundles : List[TechniqueBundles]
-  ) : BundleSequenceVariables = DscBundleVariables.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles)
-
-
-  // just write an empty file for now
-  private[this] def writeSystemVarJson(paths: NodePromisesPaths, variables: Map[String, Variable]) =  {
-    val path = new File(paths.newFolder, "rudder.json")
-    for {
-        _ <- tryo { FileUtils.writeStringToFile(path, systemVariableToJson(variables) + "\n", Codec.UTF8.charSet) } ?~!
-               s"Can not write json parameter file at path '${path.getAbsolutePath}'"
-    } yield {
-      AgentSpecificFile(path.getAbsolutePath) :: Nil
-    }
-  }
-
-  private[this] def systemVariableToJson(vars: Map[String, Variable]): String = {
-    //only keep system variables, sort them by name
-    import net.liftweb.json._
-
-    //remove these system vars (perhaps they should not even be there, in fact)
-    val filterOut = Set(
-        "SUB_NODES_ID"
-      , "SUB_NODES_KEYHASH"
-      , "SUB_NODES_NAME"
-      , "SUB_NODES_SERVER"
-      , "MANAGED_NODES_CERT_UUID"
-      , "MANAGED_NODES_CERT_CN"
-      , "MANAGED_NODES_CERT_DN"
-      , "MANAGED_NODES_CERT_PEM"
-      , "MANAGED_NODES_ADMIN"
-      , "MANAGED_NODES_ID"
-      , "MANAGED_NODES_IP"
-      , "MANAGED_NODES_KEY"
-      , "MANAGED_NODES_NAME"
-      , "COMMUNITY", "NOVA"
-      , "BUNDLELIST", "INPUTLIST"
-    )
-
-    val systemVars = vars.toList.sortBy( _._2.spec.name ).collect { case (_, v: SystemVariable) if(!filterOut.contains(v.spec.name)) =>
-      // if the variable is multivalued, create an array, else just a String
-      // special case for RUDDER_DIRECTIVES_INPUTS - also an array
-      val value = if(v.spec.multivalued || v.spec.name == "RUDDER_DIRECTIVES_INPUTS") {
-        JArray(v.values.toList.map(JString))
-      } else {
-        JString(v.values.headOption.getOrElse(""))
-      }
-      JField(v.spec.name, value)
-    }
-
-    prettyRender(JObject(systemVars))
   }
 }

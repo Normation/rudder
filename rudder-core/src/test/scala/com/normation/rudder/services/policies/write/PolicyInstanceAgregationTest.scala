@@ -103,7 +103,7 @@ class DirectiveAgregationTest {
   val prepareTemplate = new PrepareTemplateVariablesImpl(
       techniqueRepository
     , systemVariableServiceSpec
-    , new BuildBundleSequence(systemVariableServiceSpec)
+    , new BuildBundleSequence(systemVariableServiceSpec, new WriteAllAgentSpecificFiles())
   )
 
   def createDirectiveWithBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {

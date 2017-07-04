@@ -149,7 +149,10 @@ object BuildBundleSequence {
   }
 }
 
-class BuildBundleSequence(systemVariableSpecService: SystemVariableSpecService) extends Loggable {
+class BuildBundleSequence(
+    systemVariableSpecService : SystemVariableSpecService
+  , writeAllAgentSpecificFiles: WriteAllAgentSpecificFiles
+) extends Loggable {
   import BuildBundleSequence._
 
   /*
@@ -204,7 +207,7 @@ class BuildBundleSequence(systemVariableSpecService: SystemVariableSpecService) 
           techniquesBundles          <- sequence(sortedTechniques)(buildTechniqueBundles(nodeId, agentType))
           //split system and user directive (technique)
           (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
-          bundleVars                 <- WriteAllAgentSpecificFiles.getBundleVariables(agentType, systemInputFiles, systemBundle, userInputFiles, userBundle)
+          bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentType, systemInputFiles, systemBundle, userInputFiles, userBundle)
         } yield {
 
           // map to correct variables
@@ -476,47 +479,4 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
   }
 }
 
-object DscBundleVariables extends AgentFormatBundleVariables {
-  import BuildBundleSequence._
 
-  override def getBundleVariables(
-      systemInputs: List[InputFile]
-    , sytemBundles: List[TechniqueBundles]
-    , userInputs  : List[InputFile]
-    , userBundles : List[TechniqueBundles]
-  ) : BundleSequenceVariables = {
-    BundleSequenceVariables(
-        // no use of input files in DSC
-        Nil
-        // no specific pre/post bundles added for DSC
-      , formatMethodsUsebundle(sytemBundles)
-        // the list of path will be an array in rudder.json
-      , userInputs.map( _.path )
-        // no specific pre/post bundles added for DSC
-      , formatMethodsUsebundle(userBundles)
-    )
-  }
-
-  /*
-   * Method for formating list of "TechniqueName -ReportId XXX -TechniqueName "the name" -AuditMode"
-   */
-  def formatMethodsUsebundle(bundleSeq: Seq[TechniqueBundles]): List[String] = {
-
-    (bundleSeq.flatMap { technique =>
-      val auditOnly = technique.policyMode match {
-        case PolicyMode.Audit => "-AuditOnly"
-        case _                => ""
-      }
-
-      technique.bundleSequence.map { bundle =>
-        //we don't have exactly the same output for system and non system technique
-        if(technique.isSystem) {
-          s"""  ${bundle.name.value} -ReportId ${bundle.id.value}"""
-        } else {
-          s"""  # ${technique.promiser.value}
-             |  ${bundle.name.value} -ReportId ${bundle.id.value} -TechniqueName "${technique.techniqueId.name.value}" ${auditOnly}""".stripMargin
-        }
-      }
-    }.mkString( "\n")) :: Nil
-  }
-}
