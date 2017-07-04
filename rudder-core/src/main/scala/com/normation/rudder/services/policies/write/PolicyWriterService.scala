@@ -100,13 +100,14 @@ trait PolicyWriterService {
 }
 
 class Cf3PromisesFileWriterServiceImpl(
-    techniqueRepository  : TechniqueRepository
-  , pathComputer         : PathComputer
-  , logNodeConfig        : NodeConfigurationLogger
-  , prepareTemplate      : PrepareTemplateVariables
-  , fillTemplates        : FillTemplatesService
-  , HOOKS_D              : String
-  , HOOKS_IGNORE_SUFFIXES: List[String]
+    techniqueRepository       : TechniqueRepository
+  , pathComputer              : PathComputer
+  , logNodeConfig             : NodeConfigurationLogger
+  , prepareTemplate           : PrepareTemplateVariables
+  , fillTemplates             : FillTemplatesService
+  , writeAllAgentSpecificFiles: WriteAllAgentSpecificFiles
+  , HOOKS_D                   : String
+  , HOOKS_IGNORE_SUFFIXES     : List[String]
 ) extends PolicyWriterService with Loggable {
 
   val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
@@ -275,7 +276,7 @@ class Cf3PromisesFileWriterServiceImpl(
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
-                              _ <- WriteAllAgentSpecificFiles.write(prepared)
+                              _ <- writeAllAgentSpecificFiles.write(prepared)
                             } yield {
                               "OK"
                             }

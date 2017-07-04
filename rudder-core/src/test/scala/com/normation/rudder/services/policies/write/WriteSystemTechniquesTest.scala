@@ -198,10 +198,11 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     , getSyslogProtocol               = () => Full(SyslogUDP)
   )
 
+  val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
   val prepareTemplateVariable = new PrepareTemplateVariablesImpl(
       techniqueRepository
     , systemVariableServiceSpec
-    , new BuildBundleSequence(systemVariableServiceSpec)
+    , new BuildBundleSequence(systemVariableServiceSpec, writeAllAgentSpecificFiles)
   )
 
 
@@ -230,6 +231,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
       , logNodeConfig
       , prepareTemplateVariable
       , new FillTemplatesService()
+      , writeAllAgentSpecificFiles
       , "/we-don-t-want-hooks-here"
       , hookIgnore
     )
@@ -281,16 +283,14 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
   // set up root node configuration
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  import com.normation.rudder.services.policies.NodeConfigData.{root, node1, rootNodeConfig, dscNode1}
+  import com.normation.rudder.services.policies.NodeConfigData.{root, node1, rootNodeConfig}
 
   //a test node - CFEngine
   val nodeId = NodeId("c8813416-316f-4307-9b6a-ca9c109a9fb0")
   val cfeNode = node1.copy(node = node1.node.copy(id = nodeId, name = nodeId.value))
-  val dscNode = dscNode1.copy(node = dscNode1.node.copy(id = nodeId, name = nodeId.value))
 
   val allNodesInfo_rootOnly = Map(root.id -> root)
   val allNodesInfo_cfeNode = Map(root.id -> root, cfeNode.id -> cfeNode)
-  val allNodesInfo_dscNode = Map(root.id -> root, dscNode.id -> dscNode)
 
   //the group lib
   val emptyGroupLib = FullNodeGroupCategory(
@@ -572,29 +572,6 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
 
   //////////////
 
-  val dscAgentTechnique = techniqueRepository.get(TechniqueId(TechniqueName("dsc-common"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
-  val dscAgentVariables = {
-     val spec = dscAgentTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-     Seq[Variable](
-//         spec("FOO").toVariable(Seq("Some value for the variable."))
-     ).map(v => (v.spec.name, v)).toMap
-  }
-  val dscAgent = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("dsc-agent"), DirectiveId("dsc-agent"))
-    , technique       = dscAgentTechnique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = dscAgentVariables
-    , trackerVariable = dscAgentTechnique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 5
-    , serial          = 42
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("dsc-agent")
-    , directiveOrder  = BundleOrder("dsc-agent")
-    , overrides       = Set()
-    , policyMode      = None
-    , isSystem        = true
-  )
-
   // Allows override in policy mode, but default to audit
   val globalPolicyMode = GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always)
 
@@ -622,10 +599,6 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     , parameters = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
   )
 
-  val dscNodeConfig = NodeConfigData.node1NodeConfig.copy(
-      nodeInfo   = cfeNode
-    , parameters = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
-  )
 
   // A global list of files to ignore because variable content (like timestamp)
   def filterGeneratedFile(f: File): Boolean = {
@@ -767,41 +740,6 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
       compareWith(rootPath.getParentFile/cfeNode.id.value, "node-cfe-with-two-directives",
            """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
         :: """.*add:default:==:.*"""                               //rpm reports
-        :: Nil
-      )
-    }
-  }
-
-  "A DSC node, with one directives" should {
-
-    val rnc = rootNodeConfig.copy(
-        policyDrafts = Set(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll)
-      , nodeContext  = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
-      , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
-    )
-
-    val dscNC = cfeNodeConfig.copy(
-        nodeInfo     = dscNode
-      , policyDrafts = Set(dscAgent, ncf1)
-      , nodeContext  = getSystemVars(dscNode, allNodesInfo_dscNode, groupLib)
-    )
-
-    "correctly get the expected policy files" in {
-      val (rootPath, writter) = getPromiseWritter("dsc-node")
-      // Actually write the promise files for the root node
-      val writen = writter.writeTemplate(
-            root.id
-          , Set(root.id, dscNode.id)
-          , Map(root.id -> rnc, dscNode.id -> dscNC)
-          , Map(root.id -> NodeConfigId("root-cfg-id"), dscNode.id -> NodeConfigId("dsc-node-cfg-id"))
-          , Map(), globalPolicyMode, DateTime.now
-      )
-
-      (writen mustFull) and
-      compareWith(rootPath.getParentFile/dscNode.id.value, "node-dsc-with-one-directive",
-           """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
-        :: """.*add:default:==:.*"""                               //rpm reports
-        :: """.*/test-rudder-config-repo-.*""" //config repos path with timestamp
         :: Nil
       )
     }
