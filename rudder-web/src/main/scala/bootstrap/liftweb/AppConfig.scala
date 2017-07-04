@@ -419,6 +419,9 @@ object RudderConfig extends Loggable {
   lazy val roAgentRunsRepository : RoReportsExecutionRepository = cachedAgentRunRepository
   lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
 
+  //used in plugins, so init may be needed in strange time to avoid NPE
+  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
+
   //all cache that need to be cleared are stored here
   lazy val clearableCache: Seq[CachedRepository] = Seq(
       cachedAgentRunRepository
@@ -426,8 +429,6 @@ object RudderConfig extends Loggable {
     , reportingServiceImpl
     , nodeInfoServiceImpl
   )
-
-  val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
   val ldapInventoryMapper = inventoryMapper
