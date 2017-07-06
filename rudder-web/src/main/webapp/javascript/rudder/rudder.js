@@ -556,11 +556,6 @@ function updateHashString(key, value) {
   window.location.replace(baseUrl + '#' + JSON.stringify(hash));
 }
 
-$(document).ready(function() {
-  $("a", "form").click(function() { return false; });
-  createTooltip();
-});
-
 function policyModeTooltip(kind, policyName, explanation){
   var tooltip = "" +
     "<h4>Agent Policy Mode </h4>" +
