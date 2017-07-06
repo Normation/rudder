@@ -351,9 +351,7 @@ class EventListDisplayer(
           <h4 id={"showParameters%s".format(id)} class="curspoint showParameters" onclick={"showParameters(%s)".format(id)}>
             Raw Technical Details
           </h4>
-          <pre id={"showParametersInfo%s".format(id)} style="display:none;" class="technical-details">
-            { event.details.map { n => xmlPretty.format(n) + "\n"} }
-          </pre>
+          <pre id={"showParametersInfo%s".format(id)} style="display:none;" class="technical-details">{ event.details.map { n =>xmlPretty.format(n) + "\n"} }</pre>
       }
     }
 
