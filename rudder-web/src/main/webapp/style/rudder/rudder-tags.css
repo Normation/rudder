@@ -338,6 +338,9 @@
   top: -1px;
   position: relative;
 }
+.tags-container + .form-group > .input-group{
+  float:left;
+}
 #activeTechniquesTree_alert .alert{
   margin-bottom:10px;
   margin-top: 10px;
