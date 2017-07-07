@@ -18,7 +18,7 @@ limitations under the License.
 
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
-  <version>4.2.0~beta3-SNAPSHOT</version>
+  <version>4.2.0~beta2</version>
   <packaging>pom</packaging>
 
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
@@ -317,8 +317,8 @@ limitations under the License.
 
     <current-year>2017</current-year>
     <rudder-major-version>4.2</rudder-major-version>
-    <rudder-version>4.2.0~beta3-SNAPSHOT</rudder-version>
-    <spring-run-dep-version>4.2.0~beta3-SNAPSHOT</spring-run-dep-version>
+    <rudder-version>4.2.0~beta2</rudder-version>
+    <spring-run-dep-version>4.2.0~beta2</spring-run-dep-version>
 
     <scala-version>2.12.1</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
