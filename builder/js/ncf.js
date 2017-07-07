@@ -925,7 +925,6 @@ $scope.groupMethodsByCategory = function () {
     // Update selected technique if it's still the same technique
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
-      $scope.$broadcast('endSaving');
       // Transform back ncfTechnique to UITechnique, that will make it ok
       var savedTechnique = toTechUI(ncfTechnique);
 
@@ -933,8 +932,6 @@ $scope.groupMethodsByCategory = function () {
       if (angular.equals($scope.originalTechnique, origin_technique)) {
         // If we were cloning a technique, remove its 'clone' state
         savedTechnique.isClone = false;
-        savedTechnique.saving = false;
-        $scope.$broadcast('endSaving');
         $scope.originalTechnique=angular.copy(savedTechnique);
         $scope.selectedTechnique=angular.copy(savedTechnique);
         // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
@@ -953,19 +950,14 @@ $scope.groupMethodsByCategory = function () {
       }
     }
     var saveError = function(action, data) {
-      $scope.$broadcast('endSaving');
       return $scope.handle_error("while "+action+" Technique '"+ data.technique.name+"'")
     }
 
     // Actually save the technique through API
     if ($scope.originalTechnique.bundle_name === undefined) {
-      $http.post("/ncf/api/techniques", data).
-        success(saveSuccess).
-        error(saveError("creating", data));
+      $http.post("/ncf/api/techniques", data).then(saveSuccess,saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
     } else {
-      $http.put("/ncf/api/techniques", data).
-        success(saveSuccess).
-        error(saveError("saving", data));
+      $http.put("/ncf/api/techniques", data).then(saveSuccess,saveError("saving", data)).finally(function(){$scope.$broadcast('endSaving');});
     }
   };
   // Popup definitions
