@@ -78,8 +78,7 @@ trait SettingsApi extends RestAPI {
     // Without that it will prevnet being able to modify policy mode node by node
     case Get(key@("global_policy_mode" | "global_policy_mode_overridable") :: Nil,_) =>
         CurrentUser.checkRights(Read("administration")) ||
-        CurrentUser.checkRights(Write("node"))          ||
-        CurrentUser.checkRights(Edit("node"))
+        CurrentUser.checkRights(Read("node"))
     case Get(_,_) => CurrentUser.checkRights(Read("administration"))
     case Post(_,_) | Put(_,_) | Delete(_,_) => CurrentUser.checkRights(Write("administration")) || CurrentUser.checkRights(Edit("administration"))
     case _=> false
