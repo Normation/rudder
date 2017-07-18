@@ -57,11 +57,7 @@ app.factory('configGlobalFactory', function ($http){
 	                        , 'global_policy_mode_overridable' : mode.overrideMode
 	                        , 'reason' : "Change global policy mode to '"+mode.policyMode+"' ("+overridableReason+")"
 	                        };
-	             return $http.post(this.url, data).then(function successCallback(response) {
-	               return response.status==200;
-	             }, function errorCallback(response) {
-	               return response.status==200;
-	             });
+	             return $http.post(this.url, data)
 	           }
   };
   this.overrideMode = {
@@ -94,11 +90,7 @@ app.factory('configNodeFactory', function ($http){
                        'policyMode' : mode.policyMode
                      , 'reason' : "Change policy mode of node '"+nodeId+" to '"+mode.policyMode+"'"
                    };
-                   return $http.post(this.url, data).then(function successCallback(response) {
-                     return response.status==200;
-                   }, function errorCallback(response) {
-                     return response.status==200;
-                   });
+                   return $http.post(this.url, data)
 	               }
     };
     return this;
@@ -167,18 +159,21 @@ app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, co
     if(!$scope.nochange){
       //Start loading animation
       $scope.saving = 1;
-      $scope.factory.policyMode.save($scope.conf).then(function(success){
-        if(success){
+      $scope.factory.policyMode.save($scope.conf).then(
+        function(successResponse){
           //Reinitialize scope
           $scope.errorFeedback = false;
           $scope.nochange = true;
           $scope.currentConf.policyMode = $scope.conf.policyMode;
           $scope.currentConf.overrideMode = $scope.conf.overrideMode;
-        }else{
+        }, function(errorResponse) {
           $scope.errorFeedback = true;
+          $scope.errorDetails = errorResponse.data.errorDetails
         }
-        $scope.saving = 2;
-      });
+      ).then(
+        // Almost like a finally, set saving to 2 so we know saving state has changed
+        function(result) {$scope.saving = 2;} 
+      );
     }
   };
   $scope.redirect = function(url) {
