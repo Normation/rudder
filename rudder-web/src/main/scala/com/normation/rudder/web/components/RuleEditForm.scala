@@ -445,11 +445,11 @@ class RuleEditForm(
   }
 
   private[this] def directiveClick(directive: Directive) : JsCmd = {
-    JsRaw(s"""onClickDirective("${directive.id.value}", "${directive.name}");""")
+    JsRaw(s"""onClickDirective("${directive.id.value}", ${directive.name.encJs});""")
   }
 
   private[this] def includeDirective(directive: Directive) : JsCmd = {
-    JsRaw(s"""includeDirective("${directive.id.value}", "${directive.name}");""")
+    JsRaw(s"""includeDirective("${directive.id.value}", ${directive.name.encJs});""")
   }
 
   private[this] def includeRuleTarget(targetInfo: FullRuleTargetInfo) : JsCmd = {
