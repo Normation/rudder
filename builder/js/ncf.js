@@ -286,7 +286,11 @@ function defineMethodClassContext (method_call) {
     if (myclasses.length > 1) {
       // We have more than one class, rest of the context is an advanced class
       myclasses.splice(0,1);
-      method_call.advanced_class = myclasses.join(".");
+      var advanced_class = myclasses.join(".");
+      if (advanced_class.startsWith("(")) {
+        advanced_class = advanced_class.slice(1,-1);
+      }
+      method_call.advanced_class = advanced_class;
     }
   }
 }
@@ -515,7 +519,7 @@ $scope.groupMethodsByCategory = function () {
         $scope.selectedMethod.class_context = os;
       } else {
         // Both OS and advanced. Use class_context os.advanced
-        $scope.selectedMethod.class_context = os+"."+$scope.selectedMethod.advanced_class;
+        $scope.selectedMethod.class_context = os+".("+$scope.selectedMethod.advanced_class+")";
       }
     }
   }
