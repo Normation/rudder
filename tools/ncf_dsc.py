@@ -120,7 +120,7 @@ def get_ps1_content(technique_metadata, generic_methods):
 
       dsc_bundle_name = bundle_name_to_dsc(method_call["method_name"])
  
-      call = "$local_classes = Merge-ClassContext $local_classes $(" + dsc_bundle_name + " " + method_params + generic_params + ")"
+      call = "$local_classes = Merge-ClassContext $local_classes $(" + dsc_bundle_name + " " + method_params + generic_params + ").get_item(\"classes\")"
       # Do we need to check class on the agent ?
       if method_call['class_context'] != "any":
        
