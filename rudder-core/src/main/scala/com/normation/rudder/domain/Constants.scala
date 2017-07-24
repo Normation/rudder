@@ -95,6 +95,17 @@ object Constants {
   val XML_FILE_FORMAT_5 = 5
   val XML_FILE_FORMAT_6 = 6
 
+  /*
+   * WARNING: we can't change that file format if we want to 
+   * be able to provid git-base synchronisation between 
+   * major Rudder version. Either relaxe the fileFormat
+   * verification (i.e: "current file format equals or inferior to
+   * the one of the file" - ensuring that all mod are forward compatible
+   * (i.e: only add things)), or create a post-archive restore - pre reload
+   * archive that sed the fileFormat (erk). 
+   * See https://www.rudder-project.org/redmine/issues/11155
+   * for more information. 
+   */
   val XML_CURRENT_FILE_FORMAT = XML_FILE_FORMAT_6
 
   val CONFIGURATION_RULES_ARCHIVE_TAG = "#rules-archive"
