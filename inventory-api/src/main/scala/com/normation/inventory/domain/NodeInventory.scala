@@ -147,6 +147,9 @@ object WindowsType {
     :: Windows2008
     :: Windows2008R2
     :: Windows2012
+    :: Windows2012R2
+    :: Windows2016
+    :: Windows2016R2
     :: Nil
   )
 }
@@ -160,6 +163,9 @@ case object Windows2003 extends WindowsType with HashcodeCaching   { val name = 
 case object Windows2008 extends WindowsType with HashcodeCaching   { val name = "Windows2008" }
 case object Windows2008R2 extends WindowsType with HashcodeCaching { val name = "Windows2008R2" }
 case object Windows2012 extends WindowsType with HashcodeCaching { val name = "Windows2012" }
+case object Windows2012R2 extends WindowsType with HashcodeCaching { val name = "Windows2012R2" }
+case object Windows2016 extends WindowsType with HashcodeCaching { val name = "Windows2016" }
+case object Windows2016R2 extends WindowsType with HashcodeCaching { val name = "Windows2016R2" }
 
 /**
  * Specific Linux subtype (distribution)
