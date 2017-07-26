@@ -164,6 +164,17 @@ class TestReportParsing extends Specification with Loggable {
       val os = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.osDetails.os
       os == Windows2012
     }
+    "parse as windows 2012" in {
+      val os = parser.parse("fusion-report/windows2012r2.ocs").node.main.osDetails.os
+      os == Windows2012R2
+    }
+  }
+
+  "Parsing Windows 2016" should {
+    "parse as windows 2016" in {
+      val os = parser.parse("fusion-report/windows2016.ocs").node.main.osDetails.os
+      os == Windows2016
+    }
   }
 
   "Hostname should be correctly detected" should {
