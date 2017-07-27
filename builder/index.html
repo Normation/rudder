@@ -2,6 +2,10 @@
 <html ng-app="ncf">
     <head>
         <link type="image/x-icon" rel="icon" href="ncf-builder/css/favicon.ico"/>
+
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/ngToast.min.css" rel="stylesheet">
+        <link href="css/custom.css" rel="stylesheet">
         <!-- Needed polyfill for ie11, works in all other browsers -->
         <script src="js/startswith.js"></script>
         <script src="js/angular-1.3.14.min.js"></script>
@@ -10,9 +14,6 @@
         <script src="js/angular-sanitize.min.js"></script>
         <script src="js/ngToast.min.js"></script>
         <script src="js/angular-drag-and-drop-lists.min.js"></script>
-        <link href="css/bootstrap.min.css" rel="stylesheet">
-        <link href="css/ngToast.min.css" rel="stylesheet">
-        <link href="css/custom.css" rel="stylesheet">
         <script src="js/jquery-1.11.1.min.js"></script>
         <script src="js/elastic.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
@@ -45,6 +46,21 @@
             <button class="btn btn-default pull-left" ng-click="cancel()">Cancel</button>
             <button class="btn btn-default" ng-click="discard()">Discard Changes</button>
             <button class="btn btn-success" ng-disabled="editForm.$invalid" ng-click="save()">Save Changes</button>
+          </div>
+        </script>
+        <script type="text/ng-template" id="RestoreWarningModal.html">
+          <div class="modal-header">
+            <h3 class="modal-title">Technique diverges</h3>
+          </div>
+          <div class="modal-body">
+            This Technique has been updated while you were away. Do you want to update it to the latest version, or keep your changes ?<br/>
+            <div class="alert alert-warning">
+              If you decide to keep your changes and save it, your version will replace the current one. However you will still have the choice to update it before saving.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-danger" ng-click="discard()">Keep changes</button>
+            <button class="btn btn-success " ng-click="save()">Update</button>
           </div>
         </script>
         <script type="text/ng-template" id="template/confirmModal.html">
@@ -134,7 +150,7 @@
                     <tbody>
                         <tr  ng-repeat="technique in techniques | orderBy:'name':false | filter:searchText  track by $index" ng-click="checkSelect(technique,selectTechnique)" >
                             <td href="#" ng-class="{'active': isSelected(technique)}" style="height:100%;vertical-align:middle; padding: 0 5px">
-                                <span class="col-md-10">{{technique.name}} </span>
+                                <span class="col-md-10">{{technique.name}}</span>
                             </td>
                             <td href="#" ng-class="{'active': isSelected(technique)}" style="height:100%;vertical-align:middle">
                                 <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelected(technique), 'glyphicon-chevron-right': !isSelected(technique)}"></i>
@@ -168,6 +184,24 @@
                                 <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
                                 General information
                             </accordion-heading>
+                            <div class="col-xs-12">
+                              <div class="alert alert-info" ng-if="restoreFlag && !conflictFlag">
+                                Technique restored from current session.
+                                <br/>
+                                <div ng-if="suppressFlag">
+                                This Technique has been deleted while you were away. Saving it will recreate it.
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-xs-12">
+                                <div class="alert alert-warning" ng-if="conflictFlag">
+                                  Your changes have been kept. If you save this Technique, your version will replace the current one.
+                                  You can still reset it or click on the following button to update it.
+                                  <div class="btn-group-alert">
+                                    <button class="btn btn-sm btn-default" ng-click="resetTechnique()">Update</button>
+                                  </div>
+                                </div>
+                            </div>
                             <div class="form-group" ng-class="{'has-error':editForm.name.$dirty && (editForm.name.$error.required || editForm.name.$error.techniqueName)}">
                                 <label for="techniqueName" class="col-sm-3 control-label">Name:</label>
                                 <div class="col-sm-8">
@@ -190,7 +224,7 @@
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.maxlength">
                                     Bundle names longer than 255 characters won't work on most filesystems.
                                 </span>
-                                <span class="text-warning col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.bundleName">
+                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.bundleName">
                                   Bundle name must be unique.
                                 </span>
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.pattern">Bundle name should start with an alphanumeric character.</span>
@@ -280,7 +314,7 @@
             <div class="col-md-5 ncf_col" id="methodBlock" ng-if="selectedMethod !== undefined">
                 <div>
                     <div class="title">Method</div>
-                    <h3 >{{getMethodName(selectedMethod)}}
+                    <h3>{{getMethodName(selectedMethod)}}
                         <button ng-disabled="! canResetMethod()" class="btn btn-default pull-right top-margin" ng-click="resetMethod()">Reset</button>
                     </h3>
                     <accordion>
@@ -292,7 +326,7 @@
                             <div class="form-group condition-form" id="os-form">
                               <label for="os_class">Operating system:</label>
                               <form class="form-inline" role="form">
-                                <div class="form-group" >
+                                <div class="form-group">
                                   <label for="os_class">Type:</label>
                                   <select class="form-control" ng-change="updateOSType()" ng-model="selectedMethod.OS_class.type" ng-options="type for type in type_classes" ></select>
                                 </div>
@@ -362,7 +396,6 @@
                         </accordion-group>
                     </accordion>
                 </div>
-
                 <div class="col-md-5 fixed-footer" style="padding-top: 0; border-right:0; padding-bottom: 0;">
                     <h4 style="text-align:left; margin-top:0px;" class="panel-title">
                       Result classes defined by this method
@@ -389,41 +422,39 @@
                     </form>
                 </div>
             </div>
-
-                    <div class="col-lg-4 col-md-4 col-sm-10 col-xs-8 generic-methods ncf_col" ng-if="selectedMethod === undefined">
-                        <div class="title">Library</div>
-                        <h3 >Generic methods</h3>
-                        <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory"  >
-                            <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}} </h4>
-                            <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" dnd-disable-if="!selectedTechnique" ng-class="{'disabled':!selectedTechnique}">
-                              <div class="input-group">
-                                <span class="input-group-addon cursorMove"><b>:::</b></span>
-                                <div class="panel-heading" style="overflow:hidden">
-                                    <h4 class="panel-title">
-                                        <span class="pull-left"> {{method.name}}
-                                            <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method, kind)}}">
-                                                <i class="glyphicon glyphicon-info-sign method-actions"></i>
-                                            </a>
-                                        </span>
-                                        <br style="clear:both"/>
-                                        <small class="pull-left method-margin" >
-                                            {{method.description}}
-                                        </small>
-                                    </h4>
-                                </div>
-                              </div>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="col-lg-1 col-md-1 col-sm-2 col-xs-4 ncf_col no-padding" class="bs-sidebar navbar" ng-if="selectedMethod === undefined">
-                        <ul class="nav bs-sidenav" id="categories-list">
-                          <h4 id="categories">Categories</h4>
-                            <li ng-repeat="(kind,methods) in methodsByCategory" class="active">
-                                <a href="" ng-click="scroll(kind)">{{capitaliseFirstLetter(kind)}} </a>
-                            </li>
-                        </ul>
-                    </div>
-
+            <div class="col-lg-4 col-md-4 col-sm-10 col-xs-8 generic-methods ncf_col" ng-if="selectedMethod === undefined">
+                <div class="title">Library</div>
+                <h3 >Generic methods</h3>
+                <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory"  >
+                    <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}} </h4>
+                    <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" dnd-disable-if="!selectedTechnique" ng-class="{'disabled':!selectedTechnique}">
+                      <div class="input-group">
+                        <span class="input-group-addon cursorMove"><b>:::</b></span>
+                        <div class="panel-heading" style="overflow:hidden">
+                            <h4 class="panel-title">
+                                <span class="pull-left"> {{method.name}}
+                                    <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method, kind)}}">
+                                        <i class="glyphicon glyphicon-info-sign method-actions"></i>
+                                    </a>
+                                </span>
+                                <br style="clear:both"/>
+                                <small class="pull-left method-margin" >
+                                    {{method.description}}
+                                </small>
+                            </h4>
+                        </div>
+                      </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-lg-1 col-md-1 col-sm-2 col-xs-4 ncf_col no-padding" class="bs-sidebar navbar" ng-if="selectedMethod === undefined">
+                <ul class="nav bs-sidenav" id="categories-list">
+                  <h4 id="categories">Categories</h4>
+                    <li ng-repeat="(kind,methods) in methodsByCategory" class="active">
+                        <a href="" ng-click="scroll(kind)">{{capitaliseFirstLetter(kind)}} </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </body>
 </html>
