@@ -168,7 +168,13 @@ class CheckCfengineSystemRuleTargets(
       entry.setAttribute(new Attribute("jsonNodeGroupQuery", hasPolicyServerGroupQueryTemplate.replaceAll('"'+"root"+'"', '"'+uuid+'"')))
       // also change the DN/RDN of the group to the correct one
       entry.setAttribute("nodeGroupId", s"hasPolicyServer-${uuid}")
+      // Set correct name and description
+      entry.setAttribute("cn", s"All nodes managed by ${uuid} policy server")
+      entry.setAttribute("description", s"All nodes known by Rudder directly connected to the ${uuid} server")
+
       entry.setDN(hasPolicyServerDN(uuid))
+
+
       LDAPEntry(entry)
     }
 
