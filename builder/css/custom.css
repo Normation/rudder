@@ -63,6 +63,10 @@ hr {
   border-top-right-radius: 4px;
   border-bottom: none;
 }
+.modal-body .alert{
+  margin: 10px 0 -10px 0;
+}
+
 .btn-ncf {
     background-image: linear-gradient(#FFA033, #EE7F00 50%, #B86200);
     border-color: #B86200;
@@ -104,7 +108,7 @@ hr {
 }
 
 .panel-body {    
-    padding:0;
+    padding: 15px 0 0 0;
 }
 
 a:hover {
@@ -601,6 +605,12 @@ span.text-fit {
   top: 1px;
   margin-left: 10px;
   font-size: 16px;
+}
+.btn-group-alert {
+  margin-top: 10px;
+}
+.btn-group-alert > .btn:first-child {
+  margin-right: 8px;
 }
 @-webkit-keyframes saving {
   0% {
