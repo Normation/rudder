@@ -120,7 +120,7 @@ object AgentType {
     override def displayName  = "Rudder (Windows DSC)"
     override def toRulesPath  = "/dsc"
     override def inventoryAgentNames   = Set("dsc")
-    override val inventorySoftwareName = "rudder-agent-dsc"
+    override val inventorySoftwareName = "Rudder agent (DSC)"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
   }
 
