@@ -320,7 +320,7 @@ limitations under the License.
     <rudder-version>4.2.0~beta3-SNAPSHOT</rudder-version>
     <spring-run-dep-version>4.2.0~beta3-SNAPSHOT</spring-run-dep-version>
 
-    <scala-version>2.12.1</scala-version>
+    <scala-version>2.12.3</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
     <lift-version>3.0.1</lift-version>
     <slf4j-version>1.7.22</slf4j-version>
