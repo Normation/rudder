@@ -89,6 +89,12 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.utils.Control.sequence
 import com.normation.utils.Control.bestEffort
+import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.domain.eventlog.InventoryLogDetails
+import com.normation.rudder.domain.eventlog.InventoryLogDetails
+import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.domain.eventlog.InventoryLogDetails
+import com.normation.rudder.hooks.HooksLogger
 
 
 /**
@@ -145,6 +151,36 @@ trait NewNodeManager extends NewNodeManagerHooks {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/*
+ * Logic to execute scripts in hooks.d/node-post-acceptance
+ */
+class PostNodeAcceptanceHookScripts(
+    HOOKS_D              : String
+  , HOOKS_IGNORE_SUFFIXES: List[String]
+) extends NewNodeManagerHooks with Loggable {
+
+  override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = {
+    val systemEnv = {
+      import scala.collection.JavaConverters._
+      HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
+    }
+    val hookEnv = HookEnvPairs.build(
+        ("RUDDER_NODEID", nodeId.value)
+    )
+    val postHooksTime =  System.currentTimeMillis
+    HooksLogger.info(s"Executing post-node-acceptance hooks for node with id '${nodeId.value}'")
+    for {
+      postHooks     <- RunHooks.getHooks(HOOKS_D + "/node-post-acceptance", HOOKS_IGNORE_SUFFIXES)
+      runPostHook   =  RunHooks.syncRun(postHooks, hookEnv, systemEnv)
+      timePostHooks =  (System.currentTimeMillis - postHooksTime)
+      _             =  logger.debug(s"Node-post-acceptance scripts hooks ran in ${timePostHooks} ms")
+    } yield {
+      ()
+    }
+  }
+}
+
+
 /**
  * Default implementation: a new server manager composed with a sequence of
  * "unit" accept, one by main goals of what it means to accept a server;
@@ -164,9 +200,14 @@ class NewNodeManagerImpl(
   , val eventLogRepository : EventLogRepository
   , override val updateDynamicGroups : UpdateDynamicGroups
   , val cacheToClear: List[CachedRepository]
+  , HOOKS_D              : String
+  , HOOKS_IGNORE_SUFFIXES: List[String]
 ) extends NewNodeManager with ListNewNode with ComposedNewNodeManager with NewNodeManagerHooks {
 
   private[this] val codeHooks = collection.mutable.Buffer[NewNodeManagerHooks]()
+
+  //by default, add the script hooks
+  appendPostAcceptCodeHook(new PostNodeAcceptanceHookScripts(HOOKS_D, HOOKS_IGNORE_SUFFIXES))
 
   override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = {
     codeHooks.foreach( _.afterNodeAcceptedAsync(nodeId) )
@@ -494,6 +535,9 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
       }
     }) match {
       case Full(seq) => //ok, cool
+        // Update hooks for the node
+        afterNodeAcceptedAsync(id)
+
         logger.info(s"New node accepted and managed by Rudder: ${id.value}")
         cacheToClear.foreach { _.clearCache }
         updateDynamicGroups.startManualUpdate
