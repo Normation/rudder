@@ -156,7 +156,7 @@ class RemoveNodeServiceImpl(
             postHooks     <- RunHooks.getHooks(HOOKS_D + "/node-post-deletion", HOOKS_IGNORE_SUFFIXES)
             runPostHook   = RunHooks.syncRun(postHooks, hookEnv, systemEnv)
             timePostHooks =  (System.currentTimeMillis - postHooksTime)
-            _             = logger.debug(s"Node-post-deletion scripts hooks ran in ${timePreHooks} ms")
+            _             = logger.debug(s"Node-post-deletion scripts hooks ran in ${timePostHooks} ms")
           } yield {
             runPostHook match {
               case stop : HookReturnCode.Error => PostHookFailed(stop)

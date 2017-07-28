@@ -1,0 +1,16 @@
+= node-post-acceptance
+
+== When/What ?
+
+This directory contains hooks executed after a node was successfully accepted. 
+
+Typically, these hooks triggers action on other system, like registering the node
+into a monitoring system or into an external CMDB, or to send notification. 
+
+== Parameters
+
+Hooks parameters are passed by environment variable:
+
+- RUDDER_NODEID: the nodeId 
+
+ 
