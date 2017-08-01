@@ -354,9 +354,16 @@ $scope.getSessionStorage = function(){
       //Not a new technique
       var existingTechnique = $scope.techniques.find(function(technique){return technique.bundle_name === t2.bundle_name })
       if (existingTechnique !== undefined) {
-        //$scope.originalTechnique = angular.copy(existingTechnique);
         if(t2.hasOwnProperty('saving'))existingTechnique.saving   = false;
         if(t2.hasOwnProperty('isClone'))existingTechnique.isClone = false;
+        for(var i=0; i<t2.method_calls.length; i++){
+          if(t2.method_calls[i].hasOwnProperty('dsc_support')){
+            existingTechnique.method_calls[i].dsc_support=t2.method_calls[i].dsc_support;
+          }
+          if(existingTechnique.method_calls[i].hasOwnProperty('promiser')){
+            t2.method_calls[i].promiser = existingTechnique.method_calls[i].promiser;
+          }
+        }
         if(!angular.equals(t2, existingTechnique)){
           $scope.conflictFlag = true;
           var modalInstance = $modal.open({
