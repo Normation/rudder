@@ -279,6 +279,14 @@ class RudderCf3PromisesFileWriterServiceImpl(
           return failure
       }
 
+      // write rudder.json - do not fail on error to keep a behavior as compatible as before
+      writeSystemVarJson(newNodeRulePath, systemVariables.toMap) match {
+        case Full(_) => // OK, continue
+        case eb: EmptyBox =>
+          val failure = eb ?~! s"An error occured while writting node system variable into rudder.json file"
+          logger.warn(failure.messageChain)
+      }
+
       agentType match {
         case NOVA_AGENT => writeLicense(node, newNodeRulePath)
         case _ => ;
@@ -350,6 +358,50 @@ class RudderCf3PromisesFileWriterServiceImpl(
         Full(node)
     }
   }
+
+  private[this] def writeSystemVarJson(newFolderPath: String, variables: Map[String, Variable]) =  {
+    val path = new File(newFolderPath, "rudder.json")
+    for {
+        _ <- tryo { FileUtils.writeStringToFile(path, systemVariableToJson(variables) + "\n", "UTF8") } ?~!
+               s"Can not write json parameter file at path '${path.getAbsolutePath}'"
+    } yield {
+      path.getAbsolutePath
+    }
+  }
+
+  private[this] def systemVariableToJson(vars: Map[String, Variable]): String = {
+    //only keep system variables, sort them by name
+    import net.liftweb.json._
+
+    //remove these system vars (perhaps they should not even be there, in fact)
+    val filterOut = Set(
+        "SUB_NODES_ID"
+      , "SUB_NODES_KEYHASH"
+      , "SUB_NODES_NAME"
+      , "SUB_NODES_SERVER"
+      , "MANAGED_NODES_ADMIN"
+      , "MANAGED_NODES_ID"
+      , "MANAGED_NODES_IP"
+      , "MANAGED_NODES_KEY"
+      , "MANAGED_NODES_NAME"
+      , "COMMUNITY", "NOVA"
+      , "BUNDLELIST", "INPUTLIST"
+    )
+
+    val systemVars = vars.toList.sortBy( _._2.spec.name ).collect { case (_, v: SystemVariable) if(!filterOut.contains(v.spec.name)) =>
+      // if the variable is multivalued, create an array, else just a String
+      val value = if(v.spec.multivalued) {
+        JArray(v.values.toList.map(JString))
+      } else {
+        JString(v.values.headOption.getOrElse(""))
+      }
+      JField(v.spec.name, value)
+    }
+
+    pretty(render(JObject(systemVars)))
+  }
+
+
 
   private[this] def executeCfPromise(agentType: AgentType, pathOfPromises: String) : (Int, List[String]) = {
     var out = List[String]()
