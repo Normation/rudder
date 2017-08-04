@@ -128,7 +128,9 @@ def write_technique_for_rudder(root_path, technique):
   if not os.path.exists(path):
     os.makedirs(path)
   # We don't need to create rudder_reporting.st if all class context are any
-  include_rudder_reporting = not all(method_call['class_context'] == 'any' for method_call in technique["method_calls"])
+  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
+  include_rudder_reporting = not all(method_call['class_context'] == 'any' and 
+                                     "cfengine-community" in generic_methods[method_call['method_name']]["agent_support"] for method_call in technique["method_calls"])
   write_xml_metadata_file(path,technique,include_rudder_reporting)
   write_expected_reports_file(path,technique)
   if include_rudder_reporting:
@@ -322,7 +324,9 @@ def generate_rudder_reporting(technique):
   # Handle method calls
   technique_name = technique['bundle_name']
   # Filter calls so we only have those who are not using a any class_context
-  filter_calls = [ method_call for method_call in technique["method_calls"] if method_call['class_context'] != "any" ]
+  filter_calls = [ method_call for method_call in technique["method_calls"] 
+                       if method_call['class_context'] != "any" or 
+                          "cfengine-community" not in generic_methods[method_call['method_name']]["agent_support"] ]
 
   for method_call in filter_calls:
      
@@ -352,7 +356,12 @@ def generate_rudder_reporting(technique):
     # Always add an empty line for readability
     content.append('')
 
-    if not "$" in method_call['class_context']:
+    if "cfengine-community" not in generic_methods[method_call['method_name']]["agent_support"]:
+      content.append('    any::')
+      content.append('      "dummy_report" usebundle => _classes_noop("'+class_prefix+'");')
+      content.append('      ' + logger_rudder_call + ';')
+
+    elif not "$" in method_call['class_context']:
       content.append('    !('+method_call['class_context']+')::')
       content.append('      "dummy_report" usebundle => _classes_noop("'+class_prefix+'");')
       content.append('      ' + logger_rudder_call + ';')

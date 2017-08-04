@@ -116,7 +116,7 @@ def get_ps1_content(technique_metadata, generic_methods):
     componentKey  = escaped_args[method["class_parameter_id"]-1]
     na_report = "_rudder_common_report_na -componentName \"" + componentName+"\" -componentKey \""+componentKey+"\" -message \"Not applicable\"" + generic_params
            
-    if method["dsc_support"]:
+    if "dsc" in method["agent_support"]:
 
       dsc_bundle_name = bundle_name_to_dsc(method_call["method_name"])
  
