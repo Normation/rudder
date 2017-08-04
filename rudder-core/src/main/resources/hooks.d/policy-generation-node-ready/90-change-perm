@@ -2,21 +2,22 @@
 
 # Hooks parameter are passed by environment variable: 
 #
-# - RUDDER_GENERATION_DATETIME    : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation start 
-# - RUDDER_NODEID                 : the nodeId
-# - RUDDER_NEXT_POLICIES_DIRECTORY: new policies directory (for ex for nodes under root: /var/rudder/share/$RUDDER_NODEID/rules.new)
-# - RUDDER_AGENT_TYPE             : agent type ("cfengine-nova" or "cfengine-community")
+# - RUDDER_GENERATION_DATETIME   : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation start 
+# - RUDDER_NODE_ID               : the nodeId
+# - RUDDER_NODE_HOSTNAME         : the node fully qualified hostname
+# - RUDDER_NODE_POLICY_SERVER_ID : the node policy server id
+# - RUDDER_AGENT_TYPE            : agent type ("cfengine-nova" or "cfengine-community")
+# - RUDDER_POLICIES_DIRECTORY_NEW: new policies directory (for ex for nodes under root: /var/rudder/share/$RUDDER_NODE_ID/rules.new)
 
 # Correct all file permissions
 
-
-/bin/chmod -R u-x,u+rwX,g-w,g+rx,o-rwx "${RUDDER_NEXT_POLICIES_DIRECTORY}"
+/bin/chmod -R u-x,u+rwX,g-w,g+rx,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}"
 r1=$?
-/bin/chgrp -R rudder-policy-reader "${RUDDER_NEXT_POLICIES_DIRECTORY}"
+/bin/chgrp -R rudder-policy-reader "${RUDDER_POLICIES_DIRECTORY_NEW}"
 r2=$?
-/bin/chmod u-x,u+rwX,g-w,g+rx,o-rwx "${RUDDER_NEXT_POLICIES_DIRECTORY}/.."
+/bin/chmod u-x,u+rwX,g-w,g+rx,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
 r3=$?
-/bin/chgrp rudder-policy-reader "${RUDDER_NEXT_POLICIES_DIRECTORY}/.."
+/bin/chgrp rudder-policy-reader "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
 r4=$?
 
 # Return aggregated error code
