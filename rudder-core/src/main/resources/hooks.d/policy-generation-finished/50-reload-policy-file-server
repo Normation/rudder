@@ -4,9 +4,9 @@
 #
 # - RUDDER_GENERATION_DATETIME       : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation. 
 # - RUDDER_END_GENERATION_DATETIME   : generation end time: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time when the generation ended (minus these hooks)
-# - RUDDER_NODEIDS                   : space separated list of node id updated during the process, or the empty string
+# - RUDDER_NODE_IDS                  : space separated list of node id updated during the process, or the empty string
 #                                      if no nodes were updated. 
-# - RUDDER_NUMBER_NODES_UPDATED      : integer >= 0; number of nodes updated (could be found by counting $RUDDER_NODEIDS)
+# - RUDDER_NUMBER_NODES_UPDATED      : integer >= 0; number of nodes updated (could be found by counting $RUDDER_NODE_IDS)
 # - RUDDER_ROOT_POLICY_SERVER_UPDATED: 0 if root was updated, anything else if not
 
 
