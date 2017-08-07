@@ -943,9 +943,7 @@ bundle agent ncf_services(service, action)
     # update-rc.d
     # WARN: "is-enabled" will use /etc/rcX.d/ directly
     pass1.is_boot_action.!is_check_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.update_rcd_utility_present::
-      "update_rcd_action_cmd[enable]"  string => "${paths.path[update_rc_d]} ${service} defaults";
-      "update_rcd_action_cmd[disable]" string => "${paths.path[update_rc_d]} ${service} disable";
-      "action_command"                 string => "${update_rcd_action_cmd[${action}]}";
+      "action_command"                 string => "${paths.path[update_rc_d]} ${service} ${action}";
       "method"                         string => "update-rc.d";
 
     # chitab/lsitab
