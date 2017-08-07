@@ -63,7 +63,6 @@ import org.joda.time.DateTime
 import scala.io.Codec
 import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain.TechniqueFile
-import com.normation.cfclerk.domain.SystemVariable
 
 trait PrepareTemplateVariables {
 
