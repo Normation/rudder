@@ -110,6 +110,14 @@ import com.normation.rudder.domain.nodes.NodeInfo
 @RunWith(classOf[JUnitRunner])
 class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll {
 
+  //make tests more similar than default rudder install
+  val hookIgnore = """.swp, ~, .bak,
+ .cfnew   , .cfsaved  , .cfedited, .cfdisabled, .cfmoved,
+ .dpkg-old, .dpkg-dist, .dpkg-new, .dpkg-tmp,
+ .disable , .disabled , _disable , _disabled,
+ .ucf-old , .ucf-dist , .ucf-new ,
+ .rpmnew  , .rpmsave  , .rpmorig""".split(",").map( _.trim).toList
+
   //just a little sugar to stop hurting my eyes with new File(blablab, plop)
   implicit class PathString(root: String) {
     def /(child: String) = new File(root, child)
@@ -131,10 +139,11 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
   val EXPECTED_SHARE = configurationRepositoryRoot/"expected-share"
 
   val variableSpecParser = new VariableSpecParser
+  val systemVariableServiceSpec = new SystemVariableSpecServiceImpl()
   val policyParser: TechniqueParser = new TechniqueParser(
-      variableSpecParser,
-      new SectionSpecParser(variableSpecParser),
-      new SystemVariableSpecServiceImpl
+      variableSpecParser
+    , new SectionSpecParser(variableSpecParser)
+    , systemVariableServiceSpec
   )
   val reader = new GitTechniqueReader(
                 policyParser
@@ -154,7 +163,6 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) = ???
     override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = Full(List("192.168.49.0/24"))
   }
-  val systemVariableServiceSpec = new SystemVariableSpecServiceImpl()
   val systemVariableService = new SystemVariableServiceImpl(
       systemVariableServiceSpec
     , policyServerManagement
@@ -220,8 +228,8 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
       , logNodeConfig
       , prepareTemplateVariable
       , new FillTemplatesService()
-      , "/opt/rudder/etc/hooks.d"
-      , Nil
+      , "/we-don-t-want-hooks-here"
+      , hookIgnore
     )
 
     (rootGeneratedPromisesDir, promiseWritter)
@@ -608,6 +616,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
       .withMatcher(ignoreSomeLinesMatcher(
            """.*rudder_node_config_id" string => .*"""
         :: """.*string => "/.*/configuration-repository.*"""
+        :: """.*/test-rudder-config-repo-.*""" //config repos path with timestamp
         :: ignoreRegex
       ))
   }
