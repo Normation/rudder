@@ -183,7 +183,7 @@ class PostNodeAcceptanceHookScripts(
                            ("RUDDER_NODE_ID"              , nodeInfo.id.value)
                          , ("RUDDER_NODE_HOSTNAME"        , nodeInfo.hostname)
                          , ("RUDDER_NODE_POLICY_SERVER_ID",  nodeInfo.policyServerId.value)
-                         , ("RUDDER_AGENT_TYPE"           ,  nodeInfo.agentsName.headOption.map(_.name.tagValue).getOrElse(""))
+                         , ("RUDDER_AGENT_TYPE"           ,  nodeInfo.agentsName.headOption.map(_.agentType.id).getOrElse(""))
                        )
       postHooks     <- RunHooks.getHooks(HOOKS_D + "/node-post-acceptance", HOOKS_IGNORE_SUFFIXES)
       runPostHook   =  RunHooks.syncRun(postHooks, hookEnv, systemEnv)
