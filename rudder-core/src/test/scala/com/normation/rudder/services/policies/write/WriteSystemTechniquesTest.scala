@@ -620,6 +620,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
       .withMatcher(ignoreSomeLinesMatcher(
            """.*rudder_node_config_id" string => .*"""
         :: """.*string => "/.*/configuration-repository.*"""
+        :: """.*/test-rudder-config-repo-.*""" //config repos path with timestamp
         :: ignoreRegex
       ))
   }
