@@ -1513,6 +1513,7 @@ object RudderConfig extends Loggable {
       , eventLogRepository
       , dyngroupUpdaterBatch
       , List(nodeInfoServiceImpl)
+      , nodeInfoServiceImpl
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
     )
