@@ -89,6 +89,14 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.utils.Control.sequence
 import com.normation.utils.Control.bestEffort
+import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.domain.eventlog.InventoryLogDetails
+import com.normation.rudder.domain.eventlog.InventoryLogDetails
+import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.domain.eventlog.InventoryLogDetails
+import com.normation.rudder.hooks.HooksLogger
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.services.nodes.NodeInfoService
 
 
 /**
@@ -145,6 +153,47 @@ trait NewNodeManager extends NewNodeManagerHooks {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/*
+ * Logic to execute scripts in hooks.d/node-post-acceptance
+ */
+class PostNodeAcceptanceHookScripts(
+    HOOKS_D              : String
+  , HOOKS_IGNORE_SUFFIXES: List[String]
+  , nodeInfoService      : NodeInfoService
+) extends NewNodeManagerHooks with Loggable {
+
+  override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = {
+    val systemEnv = {
+      import scala.collection.JavaConverters._
+      HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
+    }
+
+    val postHooksTime =  System.currentTimeMillis
+    HooksLogger.info(s"Executing post-node-acceptance hooks for node with id '${nodeId.value}'")
+    for {
+      optNodeInfo   <- nodeInfoService.getNodeInfo(nodeId)
+      nodeInfo      <- optNodeInfo match {
+                         case None    => Failure(s"Just accepted node with id '${nodeId.value}' was not found - perhaps a bug?"+
+                                                  " Please report with /var/log/rudder/webapp/DATE_OF_DAY.stdout.log file attached")
+                         case Some(x) => Full(x)
+                       }
+      hookEnv       =  HookEnvPairs.build(
+                           ("RUDDER_NODE_ID"              , nodeInfo.id.value)
+                         , ("RUDDER_NODE_HOSTNAME"        , nodeInfo.hostname)
+                         , ("RUDDER_NODE_POLICY_SERVER_ID",  nodeInfo.policyServerId.value)
+                         , ("RUDDER_AGENT_TYPE"           ,  nodeInfo.agentsName.headOption.map(_.name.tagValue).getOrElse(""))
+                       )
+      postHooks     <- RunHooks.getHooks(HOOKS_D + "/node-post-acceptance", HOOKS_IGNORE_SUFFIXES)
+      runPostHook   =  RunHooks.syncRun(postHooks, hookEnv, systemEnv)
+      timePostHooks =  (System.currentTimeMillis - postHooksTime)
+      _             =  logger.debug(s"Node-post-acceptance scripts hooks ran in ${timePostHooks} ms")
+    } yield {
+      ()
+    }
+  }
+}
+
+
 /**
  * Default implementation: a new server manager composed with a sequence of
  * "unit" accept, one by main goals of what it means to accept a server;
@@ -164,9 +213,15 @@ class NewNodeManagerImpl(
   , val eventLogRepository : EventLogRepository
   , override val updateDynamicGroups : UpdateDynamicGroups
   , val cacheToClear: List[CachedRepository]
+  , nodeInfoService : NodeInfoService
+  , HOOKS_D              : String
+  , HOOKS_IGNORE_SUFFIXES: List[String]
 ) extends NewNodeManager with ListNewNode with ComposedNewNodeManager with NewNodeManagerHooks {
 
   private[this] val codeHooks = collection.mutable.Buffer[NewNodeManagerHooks]()
+
+  //by default, add the script hooks
+  appendPostAcceptCodeHook(new PostNodeAcceptanceHookScripts(HOOKS_D, HOOKS_IGNORE_SUFFIXES, nodeInfoService))
 
   override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = {
     codeHooks.foreach( _.afterNodeAcceptedAsync(nodeId) )
@@ -496,6 +551,10 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
       case Full(seq) => //ok, cool
         logger.info(s"New node accepted and managed by Rudder: ${id.value}")
         cacheToClear.foreach { _.clearCache }
+
+        // Update hooks for the node - need to be done after cache cleaning
+        afterNodeAcceptedAsync(id)
+
         updateDynamicGroups.startManualUpdate
         acceptationResults
       case e:EmptyBox => //on an error here, rollback all accpeted
