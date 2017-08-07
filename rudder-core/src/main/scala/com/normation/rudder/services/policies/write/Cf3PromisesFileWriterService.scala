@@ -37,58 +37,47 @@
 
 package com.normation.rudder.services.policies.write
 
-import java.io.File
-import java.io.IOException
-import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TechniqueTemplate
-import com.normation.cfclerk.exceptions.VariableException
+import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.COMMUNITY_AGENT
 import com.normation.inventory.domain.NOVA_AGENT
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.repository.LicenseRepository
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.hooks.HooksLogger
+import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLogger
+import com.normation.templates.FillTemplatesService
+import com.normation.templates.STVariable
 import com.normation.utils.Control._
-import org.antlr.stringtemplate.StringTemplate
+import java.io.File
+import java.io.IOException
+import monix.eval.Task
+import monix.eval.TaskSemaphore
+import monix.execution.ExecutionModel
+import monix.execution.Scheduler
+import net.liftweb.common._
+import net.liftweb.json.JsonAST
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.util.Helpers.tryo
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
-import org.joda.time.LocalDate
-import org.joda.time.LocalTime
-import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
-import com.normation.rudder.domain.licenses.NovaLicense
-import scala.io.Codec
-import com.normation.templates.FillTemplatesService
-import com.normation.templates.STVariable
-import com.normation.rudder.domain.nodes.NodeProperty
-import net.liftweb.json.JsonAST.JValue
-import scala.util.Try
-import scala.util.Success
-import scala.util.{Failure => FailTry}
-import com.normation.rudder.domain.Constants
-import net.liftweb.json.JsonAST
-import net.liftweb.json.Printer
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import scala.language.postfixOps
-import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.hooks.HooksLogger
-import monix.execution.Scheduler
-import monix.eval.TaskSemaphore
-import monix.eval.Task
 import scala.concurrent.Await
-import monix.execution.ExecutionModel
+import scala.io.Codec
+import scala.util.{ Failure => FailTry }
+import scala.util.Success
+import scala.util.Try
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -130,8 +119,8 @@ class Cf3PromisesFileWriterServiceImpl(
   private[this] def writeNodePropertiesFile (agentNodeConfig: AgentNodeConfiguration) = {
 
     def generateNodePropertiesJson(properties : Seq[NodeProperty]): JValue = {
-      import net.liftweb.json.JsonDSL._
       import com.normation.rudder.domain.nodes.JsonSerialisation._
+      import net.liftweb.json.JsonDSL._
       ( "properties" -> properties.toDataJson())
     }
 
@@ -282,6 +271,7 @@ class Cf3PromisesFileWriterServiceImpl(
                             for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
                               _ <- writeExpectedReportsCsv(prepared.paths, prepared.expectedReportsCsv, GENEREATED_CSV_FILENAME)
+                              _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
                               "OK"
                             }
@@ -424,6 +414,49 @@ class Cf3PromisesFileWriterServiceImpl(
       path.getAbsolutePath
     }
   }
+
+  private[this] def writeSystemVarJson(paths: NodePromisesPaths, variables: Map[String, Variable]) =  {
+    val path = new File(paths.newFolder, "rudder.json")
+    for {
+        _ <- tryo { FileUtils.writeStringToFile(path, systemVariableToJson(variables) + "\n", "UTF8") } ?~!
+               s"Can not write json parameter file at path '${path.getAbsolutePath}'"
+    } yield {
+      path.getAbsolutePath
+    }
+  }
+
+  private[this] def systemVariableToJson(vars: Map[String, Variable]): String = {
+    //only keep system variables, sort them by name
+    import net.liftweb.json._
+
+    //remove these system vars (perhaps they should not even be there, in fact)
+    val filterOut = Set(
+        "SUB_NODES_ID"
+      , "SUB_NODES_KEYHASH"
+      , "SUB_NODES_NAME"
+      , "SUB_NODES_SERVER"
+      , "MANAGED_NODES_ADMIN"
+      , "MANAGED_NODES_ID"
+      , "MANAGED_NODES_IP"
+      , "MANAGED_NODES_KEY"
+      , "MANAGED_NODES_NAME"
+      , "COMMUNITY", "NOVA"
+      , "BUNDLELIST", "INPUTLIST"
+    )
+
+    val systemVars = vars.toList.sortBy( _._2.spec.name ).collect { case (_, v: SystemVariable) if(!filterOut.contains(v.spec.name)) =>
+      // if the variable is multivalued, create an array, else just a String
+      val value = if(v.spec.multivalued) {
+        JArray(v.values.toList.map(JString))
+      } else {
+        JString(v.values.headOption.getOrElse(""))
+      }
+      JField(v.spec.name, value)
+    }
+
+    prettyRender(JObject(systemVars))
+  }
+
 
   private[this] def writePromises(
       paths            : NodePromisesPaths

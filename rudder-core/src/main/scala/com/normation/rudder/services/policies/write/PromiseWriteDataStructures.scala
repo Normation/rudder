@@ -44,6 +44,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.utils.HashcodeCaching
 import com.normation.templates.STVariable
+import com.normation.cfclerk.domain.Variable
 
 /**
  * That file store utility case classes about information used to
@@ -53,7 +54,6 @@ import com.normation.templates.STVariable
  * They are used so that API and code reading make more sense
  * (String, String, String) parameter is not really telling.
  */
-
 
 /**
  * Data structure that holds all the configuration about a node/agent,
@@ -66,7 +66,6 @@ case class AgentNodeConfiguration(
   , paths    : NodePromisesPaths
 )
 
-
 /**
  * Data structure that hold all the information to actually write
  * configuration for a node/agent in a CFEngine compatible way:
@@ -76,9 +75,11 @@ case class AgentNodeConfiguration(
  * - the expected reports csv file content
  */
 final case class AgentNodeWritableConfiguration(
-    paths             : NodePromisesPaths
+    agentType         : AgentType
+  , paths             : NodePromisesPaths
   , preparedTechniques: Seq[PreparedTechnique]
   , expectedReportsCsv: ExpectedReportsCsv
+  , systemVariables   : Map[String, Variable]
 )
 
 /**
@@ -109,8 +110,6 @@ case class PreparedTechnique(
   , environmentVariables: Seq[STVariable]
   , filesToCopy         : Set[TechniqueFile]
 ) extends HashcodeCaching
-
-
 
 /**
  * A class that store information about a template to copy somewhere.
