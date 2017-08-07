@@ -294,6 +294,11 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , multivalued = false
                                            , isUniqueVariable = true
                         )
+    , SystemVariableSpec(
+                              "AGENT_TYPE" , "The normalised name of the agent type (cfengine-community, dsc, etc)"
+                                           , multivalued = false
+                                           , isUniqueVariable = true
+                        )
   )
 
   private[this] val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap

@@ -126,6 +126,7 @@ class PrepareTemplateVariablesImpl(
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
         systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == NOVA_AGENT     ) Seq("true") else Seq())
       , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == COMMUNITY_AGENT) Seq("true") else Seq())
+      , systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.tagValue))
       , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
     ).map(x => (x.spec.name, x)).toMap
 
@@ -140,7 +141,7 @@ class PrepareTemplateVariablesImpl(
       logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: creating lines for expected reports CSV files")
       val csv = ExpectedReportsCsv(prepareReportingDataForMetaTechnique(container, rudderIdCsvTag))
 
-      AgentNodeWritableConfiguration(agentNodeConfig.paths, preparedTemplate.values.toSeq, csv)
+      AgentNodeWritableConfiguration(agentNodeConfig.agentType, agentNodeConfig.paths, preparedTemplate.values.toSeq, csv, allSystemVars)
     }
   }
 
