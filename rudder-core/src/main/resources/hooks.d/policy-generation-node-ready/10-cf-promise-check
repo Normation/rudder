@@ -2,23 +2,25 @@
 
 # Hooks parameter are passed by environment variable: 
 #
-# - RUDDER_GENERATION_DATETIME    : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation start 
-# - RUDDER_NODEID                 : the nodeId
-# - RUDDER_NEXT_POLICIES_DIRECTORY: new policies directory (for ex for nodes under root: /var/rudder/share/$RUDDER_NODEID/rules.new)
-# - RUDDER_AGENT_TYPE             : agent type ("cfengine-nova" or "cfengine-community")
+# - RUDDER_GENERATION_DATETIME   : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation start 
+# - RUDDER_NODE_ID               : the nodeId
+# - RUDDER_NODE_HOSTNAME         : the node fully qualified hostname
+# - RUDDER_NODE_POLICY_SERVER_ID : the node policy server id
+# - RUDDER_AGENT_TYPE            : agent type ("cfengine-nova" or "cfengine-community")
+# - RUDDER_POLICIES_DIRECTORY_NEW: new policies directory (for ex for nodes under root: /var/rudder/share/$RUDDER_NODE_ID/rules.new)
 
-if [ -z "${RUDDER_NEXT_POLICIES_DIRECTORY}" ]; then
+if [ -z "${RUDDER_POLICIES_DIRECTORY_NEW}" ]; then
   #bad rules.new directory
-  echo "The directory for node ${RUDDER_NODEID} new policies is empty"
+  echo "The directory for node ${RUDDER_NODE_ID} new policies is empty"
   exit 1;
 else 
   case "${RUDDER_AGENT_TYPE}" in
     "cfengine-community")
-      exec /var/rudder/cfengine-community/bin/cf-promises -f "${RUDDER_NEXT_POLICIES_DIRECTORY}/promises.cf"
+      exec /var/rudder/cfengine-community/bin/cf-promises -f "${RUDDER_POLICIES_DIRECTORY_NEW}/promises.cf"
     ;;
   
     "cfengine-nova")
-      exec /var/cfengine/bin/cf-promises -f "${RUDDER_NEXT_POLICIES_DIRECTORY}/promises.cf"
+      exec /var/cfengine/bin/cf-promises -f "${RUDDER_POLICIES_DIRECTORY_NEW}/promises.cf"
     ;;
   
     "dsc")
@@ -28,7 +30,7 @@ else
   
     *)
       #unknown agent type
-      echo "Agent type ${RUDDER_AGENT_TYPE} for node ${RUDDER_NODEID} is not supported"
+      echo "Agent type ${RUDDER_AGENT_TYPE} for node ${RUDDER_NODE_ID} is not supported"
       exit 2
     ;;
   esac

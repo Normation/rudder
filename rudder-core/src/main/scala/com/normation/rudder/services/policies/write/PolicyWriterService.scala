@@ -303,13 +303,20 @@ class Cf3PromisesFileWriterServiceImpl(
       preMvHooks       <- parrallelSequence(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
+                            val hostname = agentNodeConfig.config.nodeInfo.hostname
+                            val policyServer = agentNodeConfig.config.nodeInfo.policyServerId.value
                             val res = RunHooks.syncRun(
                                           nodePreMvHooks
                                         , HookEnvPairs.build(
                                                                  ("RUDDER_GENERATION_DATETIME", generationTime.toString)
+                                                               , ("RUDDER_NODE_ID", nodeId)
+                                                               , ("RUDDER_NODE_HOSTNAME", hostname)
+                                                               , ("RUDDER_NODE_POLICY_SERVER_ID", policyServer)
+                                                               , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.id)
+                                                               , ("RUDDER_POLICIES_DIRECTORY_NEW", agentNodeConfig.paths.newFolder)
+                                                                 // for compat in 4.1. Remove in 4.2
                                                                , ("RUDDER_NODEID", nodeId)
                                                                , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
-                                                               , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.id)
                                                              )
                                         , systemEnv
                             )
@@ -321,13 +328,20 @@ class Cf3PromisesFileWriterServiceImpl(
       postMvHooks      <- parrallelSequence(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
+                            val hostname = agentNodeConfig.config.nodeInfo.hostname
+                            val policyServer = agentNodeConfig.config.nodeInfo.policyServerId.value
                             val res = RunHooks.syncRun(
                                           nodePostMvHooks
                                         , HookEnvPairs.build(
                                                                ("RUDDER_GENERATION_DATETIME", generationTime.toString)
+                                                             , ("RUDDER_NODE_ID", nodeId)
+                                                             , ("RUDDER_NODE_HOSTNAME", hostname)
+                                                             , ("RUDDER_NODE_POLICY_SERVER_ID", policyServer)
+                                                             , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.id)
+                                                             , ("RUDDER_POLICIES_DIRECTORY_CURRENT", agentNodeConfig.paths.baseFolder)
+                                                               // for compat in 4.1. Remove in 4.2
                                                              , ("RUDDER_NODEID", nodeId)
                                                              , ("RUDDER_POLICIES_DIRECTORY", agentNodeConfig.paths.baseFolder)
-                                                             , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.id)
                                                            )
                                         , systemEnv
                             )
