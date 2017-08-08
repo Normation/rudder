@@ -317,7 +317,6 @@ class Cf3PromisesFileWriterServiceImpl(
                                                                  // for compat in 4.1. Remove in 4.2
                                                                , ("RUDDER_NODEID", nodeId)
                                                                , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
->>>>>>> Fixes #11213: Non normalize hooks env var names for node info:rudder-core/src/main/scala/com/normation/rudder/services/policies/write/Cf3PromisesFileWriterService.scala
                                                              )
                                         , systemEnv
                             )
