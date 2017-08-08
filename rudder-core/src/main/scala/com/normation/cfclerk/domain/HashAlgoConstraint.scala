@@ -268,7 +268,7 @@ object HashAlgoConstraint {
       case None => Failure(s"Unknown algorithm ${algo}. List of know algorithm: ${algoNames(algos)}")
       case Some(a) => Full((a,h))
     }
-    case _ => Failure(s"Bad format of serialized hashed value, expected format is: 'algorithme:hash', with algorithm among: ${algoNames(algos)}")
+    case _ => Failure(s"Bad format of serialized hashed value, expected format is: 'algorithm:hash', with algorithm among: ${algoNames(algos)}")
   }
 
   def unserialize(value:String): Box[(HashAlgoConstraint, String)] = {
