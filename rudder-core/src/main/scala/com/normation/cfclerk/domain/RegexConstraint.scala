@@ -40,6 +40,7 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
+import java.util.regex.Pattern
 
 /**
  * We require a non empty regex pattern
@@ -50,9 +51,11 @@ case class RegexConstraint(pattern: String, errorMsg: String) extends HashcodeCa
     throw new ConstraintException("A regex constraint was created with an empty pattern, which has no meaning")
   }
 
+  val compiled = Pattern.compile(pattern)
+
   /* throw a ConstraintException if the value doesn't match the pattern */
   def check(varValue: String, varName: String) : Box[String ]=
-    if(pattern != "" && !varValue.matches(pattern)) {
+    if(!compiled.matcher(varValue).matches) {
       Failure("%s%s".format(
         "Please modify " + varName + " to match the requested format",
         if (errorMsg != "") " : " + errorMsg else ""))
@@ -65,10 +68,34 @@ object RegexConstraint {
   // (?i) : case insensitive
   val mail = """(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b"""
 
-  val ip = """\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}""" +
-    """(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b"""
+  val ipv4 = """\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}
+                     (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b""".replaceAll("""\s""", "")
+
+  //didn't invented it: http://sroze.io/2008/10/09/regex-ipv4-et-ipv6/
+  val ipv6 ="""(
+      (([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}) |
+      (([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4}) |
+      (([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4}) |
+      (([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4}) |
+      (([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4}) |
+      (([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4}) |
+      (([0-9A-Fa-f]{1,4}:){6}((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b).){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)) |
+      (([0-9A-Fa-f]{1,4}:){0,5}:((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b).){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)) |
+      (([0-9A-Fa-f]{1,4}:){0,5}:((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b).){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)) |
+      (::([0-9A-Fa-f]{1,4}:){0,5}((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b).){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)) |
+      ([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4}) |
+      (::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4}) |
+      (([0-9A-Fa-f]{1,4}:){1,7}:)
+    )""".replaceAll("""\s""","")
+
+  val ipv4or6 = s"""(${ipv4})|(${ipv6})"""
 
 }
 
-object MailRegex extends RegexConstraint(RegexConstraint.mail, "invalid format for the given email (valid example : pat@example.com)")
-object IpRegex extends RegexConstraint(RegexConstraint.ip, "invalid format for the given ip (should be xxx.xxx.xxx.xxx, where xxx is a number from 0-255)")
+object MailRegex    extends RegexConstraint(RegexConstraint.mail   , "invalid format for the given email (valid example : pat@example.com)")
+
+object Ipv4Regex    extends RegexConstraint(RegexConstraint.ipv4   , "invalid format for the given IPv4 (it should be xxx.xxx.xxx.xxx, where xxx is a number from 0-255)")
+object Ipv6Regex    extends RegexConstraint(RegexConstraint.ipv6   , "invalid format for the given IPv6 (typically looks like 2001:db8::1:0:0:1, "+
+                                                                     "see https://tools.ietf.org/html/rfc5952 for more information)")
+object IpRegex      extends RegexConstraint(RegexConstraint.ipv4or6, "invalid format for the given IP v4 or v6 (IP v4: xxx.xxx.xxx.xxx, where xxx is a number from 0-255); "+
+                                                                     "IP v6: typically looks like 2001:db8::1:0:0:1, see https://tools.ietf.org/html/rfc5952 for more information")
