@@ -57,6 +57,15 @@ function resortTable (tableId) {
   table.draw();
 }
 
+function computeCompliancePercent (complianceArray) {
+  var repaired = complianceArray[3];
+  // Enforce N/A + Audit N/A
+  var na       = complianceArray[1] + complianceArray[9];
+  // Enforce success + Audit success
+  var success  = complianceArray[2] + complianceArray[10];
+  return repaired + na + success;
+}
+
 $.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
 {
     var data =
@@ -66,7 +75,7 @@ $.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
         , function (elem, index) {
             if (elem.id in ruleCompliances) {
               var compliance = ruleCompliances[elem.id];
-              return compliance[0] + compliance[1] + compliance[2]
+              return computeCompliancePercent(compliance)
             }
             return -1;
           }
@@ -84,7 +93,7 @@ $.fn.dataTableExt.afnSortData['node-compliance'] = function ( oSettings, iColumn
         , function (elem, index) {
             if (elem.id in nodeCompliances) {
               var compliance = nodeCompliances[elem.id];
-              return compliance[0] + compliance[1] + compliance[2]
+              return computeCompliancePercent(compliance)
             }
             return -1;
           }
@@ -1466,9 +1475,7 @@ function buildComplianceBar(compliance, minPxSize) {
   var auditError           = compliance[12];
   var badPolicyMode        = compliance[13];
 
-  var notApplicable = enforceNotApplicable + auditNotApplicable;
-  var success = enforceSuccess + compliant;
-  var okStatus = success + repaired + notApplicable;
+  var okStatus = computeCompliancePercent(compliance)
   var unexpected = missing + unknown + badPolicyMode;
   var error = enforceError + auditError;
   
