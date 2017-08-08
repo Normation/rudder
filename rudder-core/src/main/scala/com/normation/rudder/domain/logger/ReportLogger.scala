@@ -37,10 +37,9 @@
 
 package com.normation.rudder.domain.logger
 
-import org.slf4j.LoggerFactory
-import net.liftweb.common.Logger
-import net.liftweb.common.Failure
 import com.normation.rudder.domain.reports._
+import net.liftweb.common.Logger
+import org.slf4j.LoggerFactory
 
 object ReportLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("report")
@@ -50,11 +49,22 @@ object ReportLogger extends Logger {
 object AllReportLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("non-compliant-reports")
 
-  def FindLogger(reportType : String) :((=> AnyRef) => Unit) = reportType match{
-    case Reports.RESULT_ERROR    => error
-    case Reports.RESULT_REPAIRED => warn
-    case Reports.LOG_WARN        => warn
-    case _                       => info
+  def FindLogger(reportType : String) :((=> AnyRef) => Unit) = {
+    import Reports._
+
+    reportType match{
+      // error
+      case RESULT_ERROR       => error
+      case AUDIT_NONCOMPLIANT => error
+      case AUDIT_ERROR        => error
+
+      // warning
+      case RESULT_REPAIRED => warn
+      case LOG_WARN        => warn
+      case LOG_WARNING     => warn
+
+      case _               => info
+    }
   }
 }
 
