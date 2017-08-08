@@ -703,7 +703,7 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
       for {
         nodeConfigs <- bestEffort(interpolationContexts.toSeq) { case (nodeId, context) =>
           (for {
-            drafts          <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithme error: cannot find back the configuration information for a node"
+            drafts          <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithm error: cannot find back the configuration information for a node"
             /*
              * Clearly, here, we are evaluating parameters, and we are not using that just after in the
              * variable expansion, which mean that we are doing the same work again and again and again.
@@ -937,7 +937,7 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
               val directives = drafts.map { draft =>
                 rule.directiveVals.find( _.directiveId == draft.directiveId) match {
                   case None =>
-                    logger.error("Inconsistency in promise generation algorithme: missing original directive for a node configuration,"+
+                    logger.error("Inconsistency in promise generation algorithm: missing original directive for a node configuration,"+
                         s"please report this message. Directive with id '${draft.directiveId.value}' in rule '${rule.ruleId.value}' will be ignored")
                     None
                   case Some(directiveVal) =>
