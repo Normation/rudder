@@ -72,7 +72,7 @@ object VTypeConstraint {
   val sizeTypes: List[VTypeConstraint] =
     SizebVType() :: SizekbVType() :: SizembVType() :: SizegbVType() :: SizetbVType() :: Nil
   val regexTypes: List[VTypeConstraint] =
-    MailVType :: IpVType :: Nil
+    MailVType :: IpVType :: Ipv4VType :: Ipv6VType :: Nil
   def stringTypes(r: Option[RegexConstraint]): List[VTypeConstraint] =
     DateVType(r) :: DateTimeVType(r) :: TimeVType(r) ::
     IntegerVType(r) :: BasicStringVType(r) :: TextareaVType(r) ::
@@ -117,6 +117,14 @@ object IpVType extends FixedRegexVType {
   override val name = "ip"
   override val regex = Some(IpRegex)
 }
+object Ipv4VType extends FixedRegexVType {
+  override val name = "ipv4"
+  override val regex = Some(Ipv4Regex)
+}
+object Ipv6VType extends FixedRegexVType {
+  override val name = "ipv6"
+  override val regex = Some(Ipv6Regex)
+}
 object MailVType extends FixedRegexVType {
   override val name = "mail"
   override val regex = Some(MailRegex)
@@ -136,7 +144,7 @@ case class IntegerVType(regex: Option[RegexConstraint] = None) extends VTypeCons
 }
 
 sealed trait SizeVType extends StringVType
-case class SizebVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-b" }
+case class SizebVType (regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-b" }
 case class SizekbVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-kb" }
 case class SizembVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-mb" }
 case class SizegbVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-gb" }
@@ -203,8 +211,8 @@ case object RawVType             extends VTypeConstraint {
 }
 
 case class Constraint(
-    typeName: VTypeConstraint = BasicStringVType()
-  , default: Option[String] = None
+    typeName  : VTypeConstraint = BasicStringVType()
+  , default   : Option[String] = None
   , mayBeEmpty: Boolean = false
   , usedFields: Set[String] = Set()
 ) extends HashcodeCaching {
