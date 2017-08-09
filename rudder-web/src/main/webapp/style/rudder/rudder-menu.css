@@ -2547,6 +2547,15 @@ span.techversion {
   margin-right:5px;
   text-align:center;
 }
+
+.statusCell > span.tooltipable.tooltip {
+  opacity: 1;
+  font-family: inherit;
+  position: static;
+  font-size: 14px;
+  cursor: help;
+  font-weight: bold;
+}
 @keyframes opacity-1 {
   0%   {opacity:0;visibility: visible;}
   100% {opacity:1;visibility: visible;}
