@@ -118,7 +118,7 @@ class RemoveNodeServiceImpl(
    */
   def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[DeletionResult] = {
     import DeletionResult._
-    def effectiveDeletion( nodeInfo : NodeInfo, nodePaths : NodePromisesPaths, preHooks : Hooks, startPreHooks : Long) : Box[DeletionResult]  = {
+    def effectiveDeletion( nodeInfo : NodeInfo, optNodePaths: Option[NodePromisesPaths], preHooks : Hooks, startPreHooks : Long) : Box[DeletionResult]  = {
       val systemEnv = {
         import scala.collection.JavaConverters._
         HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
@@ -131,9 +131,9 @@ class RemoveNodeServiceImpl(
           , ("RUDDER_NODE_POLICY_SERVER_ID", nodeInfo.policyServerId.value)
           , ("RUDDER_AGENT_TYPE"           , nodeInfo.agentsName.headOption.map( _.agentType.id).getOrElse(""))
           , ("RUDDER_NODE_ROLES"           , nodeInfo.serverRoles.map(_.value).mkString(","))
-          , ("RUDDER_POLICIES_DIRECTORY_CURRENT" , nodePaths.baseFolder)
-          , ("RUDDER_POLICIES_DIRECTORY_NEW"     , nodePaths.newFolder)
-          , ("RUDDER_POLICIES_DIRECTORY_ARCHIVE" , nodePaths.backupFolder)
+          , ("RUDDER_POLICIES_DIRECTORY_CURRENT" , optNodePaths.map(_.baseFolder).getOrElse(""))
+          , ("RUDDER_POLICIES_DIRECTORY_NEW"     , optNodePaths.map(_.newFolder).getOrElse(""))
+          , ("RUDDER_POLICIES_DIRECTORY_ARCHIVE" , optNodePaths.map(_.backupFolder).getOrElse(""))
             // for compat in 4.1. Remove in 4.2
           , ("RUDDER_NODEID"             , nodeId.value)
           , ("RUDDER_NODE_POLICY_SERVER" , nodeInfo.policyServerId.value)
@@ -182,7 +182,13 @@ class RemoveNodeServiceImpl(
                              case None    => Failure(s"The node with id ${nodeId.value} was not found and can not be deleted")
                              case Some(x) => Full(x)
                            }
-          nodePaths     <- getNodePath(nodeInfo)
+          nodePaths     =  getNodePath(nodeInfo) match {
+                             case Full(x) => Some(x)
+                             case eb:EmptyBox => // if the policy server is not found, we must not fails (#11231)
+                               val msg = (eb ?~! s"Error when trying to calculate node '${nodeId.value}' policy path").messageChain
+                               logger.warn(msg)
+                               None
+                           }
           startPreHooks =  System.currentTimeMillis
           preHooks      <- RunHooks.getHooks(HOOKS_D + "/node-pre-deletion", HOOKS_IGNORE_SUFFIXES)
           result        <- effectiveDeletion(nodeInfo, nodePaths, preHooks, startPreHooks)
