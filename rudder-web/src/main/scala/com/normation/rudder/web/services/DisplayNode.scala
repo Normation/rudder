@@ -528,13 +528,13 @@ object DisplayNode extends Loggable {
   private def displayPolicyServerInfos(sm:FullInventory) : NodeSeq = {
     nodeInfoService.getNodeInfo(sm.node.main.policyServerId) match {
       case eb:EmptyBox =>
-        val e = eb ?~! s"Could not fetch policy server details (id ${sm.node.main.policyServerId}) for node with id ${sm.node.main.id}"
+        val e = eb ?~! s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')"
         logger.error(e.messageChain)
         <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>
       case Full(Some(policyServerDetails)) =>
         <span><b>Rudder Policy Server: </b><a href={JsInitContextLinkUtil.baseNodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
       case Full(None) =>
-        logger.error(s"Could not fetch policy server details (id ${sm.node.main.policyServerId}) for node with id ${sm.node.main.id}")
+        logger.error(s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')")
         <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>
     }
   }
