@@ -602,10 +602,11 @@ class RuleGrid(
               val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
 
               val conditions = {
-                Seq( ( line.rule.isEnabled            , "Rule disabled" )
-                   , ( line.trackerVariables.size > 0 , "No policy defined")
-                   , ( isAllTargetsEnabled            , "Group disabled")
-                   , ( nodes.size!=0                    , "Empty groups")
+                Seq( ( !line.rule.isEnabledStatus, "Rule disabled" )
+                   , ( line.rule.isEnabledStatus && !line.rule.isEnabled , "Rule unapplied" )
+                   , ( line.trackerVariables.size <= 0 , "No policy defined")
+                   , ( !isAllTargetsEnabled            , "Group disabled")
+                   , ( nodes.size<=0                   , "Empty groups")
                 ) ++
                 line.trackerVariables.flatMap {
                   case (directive, activeTechnique,_) =>
@@ -614,7 +615,7 @@ class RuleGrid(
                     )
                 }
               }
-              val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ")
+              val why =  conditions.collect { case (ok, label) if(ok) => label }.mkString(", ")
               ("Not applied", Some(why))
           }
         case _ : ErrorLine => ("N/A",None)
@@ -648,12 +649,13 @@ class RuleGrid(
 
     val t2 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: checkbox callback: ${t2-t1}ms")
-
     // Css to add to the whole line
     val cssClass = {
       val disabled = if (line.rule.isEnabled) {
         ""
-      } else {
+      } else if(line.rule.isEnabledStatus){
+        "unappliedRule"
+      }else{
         "disabledRule"
       }
 
