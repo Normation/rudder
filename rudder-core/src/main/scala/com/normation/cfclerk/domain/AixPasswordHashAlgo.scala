@@ -50,7 +50,7 @@ import net.liftweb.common.EmptyBox
 
 
 /*
- * This file contains the implementation of the 4 supported algorithmes in
+ * This file contains the implementation of the 4 supported algorithms in
  * AIX /etc/security/passwd file (with example hash string result for
  * the password "secret"):
  * - salted md5     : {smd5}tyiOfoE4$r5HleyKHVdL3dg9ouzcZ80
