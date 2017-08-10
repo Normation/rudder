@@ -32,29 +32,53 @@
     </div>
     <form role="form" name="complianceModeForm" class="form-horizontal tw-bs" >
 
-      <div class="deca"  ng-hide="isNodePage">
-      <div class="tw-bs">
-      <div class="radio">
-        <label>
-          <input type="radio" ng-model="complianceMode.name" value="full-compliance" />
-          Full compliance
-        </label>
-     </div>
-      <div class="radio">
-        <label>
-          <input type="radio" ng-model="complianceMode.name"  value="changes-only"/>
-          Non compliant only
-        </label>
-     </div>
-      <div class="radio">
-        <label>
-          <input type="radio" ng-model="complianceMode.name"  value="reports-disabled"/>
-          Disabled
-        </label>
-     </div>
-     </div>
-
+      <div ng-hide="isNodePage">
+        <ul>
+          <li class="rudder-form">
+            <div class="input-group">
+              <label class="input-group-addon" for="fullcompliance">
+                <input type="radio" ng-model="complianceMode.name" value="full-compliance" id="fullcompliance"/>
+                <label for="fullcompliance" class="label-radio">
+                  <span class="ion ion-record"></span>
+                </label>
+                <span class="ion ion-checkmark-round check-icon"></span>
+              </label>
+              <label class="form-control" for="fullcompliance">
+                Full compliance
+              </label>
+            </div>
+          </li>
+          <li class="rudder-form">
+            <div class="input-group">
+              <label class="input-group-addon" for="noncompliant">
+                <input type="radio" ng-model="complianceMode.name"  value="changes-only" id="noncompliant"/>
+                <label for="noncompliant" class="label-radio">
+                  <span class="ion ion-record"></span>
+                </label>
+                <span class="ion ion-checkmark-round check-icon"></span>
+              </label>
+              <label class="form-control" for="noncompliant">
+                Non compliant only
+              </label>
+            </div>
+          </li>
+          <li class="rudder-form">
+            <div class="input-group">
+              <label class="input-group-addon" for="disabledCompliance">
+                <input type="radio" ng-model="complianceMode.name"  value="reports-disabled" id="disabledCompliance"/>
+                <label for="disabledCompliance" class="label-radio">
+                  <span class="ion ion-record"></span>
+                </label>
+                <span class="ion ion-checkmark-round check-icon"></span>
+              </label>
+              <label class="form-control" for="disabledCompliance">
+                Disabled
+              </label>
+            </div>
+          </li>
+        </ul>
       </div>
+
       <div ng-hide="complianceMode.name !== 'changes-only'" class="animate-hide">
         <div class="page-title">Agent run heartbeat</div>
         <div class="portlet-content" >
