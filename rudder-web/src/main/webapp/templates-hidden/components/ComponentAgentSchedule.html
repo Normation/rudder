@@ -3,21 +3,48 @@
   select.twoCol {
     width:auto;
   }
-
   select {
     min-width:50px;
+  }
+  select.form-control.input-sm.schedule{
+    display: inline-block !important;
+    width: auto;
+  }
+  .inline-input-group{
+    margin-top:15px;
+  }
+  .globalConf label{
+    width: 100%;
+    max-width: 140px;
+  }
+  #runInterval{
+    margin-left:-4px;
+  }
+  .inline-input-group > label{
+    float:left;
+  }
+  .inline-input-group > .input-group{
+    float:left;
+    width:312px;
+  }
+  .inline-input-group > .input-group > select + .input-group-addon{
+    border-left:none;
+    border-right:none;
+    background-color: #f4f4f4;
+  }
+  .inline-input-group > .input-group > .input-group-addon:last-child{
+    border-right:1px solid #d2d6de;
   }
 </style>
 
 <div class="inner-portlet tw-bs" id="cfagentSchedule">
   <div class="page-title">Agent run schedule</div>
   <div class="portlet-content"  id="agentScheduleController" ng-controller="cfagentScheduleController">
-    <div class="tw-bs">
-      <div class="col-lg-12 callout-fade callout-warning">
-         <div class="marker">
-           <span class="glyphicon glyphicon-info-sign"></span>
-         </div>
-         <div ng-if="globalRun === undefined">
+    <div class="col-xs-12 callout-fade callout-warning">
+      <div class="marker">
+        <span class="glyphicon glyphicon-info-sign"></span>
+      </div>
+      <div ng-if="globalRun === undefined">
         <p>By default, the agent runs on all nodes every 5 minutes.</p>
         <p>
           This high frequency enables fast response times to apply changes and state
@@ -33,45 +60,48 @@
         <p>The current global setting is to run every <b>{{getIntervalValue(globalRun.interval)}}</b>, starting at <b>{{(format2Digits(globalRun.startHour))}}:{{(format2Digits(globalRun.startMinute))}}</b>, with a maximum delay after scheduled run time (random interval) of <b>{{(format2Digits(globalRun.splayHour))}}:{{(format2Digits(globalRun.splayMinute))}}</b>.</p>
         <p>You may override this global setting just for this node below:</p>
       </div>
-       </div>
     </div>
-    <hr class="spacer" />
-    <div class="deca" ng-class="{'tw-bs': globalRun}">
+    <div class="col-xs-12">
       <form role="form" class="form-horizontal"  ng-hide="agentRun === undefined">
-        <div class="form-group" ng-hide="globalRun === undefined">
-          <div>
-            <label for="override" class="control-label">
-              <input  id="override" ng-model="agentRun.overrides" type="checkbox"/>
+        <ul ng-hide="globalRun === undefined">
+          <li class="rudder-form">
+            <div class="input-group">
+              <label class="input-group-addon" for="override">
+                <input  id="override" ng-model="agentRun.overrides" type="checkbox"/>
+                <label for="override" class="label-radio">
+                  <span class="ion ion-checkmark-round"></span>
+                </label>
+                <span class="ion ion-checkmark-round check-icon"></span>
+              </label>
+              <label class="form-control" for="override">
                 Override global value
-            </label>
+                <span id="denyBadClocksTooltip"></span>
+              </label>
+            </div>
+          </li>
+        </ul>
+        <div class="globalConf">
+          <div class="form-group">
+            <label for="runInterval" class="control-label">Run agent every </label>
+            <select class="form-control input-sm schedule" ng-model="agentRun.interval" id="runInterval" ng-options="item.m as item.name for item in intervals" ng-disabled="overridesInterval()"  ng-change="onChangeInterval()"></select>
           </div>
-        </div>
-        <div class="form-group">
-          <label for="runInterval" class="col-sm-1 control-label">Run agent every:</label>
-          <div class="col-sm-1">
-            <select  class="form-control input-sm pull-left" ng-model="agentRun.interval" id="runInterval" ng-options="item.m as item.name for item in intervals" ng-disabled="overridesInterval()"  ng-change="onChangeInterval()"></select>
+          <div class="form-group inline-input-group">
+            <label class="control-label">First run time</label>
+            <div class="input-group input-group-sm">
+              <select class="form-control input-sm" id="startHour" ng-model="agentRun.startHour" ng-options="item for item in hours()" ng-disabled="overridesInterval() || checkHours() " ng-change="onChange()"></select>
+              <span class="input-group-addon" id="sizing-addon3">Hour{{agentRun.startHour > 1 ? "s" : ""}}</span>
+              <select class="pull-left form-control input-sm"  id="startMinute" ng-model="agentRun.startMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
+              <span class="input-group-addon" id="sizing-addon3">Minute{{agentRun.startMinute > 1 ? "s" : ""}}</span>
+            </div>
           </div>
-        </div>
-        <h4>First run time</h4>
-        <div class="form-group">
-          <label class="control-label  col-sm-1" for="startHour">Hour</label>
-          <div class="col-sm-1">
-            <select class="form-control input-sm" id="startHour" ng-model="agentRun.startHour" ng-options="item for item in hours()" ng-disabled="overridesInterval() || checkHours() " ng-change="onChange()"></select>
-          </div>
-          <label for="startMinute" class=" pull-left control-label">Minute</label>
-          <div class="col-sm-1">
-            <select class="pull-left form-control input-sm"  id="startMinute" ng-model="agentRun.startMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
-          </div>
-        </div>
-        <h4>Maximum delay after scheduled run time (random interval)</h4>
-        <div class="form-group">
-          <label class=" col-sm-1 control-label" for="splayHour" >Hours</label>
-          <div class="col-sm-1">
-            <select id="splayHour"  class="pull-left form-control input-sm" ng-model="agentRun.splayHour" ng-options="item for item in hours()" ng-disabled="checkHours() || overridesInterval()" ng-change="onChange()"></select>
-          </div>
-          <label class=" pull-left control-label" for="splayMinute" >Minutes</label>
-          <div class="col-sm-1">
-            <select id="splayMinute"  class="pull-left form-control input-sm" ng-model="agentRun.splayMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
+          <div class="form-group inline-input-group">
+            <label class="control-label">Maximum delay</label>
+            <div class="input-group input-group-sm">
+              <select id="splayHour"  class="pull-left form-control input-sm" ng-model="agentRun.splayHour" ng-options="item for item in hours()" ng-disabled="checkHours() || overridesInterval()" ng-change="onChange()"></select>
+              <span class="input-group-addon" id="sizing-addon3">Hour{{agentRun.startHour > 1 ? "s" : ""}}</span>
+              <select id="splayMinute"  class="pull-left form-control input-sm" ng-model="agentRun.splayMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
+              <span class="input-group-addon" id="sizing-addon3">Minute{{agentRun.startMinute > 1 ? "s" : ""}}</span>
+            </div>
           </div>
         </div>
         <lift:authz role="administration_write">
