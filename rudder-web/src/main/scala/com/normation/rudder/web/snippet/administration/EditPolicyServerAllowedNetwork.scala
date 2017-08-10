@@ -68,7 +68,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
-
+  private[this] var addNetworkField = ""
   /*
    * We are forced to use that class to deals with multiple request
    * not processed in order (ex: one request add an item, the second remove
@@ -188,16 +188,19 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     def delete(i:Long) : JsCmd = {
       allowedNetworks -= VH(i)
       allowedNetworksMap.put(policyServerId, allowedNetworks)
-      Replace(allowedNetworksFormId, outerXml.applyAgain)
+      Replace(allowedNetworksFormId, outerXml.applyAgain) & JsRaw("""
+        initInputAddress();
+      """)
     }
 
     def add() : JsCmd = {
-      allowedNetworks.append(VH())
+      allowedNetworks.append(VH(net = addNetworkField))
+      addNetworkField = ""
       allowedNetworksMap.put(policyServerId, allowedNetworks)
-      Replace(allowedNetworksFormId, outerXml.applyAgain)
+      Replace(allowedNetworksFormId, outerXml.applyAgain) & JsRaw("""
+        initInputAddress();
+      """)
     }
-
-
 
     //process the list of networks
     currentNets match {
@@ -210,8 +213,8 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
             val id = "network_"+ i
 
             (
-              ".deleteNetwork" #> SHtml.ajaxSubmit("-", () => delete(i)) &
-              "#errorNetworkField" #> <td id="errorNetworkField"><span class={"lift:Msg?errorClass=bs-text-danger;id=errornetwork_"+i}>[error]</span></td> &
+              ".deleteNetwork" #> SHtml.ajaxButton(<span class="glyphicon glyphicon-minus"></span>, () => delete(i)) &
+              "#errorNetworkField" #> <div id="errorNetworkField"><span class={"lift:Msg?errorClass=bs-text-danger;id=errornetwork_"+i}>[error]</span></div> &
               ".networkField [name]" #> id andThen
               ".networkField" #> SHtml.text(net,  {x =>
                 allowedNetworks.find { case VH(y,_) => y==i }.foreach{ v => v.net = x }
@@ -219,15 +222,18 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
             )(xml)
           }
         }  &
-        "#addNetworkButton" #> SHtml.ajaxSubmit("Add a network", add _) &
+        "#addNetworkButton" #> SHtml.ajaxButton(<span class="glyphicon glyphicon-plus"></span>, add _) &
+        "#addaNetworkfield" #> SHtml.ajaxText(addNetworkField, addNetworkField = _) &
         "#submitAllowedNetwork" #> {
           SHtml.ajaxSubmit("Save changes", process _,("id","submitAllowedNetwork"), ("class","btn btn-default")) ++ Script(
-              OnLoad (
-                  JsRaw("""$(".networkField").keydown( function(event) {
-                processKey(event , 'submitAllowedNetwork')
-              } );
+            OnLoad (
+              JsRaw("""
+                $(".networkField").keydown( function(event) {
+                  processKey(event , 'submitAllowedNetwork')
+                });
               """)
-              ) )
+            )
+          )
         }
     }
   }

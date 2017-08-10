@@ -691,7 +691,6 @@ function graphTooltip (tooltip, displayColor) {
     if (titleLines.length > 0) {
       innerHtml += '<li><h4>' + titleLines.join(" ") + '</h4></li>';
     }
-
     bodyLines.forEach(function(body, i) {
       var span = "";
       if (displayColor) {
@@ -716,3 +715,6 @@ function graphTooltip (tooltip, displayColor) {
   tooltipEl.style.fontWeight = tooltip._bodyFontStyle;
   tooltipEl.style.padding = tooltip.yPadding + 'px ' + tooltip.xPadding + 'px';
 };
+function checkIPaddress(address) {
+  return (/^((((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?(\/([1-9]|(0|([1-2][0-9]))|(3[0-2])))?))|(([0-9a-f]|:){1,4}(:([0-9a-f]{0,4})*){1,7}(\/([0-9]{1,2}|1[01][0-9]|12[0-8]))?)|(0.0.0.0))$/i).test(address);
+}
