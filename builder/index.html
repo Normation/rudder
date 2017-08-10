@@ -130,8 +130,8 @@
                 <div>Please try again by clicking <a href="" ng-click="reloadPage()">here</a></div>
             </div>
         </div>
-            
-        <div  class="container Override row fill" ng-show="authenticated" >
+
+        <div  class="container Override row fill" ng-show="authenticated">
           <div class="col-lg-2 col-md-2 col-sm-4 col-xs-12 ncf_col">
                 <div class="title">Library</div>
                 <h3 >Techniques</h3>
@@ -148,9 +148,24 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr  ng-repeat="technique in techniques | orderBy:'name':false | filter:searchText  track by $index" ng-click="checkSelect(technique,selectTechnique)" >
+                        <tr  ng-repeat="technique in techniques | orderBy:'name':false | filter:searchText  track by $index" ng-click="checkSelect(technique,selectTechnique)">
                             <td href="#" ng-class="{'active': isSelected(technique)}" style="height:100%;vertical-align:middle; padding: 0 5px">
-                                <span class="col-md-10">{{technique.name}}</span>
+                                <span class="col-md-10">
+                                    {{technique.name}}
+                                    <span
+                                    class="cursor-help"
+                                    popover
+                                    ng-if="hasDeprecatedMethod(technique)"
+                                    data-original-title="{{technique.name}}"
+                                    data-content="This technique is using at least one <b>deprecated</b> generic method."
+                                    rel="popover"
+                                    data-placement="bottom"
+                                    data-html="true"
+                                    data-trigger="hover"
+                                    data-container="body">
+                                      <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                                    </span>
+                                </span>
                             </td>
                             <td href="#" ng-class="{'active': isSelected(technique)}" style="height:100%;vertical-align:middle">
                                 <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelected(technique), 'glyphicon-chevron-right': !isSelected(technique)}"></i>
@@ -159,7 +174,6 @@
                     </tbody>
                 </table>
             </div>
-
             <form class="form-horizontal editForm col-lg-5 col-md-5 col-sm-8 col-xs-12 ncf_col" name="editForm" novalidate >
             <div class="jumbotron" ng-if="selectedTechnique === undefined" >
                 <h1>Technique editor</h1>
@@ -266,6 +280,19 @@
                                 </div>
                                   <span class="pull-left method-name">
                                     {{getMethodName(method_call)}}
+                                    <span
+                                    class="cursor-help"
+                                    popover
+                                    ng-if="(method_call.deprecated || isDeprecated(method_call.method_name))"
+                                    data-original-title="{{getMethodName(method_call)}}"
+                                    data-content="This generic method is <b>deprecated</b>."
+                                    rel="popover"
+                                    data-placement="bottom"
+                                    data-html="true"
+                                    data-trigger="hover"
+                                    data-container="body">
+                                      <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                                    </span>
                                     <a ng-click="$event.stopPropagation();" target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{getMethodBundleName(method_call)}}">
                                       <i class="glyphicon glyphicon-info-sign method-actions"></i>
                                     </a>
@@ -315,7 +342,21 @@
             <div class="col-md-5 ncf_col" id="methodBlock" ng-if="selectedMethod !== undefined">
                 <div>
                     <div class="title">Method</div>
-                    <h3 >{{getMethodName(selectedMethod)}}<i class="{{getIconClassByAgentType(selectedMethod.method_name)}}"></i>
+                    <h3 >{{getMethodName(selectedMethod)}}
+                        <span
+                        class="cursor-help"
+                        popover
+                        ng-if="isDeprecated(selectedMethod.method_name)"
+                        data-original-title="{{getMethodName(selectedMethod)}}"
+                        data-content="This generic method is <b>deprecated</b>."
+                        rel="popover"
+                        data-placement="bottom"
+                        data-html="true"
+                        data-trigger="hover"
+                        data-container="body">
+                          <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                        </span>
+                        <i class="{{getIconClassByAgentType(selectedMethod.method_name)}}"></i>
                         <button ng-disabled="! canResetMethod()" class="btn btn-default pull-right top-margin" ng-click="resetMethod()">Reset</button>
                     </h3>
                     <accordion>
@@ -453,21 +494,51 @@
                             <i class="dsc-icon"></i>
                           </button>
                         </div>
+                        <br>
+                        <ul class="form-group list-sm">
+                          <li class="rudder-form">
+                            <div class="input-group">
+                              <label for="showDeprecated" class="input-group-addon" id="labelShowDeprecated">
+                                <input id="showDeprecated" type="checkbox" ng-model="filter.showDeprecated">
+                                <label class="label-radio" for="showDeprecated">
+                                  <span class="glyphicon glyphicon-ok"></span>
+                                </label>
+                                <span class="glyphicon glyphicon-ok check-icon"></span>
+                              </label>
+                              <label for="showDeprecated" class="form-control">
+                                Show deprecated generic methods
+                                <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                              </label>
+                            </div>
+                          </li>
+                        </ul>
                       </div>
                     </div>
                   </div>
                 </div>
                 <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory" ng-if="checkFilterCategory(methods)">
                     <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}}</h4>
-                    <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" ng-show="checkFilterMethod(method)">
+                    <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" ng-show="checkFilterMethod(method)" ng-class="{'used':isUsed(method), 'show':filter.showDeprecated}">
                       <div class="input-group">
                         <span class="input-group-addon cursorMove"><b>:::</b></span>
                         <div class="panel-heading" style="overflow:hidden">
                             <h4 class="panel-title">
                                 <span class="pull-left"> {{method.name}}
-                                    <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method, kind)}}">
-                                        <i class="glyphicon glyphicon-info-sign method-actions"></i>
-                                    </a>
+                                  <span
+                                  class="cursor-help"
+                                  popover
+                                  ng-if="method.deprecated"
+                                  data-original-title="{{method.name}}"
+                                  data-content="This generic method is <b>deprecated</b>."
+                                  rel="popover" data-placement="bottom"
+                                  data-html="true"
+                                  data-trigger="hover"
+                                  data-container="body">
+                                    <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                                  </span>
+                                  <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method, kind)}}">
+                                    <i class="glyphicon glyphicon-info-sign method-actions"></i>
+                                  </a>
                                 </span>
                                 <i class="dsc-icon" ng-if="method.dsc_support"></i>
                                 <i class="glyphicon glyphicon-cog classic-icon" ng-if="!method.dsc_support"></i>
@@ -484,8 +555,23 @@
             <div class="col-lg-1 col-md-1 col-sm-2 col-xs-4 ncf_col no-padding" class="bs-sidebar navbar" ng-if="selectedMethod === undefined">
                 <ul class="nav bs-sidenav" id="categories-list">
                   <h4 id="categories">Categories</h4>
-                    <li ng-repeat="(kind,methods) in methodsByCategory" class="active">
-                        <a href="" ng-click="scroll(kind)">{{capitaliseFirstLetter(kind)}} </a>
+                    <li ng-repeat="(kind,methods) in methodsByCategory" class="active" ng-if="checkFilterCategory(methods)" ng-class="{'deprecatedCategory':!checkDeprecatedFilter(methods)}">
+                        <a href="" ng-click="scroll(kind)">
+                          {{capitaliseFirstLetter(kind)}}
+                          <span
+                          class="cursor-help"
+                          popover
+                          ng-if="!checkDeprecatedFilter(methods)"
+                          data-original-title="{{capitaliseFirstLetter(kind)}}"
+                          data-content="All generic methods in this category are <b>deprecated</b>."
+                          rel="popover"
+                          data-placement="bottom"
+                          data-html="true"
+                          data-trigger="hover"
+                          data-container="body">
+                            <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                          </span>
+                        </a>
                     </li>
                 </ul>
             </div>
