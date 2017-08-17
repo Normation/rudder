@@ -107,7 +107,7 @@ def get_ps1_content(technique_metadata, generic_methods):
     # Transform ncf params to dsc  
     params = [ param_name_to_dsc(param) for param in method["bundle_args"] ]
 
-    escaped_args = [ arg.replace('"','\\"') for arg in method_call["args"] ] 
+    escaped_args = [ arg.replace('"','`"') for arg in method_call["args"] ]
 
     method_params = " ".join( [ "-"+params[ind]+" \""+value+"\"" for ind, value in enumerate(escaped_args) ])
 
