@@ -8,7 +8,7 @@
     <li><b>Repaired:</b> The system was not in the desired state, and Rudder repaired incorrect settings. The Rule is considered not compliant until a <b>Success</b> report is received.</li>
     <li><b>Success:</b> The system is already in the desired state, and no changes were required. Compliance is attained.</li>
     <li><b>Error:</b> The system was not in the desired state, and Rudder tried to apply some changes, but failed. The Rule is not compliant, please see the Rule details for an explanation.</li>
-    <li><b>No report:</b> No reports were received from this node for this Rule for more than two agent runs. Compliance is unknown - the node may be down or unreachable.</li>
+    <li><b>No report:</b> No reports were received from this node for more than one agent runs period time plus 5 minutes. Compliance is unknown - the node may be down or unreachable.</li>
   </ul>
   </div>
 
