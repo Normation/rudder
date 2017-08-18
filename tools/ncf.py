@@ -380,10 +380,11 @@ def parse_technique_methods(technique_file):
       if ifvarclass_context is not None:
         promise_class_context = class_context_and(class_context, ifvarclass_context)
 
-      if args:
-        res.append({'class_context': promise_class_context, 'promiser': promiser, 'method_name': method_name, 'args': args})
-      else:
-        res.append({'class_context': promise_class_context, 'promiser': promiser, 'method_name': method_name})
+      if not (method_name.startswith("_") or method_name.startswith("log")): 
+        if args:
+          res.append({'class_context': promise_class_context, 'promiser': promiser, 'method_name': method_name, 'args': args})
+        else:
+          res.append({'class_context': promise_class_context, 'promiser': promiser, 'method_name': method_name})
 
   return res
 
@@ -476,6 +477,22 @@ def add_default_values_technique_metadata(technique_metadata):
   technique['method_calls'] = method_calls
   return technique
 
+def get_key_value(method_call, generic_method):
+  key_value = method_call["args"][generic_method["class_parameter_id"]-1].replace("\\'", "\'")
+  # to match cfengine behaviour we need to treat utf8 as if it was ascii (see #7195)
+  # string should be unicode string (ie u'') which is the case if they are read from files opened with encoding="utf-8"
+  return key_value.encode("utf-8").decode("iso-8859-1")
+
+
+def get_class_prefix(key_value, generic_method):
+  # this regex allows to canonify everything except variables
+  regex = re.compile("[^\$\{\}a-zA-Z0-9_](?![^{}]+})|\$(?!{)")
+  key_value_canonified = regex.sub("_", key_value)
+
+  return generic_method["class_prefix"]+"_"+key_value_canonified
+
+def get_logger_call(message, class_prefix):
+  return '"dummy_report" usebundle => log_rudder("' + message + '", "' + class_prefix +'", "${class_prefix}", @{args})'.replace("&", "\\&")
 
 def canonify_class_context(class_context):
   """Transform a class context into a canonified one"""
@@ -499,21 +516,19 @@ def generate_technique_content(technique, methods):
   content.append('')
   content.append('bundle agent '+ technique['bundle_name'])
   content.append('{')
-  content.append('  vars:')
-  content.append('    "class_prefix" string => canonify(join("_", "this.callers_promisers"));')
-  content.append('')
   content.append('  methods:')
 
   # Handle method calls
   for method_call in technique["method_calls"]:
     method_name = method_call["method_name"]
+    method_info = methods[method_name]
     regex = re.compile(r'(?<!\\)"', flags=re.UNICODE )
     # Treat each argument of the method_call
     if 'args' in method_call:
       for index, arg in enumerate(method_call['args']):
         arg_constraint = ncf_constraints.default_constraint
         if method_name in methods:
-          parameter = methods[method_name]["parameter"][index]
+          parameter = method_info["parameter"][index]
           arg_constraint = parameter.get("constraints", {})
         if arg is None:
           raise NcfError("Parameter '"+ parameter["name"] +"' of method '"+ method_name +"' in technique '"+ technique['bundle_name'] + " is not defined, please enter a value")
@@ -531,6 +546,7 @@ def generate_technique_content(technique, methods):
       promiser = method_call['promiser']
     else:
       promiser = "method_call"
+
     content.append('    "'+promiser+'" usebundle => '+method_call['method_name']+'('+arg_value+'),')
     content.append('      ifvarclass => concat("'+class_context+'");')
 

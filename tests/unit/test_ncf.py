@@ -110,23 +110,23 @@ class TestNcf(unittest.TestCase):
   def test_parse_technique_generic_method_calls(self):
     """Parsing a technique should return a list of it's generic method calls"""
     bundle_calls = ncf.parse_technique_methods(self.test_technique_file)
-    expected = [  { 'method_name': u'package_install_version', 'promiser': u'ph1', 'args': [u'${bla.apache_package_name}', u'2.2.11'], 'class_context': u'any' },
-        { 'method_name': u'service_start', 'promiser': u'ph2', 'args': [u'${bla.apache_package_name}'], 'class_context': u'cfengine' },
-        { 'method_name': u'package_install', 'promiser': u'ph3', 'args': [u'openssh-server'], 'class_context': u'cfengine' },
-        { 'method_name': u'command_execution', 'promiser': u'ph4', 'args': ['/bin/echo "test"'], 'class_context': 'cfengine'},
-        { 'method_name': u'_logger', 'promiser': u'ph5', 'args': [u'NA', u'NA'], 'class_context': u'!cfengine' },
-               ]
+    expected = [
+        { 'method_name': u'package_install_version', 'promiser': u'ph1', 'args': [u'${bla.apache_package_name}', u'2.2.11'], 'class_context': u'any' }
+      , { 'method_name': u'service_start', 'promiser': u'ph2', 'args': [u'${bla.apache_package_name}'], 'class_context': u'cfengine' }
+      , { 'method_name': u'package_install', 'promiser': u'ph3', 'args': [u'openssh-server'], 'class_context': u'cfengine' }
+      , { 'method_name': u'command_execution', 'promiser': u'ph4', 'args': ['/bin/echo "test"'], 'class_context': 'cfengine'}
+    ]
     self.assertEqual(bundle_calls, expected)
 
   def test_parse_technique_generic_method_calls_strings(self):
     """Parsing a technique should return a list of it's generic method calls even if they are string literals"""
     bundle_calls = ncf.parse_technique_methods(self.test_technique_file)
-    expected = [  { 'method_name': u'package_install_version', 'promiser': u'ph1', 'args': [u'${bla.apache_package_name}', u'2.2.11'], 'class_context': u'any' },
-        { 'method_name': u'service_start', 'promiser': u'ph2', 'args': [u'${bla.apache_package_name}'], 'class_context': u'cfengine' },
-        { 'method_name': u'package_install', 'promiser': u'ph3', 'args': [u'openssh-server'], 'class_context': u'cfengine' },
-        { 'method_name': u'command_execution', 'promiser': u'ph4', 'args': ['/bin/echo "test"'], 'class_context': 'cfengine'},
-        { 'method_name': u'_logger', 'promiser': u'ph5', 'args': [u'NA', u'NA'], 'class_context': u'!cfengine' },
-               ]
+    expected = [
+        { 'method_name': u'package_install_version', 'promiser': u'ph1', 'args': [u'${bla.apache_package_name}', u'2.2.11'], 'class_context': u'any' }
+      , { 'method_name': u'service_start', 'promiser': u'ph2', 'args': [u'${bla.apache_package_name}'], 'class_context': u'cfengine' }
+      , { 'method_name': u'package_install', 'promiser': u'ph3', 'args': [u'openssh-server'], 'class_context': u'cfengine' }
+      , { 'method_name': u'command_execution', 'promiser': u'ph4', 'args': ['/bin/echo "test"'], 'class_context': 'cfengine'}
+    ]
     self.assertEqual(bundle_calls, expected)
 
   #####################################
