@@ -194,6 +194,13 @@ pre.json-beautify.toggle:after, .tw-bs pre.json-beautify.toggle:after{
 	background-color:transparent !important;
 	background:none !important;
 }
+.fade-background{
+  background-color:#ecf0f5;
+}
+.rudder-jumbotron.fade-background{
+  box-shadow: 0 0 0 15px #ecf0f5;
+  background-color:#ecf0f5;
+}
 .tw-bs a,
 .tw-bs a:focus,
 .tw-bs a:hover,
@@ -1047,7 +1054,6 @@ table.tablewidth{
 	border:none;
 }
 #details{
-  background-color: #fff;
   padding-left:0;
   padding-right:0;
 }
@@ -1094,6 +1100,97 @@ table > tbody > tr > td.action{
 }
 #technicalDetails > .directiveTechnicalInfo:first-child{
 	margin-top:0;
+}
+.skin-yellow .jumbotron.rudder-jumbotron{
+  display:block;
+  padding: 40px 60px;
+  margin-bottom: 15px;
+  margin-top: 15px;
+}
+.skin-yellow .jumbotron.rudder-jumbotron p{
+  margin:0;
+}
+.skin-yellow .jumbotron.rudder-jumbotron h3{
+  margin: 0;
+  color: #555;
+  margin-bottom: 40px;
+}
+.skin-yellow .jumbotron.rudder-jumbotron legend{
+  margin: 8px 0;
+  float:left;
+  font-size: 22px;
+}
+.skin-yellow .jumbotron.rudder-jumbotron #details > fieldset:nth-child(2) > legend{
+	margin-top:0;
+}
+.skin-yellow .jumbotron.rudder-jumbotron h2{
+  margin-bottom: 15px;
+  padding-bottom:8px;
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 25px;
+}
+.skin-yellow .jumbotron.rudder-jumbotron h2 > span{
+  padding: 0 50px 3px 0;
+}
+.skin-yellow .jumbotron.rudder-jumbotron ol{
+  list-style: disc !important;
+  font-size: 16px;
+  font-weight: 200;
+  padding-left: 40px;
+  padding-bottom:60px;
+}
+.skin-yellow .jumbotron.rudder-jumbotron #addButton{
+  display: block;
+  margin: 15px 0 0px 0;
+}
+.skin-yellow .jumbotron.rudder-jumbotron ol li{
+  list-style: disc !important;
+  color: #555;
+  margin-bottom: 2px;
+}
+.skin-yellow .jumbotron.rudder-jumbotron p{
+  color: #555;
+  margin-bottom: 10px;
+}
+.skin-yellow .jumbotron.rudder-jumbotron hr{
+  border-top: 1px solid #dcdcdc;
+}
+.skin-yellow .jumbotron.rudder-jumbotron ol>li a {
+  color: #333333;
+  font-weight: 400;
+  text-decoration:none !important;
+  font-style: italic;
+}
+.tw-bs .jumbotron #details h3 {
+  color:#f08004;
+}
+.tw-bs .jumbotron p{
+  font-size: 16px;
+}
+.tw-bs .jumbotron .bloc-info{
+  margin-bottom: 15px;
+  color: #555;
+  font-size: 16px;
+}
+.tw-bs .jumbotron .bloc-info h4{
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+.skin-yellow .jumbotron.rudder-jumbotron .bloc-info ol {
+  padding-left: 20px;
+  padding-bottom: 0;
+}
+.skin-yellow .jumbotron.rudder-jumbotron ol>li a:hover {
+  color: #f08004;
+  cursor:pointer;
+}
+#directiveDetails{
+  border-left: 15px solid #ECF0F5;
+  overflow-y:auto;
+  overflow-x:hidden;
 }
 .directiveTree {
   padding-left: 10px;
