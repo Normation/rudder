@@ -546,7 +546,8 @@ span.text-fit {
   cursor: pointer;
 }
 .dsc-icon,.classic-icon{
-  position: absolute;
+  float: right;
+  position: relative;
   right: 0;
   display: inline-block;
 }
@@ -558,18 +559,15 @@ span.text-fit {
   position: relative;
   padding-right: 25px;
 }
-#methods .btn-method .dsc-icon,#methods .btn-method .classic-icon{
-  position: absolute;
-  top: -3px;
-  right: 1px;
+.dsc-icon,.classic-icon{
+  margin-left: 5px;
 }
 #methods .btn-method .classic-icon{
   top: 1px;
-  right: 2px;
 }
 .dsc-icon{
   background-image: url("dsc-icon.svg");
-  top: -2px;
+  top: -3px;
   height: 23px;
   width: 16px;
 }
@@ -584,10 +582,12 @@ span.text-fit {
 .btn.classic-filter .classic-icon{
   right: 6px;
   top: 9px;
+  position: absolute;
 }
 .btn.dsc-filter .dsc-icon{
   right: 10px;
   top: 4px;
+  position: absolute;
 }
 .btn.dsc-filter.active{
   background-color: #440e62;
