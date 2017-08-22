@@ -72,6 +72,8 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import net.liftweb.http.js.JsObj
+import com.normation.cfclerk.domain.AgentConfig
+import com.normation.inventory.domain.AgentType
 
 /**
  *
@@ -219,10 +221,18 @@ object DisplayDirectiveTree extends Loggable {
       , onClickDirective : Option[Directive => JsCmd]
       , activeTechnique  : FullActiveTechnique
     ) : JsTreeNode = new JsTreeNode {
-
       private[this] val configService  = RudderConfig.configService
 
       val isAssignedTo = usedDirectiveIds.find{ case(id,_) => id == directive.id }.map(_._2).getOrElse(0)
+
+      val dscIcon : NodeSeq = technique.toList.flatMap { _.agentConfigs}.flatMap { _.agentType match {
+        case AgentType.Dsc => <i class="dsc-icon"></i>
+        case _ => NodeSeq.Empty
+      }}
+      val dscTooltip = dscIcon match {
+        case NodeSeq.Empty => NodeSeq.Empty
+        case _ => <p class="info-dsc">This Directive is based on a Technique version compatibles with the <b>DSC agent</b> {dscIcon}.</p>
+      }
 
       override def children = Nil
 
@@ -235,10 +245,10 @@ object DisplayDirectiveTree extends Loggable {
       val htmlId = s"jsTree-${directive.id.value}"
       val directiveTags = JsObj(directive.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList:_*)
       override val attrs = (
-                  ("data-jstree" -> s"""{"type":"directive", "tags":${directiveTags}}""") ::
-                  ( "id" -> htmlId) ::
-                  ("class" -> classes ) ::
-                  Nil
+        ("data-jstree" -> s"""{"type":"directive", "tags":${directiveTags}}""") ::
+        ( "id" -> htmlId) ::
+        ("class" -> classes ) ::
+        Nil
       )
 
       override def body = {
@@ -305,7 +315,13 @@ object DisplayDirectiveTree extends Loggable {
                 ${directive.techniqueVersion.toString}${deprecatedIcon}
                 ${deprecationInfo}
               </div>
-              ${if(isAssignedTo==0){<span class="fa fa-warning text-warning-rudder min-size-icon"></span>}else{NodeSeq.Empty}}<span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
+              ${if(isAssignedTo==0){
+                <span class="fa fa-warning text-warning-rudder min-size-icon"></span>
+              }else{
+                NodeSeq.Empty
+              }}
+              <span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
+              ${dscTooltip}
               ${ if(!directive.isEnabled) <div>This Directive is currently disabled.</div> else NodeSeq.Empty }
             </div>
           """
@@ -314,6 +330,7 @@ object DisplayDirectiveTree extends Loggable {
             <span class="techversion">
               {directive.techniqueVersion.toString}
               {deprecatedIcon}
+              {dscIcon}
             </span>
             {directive.name}
             {if(isAssignedTo <= 0) {
