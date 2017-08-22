@@ -1,0 +1,70 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name User uid
+# @description Define the uid of the user. User must already exists, uid must be non-allowed(unique).
+# @documentation This method does not create the user.
+#
+# @parameter login User's login
+# @parameter uid User's uid
+# 
+# @class_prefix user_uid
+# @class_parameter login
+
+bundle agent user_uid(login, uid)
+{
+  vars:
+      "old_class_prefix"  string => canonify("user_uid_${login}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "current_uid"          int => getuid(${login});
+      "args"               slist => { "${login}", "${uid}" };
+      
+  classes:
+      "user_exists"     expression => userexists("${login}");
+      "user_diff_uid"          not => strcmp("${current_uid}", "${uid}");
+      "user_free_uid"          not => userexists("${uid}");
+      "args_defined"        expression => "user_exists.((user_diff_uid.user_free_uid)|!user_diff_uid)";
+      "user_uid_kept"   expression => "!user_free_uid.!user_diff_uid";
+
+  users:
+      "${login}"  policy        => "present",
+                  uid           => "${uid}",
+                  classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                  ifvarclass    => "args_defined";
+
+  methods:
+    !args_defined::
+      "error" usebundle => _classes_failure("${old_class_prefix}");
+      "error" usebundle => _classes_failure("${class_prefix}");
+
+      "report_error"
+        usebundle => _log("User ${login} does not exist. Setting user ${login} uid to ${uid}", "${old_class_prefix}", "${class_prefix}", @{args}),
+          ifvarclass => "!user_exists";
+
+      "report_error"
+        usebundle => _log("Uid ${uid} already in use. Setting user ${login} uid to ${uid}", "${old_class_prefix}", "${class_prefix}", @{args}),
+          ifvarclass => "!user_free_uid.user_diff_uid";
+
+    args_defined::
+      "report_success"
+        usebundle => _log("User ${login} uid set to ${uid}", "${old_class_prefix}", "${class_prefix}", @{args}),
+          ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
+
+}
+
