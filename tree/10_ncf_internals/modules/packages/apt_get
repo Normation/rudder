@@ -289,7 +289,9 @@ def package_arguments_builder(is_apt_install):
 
         elif line.startswith("options="):
             global apt_get_options
-            apt_get_options.append(line.split("=", 1)[1].rstrip())
+            option =  line.split("=", 1)[1].rstrip()
+            if option:
+              apt_get_options.append(option)
 
     if name:
         args.extend(one_package_argument(name, arch, version, is_apt_install))
