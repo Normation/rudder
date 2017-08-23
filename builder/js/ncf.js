@@ -364,9 +364,6 @@ $scope.getSessionStorage = function(){
         if(t2.hasOwnProperty('saving'))existingTechnique.saving   = false;
         if(t2.hasOwnProperty('isClone'))existingTechnique.isClone = false;
         for(var i=0; i<t2.method_calls.length; i++){
-          if(t2.method_calls[i].hasOwnProperty('dsc_support')){
-            existingTechnique.method_calls[i].dsc_support=t2.method_calls[i].dsc_support;
-          }
           if(existingTechnique.method_calls[i].hasOwnProperty('promiser')){
             t2.method_calls[i].promiser = existingTechnique.method_calls[i].promiser;
           }
@@ -588,60 +585,50 @@ $scope.groupMethodsByCategory = function () {
   $scope.checkDeprecatedFilter = function(methods){
     return methods.some(function(method){return method.deprecated === undefined });
   }
+
   $scope.checkFilterCategory = function(methods){
     var deprecatedFilter = $scope.filter.showDeprecated || $scope.checkDeprecatedFilter(methods);
     var agentTypeFilter  = false;
+    var i = 0;
     switch($scope.filter.compatibility){
       case "dsc":
-        for(var i=0 ; i<methods.length ; i++){
-          if(methods[i].dsc_support){
-            agentTypeFilter  = true;
-            break;
-          }
+        while(!agentTypeFilter && i<methods.length){
+          agentTypeFilter = methods[i].agent_support.some(function(agent){return agent === "dsc"});
+          i++;
         }
         break;
-
       case "classic":
-        for(var i=0 ; i<methods.length ; i++){
-          if(!methods[i].dsc_support){
-            agentTypeFilter  = true;
-            break;
-          }
+        while(!agentTypeFilter && i<methods.length){
+          agentTypeFilter = methods[i].agent_support.some(function(agent){return agent === "cfengine-community"});
+          i++;
         }
         break;
-
       case "all":
         agentTypeFilter  = true;
         break;
     }
     return agentTypeFilter && deprecatedFilter;
   }
+
+  $scope.checkMethodCallAgentSupport = function(methodName, agent){
+    var method = $scope.generic_methods[Object.keys($scope.generic_methods).find(function(method){return $scope.generic_methods[method].bundle_name === methodName })];
+    return $scope.checkAgentSupport(method,agent);
+  }
+  $scope.checkAgentSupport = function(method, agentSupport){
+    return method.agent_support.some(function(agent){return agent === agentSupport});
+  }
   $scope.checkFilterMethod = function(method){
     switch($scope.filter.compatibility){
       case "dsc":
-        return method.dsc_support;
-
+        return method.agent_support.some(function(agent){return agent === "dsc"});
       case "classic":
-        return !method.dsc_support;
-
+        return method.agent_support.some(function(agent){return agent === "cfengine-community"});
       case "all":
         return true;
     }
     return false;
   }
 
-  $scope.getIconClassByAgentType = function(methodName){
-    /* Icon classes :
-        - DSC     : 'dsc-icon'
-        - Classic : 'glyphicon glyphicon-cog classic-icon'
-    */
-    for(var method in $scope.generic_methods){
-      if(($scope.generic_methods[method].bundle_name == methodName)&&($scope.generic_methods[method].dsc_support)){
-        return 'dsc-icon';
-      }
-    }
-    return 'glyphicon glyphicon-cog classic-icon';
-  }
   // Function used when changing os type
   $scope.updateOSType = function() {
     // Reset selected OS
@@ -709,7 +696,7 @@ $scope.groupMethodsByCategory = function () {
         "method_name"    : bundle.bundle_name
       , "original_index" : original_index
       , "class_context"  : "any"
-      , "dsc_support"    : bundle.dsc_support ? true : false
+      , "agent_support"  : bundle.agent_support
       , "parameters"     : bundle.parameter.map(function(v,i) {
         v["value"] = undefined
         return  v;
