@@ -287,6 +287,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
 
         <div id={htmlId_groupTree}>Error: {e.msg}</div>
       case Full(lib) =>
+      //We want to fold categories if there are more than 11 (10 + 1 taking into account the hidden root node)
+      val foldCategories = lib.allCategories.size > 11
       (
         <div id={htmlId_groupTree} class="col-xs-12">
           <ul>{DisplayNodeGroupTree.displayTree(
@@ -301,6 +303,9 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       //init bind callback to move
       JsRaw(s"""
         buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', '${selectedNode}', 'off', true, ${CurrentUser.checkRights(Edit("group"))});
+        if(${foldCategories}){
+          $$('#${htmlId_groupTree}').jstree().close_all();
+        }
         $$('#${htmlId_groupTree}').bind("move_node.jstree", function (e,data) {
           var sourceCatId = $$(data.rslt.o).attr("catId");
           var sourceGroupId = $$(data.rslt.o).attr("groupId");
