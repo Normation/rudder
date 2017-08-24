@@ -71,10 +71,10 @@ case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends O
 }
 
 final case class AgentConfig(
-    agentType: AgentType
-  , templates              : Seq[TechniqueTemplate]
-  , files                  : Seq[TechniqueFile]
-  , bundlesequence         : Seq[BundleName]
+    agentType      : AgentType
+  , templates      : Seq[TechniqueTemplate]
+  , files          : Seq[TechniqueFile]
+  , bundlesequence : Seq[BundleName]
 )
 
 /**
