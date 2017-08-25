@@ -135,6 +135,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <dependency>
       <groupId>com.normation.rudder</groupId>
+      <artifactId>rudder-license</artifactId>
+      <version>${rudder-version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.normation.rudder</groupId>
       <artifactId>rudder-core</artifactId>
       <version>${rudder-version}</version>
     </dependency>
