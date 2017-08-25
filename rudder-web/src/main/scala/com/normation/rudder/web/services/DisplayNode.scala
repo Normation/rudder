@@ -455,9 +455,16 @@ object DisplayNode extends Loggable {
                                                             </span>
                   case _ => NodeSeq.Empty
                 }
-                val publicKeyId          = s"publicKey-${sm.node.main.id.value}"
+                val nodeId      = sm.node.main.id
+                val publicKeyId = s"publicKey-${nodeId.value}"
+                val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId) match {
+                  case Full(Some(nodeInfo)) => <span>{nodeInfo.cfengineKeyHash}</span>
+                  case _ => <i>CFEngine Key Hash not found</i>
+                }
                 <b><a href="#" onclick={s"$$('#publicKey-${sm.node.main.id.value}').toggle(300); return false;"}>Display Node key {checked}</a></b>
-                <div style="width=100%; overflow:auto;"><pre id={s"publicKey-${sm.node.main.id.value}"} style="display:none;">{key.key}</pre></div> ++
+                <div style="width=100%; overflow:auto;">
+                  <pre id={s"publicKey-${sm.node.main.id.value}"} class="display-keys" style="display:none;"><label>Public key:</label>{key.key}<label>CFEngine Key Hash:</label>{cfKeyHash}</pre>
+                </div> ++
                 Script(OnLoad(JsRaw(s"""createTooltip();""")))
               case None => NodeSeq.Empty
             }
@@ -487,7 +494,6 @@ object DisplayNode extends Loggable {
         val nodeInfoBox = nodeInfoService.getNodeInfo(nodeId)
         nodeInfoBox match {
           case Full(Some(nodeInfo)) =>
-
             val kind = {
               if(nodeInfo.isPolicyServer) {
                 if(isRootNode(nodeId) ) {
