@@ -91,6 +91,7 @@ object AuthzToRights {
       case "validator"           => toAllAuthz (List("validator")) ::: toReadAuthz (nodeKind ::: configurationKind)
       case "configuration"       => toAllAuthz (configurationKind)
       case "read_only"           => toReadAuthz (allKind)
+      case "compliance"          => toReadAuthz (nodeKind ::: configurationKind)
       case "inventory"           => toReadAuthz (List("node"))
       case "rule_only"           => toReadAuthz (List("configuration","rule"))
       case role => parseAuthz(role)

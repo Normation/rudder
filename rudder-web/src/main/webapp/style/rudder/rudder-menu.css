@@ -1081,6 +1081,17 @@ table > tbody > tr > td.action{
 #nodePropertiesTab > tbody > tr:hover > td.delete-action > .fa{
   display:inline-block;
 }
+pre.display-keys{
+  padding: 4px 0;
+}
+pre.display-keys > label:first-child{
+  margin-top:0;
+}
+pre.display-keys > label{
+  display:block;
+  margin-top:12px;
+  font-weight:bold;
+}
 /* --- DIRECTIVE PAGE --- */
 .editTech{
   margin-top:4px;
