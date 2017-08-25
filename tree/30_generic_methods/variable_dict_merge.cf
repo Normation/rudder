@@ -23,9 +23,9 @@
 # The resulting variable will be the merge of the two parameters, which means it is built by:
 #
 # * Taking the content of the first variable
-# * Adding the content of the second variable, and replace the kays that were already there
+# * Adding the content of the second variable, and replacing the keys that were already there
 #
-# It is only a one-level merge, and the value of the first-lvel key will be completely replaced by the merge.
+# It is only a one-level merge, and the value of the first-level key will be completely replaced by the merge.
 #
 #### Usage
 #
