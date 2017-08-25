@@ -1,4 +1,4 @@
-= policy-generation-node-finished
+= node-post-deletion
 
 == When/What ?
 
