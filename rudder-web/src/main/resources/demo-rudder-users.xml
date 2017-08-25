@@ -52,7 +52,7 @@
   on the what the user should be allowed to do:
     "administrator" (all rights), "administration_only" (administration tab), "user"
     (all nodes, configuration tab), "configuration" (configuration tab), "read_only"
-    (read everything), "compliance" (read rules), "inventory" (read nodes), "validator"
+    (read everything), "compliance" (read rules, read nodes), "inventory" (read nodes), "validator"
     (can valid changes), "deployer" (can deploy changes), "workflow" (both deployer and validator)
 
   There is also the possibility to create "custom" roles by combining those elements:
