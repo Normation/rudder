@@ -70,6 +70,7 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.policies.Tag
+import com.normation.inventory.domain.AgentType
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -355,16 +356,21 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       val isDeprecated = t.deprecrationInfo.isDefined
       val deprecationMessage = t.deprecrationInfo.map(_.message).getOrElse("")
       val acceptationDate = DateFormaterService.getFormatedDate(timeStamp)
+      val dscSupport = t.agentConfigs.exists { _.agentType match{
+        case AgentType.Dsc => true
+        case _ => false
+      }}
       val action = {
         val ajax = SHtml.ajaxCall(JsNull, (_) => newDirective(t, activeTechnique, workflowEnabled))
         AnonFunc("",ajax)
       }
       JsObj(
-          ( "version"           -> v.toString )
-        , ( "isDeprecated"      -> isDeprecated)
-        , ("deprecationMessage" -> deprecationMessage)
-        , ("acceptationDate"    -> acceptationDate)
-        , ( "action"            -> action)
+          ( "version"            -> v.toString )
+        , ( "isDeprecated"       -> isDeprecated)
+        , ( "deprecationMessage" -> deprecationMessage)
+        , ( "acceptationDate"    -> acceptationDate)
+        , ( "dscSupport"         -> dscSupport)
+        , ( "action"             -> action)
       )
     }
     val dataArray = JsArray(techniqueVersionInfo.toList)

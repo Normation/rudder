@@ -2662,7 +2662,7 @@ img.deprecation-icon{
 .tooltip-content .info-dsc{
   margin-top:5px;
 }
-.tooltip-content .info-dsc b{
+.tooltip-content .info-dsc b, b.dsc{
   color:#440e62;
   margin-left: 0 !important;
 }
