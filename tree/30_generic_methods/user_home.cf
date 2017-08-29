@@ -1,0 +1,62 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name User home
+# @description Define the home of the user. User must already exists.
+# @documentation This method does not create the user, nor the home directory.
+#     entry example: /home/myuser
+#     The home given will be set, but not created.
+#
+# @parameter login User's login
+# @parameter home User's home
+# 
+# @class_prefix user_home
+# @class_parameter login
+
+bundle agent user_home(login, home)
+{
+  vars:
+      "old_class_prefix"  string => canonify("user_home_${login}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"               slist => { "${login}", "${home}" };
+      
+  classes:
+      "user_exists"     expression => userexists("${login}");
+      "args_defined"        expression => "user_exists";
+
+  users:
+      "${login}"  policy        => "present",
+                  home_dir      => "${home}",
+                  classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                  ifvarclass    => "args_defined";
+
+  methods:
+    !args_defined::
+      "error" usebundle => _classes_failure("${old_class_prefix}");
+      "error" usebundle => _classes_failure("${class_prefix}");
+
+      "report_error"
+        usebundle => _log("User ${login} does not exist. Setting user ${login} home to ${home}", "${old_class_prefix}", "${class_prefix}", @{args});
+      
+    args_defined::
+      "report_success"
+        usebundle => _log("User ${login} home set to ${home}", "${old_class_prefix}", "${class_prefix}", @{args}),
+          ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
+}
+
