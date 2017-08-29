@@ -21,12 +21,11 @@ class TestNcf(unittest.TestCase):
 
     # For test, for now add dsc_support to all method
     for method in self.all_methods:
-      self.all_methods[method]["dsc_support"] = True
+      self.all_methods[method]["agent_support"] = [ "dsc" ]
 
     self.technique_metadata = ncf.parse_technique_metadata(self.technique_content)['result']
     method_calls = ncf.parse_technique_methods(self.technique_file)
     self.technique_metadata['method_calls'] = method_calls
-
 
     self.dsc_technique_file = os.path.realpath('test_technique.ps1')
     with open(self.dsc_technique_file) as fd:
@@ -45,6 +44,7 @@ class TestNcf(unittest.TestCase):
 
     generated_split = generated_result.split("\n")
     expected_split  = self.dsc_content.split("\n")
+
     self.assertEqual(generated_split, expected_split)
 
 
