@@ -105,19 +105,21 @@ class DatabaseManagerImpl(
    def archiveEntries(date : DateTime) =  {
      val archiveReports = reportsRepository.archiveEntries(date)?~! "An error occured while archiving reports"
      val archiveNodeConfigs = expectedReportsRepo.archiveNodeConfigurations(date) ?~! "An error occured while archiving Node Configurations"
+     val archiveNodeCompliances = expectedReportsRepo.archiveNodeCompliances(date) ?~! "An error occured while archiving Node Compliances"
 
       // Accumulate errors, them sum values
-     (Control.bestEffort(Seq(archiveReports, archiveNodeConfigs)) (identity)).map(_.sum)
+     (Control.bestEffort(Seq(archiveReports, archiveNodeConfigs, archiveNodeCompliances)) (identity)).map(_.sum)
    }
 
 
    def deleteEntries(date : DateTime) : Box[Int] = {
      val reports = reportsRepository.deleteEntries(date) ?~! "An error occured while deleting reports"
-     val nodeConfigs = expectedReportsRepo.deleteNodeConfigIdInfo(date) ?~! "An error occured while deleting reports"
+     val nodeConfigs = expectedReportsRepo.deleteNodeConfigIdInfo(date) ?~! "An error occured while deleting old node configuration IDs"
      val deleteNodeConfigs = expectedReportsRepo.deleteNodeConfigurations(date) ?~! "An error occured while deleting Node Configurations"
+     val deleteNodeCompliances = expectedReportsRepo.deleteNodeCompliances(date) ?~! "An error occured while deleting Node Compliances"
 
      // Accumulate errors, them sum values
-     (Control.bestEffort(Seq(reports, nodeConfigs, deleteNodeConfigs)) (identity)).map(_.sum)
+     (Control.bestEffort(Seq(reports, nodeConfigs, deleteNodeConfigs, deleteNodeCompliances)) (identity)).map(_.sum)
 
    }
 }
