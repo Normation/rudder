@@ -41,7 +41,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import net.liftweb.common.Box
-import com.normation.rudder.domain.policies.SerialedRuleId
 
 
 trait UpdateExpectedReportsRepository {
@@ -72,6 +71,15 @@ trait UpdateExpectedReportsRepository {
    */
   def deleteNodeConfigurations(date: DateTime) : Box[Int]
 
+  /**
+   * Archive all NodeCoompliance for runs older than date
+   */
+  def archiveNodeCompliances(date: DateTime) : Box[Int]
+
+  /**
+   * Delete all NodeCompliance for runs older than date
+   */
+  def deleteNodeCompliances(date: DateTime) : Box[Int]
 }
 
 
