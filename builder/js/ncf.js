@@ -363,7 +363,11 @@ $scope.getSessionStorage = function(){
       if (existingTechnique !== undefined) {
         if(t2.hasOwnProperty('saving'))existingTechnique.saving   = false;
         if(t2.hasOwnProperty('isClone'))existingTechnique.isClone = false;
+
         for(var i=0; i<t2.method_calls.length; i++){
+          if(t2.method_calls[i].hasOwnProperty('agent_support')){
+            existingTechnique.method_calls[i].agent_support = t2.method_calls[i].agent_support;
+          }
           if(existingTechnique.method_calls[i].hasOwnProperty('promiser')){
             t2.method_calls[i].promiser = existingTechnique.method_calls[i].promiser;
           }
