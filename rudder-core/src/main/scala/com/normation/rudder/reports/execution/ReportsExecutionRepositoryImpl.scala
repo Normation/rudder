@@ -102,8 +102,8 @@ case class RoReportsExecutionRepositoryImpl (
                from reportsexecution
                inner join tempnodeids on tempnodeids.id = reportsexecution.nodeid
                where complete = true
-          """ ++
-          fr""" ) as r """
+               order by nodeid, insertionid desc
+          ) as r """
         )
 
         //the whole query
