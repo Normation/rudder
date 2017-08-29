@@ -400,6 +400,70 @@ class UpdateExpectedReportsJdbcRepository(
     }
   }
 
+  /*
+   * Archive nodecompliance whose run timestamp are before the given date
+   */
+  override def archiveNodeCompliances(date:DateTime) : Box[Int] = {
+    val dateAt_0000 = date.toString("yyyy-MM-dd")
+    val copy = s"""
+      insert into archivednodecompliance
+        (nodeid, runtimestamp, endoflife, runanalysis, summary, details)
+        (select nodeid, runtimestamp, endoflife, runanalysis, summary, details
+           from nodecompliance
+           where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'
+        )
+        """
+    val delete = s"""
+      delete from nodecompliance where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'
+    """
+
+    logger.debug(s"""Archiving NodeCompliance with SQL query: [[
+                 | ${copy}
+                 |]] and: [[
+                 | ${delete}
+                 |]]""".stripMargin)
+
+    (for {
+       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+    } yield {
+       i
+    }) match {
+      case -\/(ex) =>
+        val msg ="Could not archive NodeCompliance in the database, cause is " + ex.getMessage()
+        logger.error(msg)
+        Failure(msg, Full(ex), Empty)
+      case \/-(i)  => Full(i.sum)
+     }
+  }
+
+  /**
+   * Delete all node compliance whose run timestamp is before a date
+   */
+  override def deleteNodeCompliances(date: DateTime) : Box[Int] = {
+
+    val dateAt_0000 = date.toString("yyyy-MM-dd")
+    val d1 = s"delete from archivednodecompliance where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'"
+    val d2 = s"delete from nodecompliance where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'"
+
+    logger.debug(s"""Deleting NodeCompliance with SQL query: [[
+                   | ${d1}
+                   |]] and: [[
+                   | ${d2}
+                   |]]""".stripMargin)
+
+    (for {
+      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+    } yield {
+      i
+    }) match  {
+      case -\/(ex) =>
+        val msg ="Could not delete NodeCompliance in the database, cause is " + ex.getMessage()
+        logger.error(msg)
+        Failure(msg, Full(ex), Empty)
+      case \/-(i)  => Full(i.sum)
+    }
+  }
+
   /**
    * Delete all NodeConfigId that finished before date (meaning: all NodeConfigId that have one created before date)
    * This must be transactionnal to avoid conflict with other potential updates
