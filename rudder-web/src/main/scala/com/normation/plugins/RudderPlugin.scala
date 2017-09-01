@@ -41,11 +41,11 @@ import scala.xml.NodeSeq
 
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.utils.HashcodeCaching
-import com.normation.utils.Utils.nonEmpty
 import com.typesafe.config.{ Config, ConfigFactory }
 
 import bootstrap.liftweb.{ ClassPathResource, ConfigResource, FileSystemResource, RudderProperties }
 import net.liftweb.sitemap.Menu
+import com.normation.license.Version
 
 case class PluginVersion(
     major : Int
@@ -71,31 +71,7 @@ object PluginVersion {
    * post is any non blank/control char list (ex: ~alpha1)
    *
    */
-  def from(version: String): Option[PluginVersion] = {
-    //carefull: group matching nothing, like optionnal group, return null :(
-    def nonNull(s: String) = s match {
-      case null => ""
-      case x    => x
-    }
-
-    val pattern = """(\d+\.\d+-)?(\d+)\.(\d+)(\.(\d+))?(\S+)?""".r.pattern
-    val matcher = pattern.matcher(version)
-    if( matcher.matches ) {
-      val micro = matcher.group(5) match {
-        case null | "" => 0
-        case x  => x.toInt
-      }
-      Some(PluginVersion(
-          matcher.group(2).toInt
-        , matcher.group(3).toInt
-        , micro
-        , nonNull(matcher.group(1))
-        , nonNull(matcher.group(6))
-     ))
-    } else {
-      None
-    }
-  }
+  def from(version: String): Option[PluginVersion] = Version.from(version).map(v => PluginVersion(v.major, v.major, v.micro, v.prefix, v.suffix))
 }
 
 case class PluginName(value:String) extends HashcodeCaching {

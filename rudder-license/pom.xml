@@ -1,5 +1,5 @@
 <!--
-Copyright 2011 Normation SAS
+Copyright 2017 Normation SAS
 
 This file is part of Rudder.
 
@@ -30,51 +30,40 @@ You should have received a copy of the GNU General Public License
 along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.normation.rudder</groupId>
-  <artifactId>rudder-parent</artifactId>
-  <packaging>pom</packaging>
+  <artifactId>rudder-license</artifactId>
+  <packaging>jar</packaging>
 
   <parent>
-    <groupId>com.normation</groupId>
-    <artifactId>parent-pom</artifactId>
-    <version>4.1.8-SNAPSHOT</version>
+    <groupId>com.normation.rudder</groupId>
+    <artifactId>rudder-parent</artifactId>
+    <version>4.1.7-SNAPSHOT</version>
   </parent>
 
-
   <description>
-    Parent pom module for rudder project
+    A sub-project to manage Rudder licenses: how to generate of sign them
   </description>
 
-  <modules>
-    <!-- Manage rule template, lib and CLI to fill them in -->
-    <module>rudder-templates</module>
-    <module>rudder-templates-cli</module>
-    <!-- Create and check licences -->
-    <module>rudder-license</module>
-    <module>rudder-license-cli</module>
-    <!-- Core API and implementation -->
-    <module>rudder-core</module>
-    <!-- Web Interface -->
-    <module>rudder-web</module>
-  </modules>
+  <build>
+    <plugins>
+    </plugins>
+  </build>
 
-  <dependencies/>
-
-  <repositories>
-    <repository>
-      <id>rudder-release</id>
-      <url>http://www.rudder-project.org/maven-releases/</url>
-      <layout>default</layout>
-      <snapshots><enabled>false</enabled></snapshots>
-    </repository>
-    <repository>
-      <id>rudder-snapshot</id>
-      <url>http://www.rudder-project.org/maven-snapshots/</url>
-      <layout>default</layout>
-      <snapshots><enabled>true</enabled></snapshots>
-    </repository>
-  </repositories>
-
+  <dependencies>
+    <dependency>
+      <groupId>com.normation</groupId>
+      <artifactId>utils</artifactId>
+      <version>${rudder-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.normation.inventory</groupId>
+      <artifactId>inventory-api</artifactId>
+      <version>${rudder-version}</version>
+    </dependency>
+    <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>${bcpkix-jdk15on-version}</version>
+    </dependency>
+  </dependencies>
 </project>
