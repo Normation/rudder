@@ -50,7 +50,7 @@ bundle agent check
   classes:
     pass1::
       "user1_ok"            expression  => strcmp("", "${user_line1}");
-      "user2_ok"            expression  => regcmp("^(${init.user2}):x:([0-9]+):([0-9]+)::\/home\/\1:(${init.shell2})", "${user_line2}");
+      "user2_ok"            expression  => regcmp("^(${init.user2}):x:([0-9]+):([0-9]+)::\/home\/\1:(${init.shell2}).*", "${user_line2}");
 
       "ph1_ok" expression => "!user_shell_${init.user1}_kept.!user_shell_${init.user1}_repaired.user_shell_${init.user1}_error";
       "ph2_ok" expression => "!user_present_${init.user2}_kept.user_present_${init.user2}_repaired.!user_present_${init.user2}_error";

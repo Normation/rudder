@@ -51,7 +51,7 @@ bundle agent check
 
     pass1::
       "user1_ok"            expression  => strcmp("", "${user_line1}");
-      "user2_ok"            expression  => regcmp("^(${init.user2}):x:([0-9]+):([0-9]+)::(${init.home2}):", "${user_line2}");
+      "user2_ok"            expression  => regcmp("^(${init.user2}):x:([0-9]+):([0-9]+)::(${init.home2}):.*", "${user_line2}");
       "home_does_not_exist"        not  => isdir("${init.home2}");
 
       "ph1_ok" expression => "!user_home_${init.user1}_kept.!user_home_${init.user1}_repaired.user_home_${init.user1}_error";

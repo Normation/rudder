@@ -71,8 +71,8 @@ bundle agent check
       "pass1" expression => "any";
 
     pass2::
-      "user1_ok" expression  => regcmp("^(${init.user1}):x:${test.uid1b}:([0-9]+)::\/home\/\1:", "${user_line1}");
-      "user2_ok" expression  => regcmp("^(${init.user2}):x:${test.uid2}:([0-9]+)::\/home\/\1:", "${user_line2}");
+      "user1_ok" expression  => regcmp("^(${init.user1}):x:${test.uid1b}:([0-9]+)::\/home\/\1:.*", "${user_line1}");
+      "user2_ok" expression  => regcmp("^(${init.user2}):x:${test.uid2}:([0-9]+)::\/home\/\1:.*", "${user_line2}");
       "user3_ok" expression  => strcmp("", "${user_line3}");
 
       "ph1_ok" expression => "!user_present_${init.user1}_kept.user_present_${init.user1}_repaired.!user_present_${init.user1}_error";
