@@ -169,8 +169,8 @@ class CheckCfengineSystemRuleTargets(
       // also change the DN/RDN of the group to the correct one
       entry.setAttribute("nodeGroupId", s"hasPolicyServer-${uuid}")
       // Set correct name and description
-      entry.setAttribute("cn", s"All CFEngine nodes managed by ${uuid} policy server")
-      entry.setAttribute("description", s"All CFEngine nodes known by Rudder directly connected to the ${uuid} server. This group exists only as internal purpose and should not be used to configure nodes.")
+      entry.setAttribute("cn", s"All classic Nodes managed by ${uuid} policy server")
+      entry.setAttribute("description", s"All classic Nodes known by Rudder directly connected to the ${uuid} server. This group exists only as internal purpose and should not be used to configure nodes.")
 
       entry.setDN(hasPolicyServerDN(uuid))
 
