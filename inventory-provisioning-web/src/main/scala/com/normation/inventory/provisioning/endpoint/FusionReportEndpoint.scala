@@ -131,7 +131,8 @@ class FusionReportEndpoint(
   def queueInfo() = {
     // get the current size, the remaining of the answer is based on that
     val current = queueSize.get
-    val saturated = (current+1) >= maxQueueSize
+    //must be coherent with can do, current = 49 < max = 50 => not saturated
+    val saturated = current >= maxQueueSize 
     val code = if(saturated) HttpStatus.TOO_MANY_REQUESTS else HttpStatus.OK
     val json = s"""{"queueMaxSize":$maxQueueSize, "queueFillCount":$current, "queueSaturated":$saturated}"""
     val headers = new HttpHeaders()
