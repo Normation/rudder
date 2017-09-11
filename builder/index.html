@@ -398,14 +398,14 @@
                             <form name="CForm.form">
                                 <div class="form-group condition-form">
                                   <label class="control-label" for="advanced">Other classes:</label>
-                                  <input type="text" class="form-control" name="cfClasses" id="advanced" aria-describedby="helpBlock" ng-change="updateClassContext()" ng-model="selectedMethod.advanced_class" ng-pattern="/^\S+$/">
+                                  <textarea msd-elastic name="cfClasses" class="form-control" rows="1" id="advanced" ng-pattern="/^\S+$/" ng-model="selectedMethod.advanced_class" ng-change="updateClassContext()"></textarea>
                                   <div ng-messages="CForm.form.cfClasses.$error" role="alert">
                                     <div ng-message="pattern" class="text-danger">This field cannot contain whitespace</div>
                                   </div>
                                 </div>
                                 <div class="form-group condition-form">
                                   <label for="class_context">Class context:</label>
-                                  <input ng-readonly="true" type="text" id="" name="cfClassContext" class="form-control" ng-model="selectedMethod.class_context" style="cursor:text" ng-maxlength="2048">
+                                  <textarea style="cursor:text" msd-elastic name="cfClassContext" class="form-control" rows="1" id="advanced" ng-maxlength="2048" ng-model="selectedMethod.class_context" ng-readonly="true"></textarea>
                                   <span class="text-danger" ng-show="CForm.form.cfClassContext.$error.maxlength">
                                     Classes over 2048 characters are currently not supported.
                                   </span>
@@ -430,7 +430,7 @@
                                   </h5>
                                 </label>
                                 <br style="clear:both"/>
-                                <textarea msd-elastic name="param" class="form-control" rows="1" id="param-{{$index}}" ng-trim="{{trimParameter(parameter)}}" ng-model="parameter.value" placeholder="" ></textarea>
+                                <textarea msd-elastic name="param" class="form-control" rows="1" id="param-{{$index}}" ng-trim="{{trimParameter(parameter)}}" ng-model="parameter.value"></textarea>
                                 <ul class="list-unstyled" >
                                    <li class="text-danger" ng-repeat="error in parameter.$errors">{{error}}</li>
                                 </ul>
