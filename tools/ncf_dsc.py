@@ -40,7 +40,7 @@ def convert_all_to_dsc(root_path):
   ret = 0
   for technique, metadata in techniques.items():
     try:
-      write_dsc_technique(metadata, methods)
+      convert_technique(metadata, methods)
     except Exception as e:
       sys.stderr.write("Error: Unable to create Rudder Technique files related to ncf Technique "+technique+", skipping... (" + str(e) + ")\n")
       sys.stderr.write(traceback.format_exc())
@@ -56,8 +56,7 @@ def convert_one_to_dsc(destination_path, bundle_name):
   if bundle_name in techniques.keys():
     try:
       metadata = techniques[bundle_name]
-      write_dsc_technique(metadata, methods)
-      update_technique_metadata(metadata)
+      convert_technique(metadata, methods)
     except Exception as e:
       sys.stderr.write("Error: Unable to create Rudder Technique files related to ncf Technique "+bundle_name+" (" + str(e) + ")\n")
       sys.stderr.write(traceback.format_exc())
@@ -66,6 +65,10 @@ def convert_one_to_dsc(destination_path, bundle_name):
     sys.stderr.write("Error: Unable to create Rudder Technique files related to ncf Technique "+bundle_name+", cannot find ncf Technique "+bundle_name + "\n")
     sys.stderr.write(traceback.format_exc())
     exit(1)
+
+def convert_technique(technique_metadata, generic_methods):
+  write_dsc_technique(technique_metadata, generic_methods)
+  update_technique_metadata(technique_metadata)
 
 def write_dsc_technique(technique_metadata, generic_methods):
   """ write expected_reports.csv file from a technique, to a path """
