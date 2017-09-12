@@ -475,6 +475,8 @@ bundle edit_line ncf_insert_block(block) {
 
 # Sets the RHS of configuration items with a given separator
 # supports keys that contains special characters (like *, ?)
+# This bundle will allow any quantity of spaces before the separator, but none 
+# between the separator and the value
 bundle edit_line ncf_maintain_keys_values(v, sep) {
   vars:
       "index" slist => getindices("${v}");
@@ -494,7 +496,7 @@ bundle edit_line ncf_maintain_keys_values(v, sep) {
         expression => regline("^${keypat[${index}]}.*", "${edit.filename}");
 
   insert_lines:
-      "${index}${sep}$i{${v}[${index}]}"
+      "${index}${sep}${${v}[${index}]}"
         comment    => "Insert definition of ${index}",
         ifvarclass => "!${cindex[${index}]}_key_in_file";
 
@@ -507,6 +509,56 @@ bundle edit_line ncf_maintain_keys_values(v, sep) {
 
 }
 
+# Sets the RHS of configuration items with a given separator
+# supports keys that contains special characters (like *, ?), with option to be strict or not
+# by default, treat non strictly spacing. If option is "strict", then no space will be allowed
+bundle edit_line ncf_maintain_keys_values_option(v, sep, option) {
+  vars:
+      "index" slist => getindices("${v}");
+      # Be careful if the index string contains funny chars
+      "cindex[${index}]" string => canonify("${index}");
+
+      # Keys and values may contain regexps. Escape them for replace_pattern matching.
+      "ve[${index}]" string => escape("${${v}[${index}]}");
+      "ke[${index}]" string => escape("${index}");
+
+      # Matching pattern for line (basically key-and-separator)
+      "keypat[${index}]" string => "\s*${ke[${index}]}\s*${sep}\s*";
+
+
+  classes:
+      "strict_spacing" expression => strcmp("${option}", "strict");
+
+      "${cindex[${index}]}_key_in_file"
+         comment   => "Dynamic Class created if patterns matching",
+        expression => regline("^${keypat[${index}]}.*", "${edit.filename}");
+
+    !strict_spacing::
+      "${cindex[${index}]}_key_value_in_file"
+         comment   => "Dynamic Class created if in loose mode, key\s*sep\s*value is there",
+        expression => regline("^${keypat[${index}]}${ve[${index}]}\s*", "${edit.filename}");
+
+
+  insert_lines:
+      "${index}${sep}${${v}[${index}]}"
+        comment    => "Insert definition of ${index}",
+        ifvarclass => "!${cindex[${index}]}_key_in_file";
+
+  replace_patterns:
+      # For convergence need to use negative lookahead on value:
+      # "key sep (?!value).*"
+    strict_spacing::
+      "^(\s*${ke[${index}]}\s*${sep}\s*)(?!${ve[${index}]}$).*"
+        comment      => "Strict replace definition of ${index}",
+        replace_with => value("${ke[${index}]}${sep}${${v}[${index}]}");
+
+    !strict_spacing::
+      "^(\s*${ke[${index}]}\s*${sep}\s*)(?!${ve[${index}]}$).*"
+        comment      => "Replace definition of ${index}",
+        replace_with => value("${match.1}${${v}[${index}]}"),
+        ifvarclass   => "!${cindex[${index}]}_key_value_in_file";
+
+}
 
 # enforce lines in section
 # WARNING: This bundle is deprecated and will be removed.

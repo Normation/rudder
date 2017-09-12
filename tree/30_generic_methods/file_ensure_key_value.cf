@@ -32,21 +32,6 @@
 
 bundle agent file_ensure_key_value(file, key, value, separator)
 {
-  vars:
-      "class_prefix" string => canonify("file_ensure_key_value_${file}");
-
-      "keys[${key}]" string => "${value}";
-
-  files:
-      "${file}"
-        create        => "true",
-        edit_line     => ncf_maintain_keys_values("file_ensure_key_value.keys", "${separator}"),
-        edit_defaults => ncf_empty_select("false"),
-        classes       => classes_generic("${class_prefix}"),
-        # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
-        comment       => "Editing file ${file} to set ${key}${separator}${value}";
-
   methods:
-      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-      "report"   usebundle => _logger("Ensure line in format key${separator}value in ${file}", "${class_prefix}");
+      "action" usebundle => file_ensure_key_value_option("${file}", "${key}", "${value}", "${separator}", "lax");
 }
