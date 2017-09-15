@@ -2360,7 +2360,11 @@ form input.dyngroupReloadingButton{
 #pendingNodeConfirm{
   margin-top:10px;
 }
-
+.allowedNetworksContainer{
+  float:left;
+  width:100%;
+  margin-bottom:20px;
+}
 /* SPINNERS */
 .btn i.fa-spin {
   position: absolute;
@@ -2713,6 +2717,7 @@ span.techversion {
   width      : 16px;
   top        : 5px;
 }
+
 @keyframes opacity-1 {
   0%   {opacity:0;visibility: visible;}
   100% {opacity:1;visibility: visible;}
