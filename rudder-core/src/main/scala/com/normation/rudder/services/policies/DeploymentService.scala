@@ -802,6 +802,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                                    (name, p)
                                  }
                                }
+            agent           <- Box(context.nodeInfo.agentsName.headOption) ?~! "Should not be Empty"
             cf3PolicyDrafts <- bestEffort(drafts) { draft =>
                                   (for {
                                     //bind variables with interpolated context
@@ -817,21 +818,23 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                                                          }
                                   } yield {
 
+                                    
                                     Cf3PolicyDraft(
-                                        id = Cf3PolicyDraftId(draft.ruleId, draft.directiveId)
-                                      , technique = draft.technique
+                                        Cf3PolicyDraftId(draft.ruleId, draft.directiveId)
+                                      , draft.technique
                                         // if the technique don't have an acceptation date time, this is bad. Use "now",
                                         // which mean that it will be considered as new every time.
-                                      , techniqueUpdateTime = directiveLib.allTechniques.get(draft.technique.id).flatMap( _._2 ).getOrElse(DateTime.now)
-                                      , variableMap = evaluatedVars.toMap
-                                      , trackerVariable = draft.trackerVariable
-                                      , priority = draft.priority
-                                      , isSystem = draft.isSystem
-                                      , policyMode = draft.policyMode
-                                      , serial = draft.serial
-                                      , ruleOrder = draft.ruleOrder
-                                      , directiveOrder = draft.directiveOrder
-                                      , overrides = Set()
+                                      , directiveLib.allTechniques.get(draft.technique.id).flatMap( _._2 ).getOrElse(DateTime.now)
+                                      , evaluatedVars.toMap
+                                      , draft.trackerVariable
+                                      , draft.priority
+                                      , draft.isSystem
+                                      , draft.policyMode
+                                      , agent.agentType
+                                      , draft.serial
+                                      , draft.ruleOrder
+                                      , draft.directiveOrder
+                                      , Set()
                                     )
                                   }).dedupFailures(s"When processing directive '${draft.directiveOrder.value}'")
                                 }
