@@ -51,6 +51,7 @@ import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.ExpandedDirectiveVal
 import com.normation.rudder.exceptions.NotFoundException
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.inventory.domain.AgentType
 
 /**
  * Unique identifier for a CFClerk policy instance
@@ -82,11 +83,12 @@ final case class Cf3PolicyDraft(
   , priority           : Int
   , isSystem           : Boolean
   , policyMode         : Option[PolicyMode]
+  , agentType          : AgentType
   , serial             : Int
-  , modificationDate   : DateTime = DateTime.now
   , ruleOrder          : BundleOrder
   , directiveOrder     : BundleOrder
   , overrides          : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
+  , modificationDate   : DateTime = DateTime.now
 ) extends Loggable {
 
   def toDirectiveVal(originalVariables: Map[String, Variable]) = ExpandedDirectiveVal(
@@ -218,8 +220,9 @@ final case class Cf3PolicyDraft(
  * get methods, and @Bean doesn't seem to do the trick
  */
 case class ParameterEntry(
-    parameterName : String,
-    parameterValue: String
+    parameterName : String
+  , parameterValue: String
+  , agentType     : AgentType
 ) {
   // returns the name of the parameter
   def getParameterName() : String = {
@@ -229,7 +232,7 @@ case class ParameterEntry(
   // returns the _escaped_ value of the parameter,
   // compliant with the syntax of CFEngine
   def getEscapedValue() : String = {
-    ParameterEntry.escapeString(parameterValue)
+    ParameterEntry.escapeString(parameterValue,agentType)
   }
 
   // Returns the unescaped (raw) value of the paramter
@@ -240,16 +243,26 @@ case class ParameterEntry(
 
 /*
  * Escape string to be CFEngine compliant
- * a \ witll be escaped to \\
+ * a \ will be escaped to \\
  * a " will be escaped to \"
+ * Escape string to be DSC compliant
+ * a ` will be escaped to ``
+ * a " will be escaped to `"
  * The parameter may be null (for legacy reason), and it should be checked
  */
 object ParameterEntry {
-  def escapeString(x: String) : String = {
+  def escapeString(x: String, agentType: AgentType) : String = {
     if (x == null)
       x
     else
-      x.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")
+      agentType match {
+        case AgentType.Dsc => 
+          x.replaceAll("`", "``").
+            replaceAll("\"", "`\"")
+        case _             => 
+          x.replaceAll("\\", "\\\\").
+            replaceAll("\"", "\\\"")
+      }
   }
 }
 
