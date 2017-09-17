@@ -111,7 +111,7 @@ class PrepareTemplateVariablesImpl(
    logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})")
 
     val container = new Cf3PolicyDraftContainer(
-          agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value)).toSet
+          agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value, agentNodeConfig.agentType)).toSet
         , agentNodeConfig.config.policyDrafts
     )
 
