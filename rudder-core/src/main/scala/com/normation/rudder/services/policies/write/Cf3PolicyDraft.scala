@@ -241,27 +241,27 @@ case class ParameterEntry(
   }
 }
 
-/*
- * Escape string to be CFEngine compliant
- * a \ will be escaped to \\
- * a " will be escaped to \"
- * Escape string to be DSC compliant
- * a ` will be escaped to ``
- * a " will be escaped to `"
- * The parameter may be null (for legacy reason), and it should be checked
- */
 object ParameterEntry {
   def escapeString(x: String, agentType: AgentType) : String = {
+    // The parameter may be null (for legacy reason), and it should be checked
     if (x == null)
       x
     else
       agentType match {
         case AgentType.Dsc => 
-          x.replaceAll("`", "``").
-            replaceAll("\"", "`\"")
-        case _             => 
-          x.replaceAll("\\", "\\\\").
-            replaceAll("\"", "\\\"")
+          /* Escape string to be DSC compliant
+          * a ` will be escaped to ``
+          * a " will be escaped to `"
+          */
+          x.replaceAll("""`""", """``""").
+            replaceAll(""""""", """`"""")
+        case _             =>
+          /* Escape string to be CFEngine compliant
+           * a \ will be escaped to \\
+           * a " will be escaped to \"
+           */
+          x.replaceAll("""\\""", """\\\\""").
+            replaceAll(""""""" , """\\"""" )
       }
   }
 }
