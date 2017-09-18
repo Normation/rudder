@@ -25,7 +25,7 @@ bundle agent package_management {
       "package[0]" string => "htop";
 
 
-      "trackingkey[0]" string => "ff44fb97-b65e-43c4-b8c2-0df8d5e8549f@@16617aa8-1f02-4e4a-87b6-d0bcdfb4019f@@0";
+      "trackingkey[0]" string => "ff44fb97-b65e-43c4-b8c2-0df8d5e8549f@@16617aa8-1f02-4e4a-87b6-d0bcdfb4019f@@2";
 
 
       "state[0]" string => "present";
