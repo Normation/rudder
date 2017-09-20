@@ -30,13 +30,18 @@
 bundle agent file_from_shared_folder(source, destination, hash_type)
 {
   vars:
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"              slist => { "${source}", "${destination}" };
+      "canonified_destination" string => canonify("${destination}");
+
+      "old_class_prefix"       string => "file_from_shared_folder_${canonified_destination}";
+      "promisers"               slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"           string => canonify(join("_", "promisers"));
+      "args"                    slist => { "${source}", "${destination}" };
 
   methods:
       "copy without recursion" usebundle => file_copy_from_remote_source_recursion("/var/rudder/configuration-repository/shared-files/${source}", "${destination}", "0");
+      "class copy"             usebundle => _classes_copy("file_copy_from_remote_source_${canonified_destination}", "${old_class_prefix}");
       "new result classes"     usebundle => _classes_copy("${class_prefix}_copy_without_recursion", "${class_prefix}");
 
-      "report"                 usebundle => _log("Copying ${destination} from ${source}", "", "${class_prefix}", @{args});
+
+      "report"                 usebundle => _log("Copying ${destination} from ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
