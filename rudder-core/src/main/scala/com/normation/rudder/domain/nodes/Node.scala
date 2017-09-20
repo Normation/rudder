@@ -47,6 +47,7 @@ import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.utils.HashcodeCaching
 import com.normation.utils.Control.sequence
+import com.normation.rudder.services.policies.write.ParameterEntry
 
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.SimpleDiff
@@ -277,7 +278,7 @@ object ModifyNodeDiff {
 
 /**
  * The part dealing with JsonSerialisation of node related
- * attributes (especially properties)
+ * attributes (especially properties) and parameters
  */
 object JsonSerialisation {
 
@@ -307,6 +308,26 @@ object JsonSerialisation {
       props.map(dataJson(_)).toList.sortBy { _.name }
     }
   }
+
+  implicit class JsonParameter(x: ParameterEntry) {
+    def toJson(): JObject = (
+        ( "name"     , x.parameterName  )
+      ~ ( "value"    , x.parameterValue )
+    )
+  }
+
+  implicit class JsonParameters(parameters: Set[ParameterEntry]) {
+    implicit val formats = DefaultFormats
+
+    def dataJson(x: ParameterEntry) : JField = {
+      JField(x.parameterName, x.parameterValue)
+    }
+
+    def toDataJson(): JObject = {
+      parameters.map(dataJson(_)).toList.sortBy { _.name }
+    }
+  }
+
 
   def unserializeLdapNodeProperty(json:JValue): Box[NodeProperty] = {
 
