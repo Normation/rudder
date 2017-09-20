@@ -100,6 +100,11 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.cfclerk.domain.Variable
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TrackerVariable
+import com.normation.inventory.domain.AgentType
+import com.normation.rudder.services.policies.NodeConfigData.{root, node1, rootNodeConfig}
 
 /**
  * Details of tests executed in each instances of
@@ -107,9 +112,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
  * To see values for gitRoot, ptLib, etc, see at the end
  * of that file.
  */
-@RunWith(classOf[JUnitRunner])
-class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll {
-
+object TestSystemData {
   //make tests more similar than default rudder install
   val hookIgnore = """.swp, ~, .bak,
  .cfnew   , .cfsaved  , .cfedited, .cfdisabled, .cfmoved,
@@ -197,6 +200,8 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     , getSyslogProtocol               = () => Full(SyslogUDP)
   )
 
+  // To uncomment in 4.2
+  //  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
   val prepareTemplateVariable = new PrepareTemplateVariablesImpl(
       techniqueRepository
     , systemVariableServiceSpec
@@ -237,25 +242,6 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
 
   //////////// end init ////////////
 
-  //////////// set-up auto test cleaning ////////////
-  override def afterAll(): Unit = {
-    if(System.getProperty("tests.clean.tmp") != "false") {
-      logger.info("Deleting directory " + abstractRoot.getAbsolutePath)
-      FileUtils.deleteDirectory(abstractRoot)
-    }
-  }
-
-  //////////// end set-up ////////////
-
-  //utility to assert the content of a resource equals some string
-  def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String) = {
-    val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
-    reader.getResourceContent(id, ext) {
-        case None => ko("Can not open an InputStream for " + id.toString)
-        case Some(is) => IOUtils.toString(is) === expectedContent
-      }
-  }
-
   //an utility class for filtering file lines given a regex,
   //used in the file content matcher
   case class RegexFileContent(regex: List[String]) extends LinesContent[File] {
@@ -268,18 +254,10 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     override def name(f: File) = FileLinesContent.name(f)
   }
 
-  /*
-   * put regex for line you don't want to be compared for difference
-   */
-  def ignoreSomeLinesMatcher(regex: List[String]): LinesPairComparisonMatcher[File, File] = {
-    LinesPairComparisonMatcher[File, File]()(RegexFileContent(regex), RegexFileContent(regex))
-  }
-
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set up root node configuration
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  import com.normation.rudder.services.policies.NodeConfigData.{root, node1, rootNodeConfig}
 
   //a test node - CFEngine
   val nodeId = NodeId("c8813416-316f-4307-9b6a-ca9c109a9fb0")
@@ -454,8 +432,8 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
   //
   // Three user directives: clock management, rpm, package and a ncf one: Create_file
   //
-  val clockTechnique = techniqueRepository.get(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersion("3.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
-  val clockVariables = {
+  lazy val clockTechnique = techniqueRepository.get(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersion("3.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  lazy val clockVariables = {
      val spec = clockTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
          spec("CLOCK_FQDNNTP").toVariable(Seq("true"))
@@ -465,7 +443,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
        , spec("CLOCK_TIMEZONE").toVariable(Seq("dontchange"))
      ).map(v => (v.spec.name, v)).toMap
   }
-  val clock = Cf3PolicyDraft(
+  lazy val clock = Cf3PolicyDraft(
       id              = Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive1"))
     , technique       = clockTechnique
     , techniqueUpdateTime = DateTime.now
@@ -481,8 +459,8 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     , isSystem        = false
   )
 
-  val rpmTechnique = techniqueRepository.get(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
-  val rpmVariables = {
+  lazy val rpmTechnique = techniqueRepository.get(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  lazy val rpmVariables = {
      val spec = rpmTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
          spec("RPM_PACKAGE_CHECK_INTERVAL").toVariable(Seq("5"))
@@ -495,7 +473,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
        , spec("RPM_PACKAGE_VERSION_DEFINITION").toVariable(Seq("default"))
      ).map(v => (v.spec.name, v)).toMap
   }
-  val rpm = Cf3PolicyDraft(
+  lazy val rpm = Cf3PolicyDraft(
       id              = Cf3PolicyDraftId(RuleId("rule2"), DirectiveId("directive2"))
     , technique       = rpmTechnique
     , techniqueUpdateTime = DateTime.now
@@ -511,8 +489,8 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
     , isSystem        = false
   )
 
-  val pkgTechnique = techniqueRepository.get(TechniqueId(TechniqueName("packageManagement"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
-  val pkgVariables = {
+  lazy val pkgTechnique = techniqueRepository.get(TechniqueId(TechniqueName("packageManagement"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  lazy val pkgVariables = {
      val spec = pkgTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
          spec("PACKAGE_LIST").toVariable(Seq("htop"))
@@ -525,7 +503,7 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
        , spec("PACKAGE_POST_HOOK_COMMAND").toVariable(Seq(""))
      ).map(v => (v.spec.name, v)).toMap
   }
-  val pkg = Cf3PolicyDraft(
+  lazy val pkg = Cf3PolicyDraft(
       id              = Cf3PolicyDraftId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f"))
     , technique       = pkgTechnique
     , techniqueUpdateTime = DateTime.now
@@ -606,6 +584,39 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
 
   //write a config
 
+
+
+}
+
+trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll {
+  
+  import TestSystemData._
+   /*
+   * put regex for line you don't want to be compared for difference
+   */
+  def ignoreSomeLinesMatcher(regex: List[String]): LinesPairComparisonMatcher[File, File] = {
+    LinesPairComparisonMatcher[File, File]()(RegexFileContent(regex), RegexFileContent(regex))
+  }
+
+  //////////// set-up auto test cleaning ////////////
+  override def afterAll(): Unit = {
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      logger.info("Deleting directory " + abstractRoot.getAbsolutePath)
+      FileUtils.deleteDirectory(abstractRoot)
+    }
+  }
+
+  //////////// end set-up ////////////
+
+  //utility to assert the content of a resource equals some string
+  def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String) = {
+    val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
+    reader.getResourceContent(id, ext) {
+        case None => ko("Can not open an InputStream for " + id.toString)
+        case Some(is) => IOUtils.toString(is) === expectedContent
+      }
+  }
+  
   def compareWith(path: File, expectedPath: String, ignoreRegex: List[String] = Nil) = {
     /*
      * And compare them with expected, modulo the configId and the name
@@ -620,7 +631,12 @@ class WriteSystemTechniquesTest extends Specification with Loggable with BoxSpec
         :: ignoreRegex
       ))
   }
+  
+}
 
+@RunWith(classOf[JUnitRunner])
+class WriteSystemTechniquesTest extends TechniquesTest{
+  import TestSystemData._
   sequential
 
   "The test configuration-repository" should {
