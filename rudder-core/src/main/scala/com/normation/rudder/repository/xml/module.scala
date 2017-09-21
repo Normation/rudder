@@ -45,7 +45,7 @@ package object xml {
   /**
    * We can't use ISO8601 valid format for a git tag, as ":" are forbidden.
    * So we use a:
-   * YYYY-MM-DD_hh_mm_ss.SSS
+   * YYYY-MM-dd_HH_mm_ss.SSS
    */
   val GitTagDateTimeFormatter = new DateTimeFormatterBuilder().
                 appendYear(4, 4).

@@ -258,7 +258,7 @@ class WoLDAPRuleRepository(
    * Implementation logic:
    * - lock LDAP for other writes (more precisely, only that repos, with
    *   synchronized method),
-   * - create a ou=Rules-YYYY-MM-DD_HH-mm in the "archive" branche
+   * - create a ou=Rules-YYYY-MM-dd_HH-mm in the "archive" branche
    * - move ALL (included system) current rules in the previous 'ou'
    * - save newCr, filtering out system ones if includeSystem is false
    * - if includeSystem is false, copy back save system CR into rule branch
