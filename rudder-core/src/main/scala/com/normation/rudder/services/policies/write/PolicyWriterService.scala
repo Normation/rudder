@@ -125,7 +125,7 @@ class Cf3PromisesFileWriterServiceImpl(
       ( "properties" -> properties.toDataJson())
     }
 
-    val fileName = Constants.GENEREATED_PROPERTY_FILE
+    val fileName = Constants.GENERATED_PROPERTY_FILE
     val path = Constants.GENERATED_PROPERTY_DIR
     val jsonProperties = generateNodePropertiesJson(agentNodeConfig.config.nodeInfo.properties)
     val propertyContent = JsonAST.prettyRender(jsonProperties)
@@ -133,6 +133,29 @@ class Cf3PromisesFileWriterServiceImpl(
     Try {
       val propertyFile = new File ( new File (agentNodeConfig.paths.newFolder, path), fileName)
       FileUtils.writeStringToFile(propertyFile,propertyContent)
+    } match {
+      case FailTry(e) =>
+        val message = s"could not write ${fileName} file, cause is: ${e.getMessage}"
+        Failure(message)
+      case Success(_) =>
+        Full(agentNodeConfig)
+    }
+  }
+
+  private[this] def writeRudderParameterFile(agentNodeConfig: AgentNodeConfiguration) = {
+    def generateParametersJson(parameters : Set[ParameterEntry]): JValue = {
+      import com.normation.rudder.domain.nodes.JsonSerialisation._
+      import net.liftweb.json.JsonDSL._
+      ( "parameters" -> parameters.toDataJson())
+    }
+
+    val fileName = Constants.GENERATED_PARAMETER_FILE
+    val jsonParameters = generateParametersJson(agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value)))
+    val parameterContent = JsonAST.prettyRender(jsonParameters)
+    logger.trace(s"Create parameter file '${agentNodeConfig.paths.newFolder}/${fileName}'")
+    Try {
+      val parameterFile = new File ( new File (agentNodeConfig.paths.newFolder), fileName)
+      FileUtils.writeStringToFile(parameterFile,parameterContent)
     } match {
       case FailTry(e) =>
         val message = s"could not write ${fileName} file, cause is: ${e.getMessage}"
@@ -293,6 +316,11 @@ class Cf3PromisesFileWriterServiceImpl(
                              writeNodePropertiesFile(agentNodeConfig) ?~!
                                s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                            }
+
+      parametersWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+                             writeRudderParameterFile(agentNodeConfig) ?~!
+                               s"An error occured while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
+                          }
 
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
 
