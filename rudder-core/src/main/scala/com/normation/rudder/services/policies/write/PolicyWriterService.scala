@@ -150,7 +150,7 @@ class Cf3PromisesFileWriterServiceImpl(
     }
 
     val fileName = Constants.GENERATED_PARAMETER_FILE
-    val jsonParameters = generateParametersJson(agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value)))
+    val jsonParameters = generateParametersJson(agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value, agentNodeConfig.agentType)))
     val parameterContent = JsonAST.prettyRender(jsonParameters)
     logger.trace(s"Create parameter file '${agentNodeConfig.paths.newFolder}/${fileName}'")
     Try {
