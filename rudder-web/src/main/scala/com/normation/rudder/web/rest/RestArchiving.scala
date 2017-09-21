@@ -165,14 +165,14 @@ class RestArchiving(
    * (the most recent is the first in the array)
    * { "archiveType" : [ { "id" : "datetimeID", "date": "human readable date" , "commiter": "name", "gitPath": "path" }, ... ]
    */
-  private[this] def formatList(archiveType:String, availableArvhives: Map[DateTime, GitArchiveId]) : JValue = {
+  private[this] def formatList(archiveType:String, availableArchives: Map[DateTime, GitArchiveId]) : JValue = {
     case class JsonArchive(id:String, date:String, commiter:String, gitPath:String)
-    val ordered = availableArvhives.toList.sortWith {
+    val ordered = availableArchives.toList.sortWith {
                     case ( (d1,_), (d2,_) ) => d1.isAfter(d2)
                   }.map {
                     case (date,tag) =>
                         val id = date.toString(GitTagDateTimeFormatter)
-                        val datetime = "%s at %s".format(date.toString("YYYY-MM-DD"), date.toString("HH:mm:ss"))
+                        val datetime = "%s at %s".format(date.toString("YYYY-MM-dd"), date.toString("HH:mm:ss"))
                         //json
                         ("id" -> id) ~ ("date" -> datetime) ~ ("commiter" -> tag.commiter.getName) ~ ("gitCommit" -> tag.commit.value)
                   }
