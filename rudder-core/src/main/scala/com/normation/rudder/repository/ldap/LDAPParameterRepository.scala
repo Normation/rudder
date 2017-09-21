@@ -213,7 +213,7 @@ class WoLDAPParameterRepository(
    * Implementation logic:
    * - lock LDAP for other writes (more precisely, only that repos, with
    *   synchronized method),
-   * - create a ou=Parameter-YYYY-MM-DD_HH-mm in the "archive" branche
+   * - create a ou=Parameter-YYYY-MM-dd_HH-mm in the "archive" branche
    * - move ALL current parameters in the previous 'ou'
    * - save newParameters
    * - release lock
