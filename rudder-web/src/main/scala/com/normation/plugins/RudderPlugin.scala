@@ -141,6 +141,64 @@ trait RudderPluginDef {
   def version : PluginVersion
 
 
+  /*
+   * Information about the plugin activation status
+   * and license information.
+   * In implementation, by default use
+   * com.normation.plugins.AlwaysEnabledPluginStatus
+   */
+  def status: PluginStatus
+
+  /*
+   * A visual representation of status/license information, with a
+   * default (overridable) rendering
+   */
+  def statusInformation(): NodeSeq = {
+    import net.liftweb.util.Helpers._
+
+    val info = (
+      <div class="tw-bs"><div id="license-information" style="padding:5px; margin: 5px;" class="bs-callout">
+        <h4>License information</h4>
+        <p>This binary version of this plugin is suject to license with the following information:</p>
+        <div id="license-information-details"/>
+      </div></div>
+    )
+
+    def details(i: PluginLicenseInfo) = {
+      <dl class="dl-horizontal" style="padding:5px;">
+        <dt>Plugin with ID</dt> <dd>{i.softwareId}</dd>
+        <dt>Licensee</dt> <dd>{i.licensee}</dd>
+        <dt>Supported version</dt> <dd>from {i.minVersion} to {i.maxVersion}</dd>
+        <dt>Validity period</dt> <dd>from {i.startDate.toString("YYYY-MM-dd")} to {i.endDate.toString("YYYY-MM-dd")}</dd>
+      </dl>
+    }
+
+    status.current match {
+      case PluginStatusInfo.EnabledNoLicense =>
+        NodeSeq.Empty
+
+      case PluginStatusInfo.Disabled(msg, optDetails) =>
+        ("#license-information [class+]" #> "bs-callout-danger" andThen
+         "#license-information-details"  #> (
+           <div class="bg-danger">{
+             optDetails match {
+               case None    => <p>It was not possible to read information about the license.</p>
+               case Some(i) => details(i)
+             } }
+             <p class="text-danger">{msg}</p>
+           </div>
+         )
+        )(info)
+
+      case PluginStatusInfo.EnabledWithLicense(i) =>
+        ("#license-information [class+]" #> "bs-callout-info" andThen
+         "#license-information-details"  #> (
+           <div class="bg-info">{details(i)}</div>
+         )
+        )(info)
+    }
+  }
+
   /**
    * The init method of the plugin. It will be called
    * at each at start of the application, so do not put

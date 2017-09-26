@@ -37,7 +37,6 @@
 
 package com.normation.plugins
 
-import scala.xml.NodeSeq
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.logger.ApplicationLogger
 

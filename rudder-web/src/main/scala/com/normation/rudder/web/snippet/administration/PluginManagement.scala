@@ -39,7 +39,6 @@ package com.normation.rudder.web.snippet.administration
 
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import scala.xml.NodeSeq
 import com.normation.plugins.RudderPluginDef
@@ -67,7 +66,8 @@ class PluginManagement extends DispatchSnippet with Loggable {
       ".page-title *" #> p.displayName &
       "#pluginId" #> (p.name.value + ": " + p.id) &
       "#pluginVersion" #> p.version.toString &
-      "#pluginDescription" #> p.description
+      "#pluginDescription" #> p.description &
+      "#pluginStatusInformation" #> p.statusInformation
     )(xml)
   }
 }
