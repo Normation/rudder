@@ -51,6 +51,7 @@ import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.inventory.domain.OsDetails
 
 
 
@@ -165,6 +166,7 @@ class BuildBundleSequence(
   def prepareBundleVars(
       nodeId          : NodeId
     , agentType       : AgentType
+    , osDetails       : OsDetails
     , nodePolicyMode  : Option[PolicyMode]
     , globalPolicyMode: GlobalPolicyMode
     , container       : Cf3PolicyDraftContainer
@@ -207,7 +209,7 @@ class BuildBundleSequence(
           techniquesBundles          <- sequence(sortedTechniques)(buildTechniqueBundles(nodeId, agentType))
           //split system and user directive (technique)
           (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
-          bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentType, systemInputFiles, systemBundle, userInputFiles, userBundle)
+          bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentType, osDetails, systemInputFiles, systemBundle, userInputFiles, userBundle)
         } yield {
 
           // map to correct variables
