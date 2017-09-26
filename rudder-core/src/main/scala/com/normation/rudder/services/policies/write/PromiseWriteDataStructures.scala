@@ -45,6 +45,7 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.utils.HashcodeCaching
 import com.normation.templates.STVariable
 import com.normation.cfclerk.domain.Variable
+import com.normation.inventory.domain.OsDetails
 
 /**
  * That file store utility case classes about information used to
@@ -76,6 +77,7 @@ case class AgentNodeConfiguration(
  */
 final case class AgentNodeWritableConfiguration(
     agentType         : AgentType
+  , os                : OsDetails
   , paths             : NodePromisesPaths
   , preparedTechniques: Seq[PreparedTechnique]
   , expectedReportsCsv: ExpectedReportsCsv
