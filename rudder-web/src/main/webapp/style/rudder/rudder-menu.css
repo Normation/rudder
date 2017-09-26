@@ -2666,20 +2666,14 @@ img.deprecation-icon{
 .tooltip-content .info-dsc{
   margin-top:5px;
 }
-.tooltip-content .info-dsc b, b.dsc{
-  color:#440e62;
+.tooltip-content b, b.dsc{
   margin-left: 0 !important;
+}
+b.dsc {
+  color:#440e62;
 }
 .treeActiveTechniqueName.isDeprecated{
   text-decoration:line-through;
-}
-.directiveNode > a.jstree-anchor, .techniqueNode > a.jstree-anchor {
-  position:relative;
-  padding-left:20px !important;
-}
-.directiveNode > a.jstree-anchor > i.fa-file-text, .techniqueNode > a.jstree-anchor > i.fa-gear{
-  position:absolute;
-  left:0;
 }
 span.techversion {
   font-weight: 300;
@@ -2834,4 +2828,8 @@ span.techversion {
   0%   {visibility:visible;}
   1%  {visibility:hidden;}
   100% {visibility:hidden;}
+}
+
+.tree-icon {
+  margin-right: 5px;
 }
