@@ -63,6 +63,7 @@ import org.joda.time.DateTime
 import scala.io.Codec
 import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain.TechniqueFile
+import com.normation.inventory.domain.OsDetails
 
 trait PrepareTemplateVariables {
 
@@ -127,7 +128,8 @@ class PrepareTemplateVariablesImpl(
     ).map(x => (x.spec.name, x)).toMap
 
     for {
-      bundleVars <- prepareBundleVars(agentNodeConfig.config.nodeInfo.id, agentNodeConfig.agentType, agentNodeConfig.config.nodeInfo.policyMode, globalPolicyMode, container)
+      bundleVars <- prepareBundleVars(agentNodeConfig.config.nodeInfo.id, agentNodeConfig.agentType, agentNodeConfig.config.nodeInfo.osDetails
+                                    , agentNodeConfig.config.nodeInfo.policyMode, globalPolicyMode, container)
     } yield {
       val allSystemVars = systemVariables.toMap ++ bundleVars
       val preparedTemplate = prepareTechniqueTemplate(
@@ -144,7 +146,14 @@ class PrepareTemplateVariablesImpl(
           Seq()
       })
 
-      AgentNodeWritableConfiguration(agentNodeConfig.agentType, agentNodeConfig.paths, preparedTemplate.values.toSeq, csv, allSystemVars)
+      AgentNodeWritableConfiguration(
+          agentNodeConfig.agentType
+        , agentNodeConfig.config.nodeInfo.osDetails
+        , agentNodeConfig.paths
+        , preparedTemplate.values.toSeq
+        , csv
+        , allSystemVars
+      )
     }
   }
 
@@ -273,12 +282,13 @@ class PrepareTemplateVariablesImpl(
   private[this] def prepareBundleVars(
       nodeId          : NodeId
     , agentType       : AgentType
+    , osDetails       : OsDetails
     , nodePolicyMode  : Option[PolicyMode]
     , globalPolicyMode: GlobalPolicyMode
     , container       : Cf3PolicyDraftContainer
   ) : Box[Map[String,Variable]] = {
 
-    buildBundleSequence.prepareBundleVars(nodeId, agentType, nodePolicyMode, globalPolicyMode, container).map { bundleVars =>
+    buildBundleSequence.prepareBundleVars(nodeId, agentType, osDetails, nodePolicyMode, globalPolicyMode, container).map { bundleVars =>
       bundleVars.map(x => (x.spec.name, x)).toMap
     }
   }
