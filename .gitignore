@@ -1,0 +1,13 @@
+target*
+.project*
+.classpath*
+.settings*
+.scala_dependencies*
+.idea*
+*.iml
+.externalToolBuilders
+.cache
+*.ldif.log
+*configuration.properties
+.cache*
+.worksheet

@@ -1,0 +1,35 @@
+Repository for Rudder private plugins. 
+--------------------------------------
+
+=== Synopsis
+
+This project bundle all the proprietary plugins for Rudder
+(expect for Windows DSC). 
+
+All projects share the same versionning system: 
+${rudder-branch-version}-${plugin-version} 
+Where plugin-version is "major.minor".
+
+All projects have the same structure: 
+
+- plugin-rudder-name
+  - packaging  # information about how to build the rpkg
+  - src        # code source
+  - build.conf # build information (version, etc)
+  - Makefile   # general build information
+
+You can build any project either by cd'ing to its own directory 
+and "make", or with "make plugin-rudder-name" in root directory. 
+
+"make all" build everything. 
+
+=== Authors
+
+Normation http://normation.com
+
+=== License
+
+All software in that reposiroty are subject to a Proprietary licence. 
+All rights reserved to Normation SAS. 
+
+

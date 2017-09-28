@@ -1,0 +1,27 @@
+Rudder plugin: Hello world !
+----------------------------
+
+This project is part of Rudder - IT automation and compliance made easy
+ 
+See: http://rudder-project.org for more information. 
+
+[horizontal]
+Mailing list, irc:: http://www.rudder-project.org/foswiki/Community/
+
+=== Synopsis
+
+This project is a Rudder plugin that add Radius authentication. 
+
+It is compatible with Rudder 3.2 and up. 
+
+=== Authors
+
+Normation http://normation.com
+
+- Francois "fanf" Armand francois.armand@normation.com
+
+=== License
+
+Proprietary licence. All rights reserved to Normation SAS. 
+
+
