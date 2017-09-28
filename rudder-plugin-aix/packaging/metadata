@@ -1,0 +1,11 @@
+{
+  "type": "plugin",
+  "name": "${plugin-id}",
+  "version": "${plugin-version}",
+  "build-date": "${maven.build.timestamp}",
+  "build-commit": "${commit-id}",
+  "jar-files": [ "/opt/rudder/share/plugins/aix/aix.jar" ],
+  "content": {
+    "files.txz": "/opt/rudder/share/plugins"
+  }
+}

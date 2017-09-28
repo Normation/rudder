@@ -1,0 +1,6 @@
+licensee=Limited demonstration build
+softwareid=rudder-plugin-aix
+minversion=4.2-1.0.0
+maxversion=4.2-1.1.0
+startdate=2017-09-01T00:00:00Z
+enddate=2017-09-30T23:59:59Z

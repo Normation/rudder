@@ -1,0 +1,16 @@
+Rudder plugin: Windows Agent - DSC
+----------------------------------
+
+This project is part of Rudder - Continuous configuration for effective compliance
+
+Rudder is an easy to use, web-driven, role-based solution for IT Infrastructure
+Automation & Compliance.
+ 
+See: http://rudder-project.org for more information. 
+
+=== Synopsis
+
+This plugin allows to manage AIX nodes thanks to Rudder Agent.
+
+
+

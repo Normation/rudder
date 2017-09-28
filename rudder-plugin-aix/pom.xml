@@ -1,0 +1,321 @@
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.normation.plugins</groupId>
+  <artifactId>rudder-plugin-aix</artifactId>
+  <packaging>jar</packaging>
+  <!--
+    Do not change version here, update content into: build.conf
+  <version>${plugin-version}</version>
+  -->
+  <version>${plugin-version}</version>
+
+  <parent>
+    <groupId>com.normation.rudder</groupId>
+    <artifactId>rudder-parent</artifactId>
+    <version>4.2.0</version>
+  </parent>
+
+  <description>
+    This plugin allows to manage AIX nodes with Rudder
+  </description>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>1.0.0</version>
+        <configuration>
+          <files>
+            <file>build.conf</file>
+          </files>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>read-project-properties</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.0.2</version>
+        <executions>
+          <execution>
+            <id>copy-resources</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <!-- we want to copy the build.conf in the plugin own package to allow 
+                   unique identification of build.conf when several plugins presents.  
+                   So build.conf is at the root of "basePackage"
+               -->
+              <outputDirectory>target/classes/com/normation/plugins/aix</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>.</directory>
+                  <includes><include>build.conf</include></includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>copy-metadata</id>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>target</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>packaging</directory>
+                  <includes><include>metadata</include></includes>
+                  <filtering>true</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.4</version>
+        <configuration>
+          <descriptors>
+            <descriptor>src/main/assembly/plugin-with-own-dependencies.xml</descriptor>
+          </descriptors>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- filter plugin license class and compile it -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>templating-maven-plugin</artifactId>
+        <version>1.0.0</version>
+        <executions>
+          <execution>
+            <id>filter-src</id>
+            <goals>
+              <goal>filter-sources</goal>
+            </goals>
+                <configuration>              
+                  <sourceDirectory>${basedir}/src/main/scala-templates/limited</sourceDirectory>
+                  <outputDirectory>${project.build.directory}/generated</outputDirectory>
+                </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  <properties>
+    <test-value>ok</test-value>
+  </properties>
+
+  <!-- We need to specify that dependencies comming from parent are provided (they are by rudder-web) -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-library</artifactId>
+        <version>${scala-version}</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>net.liftweb</groupId>
+        <artifactId>lift-common_${scala-binary-version}</artifactId>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>ca.mrvisser</groupId>
+        <artifactId>sealerate_${scala-binary-version}</artifactId>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.ow2.asm</groupId>
+        <artifactId>asm</artifactId>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-core</artifactId>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.monix</groupId>
+        <artifactId>monix-eval_${scala-binary-version}</artifactId>
+        <scope>provided</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>servlet-api</artifactId>
+      <version>2.5</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.normation.rudder</groupId>
+      <artifactId>rudder-web</artifactId>
+      <version>${rudder-version}</version>
+      <!-- this is needed as rudder-web is a war - its classes are packaged with "-classes" appened -->
+      <classifier>classes</classifier>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Doing HTTP requests -->
+    <dependency>
+      <groupId>org.scalaj</groupId>
+      <artifactId>scalaj-http_${scala-binary-version}</artifactId>
+      <version>2.3.0</version>
+    </dependency>
+
+    <!-- selecting sub-json -->
+    <dependency>
+      <groupId>com.jayway.jsonpath</groupId>
+      <artifactId>json-path</artifactId>
+      <version>2.2.0</version>
+    </dependency>
+
+    <!-- Task/Observable: monix -->
+    <dependency>
+      <groupId>io.monix</groupId>
+      <artifactId>monix-reactive_${scala-binary-version}</artifactId>
+      <version>${monix-version}</version>
+    </dependency>
+
+    <!-- Test: rudder -->
+    <dependency>
+      <groupId>com.normation.rudder</groupId>
+      <artifactId>rudder-web</artifactId>
+      <version>${rudder-version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.normation.rudder</groupId>
+      <artifactId>rudder-core</artifactId>
+      <version>${rudder-version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <!--
+      Aaaannnnd maven is horrible, so we need to put back needed dependencies, see:
+      https://maven.apache.org/plugins/maven-jar-plugin/examples/create-test-jar.html
+      Perhaps it's time to quit maven.
+     -->
+     <!-- Testing Liftweb -->
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-testkit_${scala-binary-version}</artifactId>
+      <version>${lift-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- YAML parser, for REST API test -->
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>1.17</version>
+      <scope>test</scope>
+    </dependency>
+
+
+    <!-- Tests: a rest server -->
+    <dependency>
+      <groupId>org.http4s</groupId>
+      <artifactId>http4s-dsl_${scala-binary-version}</artifactId>
+      <version>${http4s-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.http4s</groupId>
+      <artifactId>http4s-blaze-server_${scala-binary-version}</artifactId>
+      <version>${http4s-version}</version>
+      <scope>test</scope>
+    </dependency>
+
+
+    <dependency>
+      <groupId>com.normation</groupId>
+      <artifactId>license-lib</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>rudder-release</id>
+      <url>http://www.rudder-project.org/maven-releases/</url>
+      <layout>default</layout>
+      <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+    <repository>
+      <id>rudder-snapshot</id>
+      <url>http://www.rudder-project.org/maven-snapshots/</url>
+      <layout>default</layout>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+     <repository>
+      <id>rudder-private-release</id>
+      <url>http://nexus.normation.com/nexus/content/repositories/private-releases/</url>
+      <layout>default</layout>
+      <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+    <repository>
+      <id>rudder-private-snapshot</id>
+      <url>http://nexus.normation.com/nexus/content/repositories/private-snapshots/</url>
+      <layout>default</layout>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+  </repositories>
+
+</project>
+
