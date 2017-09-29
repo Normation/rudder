@@ -413,8 +413,10 @@ class HomePage extends Loggable {
 
       // Format different version naming type into one
       def formatVersion (version : String) : String= {
-        // All that is before '.release' (rpm relases, like 3.0.6.release), OR all until first dash ( debian releases, like 3.0.6-wheezy)
-        val versionRegexp = "(cfe-)?((.+)(?=\\.release)|([^-]+))".r
+        // All that is before '.release' (rpm relases, like 3.0.6.release)
+        // OR DSC agent version, => value before dash + dash + first two numbers separated by a dot (a.b-x.y)
+        // OR all until first dash ( debian releases, like 3.0.6-wheezy)
+        val versionRegexp = "(cfe-)?((.+)(?=\\.release)|([^-]+-\\d+\\.\\d+)|([^-]+))".r
         versionRegexp.
           findFirstIn(version).
           getOrElse(version).
