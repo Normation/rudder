@@ -85,7 +85,7 @@ final class CheckRudderPluginAixEnableImpl() extends PluginStatus {
   }
 
   //log at that point is we read the license information for the plugin
-  maybeInfo.fold( error => PluginLogger.error(error) , ok =>  PluginLogger.info("Plugin DSC has a license and the license signature is valid.") )
+  maybeInfo.fold( error => PluginLogger.error(error) , ok =>  PluginLogger.info("Plugin AIX has a license and the license signature is valid.") )
 
   def current: PluginStatusInfo = {
     (for {
