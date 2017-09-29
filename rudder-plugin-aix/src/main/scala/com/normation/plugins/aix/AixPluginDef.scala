@@ -53,7 +53,7 @@ class AixPluginDef(info: PluginStatus) extends RudderPluginDef with Loggable {
   def init = {
     PluginLogger.info(s"loading '${buildConf.getString("plugin-id")}:${version.toString}' plugin")
 
-    // add policy generation for DSC agent
+    // add policy generation for AIX nodes
     RudderConfig.writeAllAgentSpecificFiles.addAgentSpecificGeneration(new AixAgentSpecificGeneration(info))
   }
 

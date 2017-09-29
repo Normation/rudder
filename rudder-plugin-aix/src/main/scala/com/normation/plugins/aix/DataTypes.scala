@@ -29,7 +29,7 @@ object AixLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("aix")
 }
 
-object DscTimingLogger extends Logger {
+object AixTimingLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("aix.timing")
 }
 

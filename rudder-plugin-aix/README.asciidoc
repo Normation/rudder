@@ -1,5 +1,5 @@
-Rudder plugin: Windows Agent - DSC
-----------------------------------
+Rudder plugin: AIX nodes 
+------------------------
 
 This project is part of Rudder - Continuous configuration for effective compliance
 
