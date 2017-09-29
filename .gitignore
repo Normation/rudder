@@ -11,3 +11,6 @@ target*
 *configuration.properties
 .cache*
 .worksheet
+*/scripts.txz
+*/files.txz
+*.rpkg
