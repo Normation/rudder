@@ -1,0 +1,2 @@
+# ignore aix directory which is a side product of compilation
+aix/
