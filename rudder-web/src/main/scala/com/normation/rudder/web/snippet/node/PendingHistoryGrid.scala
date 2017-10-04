@@ -257,8 +257,8 @@ object PendingHistoryGrid extends Loggable {
     // sort those events by date, to take the closer deletion date from the inventory date (head of the list)
     effectiveEvents.sortWith( (ev1,ev2) => ev1.creationDate.isBefore(ev2.creationDate)).headOption match {
       case Some(deleted) =>
-        <div style="padding: 10px 15px 0">
-          <img src={"/" + StaticResourceRewrite.prefix + "/images/icWarn.png"} alt="Warning!" height="32" width="32" class="warnicon" style="float :left; margin-right:9px; margin-top:-9px"/>
+        <div style="padding: 10px 15px 0" class="tw-bs">
+          <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
           <h3> {"This node was deleted on %s by %s".format(DateFormaterService.getFormatedDate(deleted.creationDate),deleted.principal.name)}</h3>
         </div>
       case None => NodeSeq.Empty

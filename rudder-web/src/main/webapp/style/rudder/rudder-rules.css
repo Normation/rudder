@@ -79,6 +79,9 @@ label.rule-info + div{
 .new-icon.category + .btn.btn-box-tool > .fa{
   margin-left:0;
 }
+#recentChanges .btn-refresh{
+  margin:-6px -6px 0 0;
+}
 @media (min-width: 991px) and (max-width: 1300px){
   .new-icon.category:before{
     content:"Add";
