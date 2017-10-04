@@ -729,11 +729,12 @@ $scope.groupMethodsByCategory = function () {
     }
   };
 
-  $scope.methodUrl = function(method,kind) {
+  $scope.methodUrl = function(method) {
+    var name = method.bundle_name !== undefined ? method.bundle_name : $scope.getMethodBundleName(method);
     if (usingRudder) {
-      return "/rudder-doc/#"+method.bundle_name
+      return "/rudder-doc/#"+name;
     } else {
-      return "http://www.ncf.io/pages/reference.html#"+method.bundle_name
+      return "http://www.ncf.io/pages/reference.html#"+name;
     }
   }
 
