@@ -187,7 +187,7 @@ localAccountName: nicolas.charles
 localAccountName: jonathan.clarke
 localAccountName: root
 localAdministratorAccountName: root
-agentName: Nova
+agentName: Community
 policyServerId:root-policy-server
 ipHostNumber: 192.168.56.101
 ipHostNumber: 127.0.0.1
@@ -209,7 +209,7 @@ ram: 1
 software: softwareId=soft0,ou=Software,ou=Inventories,cn=rudder-configuration
 software: softwareId=soft1,ou=Software,ou=Inventories,cn=rudder-configuration
 localAdministratorAccountName: root
-agentName: Nova
+agentName: {"agentType":"cfengine-nova","version":"4.2.0-jessie0","securityToken":{"value":"-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEA2AlhQKo0lMwsInTJzOIimehRQDgeO4SuAAfnpzxKRLsBLcGViW4n\nZ4VrfW+xNOWXKJpEDRaVX6C/JQoVsCrvsLcnVPz/qxLZTGQzsirDPJE5WX+kN+nz\nYoo2jM5VNoZEioh1I9854dvyI6qv7BbNWHxZ9k5VcTSs33YUowBsiB+54h4w5MFN\nibrq5UcGMxhQAmWGzlACLM7E7Bu70O4NXEAmBFnXh6Gni7KL5MAPKQ0vy3O0is8+\n8Z6uA3Mo1yOtSiH3AtgpsSuRdNQqyinqMXkpBzE4mrIiftEo/FF8j/xFQTtoI/mw\nMMedHfNOeDzTGMtVjiXwtSZq6LmjIRtIDQIDAQAB\n-----END RSA PUBLIC KEY-----","type":"publicKey"}}
 policyServerId:root-policy-server
 nodeHostname: node2.normation.com
 ipHostNumber: 192.168.56.102
@@ -227,7 +227,7 @@ osKernelVersion: nothing
 nodeId: node3
 cn:has logical elements
 localAdministratorAccountName: root
-agentName: Nova
+agentName: {"agentType":"cfengine-community","version":"4.2.0-jessie0","securityToken":{"value":"-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEA2AlhQKo0lMwsInTJzOIimehRQDgeO4SuAAfnpzxKRLsBLcGViW4n\nZ4VrfW+xNOWXKJpEDRaVX6C/JQoVsCrvsLcnVPz/qxLZTGQzsirDPJE5WX+kN+nz\nYoo2jM5VNoZEioh1I9854dvyI6qv7BbNWHxZ9k5VcTSs33YUowBsiB+54h4w5MFN\nibrq5UcGMxhQAmWGzlACLM7E7Bu70O4NXEAmBFnXh6Gni7KL5MAPKQ0vy3O0is8+\n8Z6uA3Mo1yOtSiH3AtgpsSuRdNQqyinqMXkpBzE4mrIiftEo/FF8j/xFQTtoI/mw\nMMedHfNOeDzTGMtVjiXwtSZq6LmjIRtIDQIDAQAB\n-----END RSA PUBLIC KEY-----","type":"publicKey"}}
 policyServerId:root-policy-server
 nodeHostname: node3.normation.com
 ipHostNumber: 192.168.56.103
@@ -246,11 +246,10 @@ nodeId: node4
 container: machineId=machine0,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 cn: has machine with nothing
 localAdministratorAccountName: root
-agentName: Community
+agentName: {"agentType":"cfengine-community","version":"4.2.0-jessie0","securityToken":{"value":"-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEA2AlhQKo0lMwsInTJzOIimehRQDgeO4SuAAfnpzxKRLsBLcGViW4n\nZ4VrfW+xNOWXKJpEDRaVX6C/JQoVsCrvsLcnVPz/qxLZTGQzsirDPJE5WX+kN+nz\nYoo2jM5VNoZEioh1I9854dvyI6qv7BbNWHxZ9k5VcTSs33YUowBsiB+54h4w5MFN\nibrq5UcGMxhQAmWGzlACLM7E7Bu70O4NXEAmBFnXh6Gni7KL5MAPKQ0vy3O0is8+\n8Z6uA3Mo1yOtSiH3AtgpsSuRdNQqyinqMXkpBzE4mrIiftEo/FF8j/xFQTtoI/mw\nMMedHfNOeDzTGMtVjiXwtSZq6LmjIRtIDQIDAQAB\n-----END RSA PUBLIC KEY-----","type":"publicKey","test":"dsc"}}
 policyServerId:root-policy-server
 nodeHostname: node4.normation.com
 ipHostNumber: 127.0.0.1
-publicKey: "test"
 
 dn: nodeId=node5,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
@@ -264,7 +263,7 @@ nodeId: node5
 container: machineId=machine1,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 cn: has machine with attributes
 localAdministratorAccountName: root
-agentName: Nova
+agentName: {"agentType":"dsc","version":"4.2-1.0","securityToken":{"value":"-----BEGIN CERTIFICATE-----\nMIIFTTCCAzWgAwIBAgIJAL4vbx1mfhs5MA0GCSqGSIb3DQEBCwUAMEcxDzANBgNV\nBAMMBkFHRU5UMjE0MDIGCgmSJomT8ixkAQEMJDM1NWVhY2QxLWU4YjAtNDg4OC1i\nZTFkLTUxMDQ3MTdkZTZjZjAeFw0xNzEwMDQxNjUyMTJaFw0yNzEwMDIxNjUyMTJa\nMEcxDzANBgNVBAMMBkFHRU5UMjE0MDIGCgmSJomT8ixkAQEMJDM1NWVhY2QxLWU4\nYjAtNDg4OC1iZTFkLTUxMDQ3MTdkZTZjZjCCAiIwDQYJKoZIhvcNAQEBBQADggIP\nADCCAgoCggIBALv6AoYF59+F/jGPQq074gf8HZwowysuT4uxFbFpkYBc6FvLuRrZ\nnz0lJZKZOSjWbhndKLFkKgsHBi35ESfblBf4lqBguyCPWKRyGApSJP0cElSNKJsi\nzd0qXorTKV0aEQod2TUjz35Vbl2rYPbt+vIGX0zK0cBhTiSJ8ONLMoCUxeqVXmqL\nSisD6LfR9NH+0+LZ4g0ueQzC+DJncb0wbH66vbg6soykQ2c1XljRgdJHrEgPy43x\nL6WvL6Sb4hlPs7yBHwWTGXsAKjs8kMBON9ijPnS30gQm5flqd8lFd/s1/7yYrXBl\n+e8cOVTorgL1biQb250MRaPp4PL3NvbpLtMaSK8aAdxQSFhMxvCHq+41VbjAkIPG\n9yekMqsbs22BZn4XoTbn5F71FGh39j6cI/BJYOI6sDmnVfWuMTwdGnzh43fNDpch\n7FeuDUTomFkJXFNMZuvuEhLtf39OIknzhszxXrsSG8VSHAS4GdRXSFu9bbtuLm2Q\ngiiVLkE69NUgM+XHM9XKiNY2oDNtVpVrRte4hdH7NgG2LgBs+bYNPI44po4AfGnc\n2ICzC1UXEnNpH0WGVZ4OtBKZlmHLC7RhCXOkTBOX29yBag4jIfDaIYNthDmSX3By\nVoh1/hLrXcTnIzMn31Ku3CKVbYeMBEzmZGLtDSQvoedAgv0VCgf8fRhZAgMBAAGj\nPDA6MAwGA1UdEwQFMAMBAf8wCwYDVR0PBAQDAgK0MB0GA1UdDgQWBBSaV2KqEPqU\n2xWF2ajE/h0a5fB7LzANBgkqhkiG9w0BAQsFAAOCAgEAV7/A+nlL/bWOd906t3QR\nt57hQfgBkNralQyNvsspFaDJM19G+Xi2yhW/Vq9tZNJ0FzbMwp2OwcADmDtnFG/Y\nBa83jU8Cxa/wvQO86KCNK4NlzGjcWNtwGM4135r7M8t3dvx+uXu+AYa96QrVLTUX\n4XsRJWTdf4Qe6zgKuaDfsEr0eDAo6UNe+ZQyPNJoqPERKTTcv8BDimAGCdO0ZAUy\nMd6Cu6WTpMrWvhr/YzvwQm9tJ7GvQoVd3HAyO/+6dZOqFoJmoI6NXB2thSEMJMQ7\nAiniqRO04opf56Z1K0RO8/ECsr81OL4R0j7Bx+SNVGQP+FDDUdiJPZp1SeQgrgSb\nihCQr8zWZtmXZE0UKIAHXsfCFCNr/t4yPgOsAlD1Cs0QRglXr/M15jmpmWlD7IiB\nbx0aOdwH99a2HK7d41v1yoZn4bKdgtbEaPHXViAPnFdcJPQ1+1hm8G2vbhYJgv1d\no+ZgEyZNfamAPCKKyy79JVPeas4alSnBw+RRRKxH4ZAr7E+Urml7JFmoiab0jjGY\nOjgEzRQUOiTdSNvpzJUz71KrQPgR0gIlsjnyu3QOoFXdVtg+MzLyOb4bCmo3mFL2\nsAhdducYbLhNS/IOunspkZJzfgRodgzOj1ZRlTJztP+sdd5M2rJy6awpWL4AwUMP\nyDa4p7g4y2ju9vIh+t4C8qk=\n-----END CERTIFICATE-----","type":"certificate"}}
 policyServerId:root-policy-server
 nodeHostname: node5.normation.com
 publicKey: "test"
@@ -299,7 +298,7 @@ container: machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories
 cn: has everything
 software: softwareId=soft0,ou=Software,ou=Inventories,cn=rudder-configuration
 localAdministratorAccountName: root
-agentName: Community
+agentName: {"agentType":"cfengine-community","version":"4.2.0-jessie0","securityToken":{"value":"-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEA2AlhQKo0lMwsInTJzOIimehRQDgeO4SuAAfnpzxKRLsBLcGViW4n\nZ4VrfW+xNOWXKJpEDRaVX6C/JQoVsCrvsLcnVPz/qxLZTGQzsirDPJE5WX+kN+nz\nYoo2jM5VNoZEioh1I9854dvyI6qv7BbNWHxZ9k5VcTSs33YUowBsiB+54h4w5MFN\nibrq5UcGMxhQAmWGzlACLM7E7Bu70O4NXEAmBFnXh6Gni7KL5MAPKQ0vy3O0is8+\n8Z6uA3Mo1yOtSiH3AtgpsSuRdNQqyinqMXkpBzE4mrIiftEo/FF8j/xFQTtoI/mw\nMMedHfNOeDzTGMtVjiXwtSZq6LmjIRtIDQIDAdsc\n-----END RSA PUBLIC KEY-----","type":"publicKey"}}
 policyServerId:root-policy-server
 nodeHostname: node7.normation.com
 publicKey: "test"
