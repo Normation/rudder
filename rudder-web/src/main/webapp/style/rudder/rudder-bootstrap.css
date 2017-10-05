@@ -437,7 +437,6 @@
 }
 .tw-bs .modal table{
     border: none;
-    box-shadow: 0 -5px 5px -5px #CCCCCC;
 }
 .tw-bs .modal .dataTables_refresh .refreshButton {
     background-color: #fff;
