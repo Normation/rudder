@@ -132,6 +132,10 @@
 .new-icon.tech + .btn.btn-box-tool > .fa{
   margin-left:0;
 }
+#confirmUpdateActionDialog #grid_remove_popup_grid_wrapper{
+  float:left;
+  width:100%;
+}
 @media (min-width: 991px) and (max-width: 1300px){
   .new-icon.tech:before{
     content:"Edit";
