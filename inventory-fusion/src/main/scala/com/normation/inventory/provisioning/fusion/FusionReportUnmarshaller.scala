@@ -287,11 +287,15 @@ class FusionReportUnmarshaller(
 
     // as a temporary solution, we are getting information from packages
 
-    def findAgent(software: Seq[Software], agentType: AgentType) = (
-      software.find(p => p.name.getOrElse("")
-              .toLowerCase.contains(agentType.inventorySoftwareName     ))
-              .flatMap(s => s.version.map(v => AgentVersion(agentType.toAgentVersionName(v.value))))
-    )
+    def findAgent(software: Seq[Software], agentType: AgentType) = {
+      val agentSoftName = agentType.inventorySoftwareName.toLowerCase()
+      for {
+        soft <- software.find{_.name.map(_.toLowerCase() contains agentSoftName).getOrElse(false)}
+        version <- soft.version
+      } yield {
+        AgentVersion(agentType.toAgentVersionName(version.value))
+      }
+    }
 
     (xml \\ "RUDDER").headOption match {
       case Some(rudder) =>
