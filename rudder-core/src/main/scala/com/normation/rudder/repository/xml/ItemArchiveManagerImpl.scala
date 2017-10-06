@@ -61,6 +61,7 @@ import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.GitRuleCategoryArchiver
 import java.io.File
 import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
+import com.normation.rudder.batch.UpdateDynamicGroups
 
 class ItemArchiveManagerImpl(
     roRuleRepository                  : RoRuleRepository
@@ -89,6 +90,7 @@ class ItemArchiveManagerImpl(
   , eventLogger                       : EventLogRepository
   , asyncDeploymentAgent              : AsyncDeploymentAgent
   , gitModificationRepo               : GitModificationRepository
+  , updateDynamicGroups               : UpdateDynamicGroups
 ) extends
   ItemArchiveManager with
   Loggable with
@@ -272,6 +274,8 @@ class ItemArchiveManagerImpl(
       eventLogged <- eventLogger.saveEventLog(modId,new ImportFullArchive(actor,archiveId, reason))
       commit      <- restoreCommitAtHead(commiter,"User %s requested full archive restoration to commit %s".format(actor.name,archiveId.value),archiveId,FullArchive,modId)
     } yield {
+      // For now trigger both, at least we will end in correct state ... We should add a way to force a deployment in group updater, even if do not need by itself ...
+      updateDynamicGroups.startManualUpdate
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
       archiveId
     }
@@ -353,7 +357,7 @@ class ItemArchiveManagerImpl(
         parsed   <- parseGroupLibrary.getArchive(archiveId)
         imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
       } yield {
-        if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
+        if(deploy) { updateDynamicGroups.startManualUpdate }
         archiveId
       }
   }
