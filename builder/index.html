@@ -293,7 +293,7 @@
                                     data-container="body">
                                       <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
                                     </span>
-                                    <a ng-click="$event.stopPropagation();" target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{getMethodBundleName(method_call)}}">
+                                    <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method_call)}}">
                                       <i class="glyphicon glyphicon-info-sign method-actions"></i>
                                     </a>
                                     <i class="dsc-icon" ng-if="checkMethodCallAgentSupport(method_call.method_name,'dsc')"></i>
@@ -537,7 +537,7 @@
                                   data-container="body">
                                     <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
                                   </span>
-                                  <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method, kind)}}">
+                                  <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method)}}">
                                     <i class="glyphicon glyphicon-info-sign method-actions"></i>
                                   </a>
                                 </span>
@@ -579,3 +579,4 @@
         </div>
     </body>
 </html>
+
