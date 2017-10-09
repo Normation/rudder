@@ -118,6 +118,9 @@ pre.json-beautify, .tw-bs pre.json-beautify{
   position: relative;
   margin-bottom: 0;
   padding-right: 25px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  word-wrap: break-word;
 }
 pre.json-beautify.toggle, .tw-bs pre.json-beautify.toggle{
   height:auto;
