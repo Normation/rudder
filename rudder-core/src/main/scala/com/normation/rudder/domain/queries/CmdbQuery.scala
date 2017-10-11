@@ -406,11 +406,11 @@ case object OsNameComparator extends CriterionType {
 case object AgentComparator extends CriterionType {
 
   val ANY_CFENGINE = "cfengine"
-  /*
-   * We are using 'oldShortName' because we are matching on substring,
-   * and that name was used in the past.
-   */
-  val agentTypes = ( (ANY_CFENGINE, "Any CFEngine based agent") :: AgentType.allValues.toList.map(a => (a.oldShortName, a.displayName))).sortBy( _._2 )
+  val (cfeTypes, cfeAgents) = ((ANY_CFENGINE, "Any CFEngine based agent"),(ANY_CFENGINE, AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil))
+  val allAgents = AgentType.allValues.toList
+
+  val agentTypes = ( cfeTypes  :: allAgents.map(a => (a.oldShortName, (a.displayName)))).sortBy( _._2 )
+  val agentMap   = ( cfeAgents :: allAgents.map(a => (a.id, a :: Nil))).toMap
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
@@ -418,20 +418,31 @@ case object AgentComparator extends CriterionType {
   }
   override def toLDAP(value:String) = Full(value)
 
-  private[this] def filterAgent(agent: String) = SUB(A_AGENTS_NAME, null, Array(agent), null)
+  /*
+   * We need compatibility for < 4.2 inventory
+   * 4.2+: a json is stored in AGENTS_NAME, so we need to check if it contains the valid agentType attribute
+   * <4.2: AGENTS_NAME only contains the name of the agent (but a value that is different form the id, oldShortName
+   */
+  private[this] def filterAgent(agent: AgentType) =
+      SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::
+      EQ(A_AGENTS_NAME, agent.oldShortName) ::
+      Nil
+
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
+
+    val filters = for {
+      agents <- agentMap.get(value).toList
+      agent <- agents
+      filter <- filterAgent(agent)
+    } yield {
+      filter
+    }
     comparator match {
-      //for equals and not equals, check value for jocker
+      //for equals and not equals, check value for joker
       case Equals =>
-        value match {
-          case ANY_CFENGINE => OR(filterAgent(AgentType.CfeCommunity.oldShortName), filterAgent(AgentType.CfeEnterprise.oldShortName))
-          case x            => filterAgent(x)
-        }
+        OR(filters:_*)
       case _ => //actually, this is meant to be "not equals"
-        value match {
-          case ANY_CFENGINE => NOT(OR(filterAgent(AgentType.CfeCommunity.oldShortName), filterAgent(AgentType.CfeEnterprise.oldShortName)))
-          case x            => NOT(filterAgent(x))
-        }
+        NOT(OR(filters:_*))
     }
   }
 

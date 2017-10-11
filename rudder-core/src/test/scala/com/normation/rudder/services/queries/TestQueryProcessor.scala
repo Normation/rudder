@@ -478,6 +478,56 @@ class TestQueryProcessor extends Loggable {
     testQueries( q1 :: Nil)
   }
 
+  @Test def agentTypeQueries {
+
+    logger.info(sr)
+    val allCfengine = TestQuery(
+      "allCfengine",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "where":[
+        { "objectType":"node" , "attribute":"agentName"  , "comparator":"eq", "value":"cfengine" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr(0) :: sr(1) :: sr(2) :: sr(3) :: sr(4) :: sr(5) :: sr(7)  :: sr(8) :: Nil)
+
+    val community = TestQuery(
+      "community",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
+        { "objectType":"node"   , "attribute":"agentName"  , "comparator":"eq", "value":"cfengine-community" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr(2) :: sr(4) :: sr(5) :: sr(7) :: sr(8) :: Nil)
+
+    val nova = TestQuery(
+      "nova",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
+        { "objectType":"node" , "attribute":"agentName"  , "comparator":"eq", "value":"cfengine-nova" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr(0) :: sr(1) :: sr(3) :: Nil)
+
+    val dsc = TestQuery(
+      "dsc",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
+        { "objectType":"node", "attribute":"agentName"  , "comparator":"eq", "value":"dsc" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr(6) :: Nil)
+
+    val notCfengine = TestQuery(
+      "notCfengine",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
+        { "objectType":"node", "attribute":"agentName"  , "comparator":"notEq", "value":"cfengine" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr(6) :: Nil)
+
+    testQueries( allCfengine :: community :: nova :: dsc :: notCfengine :: Nil)
+  }
   /**
    * Test environment variable and nodeProperty
    */
@@ -558,9 +608,7 @@ class TestQueryProcessor extends Loggable {
 
   private def testQueryResultProcessor(name:String,query:Query, nodes:Seq[NodeId]) = {
       val ids = nodes.sortBy( _.value )
-      val found = queryProcessor.process(query).openOrThrowException("For tests").map { nodeInfo =>
-        nodeInfo.id
-      }.sortBy( _.value )
+      val found = queryProcessor.process(query).openOrThrowException("For tests").map { _.id }.sortBy( _.value )
       //also test with requiring only the expected node to check consistancy
       //(that should not change anything)
 
