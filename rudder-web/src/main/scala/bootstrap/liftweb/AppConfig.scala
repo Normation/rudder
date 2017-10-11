@@ -1101,7 +1101,7 @@ object RudderConfig extends Loggable {
       authDn = LDAP_AUTHDN,
       authPw = LDAP_AUTHPW,
       poolSize = 2)
-  private[this] lazy val rwLdap =
+  lazy val rwLdap =
     new RWPooledSimpleAuthConnectionProvider(
       host = LDAP_HOST,
       port = LDAP_PORT,
@@ -1720,7 +1720,6 @@ object RudderConfig extends Loggable {
         , uuidGen
       )
     , new CheckCfengineSystemRuleTargets(rwLdap)
-    , new CheckDSCSystemPolicy(rwLdap)
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////
