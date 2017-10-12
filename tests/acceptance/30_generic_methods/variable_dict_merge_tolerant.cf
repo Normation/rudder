@@ -50,10 +50,10 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph3" usebundle => variable_dict_merge("prefix", "var3", "init.dict1", "init.dict2");
-    "ph4" usebundle => variable_dict_merge("prefix", "var4", "init.undef", "init.dict2");
-    "ph5" usebundle => variable_dict_merge("prefix", "var5", "init.dict1", "init.undef");
-    "ph6" usebundle => variable_dict_merge("prefix", "var6", "init.undef", "init.undef");
+    "ph3" usebundle => variable_dict_merge_tolerant("prefix", "var3", "init.dict1", "init.dict2");
+    "ph4" usebundle => variable_dict_merge_tolerant("prefix", "var4", "init.undef", "init.dict2");
+    "ph5" usebundle => variable_dict_merge_tolerant("prefix", "var5", "init.dict1", "init.undef");
+    "ph6" usebundle => variable_dict_merge_tolerant("prefix", "var6", "init.undef", "init.undef");
 }
 
 #######################################################
@@ -62,17 +62,21 @@ bundle agent check
 {
   vars:
     "result3" string => storejson("prefix.var3");
+    "result4" string => storejson("prefix.var4");
+    "result5" string => storejson("prefix.var5");
+    "dict1" string => storejson("init.dict1");
+    "dict2" string => storejson("init.dict2");
 
   classes:
    
-    "ok_class_3" expression => "variable_dict_merge_var3_kept.!variable_dict_merge_var3_repaired.!variable_dict_merge_var3_error"; 
-    "ok_class_4" expression => "!variable_dict_merge_var4_kept.!variable_dict_merge_var4_repaired.variable_dict_merge_var4_error"; 
-    "ok_class_5" expression => "!variable_dict_merge_var5_kept.!variable_dict_merge_var5_repaired.variable_dict_merge_var5_error"; 
-    "ok_class_6" expression => "!variable_dict_merge_var6_kept.!variable_dict_merge_var6_repaired.variable_dict_merge_var6_error"; 
+    "ok_class_3" expression => "variable_dict_merge_tolerant_var3_kept.!variable_dict_merge_tolerant_var3_repaired.!variable_dict_merge_tolerant_var3_error"; 
+    "ok_class_4" expression => "variable_dict_merge_tolerant_var4_kept.!variable_dict_merge_tolerant_var4_repaired.!variable_dict_merge_tolerant_var4_error"; 
+    "ok_class_5" expression => "variable_dict_merge_tolerant_var5_kept.!variable_dict_merge_tolerant_var5_repaired.!variable_dict_merge_tolerant_var5_error"; 
+    "ok_class_6" expression => "!variable_dict_merge_tolerant_var6_kept.!variable_dict_merge_tolerant_var6_repaired.variable_dict_merge_tolerant_var6_error"; 
     "ok_value_3" expression => strcmp("${result3}", "${init.ref}");
     "ok_value_3" expression => strcmp("${result3}", "${init.ref2}");
-    "ok_value_4" not => isvariable("prefix.var4");
-    "ok_value_5" not => isvariable("prefix.var5");
+    "ok_value_4" expression => strcmp("${result4}", "${dict2}");
+    "ok_value_5" expression => strcmp("${result5}", "${dict1}");
     "ok_value_6" not => isvariable("prefix.var6");
 
     "ok_3" expression => "ok_class_3.ok_value_3";
