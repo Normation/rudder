@@ -16,50 +16,12 @@
 #
 #####################################################################################
 
-# @name Variable dict merge
-# @description Define a variable resulting of the merge of two other variables
+# @name Variable dict merge tolerant
+# @description Define a variable resulting of the merge of two other variables, allowing merging undefined variables
 # @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name[key]}` with each name replaced with the parameters of this method.
 #
-# The resulting variable will be the merge of the two parameters, which means it is built by:
-#
-# * Taking the content of the first variable
-# * Adding the content of the second variable, and replacing the keys that were already there
-#
-# It is only a one-level merge, and the value of the first-level key will be completely replaced by the merge.
-#
-# This method will fail if one of the variables is not defined. See [variable_dict_merge_tolerant](#variable_dict_merge_tolerant)
-# if you want to allow one of the variables not to be defined.
-#
-#### Usage
-#
-# If you have a `prefix.variable1` variable defined by:
-#
-# ```json
-# { "key1": "value1", "key2": "value2", "key3": { "keyx": "valuex" } }
-# ```
-#
-# And a `prefix.variable2` variable defined by:
-#
-# ```json
-# { "key1": "different", "key3": "value3", "key4": "value4" }
-# ```
-#
-# And that you use:
-#
-# ```
-# variablr_dict_merge("prefix", "variable3, "prefix.variable1", "prefix.variable2")
-# ```
-#
-# You will get a `prefix.variable3` variable containing:
-#
-# ```json
-# {
-#   "key1": "different",
-#   "key2": "value2",
-#   "key3": "value3",
-#   "key4": "value4"
-# }
-# ```
+# See [variable_dict_merge](#variable_dict_merge) for usage documentation. The only difference is that this method
+# will not fail if one of the variables do not exist, and will return the other one. If both are undefined, the method will still fail.
 #
 # @parameter variable_prefix The prefix of the variable name
 # @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
@@ -68,33 +30,46 @@
 #
 # @agent_version >=3.6
 # 
-# @class_prefix variable_dict_merge
+# @class_prefix variable_dict_merge_tolerant
 # @class_parameter variable_name
 
-bundle agent variable_dict_merge(variable_prefix, variable_name, first_variable, second_variable)
+bundle agent variable_dict_merge_tolerant(variable_prefix, variable_name, first_variable, second_variable)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_dict_merge_${variable_name}");
+      "old_class_prefix"  string => canonify("variable_dict_merge_tolerant_${variable_name}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${variable_prefix}", "${variable_name}", "${first_variable}", "${second_variable}" };
 
+    pass1::
       # define the variable within the variable_prefix namespace
-      "${variable_prefix}.${variable_name}"  data => mergedata("${first_variable}", "${second_variable}");
+      "${variable_prefix}.${variable_name}" data => mergedata("${first_variable}", "${second_variable}"),
+                                      ifvarclass => "first_variable_defined.second_variable_defined";
+      "${variable_prefix}.${variable_name}" data => mergedata("${first_variable}"),
+                                      ifvarclass => "first_variable_defined.!second_variable_defined";
+      "${variable_prefix}.${variable_name}" data => mergedata("${second_variable}"),
+                                      ifvarclass => "!first_variable_defined.second_variable_defined";
+
 
   classes:
-     "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");
+      "first_variable_defined"  expression => isvariable("${first_variable}");
+      "second_variable_defined" expression => isvariable("${second_variable}");
+
+      "variable_defined"        expression => isvariable("${variable_prefix}.${variable_name}");
+
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-    !variable_defined::
+    pass2.!variable_defined::
       "error"    usebundle => _classes_failure("${old_class_prefix}");
       "error"    usebundle => _classes_failure("${class_prefix}");
 
-    variable_defined::
+    pass2.variable_defined::
       "success"  usebundle => _classes_success("${old_class_prefix}");
       "success"  usebundle => _classes_success("${class_prefix}");
 
-    any::
+    pass2::
       "report"
-        usebundle  => _log("Set the dict ${variable_prefix}.${variable_name} to the content of the merge of ${first_variable} and ${second_variable}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log("Set the dict ${variable_prefix}.${variable_name} to the content of the tolerant merge of ${first_variable} and ${second_variable}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
