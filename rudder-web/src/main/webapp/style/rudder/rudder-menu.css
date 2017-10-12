@@ -547,6 +547,7 @@ a.sidebar-toggle{
 }
 .tw-bs .progress {
   margin: 3px 5px;
+  border-radius:0;
 }
 .tw-bs td, .tw-bs th {
   padding: 4px 3px;
