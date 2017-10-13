@@ -519,7 +519,7 @@
                 </div>
                 <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory" ng-if="checkFilterCategory(methods)">
                     <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}}</h4>
-                    <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" ng-show="checkFilterMethod(method)" ng-class="{'used':isUsed(method), 'show':filter.showDeprecated}">
+                    <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" ng-show="checkFilterMethod(method)" ng-class="{'used':isUsed(method)}">
                       <div class="input-group">
                         <span class="input-group-addon cursorMove"><b>:::</b></span>
                         <div class="panel-heading" style="overflow:hidden">

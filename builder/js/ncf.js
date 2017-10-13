@@ -591,6 +591,7 @@ $scope.groupMethodsByCategory = function () {
   }
 
   $scope.checkFilterCategory = function(methods){
+    //If this function returns true, the category is displayed. Else, it is hidden by filters.
     var deprecatedFilter = $scope.filter.showDeprecated || $scope.checkDeprecatedFilter(methods);
     var agentTypeFilter  = false;
     var i = 0;
@@ -622,15 +623,18 @@ $scope.groupMethodsByCategory = function () {
     return method.agent_support.some(function(agent){return agent === agentSupport});
   }
   $scope.checkFilterMethod = function(method){
+    //If this function returns true, the method  is displayed. Else, it is hidden by filters.
+    var deprecatedFilter = $scope.filter.showDeprecated || !method.deprecated;
+    var agentTypeFilter  = false;
     switch($scope.filter.compatibility){
       case "dsc":
-        return method.agent_support.some(function(agent){return agent === "dsc"});
+        agentTypeFilter = method.agent_support.some(function(agent){return agent === "dsc"});
       case "classic":
-        return method.agent_support.some(function(agent){return agent === "cfengine-community"});
+        agentTypeFilter = method.agent_support.some(function(agent){return agent === "cfengine-community"});
       case "all":
-        return true;
+        agentTypeFilter = true;
     }
-    return false;
+    return agentTypeFilter && deprecatedFilter;
   }
 
   // Function used when changing os type
