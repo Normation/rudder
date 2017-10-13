@@ -173,7 +173,8 @@
                   <table id="versionTable">
                     <thead>
                       <tr>
-                        <th>Version</th>
+                        <th colspan="2">Version</th>
+                        <th colspan="2">Agent type</th>
                         <th>Last updated on</th>
                         <lift:authz role="directive_write">
                           <th>Use this version</th>
@@ -182,15 +183,14 @@
                     </thead>
                     <tbody>
                       <tr ng-repeat="technique in techniques" ng-hide="display(technique)">
-                        <td>{{technique.version}}
-                          <span ng-if="technique.dscSupport" title="" tooltipid="dsc_{{$index}}" class="dsc-icon tooltipable"></span>
-                          <span ng-if="technique.isDeprecated" title="" tooltipid="version_{{$index}}" class="glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon tooltipable"></span>
-                          <div ng-if="technique.isDeprecated" class="tooltipContent" id="version_{{$index}}">
-                            <div>Deprecated: {{technique.deprecationMessage}}</div>
-                          </div>
-                          <div ng-if="technique.dscSupport" class="tooltipContent" id="dsc_{{$index}}">
-                            <p>This Technique version is compatible with the <b class="dsc">DSC agent</b> <i class="dsc-icon"></i>.</p>
-                          </div>
+                        <td>{{technique.version}}</td>
+                        <td>
+                          <span ng-if="technique.isDeprecated" class="glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="Deprecated: {{technique.deprecationMessage}}"></span></td>
+                        <td>
+                          <span ng-if="technique.classicSupport" class="fa fa-gear bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="This Technique version is compatible with the <b>classic</b> agent."></span>
+                        </td>
+                        <td>
+                          <span ng-if="technique.dscSupport" class="dsc-icon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="This Technique version is compatible with the <b class='dsc'>DSC</b> agent."></span>
                         </td>
                         <td>{{technique.acceptationDate}}</td>
                         <lift:authz role="directive_write">
