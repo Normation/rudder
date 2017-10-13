@@ -56,17 +56,13 @@ case object DelayedUpdate
 //a container to hold the list of dynamic group to update
 case class GroupsToUpdate(ids:Seq[NodeGroupId]) extends HashcodeCaching
 
-
 sealed trait DynamicGroupUpdaterStates //states into wich the updater process can be
 //the process is idle
-case object IdleUdater extends DynamicGroupUpdaterStates
+case object IdleGroupUpdater extends DynamicGroupUpdaterStates
 //an update is currently running for the given nodes
 case class StartDynamicUpdate(id:Long, modId:ModificationId, started: DateTime, groupIds:GroupsToUpdate) extends DynamicGroupUpdaterStates with HashcodeCaching
 //the process gave a result
 case class DynamicUpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends DynamicGroupUpdaterStates with HashcodeCaching
-
-
-
 
 /**
  * A class that periodically update all dynamic groups to see if
@@ -96,7 +92,6 @@ class UpdateDynamicGroups(
     laUpdateDyngroupManager ! StartUpdate
   }
 
-
   def startManualUpdate : Unit = {
     laUpdateDyngroupManager ! ManualStartUpdate
   }
@@ -115,25 +110,25 @@ class UpdateDynamicGroups(
     updateManager =>
 
     private var updateId = 0L
-    private var currentState: DynamicGroupUpdaterStates = IdleUdater
+    private var currentState: DynamicGroupUpdaterStates = IdleGroupUpdater
     private var onePending = false
     private var needDeployment = false
     private[this] val isAutomatic = updateInterval > 0
     private[this] val realUpdateInterval = {
       if (updateInterval < DYNGROUP_MINIMUM_UPDATE_INTERVAL && isAutomatic) {
-        logger.warn("Value '%s' for %s is too small, using '%s'".format(
-           updateInterval, propertyName, DYNGROUP_MINIMUM_UPDATE_INTERVAL
-        ) )
+        logger.warn(s"Value '${updateInterval}' for ${propertyName} is too small, using '${DYNGROUP_MINIMUM_UPDATE_INTERVAL}'")
         DYNGROUP_MINIMUM_UPDATE_INTERVAL
       } else {
         updateInterval
       }
     }
 
+    def isIdle() = currentState == IdleGroupUpdater
+
     private[this] def processUpdate = {
         logger.trace("***** Start a new update")
         currentState match {
-          case IdleUdater =>
+          case IdleGroupUpdater =>
             dynGroupService.getAllDynGroups match {
               case Full(groupIds) =>
                 updateId = updateId + 1
@@ -174,49 +169,46 @@ class UpdateDynamicGroups(
       // This case is launched when an update was pending, it only launch the process
       // and it does not schedule a new update.
       case DelayedUpdate =>
+        onePending = false
         processUpdate
+
       //
       //Process a dynamic group update response
       //
-      case DynamicUpdateResult(id, modId, start,end,results) => //TODO: other log ?
-        logger.trace("***** Get result for process: " + id)
+      case DynamicUpdateResult(id, modId, start, end, results) => //TODO: other log ?
+        logger.trace(s"***** Get result for process: ${id}")
 
-        currentState = IdleUdater
+        currentState = IdleGroupUpdater
 
-        var retriggerDeployment = false
+        // If one update is pending, immediately start a new group update
+        // We should no deploy during this run, but we still need to compute if we need a deployment for this group update
+        // Deployment will be launched when the pending group update will be finished (and even if it does not need any deployment)
+        val delayDeployment = onePending
 
-        // If one update is pending, immediatly start one other
-        // It should not clear the needDeployement
+        // Maybe should be done at the end, when we know it's ok to start deployment ...
         if(onePending) {
-          onePending = false
           logger.debug("Immediatly start another update process: pending request")
-          retriggerDeployment = true // launching an update can take a bit of time to change the effective status
           this ! DelayedUpdate
         }
 
         //log some information
         val format = "yyyy/MM/dd HH:mm:ss"
-        logger.debug("Dynamic group update started at %s, ended at %s".format(start.toString(format), end.toString(format)))
-
-         // Do not clear the needDeployment state if there is a running dynamic group update
-        if ((retriggerDeployment == false) && (currentState == IdleUdater)) {
-          needDeployment = false
-        }
+        logger.debug(s"Dynamic group update started at ${start.toString(format)}, ended at ${end.toString(format)}")
 
         for {
           (id,boxRes) <- results
         } {
           boxRes match {
             case e:EmptyBox =>
-              val error = (e ?~! "Error when updating dynamic group %s".format(id.value))
+              val error = (e ?~! s"Error when updating dynamic group ${id.value}")
               logger.error(error.messageChain)
             case Full(diff) =>
               val addedNodes = displayNodechange(diff.added)
               val removedNodes = displayNodechange(diff.removed)
-              logger.debug("Group %s: adding %s, removing %s".format(id.value, addedNodes, removedNodes))
+              logger.debug(s"Group ${id.value}: adding ${addedNodes}, removing ${removedNodes}")
               //if the diff is not empty, start a new deploy
               if(diff.added.nonEmpty || diff.removed.nonEmpty) {
-                logger.info("Dynamic group %s: added node with id: %s, removed: %s".format(id.value, addedNodes, removedNodes))
+                logger.info(s"Dynamic group ${id.value}: added node with id: ${addedNodes}, removed: ${removedNodes}")
                 // we need to trigger a deployment in this case
                 needDeployment = true
               }
@@ -224,7 +216,7 @@ class UpdateDynamicGroups(
         }
 
         // Deploy only if not updating the group
-        if ((currentState == IdleUdater) && (retriggerDeployment == false) && (needDeployment)) {
+        if (isIdle() && !delayDeployment && needDeployment) {
           asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
           needDeployment = false
         }
@@ -232,9 +224,8 @@ class UpdateDynamicGroups(
       //
       //Unexpected messages
       //
-      case x => logger.debug("Dynamic group updater can't process this message: '%s'".format(x))
+      case x => logger.debug(s"Dynamic group updater can't process this message: '${x}'")
     }
-
 
     private[this] object LAUpdateDyngroup extends LiftActor {
 
@@ -243,7 +234,7 @@ class UpdateDynamicGroups(
         //Process a dynamic group update
         //
         case StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds)) => {
-          logger.trace("***** Start a new update, id: " + processId)
+          logger.trace(s"***** Start a new update, id: ${processId}")
           currentState = StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds))
           try {
             val results = for {
@@ -261,7 +252,7 @@ class UpdateDynamicGroups(
         //
         //Unexpected messages
         //
-        case x => logger.debug("Don't know how to process message: '%s'".format(x))
+        case x => logger.debug(s"Don't know how to process message: '${x}'")
       }
     }
 
