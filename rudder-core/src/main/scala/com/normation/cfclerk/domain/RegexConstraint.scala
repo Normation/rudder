@@ -53,14 +53,14 @@ case class RegexConstraint(pattern: String, errorMsg: String) extends HashcodeCa
 
   val compiled = Pattern.compile(pattern)
 
+  val variablePattern = Pattern.compile(".*?\\$\\{.*?\\}.*?")
+
   /* throw a ConstraintException if the value doesn't match the pattern */
-  def check(varValue: String, varName: String) : Box[String ]=
-    if(!compiled.matcher(varValue).matches) {
-      Failure("%s%s".format(
-        "Please modify " + varName + " to match the requested format",
-        if (errorMsg != "") " : " + errorMsg else ""))
-    } else {
+  def check(varValue: String, varName: String) : Box[String]=
+    if(variablePattern.matcher(varValue).matches || compiled.matcher(varValue).matches) {
       Full(varValue)
+    } else {
+      Failure(s"Please modify ${varName} to match the requested format ${if (errorMsg != "") " : " + errorMsg else ""}")
     }
 }
 
