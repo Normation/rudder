@@ -39,7 +39,6 @@ package com.normation.inventory.domain
 
 import net.liftweb.common._
 
-
 /**
  * The enumeration holding the values for the agent
  */
