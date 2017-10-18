@@ -72,6 +72,7 @@ import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.policies.Tag
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.web.services.AgentCompat
+import com.normation.eventlog.ModificationId
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -403,11 +404,44 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    */
   private[this] def showDirectiveDetails() : NodeSeq = {
     currentDirectiveSettingForm.get match {
-      case Failure(m,_,_) =>
-        <div id={htmlId_policyConf} class="error">
-          An error happened when trying to load Directive configuration.
-          Error message was: {m}
+      case Failure(m,ex,_) =>
+        <div id={htmlId_policyConf} class="col-md-offset-2 col-md-8" style="margin-top:50px">
+          <h4 class="text-warning">An error happened when trying to load Directive configuration.</h4>
+          <div class="bs-callout bs-callout-danger">
+            <strong>Error message was:</strong>
+            <p>{m}</p>{
+            ex match {
+              case Full(MissingTechniqueException(directive)) =>
+                // in that case, we bypass workflow because we don't have the information to create a valid one (technique is missing)
+                val deleteButton = SHtml.ajaxButton("Delete", () => {
+                    RudderConfig.woDirectiveRepository.delete(
+                        directive.id
+                      , ModificationId(RudderConfig.stringUuidGenerator.newUuid)
+                      , CurrentUser.getActor
+                      , Some(s"Deleting directive '${directive.name}' (${directive.id}) because its Technique isn't available anymore")
+                    ) match {
+                      case Full(diff)   =>
+                        currentDirectiveSettingForm.set(Empty)
+                        Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""correctButtons(); createTooltip();""") & onRemoveSuccessCallBack(false)
+                      case eb: EmptyBox =>
+                        val msg = (eb ?~! s"Error when trying to delete directive '${directive.name}' (${directive.id})").messageChain
+                        //redisplay this form with the new error
+                        currentDirectiveSettingForm.set(Failure(msg))
+                        Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""correctButtons(); createTooltip();""")
+                    }
+                  }, ("class" ,"dangerButton")
+                )
+
+                <div><p>Do you want to <strong>delete directive</strong> '{directive.name}' ({directive.id.value})?</p>{
+                  deleteButton
+                }</div>
+
+              case _ => NodeSeq.Empty
+            }
+          }
+          </div>
         </div>
+
       case Empty =>  <div id={htmlId_policyConf}></div>
       //here we CAN NOT USE <lift:DirectiveEditForm.showForm /> because lift seems to cache things
       //strangely, and if so, after an form save, clicking on tree node does nothing
@@ -487,6 +521,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     After(0,JsRaw("""createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
   }
 
+
+  private[this] final case class MissingTechniqueException(directive: Directive) extends
+    Exception(s"Directive ${directive.name} (${directive.id.value}) is bound to a Technique without any valid version available")
+
   private[this] def updateDirectiveSettingForm(
       activeTechnique     : FullActiveTechnique
     , directive           : Directive
@@ -496,15 +534,14 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     , globalMode          : GlobalPolicyMode
   ) : Unit = {
 
-    activeTechnique.techniques.get(directive.techniqueVersion) match {
-      case Some(technique) =>
-        val dirEditForm = new DirectiveEditForm(
+    def createForm(dir: Directive, oldDir: Option[Directive], technique: Technique, errorMsg: Option[String]) = {
+      new DirectiveEditForm(
             htmlId_policyConf
           , technique
           , activeTechnique.toActiveTechnique
           , activeTechnique
-          , directive
-          , oldDirective
+          , dir
+          , oldDir
           , workflowEnabled
           , globalMode
           , onSuccessCallback = directiveEditFormSuccessCallBack(workflowEnabled)
@@ -512,12 +549,35 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           , isADirectiveCreation = isADirectiveCreation
           , onRemoveSuccessCallBack = () => onRemoveSuccessCallBack(workflowEnabled)
         )
+    }
 
+    activeTechnique.techniques.get(directive.techniqueVersion) match {
+      case Some(technique) =>
+        val dirEditForm = createForm(directive, oldDirective, technique, None)
         currentDirectiveSettingForm.set(Full(dirEditForm))
       case None =>
-        val msg = s"Can not display directive edit form: missing information about technique with name='${activeTechnique.techniqueName}' and version='${directive.techniqueVersion}'"
-        logger.warn(msg)
-        currentDirectiveSettingForm.set(Failure(msg))
+        // do we have at least one version for that technique ? We can then try to migrate towards it
+        activeTechnique.techniques.lastOption match {
+          case Some((version, technique)) =>
+            val dirEditForm = createForm(directive.copy(techniqueVersion = version), Some(directive), technique, None)
+            currentDirectiveSettingForm.set(Full(dirEditForm))
+            dirEditForm.addFormMsg(
+              <div class="tw-bs" style="margin: 40px">
+                <h4 class="text-danger"><u>Important information: directive migration towards version {version} of '{technique.name}'</u></h4>
+                <div class="bs-callout bs-callout-danger text-left">
+                <p>This directive was linked to version '{directive.techniqueVersion}' of the Technique which is not available anymore. It was automatically
+                migrated to version '{version}' but the change is not commited yet.</p>
+                <p>You can now delete the directive or save it to confirm migration. If you keep that directive without commiting changes, Rudder will not be
+                able to generate policies for rules which use it.</p>
+                </div>
+              </div>
+            )
+          case None =>
+            // no version ! propose deletion to the directive along with an error message.
+            val msg = s"Can not display directive edit form: missing information about technique with name='${activeTechnique.techniqueName}' and version='${directive.techniqueVersion}'"
+            logger.warn(msg)
+            currentDirectiveSettingForm.set(Failure(msg, Full(MissingTechniqueException(directive)), Empty))
+        }
     }
   }
 
