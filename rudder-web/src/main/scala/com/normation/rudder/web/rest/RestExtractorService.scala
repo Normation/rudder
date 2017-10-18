@@ -216,13 +216,13 @@ case class RestExtractorService (
   }
 
   private[this] def convertToParameterName (value:String) : Box[ParameterName] = {
-      convertToMinimalSizeString(3)(value) match {
+      convertToMinimalSizeString(1)(value) match {
         case Full(value) =>
           if (ParameterName.patternName.matcher(value).matches)
             Full(ParameterName(value))
           else Failure(s"Parameter Name should be respect the following regex : ${ParameterName.patternName.pattern()}")
 
-        case eb : EmptyBox => eb ?~! "Parameter Name should be at least 3 characters long"
+        case eb : EmptyBox => eb ?~! "Parameter Name should not be empty"
       }
   }
 

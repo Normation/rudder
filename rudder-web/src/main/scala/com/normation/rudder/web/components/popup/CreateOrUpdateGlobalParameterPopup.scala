@@ -197,7 +197,7 @@ class CreateOrUpdateGlobalParameterPopup(
       case None => super.inputField
     }) % ("onkeydown" , "return processKey(event , 'createParameterSaveButton')")  % ("tabindex","1")
     override def validations =
-      valMinLen(3, "The name must have at least 3 characters") _ ::
+      valMinLen(1, "The name must not be empty") _ ::
       valRegex(patternName, "The name can contain only letters, digits and underscore") _ :: Nil
   }
 
