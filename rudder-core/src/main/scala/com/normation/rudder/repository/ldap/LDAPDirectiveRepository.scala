@@ -70,6 +70,7 @@ import net.liftweb.json.JsonAST
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.SectionSpec
 
 
 class RoLDAPDirectiveRepository(
@@ -680,13 +681,16 @@ class WoLDAPDirectiveRepository(
                          } else {
                            Full("ok")
                          }
-      technique       <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion))
+      technique       <- Full(techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)))
       //delete
       deleted         <- userLibMutex.writeLock { con.delete(entry.dn) }
-      diff            =  DeleteDirectiveDiff(technique.id.name, directive)
-      loggedAction    <- actionLogger.saveDeleteDirective(
-                          modId, principal = actor, deleteDiff = diff, varsRootSectionSpec = technique.rootSection, reason = reason
-                      )
+      diff            =  DeleteDirectiveDiff(activeTechnique.techniqueName, directive)
+      loggedAction    <- { //we can have a missing technique if the technique was deleted but not its directive. In that case, make a fake root section
+                           val rootSection = technique.map( _.rootSection).getOrElse(SectionSpec("Missing technique information"))
+                           actionLogger.saveDeleteDirective(
+                             modId, principal = actor, deleteDiff = diff, varsRootSectionSpec = rootSection, reason = reason
+                           )
+                         }
       autoArchive     <- if (autoExportOnModify && deleted.size > 0 && !directive.isSystem) {
                            for {
                              parents  <- activeTechniqueBreadCrump(activeTechnique.id)
