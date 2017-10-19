@@ -19,13 +19,11 @@
 */
 
 package com.normation.ldap
-import com.normation.exceptions.TechnicalException
-import com.unboundid.ldap.sdk.{
-  DN,RDN,Filter,
-  Entry => UEntry,
-  LDAPConnection => ULDAPConnection,
-  LDAPResult => ULDAPResult
-}
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.{ Entry => UEntry }
+import com.unboundid.ldap.sdk.{ LDAPConnection => ULDAPConnection }
+import com.unboundid.ldap.sdk.{ LDAPResult => ULDAPResult }
+import com.unboundid.ldap.sdk.RDN
 
 package object sdk {
 
@@ -64,13 +62,13 @@ package object sdk {
     }
   }
 
-  implicit def string2SearchScope(scope:String) : SearchScope = {
+  implicit def string2SearchSceeope(scope:String) : SearchScope = {
     scope.toLowerCase match {
       case "one" => One
       case "sub" | "subtree" => Sub
       case "base" => Base
       case "subordinatesubtree" => SubordinateSubtree
-      case x => throw new TechnicalException("Can not recognize %s search scope. Possible values are one, sub, base, subordinateSubtree")
+      case x => throw new IllegalArgumentException(s"Can not recognize search scope '${scope}'. Possible values are one, sub, base, subordinateSubtree")
     }
   }
 

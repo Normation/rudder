@@ -46,7 +46,7 @@ import net.liftweb.common._
  *
  */
 trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] extends Loggable {
-  import com.unboundid.ldap.sdk.{LDAPSearchException,LDAPException,SearchResult}
+  import com.unboundid.ldap.sdk.LDAPException
 
   protected def getInternalConnection() : LDAP
   protected def releaseInternalConnection(con:LDAP) : Unit

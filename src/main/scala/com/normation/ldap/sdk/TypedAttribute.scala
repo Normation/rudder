@@ -20,10 +20,10 @@
 
 package com.normation.ldap.sdk
 
-import com.unboundid.ldap.sdk.{DN,Attribute}
-import com.unboundid.ldap.sdk.schema.Schema
-import com.normation.exceptions.TechnicalException
 import com.normation.utils.HashcodeCaching
+import com.unboundid.ldap.sdk.Attribute
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.schema.Schema
 
 /**
  * LDAP syntax
@@ -45,7 +45,7 @@ object TypedAttribute {
   private def toBoolean(s:String) : Boolean = s.toLowerCase match {
     case "true"  | "t" | "yes" | "y" | "on"  | "1" => true
     case "false" | "f" | "no"  | "n" | "off" | "0" => false
-    case x => throw new TechnicalException(s"Can not interpret ${x} as a boolean value")
+    case x => throw new IllegalArgumentException(s"Can not interpret ${x} as a boolean value")
   }
 
   def apply(attribute:Attribute)(implicit schema:Schema) : TypedAttribute = {

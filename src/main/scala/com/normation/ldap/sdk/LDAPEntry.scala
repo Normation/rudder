@@ -24,14 +24,11 @@ import com.unboundid.ldap.sdk.schema.Schema
 import com.unboundid.ldap.sdk.{DN,RDN, Attribute,Modification}
 import DN.NULL_DN
 import com.unboundid.ldif.LDIFRecord
-import com.normation.ldap.ldif.{ToLDIFString,ToLDIFRecord}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Buffer
 
 import org.slf4j.LoggerFactory
-import org.joda.time.DateTime
 
-import LDAPEntry._
 
 
 /**

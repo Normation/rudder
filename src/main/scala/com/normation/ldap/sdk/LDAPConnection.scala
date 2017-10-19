@@ -21,17 +21,17 @@
 package com.normation.ldap.sdk
 
 import com.unboundid.ldap.sdk.{
-  Entry,DN,RDN,Attribute,Filter,
-  ResultCode,LDAPResult => UnboundidLDAPResult,
+  DN,RDN,Filter,ResultCode,
   LDAPSearchException,LDAPException,ReadOnlyLDAPRequest,
   Modification,SearchRequest,DeleteRequest,ModifyRequest,AddRequest,ModifyDNRequest
 }
 import ResultCode._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.ldap.ldif.{LDIFFileLogger,LDIFNoopChangeRecord}
-import net.liftweb.common.{Box,Full,Empty,Failure,ParamFailure}
+import net.liftweb.common.{Box,Full,Empty,Failure}
 import scala.collection.JavaConversions._
 import com.normation.utils.Control.sequence
+import org.slf4j.LoggerFactory
 
 
 trait ReadOnlyEntryLDAPConnection {
@@ -289,7 +289,6 @@ sealed class RoLDAPConnection(
   ReadOnlyEntryLDAPConnection with
   ReadOnlyTreeLDAPConnection {
 
-  import org.slf4j.{Logger, LoggerFactory}
   val logger = LoggerFactory.getLogger(classOf[RoLDAPConnection])
 
   /*
@@ -433,7 +432,6 @@ class RwLDAPConnection(
   WriteOnlyTreeLDAPConnection
 {
 
-  import org.slf4j.{Logger, LoggerFactory}
   override val logger = LoggerFactory.getLogger(classOf[RwLDAPConnection])
 
   /**
@@ -544,11 +542,6 @@ class RwLDAPConnection(
   /**
    * Specialized version of applyMods for ModifyRequest modification type
    */
-  private val applyModifies = applyMods[ModifyRequest](
-      {req:ModifyRequest => req.toLDIFChangeRecord},
-      modifyAction
-  ) _
-
   private val applyModify = applyMod[ModifyRequest](
       {req:ModifyRequest => req.toLDIFChangeRecord},
       modifyAction

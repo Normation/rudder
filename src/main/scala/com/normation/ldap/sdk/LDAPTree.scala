@@ -20,15 +20,18 @@
 
 package com.normation.ldap.sdk
 
-import com.unboundid.ldap.sdk.{RDN,DN,Modification}
+import com.normation.ldap.ldif.ToLDIFRecords
+import com.normation.ldap.ldif.ToLDIFString
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFRecord
-import com.normation.ldap.ldif.{ToLDIFString,ToLDIFRecords}
-import scala.collection.mutable.{Buffer, Map => MutMap, HashMap, ObservableMap, Subscriber, Publisher}
-import scala.collection.script._
 import net.liftweb.common._
-import com.normation.exceptions.TechnicalException
+import scala.collection.mutable.Buffer
+import scala.collection.mutable.HashMap
+import scala.collection.mutable.ObservableMap
+import scala.collection.mutable.Subscriber
+import scala.collection.script._
 
-import LDAPTree._
 /*
  * An LDAP tree of entries.
  * It's composed of a root entry and
@@ -69,8 +72,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
         _children += ((r,child))
         () // unit is expected
       case None => {
-        throw new TechnicalException("Try to add a child Tree but the RDN of the root of this child is not defined. Parent: %s , child root: %s".
-            format(root.dn, child.root))
+        throw new IllegalArgumentException(s"Try to add a child Tree but the RDN of the root of this child is not defined. Parent: '${root.dn}', child root: ${child.root}.")
       }
     }
   }
@@ -169,8 +171,6 @@ object LDAPTree {
 
   //transtype Tree[LDAPEntry] => LDAPTree
   def apply(tree:Tree[LDAPEntry]) : LDAPTree = apply(tree.root, tree.children.map( e => (e._1,apply(e._2))))
-
-  import scala.collection.JavaConversions._
 
   /*
    * Build an LDAP tree from a list of entries.

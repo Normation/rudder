@@ -20,9 +20,6 @@
 
 package com.normation.ldap.sdk
 package schema
-import com.normation.exceptions.TechnicalException
-
-
 /**
  * An object that stores all the object classes known
  * by  the application and gives utilities methods
@@ -34,7 +31,7 @@ import com.normation.exceptions.TechnicalException
  */
 class LDAPSchema {
   type S = scala.collection.Set[LDAPObjectClass]
-  import scala.collection.mutable.{Map => MutMap}
+  import scala.collection.mutable.{ Map => MutMap }
   def S = scala.collection.Set[LDAPObjectClass] _
 
   /**
@@ -70,9 +67,9 @@ class LDAPSchema {
     val key = oc.name.toLowerCase
     val pKey = oc.sup.name.toLowerCase
     ocs.get(pKey) match {
-      case None => throw new TechnicalException(s"Can not register object class ${oc.name} because its parent class ${oc.sup.name} is not yet registerd")
+      case None => throw new IllegalArgumentException(s"Can not register object class ${oc.name} because its parent class ${oc.sup.name} is not yet registerd")
       case Some(p) => ocs.get(key) match {
-        case Some(x) if(x != oc) => throw new TechnicalException(s"""Can not register object class '${oc.name}' because an other different object class with same name was already registerd.
+        case Some(x) if(x != oc) => throw new IllegalArgumentException(s"""Can not register object class '${oc.name}' because an other different object class with same name was already registerd.
                                      | existing: ${x}
                                      | new     : ${oc}""".stripMargin('|'))
         case _ => {
