@@ -37,49 +37,30 @@
 
 package com.normation.rudder.web.snippet.node
 
-import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.services.servers.NodeSummaryService
-import com.normation.rudder.services.servers.NewNodeManager
-import com.normation.inventory.ldap.core.{InventoryHistoryLogRepository,InventoryDit}
+import bootstrap.liftweb.RudderConfig
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk._
-import BuildFilter._
-import org.slf4j.LoggerFactory
-import net.liftweb.json._
-import JsonDSL._
-import scala.xml._
+import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.eventlog.AcceptNodeEventLog
+import com.normation.rudder.domain.eventlog.RefuseNodeEventLog
+import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.components.DateFormaterService
+import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
+import com.normation.rudder.web.model.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
 import net.liftweb.http.js._
-import JsCmds._
-import JE._
-import net.liftweb.http.SHtml._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.json._
+import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
-import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.web.services.NodeGrid
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import com.normation.rudder.domain.eventlog._
-import com.normation.utils.User
-import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
-import com.normation.exceptions.TechnicalException
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
-import com.normation.rudder.web.components.DateFormaterService
-import com.normation.eventlog.EventActor
-import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.domain.eventlog.{
-  AcceptNodeEventLog, RefuseNodeEventLog
-}
-import com.normation.rudder.repository.EventLogRepository
-import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
-import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.web.ChooseTemplate
-import bootstrap.liftweb.StaticResourceRewrite
+import scala.xml._
 
 /**
  * Check for server in the pending repository and propose to

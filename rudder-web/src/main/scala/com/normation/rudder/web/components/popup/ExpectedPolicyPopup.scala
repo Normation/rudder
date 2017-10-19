@@ -38,7 +38,6 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.servers.Srv

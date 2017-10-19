@@ -113,7 +113,6 @@ import com.normation.rudder.web.rest.technique._
 import com.normation.rudder.web.services._
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.templates.FillTemplatesService
-import com.normation.utils.ScalaLock
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.typesafe.config.Config

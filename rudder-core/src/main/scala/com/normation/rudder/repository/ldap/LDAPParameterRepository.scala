@@ -50,7 +50,7 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.parameters._
 import com.normation.eventlog.EventActor
-import com.normation.utils.ScalaReadWriteLock
+import com.normation.rudder.repository.ldap
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat

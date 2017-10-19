@@ -54,7 +54,7 @@ import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.utils.ScalaReadWriteLock
+import com.normation.rudder.repository.ldap
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.ModificationId
@@ -88,7 +88,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.utils.Control._
 import com.unboundid.ldap.sdk._
 import net.liftweb.common._
-import com.normation.utils.ScalaReadWriteLock
+import com.normation.rudder.repository.ldap
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog._

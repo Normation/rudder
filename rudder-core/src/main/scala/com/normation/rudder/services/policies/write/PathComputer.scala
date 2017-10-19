@@ -42,7 +42,6 @@ import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.AgentType
 import net.liftweb.common.Loggable
-import com.normation.exceptions.BusinessException
 import net.liftweb.common.Full
 import net.liftweb.common.Box
 import org.apache.commons.io.FilenameUtils
@@ -114,7 +113,7 @@ class PathComputerImpl(
     agentType match {
         case CfeEnterprise => enterpriseAgentRootPath
         case CfeCommunity => communityAgentRootPath
-        case x => throw new BusinessException("Unrecognized agent type: %s".format(x))
+        case x => throw new IllegalArgumentException("Unrecognized agent type: %s".format(x))
     }
   }
 

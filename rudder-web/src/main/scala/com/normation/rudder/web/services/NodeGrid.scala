@@ -59,7 +59,6 @@ import net.liftweb.http.SHtml._
 import net.liftweb.json._
 import NodeGrid._
 import com.unboundid.ldif.LDIFRecord
-import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
 import com.normation.rudder.domain.servers.Srv
 import com.normation.utils.HashcodeCaching

@@ -37,19 +37,12 @@
 
 package com.normation.rudder.web.services
 
-import bootstrap.liftweb._
+import com.normation.cfclerk.domain._
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.web.model._
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util.Helpers
-import scala.collection.mutable.{ Map => MutMap }
-import com.normation.cfclerk.domain._
-import com.normation.exceptions.TechnicalException
-import org.slf4j.LoggerFactory
+import com.normation.utils.Control._
 import com.normation.utils.HashcodeCaching
-import com.normation.utils.Control.sequence
+import net.liftweb.common._
 
 /**
  * Create web representation of Directive in the goal
@@ -175,10 +168,10 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     val field = fieldFactory.forType(varSpec, fieldKey)
 
     val varMappings = translators.get(field.manifest) match {
-      case None => throw new TechnicalException("No translator from type: " + field.manifest.toString)
+      case None => throw new IllegalArgumentException("No translator from type: " + field.manifest.toString)
       case Some(t) =>
         t.to.get("self") match {
-          case None => throw new TechnicalException("Missing 'self' translator property (from type %s to a serialized string for Variable)".format(field.manifest))
+          case None => throw new IllegalArgumentException(s"Missing 'self' translator property (from type '${field.manifest}' to a serialized string for Variable)")
           case Some(c) => //close the returned function with f and store it into varMappings
             logger.trace("Add translator for variable '%s', get its value from field '%s.self'".format(fieldKey, fieldKey))
             valueOpt match {

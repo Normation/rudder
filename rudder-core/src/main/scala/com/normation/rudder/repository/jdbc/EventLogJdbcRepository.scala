@@ -49,7 +49,6 @@ import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.Timestamp
 import org.springframework.jdbc.support.GeneratedKeyHolder
-import com.normation.utils.User
 import net.liftweb.common._
 import scala.xml._
 import scala.collection.JavaConversions._

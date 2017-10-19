@@ -49,7 +49,7 @@ import com.normation.rudder.services.marshalling.DirectiveUnserialisation
 import com.normation.rudder.services.marshalling.ActiveTechniqueUnserialisation
 import com.normation.rudder.services.marshalling.ActiveTechniqueCategoryUnserialisation
 import com.normation.rudder.repository.ParseActiveTechniqueLibrary
-import com.normation.utils.XmlUtils
+
 import com.normation.rudder.repository.ActiveTechniqueCategoryContent
 import java.io.File
 import java.io.FileInputStream
@@ -62,7 +62,7 @@ import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
 import com.unboundid.ldap.sdk.RDN
 import com.normation.rudder.domain.RudderDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.utils.ScalaReadWriteLock
+import com.normation.rudder.repository.ldap
 import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory

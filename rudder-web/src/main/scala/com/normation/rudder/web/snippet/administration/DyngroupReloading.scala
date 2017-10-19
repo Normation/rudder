@@ -37,20 +37,12 @@
 
 package com.normation.rudder.web.snippet.administration
 
-import net.liftweb._
-import http._
-import common._
-import util.Helpers._
-import js._
-import JsCmds._
-import JE._
-import scala.xml.NodeSeq
-import collection.mutable.Buffer
-import com.normation.utils.NetUtils.isValidNetwork
-import com.normation.rudder.domain.Constants
-import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.batch.UpdateDynamicGroups
 import bootstrap.liftweb.RudderConfig
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.http.js._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.Helpers._
 
 
 class DyngroupReloading extends DispatchSnippet with Loggable {

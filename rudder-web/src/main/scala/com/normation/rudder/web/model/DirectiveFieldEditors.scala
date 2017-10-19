@@ -542,7 +542,7 @@ class FilePermsField(val id: String) extends DirectiveField {
   def validations = Nil
   def setFilter = Nil
   def parseClient(s: String): Unit = {
-    if (nonEmpty(s)) FilePerms(s).map(_x.set(_))
+    if (!isEmpty(s)) FilePerms(s).map(_x.set(_))
   }
   def toClient: String = if (null == _x) "" else _x.octal
 

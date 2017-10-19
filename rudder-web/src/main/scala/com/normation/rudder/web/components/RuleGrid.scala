@@ -59,7 +59,6 @@ import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
 import com.normation.utils.StringUuidGenerator
-import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control.sequence
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId

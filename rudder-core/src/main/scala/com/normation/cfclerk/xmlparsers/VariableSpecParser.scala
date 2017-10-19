@@ -41,11 +41,49 @@ import com.normation.cfclerk.domain._
 import CfclerkXmlConstants._
 import scala.xml._
 import net.liftweb.common._
-import com.normation.utils.XmlUtils._
 import com.normation.cfclerk.exceptions._
 import com.normation.utils.Control
 import com.normation.cfclerk.domain.HashAlgoConstraint.DerivedPasswordType
 
+object Utils {
+  /**
+   * Retrieve exactly one element of the given name in
+   * the given node children.
+   * If subtree is set to true (default to false), look
+   * for all tree elements, not only direct children.
+   */
+  def getUniqueNode(root:Node, nodeName:String, subtree:Boolean = false) : Box[Node] = {
+    def checkCardinality(nodes:NodeSeq) : Box[Node] = {
+      if(nodes.size < 1) Failure(s"No node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}")
+      else if(nodes.size > 1 ) Failure(s"More than one node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}")
+      else Full(nodes.head)
+    }
+
+    if(subtree) {
+      checkCardinality((root.child:NodeSeq) \\ nodeName)
+    } else {
+      checkCardinality(root \ nodeName)
+    }
+  }
+
+  //text version of XmlUtils.getUniqueNode with a default value
+  //The default value is also applied if node exists but its text is empty
+  def getUniqueNodeText(root: Node, nodeName: String, default: String) =
+    getUniqueNode(root, nodeName).map(_.text.trim) match {
+      case x: EmptyBox => default
+      case Full(x) => x match {
+        case "" | null => default
+        case text => text
+      }
+  }
+
+  def getAttributeText(node: Node, name: String, default: String) = {
+    val seq = node \ ("@" + name)
+    if (seq.isEmpty) default else seq.head.text
+  }
+}
+
+import Utils._
 
 case class EmptyReportKeysValue(sectionName: String) extends Exception(s"In '${sectionName}', the element ${REPORT_KEYS} must have a non empty list of provided values: <${REPORT_KEYS}><${REPORT_KEYS_VALUE}>val foo</${REPORT_KEYS_VALUE}><${REPORT_KEYS_VALUE}>...")
 

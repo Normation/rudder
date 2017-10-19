@@ -40,7 +40,6 @@ package com.normation.rudder.repository.ldap
 import org.eclipse.jgit.lib.ObjectId
 import com.normation.rudder.domain.RudderDit
 import net.liftweb.common._
-import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.RudderLDAPConstants.{ A_TECHNIQUE_LIB_VERSION, OC_ACTIVE_TECHNIQUE_LIB_VERSION }
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
@@ -94,7 +93,7 @@ class LDAPGitRevisionProvider(
         val e = eb ?~! "Error when looking for a commit tree in git"
         logger.error(e.messageChain)
         logger.debug(e.exceptionChain)
-        throw new TechnicalException(e.messageChain)
+        throw new IllegalArgumentException(e.messageChain)
     }
   }
 

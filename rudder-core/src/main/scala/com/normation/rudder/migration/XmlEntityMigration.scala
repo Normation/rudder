@@ -12,7 +12,7 @@ import scala.xml.XML
 import com.normation.rudder.db.DB
 import com.normation.rudder.domain.logger.MigrationLogger
 import com.normation.utils.Control. _
-import com.normation.utils.XmlUtils
+
 
 import org.joda.time.DateTime
 
@@ -75,7 +75,10 @@ object TestIsElem {
 //return the child
 object TestIsEntry {
   def apply(xml:Elem) : Box[Elem] = {
-    val trimed = XmlUtils.trim(xml)
+    //scala XML is lying, the contract is to call trim and
+    //returned an Elem, not a Node.
+    //See scala.xml.Utility#trim implementation.
+    val trimed = scala.xml.Utility.trim(xml).asInstanceOf[Elem]
     if(trimed.label.toLowerCase == "entry" && trimed.child.size == 1) TestIsElem(trimed.child.head)
     else Failure("Given XML data has not an 'entry' root element and exactly one child: " + trimed)
   }

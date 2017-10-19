@@ -57,7 +57,6 @@ import net.liftweb.http.{SHtml,S,DispatchSnippet}
 import scala.xml._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-import com.normation.exceptions.TechnicalException
 import com.normation.rudder.web.services.SrvGrid
 import scala.collection.mutable.ArrayBuffer
 import com.normation.inventory.ldap.core.LDAPConstants

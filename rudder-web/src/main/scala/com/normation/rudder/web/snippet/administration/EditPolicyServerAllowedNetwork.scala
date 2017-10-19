@@ -46,17 +46,13 @@ import JsCmds._
 import JE._
 import scala.xml.NodeSeq
 import collection.mutable.Buffer
-import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.servers.PolicyServerManagementService
-import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
-import com.normation.rudder.repository.EventLogRepository
-import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.NodeId
@@ -151,7 +147,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       allowedNetworks.foreach { case v@VH(i,net) =>
         val netWithoutSpaces = net.replaceAll("""\s""", "")
         if(netWithoutSpaces.length != 0) {
-          if(!isValidNetwork(netWithoutSpaces)) {
+          if(!PolicyServerManagementService.isValidNetwork(netWithoutSpaces)) {
             S.error("errornetwork_"+ i, "Bad format for given network")
           } else {
             goodNets += netWithoutSpaces

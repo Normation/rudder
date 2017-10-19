@@ -35,54 +35,57 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.migration
+package com.normation.rudder.repository.xml
 
+import java.io.FileNotFoundException
 import scala.xml.Elem
-
-
-
-import org.junit.runner.RunWith
-import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
-
-import Migration_5_DATA_ChangeRequest._
-import Migration_5_DATA_Rule._
-import Migration_6_DATA_ChangeRequest._
-import Migration_6_DATA_Rule._
+import scala.xml.XML
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
+import com.normation.rudder.exceptions.ParsingException
+import com.normation.rudder.repository.LicenseRepository
+import org.xml.sax.SAXParseException
 import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 
+class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with Loggable {
 
-/**
- * Test individual event log data migration
- */
-@RunWith(classOf[JUnitRunner])
-class TestXmlMigration extends Specification with Loggable {
+  override def getAllLicense(): Box[Map[NodeId, CfeEnterpriseLicense]] = {
+    logger.debug(s"Loading document ${licenseFile}")
+    try {
+      val doc = loadLicenseFile()
 
-  val migration = XmlMigration_5_6
-
-  def compare(b:Box[Elem], e:Elem) = {
-    val Full(x) = b
-    scala.xml.Utility.trim(x) must beEqualTo(scala.xml.Utility.trim(e))
-  }
-
-  "rule migration from fileFormat '5' to '6'" should {
-    "correctly rewrite add" in {
-      compare(XmlMigration_5_6.other(rule_add_5) , rule_add_6)
-    }
-    "correctly rewrite modify" in {
-      compare(XmlMigration_5_6.other(rule_modify_5), rule_modify_6)
-    }
-    "correctly rewrite delete" in {
-      compare(XmlMigration_5_6.other(rule_delete_5), rule_delete_6)
+      val licenses = (for {
+        elt <- (doc \\"licenses" \ "license")
+      } yield {
+        CfeEnterpriseLicense.parseXml(elt)
+      })
+      Full(licenses.map(x => (x.uuid, x)).toMap)
+    } catch {
+      case ex: Exception => Failure(s"Failed to load licenses from file: ${licenseFile}", Full(ex), Empty)
     }
   }
 
-  "change request migration from fileFormat '5' to '6'" should {
-    "correctly rewrite add" in {
-      compare(XmlMigration_5_6.changeRequest(cr_rule_change_5) , cr_rule_change_6)
+  /**
+   * Load the license file
+   * @return The xml element representation of the file
+   */
+  private[this] def loadLicenseFile() : Elem = {
+    try {
+      XML.loadFile(licenseFile)
+    } catch {
+      case e : SAXParseException =>
+        logger.error("Cannot parse license file")
+        throw new ParsingException("Unexpected issue (unvalid xml?) with the config file " )
+      case e : java.net.MalformedURLException =>
+        logger.error(s"Cannot read license file ${licenseFile}")
+        throw new FileNotFoundException("License file not found : " + licenseFile )
+      case e : java.io.FileNotFoundException =>
+        logger.debug(s"License file ${licenseFile} not found, this may be a problem if using the Windows Plugin")
+        <licenses/>
     }
   }
 }
-

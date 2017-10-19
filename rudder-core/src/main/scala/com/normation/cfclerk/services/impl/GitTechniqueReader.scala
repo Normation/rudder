@@ -719,6 +719,13 @@ class GitTechniqueReader(
     , parseDescriptor   : Boolean // that option is a pure optimization for the case diff between old/new commit
   ) : Unit = {
 
+    def nonEmpty(s: String): Option[String] = {
+      s match {
+        case null | "" => None
+        case _ => Some(s)
+      }
+    }
+
     val catPath = filePath.substring(0, filePath.size - categoryDescriptorName.size - 1 ) // -1 for the trailing slash
 
     val catId = TechniqueCategoryId.buildId(catPath)
@@ -727,9 +734,9 @@ class GitTechniqueReader(
       if(parseDescriptor) {
         try {
           val xml = loadDescriptorFile(repo.db.open(descriptorObjectId).openStream, filePath)
-            val name = Utils.??!((xml \\ "name").text).getOrElse(catId.name.value)
-            val description = Utils.??!((xml \\ "description").text).getOrElse("")
-            val isSystem = (Utils.??!((xml \\ "system").text).getOrElse("false")).equalsIgnoreCase("true")
+            val name = nonEmpty((xml \\ "name").text).getOrElse(catId.name.value)
+            val description = nonEmpty((xml \\ "description").text).getOrElse("")
+            val isSystem = (nonEmpty((xml \\ "system").text).getOrElse("false")).equalsIgnoreCase("true")
             (name, description, isSystem)
         } catch {
           case e: Exception =>

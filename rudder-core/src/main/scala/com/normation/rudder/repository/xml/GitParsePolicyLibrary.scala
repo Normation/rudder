@@ -39,16 +39,13 @@ package com.normation.rudder.repository.xml
 
 import scala.Option.option2Iterable
 import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.revwalk.RevTag
 import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling.DirectiveUnserialisation
 import com.normation.rudder.services.marshalling.ActiveTechniqueCategoryUnserialisation
 import com.normation.rudder.services.marshalling.ActiveTechniqueUnserialisation
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
-import com.normation.utils.XmlUtils
 import net.liftweb.common._
 import com.normation.rudder.migration.XmlEntityMigration
 
@@ -102,7 +99,7 @@ class GitParseActiveTechniqueLibrary(
           // don't forget to sub-categories and UPT and UPTC
           for {
             xml      <- GitFindUtils.getFileContent(repo.db, revTreeId, category){ inputStream =>
-                          XmlUtils.parseXml(inputStream, Some(category)) ?~! "Error when parsing file '%s' as a category".format(category)
+                          ParseXml(inputStream, Some(category)) ?~! "Error when parsing file '%s' as a category".format(category)
                         }
             //here, we have to migrate XML fileformat, if not up to date
             uptcXml  <- xmlMigration.getUpToDateXml(xml)
@@ -139,7 +136,7 @@ class GitParseActiveTechniqueLibrary(
           // don't forget to add PI ids to UPT
           for {
             xml    <- GitFindUtils.getFileContent(repo.db, revTreeId, template){ inputStream =>
-                         XmlUtils.parseXml(inputStream, Some(template)) ?~! "Error when parsing file '%s' as a category".format(template)
+                         ParseXml(inputStream, Some(template)) ?~! "Error when parsing file '%s' as a category".format(template)
                        }
             uptXml  <- xmlMigration.getUpToDateXml(xml)
             activeTechnique     <- uptUnserialiser.unserialise(uptXml) ?~! "Error when unserializing template for file '%s'".format(template)
@@ -154,7 +151,7 @@ class GitParseActiveTechniqueLibrary(
             directives     <- sequence(piFiles.toSeq) { piFile =>
                          for {
                            xml2              <- GitFindUtils.getFileContent(repo.db, revTreeId, piFile){ inputStream =>
-                                                  XmlUtils.parseXml(inputStream, Some(piFile)) ?~! "Error when parsing file '%s' as a directive".format(piFile)
+                                                  ParseXml(inputStream, Some(piFile)) ?~! "Error when parsing file '%s' as a directive".format(piFile)
                                                 }
                            piXml             <- xmlMigration.getUpToDateXml(xml2)
                            (_, directive, _) <- piUnserialiser.unserialise(piXml) ?~! "Error when unserializing pdirective for file '%s'".format(piFile)

@@ -48,7 +48,6 @@ import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
-import com.normation.exceptions.TechnicalException
 
 import EmergencyStop._
 import bootstrap.liftweb.RudderConfig

@@ -37,28 +37,23 @@
 
 package com.normation.rudder.web.model
 
-import net.liftweb.util.Helpers
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.VariableSpec
 import com.normation.rudder.domain.policies.DirectiveId
-import net.liftweb.common.Box
-import scala.collection.mutable.Buffer
-import net.liftweb.util.BaseField
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import net.liftweb.common._
-import org.joda.time.{ DateTime, LocalDate, LocalTime, Duration, Period }
-import org.joda.time.format._
-import com.normation.utils.Utils._
-import java.util.Locale
-import org.slf4j.LoggerFactory
-import scala.xml._
-import net.liftweb.http._
-import js._
-import JsCmds._
-import JE._
-import net.liftweb.util.Helpers._
-import com.normation.cfclerk.domain.{ VariableSpec, TechniqueId, Technique }
-import com.normation.exceptions.TechnicalException
-import org.slf4j.LoggerFactory
 import com.normation.utils.HashcodeCaching
+import com.normation.utils.Utils._
+import net.liftweb.common._
+import net.liftweb.common.Box
+import net.liftweb.http._
+import net.liftweb.http.js._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.BaseField
+import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers._
+import org.slf4j.LoggerFactory
+import scala.collection.mutable.Buffer
+import scala.xml._
 
 /**
  * A displayable field has 2 methods :
@@ -102,7 +97,13 @@ sealed trait SectionChildField extends DisplayableField with Loggable {
 trait DirectiveField extends BaseField with SectionChildField {
   val id: String
 
-  require(nonEmpty(id), "A field ID can not be null nor empty")
+  /**
+   * Get the manifest of the given type
+   * Use like: val manifest = manifest[MY_TYPE]
+   */
+  def manifestOf[T](implicit m: Manifest[T]): Manifest[T] = m
+
+  require(!isEmpty(id), "A field ID can not be null nor empty")
 
   def manifest: Manifest[ValueType]
   override def required_? = true
@@ -292,7 +293,6 @@ case class SectionFieldImp(
   // the value is a function which should be called at validation time
   val values     : Map[String, () => String]) extends SectionField with HashcodeCaching {
 
-  def copy(): Nothing = throw new TechnicalException("Can't copy DirectiveFieldGroup, it contains mutable datas")
   def toClient = childFields.mkString
 
   def mapValueSeq: Map[String, Seq[String]] = values.map { case (k, v) => (k, Seq(v())) }
@@ -423,8 +423,8 @@ case class MultivaluedSectionField(
    * to the same iteration of listname.
    */
   def mapValueSeq: Map[String, Seq[String]] = {
-    import scala.collection.mutable.{ Buffer, Map }
-    val map = Map[String, Buffer[String]]()
+    import scala.collection.mutable.{ Buffer, Map => MutMap }
+    val map = MutMap[String, Buffer[String]]()
     for {
       sect <- allSections
       (name, values) <- sect.mapValueSeq

@@ -42,9 +42,7 @@ import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.rudder.repository.ParseGlobalParameters
 import com.normation.rudder.repository.GitCommitId
 import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.revwalk.RevTag
 import com.normation.utils.Control._
-import com.normation.utils.XmlUtils
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.parameters.GlobalParameter
@@ -87,7 +85,7 @@ class GitParseGlobalParameters(
     for {
       xmls    <- sequence(paths.toSeq) { paramPath =>
                    GitFindUtils.getFileContent(repo.db, revTreeId, paramPath){ inputStream =>
-                     XmlUtils.parseXml(inputStream, Some(paramPath))
+                     ParseXml(inputStream, Some(paramPath))
                    }
                  }
       params  <- sequence(xmls) { xml =>

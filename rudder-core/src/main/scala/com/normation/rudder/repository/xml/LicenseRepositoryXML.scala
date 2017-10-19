@@ -1,8 +1,8 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2017 Normation SAS
 *************************************************************************************
-*
+
 * This file is part of Rudder.
 *
 * Rudder is free software: you can redistribute it and/or modify
@@ -37,55 +37,40 @@
 
 package com.normation.rudder.repository.xml
 
-import java.io.FileNotFoundException
-import scala.xml.Elem
-import scala.xml.XML
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
-import com.normation.rudder.exceptions.ParsingException
-import com.normation.rudder.repository.LicenseRepository
-import org.xml.sax.SAXParseException
-import net.liftweb.common.Box
-import net.liftweb.common.Empty
-import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import net.liftweb.common.Loggable
+import net.liftweb.common.Box
+import scala.xml.XML
+import net.liftweb.common.Failure
+import java.io.InputStream
+import net.liftweb.common.Empty
+import org.xml.sax.SAXParseException
+import scala.xml.Elem
 
-class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with Loggable {
-
-  override def getAllLicense(): Box[Map[NodeId, CfeEnterpriseLicense]] = {
-    logger.debug(s"Loading document ${licenseFile}")
-    try {
-      val doc = loadLicenseFile()
-
-      val licenses = (for {
-        elt <- (doc \\"licenses" \ "license")
-      } yield {
-        CfeEnterpriseLicense.parseXml(elt)
-      })
-      Full(licenses.map(x => (x.uuid, x)).toMap)
-    } catch {
-      case ex: Exception => Failure(s"Failed to load licenses from file: ${licenseFile}", Full(ex), Empty)
-    }
-  }
+object ParseXml {
 
   /**
-   * Load the license file
-   * @return The xml element representation of the file
+   * Parse the file denoted by input stream (filePath is only
+   * for explicit error messages)
    */
-  private[this] def loadLicenseFile() : Elem = {
-    try {
-      XML.loadFile(licenseFile)
-    } catch {
-      case e : SAXParseException =>
-        logger.error("Cannot parse license file")
-        throw new ParsingException("Unexpected issue (unvalid xml?) with the config file " )
-      case e : java.net.MalformedURLException =>
-        logger.error(s"Cannot read license file ${licenseFile}")
-        throw new FileNotFoundException("License file not found : " + licenseFile )
-      case e : java.io.FileNotFoundException =>
-        logger.debug(s"License file ${licenseFile} not found, this may be a problem if using the Windows Plugin")
-        <licenses/>
+  def apply(is: InputStream, filePath : Option[String] = None) : Box[Elem] = {
+    val name = filePath.getOrElse("[unknown]")
+    for {
+      doc <- try {
+               Full(XML.load(is))
+             } catch {
+               case e: SAXParseException =>
+                 Failure(s"Unexpected issue with the XML file ${name}: ${e.getMessage}", Full(e), Empty)
+               case e: java.net.MalformedURLException =>
+                 Failure("XML file not found: " + name, Full(e), Empty)
+             }
+      nonEmpty <- if (doc.isEmpty) {
+                    Failure(s"Error when parsing XML file: '${name}': the parsed document is empty")
+                  } else {
+                    Full("ok")
+                  }
+    } yield {
+      doc
     }
   }
+
 }

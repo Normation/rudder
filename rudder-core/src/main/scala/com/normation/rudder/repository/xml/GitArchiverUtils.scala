@@ -37,25 +37,20 @@
 
 package com.normation.rudder.repository.xml
 
-import java.io.File
-import scala.collection.JavaConversions.asScalaSet
-import scala.xml.Elem
-import org.apache.commons.io.FileUtils
-import org.eclipse.jgit.api.Git
-import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.DateTime
 import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.exceptions.TechnicalException
-import com.normation.utils.Utils
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.repository._
+import java.io.File
+import java.io.IOException
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
-import org.joda.time.format.DateTimeFormatterBuilder
-import org.joda.time.DateTimeFieldType
-import org.eclipse.jgit.revwalk.RevTag
-import org.eclipse.jgit.api.errors.JGitInternalException
+import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
-import com.normation.rudder.repository._
-import com.normation.eventlog.ModificationId
+import org.eclipse.jgit.revwalk.RevTag
+import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
+import scala.collection.JavaConversions.asScalaSet
+import scala.xml.Elem
 
 
 /**
@@ -79,14 +74,35 @@ trait GitArchiverUtils extends Loggable {
 
   def newDateTimeTagString = (DateTime.now()).toString(ISODateTimeFormat.dateTime)
 
+  /**
+   * Create directory given in argument if does not exists, checking
+   * that it is writable.
+   */
+  def createDirectory(directory:File):Box[File] = {
+    try {
+      if(directory.exists) {
+        if(directory.isDirectory) {
+          if(directory.canWrite) {
+            Full(directory)
+          } else Failure(s"The directory '${directory.getPath}' has no write permission, please use another directory")
+        } else Failure("File at '%s' is not a directory, please change configuration".format(directory.getPath))
+      } else if(directory.mkdirs) {
+        logger.debug(s"Creating missing directory '${directory.getPath}'")
+        Full(directory)
+      } else Failure(s"Directory '${directory.getPath}' does not exists and can not be created, please use another directory")
+    } catch {
+      case ioe:IOException => Failure(s"Exception when checking directory '${directory.getPath}': '${ioe.getMessage}'")
+    }
+  }
+
   lazy val getRootDirectory : File = {
     val file = new File(gitRootDirectory, relativePath)
-    Utils.createDirectory(file) match {
+    createDirectory(file) match {
       case Full(dir) => dir
       case eb:EmptyBox =>
         val e = eb ?~! "Error when checking required directories '%s' to archive in git:".format(file.getPath)
         logger.error(e.messageChain)
-        throw new TechnicalException(e.messageChain)
+        throw new IllegalArgumentException(e.messageChain)
     }
   }
 
@@ -242,7 +258,6 @@ trait GitArchiverFullCommitUtils extends Loggable {
    * date of the tag.
    */
   def getTags() : Box[Map[DateTime, GitArchiveId]] = {
-    import scala.collection.JavaConversions._
     tryo {
 //      TODO: use that when JGit version > 1.2
 //      gitRepo.git.tagList.call.flatMap { revTag =>
@@ -278,13 +293,12 @@ trait GitArchiverFullCommitUtils extends Loggable {
    * listTagWorkaround in getTags by "gitRepo.git.tagList.call"
    */
   private[this] def listTagWorkaround = {
-    import java.io.IOException
     import org.eclipse.jgit.api.errors.JGitInternalException
     import org.eclipse.jgit.errors.IncorrectObjectTypeException
     import org.eclipse.jgit.lib._
     import org.eclipse.jgit.revwalk._
-    import scala.collection.mutable.{Map => MutMap, ArrayBuffer}
     import scala.collection.JavaConversions._
+    import scala.collection.mutable.{ ArrayBuffer, Map => MutMap }
 
     var refList = MutMap[String,Ref]()
     val revWalk = new RevWalk(gitRepo.db)

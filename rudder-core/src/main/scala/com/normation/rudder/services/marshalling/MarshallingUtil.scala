@@ -38,7 +38,6 @@
 package com.normation.rudder.services.marshalling
 
 import scala.xml._
-import com.normation.utils.XmlUtils
 
 object MarshallingUtil {
 
@@ -47,6 +46,9 @@ object MarshallingUtil {
   }
 
   def createTrimedElem(label:String, fileFormat:String)(children:NodeSeq) : Elem = {
-    XmlUtils.trim { createElem(label, fileFormat)(children) }
+    //scala XML is lying, the contract is to call trim and
+    //returned an Elem, not a Node.
+    //See scala.xml.Utility#trim implementation.
+    scala.xml.Utility.trim{ createElem(label, fileFormat)(children) }.asInstanceOf[Elem]
   }
 }

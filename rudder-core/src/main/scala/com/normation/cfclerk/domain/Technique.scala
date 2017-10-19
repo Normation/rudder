@@ -107,8 +107,8 @@ case class Technique(
 
 ) extends HashcodeCaching {
 
-  require(null != id && nonEmpty(id.name.value), "ID is required in policy")
-  require(nonEmpty(name), "Name is required in policy")
+  require(null != id && !isEmpty(id.name.value), "ID is required in policy")
+  require(!isEmpty(name), "Name is required in policy")
 
   /**
    * Utity method that retrieve all templates IDs

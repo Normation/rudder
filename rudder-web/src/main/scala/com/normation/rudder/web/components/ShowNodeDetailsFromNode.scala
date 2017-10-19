@@ -38,7 +38,6 @@
 package com.normation.rudder.web.components
 
 import scala.xml.NodeSeq
-import com.normation.exceptions.TechnicalException
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeId

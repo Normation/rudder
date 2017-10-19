@@ -124,7 +124,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>org.eclipse.jgit</groupId>
       <artifactId>org.eclipse.jgit</artifactId>
-      <version>${jgit-version}</version>
     </dependency>
 
     <dependency>
@@ -221,10 +220,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
 
     <dependency>
-      <groupId>com.normation</groupId>
-      <artifactId>spring-run-dependencies</artifactId>
-      <version>${spring-run-dep-version}</version>
-      <type>pom</type>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
@@ -236,17 +233,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>org.springframework</groupId>
       <artifactId>spring-jdbc</artifactId>
       <version>${spring-version}</version>
-      <exclusions>
-        <!-- they come from elsewhere, with the good dependencies -->
-        <exclusion>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-beans</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     
     <!-- that dep is needed to make scalac happy and avoid "missing class NotNull" -->

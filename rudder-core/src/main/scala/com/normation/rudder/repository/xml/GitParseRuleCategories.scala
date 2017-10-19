@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -38,22 +38,22 @@
 package com.normation.rudder.repository.xml
 
 import org.eclipse.jgit.lib.ObjectId
-
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.rudder.repository._
-import com.normation.rudder.services.marshalling.RuleUnserialisation
 import com.normation.utils.Control._
-import com.normation.utils.UuidRegex
-
+import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import com.normation.rudder.migration.XmlEntityMigration
+import com.normation.rudder.services.marshalling.RuleCategoryUnserialisation
+import com.normation.rudder.rule.category.RuleCategory
 
-class GitParseRules(
-    ruleUnserialisation: RuleUnserialisation
+class GitParseRuleCategories(
+    unserialiser       : RuleCategoryUnserialisation
   , repo               : GitRepositoryProvider
   , xmlMigration       : XmlEntityMigration
   , rulesRootDirectory : String //relative name to git root file
-) extends ParseRules with Loggable {
+  , categoryFileName   : String = "category.xml"
+) extends ParseRuleCategories with Loggable {
 
   def getArchive(archiveId:GitCommitId) = {
     for {
@@ -76,30 +76,45 @@ class GitParseRules(
     val directoryPath = root + "/"
 
     //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
-    val paths = GitFindUtils.listFiles(repo.db, revTreeId, List(root), List(".xml")).filter { p =>
-                   p.size > directoryPath.size &&
-                   p.startsWith(directoryPath) &&
-                   p.endsWith(".xml") &&
-                   UuidRegex.isValid(p.substring(directoryPath.size,p.size - 4))
-                 }
+    val paths = GitFindUtils.listFiles(repo.db, revTreeId, List(root), List(".xml"))
+    logger.info(paths)
+    //directoryPath must end with "/"
+    def recParseDirectory(directoryPath:String) : Box[RuleCategory] = {
 
+      val categoryPath = directoryPath + categoryFileName
+      // that's the directory of a RuleCategory.
+      // don't forget to recurse sub-categories
+      for {
+        xml          <- GitFindUtils.getFileContent(repo.db, revTreeId, categoryPath){ inputStream =>
+                          ParseXml(inputStream, Some(categoryPath)) ?~! s"Error when parsing file '${categoryPath}' as a category"
+                        }
+        categoryXml  <- xmlMigration.getUpToDateXml(xml)
+        category     <- unserialiser.unserialise(categoryXml) ?~! s"Error when unserializing category for file '${categoryPath}'"
+        subDirs      =  {
+                          //we only wants to keep paths that are non-empty directories with a rulecategory filename (category.xml)
+                          paths.flatMap { p =>
+                            if(p.size > directoryPath.size && p.startsWith(directoryPath)) {
+                              val split = p.substring(directoryPath.size).split("/")
+                              if(split.size == 2 && (split(1) == categoryFileName) ) {
+                                Some(directoryPath + split(0) + "/")
+                              } else None
+                            } else None
+                          }
+                        }
+        subCats      <- sequence(subDirs.toSeq) { dir =>
+                          recParseDirectory(dir)
+                        }
+      } yield {
+        val subCategories = subCats.toList
 
-    for {
-      xmls    <- sequence(paths.toSeq) { crPath =>
-                   GitFindUtils.getFileContent(repo.db, revTreeId, crPath){ inputStream =>
-                     ParseXml(inputStream, Some(crPath))
-                   }
-                 }
-      rules     <- sequence(xmls) { xml =>
-                     for {
-                       ruleXml <- xmlMigration.getUpToDateXml(xml)
-                       rule    <- ruleUnserialisation.unserialise(ruleXml)
-                     } yield {
-                       rule
-                     }
-                 }
-    } yield {
-      rules
+        category.copy(
+            childs = subCategories
+        )
+
+      }
     }
+
+    recParseDirectory(directoryPath)
   }
+
 }
