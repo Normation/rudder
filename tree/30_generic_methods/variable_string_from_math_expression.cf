@@ -1,0 +1,139 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# The "Supported mathematical expressions" section comes from:
+# https://github.com/cfengine/documentation/blob/master/reference/functions/eval.markdown
+# licenced under http://creativecommons.org/licenses/by-sa/3.0/
+# Copyright 2017 Northern.tech AS
+
+# @name Variable string from expression
+# @description Define a variable from an expression
+# @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name}` with each name replaced with the parameters of this method.
+#
+# Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
+# Please note that only global variables are available within templates.
+#
+# ## Usage
+#
+# This function will evaluate a mathematical expression that may contain variables and format the result according to the provided formatt string.
+#
+# The formatting string uses the standard POSIX printf format.
+#
+# #### Supported mathematical expressions
+#
+# All the mathematical computations are done using floats.
+#
+# The supported infix mathematical syntax, in order of precedence, is:
+#
+# - `(` and `)` parentheses for grouping expressions
+# - `^` operator for exponentiation
+# - `*` and `/` operators for multiplication and division
+# - `%` operators for modulo operation
+# - `+` and `-` operators for addition and subtraction
+# - `==` "close enough" operator to tell if two expressions evaluate to the same number, with a tiny margin to tolerate floating point errors.  It returns 1 or 0.
+# - `>=` "greater or close enough" operator with a tiny margin to tolerate floating point errors.  It returns 1 or 0.
+# - `>` "greater than" operator.  It returns 1 or 0.
+# - `<=` "less than or close enough" operator with a tiny margin to tolerate floating point errors.  It returns 1 or 0.
+# - `<` "less than" operator.  It returns 1 or 0.
+#
+# The numbers can be in any format acceptable to the C `scanf` function with the `%lf` format specifier, followed by the `k`, `m`, `g`, `t`, or `p` SI units.  So e.g. `-100` and `2.34m` are valid numbers.
+#
+# In addition, the following constants are recognized:
+#
+# - `e`: 2.7182818284590452354
+# - `log2e`: 1.4426950408889634074
+# - `log10e`: 0.43429448190325182765
+# - `ln2`: 0.69314718055994530942
+# - `ln10`: 2.30258509299404568402
+# - `pi`: 3.14159265358979323846
+# - `pi_2`: 1.57079632679489661923 (pi over 2)
+# - `pi_4`: 0.78539816339744830962 (pi over 4)
+# - `1_pi`: 0.31830988618379067154 (1 over pi)
+# - `2_pi`: 0.63661977236758134308 (2 over pi)
+# - `2_sqrtpi`: 1.12837916709551257390 (2 over square root of pi)
+# - `sqrt2`: 1.41421356237309504880 (square root of 2)
+# - `sqrt1_2`: 0.70710678118654752440 (square root of 1/2)
+#
+# The following functions can be used, with parentheses:
+#
+# - `ceil` and `floor`: the next highest or the previous highest integer
+# - `log10`, `log2`, `log`
+# - `sqrt`
+# - `sin`, `cos`, `tan`, `asin`, `acos`, `atan`
+# - `abs`: absolute value
+# - `step`: 0 if the argument is negative, 1 otherwise
+#
+# #### Formatting options
+#
+# The format field supports the following specifiers:
+#
+# * `%d` for decimal integer
+# * `%x` for hexadecimal integer
+# * `%o` for octal integer
+# * `%f` for decimal floating point
+#
+# You can use usual flags, width and precision syntax.
+#
+# #### Examples
+#
+# If you use:
+#
+# ```
+# variable_string("prefix", "var", "10");
+# variable_string_from_math_expression("prefix", "sum", "2.0+3.0", "%d");
+# variable_string_from_math_expression("prefix", "product", "3*${prefix.var}", "%d");
+# ```
+#
+# The `prefix.sum` string variable will contain `5` and `prefix.product` will contain `30`.
+#
+# @parameter variable_prefix The prefix of the variable name
+# @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
+# @parameter expression      The mathematical expression to evaluate
+# @parameter format          The format string to use
+# 
+# @class_prefix variable_string_from_math_expression
+# @class_parameter variable_name
+
+bundle agent variable_string_from_math_expression(variable_prefix, variable_name, expression, format)
+{
+  vars:
+      "old_class_prefix"  string => canonify("variable_string_from_math_expression_${variable_name}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist => { "${variable_prefix}", "${variable_name}", "${expression}", "${format}" };
+
+      # define the variable within the variable_prefix namespace
+      "temp" string => eval("${expression}");
+      "${variable_prefix}.${variable_name}" string => format("${format}", "${temp}");
+
+  classes:
+     "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");
+
+  methods:
+    !variable_defined::
+      "error"    usebundle => _classes_failure("${old_class_prefix}");
+      "error"    usebundle => _classes_failure("${class_prefix}");
+
+    variable_defined::
+      "success"  usebundle => _classes_success("${old_class_prefix}");
+      "success"  usebundle => _classes_success("${class_prefix}");
+
+    any::
+      "report"
+        usebundle  => _log("Set the string ${variable_prefix}.${variable_name} to the result of ${expression} formatted by '${format}'", "${old_class_prefix}", "${class_prefix}", @{args});
+}
