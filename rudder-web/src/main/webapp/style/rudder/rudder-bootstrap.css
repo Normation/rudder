@@ -366,9 +366,13 @@
 }
 
 #globalCompliance .progress .progress-bar {
-    line-height: 90px;
-    font-size: 16px;
-    font-weight: 600;
+  line-height: 90px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: help;
+}
+.dataTable .progress .progress-bar {
+  cursor: help;
 }
 
 #complianceGauge {
