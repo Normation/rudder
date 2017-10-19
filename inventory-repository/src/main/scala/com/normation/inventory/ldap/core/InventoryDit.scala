@@ -42,7 +42,6 @@ import com.normation.ldap.sdk.LDAPEntry
 
 
 import LDAPConstants._
-import com.normation.utils.Utils.nonEmpty
 import com.normation.inventory.domain._
 import net.liftweb.common._
 import com.normation.utils.HashcodeCaching

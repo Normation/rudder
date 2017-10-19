@@ -52,11 +52,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
     <dependency>
       <groupId>com.normation</groupId>
-      <artifactId>historization-api</artifactId>
-      <version>${rudder-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.normation</groupId>
       <artifactId>scala-ldap</artifactId>
       <version>${rudder-version}</version>
     </dependency>
@@ -69,6 +64,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-json_${scala-binary-version}</artifactId>
+      <version>${lift-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-util_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
     </dependency>
   </dependencies>

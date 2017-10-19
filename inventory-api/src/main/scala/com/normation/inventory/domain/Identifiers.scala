@@ -42,7 +42,7 @@ import com.normation.utils.HashcodeCaching
 
 trait Uuid {
   val value:String
-  require(nonEmpty(value), "An UUID can not have a null or empty value (value: %s)".format(value))
+  require(!isEmpty(value), "An UUID can not have a null or empty value (value: %s)".format(value))
 }
 
 case class NodeId(val value:String) extends Uuid with HashcodeCaching

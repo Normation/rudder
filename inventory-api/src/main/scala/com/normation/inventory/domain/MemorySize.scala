@@ -37,7 +37,6 @@
 
 package com.normation.inventory.domain
 
-import com.normation.exceptions.TechnicalException
 import com.normation.utils.HashcodeCaching
 
 
@@ -62,7 +61,6 @@ case class MemorySize(size:Long) extends Comparable[MemorySize] with HashcodeCac
 }
 
 object MemorySize {
-  import scala.util.control.Exception._
   /*
    * We should accept:
    * - no decimal numbers
@@ -130,7 +128,7 @@ object MemorySize {
    * It returns a string representation of the value and a string representation of the unit
    * to let it be i18n-able
    */
-  def prettyMo(m:MemorySize) : (String,String) = {
+  private def prettyMo(m:MemorySize) : (String,String) = {
     val x = prettyPrint(m, "B" :: "kB" :: "MB" :: "GB" :: "TB" :: "PB" :: "EB" :: "ZB" :: "YB" :: Nil)
     (x._1.bigDecimal.stripTrailingZeros.toPlainString,x._2)
   }
@@ -157,13 +155,13 @@ object MemorySize {
     val pres3 = new java.math.MathContext(3)
 
     def round(m:BigDecimal) : BigDecimal = {
-      if(m < 1) throw new TechnicalException("Could not round number strictly smaller than one. Seems to be an algo error, check with the dev.")
+      if(m < 1) throw new IllegalArgumentException("Could not round number strictly smaller than one. Seems to be an algo error, check with the dev.")
       else if(m < 1000) m.round(pres3)
       else BigDecimal(m.toBigInt)
     }
 
     def rec(m:BigDecimal, u:List[String]) : (BigDecimal,String)= u match {
-      case Nil => throw new TechnicalException("At list one unit have to be provided for the memory pretty printer. Look around in the class where the dev don't use that method correctly.")
+      case Nil => throw new IllegalArgumentException("At list one unit have to be provided for the memory pretty printer. Look around in the class where the dev don't use that method correctly.")
       case h::Nil => //no bigger units, stop here
         (round(m),h)
       case h::tail =>

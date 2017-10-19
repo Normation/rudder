@@ -148,7 +148,7 @@ final case class Certificate(value : String) extends SecurityToken with Hashcode
  * Comparison are really important in Version
  */
 final class Version(val value:String) extends Comparable[Version] {
-  require(nonEmpty(value))
+  require(!isEmpty(value))
 
   override def compareTo(other:Version) = this.value.compareTo(other.value)
   override def toString() = "[%s]".format(value)
