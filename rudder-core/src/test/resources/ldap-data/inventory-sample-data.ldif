@@ -123,7 +123,7 @@ osKernelVersion: nothing
 nodeId: root
 cn: nothing
 localAdministratorAccountName: root
-agentName: Nova
+agentName: {"agentType":"Community","version":"4.1.8"}
 policyServerId:root
 nodeHostname: root.normation.com
 inventoryDate: 20130515123456.948Z
@@ -141,7 +141,7 @@ osKernelVersion: nothing
 nodeId: node0
 cn: nothing
 localAdministratorAccountName: root
-agentName: Nova
+agentName: {"agentType":"Nova","version":"4.1.8"}
 policyServerId:root-policy-server
 nodeHostname: node0.normation.com
 inventoryDate: 20130515123456.948Z
@@ -163,7 +163,7 @@ osKernelVersion: nothing
 nodeId: node0_0
 cn: nothing
 localAdministratorAccountName: root
-agentName: Nova
+agentName: {"agentType":"Nova","version":"4.1.8"}
 nodeHostname: node0_0.normation.com
 policyServerId:root-policy-server
 publicKey: "test"
