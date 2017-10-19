@@ -44,7 +44,7 @@ bundle agent check
 {
   classes:
     
-    "ok_1" expression => "variable_string_from_file_var1_kept.!variable_string_var1_repaired.!variable_string_var1_error";
+    "ok_1" expression => "variable_string_from_file_var1_kept.!variable_string_from_file_var1_repaired.!variable_string_from_file_var1_error";
     "ok_var1" expression => strcmp("${prefix.var1}", "${init.data}");
 
     "ok"  expression => "ok_1.ok_var1";
