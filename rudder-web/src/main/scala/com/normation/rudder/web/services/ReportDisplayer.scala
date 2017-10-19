@@ -40,7 +40,6 @@ package com.normation.rudder.web.services
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.repository.RoDirectiveRepository

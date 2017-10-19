@@ -54,7 +54,6 @@ import JsCmds._
 import JE._
 import net.liftweb.json._
 import JsonDSL._
-import com.normation.exceptions.TechnicalException
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.queries.RegexFilter
 import net.liftweb.common.EmptyBox
@@ -153,7 +152,7 @@ sealed trait CriterionType  extends ComparatorList {
       case (Full(v),LesserEq) => LTEQ(attributeName,v)
       case (Full(v),Regex) => HAS(attributeName) //"default, non interpreted regex
       case (Full(v),NotRegex) => HAS(attributeName) //"default, non interpreted regex
-      case (f,c) => throw new TechnicalException("Can not build a filter with a non legal value for comparator '%s': %s'".format(c,f))
+      case (f,c) => throw new IllegalArgumentException(s"Can not build a filter with a non legal value for comparator '${c}': ${f}'")
   }
 
 }
@@ -255,7 +254,7 @@ case object DateComparator extends CriterionType {
    */
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
 
-    val date = parseDate(value).getOrElse(throw new TechnicalException("The date format was not recognized: '%s', expected '%s'".format(value, fmt)))
+    val date = parseDate(value).getOrElse(throw new IllegalArgumentException("The date format was not recognized: '%s', expected '%s'".format(value, fmt)))
 
     val date0000 = GeneralizedTime(date.withTimeAtStartOfDay).toString
     val date2359 = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString

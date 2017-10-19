@@ -49,7 +49,6 @@ import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.eclipse.jgit.revwalk.RevWalk
 import com.normation.cfclerk.services._
-import com.normation.exceptions.TechnicalException
 import org.eclipse.jgit.internal.storage.file.FileRepository
 
 
@@ -123,9 +122,9 @@ class SimpleGitRevisionProvider(refPath:String,repo:GitRepositoryProvider) exten
     val treeId = repo.db.resolve(refPath)
 
     if(null == treeId) {
-      val message = "The reference branch '%s' is not found in the Policy Templates User Library's git repository".format(refPath)
+      val message = s"The reference branch '${refPath}' is not found in the Policy Templates User Library's git repository"
       logger.error(message)
-      throw new TechnicalException(message)
+      throw new IllegalArgumentException(message)
     }
 
     val rw = new RevWalk(repo.db)

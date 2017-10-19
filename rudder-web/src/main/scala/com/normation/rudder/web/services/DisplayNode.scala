@@ -53,7 +53,6 @@ import net.liftweb.http.js._
 import JsCmds._
 import JE.{JsRaw, JsVar, JsArray, Str}
 import net.liftweb.http.SHtml._
-import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
 import org.joda.time.DateTime
 import com.normation.rudder.services.servers.RemoveNodeService
@@ -461,7 +460,7 @@ object DisplayNode extends Loggable {
                   case Full(Some(nodeInfo)) => <span>{nodeInfo.securityTokenHash}</span>
                   case _ => <i>Hash not found</i>
                 }
-                
+
                 val tokenKind = agent.securityToken match {
                   case _ : PublicKey   => "Public key"
                   case _ : Certificate => "Certificate"

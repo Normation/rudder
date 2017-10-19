@@ -57,7 +57,6 @@ import net.liftweb.http.SHtml._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import scala.collection._
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RoDirectiveRepository

@@ -37,11 +37,12 @@
 
 package com.normation.rudder.services.system
 
-import java.io.{FileOutputStream,File}
+import FileManager._
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import net.liftweb.http.FileParamHolder
 import org.slf4j.LoggerFactory
-import FileManager._
-import com.normation.exceptions.TechnicalException
 
 object FileManager {
   val logger = LoggerFactory.getLogger(classOf[FileManager])
@@ -53,11 +54,11 @@ class FileManager(rootPath:String) {
     val root = new File(rootPath)
     //check that the directory exists, we can write on it
     if(!root.exists) {
-      if(!root.mkdirs) throw new TechnicalException("Can't create upload direcorty %s. Check rights".format(rootPath))
+      if(!root.mkdirs) throw new IOException(s"Can't create upload direcorty '${rootPath}'. Check rights")
     }
-    if(!root.isDirectory) throw new TechnicalException("File %s is not a directory. Please choose an other directory path")
+    if(!root.isDirectory) throw new IOException(s"File '${rootPath}' is not a directory. Please choose an other directory path")
 
-    if(!root.canWrite) throw new TechnicalException("Directory %s is not writable. Please check rigths")
+    if(!root.canWrite) throw new IOException(s"Directory '${rootPath}' is not writable. Please check rigths")
 
     root
   }

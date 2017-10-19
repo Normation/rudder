@@ -37,11 +37,11 @@
 
 package com.normation.rudder.domain
 
-import com.normation.utils.Utils
 import com.normation.inventory.ldap.core.LDAPConstants._
 import net.liftweb.common.Loggable
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
+import com.normation.utils.Utils
 
 object RudderLDAPConstants extends Loggable {
 
@@ -258,22 +258,20 @@ object RudderLDAPConstants extends Loggable {
    * Parsing/printing variables
    * When parsing, we can't check the consistency of the fact that the variable may be empty, or not
    */
-  def parsePolicyVariable(variable: String): Option[(String, Int, String)] = Utils.??!(variable) match {
-    case None =>
+  def parsePolicyVariable(variable: String): Option[(String, Int, String)] = variable match {
+    case null | "" =>
       logger.error("Can not process a null or empty variable, skip")
       None
-    case Some(v) => v match {
-      case mayBeEmptyPolicyVariableRegex(name, i, value) => try {
-        Some((name, i.toInt, value))
-      } catch {
-        case e: NumberFormatException =>
-          logger.error("Error when trying to parse variable '%s': '%s' is not convertible to an integer. That variable will be ignored".format(v, i))
-          None
-      }
-      case _ =>
-        logger.error("Can not parse variable '%s', bad pattern. That variable will be ignored".format(v))
+    case mayBeEmptyPolicyVariableRegex(name, i, value) => try {
+      Some((name, i.toInt, value))
+    } catch {
+      case e: NumberFormatException =>
+        logger.error(s"Error when trying to parse variable '${variable}': '${i}' is not convertible to an integer. That variable will be ignored")
         None
     }
+    case _ =>
+      logger.error(s"Can not parse variable '${variable}', bad pattern. That variable will be ignored")
+      None
   }
 
   /**
@@ -281,8 +279,18 @@ object RudderLDAPConstants extends Loggable {
    * into a Map[String,Seq[String]] of Policy Variables
    */
   def parsePolicyVariables(variables: Seq[String]): Map[String, Seq[String]] = {
+    /**
+     * Change a function: f:A => Option[B] in a
+     * partial function A => B
+     */
+    def toPartial[A,B](f: A => Option[B]) = new PartialFunction[A,B] {
+      override def isDefinedAt(x:A) = f(x).isDefined
+      override def apply(x:A) = f(x).get
+    }
+
+
     variables.
-      collect { Utils.toPartial(parsePolicyVariable _) }.
+      collect { toPartial(parsePolicyVariable _) }.
       groupBy { case (x, i, y) => x }.
       map {
         case (k, seq) =>
@@ -311,9 +319,9 @@ object RudderLDAPConstants extends Loggable {
    * for an LDAP attribute value.
    */
   def policyVariableToString(name: String, index: Int, value: String, mayBeEmpty: Boolean = false) = {
-    require(Utils.nonEmpty(name), "Policy variable name can not be null")
+    require(!Utils.isEmpty(name), "Policy variable name can not be null")
     if (!mayBeEmpty) {
-      require(Utils.nonEmpty(value), "Policy variable value can not be empty (it is for variable %s)".format(name))
+      require(!Utils.isEmpty(value), "Policy variable value can not be empty (it is for variable %s)".format(name))
     }
     require(index >= 0, "Index of policy variable must be positive (index=%s for variable %s, value %)".format(index, name, value))
     val v = "%s[%s]%s%s".format(name.trim, index, VSEP, value.trim)

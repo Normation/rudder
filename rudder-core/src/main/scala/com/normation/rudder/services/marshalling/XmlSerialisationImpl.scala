@@ -37,60 +37,49 @@
 
 package com.normation.rudder.services.marshalling
 
-import com.normation.rudder.domain.policies.Directive
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.domain.policies.SectionVal
-import net.liftweb.common._
-import scala.xml.NodeSeq
-import scala.xml.{Node => XNode, _}
-import net.liftweb.common.Box._
-import com.normation.cfclerk.domain.TechniqueVersion
-import net.liftweb.util.Helpers.tryo
-import com.normation.utils.Control.sequence
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.exceptions.TechnicalException
-import com.normation.rudder.domain.policies.ActiveTechniqueCategory
-import com.normation.rudder.domain.policies.ActiveTechnique
-import org.joda.time.format.ISODateTimeFormat
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.rudder.batch.{CurrentDeploymentStatus,SuccessStatus,ErrorStatus}
-import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
-import com.normation.utils.XmlUtils
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.xmlwriters.SectionSpecWriter
+import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.batch.CurrentDeploymentStatus
+import com.normation.rudder.batch.ErrorStatus
+import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.domain.Constants._
-import com.normation.rudder.domain.workflows.ChangeRequest
-import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
-import scala.util.Try
-import scala.util.Success
+import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
-import com.normation.rudder.domain.workflows._
-import com.normation.rudder.domain.policies.AddDirectiveDiff
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.domain.policies.DeleteDirectiveDiff
-import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
-import com.normation.cfclerk.xmlwriters.SectionSpecWriter
-import com.normation.rudder.domain.policies.AddRuleDiff
-import com.normation.rudder.domain.policies.DeleteRuleDiff
-import com.normation.rudder.domain.policies.ModifyToRuleDiff
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.parameters._
-import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.rule.category.RuleCategory
-import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.AddDirectiveDiff
+import com.normation.rudder.domain.policies.AddRuleDiff
+import com.normation.rudder.domain.policies.DeleteDirectiveDiff
+import com.normation.rudder.domain.policies.DeleteRuleDiff
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
+import com.normation.rudder.domain.policies.ModifyToRuleDiff
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.SimpleDiff
-import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.policies.Tag
 import com.normation.rudder.domain.policies.TagName
 import com.normation.rudder.domain.policies.TagValue
+import com.normation.rudder.domain.policies.Tags
+import com.normation.rudder.domain.workflows._
+import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
+import net.liftweb.common._
+import net.liftweb.common.Box._
+import org.joda.time.format.ISODateTimeFormat
+import scala.xml.{ Node => XNode, _ }
+import scala.xml.NodeSeq
 
 //serialize / deserialize tags
 object TagsXml {
@@ -100,9 +89,7 @@ object TagsXml {
 
   //tags is the <tags> elements which contains <tag> direct children
   def getTags(tags: NodeSeq): Tags = {
-    // utility method to extract <tag name="xxx" value="yyy" /> where neither xxx nor yyy can be empty
-    import scala.xml.Node
-    def untag(tag: Node): Option[Tag] = {
+    def untag(tag: XNode): Option[Tag] = {
       ( (tag \ "@name").text, (tag\ "@value").text ) match {
         case ("", _) | (_, "") => None
         case (name, value)     => Some(Tag(TagName(name), TagValue(value)))
@@ -279,7 +266,7 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
           <status>failure</status>
           <errorMessage>{d.failure.messageChain}</errorMessage>
           )
-      case _ => throw new TechnicalException("Bad CurrentDeploymentStatus type, expected a success or an error")
+      case _ => throw new IllegalArgumentException("Bad CurrentDeploymentStatus type, expected a success or an error")
     }
   ) }
 }

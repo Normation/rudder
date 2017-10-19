@@ -40,7 +40,7 @@ package com.normation.rudder.rule.category
 import com.normation.rudder.domain.RudderDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.utils.ScalaReadWriteLock
+import com.normation.rudder.repository.ldap
 import net.liftweb.common._
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.unboundid.ldap.sdk.Filter._
@@ -63,6 +63,7 @@ import com.unboundid.ldap.sdk.LDAPException
 import com.unboundid.ldap.sdk.ResultCode
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 
 
 /**

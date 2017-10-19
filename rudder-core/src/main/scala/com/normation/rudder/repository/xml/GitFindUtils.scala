@@ -45,11 +45,10 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.eclipse.jgit.treewalk.TreeWalk
-import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
-import com.normation.utils.ZipUtils
 import java.io.File
 import java.io.ByteArrayOutputStream
+import com.normation.rudder.repository.xml.ZipUtils.Zippable
 
 
 /**
@@ -151,7 +150,6 @@ object GitFindUtils extends Loggable {
   */
   def getZip(db:Repository, revTreeId:ObjectId, onlyUnderPaths: List[String] = Nil) : Box[Array[Byte]] = {
     import scala.collection.mutable.{Set,Buffer}
-    import com.normation.utils.ZipUtils.Zippable
 
 
     val directories = scala.collection.mutable.Set[String]()

@@ -40,7 +40,6 @@ package com.normation.rudder.repository.xml
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling._

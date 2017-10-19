@@ -57,17 +57,19 @@ class TechniqueParser(
 ) extends Loggable {
 
   def parseXml(xml: Node, id: TechniqueId, expectedReportCsvExists: Boolean): Technique = {
+    def nonEmpty(s: String) = if(null == s || s == "") None else Some(s)
+
     //check that xml is <TECHNIQUE> and has a name attribute
     if (xml.label.toUpperCase == TECHNIQUE_ROOT) {
       xml.attribute(TECHNIQUE_NAME) match {
-        case Some(nameAttr) if (TechniqueParser.isValidId(id.name.value) && nonEmpty(nameAttr.text)) =>
+        case Some(nameAttr) if (TechniqueParser.isValidId(id.name.value) && nameAttr.text != null && nameAttr.text != "") =>
 
           val name = nameAttr.text
           val compatible = try Some(parseCompatibleTag((xml \ COMPAT_TAG).head)) catch { case _:Exception => None }
 
           val rootSection = sectionSpecParser.parseSectionsInPolicy(xml, id, name)
 
-          val description = ??!((xml \ TECHNIQUE_DESCRIPTION).text).getOrElse(name)
+          val description = nonEmpty((xml \ TECHNIQUE_DESCRIPTION).text).getOrElse(name)
 
           val trackerVariableSpec = parseTrackerVariableSpec(xml)
 
@@ -75,7 +77,7 @@ class TechniqueParser(
 
           val isMultiInstance = ((xml \ TECHNIQUE_IS_MULTIINSTANCE).text.equalsIgnoreCase("true") )
 
-          val longDescription = ??!((xml \ TECHNIQUE_LONG_DESCRIPTION).text).getOrElse("")
+          val longDescription = nonEmpty((xml \ TECHNIQUE_LONG_DESCRIPTION).text).getOrElse("")
 
           val isSystem = ((xml \ TECHNIQUE_IS_SYSTEM).text.equalsIgnoreCase("true"))
 

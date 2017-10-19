@@ -177,17 +177,16 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <!-- Authentication -->
     <!-- spring dep needed so that the correct version is resolved -->
     <!-- Spring Framework Project libraries -->
+    <!-- Needed to use spring configuration by annotation -->
     <dependency>
-      <groupId>com.normation</groupId>
-      <artifactId>spring-run-dependencies</artifactId>
-      <version>${spring-run-dep-version}</version>
-      <type>pom</type>
+      <groupId>cglib</groupId>
+      <artifactId>cglib</artifactId>
     </dependency>
+
+    <!-- the slf4j commons-logging replacement -->
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-test</artifactId>
-      <version>${spring-version}</version>
-      <scope>test</scope>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jcl-over-slf4j</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>

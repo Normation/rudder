@@ -37,13 +37,10 @@
 
 package com.normation.rudder.domain.policies
 
-import scala.collection.mutable.Buffer
 import scala.xml._
-import com.normation.utils.Utils.nonEmpty
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.domain.Technique
 
 case class DirectiveId(value : String) extends HashcodeCaching
 

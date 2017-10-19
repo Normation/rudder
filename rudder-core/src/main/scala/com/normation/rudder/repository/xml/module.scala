@@ -42,6 +42,7 @@ import org.joda.time.DateTimeFieldType
 
 package object xml {
 
+
   /**
    * We can't use ISO8601 valid format for a git tag, as ":" are forbidden.
    * So we use a:

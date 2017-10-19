@@ -39,7 +39,6 @@ package com.normation.rudder.web.snippet.node
 
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
-import com.normation.exceptions.TechnicalException
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -53,7 +52,6 @@ import net.liftweb.http.LocalSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
 import net.liftweb.http.StatefulSnippet
-import net.liftweb.http.Templates
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd

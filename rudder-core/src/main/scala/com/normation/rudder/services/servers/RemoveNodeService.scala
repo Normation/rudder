@@ -17,7 +17,7 @@ import com.normation.inventory.domain.{AcceptedInventory,RemovedInventory}
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.eventlog._
-import com.normation.utils.ScalaReadWriteLock
+import com.normation.rudder.repository.ldap
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.inventory.services.core.MachineRepository
 import com.normation.inventory.services.core.WriteOnlyMachineRepository
@@ -37,6 +37,9 @@ import com.normation.rudder.services.policies.write.NodePromisesPaths
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.Hooks
+import com.normation.rudder.repository.ldap.ScalaReadWriteLock
+import com.normation.rudder.repository.ldap.ScalaReadWriteLock
+import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 
 sealed trait DeletionResult
 object DeletionResult {

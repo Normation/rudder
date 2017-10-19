@@ -40,7 +40,6 @@ package com.normation.cfclerk.xmlparsers
 import com.normation.cfclerk.domain._
 import scala.xml._
 import net.liftweb.common._
-import com.normation.utils.XmlUtils._
 import com.normation.cfclerk.exceptions._
 import CfclerkXmlConstants._
 import com.normation.utils.Control.bestEffort
@@ -133,7 +132,7 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
   private[this] def parseSection(root: Node, id: TechniqueId, policyName: String): Box[SectionSpec] = {
 
     val name = {
-      val n = getAttributeText(root, "name", "")
+      val n = Utils.getAttributeText(root, "name", "")
       if(root.label == SECTIONS_ROOT) {
         if(n.size > 0) throw new ParsingException("<%s> can not have a 'name' attribute.".format(SECTIONS_ROOT))
         else SECTION_ROOT_NAME
@@ -144,9 +143,9 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
     }
 
     // The defaut priority is "high"
-    val displayPriority = DisplayPriority(getAttributeText(root, SECTION_DISPLAYPRIORITY, "")).getOrElse(HighDisplayPriority)
+    val displayPriority = DisplayPriority(Utils.getAttributeText(root, SECTION_DISPLAYPRIORITY, "")).getOrElse(HighDisplayPriority)
 
-    val description = getUniqueNodeText(root, SECTION_DESCRIPTION, "")
+    val description = Utils.getUniqueNodeText(root, SECTION_DESCRIPTION, "")
 
     val componentKey = (root \ ("@" + SECTION_COMPONENT_KEY)).headOption.map( _.text) match {
       case null | Some("") => None
@@ -175,9 +174,9 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
     }
 
     // sanity check or derived values from what is before, or the descriptor itself
-    val isMultivalued = ("true" == getAttributeText(root, SECTION_IS_MULTIVALUED, "false").toLowerCase || expectedReportComponentKey.isDefined)
+    val isMultivalued = ("true" == Utils.getAttributeText(root, SECTION_IS_MULTIVALUED, "false").toLowerCase || expectedReportComponentKey.isDefined)
 
-    val isComponent = ("true"  == getAttributeText(root, SECTION_IS_COMPONENT, "false").toLowerCase || expectedReportComponentKey.isDefined)
+    val isComponent = ("true"  == Utils.getAttributeText(root, SECTION_IS_COMPONENT, "false").toLowerCase || expectedReportComponentKey.isDefined)
 
 
     /**

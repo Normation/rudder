@@ -37,21 +37,15 @@
 
 package com.normation.rudder.services.servers
 
-import java.net.InetAddress
-import net.liftweb.common.Box
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.WoDirectiveRepository
-import com.normation.rudder.domain.Constants
-import com.normation.utils.Control.bestEffort
-import net.liftweb.util.Helpers._
-import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
-import net.liftweb.common.Loggable
-import com.normation.utils.NetUtils.isValidNetwork
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.policies._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.Constants
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.WoDirectiveRepository
+import net.liftweb.common.Box
+import net.liftweb.common.Loggable
+import sun.net.util.IPAddressUtil
 
 /**
  * This service allows to manage properties linked to the root policy server,
@@ -74,6 +68,33 @@ trait PolicyServerManagementService {
   def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) : Box[Seq[String]]
 }
 
+object PolicyServerManagementService {
+  /**
+   * Check if the given string is a network address,
+   * i.e if it on the form IP(v4 or v6)/mask.
+   * A single IP address will be accepted by the test.
+   */
+  def isValidNetwork(net:String) = {
+
+    val parts = net.split("/")
+    if(parts.size == 1) {
+       IPAddressUtil.isIPv6LiteralAddress(parts(0)) ||
+       IPAddressUtil.isIPv4LiteralAddress(parts(0))
+    } else if(parts.size == 2) {
+      (
+       IPAddressUtil.isIPv6LiteralAddress(parts(0)) ||
+       IPAddressUtil.isIPv4LiteralAddress(parts(0))
+      ) && (
+        try {
+          val n = parts(1).toInt
+          if(n >= 0 && n < 255) true else false
+        } catch {
+          case _:NumberFormatException => false
+        }
+      )
+    } else false
+  }
+}
 
 class PolicyServerManagementServiceImpl(
     roDirectiveRepository: RoDirectiveRepository
@@ -101,7 +122,7 @@ class PolicyServerManagementServiceImpl(
 
     //filter out bad networks
     val validNets = networks.flatMap { case net =>
-      if(isValidNetwork(net)) Some(net)
+      if(PolicyServerManagementService.isValidNetwork(net)) Some(net)
       else {
         logger.error("Ignoring allowed network '%s' because it does not seem to be a valid network")
         None

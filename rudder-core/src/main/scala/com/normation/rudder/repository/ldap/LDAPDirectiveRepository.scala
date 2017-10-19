@@ -53,7 +53,7 @@ import com.normation.rudder.domain.eventlog.{
 }
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.utils.ScalaReadWriteLock
+import com.normation.rudder.repository.ldap
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.cfclerk.domain.Technique
 import com.normation.eventlog.ModificationId
