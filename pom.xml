@@ -26,12 +26,8 @@ limitations under the License.
   <packaging>pom</packaging>
 
   <modules>
-    <!--  pom dependencies -->
-    <module>spring-run-dependencies</module>
     <!-- utils -->
     <module>utils</module>
-    <!-- APIs -->
-    <module>historization-api</module>
   </modules>
 
 

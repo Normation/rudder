@@ -59,47 +59,6 @@ object Control {
   }
 
   /**
-   * Parallel version of sequence.
-   * BE CAREFUL: The resulting sequence order is lost!
-   * (i.e: you DON'T have, in case of success:
-   *    forall i € [0, size-1], f(insep(i)) == outseq(i)
-   */
-  def sequencePar[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
-    sequencePar(seq.par)(f)
-  }
-
-  /**
-   * Same as above with full control on the parallel seq
-   */
-  def sequencePar[U,T](seq:ParSeq[U])(f:U => Box[T]) : Box[Seq[T]] = {
-    val buf = scala.collection.mutable.Buffer[T]()
-    @volatile var stop = Option.empty[EmptyBox]
-    seq.foreach { u =>
-      if(stop.isEmpty) { f(u) match {
-        case Full(x) =>
-          buf.synchronized{
-            buf += x
-          }
-        case e:EmptyBox => stop = Some(e)
-    } } }
-
-    stop match {
-      case Some(e) => e
-      case None => Full(buf)
-    }
-  }
-
-  def sequenceEmptyable[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
-    val buf = scala.collection.mutable.Buffer[T]()
-    seq.foreach { u => f(u) match {
-      case f:Failure => return f
-      case Empty => // nothing to do
-      case Full(x) => buf += x
-    } }
-    Full(buf)
-  }
-
-  /**
    * A version of sequence that will try to reach the end and accumulate
    * results
    * In case of error, it provides a failure with all accumulated
