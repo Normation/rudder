@@ -421,11 +421,13 @@ case object AgentComparator extends CriterionType {
   /*
    * We need compatibility for < 4.2 inventory
    * 4.2+: a json is stored in AGENTS_NAME, so we need to check if it contains the valid agentType attribute
-   * <4.2: AGENTS_NAME only contains the name of the agent (but a value that is different form the id, oldShortName
+   * 4.1: a json is stored in AGENTS_NAME, but not with the same value than 4.2 (oldshortName instead of id is stored as agentType ...)
+   * <4.1: AGENTS_NAME only contains the name of the agent (but a value that is different form the id, oldShortName)
    */
   private[this] def filterAgent(agent: AgentType) =
-      SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::
-      EQ(A_AGENTS_NAME, agent.oldShortName) ::
+      SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) :: // 4.2+
+      SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
+      EQ(A_AGENTS_NAME, agent.oldShortName) :: // 3.1 ( < 4.1 in fact)
       Nil
 
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {

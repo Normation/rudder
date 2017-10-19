@@ -480,7 +480,6 @@ class TestQueryProcessor extends Loggable {
 
   @Test def agentTypeQueries {
 
-    logger.info(sr)
     val allCfengine = TestQuery(
       "allCfengine",
       parser("""
@@ -497,7 +496,7 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"node"   , "attribute":"agentName"  , "comparator":"eq", "value":"cfengine-community" }
       ] }
       """).openOrThrowException("For tests"),
-      sr(2) :: sr(4) :: sr(5) :: sr(7) :: sr(8) :: Nil)
+      sr(0) :: sr(2) :: sr(4) :: sr(5) :: sr(7) :: sr(8) :: Nil)
 
     val nova = TestQuery(
       "nova",
@@ -506,7 +505,7 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"node" , "attribute":"agentName"  , "comparator":"eq", "value":"cfengine-nova" }
       ] }
       """).openOrThrowException("For tests"),
-      sr(0) :: sr(1) :: sr(3) :: Nil)
+      sr(1) :: sr(3) :: Nil)
 
     val dsc = TestQuery(
       "dsc",
