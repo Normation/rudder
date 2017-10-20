@@ -410,7 +410,7 @@ case object AgentComparator extends CriterionType {
   val allAgents = AgentType.allValues.toList
 
   val agentTypes = ( cfeTypes  :: allAgents.map(a => (a.oldShortName, (a.displayName)))).sortBy( _._2 )
-  val agentMap   = ( cfeAgents :: allAgents.map(a => (a.id, a :: Nil))).toMap
+  val agentMap   = ( cfeAgents :: allAgents.map(a => (a.oldShortName, a :: Nil))).toMap
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
