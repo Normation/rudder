@@ -454,8 +454,8 @@ object RudderConfig extends Loggable {
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
   val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
 
-  val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
-  val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
+  val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(doobie)
+  val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(doobie)
 
   lazy val roAgentRunsRepository : RoReportsExecutionRepository = cachedAgentRunRepository
   lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
@@ -474,14 +474,13 @@ object RudderConfig extends Loggable {
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
   val ldapInventoryMapper = inventoryMapper
 
+  val changeRequestMapper = new ChangeRequestMapper(changeRequestChangesUnserialisation, changeRequestChangesSerialisation)
+
   val roChangeRequestRepository : RoChangeRequestRepository = {
     //a runtime checking of the workflow to use
     new EitherRoChangeRequestRepository(
         configService.rudder_workflow_enabled
-      , new RoChangeRequestJdbcRepository(
-            jdbcTemplate
-          , new ChangeRequestsMapper(changeRequestChangesUnserialisation)
-        )
+      , new RoChangeRequestJdbcRepository(doobie, changeRequestMapper)
       , inMemoryChangeRequestRepository
     )
   }
@@ -490,11 +489,7 @@ object RudderConfig extends Loggable {
     //a runtime checking of the workflow to use
     new EitherWoChangeRequestRepository(
         configService.rudder_workflow_enabled
-      , new WoChangeRequestJdbcRepository(
-            jdbcTemplate
-          , changeRequestChangesSerialisation
-          , roChangeRequestRepository
-        )
+      , new WoChangeRequestJdbcRepository(doobie, changeRequestMapper, roChangeRequestRepository)
       , inMemoryChangeRequestRepository
     )
   }

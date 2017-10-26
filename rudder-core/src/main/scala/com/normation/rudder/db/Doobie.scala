@@ -52,7 +52,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
-import scala.language.implicitConversions
 import com.normation.rudder.services.reports.RunAndConfigInfo
 import org.slf4j.LoggerFactory
 import doobie.util.log.ExecFailure
@@ -118,10 +117,14 @@ object Doobie {
     case \/-(a) => Full(a)
   }
   implicit class XorToBox[A](res: \/[Throwable, A]) {
-    def box = res match {
-      case -\/(e) => Failure(e.getMessage, Full(e), Empty)
-      case \/-(a) => Full(a)
-    }
+    def box = xorToBox(res)
+  }
+  implicit def xorBoxToBox[A](res: \/[Throwable, Box[A]]): Box[A] = res match {
+    case -\/(e) => Failure(e.getMessage, Full(e), Empty)
+    case \/-(a) => a
+  }
+  implicit class XorBoxToBox[A](res: \/[Throwable, Box[A]]) {
+    def box = xorBoxToBox(res)
   }
 
   /*

@@ -41,105 +41,65 @@ import net.liftweb.common.Loggable
 import com.normation.rudder.repository.RoChangeRequestRepository
 import org.joda.time.DateTime
 import net.liftweb.common._
-import java.sql.ResultSet
-import java.sql.Connection
-import java.sql.PreparedStatement
-import java.sql.Timestamp
-import org.springframework.jdbc.core.JdbcTemplate
 import com.normation.rudder.domain.workflows.ChangeRequest
-import org.springframework.jdbc.core.RowMapper
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
-import scala.util.{Try, Failure => Catch, Success}
-import scala.collection.JavaConversions._
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.WoChangeRequestRepository
 import com.normation.rudder.services.marshalling.ChangeRequestChangesSerialisation
-import org.springframework.jdbc.support.GeneratedKeyHolder
-import org.springframework.jdbc.core.PreparedStatementCreator
 import com.normation.eventlog.EventActor
 import com.normation.rudder.services.marshalling.ChangeRequestChangesUnserialisation
-import scala.xml.XML
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.eventlog.ModificationId
 import scala.xml.Elem
 
-import scalaz.{Failure => _, _}
+import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.Doobie._
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import doobie.postgres.imports._
+import com.normation.rudder.repository.RoChangeRequestRepository
 
 class RoChangeRequestJdbcRepository(
-    jdbcTemplate         : JdbcTemplate
-  , changeRequestsMapper : ChangeRequestsMapper
+    doobie: Doobie
+  , mapper: ChangeRequestMapper
 ) extends RoChangeRequestRepository with Loggable {
 
-  val SELECT_SQL = "SELECT id, name, description, creationTime, content, modificationId FROM ChangeRequest"
+  import doobie._
+  import mapper.ChangeRequestComposite
 
-  val SELECT_SQL_JOIN_WORKFLOW = "SELECT CR.id, name, description, creationTime, content, modificationId FROM  changeRequest CR LEFT JOIN workflow W on CR.id = W.id"
+
+  val SELECT_SQL = "SELECT id, name, description, content, modificationId FROM ChangeRequest"
+
+  val SELECT_SQL_JOIN_WORKFLOW = "SELECT CR.id, name, description, content, modificationId FROM changeRequest CR LEFT JOIN workflow W on CR.id = W.id"
+
+  //utility method which correctly transform Doobie types towards Box[Vector[ChangeRequest]]
+  private[this] def execQuery(q: Query0[Box[ChangeRequest]]): Box[Vector[ChangeRequest]] = {
+    q.vector.attempt.map(
+        // we are just ignoring change request with unserialisation
+        // error. Does not seem the best.
+        _.map(_.flatten.toVector)
+    ).transact(xa).unsafePerformSync
+  }
 
   override def getAll() : Box[Vector[ChangeRequest]] = {
-    Try {
-      jdbcTemplate.query(SELECT_SQL, Array[AnyRef](), changeRequestsMapper).toSeq
-    } match {
-      case Success(x) =>
-        Full(x.:\(Vector[ChangeRequest]()){(changeRequest,seq) => changeRequest match {
-        case Full(cr) =>  seq :+ cr
-        case eb:EmptyBox =>
-          seq
-        }
-      } )
-
-      case Catch(error) =>
-      Failure(error.toString())
-    }
+    val q = query[Box[ChangeRequest]](SELECT_SQL)
+    execQuery(q)
   }
 
   override def get(changeRequestId:ChangeRequestId) : Box[Option[ChangeRequest]] = {
-    Try {
-      jdbcTemplate.query(
-          SELECT_SQL + " where id = ?"
-        , Array[AnyRef](changeRequestId.value.asInstanceOf[AnyRef])
-        , changeRequestsMapper).toSeq
-    } match {
-      case Success(x) => x match {
-        case Seq() => Full(None)
-        case Seq(res) => Full(res.headOption)
-        case _ => Failure(s"Too many change request have the same id ${changeRequestId.value}")
-      }
-      case Catch(error) => Failure(error.toString())
-    }
+    val q = Query[ChangeRequestId, Box[ChangeRequest]](SELECT_SQL + " where id = ?", None).toQuery0(changeRequestId)
+    q.option.map(_.map(_.toOption)).transact(xa).unsafePerformSync
+
   }
 
   // Get every change request where a user add a change
   override def getByContributor(actor:EventActor) : Box[Vector[ChangeRequest]] = {
-    Try {
 
-      jdbcTemplate.query(
-        new PreparedStatementCreator() {
-           def createPreparedStatement(connection : Connection) : PreparedStatement = {
-
-             val query= s"${SELECT_SQL} where cast( xpath('//firstChange/change/actor/text()',content) as text[]) = ?"
-             val ps = connection.prepareStatement(
-                 query, Array[String]());
-             ps.setArray(1, connection.createArrayOf("text", Seq(actor.name).toArray[AnyRef]) )
-
-             // if with have eventtype filter, apply them
-             ps
-           }
-         }, changeRequestsMapper)
-    } match {
-      case Success(x) =>
-        Full(x.:\(Vector[ChangeRequest]()){(changeRequest,seq) => changeRequest match {
-        case Full(cr) =>  seq :+ cr
-        case eb:EmptyBox =>
-          seq
-        }
-      } )
-      case Catch(x) => ApplicationLogger.error(s"could not fetch change request for user ${actor}: ${x}")
-      Failure(s"could not fetch change request for user ${actor}")
-    }
+    val q = (Fragment.const(SELECT_SQL) ++ sql"""where cast( xpath('//firstChange/change/actor/text()',content) as character varying[]) = ${Array(actor.name)}""").query[Box[ChangeRequest]]
+    execQuery(q)
   }
 
   override def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Vector[ChangeRequest]] = {
@@ -176,45 +136,44 @@ class RoChangeRequestJdbcRepository(
    * We want to be able to find only pending change request without having to request the state of each change request
    * Maybe this function should be in Workflow repository/service instead
    */
-  private[this] def getChangeRequestsByXpathContent(xpath:String, shouldEquals:String, errorMessage:String, onlyPending:Boolean) = {
-    try {
-      Full(jdbcTemplate.query(
-        new PreparedStatementCreator() {
-           def createPreparedStatement(connection : Connection) : PreparedStatement = {
-             val query  =
-               if (onlyPending) {
-                 s"${SELECT_SQL_JOIN_WORKFLOW} where cast( xpath('${xpath}', content) as text[]) = ? and state like 'Pending%'"
-               }
-               else {
-                 s"${SELECT_SQL} where cast( xpath('${xpath}', content) as text[]) = ?"
-               }
+  private[this] def getChangeRequestsByXpathContent(xpath:String, shouldEquals:String, errorMessage:String, onlyPending:Boolean): Box[Vector[ChangeRequest]] = {
 
-             val ps = connection.prepareStatement(query, Array[String]());
-             ps.setArray(1, connection.createArrayOf("text", Seq(shouldEquals).toArray[AnyRef]) )
-             ps
-           }
-         }, changeRequestsMapper
-      ).flatten.toVector)
-    } catch {
-      case ex: Exception =>
-        val f = Failure(errorMessage, Full(ex), Empty)
-        ApplicationLogger.error(f.messageChain)
-        ApplicationLogger.error("Root exception was:", ex)
-        f
+    val q = {
+      if (onlyPending) {
+        (Fragment.const(s"""${SELECT_SQL_JOIN_WORKFLOW} where cast( xpath('${xpath}', content) as character varying[])""") ++ sql""" = ${Array(shouldEquals)} and state like 'Pending%'""").query[Box[ChangeRequest]]
+      } else {
+        (Fragment.const(s"""${SELECT_SQL} where cast( xpath('${xpath}', content) as character varying[])""") ++ sql""" = ${Array(shouldEquals)}""").query[Box[ChangeRequest]]
+      }
     }
+    execQuery(q)
   }
 
 }
 
 class WoChangeRequestJdbcRepository(
-    jdbcTemplate : JdbcTemplate
-  , crSerialiser : ChangeRequestChangesSerialisation
-  , roRepo       : RoChangeRequestRepository
+    doobie: Doobie
+  , mapper: ChangeRequestMapper
+  , roRepo: RoChangeRequestRepository
 ) extends WoChangeRequestRepository with Loggable {
 
-  val INSERT_SQL = "insert into ChangeRequest (name, description, creationTime, content, modificationId) values (?, ?, ?, ?, ?)"
+  import doobie._
 
-  val UPDATE_SQL = "update ChangeRequest set name = ?, description = ?, content = ? , modificationId = ? where id = ?"
+
+  //get the different part from a change request: name, description, content, modId
+  private[this] def getAtom(cr: ChangeRequest): (Option[String], Option[String], Elem, Option[String]) = {
+    val xml = mapper.crcSerialiser.serialise(cr)
+    val name = cr.info.name match {
+      case "" => None
+      case x  => Some(x)
+    }
+    val desc = cr.info.description match {
+      case "" => None
+      case x  => Some(x)
+    }
+    val modId = cr.modId.map(_.value)
+
+    (name, desc, xml, modId)
+  }
 
   /**
    * Save a new change request in the back-end.
@@ -222,43 +181,21 @@ class WoChangeRequestJdbcRepository(
    * to the change request.
    */
   def createChangeRequest(changeRequest:ChangeRequest, actor:EventActor, reason: Option[String]) : Box[ChangeRequest] = {
-    val keyHolder = new GeneratedKeyHolder()
 
-    Try {
-      jdbcTemplate.update(
-        new PreparedStatementCreator() {
-           def createPreparedStatement(connection : Connection) : PreparedStatement = {
-             val sqlXml = connection.createSQLXML()
-             val serializedContent = crSerialiser.serialise(changeRequest).toString
-             sqlXml.setString(serializedContent)
+    val (name, desc, xml, modId) = getAtom(changeRequest)
 
-             val ps = connection.prepareStatement(
-                 INSERT_SQL, Seq[String]("id").toArray[String]);
+    val q = sql"""insert into ChangeRequest (name, description, creationTime, content, modificationId)
+          values (${name}, ${desc}, ${DateTime.now}, ${xml}, ${modId})
+       """.update.withUniqueGeneratedKeys[Int]("id")
 
-             ps.setString(1, changeRequest.info.name)
-             ps.setString(2, changeRequest.info.description)
-             ps.setTimestamp(3, new Timestamp(DateTime.now().getMillis()))
-             ps.setSQLXML(4, sqlXml) // have a look at the SQLXML
-             ps.setString(5, changeRequest.modId.map(_.value).getOrElse(""))
-             ps
-           }
-         },
-         keyHolder)
-         roRepo.get(ChangeRequestId(keyHolder.getKey().intValue))
-    } match {
-      case Success(x) => x match {
-        case Full(Some(entry)) =>
-              logger.debug(s"Created change Request with id ${entry.id.value}")
-              Full(entry)
-        case Full(None) => Failure("Couldn't find newly created entry when saving Change Request")
-        case e : Failure =>
-              logger.error(s"Error when creating change request: ${e.msg}")
-              e
-        case Empty =>
-              logger.error(s"Error when creating a change request: no reason given")
-              Empty
-      }
-      case Catch(error) => Failure(error.toString())
+    for {
+      id  <- (q.attempt.transact(xa).unsafePerformSync: Box[Int])
+      cr  <- roRepo.get(ChangeRequestId(id)).flatMap {
+               case None    => Failure(s"The newly saved change request with ID ${id} was not found back in data base")
+               case Some(x) => Full(x)
+             }
+    } yield {
+      cr
     }
   }
 
@@ -267,7 +204,7 @@ class WoChangeRequestJdbcRepository(
    * (whatever the read/write mode is).
    */
   def deleteChangeRequest(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequest] = {
-    // we should update it rather, isn't it ?
+    // we should update it rather, shouldn't we ?
     throw new IllegalArgumentException("This a developer error. Please contact rudder developer, saying that they call unemplemented deleteChangeRequest")
   }
 
@@ -275,85 +212,68 @@ class WoChangeRequestJdbcRepository(
    * Update a change request. The change request must exists.
    */
   def updateChangeRequest(changeRequest:ChangeRequest, actor:EventActor, reason: Option[String]) : Box[ChangeRequest] = {
-    // I will need a transaction if I need to change the status http://static.springsource.org/spring/docs/3.0.x/spring-framework-reference/html/transaction.html#transaction-programmatic
-    Try {
-      roRepo.get(changeRequest.id) match {
-        case Full(None) =>
-          logger.warn(s"Cannot update non-existant Change Request with id ${changeRequest.id.value}")
-          Failure(s"Cannot update non-existant Change Request with id ${changeRequest.id.value}")
-        case eb : EmptyBox => eb
-        case Full(Some(entry)) => // ok
-          // we don't change the creation date !
-          jdbcTemplate.update(
-              new PreparedStatementCreator() {
-                 def createPreparedStatement(connection : Connection) : PreparedStatement = {
-                   val sqlXml = connection.createSQLXML()
-                   sqlXml.setString(crSerialiser.serialise(changeRequest).toString)
+    // no transaction between steps, because we don't actually use anything in the existing change request
 
-                   val ps = connection.prepareStatement(
-                       UPDATE_SQL, Seq[String]("id").toArray[String]);
-
-                   ps.setString(1, changeRequest.info.name)
-                   ps.setString(2, changeRequest.info.description)
-                   ps.setSQLXML(3, sqlXml)
-                   ps.setString(4, changeRequest.modId.map(_.value).getOrElse(""))
-                   ps.setInt(5, new java.lang.Integer(changeRequest.id.value))
-                   ps
+    for {
+      cr      <- roRepo.get(changeRequest.id)
+      ok      <- cr match {
+                   case None =>
+                     logger.warn(s"Cannot update non-existant Change Request with id ${changeRequest.id.value}")
+                     Failure(s"Cannot update non-existant Change Request with id ${changeRequest.id.value}")
+                   case Some(x) => Full("ok")
                  }
-               }
-           )
-         roRepo.get(changeRequest.id)
-      }
-    } match {
-        case Success(x) => x match {
-            case Full(Some(entry)) => Full(entry)
-            case Full(None) =>
-              logger.error(s"Couldn't find the updated entry when updating Change Request ${changeRequest.id.value}")
-              Failure("Couldn't find the updated entry when saving Change Request")
-            case e : Failure =>
-              logger.error(s"Error when updating change request ${changeRequest.id.value}: ${e.msg}")
-              e
-            case Empty =>
-              logger.error(s"Error when updating change request ${changeRequest.id.value}: no reason given")
-              Empty
-          }
-        case Catch(error) =>
-          logger.error(s"Error when creating a Change Request : ${error.toString}")
-          Failure(error.toString())
+      update  <- ({
+                   val (name, desc, xml, modId) = getAtom(changeRequest)
+                   val q = sql"""update ChangeRequest set name = ${name}, description = ${desc}, content = ${xml}, modificationId = ${modId}
+                                 where id = ${changeRequest.id}"""
+                   q.update.run.attempt.transact(xa).unsafePerformSync
+                 }: Box[Int])
+      updated <- roRepo.get(changeRequest.id).flatMap {
+                   case None =>
+                     logger.error(s"Couldn't find the updated entry when updating Change Request ${changeRequest.id.value}")
+                     Failure(s"Couldn't find the updated entry when saving Change Request with ID ${changeRequest.id.value}")
+                   case Some(x) => Full(x)
+                 }
+    } yield {
+      updated
     }
   }
+
 }
 
+  // doobie mapping, must be done here because of TechniqueRepo in ChangeRequestChangesUnserialisation impl
+class ChangeRequestMapper(
+    val crcUnserialiser: ChangeRequestChangesUnserialisation
+  , val crcSerialiser  : ChangeRequestChangesSerialisation
+) extends Loggable {
 
+  //id, name, description, content, modificationId
+  type CR = (Int, Option[String], Option[String], Elem, Option[String])
 
-class ChangeRequestsMapper(
-    changeRequestChangesUnserialisation : ChangeRequestChangesUnserialisation
-) extends RowMapper[Box[ChangeRequest]] with Loggable {
-
-
-    // unserialize the XML.
-    // If it fails, produce a failure
-    // directives map is boxed because some Exception could be launched
-  def unserialize(id: Int, content: Elem, modId: Option[String], name: Option[String], description: Option[String]) = {
-    changeRequestChangesUnserialisation.unserialise(content) match {
+  // unserialize the XML.
+  // If it fails, produce a failure
+  // directives map is boxed because some Exception could be launched
+  def unserialize(id: Int, name: Option[String], description: Option[String], content: Elem, modId: Option[String]): Box[ConfigurationChangeRequest] = {
+    crcUnserialiser.unserialise(content) match {
       case Full((directivesMaps, nodesMaps, ruleMaps, paramMaps)) =>
         directivesMaps match {
           case Full(map) => Full(ConfigurationChangeRequest(
-            ChangeRequestId(id)
-          , modId.map(ModificationId.apply)
-          , ChangeRequestInfo(
-                name.getOrElse("")
-              , description.getOrElse("")
-            )
-          , map
-          , nodesMaps
-          , ruleMaps
-          , paramMaps
-        ) )
+              ChangeRequestId(id)
+            , modId.map(ModificationId.apply)
+            , ChangeRequestInfo(
+                  name.getOrElse("")
+                , description.getOrElse("")
+              )
+            , map
+            , nodesMaps
+            , ruleMaps
+            , paramMaps
+          ) )
+
           case eb:EmptyBox =>
             val fail = eb ?~! s"could not deserialize directive change of change request #${id} cause is: ${eb}"
-          ApplicationLogger.error(fail)
-          fail
+            logger.error(fail)
+            fail
         }
 
       case eb:EmptyBox =>
@@ -363,14 +283,29 @@ class ChangeRequestsMapper(
     }
   }
 
-  def mapRow(rs : ResultSet, rowNum: Int) : Box[ChangeRequest] = {
-    unserialize(
-        rs.getInt("id")
-      , XML.load(rs.getSQLXML("content").getBinaryStream())
-      , Some(rs.getString("modificationId"))
-      , Some(rs.getString("name"))
-      , Some(rs.getString("description"))
-    )
+  def serialize(optCR: Box[ChangeRequest]): CR = {
+    optCR match {
+      case Full(cr) =>
+        val elem = crcSerialiser.serialise(cr)
+        val name = cr.info.name match {
+          case "" => None
+          case x  => Some(x)
+        }
+        val desc = cr.info.description match {
+          case "" => None
+          case x  => Some(x)
+        }
+        (cr.id.value, name, desc, elem, cr.modId.map(_.value))
+
+      case _ => throw new IllegalArgumentException(s"We can only serialize Full(ChangeRequest)")
+    }
   }
 
+  implicit val ChangeRequestComposite: Composite[Box[ChangeRequest]] = {
+    Composite[CR].xmap(
+        (t : CR                ) => unserialize(t._1, t._2, t._3, t._4, t._5)
+     ,  (cr: Box[ChangeRequest]) => serialize(cr) // not sure we really need that, but Doobie force symetry on Composite
+    )
+
+  }
 }
