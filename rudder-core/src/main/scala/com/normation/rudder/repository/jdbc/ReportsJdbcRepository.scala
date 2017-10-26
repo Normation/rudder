@@ -47,11 +47,8 @@ import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.repository.ReportsRepository
-
 import org.joda.time._
-
 import net.liftweb.common._
-
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
 import com.normation.rudder.db.Doobie._

@@ -41,7 +41,6 @@ import com.normation.rudder.repository.EventLogRepository
 import org.joda.time.DateTime
 import com.normation.eventlog._
 import com.normation.rudder.domain.eventlog._
-import org.springframework.jdbc.core._
 import java.sql.ResultSet
 import net.liftweb.common._
 import scala.xml._
@@ -237,22 +236,7 @@ class EventLogJdbcRepository(
 
 }
 
-object EventLogWithChangeRequestMapper extends RowMapper[(EventLog,Option[ChangeRequestId])] with Loggable {
-
-  def mapRow(rs : ResultSet, rowNum: Int) : (EventLog,Option[ChangeRequestId]) = {
-    val eventLog = EventLogReportsMapper.mapRow(rs, rowNum)
-    val changeRequestId = {
-          val crId = rs.getInt("changeRequestId")
-          if (crId > 0)
-            Some(ChangeRequestId(crId))
-          else
-            None
-        }
-    (eventLog,changeRequestId)
-  }
-}
-
-object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
+private object EventLogReportsMapper extends Loggable {
   def mapRow(rs : ResultSet, rowNum: Int) : EventLog = {
     val eventLogDetails = EventLogDetails(
         id             = Some(rs.getInt("id"))
@@ -313,31 +297,19 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
 
 
   def mapEventLog(
-      eventType     : EventLogType
-    , eventLogDetails  : EventLogDetails
+      eventType      : EventLogType
+    , eventLogDetails: EventLogDetails
   ) : Box[EventLog] = {
 
-  logFilters.find {
-    pf => pf.isDefinedAt((eventType, eventLogDetails))
-  }.map(
-    x => x.apply((eventType, eventLogDetails))
-  ) match {
-    case Some(value) => Full(value)
-    case None =>
-      logger.error("Could not match event type %s".format(eventType.serialize))
-      Failure("Unknow Event type")
-  }
-
-  }
-
-}
-
-object EventLogWithCRIdMapper extends RowMapper[(ChangeRequestId,EventLog)] with Loggable {
-  def mapRow(rs : ResultSet, rowNum: Int) : (ChangeRequestId,EventLog) = {
-    val eventLog = EventLogReportsMapper.mapRow(rs, rowNum)
-    // Since we extracted the value from xml,  it is surrounded by "{" and "}" we need to remove first and last character
-    val id = rs.getString("crId")
-    val crId = ChangeRequestId(rs.getString("crId").substring(1, id.length()-1).toInt)
-    (crId,eventLog)
+    logFilters.find {
+      pf => pf.isDefinedAt((eventType, eventLogDetails))
+    }.map(
+      x => x.apply((eventType, eventLogDetails))
+    ) match {
+      case Some(value) => Full(value)
+      case None =>
+        logger.error("Could not match event type %s".format(eventType.serialize))
+        Failure("Unknow Event type")
+    }
   }
 }

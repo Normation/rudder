@@ -38,162 +38,73 @@ package com.normation.rudder.repository.jdbc
 
 import net.liftweb.common.Loggable
 import net.liftweb.common._
-import scala.util.{Try, Failure => Catch, Success}
-import org.springframework.jdbc.core.JdbcTemplate
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.workflows.WorkflowNodeId
-import scala.collection.JavaConversions._
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import org.springframework.jdbc.core.RowMapper
-import java.sql.ResultSet
-import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.domain.workflows.WorkflowNodeId
 
-class RoWorkflowJdbcRepository(
-    jdbcTemplate : JdbcTemplate
-)extends RoWorkflowRepository with Loggable {
-  val SELECT_SQL = "SELECT id, state FROM Workflow "
+import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.Doobie._
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+
+class RoWorkflowJdbcRepository(doobie: Doobie) extends RoWorkflowRepository with Loggable {
+
+  import doobie._
+
+  val SELECT_SQL = fr"SELECT id, state FROM Workflow "
 
   def getAllByState(state : WorkflowNodeId) :  Box[Seq[ChangeRequestId]] = {
-    Try {
-      val list = jdbcTemplate.query(SELECT_SQL + "WHERE state = ?", Array[AnyRef](state.value.asInstanceOf[AnyRef]), DummyWorkflowsMapper)
-      list.toSeq.map(x => ChangeRequestId(x.crId))
-    } match {
-      case Success(x) => Full(x)
-      case Catch(error) =>
-        logger.error(s"Error when fetching all change request by state ${state.value} : ${error.toString()}")
-        Failure(error.toString())
-    }
+    sql"""select id from workflow where state = ${state}""".query[ChangeRequestId].vector.attempt.transact(xa).unsafePerformSync
   }
 
   def getStateOfChangeRequest(crId: ChangeRequestId) : Box[WorkflowNodeId] = {
-     Try {
-      val list = jdbcTemplate.query(SELECT_SQL + "WHERE id = ?", Array[AnyRef](crId.value.asInstanceOf[AnyRef]), DummyWorkflowsMapper)
-      list.toSeq match {
-        case seq if seq.size == 0 =>
-          logger.warn(s"Change request ${crId.value} doesn't exist")
-          Failure(s"Change request ${crId.value} doesn't exist")
-        case seq if seq.size > 1 =>
-          logger.error(s"Too many change request with same id ${crId.value}")
-          Failure(s"Too many change request with same id ${crId.value}")
-        case seq if seq.size == 1 => Full(WorkflowNodeId(seq.head.state))
-      }
-    } match {
-      case Success(x) => x
-      case Catch(error) =>
-        logger.error(s"Error when fetching status of change request ${crId.value} : ${error.toString()}")
-        Failure(error.toString())
-    }
+    sql"""select state from workflow where id = ${crId}""".query[WorkflowNodeId].unique.attempt.transact(xa).unsafePerformSync
   }
 
   def getAllChangeRequestsState() : Box[Map[ChangeRequestId,WorkflowNodeId]] = {
-     Try {
-      for{
-        WorkflowStateMapper(state,id) <- jdbcTemplate.query(SELECT_SQL , DummyWorkflowsMapper).toSeq
-      } yield {
-        (ChangeRequestId(id),WorkflowNodeId(state))
-      }
-    } match {
-      case Success(x) => Full(x.toMap)
-      case Catch(error) =>
-        logger.error(s"Error when fetching status of all change requests : ${error.toString()}")
-        Failure(error.toString())
-    }
-  }
-
-  def isChangeRequestInWorkflow(crId: ChangeRequestId) : Box[Boolean] = {
-     Try {
-      val list = jdbcTemplate.query(SELECT_SQL + "WHERE id = ?", Array[AnyRef](crId.value.asInstanceOf[AnyRef]), DummyWorkflowsMapper)
-      list.toSeq match {
-        case seq if seq.size == 0 =>
-          Full(true)
-        case seq if seq.size > 1 =>
-          logger.error(s"Too many change request with same id ${crId.value}")
-          Failure(s"Too many change request with same id ${crId.value}")
-        case seq if seq.size == 1 => Full(false)
-      }
-    } match {
-      case Success(x) => x
-      case Catch(error) =>
-        logger.error(s"Error when fetching existance of change request ${crId.value} : ${error.toString()}")
-        Failure(error.toString())
-    }
+    sql"select id, state from workflow".query[(ChangeRequestId, WorkflowNodeId)].vector.attempt.transact(xa).unsafePerformSync.map( _.toMap )
   }
 }
 
-class WoWorkflowJdbcRepository(
-    jdbcTemplate : JdbcTemplate
-  , roRepo       : RoWorkflowRepository
-)extends WoWorkflowRepository with Loggable {
-  val UPDATE_SQL = "UPDATE Workflow set state = ? where id = ?"
+class WoWorkflowJdbcRepository(doobie: Doobie) extends WoWorkflowRepository with Loggable {
 
-  val INSERT_SQL = "INSERT into Workflow (id, state) values (?, ?)"
+  import doobie._
 
   def createWorkflow(crId: ChangeRequestId, state : WorkflowNodeId) : Box[WorkflowNodeId] = {
-    Try {
-      roRepo.isChangeRequestInWorkflow(crId) match {
-        case eb : EmptyBox => eb
-        case Full(true) =>
-          jdbcTemplate.update(
-              INSERT_SQL
-            , new java.lang.Integer(crId.value)
-            , state.value
-          )
-          roRepo.getStateOfChangeRequest(crId)
-        case _ =>
-          logger.error(s"Cannot start a workflow for Change Request id ${crId.value}, as it is already part of a workflow")
-          Failure(s"Cannot start a workflow for Change Request id ${crId.value}, as it is already part of a workflow")
-
+    val process = {
+      for {
+        exists  <- sql"""select state from workflow where id = ${crId}""".query[WorkflowNodeId].option
+        created <- exists match {
+                     case None    => sql"""insert into workflow (id, state) values (${crId},${state})""".update.run.attempt
+                     case Some(s) => (-\/(s"Cannot start a workflow for Change Request id ${crId.value}, "+
+                                     s"as it is already part of a workflow in state '${s}'")).pure[ConnectionIO]
+                   }
+      } yield {
+        state
       }
-    } match {
-      case Success(x) => x
-      case Catch(error) =>
-        logger.error(s"Error when updating status of change request ${crId.value}: ${error.toString}")
-        Failure(error.toString())
     }
+    process.attempt.transact(xa).unsafePerformSync
   }
 
   def updateState(crId: ChangeRequestId, from :  WorkflowNodeId, state : WorkflowNodeId) : Box[WorkflowNodeId] = {
-    Try {
-      roRepo.getStateOfChangeRequest(crId) match {
-        case eb : EmptyBox => eb
-        case Full(entry) =>
-          if (entry != from) {
-            Failure(s"Cannot change status of ChangeRequest id ${crId.value} : it has the status ${entry.value} but we were expecting ${from.value}")
-          } else {
-            jdbcTemplate.update(
-                  UPDATE_SQL
-                , state.value
-                , new java.lang.Integer(crId.value)
-              )
-          }
-          roRepo.getStateOfChangeRequest(crId)
+    val process = {
+      for {
+        exists  <- sql"""select state from workflow where id = ${crId}""".query[WorkflowNodeId].option
+        created <- exists match {
+                     case Some(s) =>
+                       if(s == from) {
+                         sql"""update workflow set state = ${state} where id = ${crId}""".update.run.attempt
+                       } else {
+                         (-\/(s"Cannot change status of ChangeRequest '${crId.value}': it has the status '${s.value}' "+
+                              s"but we were expecting '${from.value}'. Perhaps someone else changed it concurently?").pure[ConnectionIO])
+                       }
+                     case None    => (-\/(s"Cannot change a workflow for Change Request id ${crId.value}, "+
+                                     s"as it is not part of any workflow yet").pure[ConnectionIO])
+                   }
+      } yield {
+        state
       }
-    } match {
-      case Success(x) => x
-      case Catch(error) =>
-        logger.error(s"Error when updating status of change request ${crId.value} : ${error.toString()}")
-        Failure(error.toString())
     }
+    process.attempt.transact(xa).unsafePerformSync
   }
-
-}
-
-/**
- * A dummy object easing the transition between database and code
- */
-private[jdbc] case class WorkflowStateMapper(
-  state : String
-, crId  : Int
-)
-
-object DummyWorkflowsMapper extends RowMapper[WorkflowStateMapper] with Loggable {
-  def mapRow(rs : ResultSet, rowNum: Int) : WorkflowStateMapper = {
-    // dummy code
-    WorkflowStateMapper(
-        rs.getString("state")
-      , rs.getInt("id")
-    )
-  }
-
 }
