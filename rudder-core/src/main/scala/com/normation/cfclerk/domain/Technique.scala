@@ -77,6 +77,42 @@ final case class AgentConfig(
   , bundlesequence : Seq[BundleName]
 )
 
+
+/**
+ * A type that tells if the Technique supports directive by directive
+ * generation or not.
+ */
+sealed trait TechniqueGenerationMode {
+  def name: String
+}
+
+final object TechniqueGenerationMode {
+
+  /*
+   * This technique does not support mutiple directives on the same node
+   * but if the directive parameters are merged.
+   * This is the historical way of working for Rudder techniques.
+   */
+  final case object MergeDirectives extends TechniqueGenerationMode {
+    override val name = "merge_directives"
+  }
+
+  /*
+   * The technique supports several independant directives (and so,
+   * several technique version or modes).
+   */
+  final case object MultipleDirectives extends TechniqueGenerationMode {
+    override val name = "multi_directives"
+  }
+
+  def allValues = ca.mrvisser.sealerate.values[TechniqueGenerationMode]
+
+  def parse(value: String): Option[TechniqueGenerationMode] = {
+    val v = value.toLowerCase
+    allValues.find( _.name == v)
+  }
+}
+
 /**
  * A structure containing all informations about a technique deprecation
  */
@@ -104,7 +140,7 @@ case class Technique(
   , longDescription        : String = ""
   , isSystem               : Boolean = false
   , providesExpectedReports: Boolean = false //does that Technique comes with a template file (csv) of expected reports ?
-
+  , generationMode         : TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives
 ) extends HashcodeCaching {
 
   require(null != id && !isEmpty(id.name.value), "ID is required in policy")

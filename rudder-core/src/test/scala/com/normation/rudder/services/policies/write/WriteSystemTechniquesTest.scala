@@ -365,7 +365,6 @@ object TestSystemData {
       , system
       , policyMode
       , AgentType.CfeCommunity
-      , 2
       , rule
       , directive
       , Set()

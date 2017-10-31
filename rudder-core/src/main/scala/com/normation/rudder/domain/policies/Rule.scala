@@ -41,8 +41,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 
 case class RuleId(value:String) extends HashcodeCaching
 
-case class SerialedRuleId(ruleId : RuleId, serial : Int) extends HashcodeCaching
-
 /**
  * A rule is a binding between a set of directives
  * and some target (group of node, etc) on which applying
@@ -56,7 +54,6 @@ case class SerialedRuleId(ruleId : RuleId, serial : Int) extends HashcodeCaching
 case class Rule(
     id              : RuleId
   , name            : String
-  , serial          : Int
   , categoryId      : RuleCategoryId
     //is not mandatory, but if not present, rule is disabled
   , targets         : Set[RuleTarget] = Set()
@@ -66,7 +63,7 @@ case class Rule(
   , longDescription : String = ""
   , isEnabledStatus : Boolean = false
   , isSystem        : Boolean = false
-    /**
+    /*
      * Optionally, Rule can have Tags
      */
    , tags           : Tags = Tags(Set())

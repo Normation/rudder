@@ -201,40 +201,44 @@ trait PromiseGenerationService extends Loggable {
       timeRuleVal   =  (System.currentTimeMillis - ruleValTime)
       _             =  logger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
 
+
+      // until here, generation directive by directive does not change anything
+      // (idem node by node)
+
       buildConfigTime =  System.currentTimeMillis
+
+      /// here, we still have directive by directive info
       config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, directiveLib, allNodeInfos, allNodeModes, scriptEngineEnabled) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
       sanitizeTime        =  System.currentTimeMillis
       _                   <- forgetOtherNodeConfigurationState(config.map(_.nodeInfo.id).toSet) ?~! "Cannot clean the configuration cache"
+
+
+      // check what technique+directive should be kept.
+      // in #10625, we need to relax the test for D-by-D techniques
       sanitizedNodeConfig <- sanitize(config) ?~! "Cannot set target configuration node"
+
+
       timeSanitize        =  (System.currentTimeMillis - sanitizeTime)
       _                   =  logger.debug(s"RuleVals updated in ${timeSanitize} ms, start to detect changes in node configuration.")
 
-      beginTime                =  System.currentTimeMillis
-      //that's the first time we actually output something : new serial for updated rules
-      (updatedCrs, deletedCrs) <- detectUpdatesAndIncrementRuleSerial(sanitizedNodeConfig.values.toSeq, nodeConfigCaches, allRules.map(x => (x.id, x)).toMap)?~!
-                                  "Cannot detect the updates in the NodeConfiguration"
-      uptodateSerialNodeconfig =  updateSerialNumber(sanitizedNodeConfig, updatedCrs.toMap)
-      // Update the serial of ruleVals when there were modifications on Rules values
-      // replace variables with what is really applied
-      timeIncrementRuleSerial  =  (System.currentTimeMillis - beginTime)
-      _                        =  logger.debug(s"Checked node configuration updates leading to rules serial number updates and serial number updated in ${timeIncrementRuleSerial} ms")
+      beginTime             =  System.currentTimeMillis
 
       writeTime             =  System.currentTimeMillis
-      updatedNodeConfigs    =  getNodesConfigVersion(uptodateSerialNodeconfig, nodeConfigCaches, generationTime)
+      updatedNodeConfigs    =  getNodesConfigVersion(sanitizedNodeConfig, nodeConfigCaches, generationTime)
+
       //second time we write something in repos: updated node configuration
-      writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigs, uptodateSerialNodeconfig, allLicenses, globalPolicyMode, generationTime) ?~!
+      writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigs, sanitizedNodeConfig, allLicenses, globalPolicyMode, generationTime) ?~!
                                "Cannot write configuration node"
       timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
       _                     =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
       reportTime            =  System.currentTimeMillis
-      // need to update this part as well
-      expectedReports       <- setExpectedReports(ruleVals, writtenNodeConfigs.toSeq, updatedNodeConfigs, updatedCrs.toMap, deletedCrs, generationTime, allNodeModes)  ?~!
+
+      expectedReports       <- setExpectedReports(ruleVals, writtenNodeConfigs.toSeq, updatedNodeConfigs, generationTime, allNodeModes)  ?~!
                                "Cannot build expected reports"
-      // now, invalidate cache
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
@@ -270,7 +274,6 @@ trait PromiseGenerationService extends Loggable {
       logger.debug("Build current rule values : %10s ms".format(timeRuleVal))
       logger.debug("Build target configuration: %10s ms".format(timeBuildConfig))
       logger.debug("Update rule vals          : %10s ms".format(timeSanitize))
-      logger.debug("Increment rule serials    : %10s ms".format(timeIncrementRuleSerial))
       logger.debug("Write node configurations : %10s ms".format(timeWriteNodeConfig))
       logger.debug("Save expected reports     : %10s ms".format(timeSetExpectedReport))
       logger.debug("Run post generation hooks : %10s ms".format(timeRunPostGenHooks))
@@ -401,21 +404,6 @@ trait PromiseGenerationService extends Loggable {
   def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]]
 
   /**
-   * Detect changes in the NodeConfiguration, to trigger an increment in the related CR
-   * The CR are updated in the LDAP
-   * Must have all the NodeConfiguration in nodes
-   * Returns two seq : the updated rule, and the deleted rule
-   */
-  def detectUpdatesAndIncrementRuleSerial(nodes : Seq[NodeConfiguration], cache: Map[NodeId, NodeConfigurationHash], rules: Map[RuleId, Rule]) : Box[(Map[RuleId,Int], Seq[RuleId])]
-
-  /**
-   * Set all the serial number when needed (a change in CR)
-   * Must have all the NodeConfiguration in nodes
-   */
-  def updateSerialNumber(nodes : Map[NodeId, NodeConfiguration], rules : Map[RuleId, Int]) :  Map[NodeId, NodeConfiguration]
-
-
-  /**
    * For each nodeConfiguration, check if the config is updated.
    * If so, update the return the new configId.
    */
@@ -446,8 +434,6 @@ trait PromiseGenerationService extends Loggable {
       ruleVal          : Seq[RuleVal]
     , nodeConfigs      : Seq[NodeConfiguration]
     , versions         : Map[NodeId, NodeConfigId]
-    , updateCrs        : Map[RuleId, Int]
-    , deletedCrs       : Seq[RuleId]
     , generationTime   : DateTime
     , allNodeModes     : Map[NodeId, NodeModeConfig]
   ) : Box[Seq[NodeExpectedReports]]
@@ -679,7 +665,6 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , priority       : Int
     , isSystem       : Boolean
     , policyMode     : Option[PolicyMode]
-    , serial         : Int
     , ruleOrder      : BundleOrder
     , directiveOrder : BundleOrder
   ) extends HashcodeCaching
@@ -727,7 +712,6 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
           , priority       = directive.priority
           , isSystem       = directive.isSystem
           , policyMode     = directive.policyMode
-          , serial         = ruleVal.serial
           , ruleOrder      = ruleVal.ruleOrder
           , directiveOrder = directive.directiveOrder
         )
@@ -796,6 +780,9 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                                  }
                                }
             agent           <- Box(context.nodeInfo.agentsName.headOption) ?~! s"No agent defined for Node ${context.nodeInfo.hostname}, (id ${context.nodeInfo.id.value}), at least one should be defined"
+
+
+
             cf3PolicyDrafts <- bestEffort(drafts) { draft =>
                                   (for {
                                     //bind variables with interpolated context
@@ -824,7 +811,6 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                                       , draft.isSystem
                                       , draft.policyMode
                                       , agent.agentType
-                                      , draft.serial
                                       , draft.ruleOrder
                                       , draft.directiveOrder
                                       , Set()
@@ -885,55 +871,6 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
   }
 
   def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]] = nodeConfigurationService.getNodeConfigurationHash()
-
-  /**
-   * Detect changes in rules and update their serial
-   * Returns two seq : the updated rules, and the deleted rules
-   */
-  def detectUpdatesAndIncrementRuleSerial(
-      nodes       : Seq[NodeConfiguration]
-    , cache       : Map[NodeId, NodeConfigurationHash]
-    , allRules    : Map[RuleId, Rule]
-  ) : Box[(Map[RuleId,Int], Seq[RuleId])] = {
-    val firstElt = (Map[RuleId,Int](), Seq[RuleId]())
-    // First, fetch the updated CRs (which are either updated or deleted)
-    val res = (( Full(firstElt) )/:(nodeConfigurationService.detectSerialIncrementRequest(nodes, cache.isEmpty)) ) { case (Full((updated, deleted)), ruleId) => {
-      allRules.get(ruleId) match {
-        case Some(rule) =>
-          woRuleRepo.incrementSerial(rule.id) match {
-            case Full(newSerial) =>
-              logger.trace("Updating rule %s to serial %d".format(rule.id.value, newSerial))
-              Full( (updated + (rule.id -> newSerial), deleted) )
-            case f : EmptyBox =>
-              //early stop
-              return f
-          }
-        case None =>
-          Full((updated.toMap, (deleted :+ ruleId)))
-      }
-    } }
-
-    res.foreach { case (updated, deleted) =>
-      if(updated.nonEmpty) {
-        ComplianceDebugLogger.debug(s"Updated rules:${ updated.map { case (id, serial) =>
-          s"[${id.value}->${serial}]"
-        }.mkString("") }")
-      }
-      if(deleted.nonEmpty) {
-        ComplianceDebugLogger.debug(s"Deleted rules:${ deleted.map { id =>
-          s"[${id.value}]"
-        }.mkString("") }")
-      }
-    }
-    res
-   }
-
-  /**
-   * Increment the serial number of the CR. Must have ALL NODES as inputs
-   */
-  def updateSerialNumber(allConfigs : Map[NodeId, NodeConfiguration], rules: Map[RuleId, Int]) : Map[NodeId, NodeConfiguration] = {
-    allConfigs.map { case (id, config) => (id, config.setSerial(rules)) }.toMap
-  }
 
   /**
    * For each nodeConfiguration, get the corresponding node config version.
@@ -1007,6 +944,9 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")
       //update the hash for the updated node configuration for that generation
+
+      // #10625 : that should be one logic-level up (in the main generation for loop)
+
       toCache    =  allNodeConfigs.filterKeys(updated.contains(_)).values.toSet
       cached     <- nodeConfigurationService.cacheNodeConfiguration(toCache, generationTime)
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
@@ -1023,24 +963,6 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
   def reportingService : ExpectedReportsUpdate
   def complianceCache  : CachedFindRuleNodeStatusReports
-
-   /**
-   * Update the serials in the rule vals based on the updated rule (which may be empty if nothing is updated)
-   * Goal : actually set the right serial in them, as well as the correct variable
-   * So we can have several rule with different subset of values
-   */
-  private[this] def updateRuleVal(
-      rulesVal: Seq[ExpandedRuleVal]
-    , rules   : Map[RuleId,Int]
-  ) : Seq[ExpandedRuleVal] = {
-    rulesVal.map(ruleVal => {
-      rules.find { case(id,serial) => id == ruleVal.ruleId } match {
-        case Some((id,serial)) =>
-          ruleVal.copy(serial = serial)
-        case _ => ruleVal
-      }
-    })
-  }
 
   private[this] def getExpandedRuleVal(
       ruleVals   :Seq[RuleVal]
@@ -1073,7 +995,6 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
 
       ExpandedRuleVal(
           rule.ruleId
-        , rule.serial
         , directives.toMap
       )
     }
@@ -1083,14 +1004,11 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
       ruleVal          : Seq[RuleVal]
     , configs          : Seq[NodeConfiguration]
     , updatedNodes     : Map[NodeId, NodeConfigId]
-    , updatedCrs       : Map[RuleId, Int]
-    , deletedCrs       : Seq[RuleId]
     , generationTime   : DateTime
     , allNodeModes     : Map[NodeId, NodeModeConfig]
   ) : Box[Seq[NodeExpectedReports]] = {
 
     val expandedRuleVal = getExpandedRuleVal(ruleVal, configs, updatedNodes)
-    val updatedRuleVal = updateRuleVal(expandedRuleVal, updatedCrs)
 
     //we also want to build the list of overriden directive based on unique techniques.
     val overriden = configs.flatMap { nodeConfig =>
@@ -1099,7 +1017,7 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
       })
     }.toSet
 
-    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedNodes, generationTime, overriden, allNodeModes)
+    reportingService.updateExpectedReports(expandedRuleVal, updatedNodes, generationTime, overriden, allNodeModes)
   }
 
   override def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit = {

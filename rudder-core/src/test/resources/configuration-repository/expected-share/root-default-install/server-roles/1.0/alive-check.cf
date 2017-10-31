@@ -57,18 +57,18 @@ bundle agent generic_alive_check(app)
 
     pass3.root_server::
 
-      "any" usebundle => rudder_common_report("server-roles", "result_success", "server-roles@@server-roles-directive@@2", "Check ${app} status", "None", "The ${site_to_check} web interface is running"),
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "server-roles@@server-roles-directive@@0", "Check ${app} status", "None", "The ${site_to_check} web interface is running"),
         ifvarclass => "site_ok.!site_down_once_${sitename}";
 
-      "any" usebundle => rudder_common_report("server-roles", "result_error", "server-roles@@server-roles-directive@@2", "Check ${app} status", "None", "This is the first time the ${site_to_check} web interface failed to respond. Deferring the restart."),
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "server-roles@@server-roles-directive@@0", "Check ${app} status", "None", "This is the first time the ${site_to_check} web interface failed to respond. Deferring the restart."),
         ifvarclass => "site_down_once_${sitename}.!site_alivecheck_restart_jetty_${sitename}";
 
-      "any" usebundle => rudder_common_report("server-roles", "result_error", "server-roles@@server-roles-directive@@2", "Check ${app} status", "None", "The ${site_to_check} web interface failed to respond for the second time. Restarting jetty NOW!"),
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "server-roles@@server-roles-directive@@0", "Check ${app} status", "None", "The ${site_to_check} web interface failed to respond for the second time. Restarting jetty NOW!"),
         ifvarclass => "site_alivecheck_restart_jetty_${sitename}";
 
     pass3.(policy_server.!root_server)::
 
-      "any" usebundle => rudder_common_report("server-roles", "result_success", "server-roles@@server-roles-directive@@2", "Check ${app} status", "None", "The ${site_to_check} web interface check do not need to be done on relay servers. Skipping.");
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "server-roles@@server-roles-directive@@0", "Check ${app} status", "None", "The ${site_to_check} web interface check do not need to be done on relay servers. Skipping.");
 
   commands:
 

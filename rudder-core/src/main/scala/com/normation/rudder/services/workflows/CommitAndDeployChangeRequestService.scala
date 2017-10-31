@@ -264,7 +264,6 @@ class CommitAndDeployChangeRequestServiceImpl(
           name = initial.name.trim
         , shortDescription = initial.shortDescription.trim
         , longDescription = initial.longDescription.trim
-        , serial = current.serial
       )
 
       val currentFixed = current.copy(

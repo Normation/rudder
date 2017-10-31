@@ -38,23 +38,21 @@
 package com.normation.rudder.services.policies
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.NodeAndConfigId
-import net.liftweb.common.Box
-import com.normation.rudder.domain.reports.NodeConfigId
-import net.liftweb.common.Loggable
-import com.normation.rudder.domain.reports.DirectiveExpectedReports
-import com.normation.rudder.repository.UpdateExpectedReportsRepository
-import com.normation.rudder.domain.reports.ComponentExpectedReport
-import org.joda.time.DateTime
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
-import com.normation.rudder.domain.reports.RuleExpectedReports
-import com.normation.rudder.domain.reports.NodeExpectedReports
-import scalaz.{Failure => _}
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.reports.ComponentExpectedReport
+import com.normation.rudder.domain.reports.DirectiveExpectedReports
+import com.normation.rudder.domain.reports.NodeAndConfigId
+import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
-
+import com.normation.rudder.domain.reports.RuleExpectedReports
+import com.normation.rudder.repository.UpdateExpectedReportsRepository
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import net.liftweb.common.Box
+import net.liftweb.common.Loggable
+import org.joda.time.DateTime
 
 /**
  * The purpose of that service is to handle the update of
@@ -72,7 +70,6 @@ trait ExpectedReportsUpdate {
    */
   def updateExpectedReports(
       expandedRuleVals  : Seq[ExpandedRuleVal]
-    , deleteRules       : Seq[RuleId]
     , updatedNodeConfigs: Map[NodeId, NodeConfigId]
     , generationTime    : DateTime
     , overrides         : Set[UniqueOverrides]
@@ -109,7 +106,7 @@ class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepositor
      * directives from them.
      */
     val byRulesOverride = overrides.groupBy { _.ruleId }
-    expandedRuleVals.map { case rule@ExpandedRuleVal(ruleId, newSerial, configs) =>
+    expandedRuleVals.map { case rule@ExpandedRuleVal(ruleId, configs) =>
       byRulesOverride.get(ruleId) match {
         case None => rule
         case Some(overridenDirectives) =>
@@ -118,22 +115,16 @@ class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepositor
             val toFilter = byNodeOverride.getOrElse(nodeId, Seq()).map( _.directiveId).toSet
             (i, directives.filterNot { directive => toFilter.contains(directive.directiveId) })
           }
-          ExpandedRuleVal(ruleId, newSerial, filteredConfig)
+          ExpandedRuleVal(ruleId, filteredConfig)
       }
     }
   }
 
   /*
    * Update the list of expected reports when we do a deployment
-   * For each RuleVal, we check if it was present or it serial changed
-   *
-   * Note : deleteRules is not really used (maybe it will in the future)
-   * @param ruleVal
-   * @return
    */
   override def updateExpectedReports(
       expandedRuleVals  : Seq[ExpandedRuleVal]
-    , deleteRules       : Seq[RuleId]
     , updatedNodeConfigs: Map[NodeId, NodeConfigId]
     , generationTime    : DateTime
     , overrides         : Set[UniqueOverrides]
@@ -143,11 +134,15 @@ class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepositor
 
 
     // transform to rule expected reports by node
-    val directivesExpectedReports = filteredExpandedRuleVals.map { case ExpandedRuleVal(ruleId, serial, configs) =>
+    val directivesExpectedReports = filteredExpandedRuleVals.map { case ExpandedRuleVal(ruleId, configs) =>
       configs.toSeq.map { case (nodeConfigId, directives) =>
         // each directive is converted into Seq[DirectiveExpectedReports]
         val directiveExpected = directives.map { directive =>
-               val seq = ComputeCardinalityOfDirectiveVal.getCardinality(directive)
+
+
+               val seq = ComputeCardinalityOfDirectiveVal.getTrackingKeyLinearisation(directive)
+
+          // #10625: it seems that that can be kept in D-by-D.
 
                seq.map { case(componentName, componentsValues, unexpandedCompValues) =>
                           DirectiveExpectedReports(
@@ -157,7 +152,9 @@ class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepositor
                             , List(
                                 ComponentExpectedReport(
                                     componentName
+          // <== #10625: that can be deleted because we are using ComponentValues.size in place of it
                                   , componentsValues.size
+          // ==>
                                   , componentsValues.toList
                                   , unexpandedCompValues.toList
                                 )
@@ -166,16 +163,16 @@ class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepositor
                }
         }
 
-        (nodeConfigId, ruleId, serial, directiveExpected.flatten)
+        (nodeConfigId, ruleId, directiveExpected.flatten)
       }
     }.flatten.toList
 
-    //now group back by nodeConfigId and transorm to ruleExpectedReport
+    //now group back by nodeConfigId and transform to ruleExpectedReport
     val ruleExepectedByNode = directivesExpectedReports.groupBy( _._1 ).mapValues { seq =>
       // build ruleExpected
-      // we're grouping by (ruleId, serial) even if we should have an homogeneous set here
-      seq.groupBy( t => (t._2, t._3) ).map { case ( (ruleId, serial), directives ) =>
-        RuleExpectedReports(ruleId, serial, directives.flatMap(_._4).toList)
+      // we're grouping by (ruleId) even if we should have an homogeneous set here
+      seq.groupBy( t => t._2 ).map { case ( ruleId, directives ) =>
+        RuleExpectedReports(ruleId, directives.flatMap(_._3).toList)
       }
     }
 
@@ -208,7 +205,7 @@ class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepositor
 object ComputeCardinalityOfDirectiveVal extends Loggable {
   import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 
-  def getCardinality(container : ExpandedDirectiveVal) : Seq[(String, Seq[String], Seq[String])] = {
+  def getTrackingKeyLinearisation(container : ExpandedDirectiveVal) : Seq[(String, Seq[String], Seq[String])] = {
 
     // Computes the components values, and the unexpanded component values
     val getTrackingVariableCardinality : (Seq[String], Seq[String]) = {
