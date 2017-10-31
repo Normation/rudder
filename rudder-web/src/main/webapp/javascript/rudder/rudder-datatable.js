@@ -757,7 +757,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
           editLink.addClass("reportIcon");
           $(nTd).append(editLink);
           var policyMode = oData.policyMode ? oData.policyMode : policyMode ;
-          $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation));
+          $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation, '#editRuleZonePortlet'));
         }
       }
   } , {
@@ -814,7 +814,6 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
  *   }
  */
 function createNodeComplianceTable(gridId, data, contextPath, refresh) {
-
   var columns = [ {
       "sWidth": "75%"
     , "mDataProp": "node"
@@ -829,7 +828,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
         $(nTd).append(editLink);
-        $(nTd).prepend(createBadgeAgentPolicyMode('node', oData.policyMode, oData.explanation));
+        $(nTd).prepend(createBadgeAgentPolicyMode('node', oData.policyMode, oData.explanation, '#editRuleZonePortlet'));
       }
   } , {
       "sWidth": "25%"
@@ -879,7 +878,6 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
  *   }
  */
 function createComponentTable(isTopLevel, isNodeView, contextPath) {
-
   if (isTopLevel) {
     var complianceWidth = "26.3%";
   } else {
@@ -996,7 +994,6 @@ function createNodeComponentValueTable(contextPath) {
  *   }
  */
 function createRuleComponentValueTable (contextPath) {
-
   var complianceWidth = "27.7%";
   var componentSize = "72.3%";
 

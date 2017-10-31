@@ -2051,8 +2051,9 @@ td.Repaired{
   background-color: #F5DD4D;
   color: #333;
 }
-td.details{
+td.details,.tw-bs td.details{
   border:none;
+  padding:0;
 }
 li.eventLogUpdatePolicy {
   list-style-position: inside;
