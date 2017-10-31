@@ -46,7 +46,6 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.services.eventlog.EventLogDetailsService
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.web.model.JsInitContextLinkUtil._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.queries.Query
 import net.liftweb.http.js._
@@ -80,6 +79,7 @@ import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import org.joda.time.format.DateTimeFormat
+import com.normation.rudder.web.model.LinkUtil
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -94,6 +94,7 @@ class EventListDisplayer(
     , ruleCatRepository   : RoRuleCategoryRepository
     , modificationService : ModificationService
     , personIdentService  : PersonIdentService
+    , linkUtil            : LinkUtil
 ) extends Loggable {
 
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
@@ -193,6 +194,7 @@ class EventListDisplayer(
   //convention: "X" means "ignore"
 
   def displayDescription(event:EventLog) = {
+    import linkUtil._
     def crDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "rule" \ "id").text
         val name = (x.details \ "rule" \ "displayName").text
@@ -337,7 +339,7 @@ class EventListDisplayer(
     val generatedByChangeRequest =
       changeRequestId match {
       case None => NodeSeq.Empty
-      case Some(id) => <h4 style="padding:5px"> This change was introduced by change request {SHtml.a(() => S.redirectTo(changeRequestLink(id)),Text(s"#${id}"))}</h4>
+      case Some(id) => <h4 style="padding:5px"> This change was introduced by change request {SHtml.a(() => S.redirectTo(linkUtil.changeRequestLink(id)),Text(s"#${id}"))}</h4>
     }
     def xmlParameters(eventId: Option[Int]) = {
       eventId match {
@@ -1230,7 +1232,7 @@ class EventListDisplayer(
       case t =>
         nodes
         .toSeq
-        .map { id => createNodeLink(id) }
+        .map { id => linkUtil.createNodeLink(id) }
         .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
     }
     (
@@ -1284,7 +1286,7 @@ class EventListDisplayer(
                        l match {
                          case Nil => Text("None")
                          case _ => l
-                           .map(id => <a href={nodeLink(id)}>{id.value}</a>)
+                           .map(id => <a href={linkUtil.nodeLink(id)}>{id.value}</a>)
                            .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
                        }
                      }

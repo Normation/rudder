@@ -49,9 +49,9 @@ import net.liftweb.http.js._
 import net.liftweb.util.Helpers
 import com.normation.rudder.domain.policies.FullRuleTarget
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.web.model.JsInitContextLinkUtil._
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
+import bootstrap.liftweb.RudderConfig
 
 /**
  *
@@ -60,6 +60,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
  */
 object DisplayNodeGroupTree extends Loggable {
 
+  private[this] val linkUtil = RudderConfig.linkUtil
   /**
    * Display the group tree, optionnaly filtering out
    * some category or group by defining which one to
@@ -156,7 +157,7 @@ object DisplayNodeGroupTree extends Loggable {
             val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
               <span class="fa fa-pencil" tooltipid={tooltipId} title=""
-                onclick={redirectToGroupLink(NodeGroupId(groupId)).toJsCmd}
+                onclick={linkUtil.redirectToGroupLink(NodeGroupId(groupId)).toJsCmd}
               ></span>
               <div class="tooltipContent" id={tooltipId}><div>Configure this group.</div></div>
             </span>

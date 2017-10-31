@@ -58,7 +58,6 @@ import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.rudder.web.model.CurrentUser
 import org.joda.time.DateTime
 import net.liftweb.http.js.JE.JsArray
-import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.services.AgentCompat
@@ -76,11 +75,12 @@ import com.normation.rudder.web.services.AgentCompat
 class DirectiveManagement extends DispatchSnippet with Loggable {
   import DirectiveManagement._
 
-  val techniqueRepository = RudderConfig.techniqueRepository
-  val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary
-  val getRules            = () => RudderConfig.roRuleRepository.getAll()
-  val uuidGen             = RudderConfig.stringUuidGenerator
-  val treeUtilService     = RudderConfig.jsTreeUtilService
+  private[this] val techniqueRepository = RudderConfig.techniqueRepository
+  private[this] val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary
+  private[this] val getRules            = () => RudderConfig.roRuleRepository.getAll()
+  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
+  private[this] val treeUtilService     = RudderConfig.jsTreeUtilService
+  private[this] val linkUtil      = RudderConfig.linkUtil
   private[this] val configService = RudderConfig.configService
 
   def dispatch = {
@@ -488,7 +488,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     After(0,JsRaw("""createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
   }
 
-
   private[this] final case class MissingTechniqueException(directive: Directive) extends
     Exception(s"Directive ${directive.name} (${directive.id.value}) is bound to a Technique without any valid version available")
 
@@ -563,7 +562,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         After(0,JsRaw("""applyFilter('directiveFilter');"""))
 
       case Right(changeRequestId) => // oh, we have a change request, go to it
-        JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
+        linkUtil.redirectToChangeRequestLink(changeRequestId)
     }
   }
 

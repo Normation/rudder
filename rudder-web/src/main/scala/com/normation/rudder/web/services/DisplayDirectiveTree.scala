@@ -59,11 +59,11 @@ import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.S
 import com.normation.cfclerk.domain.Technique
-import com.normation.rudder.web.model.JsInitContextLinkUtil._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import net.liftweb.http.js.JsObj
 import com.normation.inventory.domain.AgentType
+import bootstrap.liftweb.RudderConfig
 
 /**
  *
@@ -115,6 +115,8 @@ object AgentCompat {
 }
 
 object DisplayDirectiveTree extends Loggable {
+
+  private[this] val linkUtil            = RudderConfig.linkUtil
 
   /**
    * Display the directive tree, optionaly filtering out
@@ -291,7 +293,7 @@ object DisplayDirectiveTree extends Loggable {
               </div>
             """
             <span class="treeActions">
-              <span class="treeAction noRight directiveDetails fa fa-pencil bsTooltip"  data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent} onclick={redirectToDirectiveLink(directive.id).toJsCmd}> </span>
+              <span class="treeAction noRight directiveDetails fa fa-pencil bsTooltip"  data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent} onclick={linkUtil.redirectToDirectiveLink(directive.id).toJsCmd}> </span>
             </span>
           } else {
             NodeSeq.Empty

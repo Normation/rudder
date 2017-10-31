@@ -57,7 +57,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.eventlog.EventActor
 import org.joda.time.DateTime
-import com.normation.rudder.web.model.JsInitContextLinkUtil._
+import com.normation.rudder.web.model.LinkUtil
 import com.normation.rudder.domain.eventlog.AddChangeRequest
 import com.normation.rudder.domain.eventlog.ModifyChangeRequest
 import com.normation.rudder.domain.eventlog.DeleteChangeRequest
@@ -97,6 +97,9 @@ class ChangeRequestChangesForm(
   private[this] val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val ruleCategoryService = RudderConfig.ruleCategoryService
   private[this] val ruleCategoryRepository = RudderConfig.roRuleCategoryRepository
+  private[this] val linkUtil = RudderConfig.linkUtil
+
+  import linkUtil._
 
   def dispatch = {
     case "changes" =>

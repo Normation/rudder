@@ -74,7 +74,6 @@ import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.TargetExclusion
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.web.ChooseTemplate
@@ -145,6 +144,7 @@ class RuleEditForm(
   private[this] val getAllNodeInfos     = RudderConfig.nodeInfoService.getAll _
   private[this] val getRootRuleCategory = RudderConfig.roRuleCategoryRepository.getRootCategory _
   private[this] val configService       = RudderConfig.configService
+  private[this] val linkUtil            = RudderConfig.linkUtil
 
   //////////////////////////// public methods ////////////////////////////
   val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
@@ -555,7 +555,7 @@ class RuleEditForm(
           this.rule = rule
           JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") &  onSuccess
         case Right(changeRequestId) => // oh, we have a change request, go to it
-          JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
+          linkUtil.redirectToChangeRequestLink(changeRequestId)
       }
     }
   }
