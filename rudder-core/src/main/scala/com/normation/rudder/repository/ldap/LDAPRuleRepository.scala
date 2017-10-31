@@ -172,10 +172,7 @@ class WoLDAPRuleRepository(
       nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id)) Failure("Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name))
                          else Full(Unit)
       crEntry         =  mapper.rule2Entry(rule)
-      result          <- {
-                           crEntry +=! (A_SERIAL, "0") //serial must be set to 0
-                           con.save(crEntry) ?~! s"Error when saving rule entry in repository: ${crEntry}"
-                         }
+      result          <- con.save(crEntry) ?~! s"Error when saving rule entry in repository: ${crEntry}"
       diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn,result)
       loggedAction    <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason)
       autoArchive     <- if(autoExportOnModify && !rule.isSystem) {
@@ -205,7 +202,7 @@ class WoLDAPRuleRepository(
                            Failure("Cannot update rule with name \"%s\" : this name is already in use.".format(rule.name))
                          else Full(Unit)
       crEntry         =  mapper.rule2Entry(rule)
-      result          <- con.save(crEntry, true, Seq(A_SERIAL)) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
+      result          <- con.save(crEntry, true) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
       optDiff         <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result) ?~! "Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result)
       loggedAction    <- optDiff match {
                            case None => Full("OK")
@@ -232,22 +229,6 @@ class WoLDAPRuleRepository(
     internalUpdate(rule, modId, actor, reason, true)
   }
 
-  def incrementSerial(id:RuleId) : Box[Int] = {
-    repo.synchronized {
-      for {
-        con             <- ldap
-        entryWithSerial <-  con.get(rudderDit.RULES.configRuleDN(id.value), A_SERIAL)
-        serial          <- Box(entryWithSerial.getAsInt(A_SERIAL)) ?~! "Missing Int attribute '%s' in entry, cannot update".format(A_SERIAL)
-        result          <- {
-                          entryWithSerial +=! (A_SERIAL, (serial + 1).toString)
-                          con.save(entryWithSerial) ?~! "Error when saving rule entry in repository: %s".format(entryWithSerial)
-                        }
-      } yield {
-        serial + 1
-      }
-    }
-  }
-
   /**
    * Implementation logic:
    * - lock LDAP for other writes (more precisely, only that repos, with
@@ -261,22 +242,10 @@ class WoLDAPRuleRepository(
    * If something goes wrong, try to restore.
    */
   def swapRules(newCrs:Seq[Rule], includeSystem:Boolean = false) : Box[RuleArchiveId] = {
-    //merge imported rules and existing one, taking care of serial value
-    def mergeCrs(importedCrs:Seq[Rule], existingCrs:Seq[Rule]) = {
-      importedCrs.map { rule =>
-        existingCrs.find(other => other.id == rule.id) match {
-          //keep and increment serial
-          case Some(existingCr) => rule.copy(serial = existingCr.serial + 1)
-          //set serial to 0
-          case None => rule.copy(serial = 0)
-        }
-      }
-    }
+
     //save rules, taking care of serial value
     def saveCR(con:RwLDAPConnection, rule:Rule) : Box[LDIFChangeRecord] = {
-
       val entry = mapper.rule2Entry(rule)
-      entry +=! (A_SERIAL, rule.serial.toString)
       con.save(entry)
     }
     //restore the archive in case of error
@@ -297,13 +266,12 @@ class WoLDAPRuleRepository(
     val id = RuleArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
     val ou = rudderDit.ARCHIVES.ruleModel(id)
     //filter systemCr if they are not included, so that merge does not have to deal with that.
-    val importedCrs = if(includeSystem) newCrs else newCrs.filter( rule => !rule.isSystem)
+    val crToImport = if(includeSystem) newCrs else newCrs.filter( rule => !rule.isSystem)
 
     repo.synchronized {
 
       for {
         existingCrs <- getAll(true)
-        crToImport  =  mergeCrs(importedCrs, existingCrs)
         con         <- ldap
         //ok, now that's the dangerous part
         swapCr      <- (for {

@@ -84,7 +84,6 @@ final case class Cf3PolicyDraft(
   , isSystem           : Boolean
   , policyMode         : Option[PolicyMode]
   , agentType          : AgentType
-  , serial             : Int
   , ruleOrder          : BundleOrder
   , directiveOrder     : BundleOrder
   , overrides          : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
@@ -248,7 +247,7 @@ object ParameterEntry {
       x
     else
       agentType match {
-        case AgentType.Dsc => 
+        case AgentType.Dsc =>
           /* Escape string to be DSC compliant
           * a ` will be escaped to ``
           * a " will be escaped to `"

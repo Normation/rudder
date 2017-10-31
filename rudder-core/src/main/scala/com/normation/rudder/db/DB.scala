@@ -209,7 +209,6 @@ final object DB {
   case class SerializedRules[T](
       id               : T
     , ruleId           : String
-    , serial           : Int
     , categoryId       : Option[String]
     , name             : String
     , shortDescription : Option[String]
@@ -308,7 +307,6 @@ final object DB {
       Rule (
           RuleId(rule.ruleId)
         , rule.name
-        , rule.serial
         , RuleCategoryId(rule.categoryId.getOrElse("rootRuleCategory")) // this is not really useful as RuleCategory are not really serialized
         , ruleTargets.flatMap(x => RuleTarget.unser(x.targetSerialisation)).toSet
         , directives.map(x => DirectiveId(x.directiveId)).toSet
@@ -324,7 +322,6 @@ final object DB {
       SerializedRules (
           ()
         , rule.id.value
-        , rule.serial
         , Opt(rule.categoryId.value)
         , rule.name
         , Opt(rule.shortDescription)

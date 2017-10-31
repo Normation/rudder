@@ -57,15 +57,15 @@ bundle agent internal_security
   methods:
 
     security_sanitization_ok.!security_sanitization_repaired::
-      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Security parameters", "None", "The internal environment security is acceptable");
+      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Security parameters", "None", "The internal environment security is acceptable");
 
     security_sanitization_repaired::
-      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@2", "Security parameters", "None", "Some internal security parameters were adjusted");
+      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@0", "Security parameters", "None", "Some internal security parameters were adjusted");
 
     security_sanitization_failed::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Security parameters", "None", "The internal environment security is NOT acceptable!");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Security parameters", "None", "The internal environment security is NOT acceptable!");
 
     windows::
-      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Security parameters", "None", "No internal security parameters defined for Windows OSes yet");
+      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Security parameters", "None", "No internal security parameters defined for Windows OSes yet");
 
 }

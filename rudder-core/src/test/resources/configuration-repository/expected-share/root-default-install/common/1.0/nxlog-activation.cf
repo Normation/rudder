@@ -34,10 +34,10 @@ bundle agent nxlog_enable
       "any" usebundle => nxlog_install;
       "any" usebundle => nxlog_configure;
     (nxlog_install_repaired|nxlog_configure_repaired|nxlog_service_repaired).!(nxlog_install_error|nxlog_configure_error|nxlog_service_error)::
-      "report" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "NXLog service was not installed, configured and running. Fixed.");
+      "report" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "NXLog service was not installed, configured and running. Fixed.");
 
     !nxlog_install_repaired.!nxlog_install_error.nxlog_configure_kept.!nxlog_configure_repaired.!nxlog_configure_error.nxlog_service_kept.!nxlog_service_repaired.!nxlog_service_error::
-      "report" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "NXLog service already installed, configured and running as expected.");
+      "report" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "NXLog service already installed, configured and running as expected.");
 
 }
 
@@ -74,9 +74,9 @@ bundle agent nxlog_install
 
   methods:
     nxlog_install_repaired::
-      "report" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Installed NXLog");
+      "report" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Installed NXLog");
     nxlog_install_failed::
-      "report" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Failed to install NXLog");
+      "report" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Failed to install NXLog");
 
   commands:
 
@@ -112,10 +112,10 @@ bundle agent nxlog_configure
 
   methods:
     nxlog_configure_error::
-      "report" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Failed to configure NXLog");
+      "report" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Failed to configure NXLog");
 
     nxlog_configure_repaired::
-      "report" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Update NXLog configuration");
+      "report" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Update NXLog configuration");
 
 }
 

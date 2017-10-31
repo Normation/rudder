@@ -118,7 +118,6 @@ class DirectiveAgregationTest {
       , false
       , None
       , AgentType.CfeCommunity
-      , 0
       , BundleOrder("r")
       , BundleOrder("d")
       , Set()

@@ -136,7 +136,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     c.map { case (nodeId, status) =>
 
       val reportsString = status.report.reports.map { r =>
-        s"${r.ruleId.value}/${r.serial}[exp:${r.expirationDate}]${r.compliance.toString}"
+        s"${r.ruleId.value}[exp:${r.expirationDate}]${r.compliance.toString}"
       }.mkString("\n  ", "\n  ", "")
 
       s"node: ${nodeId.value}${status.runInfo.toLog}${reportsString}"

@@ -72,7 +72,6 @@ import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.services.reports.Unexpected
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -913,7 +912,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   def ruleNodeComparator(x: RuleNodeStatusReport): String = {
-    x.nodeId.value.toLowerCase + x.ruleId.value.toLowerCase + x.serial
+    x.nodeId.value.toLowerCase + x.ruleId.value.toLowerCase
   }
 
   def compStatus(id: String, values: (String, ReportType, List[String])*): ComponentStatusReport = {
@@ -931,7 +930,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       , directives: (String, Seq[ComponentStatusReport])*
   ): RuleNodeStatusReport = {
     RuleNodeStatusReport(
-          NodeId(id), RuleId(ruleId), serial, run, version.map(NodeConfigId(_))
+          NodeId(id), RuleId(ruleId), run, version.map(NodeConfigId(_))
         , DirectiveStatusReport.merge(directives.map(d =>
             DirectiveStatusReport(DirectiveId(d._1), ComponentStatusReport.merge(d._2))
           ))

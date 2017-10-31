@@ -424,7 +424,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
    *   ************************************************************************
    */
 
-   val r1 = Rule("r1", "r1", 1, "cat1")
-   val r2 = Rule("r2", "r2", 1, "cat1")
+   val r1 = Rule("r1", "r1", "cat1")
+   val r2 = Rule("r2", "r2", "cat1")
 
 }

@@ -509,10 +509,10 @@ objectclass ( RudderObjectClasses:30
   DESC 'A rule'
   SUP top
   STRUCTURAL
-  MUST ( ruleId  $ serial )
+  MUST ( ruleId )
   MAY ( cn $ description $ longDescription $ 
         isEnabled $ isSystem $ 
-        ruleTarget $ 
+        ruleTarget $ serial $ 
         directiveId $ tag $ serializedTags ) )
 
 objectclass ( RudderObjectClasses:31

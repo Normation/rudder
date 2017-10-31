@@ -104,8 +104,7 @@ class LDAPDiffMapper(
             oldCr <- mapper.entry2Rule(beforeChangeEntry)
             diff <- pipeline(modify.getModifications(), ModifyRuleDiff(oldCr.id, oldCr.name)) { (mod, diff) =>
               mod.getAttributeName() match {
-                case A_SERIAL =>
-                  tryo(diff.copy(modSerial = Some(SimpleDiff(oldCr.serial, mod.getAttribute().getValueAsInteger()))))
+                case "serial" => Full(diff.copy(modSerial = None)) // remove in Rudder 4.3 - kept for compat
                 case A_RULE_TARGET =>
                   mod.getModificationType match {
                     case ADD | REPLACE | DELETE => //if there is no values, we have to put "none"

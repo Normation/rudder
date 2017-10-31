@@ -26,7 +26,7 @@ bundle agent generic_process_check_process(binary, initscript, name) {
 
       "start_process" usebundle => service_ensure_running_path("${initscript}", "${binary}");
 
-      "any"           usebundle => rudder_common_reports_generic("server-roles", "service_ensure_running_${c_initscript}", "server-roles@@server-roles-directive@@2", "Check ${name} process", "None", "Check ${name} process running");
+      "any"           usebundle => rudder_common_reports_generic("server-roles", "service_ensure_running_${c_initscript}", "server-roles@@server-roles-directive@@0", "Check ${name} process", "None", "Check ${name} process running");
 
 }
 
@@ -39,6 +39,6 @@ bundle agent generic_process_check_bootstart(binary, initscript, name) {
   methods:
 
       "bootstart_service" usebundle => service_ensure_started_at_boot("${initscript}");
-      "any" usebundle => rudder_common_reports_generic("server-roles", "service_ensure_started_at_boot_${c_initscript}", "server-roles@@server-roles-directive@@2", "Check ${name} boot script", "None", "Check ${name} boot starting parameters");
+      "any" usebundle => rudder_common_reports_generic("server-roles", "service_ensure_started_at_boot_${c_initscript}", "server-roles@@server-roles-directive@@0", "Check ${name} boot script", "None", "Check ${name} boot starting parameters");
 
 }

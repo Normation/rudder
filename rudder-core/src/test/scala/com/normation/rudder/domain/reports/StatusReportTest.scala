@@ -89,21 +89,21 @@ class StatusReportTest extends Specification {
   "A rule/node compliance report, with 3 messages" should {
 
     val all = aggregate(parse("""
-       n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-       n1, r1, 12, d1, c1  , v1  , "", success   , success msg
-       n1, r1, 12, d1, c2  , v2  , "", repaired  , repaired msg
-       n1, r1, 12, d1, c3  , v3  , "", error     , error msg
-       n1, r1, 12, d1, c4  , v4  , "", unexpected, ""
-       n1, r1, 12, d1, c4_2, v4_2, "", unexpected, unexpected with message
-       n1, r1, 12, d1, c5  , v5  , "", noanswer  , no answer msg
-       n1, r1, 12, d1, c6  , v6  , "", n/a       , not applicable msg
+       n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+       n1, r1, 0, d1, c1  , v1  , "", success   , success msg
+       n1, r1, 0, d1, c2  , v2  , "", repaired  , repaired msg
+       n1, r1, 0, d1, c3  , v3  , "", error     , error msg
+       n1, r1, 0, d1, c4  , v4  , "", unexpected, ""
+       n1, r1, 0, d1, c4_2, v4_2, "", unexpected, unexpected with message
+       n1, r1, 0, d1, c5  , v5  , "", noanswer  , no answer msg
+       n1, r1, 0, d1, c6  , v6  , "", n/a       , not applicable msg
 
     """))
 
 
-    val d1c1v1_s  = parse("n1, r1, 12, d1, c1, v1, , success, success msg")
-    val d1c2v21_s = parse("n1, r1, 12, d1, c2, v2, , success, success msg")
-    val d2c2v21_e = parse("n1, r1, 12, d2, c2, v2, , error  , error msg")
+    val d1c1v1_s  = parse("n1, r1, 0, d1, c1, v1, , success, success msg")
+    val d1c2v21_s = parse("n1, r1, 0, d1, c2, v2, , success, success msg")
+    val d2c2v21_e = parse("n1, r1, 0, d2, c2, v2, , error  , error msg")
 
 
 
@@ -128,8 +128,8 @@ class StatusReportTest extends Specification {
 
     "Merge reports for same directive" in {
       val a = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r1, 12, d1, c1  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c1  , v0  , "", pending   , pending msg
       """))
 
       a.directives.size === 1
@@ -141,80 +141,73 @@ class StatusReportTest extends Specification {
 
     "Consolidate duplicate in aggregate" in {
       val duplicate = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
       """))
       duplicate.compliance === ComplianceLevel(pending = 2)
     }
 
     "consolidate when merging" in {
       val duplicate = parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
       """)
       RuleNodeStatusReport.merge(duplicate).values.head.compliance === ComplianceLevel(pending = 2)
     }
 
     "authorize reports with report type differences" in {
       val duplicate = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r1, 12, d1, c0  , v1  , "", success   , success msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v1  , "", success   , success msg
       """))
       duplicate.compliance === ComplianceLevel(pending = 1, success = 1)
     }
     "authorize reports with message differences" in {
       val duplicate = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r1, 12, d1, c0  , v1  , "", pending   , other pending
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v1  , "", pending   , other pending
       """))
       duplicate.compliance === ComplianceLevel(pending = 2)
     }
     "authorize reports with value differences" in {
       val duplicate = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r1, 12, d1, c0  , v1  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v1  , "", pending   , pending msg
       """))
       duplicate.compliance === ComplianceLevel(pending = 2)
     }
     "authorize reports with component differences" in {
       val duplicate = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r1, 12, d1, c1  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c1  , v0  , "", pending   , pending msg
       """))
       duplicate.compliance === ComplianceLevel(pending = 2)
     }
     "authorize reports with directive differences" in {
       val duplicate = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r1, 12, d2, c0  , v0  , "", pending   , pending msg
-      """))
-      duplicate.compliance === ComplianceLevel(pending = 2)
-    }
-    "authorize reports with serial differences" in {
-      val duplicate = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r1, 13, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d2, c0  , v0  , "", pending   , pending msg
       """))
       duplicate.compliance === ComplianceLevel(pending = 2)
     }
     "authorize reports with rule differences" in {
       val duplicate = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r2, 12, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n1, r2, 0, d1, c0  , v0  , "", pending   , pending msg
       """))
       duplicate.compliance === ComplianceLevel(pending = 2)
     }
     "authorize reports with node differences" in {
       val duplicate = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n2, r1, 12, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n2, r1, 0, d1, c0  , v0  , "", pending   , pending msg
       """))
       duplicate.compliance === ComplianceLevel(pending = 2)
     }
     "authorize reports with value differences" in {
       val duplicate = aggregate(parse("""
-         n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-         n1, r1, 12, d1, c0  , v1  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+         n1, r1, 0, d1, c0  , v1  , "", pending   , pending msg
       """))
       duplicate.compliance === ComplianceLevel(pending = 2)
     }
@@ -230,11 +223,11 @@ class StatusReportTest extends Specification {
         )
       , RunComplianceInfo.OK
     , parse("""
-       n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-       n1, r1, 12, d1, c1  , v1  , "", pending   , pending msg
-       n1, r2, 12, d1, c0  , v0  , "", success   , pending msg
-       n1, r3, 12, d1, c1  , v1  , "", error     , pending msg
-       n2, r4, 12, d1, c0  , v0  , "", pending   , pending msg
+       n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+       n1, r1, 0, d1, c1  , v1  , "", pending   , pending msg
+       n1, r2, 0, d1, c0  , v0  , "", success   , pending msg
+       n1, r3, 0, d1, c1  , v1  , "", error     , pending msg
+       n2, r4, 0, d1, c0  , v0  , "", pending   , pending msg
     """))
 
     "Filter out n2" in {
@@ -255,11 +248,11 @@ class StatusReportTest extends Specification {
 
   "Rule status reports" should {
     val report = RuleStatusReport(RuleId("r1"), parse("""
-       n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
-       n1, r1, 12, d1, c1  , v1  , "", pending   , pending msg
-       n2, r1, 12, d1, c0  , v0  , "", success   , pending msg
-       n3, r1, 12, d1, c1  , v1  , "", error     , pending msg
-       n4, r2, 12, d1, c0  , v0  , "", pending   , pending msg
+       n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
+       n1, r1, 0, d1, c1  , v1  , "", pending   , pending msg
+       n2, r1, 0, d1, c0  , v0  , "", success   , pending msg
+       n3, r1, 0, d1, c1  , v1  , "", error     , pending msg
+       n4, r2, 0, d1, c0  , v0  , "", pending   , pending msg
     """))
 
     "Filter out r2" in {
@@ -289,8 +282,8 @@ class StatusReportTest extends Specification {
     Source.fromString(s).getLines.zipWithIndex.map { case(l,i) =>
       val parsed = l.split(",").map( _.trim).toList
       parsed match {
-        case n :: r :: s :: d :: c :: v :: uv :: t :: m :: Nil =>
-          Some(RuleNodeStatusReport(n, r, s.toInt, None, None, Map(DirectiveId(d) ->
+        case n :: r :: _ :: d :: c :: v :: uv :: t :: m :: Nil =>
+          Some(RuleNodeStatusReport(n, r, None, None, Map(DirectiveId(d) ->
             DirectiveStatusReport(d, Map(c ->
               ComponentStatusReport(c, Map(uv ->
                 ComponentValueStatusReport(v, uv, List(

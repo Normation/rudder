@@ -198,9 +198,10 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
      */
     def insertRule(now: DateTime)(r: Rule) = {
       (for {
+        //as of 4.3, serial is always 0 before being totally deleted in future version
         pk <- sql"""
                 insert into rules (ruleid, serial, categoryid, name, shortdescription, longdescription, isenabled, starttime)
-                values (${r.id}, ${r.serial}, ${r.categoryId}, ${r.name}, ${r.shortDescription}, ${r.longDescription}, ${r.isEnabled}, ${now})
+                values (${r.id}, 0, ${r.categoryId}, ${r.name}, ${r.shortDescription}, ${r.longDescription}, ${r.isEnabled}, ${now})
                """.update.withUniqueGeneratedKeys[Long]("rulepkeyid")
         _  <- Update[DB.SerializedRuleDirectives]("""
                  insert into rulesdirectivesjoin (rulepkeyid, directiveid)

@@ -145,7 +145,6 @@ class RuleValServiceTest extends Specification {
     val rule = Rule(
           ruleId
         , "Rule Name"
-        , 55
         , RuleCategoryId("cat1")
         , Set(GroupTarget(NodeGroupId("nodeGroupId")))
         , Set(directiveId)
@@ -223,7 +222,7 @@ class RuleValServiceTest extends Specification {
       val directivesVals = ruleVal.openOrThrowException("Should have been full for test").directiveVals
 
       val cardinality = directivesVals.head.toExpandedDirectiveVal(null).map { x =>
-        computeCardinality.getCardinality(x)
+        computeCardinality.getTrackingKeyLinearisation(x)
       }
 
       "return a seq of two components" in {

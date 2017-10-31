@@ -321,7 +321,7 @@ class BuildBundleSequence(
                        // the bundle full order in the couple (rule name, directive name)
                        val bundleOrder = List(draft.ruleOrder, draft.directiveOrder)
                        // the rudderId is homogeneous for the whole technique
-                       val rudderId = ReportId(s"${draft.id.value}@@${draft.serial}")
+                       val rudderId = ReportId(s"${draft.id.value}@@0") // as of Rudder 4.3, serial is always set to 0
 
                        // until we have a directive-level granularity for policy mode, we have to define a technique-level policy mode
                        // if directives don't have a consistant policy mode, we fail (and report it)

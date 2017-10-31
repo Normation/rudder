@@ -658,8 +658,6 @@ class LDAPEntityMapper(
       for {
         id       <- e(A_RULE_UUID) ?~!
                     "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
-        serial   <- e.getAsInt(A_SERIAL) ?~!
-                    "Missing required attribute %s in entry %s".format(A_SERIAL, e)
         tags     <- e(A_SERIALIZED_TAGS) match {
           case None => Full(Tags(Set()))
           case Some(tags) => CompleteJson.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
@@ -684,7 +682,6 @@ class LDAPEntityMapper(
         Rule(
             RuleId(id)
           , name
-          , serial
           , category
           , targets
           , directiveIds

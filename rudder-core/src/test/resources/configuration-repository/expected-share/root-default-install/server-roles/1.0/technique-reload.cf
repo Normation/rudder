@@ -43,15 +43,15 @@ bundle agent root_technique_reload
 
     pass3.root_technique_reload_trigger::
 
-      "any" usebundle => rudder_common_report("server-roles", "log_info", "server-roles@@server-roles-directive@@2", "Check Technique library reloading file", "None", "The ${g.rudder_base}/etc/force_technique_reload file is present. Reloading Technique library...");
+      "any" usebundle => rudder_common_report("server-roles", "log_info", "server-roles@@server-roles-directive@@0", "Check Technique library reloading file", "None", "The ${g.rudder_base}/etc/force_technique_reload file is present. Reloading Technique library...");
 
     pass3.root_technique_reload_rest_call_repaired::
 
-      "any" usebundle => rudder_common_report("server-roles", "log_repaired", "server-roles@@server-roles-directive@@2", "Check Technique library reloading file", "None", "The Technique library has been reloaded.");
+      "any" usebundle => rudder_common_report("server-roles", "log_repaired", "server-roles@@server-roles-directive@@0", "Check Technique library reloading file", "None", "The Technique library has been reloaded.");
 
     pass3.root_technique_reload_rest_call_failed::
 
-      "any" usebundle => rudder_common_report("server-roles", "log_warn", "server-roles@@server-roles-directive@@2", "Check Technique library reloading file", "None", "The Technique library failed to reload. Will try again next time.");
+      "any" usebundle => rudder_common_report("server-roles", "log_warn", "server-roles@@server-roles-directive@@0", "Check Technique library reloading file", "None", "The Technique library failed to reload. Will try again next time.");
 
   commands:
 

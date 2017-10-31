@@ -80,12 +80,12 @@ bundle agent root_logrotate_check
   methods:
 
     rudder_logrotate_conf_ok.!rudder_logrotate_conf_copied.!cannot_copy_rudder_logrotate_conf::
-      "any" usebundle => rudder_common_report("server-roles", "result_success", "server-roles@@server-roles-directive@@2", "Check logrotate configuration", "None", "The logrotate configuration is correct");
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "server-roles@@server-roles-directive@@0", "Check logrotate configuration", "None", "The logrotate configuration is correct");
 
     rudder_logrotate_conf_copied.!cannot_copy_rudder_logrotate_conf::
-      "any" usebundle => rudder_common_report("server-roles", "result_repaired", "server-roles@@server-roles-directive@@2", "Check logrotate configuration", "None", "The logrotate configuration has been repaired");
+      "any" usebundle => rudder_common_report("server-roles", "result_repaired", "server-roles@@server-roles-directive@@0", "Check logrotate configuration", "None", "The logrotate configuration has been repaired");
 
     cannot_copy_rudder_logrotate_conf::
-      "any" usebundle => rudder_common_report("server-roles", "result_error", "server-roles@@server-roles-directive@@2", "Check logrotate configuration", "None", "The logrotate configuration could not be repaired");
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "server-roles@@server-roles-directive@@0", "Check logrotate configuration", "None", "The logrotate configuration could not be repaired");
 
 }
