@@ -35,51 +35,30 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.model
+package com.normation.rudder.web.rest
 
-import org.springframework.security.core.context.SecurityContextHolder
-import com.normation.eventlog.EventActor
-import net.liftweb.http.SessionVar
-import bootstrap.liftweb.RudderUserDetail
-import com.normation.rudder.authorization._
-import com.normation.authorization._
-import com.normation.rudder.service.user.User
+import net.liftweb.http._
+import net.liftweb.http.rest._
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.ManualStartDeployment
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.service.user.UserService
 
 /**
- * An utility class that get the currently logged user
- * (if any)
+ * A rest api that allows to deploy promises.
  *
  */
-object CurrentUser extends SessionVar[Option[RudderUserDetail]] ({
-  SecurityContextHolder.getContext.getAuthentication match {
-    case null => None
-    case auth => auth.getPrincipal match {
-      case u:RudderUserDetail => Some(u)
-      case _ => None
-    }
+class RestDeploy(
+    asyncDeploymentAgent: AsyncDeploymentAgent
+  , uuidGen             : StringUuidGenerator
+) ( implicit userService : UserService )
+extends RestHelper {
+
+  serve {
+    case Get("api" :: "deploy" :: "reload" :: Nil, req) =>
+      asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), "Policy update asked by REST request")
+      PlainTextResponse("OK")
   }
 
-}) with User {
-
-  def getRights : Rights = this.get match {
-    case Some(u) => u.authz
-    case None => new Rights(NoRights)
-  }
-
-  def getActor : EventActor = this.get match {
-    case Some(u) => EventActor(u.getUsername)
-    case None => EventActor("unknown")
-  }
-
-  def actor = getActor
-
-  def checkRights(auth:AuthorizationType) : Boolean = {
-    val authz = getRights.authorizationTypes
-    if (authz.contains(NoRights)) false
-    else auth match{
-      case NoRights => false
-      case _ =>  authz.contains(auth)
-    }
-
-  }
 }

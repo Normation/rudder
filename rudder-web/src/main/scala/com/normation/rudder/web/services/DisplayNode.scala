@@ -54,7 +54,6 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -81,6 +80,7 @@ object DisplayNode extends Loggable {
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
+  private[this] val linkUtil             = RudderConfig.linkUtil
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
@@ -528,7 +528,7 @@ object DisplayNode extends Loggable {
         logger.error(e.messageChain)
         <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>
       case Full(Some(policyServerDetails)) =>
-        <span><b>Rudder Policy Server: </b><a href={JsInitContextLinkUtil.baseNodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
+        <span><b>Rudder Policy Server: </b><a href={linkUtil.baseNodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
       case Full(None) =>
         logger.error(s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')")
         <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>

@@ -170,6 +170,7 @@ import org.springframework.context.annotation.Import
 import scala.util.Try
 import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
 import com.normation.rudder.api.RoApiAccountRepository
+import com.normation.rudder.service.user.UserService
 
 /**
  * Define a resource for configuration.
@@ -266,7 +267,6 @@ object RudderConfig extends Loggable {
 
   // set the file location that contains mime info
   System.setProperty("content.types.user.table", this.getClass.getClassLoader.getResource("content-types.properties").getPath)
-
 
   //
   // Public properties
@@ -365,7 +365,6 @@ object RudderConfig extends Loggable {
 
   //deprecated
   val BASE_URL = Try(config.getString("base.url")).getOrElse("")
-
 
   // properties from version.properties file,
   val (
@@ -594,15 +593,21 @@ object RudderConfig extends Loggable {
 
   val tokenGenerator = new TokenGeneratorImpl(32)
 
+  implicit val userService = new UserService {
+    def getCurrentUser = CurrentUser
+  }
+
+  val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeInfoService)
   // REST API
+  val restAuthentication    = new RestAuthentication(userService)
   val restDeploy            = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
   val restDyngroupReload    = new RestDyngroupReload(dyngroupUpdaterBatch)
   val restTechniqueReload   = new RestTechniqueReload(techniqueRepositoryImpl, uuidGen)
   val restArchiving         = new RestArchiving(itemArchiveManagerImpl,personIdentServiceImpl, uuidGen)
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
-  val restApiAccounts       = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator, uuidGen)
+  val restApiAccounts       = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator, uuidGen, userService)
   val restDataSerializer    = RestDataSerializerImpl(techniqueRepository,diffService)
-  val restQuicksearch       = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository))
+  val restQuicksearch       = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository), userService, linkUtil)
   val restCompletion        = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
 
   val ruleApiService2 =
@@ -764,6 +769,7 @@ object RudderConfig extends Loggable {
       , uuidGen
       , asyncDeploymentAgent
       , RUDDER_RELAY_API
+      , userService
     )
   }
 
@@ -1202,6 +1208,7 @@ object RudderConfig extends Loggable {
     , roLDAPRuleCategoryRepository
     , modificationService
     , personIdentServiceImpl
+    , linkUtil
   )
   private[this] lazy val fileManagerImpl = new FileManager(UPLOAD_ROOT_DIRECTORY)
   private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)

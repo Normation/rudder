@@ -72,7 +72,6 @@ object Boot {
   }
 }
 
-
 ////////// rewrites rules to remove the version from resources urls //////////
 //////////
 object StaticResourceRewrite extends RestHelper {
@@ -156,7 +155,7 @@ class Boot extends Loggable {
 
     // REST API
     LiftRules.statelessDispatch.append(RestStatus)
-    LiftRules.statelessDispatch.append(RestAuthentication)
+    LiftRules.statelessDispatch.append(RudderConfig.restAuthentication)
     LiftRules.statelessDispatch.append(RudderConfig.restDeploy)
     LiftRules.statelessDispatch.append(RudderConfig.restDyngroupReload)
     LiftRules.statelessDispatch.append(RudderConfig.restTechniqueReload)

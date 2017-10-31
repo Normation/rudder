@@ -135,7 +135,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <dependency>
       <groupId>com.normation.rudder</groupId>
-      <artifactId>rudder-core</artifactId>
+      <artifactId>rudder-rest</artifactId>
       <version>${rudder-version}</version>
     </dependency>
 
@@ -157,21 +157,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
       <version>${commons-io-version}</version>
-    </dependency>
-    
-    <!-- Testing Liftweb -->
-    <dependency>
-      <groupId>net.liftweb</groupId>
-      <artifactId>lift-testkit_${scala-binary-version}</artifactId>
-      <version>${lift-version}</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- YAML parser, for REST API test -->
-    <dependency>
-      <groupId>org.yaml</groupId>
-      <artifactId>snakeyaml</artifactId>
-      <version>1.17</version>
-      <scope>test</scope>
     </dependency>
     
     <!-- Authentication -->

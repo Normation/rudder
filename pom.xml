@@ -53,6 +53,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <module>rudder-templates-cli</module>
     <!-- Core API and implementation -->
     <module>rudder-core</module>
+    <module>rudder-rest</module>
     <!-- Web Interface -->
     <module>rudder-web</module>
     <!-- fill-in rule templates -->

@@ -40,7 +40,6 @@ package com.normation.rudder.web.services
 import scala.xml.NodeSeq
 import com.normation.rudder.domain.policies.DirectiveId
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.web.model.JsInitContextLinkUtil._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import net.liftweb.common.Full
@@ -49,8 +48,6 @@ import net.liftweb.common.Loggable
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.rule.category.RuleCategory
 import scala.language.implicitConversions
-
-
 
 trait DiffItem[T] {
 
@@ -105,8 +102,10 @@ case class Modified[T](
 object DiffDisplayer extends Loggable {
 
   //Directive targets Displayer
+  private[this] val linkUtil = RudderConfig.linkUtil
+
   private[this] implicit def displayDirective(directiveId: DirectiveId) = {
-    <span> Directive {createDirectiveLink(directiveId)}</span>
+    <span> Directive {linkUtil.createDirectiveLink(directiveId)}</span>
   }
   def displayDirectiveChangeList (
           oldDirectives:Seq[DirectiveId]
@@ -150,7 +149,7 @@ object DiffDisplayer extends Loggable {
           <br/><span> Exclude {displayNodeGroup(excluded)} </span>
 
         case GroupTarget(nodeGroupId) =>
-          <span> Group {createGroupLink(nodeGroupId)}</span>
+          <span> Group {linkUtil.createGroupLink(nodeGroupId)}</span>
         case x => groupLib.allTargets.get(x).map{ targetInfo =>
             <span>
               {targetInfo.name}
@@ -210,7 +209,6 @@ object DiffDisplayer extends Loggable {
         </ul>
     }
   }
-
 
   private[this] val ruleCategoryService = RudderConfig.ruleCategoryService
 

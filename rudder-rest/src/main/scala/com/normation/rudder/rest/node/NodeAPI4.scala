@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,51 +35,42 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.model
+package com.normation.rudder.web.rest.node
 
-import org.springframework.security.core.context.SecurityContextHolder
-import com.normation.eventlog.EventActor
-import net.liftweb.http.SessionVar
-import bootstrap.liftweb.RudderUserDetail
-import com.normation.rudder.authorization._
-import com.normation.authorization._
-import com.normation.rudder.service.user.User
+import com.normation.inventory.domain.NodeId
+import net.liftweb.common.Box
+import net.liftweb.common.Loggable
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
+import net.liftweb.http.rest.RestHelper
+import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.web.rest.RestUtils._
+import net.liftweb.common._
+import net.liftweb.json.JsonDSL._
+import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.service.user.UserService
 
-/**
- * An utility class that get the currently logged user
- * (if any)
- *
- */
-object CurrentUser extends SessionVar[Option[RudderUserDetail]] ({
-  SecurityContextHolder.getContext.getAuthentication match {
-    case null => None
-    case auth => auth.getPrincipal match {
-      case u:RudderUserDetail => Some(u)
-      case _ => None
+class NodeAPI4 (
+    apiV2         : NodeAPI2
+  , apiV4         : NodeApiService4
+  , restExtractor : RestExtractorService
+) ( override implicit val userService : UserService )
+extends RestHelper with NodeAPI with Loggable{
+
+  def v4Dispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
+
+   case Get(id :: Nil, req) if id != "pending" => {
+      restExtractor.extractNodeDetailLevel(req.params) match {
+        case Full(level) =>
+          apiV4.nodeDetailsGeneric(NodeId(id), level, apiVersion, req)
+        case eb:EmptyBox =>
+          val failMsg = eb ?~ "node detail level not correctly sent"
+          toJsonError(None, failMsg.msg)("nodeDetail",restExtractor.extractPrettify(req.params))
+      }
     }
   }
 
-}) with User {
-
-  def getRights : Rights = this.get match {
-    case Some(u) => u.authz
-    case None => new Rights(NoRights)
-  }
-
-  def getActor : EventActor = this.get match {
-    case Some(u) => EventActor(u.getUsername)
-    case None => EventActor("unknown")
-  }
-
-  def actor = getActor
-
-  def checkRights(auth:AuthorizationType) : Boolean = {
-    val authz = getRights.authorizationTypes
-    if (authz.contains(NoRights)) false
-    else auth match{
-      case NoRights => false
-      case _ =>  authz.contains(auth)
-    }
-
+  override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
+     v4Dispatch(apiVersion) orElse apiV2.requestDispatch(apiVersion)
   }
 }

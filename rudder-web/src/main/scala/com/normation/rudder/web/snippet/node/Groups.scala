@@ -67,7 +67,6 @@ import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import scala.xml._
 
-
 object Groups {
   val htmlId_groupTree = "groupTree"
   val htmlId_item = "ajaxItemContainer"
@@ -86,6 +85,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   private[this] val getFullGroupLibrary   = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
   private[this] val uuidGen               = RudderConfig.stringUuidGenerator
+  private[this] val linkUtil              = RudderConfig.linkUtil
 
   private[this] var boxGroupLib = getFullGroupLibrary()
 
@@ -217,7 +217,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
                   refreshTree(htmlTreeNodeId(newGroup.id.value), workflowEnabled) &
                   refreshRightPanel(newPanel , workflowEnabled)
                 case Right(crId) =>
-                  JsInitContextLinkUtil.redirectToChangeRequestLink(crId)
+                  linkUtil.redirectToChangeRequestLink(crId)
               }
             }
         )

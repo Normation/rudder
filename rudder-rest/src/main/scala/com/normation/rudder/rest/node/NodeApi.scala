@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,51 +35,33 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.model
+package com.normation.rudder.web.rest.node
 
-import org.springframework.security.core.context.SecurityContextHolder
-import com.normation.eventlog.EventActor
-import net.liftweb.http.SessionVar
-import bootstrap.liftweb.RudderUserDetail
+import net.liftweb.http.Req
+import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.authorization._
-import com.normation.authorization._
-import com.normation.rudder.service.user.User
+import com.normation.rudder.service.user.UserService
 
-/**
- * An utility class that get the currently logged user
- * (if any)
- *
- */
-object CurrentUser extends SessionVar[Option[RudderUserDetail]] ({
-  SecurityContextHolder.getContext.getAuthentication match {
-    case null => None
-    case auth => auth.getPrincipal match {
-      case u:RudderUserDetail => Some(u)
-      case _ => None
-    }
-  }
+trait NodeAPI extends RestAPI {
+  val kind = "nodes"
+  def userService : UserService
 
-}) with User {
-
-  def getRights : Rights = this.get match {
-    case Some(u) => u.authz
-    case None => new Rights(NoRights)
-  }
-
-  def getActor : EventActor = this.get match {
-    case Some(u) => EventActor(u.getUsername)
-    case None => EventActor("unknown")
-  }
-
-  def actor = getActor
-
-  def checkRights(auth:AuthorizationType) : Boolean = {
-    val authz = getRights.authorizationTypes
-    if (authz.contains(NoRights)) false
-    else auth match{
-      case NoRights => false
-      case _ =>  authz.contains(auth)
-    }
+  override protected def checkSecure : PartialFunction[Req, Boolean] = {
+    case Get(_,_) => userService.getCurrentUser.checkRights(Read("node"))
+    case Post(_,_) | Put(_,_) | Delete(_,_) => val user = userService.getCurrentUser
+      user.checkRights(Write("node")) || user.checkRights(Edit("node"))
+    case _=> false
 
   }
 }
+
+case class RestNodeProperties(
+    properties : Option[Seq[NodeProperty]]
+)
+
+case class RestNode (
+    properties : Option[Seq[NodeProperty]]
+  , policyMode : Option[Option[PolicyMode]]
+)

@@ -35,51 +35,37 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.model
+package com.normation.rudder.web.rest
 
-import org.springframework.security.core.context.SecurityContextHolder
-import com.normation.eventlog.EventActor
-import net.liftweb.http.SessionVar
-import bootstrap.liftweb.RudderUserDetail
-import com.normation.rudder.authorization._
-import com.normation.authorization._
-import com.normation.rudder.service.user.User
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.http.PlainTextResponse
+import net.liftweb.common._
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
+import com.normation.rudder.service.user.UserService
 
 /**
- * An utility class that get the currently logged user
- * (if any)
- *
+ * A rest api that allows to deploy promises.
  */
-object CurrentUser extends SessionVar[Option[RudderUserDetail]] ({
-  SecurityContextHolder.getContext.getAuthentication match {
-    case null => None
-    case auth => auth.getPrincipal match {
-      case u:RudderUserDetail => Some(u)
-      case _ => None
-    }
+class RestTechniqueReload(
+    updatePTLibService : UpdateTechniqueLibrary
+  , uuidGen            : StringUuidGenerator
+) ( implicit userService : UserService )
+ extends RestHelper with Loggable {
+
+  serve {
+    case Get("api" :: "techniqueLibrary" :: "reload" :: Nil, req) =>
+      updatePTLibService.update(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), Some("Technique library reloaded from REST API")) match {
+        case Full(x) => PlainTextResponse("OK")
+        case eb:EmptyBox =>
+          val e = eb ?~! "An error occured when updating the Technique library from file system"
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Root exception cause was:", ex)
+          }
+          PlainTextResponse(s"Error: ${e.messageChain.split(" <- ").mkString("","\ncause:","\n")}", 500)
+      }
   }
 
-}) with User {
-
-  def getRights : Rights = this.get match {
-    case Some(u) => u.authz
-    case None => new Rights(NoRights)
-  }
-
-  def getActor : EventActor = this.get match {
-    case Some(u) => EventActor(u.getUsername)
-    case None => EventActor("unknown")
-  }
-
-  def actor = getActor
-
-  def checkRights(auth:AuthorizationType) : Boolean = {
-    val authz = getRights.authorizationTypes
-    if (authz.contains(NoRights)) false
-    else auth match{
-      case NoRights => false
-      case _ =>  authz.contains(auth)
-    }
-
-  }
 }

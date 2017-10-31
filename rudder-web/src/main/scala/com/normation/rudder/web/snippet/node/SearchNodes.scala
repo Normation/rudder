@@ -56,7 +56,6 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
-import com.normation.rudder.web.model.JsInitContextLinkUtil
 
 /**
  *
@@ -75,9 +74,9 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil
 
 class SearchNodes extends StatefulSnippet with Loggable {
 
-
   private[this] val queryParser = RudderConfig.cmdbQueryParser
   private[this] val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private[this] val linkUtil            = RudderConfig.linkUtil
 
   //the popup component to create the group
   private[this] val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]
@@ -136,7 +135,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
         , rootCategory     = groupLibrary
         , selectedCategory = None
         , onSuccessCategory= { _ => Noop }
-        , onSuccessGroup   = { (group:NodeGroup, _) => JsInitContextLinkUtil.redirectToGroupLink(group.id) }
+        , onSuccessGroup   = { (group:NodeGroup, _) => linkUtil.redirectToGroupLink(group.id) }
       )))
   }
 

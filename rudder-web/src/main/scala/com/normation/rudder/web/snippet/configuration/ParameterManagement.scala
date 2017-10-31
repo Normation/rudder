@@ -50,7 +50,6 @@ import com.normation.rudder.domain.parameters.GlobalParameter
 import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.web.model.JsInitContextLinkUtil
 
 class ParameterManagement extends DispatchSnippet with Loggable {
 
@@ -58,6 +57,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
 
   private[this] val gridName      = "globalParametersGrid"
   private[this] val gridContainer = "ParamGrid"
+  private[this] val linkUtil           = RudderConfig.linkUtil
 
   //the current GlobalParameterForm component
   private[this] val parameterPopup = new LocalSnippet[CreateOrUpdateGlobalParameterPopup]
@@ -100,8 +100,6 @@ class ParameterManagement extends DispatchSnippet with Loggable {
       ".createParameter *" #> ajaxButton("Add Parameter", () => showPopup("create", None, workflowEnabled) , ("class","btn btn-success new-icon space-bottom space-top"))
      ).apply(dataTableXml(gridName)) ++ Script(initJs)
   }
-
-
 
   private[this] def dataTableXml(gridName:String) = {
     <div id={gridContainer}>
@@ -203,7 +201,6 @@ class ParameterManagement extends DispatchSnippet with Loggable {
             } );
           })
 
-
       """.replaceAll("#table_var#",jsVarNameForId(gridName))
       )
     )
@@ -230,7 +227,6 @@ class ParameterManagement extends DispatchSnippet with Loggable {
 
   }
 
-
   private[this] def workflowCallBack(action:String, workflowEnabled: Boolean)(returns : Either[GlobalParameter,ChangeRequestId]) : JsCmd = {
     if ((!workflowEnabled) & (action == "delete")) {
       closePopup() & onSuccessDeleteCallback(workflowEnabled)
@@ -239,7 +235,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         case Left(param) => // ok, we've received a parameter, do as before
           closePopup() &  updateGrid(workflowEnabled) & successPopup
         case Right(changeRequestId) => // oh, we have a change request, go to it
-          JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
+          linkUtil.redirectToChangeRequestLink(changeRequestId)
       }
     }
   }
@@ -255,8 +251,6 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     }
   }
 
-
-
   private[this] def updateGrid(workflowEnabled: Boolean) : JsCmd = {
     Replace(gridContainer, display())
   }
@@ -271,11 +265,8 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     updateGrid(workflowEnabled) & successPopup
   }
 
-
-
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $('.modal').bsModal('hide');""")
   }
-
 
 }
