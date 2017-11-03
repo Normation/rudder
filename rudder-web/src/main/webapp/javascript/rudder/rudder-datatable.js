@@ -1070,10 +1070,14 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "sTitle": "Node name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, false)
+        var el = "<span>"+sData+"</span>";
+        var nodeLink = $(el);
         var icon = $("<img />");
+        icon.addClass('space-left');
         icon.attr("src",resourcesPath + "/images/icMagnify-right.png");
+        link.append(nodeLink);
         link.append(icon);
-        link.addClass("reportIcon");
+        $(nTd).empty();
         $(nTd).append(link);
       }
   } , {
