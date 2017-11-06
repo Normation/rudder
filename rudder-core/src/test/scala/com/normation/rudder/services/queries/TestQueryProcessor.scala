@@ -45,7 +45,6 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.domain.queries._
 import net.liftweb.common._
 import com.normation.rudder.domain._
-import com.normation.rudder.services.queries._
 import com.unboundid.ldap.sdk.DN
 import com.normation.ldap.ldif._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
@@ -53,7 +52,6 @@ import com.normation.ldap.sdk._
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
 import com.normation.rudder.services.nodes.NaiveNodeInfoServiceCachedImpl
 
 /*

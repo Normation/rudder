@@ -37,8 +37,6 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
-import java.io.File
-import java.io.PrintWriter
 
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
@@ -49,7 +47,6 @@ import com.normation.utils.Control._
 import net.liftweb.common._
 import net.liftweb.json.NoTypeHints
 import net.liftweb.json.Serialization
-import net.liftweb.json.Serialization.writePretty
 
 
 

@@ -50,10 +50,7 @@ import com.normation.rudder.domain.workflows._
 import com.normation.utils.Control.boxSequence
 import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.domain.policies._
-import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.services.modification.DiffService
 import net.liftweb.http.LiftResponse
 
 case class ChangeRequestAPIService3 (

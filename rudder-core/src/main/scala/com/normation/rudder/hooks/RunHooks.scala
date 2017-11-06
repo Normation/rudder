@@ -46,14 +46,12 @@ import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
 import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 import net.liftweb.util.Helpers.tryo
-import scala.io.Source
 
 /*
  * The goal of that file is to give a simple abstraction to run hooks in

@@ -42,7 +42,6 @@ import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.common._

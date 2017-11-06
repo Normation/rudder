@@ -41,27 +41,16 @@ package com.normation.rudder.web.snippet
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.BuildFilter._
-import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.repository.RoRuleRepository
 import JE._
-import net.liftweb.http.SHtml._
-import com.normation.ldap.sdk.RoLDAPConnection
 import bootstrap.liftweb.RudderConfig
 import com.normation.ldap.sdk.FALSE
 import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.inventory.domain.AcceptedInventory
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.InventoryStatus
-import com.normation.inventory.domain.Software
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.Control.sequence
@@ -71,7 +60,6 @@ import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.NOVA_AGENT
-import com.normation.inventory.domain.COMMUNITY_AGENT
 import com.normation.inventory.domain.AgentType
 
 sealed trait ComplianceLevelPieChart{
@@ -354,7 +342,7 @@ class HomePage extends Loggable {
   private[this] def getRudderAgentVersion() : Box[Map[String, Int]] = {
     import com.normation.ldap.sdk._
     import com.normation.ldap.sdk.BuildFilter.{EQ,OR}
-    import com.normation.inventory.ldap.core.LDAPConstants.{A_NAME, A_SOFTWARE_UUID, A_NODE_UUID, A_SOFTWARE_DN}
+    import com.normation.inventory.ldap.core.LDAPConstants.{A_NAME, A_NODE_UUID, A_SOFTWARE_DN}
     import com.unboundid.ldap.sdk.DN
 
     val unknown = new Version("Unknown")

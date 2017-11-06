@@ -44,7 +44,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import java.util.concurrent.TimeUnit
 import com.normation.rudder.domain.reports.NodeConfigIdInfo

@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.rest
 
-import com.normation.rudder.batch.UpdateDynamicGroups
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.common._

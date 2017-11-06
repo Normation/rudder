@@ -38,14 +38,12 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.web.components.RuleGrid
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.common._
-import net.liftweb.http.Templates
 import net.liftweb.util.ClearClearable
 import net.liftweb.util.Helpers._
 import scala.xml.NodeSeq

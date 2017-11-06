@@ -39,11 +39,9 @@ package com.normation.rudder.services.queries
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.{NodeGroup,NodeGroupId}
-import com.unboundid.ldap.sdk.{DN,Filter}
 import com.normation.ldap.sdk._
 import BuildFilter._
 import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
-import com.normation.inventory.ldap.core.LDAPConstants.{A_OC, A_NAME}
 import RudderLDAPConstants._
 import com.normation.utils.Control.sequence
 import com.normation.inventory.ldap.core.LDAPConstants

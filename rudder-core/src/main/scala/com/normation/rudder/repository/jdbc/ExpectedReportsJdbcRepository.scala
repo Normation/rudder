@@ -43,20 +43,14 @@ import com.normation.rudder.domain.reports._
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
 import com.normation.utils.HashcodeCaching
-import com.normation.utils.Control.sequence
 import net.liftweb.common._
 import net.liftweb.json._
 import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
-import doobie.postgres.pgtypes._
-import com.normation.rudder.db.DB
-import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.logger.PolicyLogger
 
 
@@ -205,7 +199,6 @@ class UpdateExpectedReportsJdbcRepository(
 ) extends UpdateExpectedReportsRepository with Loggable {
 
   import doobie._
-  import pgInClause._
   import Doobie._
 
   override def closeNodeConfigurations(nodeId: NodeId): Box[NodeId] = {
@@ -269,7 +262,6 @@ class UpdateExpectedReportsJdbcRepository(
     , configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]
   ): \/[Throwable, List[NodeExpectedReports]] = {
 
-    import com.normation.rudder.domain.reports.ExpectedReportsSerialisation._
     import Doobie._
     import doobie.xa
 

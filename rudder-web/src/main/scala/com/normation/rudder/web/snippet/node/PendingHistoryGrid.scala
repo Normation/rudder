@@ -37,24 +37,14 @@
 
 package com.normation.rudder.web.snippet.node
 
-import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
-import com.normation.rudder.services.eventlog.{
-  InventoryEventLogService, EventLogDetailsService
-}
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core._
-import LDAPConstants._
-import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.eventlog._
 import com.normation.eventlog._
 import com.normation.rudder.domain.eventlog._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.web.services.DisplayNode
-import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.DateTime
 import org.joda.time.format._
-import org.slf4j.LoggerFactory
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -63,15 +53,10 @@ import Helpers._
 import net.liftweb.http.js._
 import JsCmds._
 import JE._
-import net.liftweb.http.SHtml._
-import net.liftweb.json._
-import JsonDSL._
 import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.RemovedInventory
-import com.normation.rudder.domain.nodes.{Node => RudderNode}
-import com.normation.rudder.reports.ReportingConfiguration
 import bootstrap.liftweb.StaticResourceRewrite
 
 object PendingHistoryGrid extends Loggable {

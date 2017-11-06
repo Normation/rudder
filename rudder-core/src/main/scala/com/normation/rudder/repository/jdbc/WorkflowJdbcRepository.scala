@@ -40,16 +40,12 @@ import net.liftweb.common.Loggable
 import net.liftweb.common._
 import scala.util.{Try, Failure => Catch, Success}
 import org.springframework.jdbc.core.JdbcTemplate
-import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.workflows.WorkflowNodeId
-import com.normation.rudder.domain.workflows.WorkflowNode
 import scala.collection.JavaConversions._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import org.springframework.jdbc.core.RowMapper
 import java.sql.ResultSet
-import org.springframework.jdbc.support.GeneratedKeyHolder
-import org.springframework.jdbc.core.PreparedStatementCreator
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowNodeId
 

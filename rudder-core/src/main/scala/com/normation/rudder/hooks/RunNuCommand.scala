@@ -42,7 +42,6 @@ import java.nio.charset.Charset
 import java.nio.charset.CoderResult
 import java.util.concurrent.TimeUnit
 
-import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.concurrent.Promise
 import scala.concurrent.duration.Duration

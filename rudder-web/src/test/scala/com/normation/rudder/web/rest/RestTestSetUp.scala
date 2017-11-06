@@ -37,18 +37,11 @@
 
 package com.normation.rudder.web.rest
 
-import org.junit._
-import org.junit.Assert._
-import org.junit.runner._
-import org.junit.runner.RunWith
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
 
 import net.liftweb.common.Full
 import net.liftweb.http.LiftRules
 import net.liftweb.http.LiftRulesMocker
-import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.mockweb.MockWeb

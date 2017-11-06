@@ -52,8 +52,6 @@ import com.normation.rudder.services.nodes.NodeInfoService
 
 import net.liftweb.actor._
 import net.liftweb.common._
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 
 /**
  * This object will be used as message for the non compliant reports logger

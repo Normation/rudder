@@ -37,19 +37,13 @@
 
 package com.normation.rudder.services.servers
 
-import java.net.InetAddress
 import net.liftweb.common.Box
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.domain.Constants
-import com.normation.utils.Control.bestEffort
-import net.liftweb.util.Helpers._
-import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import net.liftweb.common.Loggable
 import com.normation.utils.NetUtils.isValidNetwork
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.policies._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 

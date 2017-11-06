@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.rest.parameter
 
-import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.web.rest.RestUtils.toJsonError
 import com.normation.rudder.web.rest.RestExtractorService
 import net.liftweb.common.Box
@@ -46,7 +45,6 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JString
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.rest.ApiVersion

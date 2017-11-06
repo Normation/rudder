@@ -37,11 +37,6 @@
 
 package com.normation.rudder.domain.workflows
 
-import net.liftweb.common._
-import org.joda.time.DateTime
-import com.normation.rudder.domain.eventlog._
-import com.normation.eventlog._
-import com.normation.utils.HashcodeCaching
 
 case class WorkflowNodeId(value:String){
   override def toString = value

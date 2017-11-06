@@ -45,25 +45,19 @@ import net.liftweb.http._
 import net.liftweb.http.js._
 import JE._
 import com.normation.rudder.domain.workflows._
-import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml
 import scala.xml.Text
 import scala.xml.NodeSeq
 import net.liftweb.http.SHtml
 import com.normation.rudder.web.model.CurrentUser
-import org.joda.time.DateTime
-import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.web.components.DateFormaterService
-import scala.xml.Node
 import scala.xml.Elem
-import com.normation.rudder.authorization.Edit
 import com.normation.rudder.authorization.Read
 import com.normation.rudder.web.services.JsTableData
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowNodeId
-import com.normation.rudder.domain.eventlog.ChangeRequestLogsFilter
 import com.normation.eventlog.EventLog
 import net.liftweb.http.SHtml.SelectableOption
 

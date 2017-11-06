@@ -41,7 +41,6 @@ import org.specs2.runner._
 import org.specs2.mutable._
 import com.normation.cfclerk.domain._
 import net.liftweb.common._
-import Box._
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.repository.FullActiveTechniqueCategory

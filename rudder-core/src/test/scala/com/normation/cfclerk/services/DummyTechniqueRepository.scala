@@ -38,7 +38,7 @@
 package com.normation.cfclerk.services
 
 import com.normation.cfclerk.domain._
-import java.io.{ InputStream, File }
+import java.io.InputStream
 import net.liftweb.common._
 import scala.collection.SortedSet
 

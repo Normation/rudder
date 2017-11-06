@@ -38,25 +38,17 @@
 package com.normation.rudder.web.rest.directive
 
 import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.web.rest.RestUtils.toJsonError
 import com.normation.rudder.web.rest.RestExtractorService
 import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JString
 import com.normation.rudder.web.rest.ApiVersion
-import net.liftweb.http.NotFoundResponse
 import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.json.JsonAST.JValue
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.rest.RestUtils
 import com.normation.utils.StringUuidGenerator
-import net.liftweb.common.Failure
 
 class DirectiveAPI2 (
     readDirective : RoDirectiveRepository

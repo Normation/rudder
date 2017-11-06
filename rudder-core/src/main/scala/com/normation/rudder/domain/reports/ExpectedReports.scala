@@ -46,11 +46,9 @@ import com.normation.utils.HashcodeCaching
 
 
 import org.joda.time.DateTime
-import org.joda.time.Interval
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import net.liftweb.common.Full
 import net.liftweb.common.Failure
 import net.liftweb.common.Box
@@ -58,14 +56,10 @@ import com.normation.utils.Control.sequence
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceModeName
-import com.normation.rudder.reports.FullCompliance
-import com.normation.rudder.reports.ChangesOnly
-import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import org.joda.time.Duration
 import com.normation.rudder.domain.Constants
-import com.sun.xml.internal.txw2.EndDocument
 
 final case class NodeModeConfig(
     globalComplianceMode: ComplianceMode
