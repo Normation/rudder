@@ -144,7 +144,7 @@ class NodeGroupForm(
   val pendingChangeRequestXml =
     <div id="pendingChangeRequestNotification">
       <div>
-        <img src={"/" + StaticResourceRewrite.prefix + "/images/icWarn.png"} alt="Warning!" height="32" width="32" class="warnicon"/>
+        <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
         <div style="float:left">
           The following pending change requests affect this Group, you should check that your modification is not already pending:
           <ul id="changeRequestList"/>
