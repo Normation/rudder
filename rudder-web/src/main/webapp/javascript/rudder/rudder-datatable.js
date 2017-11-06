@@ -535,10 +535,10 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
         $(nTd).empty();
         $(nTd).text(oData.rule);
         if (! oData.isSystem) {
+          var editIcon = $("<i>");
+          editIcon.addClass("fa fa-pencil");
           var editLink = $("<a />");
           editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
-          var editIcon = $("<img />");
-          editIcon.attr("src",resourcesPath + "/images/icPen.png");
           editLink.click(function(e) {e.stopPropagation();});
           editLink.append(editIcon);
           editLink.addClass("reportIcon");
@@ -630,24 +630,22 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
       , "sTitle": "Directive"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
           $(nTd).addClass("listopen tw-bs");
-          var tooltipIcon = $("<img />");
-          tooltipIcon.attr("src",resourcesPath + "/images/ic_question_14px.png");
-          tooltipIcon.addClass("reportIcon");
+          var tooltipIcon = $("<i>");
+          tooltipIcon.addClass("fa fa-question-circle icon-info tooltipable");
           var tooltipId = oData.jsid+"-tooltip";
           tooltipIcon.attr("tooltipid",tooltipId);
           tooltipIcon.attr("title","");
-          tooltipIcon.addClass("tooltip tooltipable");
           var toolTipContainer= $("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
           toolTipContainer.addClass("tooltipContent");
           toolTipContainer.attr("id",tooltipId);
-
           $(nTd).append(tooltipIcon);
           $(nTd).append(toolTipContainer);
+
           if (! oData.isSystem) {
             var editLink = $("<a />");
             editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
-            var editIcon = $("<img />");
-            editIcon.attr("src",resourcesPath + "/images/icPen.png");
+            var editIcon = $("<i>");
+            editIcon.addClass("fa fa-pencil");
             editLink.click(function(e) {e.stopPropagation();});
             editLink.append(editIcon);
             editLink.addClass("reportIcon");
@@ -678,8 +676,8 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
       if (! oData.isSystem) {
         var editLink = $("<a />");
         editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
-        var editIcon = $("<img />");
-        editIcon.attr("src",resourcesPath + "/images/icPen.png");
+        var editIcon = $("<i>");
+        editIcon.addClass("fa fa-pencil");
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
@@ -726,7 +724,6 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
     var complianceWidth = "26.3%";
     var directiveWidth = "73.7%";
   }
-
   var columns = [ {
      "sWidth": directiveWidth
     , "mDataProp": "directive"
@@ -735,13 +732,12 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
         $(nTd).empty();
         $(nTd).append(document.createTextNode(oData.directive));
         $(nTd).addClass("listopen tw-bs");
-        var tooltipIcon = $("<img />");
-        tooltipIcon.attr("src",resourcesPath + "/images/ic_question_14px.png");
-        tooltipIcon.addClass("reportIcon");
+        var tooltipIcon = $("<i>");
+        tooltipIcon.addClass("fa fa-question-circle icon-info");
         var tooltipId = oData.jsid+"-tooltip";
         tooltipIcon.attr("tooltipid",tooltipId);
         tooltipIcon.attr("title","");
-        tooltipIcon.addClass("tooltip tooltipable");
+        tooltipIcon.addClass("tooltipable");
         var toolTipContainer= $("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
         toolTipContainer.addClass("tooltipContent");
         toolTipContainer.attr("id",tooltipId);
@@ -750,8 +746,8 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
         if (! oData.isSystem) {
           var editLink = $("<a />");
           editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
-          var editIcon = $("<img />");
-          editIcon.attr("src",resourcesPath + "/images/icPen.png");
+          var editIcon = $("<i>");
+          editIcon.addClass("fa fa-pencil");
           editLink.click(function(e) {e.stopPropagation();});
           editLink.append(editIcon);
           editLink.addClass("reportIcon");
@@ -822,8 +818,8 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
         $(nTd).addClass("listopen tw-bs");
         var editLink = $("<a />");
         editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}');
-        var editIcon = $("<img />");
-        editIcon.attr("src",resourcesPath + "/images/icMagnify-right.png");
+        var editIcon = $("<i>");
+        editIcon.addClass("fa fa-search node-details");
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
@@ -1067,8 +1063,8 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "sTitle": "Node name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, false)
-        var icon = $("<img />");
-        icon.attr("src",resourcesPath + "/images/icMagnify-right.png");
+        var icon = $("<i>");
+        icon.addClass("fa fa-search");
         link.append(icon);
         link.addClass("reportIcon");
         $(nTd).append(link);
@@ -1671,7 +1667,6 @@ function changeCursor(clickable){
  * Function to define opening of an inner table
  */
 function createInnerTable(myTable,  createFunction, contextPath, kind) {
-
   var plusTd = $(myTable.fnGetNodes());
   plusTd.each( function () {
     $(this).unbind();
@@ -1750,7 +1745,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   $('#'+gridId+' thead tr').addClass("head");
   if (!( typeof refresh === 'undefined')) {
-    var refreshButton = $("<button><img src='"+resourcesPath + "/images/icRefresh.png'/></button>");
+    var refreshButton = $("<button class='btn btn-primary'><i class='fa fa-refresh'></i></button>");
     refreshButton.button();
     refreshButton.attr("title","Refresh");
     refreshButton.click( function() { refresh(); } );

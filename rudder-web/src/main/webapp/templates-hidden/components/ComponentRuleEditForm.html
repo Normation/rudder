@@ -197,7 +197,7 @@
         <div id="DirectiveCtrl" ng-controller="DirectiveCtrl">
           <div class="spacing-title targetHeader">
             Apply these Directives:
-            <img src="/images/ic_question.png" data-lift="with-cached-resource" class="targetIcon" tooltip="directiveAddExplanation"/>
+            <i class="fa fa-question-circle targetIcon icon-info" aria-hidden="true" tooltip="directiveAddExplanation"></i>
           </div>
           <div style="background-color:#DDFFDD;" class="targetContainer">
             <ul>
@@ -208,7 +208,7 @@
                 <span class="targetDisplay">
                     <span class="fa fa-file-text"></span>
                     {{ directive.name }}
-                    <img src="/images/ic_delete.png" data-lift="with-cached-resource" class="targetRemove" ng-click="removeInclude(directive.id)"/>
+                    <i class="fa fa-times targetRemove" ng-click="removeInclude(directive.id)"></i>
                 </span>
               </li>
             </ul>
@@ -250,7 +250,7 @@
         <div id="GroupCtrl" ng-controller="GroupCtrl">
           <div class="spacing-title targetHeader">
             Apply to Nodes in any of these Groups:
-            <img src="/images/ic_question.png" data-lift="with-cached-resource" class="targetIcon" tooltip="includeExplanation"/>
+            <i class="fa fa-question-circle targetIcon icon-info" aria-hidden="true" tooltip="includeExplanation"></i>
           </div>
           <div style="background-color:#DDFFDD;" class="targetContainer">
 	        <ul>
@@ -261,7 +261,7 @@
 	            <span class="targetDisplay">
                     <span class="fa fa-sitemap"></span>
                   {{ getTargetName(included) }}
-                  <img src="/images/ic_delete.png" data-lift="with-cached-resource" class="targetRemove" ng-click="removeInclude(included)"/>
+                  <i class="fa fa-times targetRemove" ng-click="removeInclude(included)"></i>
 	            </span>
 	          </li>
 	        </ul>
@@ -269,7 +269,7 @@
           </div>
           <div class="spacing-title targetHeader">
             Except to Nodes in any of these Groups:
-            <img src="/images/ic_question.png" data-lift="with-cached-resource" class="targetIcon" tooltip="excludeExplanation"/>
+            <i class="fa fa-question-circle targetIcon icon-info" aria-hidden="true" tooltip="excludeExplanation"></i>
           </div>
           <div style="background-color:#FFDDDD;" class="targetContainer">
             <ul>
@@ -280,7 +280,7 @@
                 <span class="targetDisplay">
                     <span class="fa fa-sitemap"></span>
                   {{ getTargetName(excluded) }}
-                  <img class="targetRemove" data-lift="with-cached-resource" src="/images/ic_delete.png" ng-click="removeExclude(excluded)"/>
+                  <i class="fa fa-times targetRemove" ng-click="removeExclude(excluded)"></i>
                 </span>
               </li>
             </ul>
