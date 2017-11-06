@@ -2571,6 +2571,28 @@ span.techversion {
   cursor: help;
   font-weight: bold;
 }
+
+/* ICONS */
+.fa.warnicon{
+  margin-left:8px;
+  font-size:32px;
+  color:#f08004;
+}
+#confirmDeletion .fa.warnicon{
+  font-size: 22px;
+  margin-left: 0;
+}
+.fa.targetRemove{
+  margin:2px;
+  cursor:pointer;
+}
+table a > i.fa-pencil{
+  color:#555;
+  transition-duration:.2s;
+}
+table a > i.fa-pencil:hover{
+  color:#333;
+}
 @keyframes opacity-1 {
   0%   {opacity:0;visibility: visible;}
   100% {opacity:1;visibility: visible;}
