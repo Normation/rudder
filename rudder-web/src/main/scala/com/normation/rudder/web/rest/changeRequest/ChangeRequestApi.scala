@@ -37,12 +37,6 @@
 
 package com.normation.rudder.web.rest.changeRequest
 
-import net.liftweb.common.Box
-import net.liftweb.common.Loggable
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import net.liftweb.http.rest.RestHelper
-import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.web.rest.RestAPI
 
 trait ChangeRequestAPI extends RestAPI {

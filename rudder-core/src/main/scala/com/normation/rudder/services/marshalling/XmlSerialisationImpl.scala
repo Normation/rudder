@@ -42,19 +42,10 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.policies.SectionVal
 import net.liftweb.common._
 import scala.xml.NodeSeq
-import scala.xml.{Node => XNode, _}
+import scala.xml._
 import net.liftweb.common.Box._
-import com.normation.cfclerk.domain.TechniqueVersion
-import net.liftweb.util.Helpers.tryo
-import com.normation.utils.Control.sequence
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechnique
@@ -63,12 +54,9 @@ import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.batch.{CurrentDeploymentStatus,SuccessStatus,ErrorStatus}
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
-import com.normation.utils.XmlUtils
 import com.normation.rudder.domain.Constants._
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
-import scala.util.Try
-import scala.util.Success
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff

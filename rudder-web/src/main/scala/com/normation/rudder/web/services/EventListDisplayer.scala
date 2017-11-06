@@ -40,7 +40,6 @@ import scala.xml._
 import com.normation.eventlog.EventLog
 import com.normation.rudder.domain.eventlog._
 import net.liftweb.common._
-import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
@@ -58,16 +57,13 @@ import net.liftweb.http.S
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.repository._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.model.CurrentUser
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import net.liftweb.util.ToJsCmd
 import com.normation.rudder.services.eventlog.RollbackInfo
-import com.normation.rudder.services.eventlog.RollbackedEvent
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import scala.util.Try
 import scala.util.Success

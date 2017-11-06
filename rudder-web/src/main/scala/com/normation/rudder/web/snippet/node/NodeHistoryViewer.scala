@@ -37,18 +37,11 @@
 
 package com.normation.rudder.web.snippet.node
 
-import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk._
-import BuildFilter._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import org.joda.time.DateTime
-import org.slf4j.LoggerFactory
 import org.joda.time.format.ISODateTimeFormat
-import scala.collection.mutable.{Map => MutMap}
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -56,13 +49,8 @@ import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
 import JsCmds._
-import JE._
-import net.liftweb.http.SHtml._
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.AcceptedInventory
-import com.normation.inventory.domain.FullInventory
-import com.normation.rudder.domain.nodes.{Node => RudderNode}
-import com.normation.rudder.reports.ReportingConfiguration
 
 /**
  * A simple service that displays a NodeDetail widget from

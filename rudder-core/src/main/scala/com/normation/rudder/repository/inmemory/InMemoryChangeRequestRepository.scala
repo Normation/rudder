@@ -42,15 +42,10 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.workflows.{ ChangeRequest, ChangeRequestId }
 import com.normation.rudder.repository.{ RoChangeRequestRepository, WoChangeRequestRepository }
 import net.liftweb.common._
-import com.normation.rudder.services.eventlog.ChangeRequestEventLogService
 import com.normation.eventlog.EventActor
-import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog._
-import com.normation.utils.StringUuidGenerator
 
 class InMemoryChangeRequestRepository
  extends RoChangeRequestRepository with WoChangeRequestRepository with Loggable {

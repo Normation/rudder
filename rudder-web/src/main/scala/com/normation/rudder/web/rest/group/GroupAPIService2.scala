@@ -42,7 +42,6 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.services.workflows._
 import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.domain.policies._
 import com.normation.eventlog.EventActor
 import net.liftweb.common._
 import com.normation.rudder.web.rest.RestUtils._
@@ -56,7 +55,6 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.workflows.ChangeRequestId
 
 case class GroupApiService2 (
     readGroup            : RoNodeGroupRepository

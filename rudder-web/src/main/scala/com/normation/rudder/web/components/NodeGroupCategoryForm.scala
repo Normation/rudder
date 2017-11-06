@@ -41,9 +41,8 @@ import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S,DispatchSnippet}
+import net.liftweb.http.{SHtml,DispatchSnippet}
 import scala.xml._
-import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.nodes.{NodeGroupCategory,NodeGroupCategoryId}
 import com.normation.rudder.authorization._
@@ -52,8 +51,6 @@ import com.normation.rudder.web.model.{
 }
 import com.normation.rudder.repository._
 import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 import bootstrap.liftweb.RudderConfig
 
 /**

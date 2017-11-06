@@ -40,12 +40,10 @@ package com.normation.rudder.rule.category
 import com.normation.cfclerk.services.GitRepositoryProvider
 import java.io.File
 import com.normation.rudder.services.marshalling.RuleCategorySerialisation
-import scala.xml.PrettyPrinter
 import com.normation.rudder.repository.GitModificationRepository
 import net.liftweb.common.Loggable
 import com.normation.rudder.repository.xml._
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.domain.Constants.RULE_CATEGORY_ARCHIVE_TAG
 import net.liftweb.common.Box
 import com.normation.rudder.repository.GitArchiveId

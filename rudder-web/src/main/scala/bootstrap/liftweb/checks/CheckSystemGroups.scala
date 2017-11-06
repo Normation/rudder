@@ -42,11 +42,8 @@ import net.liftweb.common._
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 import net.liftweb.common.Failure
-import com.normation.rudder.domain.logger.MigrationLogger
 import com.normation.utils.Control.sequence
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.repository.RoNodeGroupRepository
-import com.unboundid.ldap.sdk.{DN,Filter}
 import com.normation.ldap.sdk.{LDAPConnectionProvider,RoLDAPConnection,LDAPEntry,BuildFilter}
 import BuildFilter._
 import com.normation.rudder.repository.WoNodeGroupRepository

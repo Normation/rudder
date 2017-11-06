@@ -41,14 +41,12 @@ import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.RestAPI
 import net.liftweb.json.JsonAST.JValue
 import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestUtils
 import com.normation.rudder.web.rest.ApiVersion
 import com.normation.rudder.appconfig._
-import net.liftweb.common.Empty
 import com.normation.eventlog.EventActor
 import net.liftweb.common.Full
 import net.liftweb.common.Failure

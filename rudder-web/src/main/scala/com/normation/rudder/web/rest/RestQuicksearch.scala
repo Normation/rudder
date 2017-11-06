@@ -40,10 +40,6 @@ package com.normation.rudder.web.rest
 import com.normation.rudder.web.rest.RestUtils._
 
 import net.liftweb.common._
-import net.liftweb.http.JsonResponse
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsExp
 
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JArray

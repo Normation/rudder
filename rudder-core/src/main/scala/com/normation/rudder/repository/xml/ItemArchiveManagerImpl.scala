@@ -44,7 +44,6 @@ import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
-import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.cfclerk.services.GitRevisionProvider
@@ -53,7 +52,6 @@ import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.rudder.domain.policies.ActiveTechniqueId
 import org.eclipse.jgit.api._
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventLog

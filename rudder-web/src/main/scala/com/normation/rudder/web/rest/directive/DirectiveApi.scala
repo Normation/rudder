@@ -39,11 +39,6 @@ package com.normation.rudder.web.rest.directive
 
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.domain.policies.Directive
-import net.liftweb.common.Box
-import net.liftweb.common.Loggable
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.RestAPI
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.policies.ActiveTechnique

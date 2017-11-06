@@ -38,8 +38,6 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
-import scala.xml.NodeSeq
-import org.joda.time.DateTime
 import com.normation.utils.HashcodeCaching
 
 sealed trait PromiseEventLog extends EventLog { override final val eventLogCategory = DeploymentLogCategory }

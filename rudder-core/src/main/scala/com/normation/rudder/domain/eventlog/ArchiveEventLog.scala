@@ -44,7 +44,6 @@ import com.normation.rudder.repository.GitArchiveId
 import com.normation.rudder.repository.GitCommitId
 import com.normation.utils.HashcodeCaching
 
-import net.liftweb.common._
 
 sealed trait ImportExportEventLog  extends EventLog { override final val eventLogCategory = ImportExportItemsLogCategory }
 

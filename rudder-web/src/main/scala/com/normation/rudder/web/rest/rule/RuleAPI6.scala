@@ -37,25 +37,17 @@
 
 package com.normation.rudder.web.rest.rule
 
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.web.rest.RestUtils.toJsonError
 import com.normation.rudder.web.rest.RestExtractorService
 import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JString
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.utils.StringUuidGenerator
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.rest.RestUtils
-import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
-import com.normation.eventlog.EventActor
 import com.normation.rudder.web.rest.ApiVersion
 
 class RuleAPI6(

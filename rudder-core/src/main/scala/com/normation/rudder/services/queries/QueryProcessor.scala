@@ -40,7 +40,6 @@ package com.normation.rudder.services.queries
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries.Query
-import com.normation.ldap.sdk.LDAPEntry
 import net.liftweb.common.Box
 import scala.collection.Seq
 

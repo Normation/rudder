@@ -38,10 +38,8 @@
 package com.normation.rudder.rule.category
 
 import net.liftweb.common.Box
-import net.liftweb.common.Full
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.archives.RuleArchiveId
 
 trait RoRuleCategoryRepository {
 

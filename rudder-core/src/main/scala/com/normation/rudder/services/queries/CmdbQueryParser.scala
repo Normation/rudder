@@ -40,9 +40,7 @@ package com.normation.rudder.services.queries
 import com.normation.rudder.domain.queries._
 import net.liftweb.common._
 import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
 import JsonParser.ParseException
-import com.normation.rudder.domain._
 import CmdbQueryParser._
 import com.normation.utils.HashcodeCaching
 

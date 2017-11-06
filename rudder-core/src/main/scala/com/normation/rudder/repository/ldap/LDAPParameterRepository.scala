@@ -41,7 +41,6 @@ import RudderLDAPConstants._
 import net.liftweb.common._
 import com.normation.ldap.sdk._
 import com.normation.ldap.sdk.BuildFilter._
-import com.unboundid.ldap.sdk.{DN,Filter}
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.utils.Control.sequence
@@ -113,7 +112,7 @@ class WoLDAPParameterRepository(
 ) extends WoParameterRepository with Loggable {
   repo =>
 
-  import roLDAPParameterRepository.{ ldap => roLdap, _ }
+  import roLDAPParameterRepository._
 
   def saveParameter(
       parameter : GlobalParameter

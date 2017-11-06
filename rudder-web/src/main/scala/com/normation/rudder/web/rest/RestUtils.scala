@@ -42,12 +42,10 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.Req
 import com.normation.eventlog.EventActor
-import org.apache.commons.codec.binary.Base64
 import net.liftweb.json._
 import net.liftweb.http._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.http.js.JsExp
-import scala.text.Document
 import net.liftweb.common.Loggable
 import net.liftweb.common.Box
 import net.liftweb.common.Failure

@@ -51,15 +51,7 @@ import org.specs2.runner.JUnitRunner
 import com.normation.rudder.services.reports.Pending
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.ReportType._
-import com.normation.rudder.reports.FullCompliance
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.domain.policies.PolicyMode.Audit
-import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.services.policies.NodeConfigData
-import com.normation.rudder.reports.NodeComplianceMode
 
 /**
  * Test properties about status reports,

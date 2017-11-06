@@ -41,18 +41,15 @@ import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies.{ AddDirectiveDiff, Directive, ModifyToDirectiveDiff }
+import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows._
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import com.normation.cfclerk.domain.SectionSpec
 import net.liftweb.common.Loggable
-import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.ChangeRequestDirectiveDiff
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.nodes.NodeGroupDiff
 import com.normation.rudder.domain.nodes.ChangeRequestNodeGroupDiff
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
 import com.normation.rudder.repository.RoChangeRequestRepository
@@ -62,7 +59,6 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.AddChangeRequestDiff
 import net.liftweb.common.Full
-import net.liftweb.common.EmptyBox
 import net.liftweb.common.Box
 import com.normation.rudder.domain.eventlog.ChangeRequestDiff
 import com.normation.rudder.domain.eventlog.AddChangeRequestDiff

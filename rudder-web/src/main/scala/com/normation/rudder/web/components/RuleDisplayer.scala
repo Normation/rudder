@@ -40,22 +40,16 @@ package com.normation.rudder.web.components
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.common._
-import com.normation.rudder.domain.policies.Directive
-import net.liftweb.http.{SHtml,S}
+import net.liftweb.http.SHtml
 import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import JE._
-import net.liftweb.util.Helpers
-import net.liftweb.util.Helpers._
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.rule.category._
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
-import net.liftweb.http.LocalSnippet
 import com.normation.rudder.web.components.popup.RuleCategoryPopup
 
 /**
@@ -74,10 +68,6 @@ class RuleDisplayer (
 
   private[this] val ruleRepository       = RudderConfig.roRuleRepository
   private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
-  private[this] val woCategoryRepository = RudderConfig.woRuleCategoryRepository
-  private[this] val ruleCategoryService  = RudderConfig.ruleCategoryService
-  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
-  private[this] val configService        = RudderConfig.configService
 
   private[this] val htmlId_popup = "createRuleCategoryPopup"
 
@@ -259,7 +249,7 @@ class RuleDisplayer (
                                      input-changed="updateValue" override-suggestions="true">
                                 </div>
                                 <span class="input-group-btn">
-                                  <button type="button" ng-click="addTag(newTag)" class="btn btn-success btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)); ">
+                                 <button type="button" ng-click="addTag(newTag)" class="btn btn-success btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)); ">
                                     <span class="fa fa-plus"></span>
                                   </button>
                                 </span>

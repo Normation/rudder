@@ -37,14 +37,9 @@
 
 package com.normation.rudder.services.policies
 
-import scala.annotation.migration
 import scala.util.parsing.combinator.RegexParsers
-import com.normation.cfclerk.domain.Variable
-import com.normation.utils.Control._
 import net.liftweb.common.{Failure => FailedBox, _}
 import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.inventory.domain.NodeInventory
-import com.normation.rudder.domain.nodes.NodeProperty
 import net.liftweb.json.JsonAST.JValue
 
 /**

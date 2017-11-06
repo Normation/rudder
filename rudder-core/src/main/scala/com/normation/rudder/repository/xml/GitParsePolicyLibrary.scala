@@ -39,9 +39,7 @@ package com.normation.rudder.repository.xml
 
 import scala.Option.option2Iterable
 import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.revwalk.RevTag
 import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling.DirectiveUnserialisation
 import com.normation.rudder.services.marshalling.ActiveTechniqueCategoryUnserialisation

@@ -39,14 +39,7 @@ package com.normation.rudder.web.snippet.index
 
 //lift std import
 import scala.xml._
-import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
-import net.liftweb.http.js._
-import JsCmds._
-import JE._
-import net.liftweb.http.SHtml._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization._
 import bootstrap.liftweb.RudderConfig

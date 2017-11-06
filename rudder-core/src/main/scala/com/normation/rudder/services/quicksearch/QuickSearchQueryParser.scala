@@ -39,7 +39,6 @@ package com.normation.rudder.services.quicksearch
 
 import scala.util.parsing.combinator.RegexParsers
 import net.liftweb.common.{ Failure => FailedBox, _ }
-import com.normation.utils.Control.sequence
 
 /**
  * This file contains an implementation of the query parser

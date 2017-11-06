@@ -40,7 +40,6 @@ package com.normation.spring
 import org.springframework.web.context.WebApplicationContext
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
-import org.springframework.web.context.support.AnnotationConfigWebApplicationContext
 import org.springframework.beans.factory.BeanDefinitionStoreException
 import org.springframework.beans.factory.NoSuchBeanDefinitionException
 

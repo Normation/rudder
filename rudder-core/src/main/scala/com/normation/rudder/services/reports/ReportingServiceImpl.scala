@@ -44,14 +44,10 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.repository._
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport
-import com.normation.rudder.reports.execution.AgentRun
-import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.AgentRunIntervalService
-import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.services.nodes.NodeInfoService
 import scala.concurrent._
@@ -59,9 +55,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.ReportsDisabled
-import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides
 
 /**
  * Defaults non-cached version of the reporting service.

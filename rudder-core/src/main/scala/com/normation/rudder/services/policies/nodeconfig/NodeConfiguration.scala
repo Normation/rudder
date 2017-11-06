@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
-import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -46,7 +45,6 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.parameters.Parameter
-import com.normation.rudder.services.policies.write.ParameterEntry
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.domain.reports.NodeModeConfig

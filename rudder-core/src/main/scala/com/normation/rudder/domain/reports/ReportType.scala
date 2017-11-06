@@ -37,7 +37,6 @@
 
 
 package com.normation.rudder.domain.reports
-import scala.language.implicitConversions
 import com.normation.rudder.domain.policies.PolicyMode
 
 

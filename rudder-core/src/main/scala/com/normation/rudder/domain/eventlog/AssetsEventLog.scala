@@ -38,12 +38,9 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
-import scala.xml.NodeSeq
 import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.servers.Srv
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.Constants
 

@@ -39,7 +39,6 @@ package com.normation.rudder.web.snippet.administration
 
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import scala.xml.NodeSeq
 import com.normation.plugins.RudderPluginDef

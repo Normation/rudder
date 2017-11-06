@@ -37,23 +37,15 @@
 
 package com.normation.rudder.web.components
 
-import bootstrap.liftweb.RudderConfig
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.common._
-import com.normation.rudder.domain.policies.Directive
 import net.liftweb.http.{SHtml,S}
-import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import JE._
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-import net.liftweb.http.Templates
 import com.normation.rudder.reports.AgentRunInterval
-import net.liftweb.util.PassThru
-import net.liftweb.util.ClearNodes
 import com.normation.rudder.web.ChooseTemplate
 
 /**

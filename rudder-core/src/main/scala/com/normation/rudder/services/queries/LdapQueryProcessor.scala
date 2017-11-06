@@ -48,16 +48,13 @@ import com.normation.rudder.domain._
 import com.normation.inventory.ldap.core._
 import BuildFilter._
 import LDAPConstants._
-import org.slf4j.LoggerFactory
 import net.liftweb.common._
 import com.normation.utils.Control.{sequence,pipeline}
-import com.normation.rudder.domain.RudderLDAPConstants._
 import java.util.regex.Pattern
 import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.LDAPNodeInfo
-import com.normation.rudder.domain.nodes.MachineInfo
 
 /*
  * We have two type of filters:

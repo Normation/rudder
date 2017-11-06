@@ -41,7 +41,6 @@ import scala.xml.NodeSeq
 
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.utils.HashcodeCaching
-import com.normation.utils.Utils.nonEmpty
 import com.typesafe.config.{ Config, ConfigFactory }
 
 import bootstrap.liftweb.{ ClassPathResource, ConfigResource, FileSystemResource, RudderProperties }
