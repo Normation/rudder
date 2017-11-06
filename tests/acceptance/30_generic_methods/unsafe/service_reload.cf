@@ -24,11 +24,11 @@ bundle agent init
 {
   vars:
     redhat::
-      "service_script" string => "sshd";
+      "service_script" string => "crond";
     aix::
       "service_script" string => "syslogd";
-    !(redhat|aix)::
-      "service_script" string => "ssh";
+    debian::
+      "service_script" string => "cron";
 }
 
 #######################################################
