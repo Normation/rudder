@@ -262,7 +262,7 @@ class DirectiveEditForm(
         else xml ) andThen
       ClearClearable &
       //activation button: show disactivate if activated
-      "#directiveTitle *" #> s"Directive '${directive.name}'" &
+      "#directiveTitle *" #> directive.name &
       "#disactivateButtonLabel" #> {
         if (directive.isEnabled) "Disable" else "Enable"
        } &
