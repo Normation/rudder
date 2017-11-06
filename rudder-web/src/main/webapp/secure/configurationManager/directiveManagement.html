@@ -75,15 +75,15 @@
                       <label>Tags</label>
                       <div class="input-group">
                         <div id="directiveFilterKeyInput" angucomplete-alt="" placeholder="key" minlength="1" maxlength="100"
-                             pause="500" selected-object="selectTag" remote-url="{{contextPath}}/secure/api/completion/tags/directive/key/"
-                             remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-key"
-                             match-class="highlight" input-changed="updateTag" override-suggestions="true">
+                          pause="500" selected-object="selectTag" remote-url="{{contextPath}}/secure/api/completion/tags/directive/key/"
+                          remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-key"
+                          match-class="highlight" input-changed="updateTag" override-suggestions="true">
                         </div>
                         <span class="input-group-addon addon-json">=</span>
                         <div id="directiveFilterValueInput" angucomplete-alt="" placeholder="value" minlength="1" maxlength="100"
-                             pause="500" selected-object="selectValue" remote-url="{{contextPath}}/secure/api/completion/tags/directive/value/{{newTag.key}}/"
-                             remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-value" match-class="highlight"
-                             input-changed="updateValue" override-suggestions="true">
+                          pause="500" selected-object="selectValue" remote-url="{{contextPath}}/secure/api/completion/tags/directive/value/{{newTag.key}}/"
+                          remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-value" match-class="highlight"
+                          input-changed="updateValue" override-suggestions="true">
                         </div>
                         <span class="input-group-btn">
                           <button type="button" class="btn btn-success btn-sm" ng-disabled="isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)" ng-click="addTag(newTag)"><span class="fa fa-plus"></span></button>
@@ -149,7 +149,7 @@
         <div id="techniqueDetails" ng-app="techniqueDetails">
           <div class="box">
             <div class="box-header with-border">
-              <h3 class="box-title"><i aria-hidden="true" class="fa fa-cog"></i><span id="info-title">Technique '<span id="techniqueName"></span>'</span></h3>
+              <h3 class="box-title"><i aria-hidden="true" class="fa fa-cog"></i><span id="info-title">Technique <b id="techniqueName"></b></span></h3>
             </div>
             <div id="details" class="col-xs-12">
               <div class="box-body">
@@ -165,7 +165,6 @@
                   <ul>
                     <li ng-non-bindable id="techniqueLongDescription">[technique.longDescription]</li>
                     <li ng-non-bindable id="isSingle">[Unique Technique]</p>
-                    <li ng-non-bindable id="compatibility">[Supported operating systems : debian-5]</li>
                   </ul>
                 </div>
                 <div id="techniqueVersion" ng-controller="techniqueVersion">
@@ -203,11 +202,11 @@
                     <input id="displayDeprecation" type="checkbox" ng-model="displayDeprecated"/>
                     <label for="displayDeprecation">Display deprecated Technique versions</label>
                   </div>
-                    <lift:authz role="directive_write">
-                      <div class="space-top">
-                        <input type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" value="Create with latest version" class="btn btn-success"/>
-                      </div>
-                    </lift:authz>
+                  <lift:authz role="directive_write">
+                    <div class="space-top">
+                      <input type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" value="Create with latest version" class="btn btn-success"/>
+                    </div>
+                  </lift:authz>
                 </div>
               </div>
             </div>
@@ -239,8 +238,8 @@
             To finish the Directive migration to the new version, you have to edit and save the Directive parameters.
           </p>
           <p class="col-lg-12 col-sm-12 col-xs-12">
-              You can cancel the migration by reloading the page or choosing an other Directive in the tree
-              without saving the form.
+            You can cancel the migration by reloading the page or choosing an other Directive in the tree
+            without saving the form.
           </p>
         </div>
         <div class="modal-footer">
