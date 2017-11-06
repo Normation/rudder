@@ -1064,9 +1064,12 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, false)
         var icon = $("<i>");
-        icon.addClass("fa fa-search");
+        icon.addClass("fa fa-search space-left");
+        var el = "<span>"+sData+"</span>";
+        var nodeLink = $(el);
+        link.append(nodeLink);
         link.append(icon);
-        link.addClass("reportIcon");
+        $(nTd).empty();
         $(nTd).append(link);
       }
   } , {
