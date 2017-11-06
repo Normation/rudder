@@ -132,7 +132,6 @@ class HomePage extends Loggable {
   private[this] val nodeDit          = RudderConfig.nodeDit
   private[this] val rudderDit        = RudderConfig.rudderDit
   private[this] val reportingService = RudderConfig.reportingService
-  private[this] val softwareService  = RudderConfig.readOnlySoftwareDAO
   private[this] val mapper           = RudderConfig.ldapInventoryMapper
   private[this] val roRuleRepo       = RudderConfig.roRuleRepository
 
@@ -347,7 +346,6 @@ class HomePage extends Loggable {
 
     val unknown = new Version("Unknown")
 
-    val n1 = System.currentTimeMillis
     for {
       con              <- ldap
       nodeInfos        <- HomePage.boxNodeInfos.get
@@ -390,7 +388,6 @@ class HomePage extends Loggable {
     } yield {
 
       val agentMap = agentSoft.map(x => (x.id.value, x)).toMap
-      val agents = agentMap.keySet
 
       val agentVersionByNodeEntries = nodeEntries.map { e =>
         (

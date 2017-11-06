@@ -192,7 +192,7 @@ class ShowNodeDetailsFromNode(
     dispatch (dispatchName) (NodeSeq.Empty)
   }
 
-  private[this] def privateDisplay(withinPopup : Boolean = false, displayCompliance : Boolean = false) : NodeSeq = {
+  private[this] def privateDisplay(withinPopup : Boolean, displayCompliance : Boolean) : NodeSeq = {
     boxNodeInfo match {
       case Full(None) =>
         <div class="error">Node with id {nodeId.value} was not found</div>
@@ -208,7 +208,7 @@ class ShowNodeDetailsFromNode(
           case Full(sm) =>
             val tab = if (displayCompliance) 1 else 0
             val jsId = JsNodeId(nodeId,"")
-            def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
+            def htmlId(jsId:JsNodeId, prefix:String) : String = prefix + jsId.toString
             val detailsId = htmlId(jsId,"details_")
             configService.rudder_global_policy_mode() match {
               case Full(globalMode) =>

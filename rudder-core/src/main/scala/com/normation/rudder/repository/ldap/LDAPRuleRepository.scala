@@ -328,14 +328,14 @@ class WoLDAPRuleRepository(
                          case ok:Full[_] => ok
                          case eb:EmptyBox => //ok, so there, we have a problem
                            val e = eb ?~! "Error when importing CRs, trying to restore old CR"
-                           logger.error(eb)
+                           logger.error(e)
                            restore(con, existingCrs, includeSystem) match {
                              case _:Full[_] =>
                                logger.info("Rollback rules")
-                               eb ?~! "Rollbacked imported rules to previous state"
+                               e ?~! "Rollbacked imported rules to previous state"
                              case x:EmptyBox =>
                                val m = "Error when rollbacking corrupted import for rules, expect other errors. Archive ID: '%s'".format(id.value)
-                               eb ?~! m
+                               e ?~! m
                            }
 
                        }

@@ -243,19 +243,6 @@ class SystemVariableServiceImpl(
 
     val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable().copyWithSavedValue(varNodeRoleValue)
 
-    // Set the licences for the Nova
-    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
-      allLicenses.get(nodeInfo.policyServerId) match {
-        case None =>
-          logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered Nova license. You will have to get one if you run more than 25 nodes")
-          //that's the default value
-          "25"
-        case Some(x) => x.licenseNumber.toString
-      }
-    } else {
-      "1"
-    }
-
     val authorizedNetworks = policyServerManagementService.getAuthorizedNetworks(nodeInfo.id) match {
       case eb:EmptyBox =>
         //log ?

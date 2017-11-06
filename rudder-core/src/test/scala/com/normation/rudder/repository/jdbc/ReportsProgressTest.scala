@@ -59,7 +59,7 @@ class ReportsProgressTest extends DBCommon with BoxSpecMatcher {
 
   //clean data base
   def cleanTables() = {
-    sql"DELETE FROM ReportsExecution;".update.run.transact(doobie.xa).run
+    sql"DELETE FROM ReportsExecution;".update.run.transact(doobie.xa).unsafePerformSync
   }
 
 
@@ -89,14 +89,12 @@ class ReportsProgressTest extends DBCommon with BoxSpecMatcher {
   "Last logged id" should {
 
     "correctly insert at start" in {
-      val now = DateTime.now
       (lastlogged.getReportLoggerLastId mustFails()) and
       (lastlogged.updateReportLoggerLastId(43) mustFullEq(43) ) and
       (lastlogged.getReportLoggerLastId mustFullEq(43))
     }
 
     "correctly update after" in {
-      val now = DateTime.now
       (lastlogged.updateReportLoggerLastId(88) mustFullEq(88) ) and
       (lastlogged.getReportLoggerLastId mustFullEq(88))
     }

@@ -132,7 +132,6 @@ object DisplayNodeGroupTree extends Loggable {
       }
 
       val htmlId = s"jstree-${targetInfo.target.target.target}"
-      val jsId = htmlId.replace(":", "\\\\:")
 
       override def children = Nil
 

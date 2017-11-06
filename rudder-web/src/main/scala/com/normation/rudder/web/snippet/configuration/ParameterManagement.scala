@@ -58,13 +58,6 @@ class ParameterManagement extends DispatchSnippet with Loggable {
 
   private[this] val gridName      = "globalParametersGrid"
   private[this] val gridContainer = "ParamGrid"
-  private[this] val htmlId_form   = "globalParameterForm"
-
-  // For the deletion popup
-  private[this] val woParameterService = RudderConfig.woParameterService
-  private[this] val uuidGen            = RudderConfig.stringUuidGenerator
-  private[this] val userPropertyService= RudderConfig.userPropertyService
-  private[this] val workflowEnabled    = RudderConfig.configService.rudder_workflow_enabled
 
   //the current GlobalParameterForm component
   private[this] val parameterPopup = new LocalSnippet[CreateOrUpdateGlobalParameterPopup]

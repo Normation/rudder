@@ -46,8 +46,6 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
   private[this] val repos     = RudderConfig.eventLogRepository
   private[this] val eventList = RudderConfig.eventListDisplayer
 
-  private[this] val gridName = "eventLogsGrid"
-
   def getLastEvents : Box[Seq[EventLog]] = {
     repos.getEventLogByCriteria(None, Some(1000), Some("id DESC"))
   }

@@ -128,7 +128,7 @@ class FindExpectedReportsJdbcRepository(
             case \/-(x) => Some((NodeAndConfigId(x.nodeId, x.nodeConfigId), x))
           }).toMap
           nodeConfigIds.map(id => (id, configsMap.get(id))).toMap
-        }).attempt.transact(xa).run
+        }).attempt.transact(xa).unsafePerformSync
     }
   }
 
@@ -160,7 +160,7 @@ class FindExpectedReportsJdbcRepository(
             case \/-(x) => Some((x.nodeId, x))
           }).toMap
           nodeIds.map(id => (id, configsMap.get(id))).toMap
-        }).attempt.transact(xa).run
+        }).attempt.transact(xa).unsafePerformSync
     }
   }
 
@@ -169,7 +169,7 @@ class FindExpectedReportsJdbcRepository(
     sql"""
       select distinct nodeid from nodeconfigurations
       where enddate is null and configuration like ${"%"+ruleId.value+"%"}
-    """.query[NodeId].to[Set].attempt.transact(xa).run
+    """.query[NodeId].to[Set].attempt.transact(xa).unsafePerformSync
   }
 
 
@@ -185,7 +185,7 @@ class FindExpectedReportsJdbcRepository(
       } yield {
         val res = entries.map{ case(nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
         nodeIds.map(n => (n, res.get(n))).toMap
-      }).attempt.transact(xa).run
+      }).attempt.transact(xa).unsafePerformSync
     }
   }
 }
@@ -204,7 +204,7 @@ class UpdateExpectedReportsJdbcRepository(
   override def closeNodeConfigurations(nodeId: NodeId): Box[NodeId] = {
     sql"""
       update nodeconfigurations set enddate = ${DateTime.now} where nodeid = ${nodeId} and enddate is null
-    """.update.run.attempt.transact(xa).run.map( _ => nodeId )
+    """.update.run.attempt.transact(xa).unsafePerformSync.map( _ => nodeId )
   }
 
 
@@ -224,7 +224,7 @@ class UpdateExpectedReportsJdbcRepository(
                            from nodeconfigurations
                            inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
                            where enddate is NULL"""
-                        ).query[A].list.attempt.transact(xa).run
+                        ).query[A].list.attempt.transact(xa).unsafePerformSync
 
         type B = (NodeId, Vector[NodeConfigIdInfo])
         val getInfos: \/[Throwable, List[B]] = (
@@ -232,7 +232,7 @@ class UpdateExpectedReportsJdbcRepository(
                               select node_id, config_ids from nodes_info
                               inner join tempnodeid on tempnodeid.id = nodes_info.node_id
                             """
-                          ).query[B].list.attempt.transact(xa).run
+                          ).query[B].list.attempt.transact(xa).unsafePerformSync
 
         // common part: find old configs and node config info for all config to update
         val time_0 = System.currentTimeMillis
@@ -327,7 +327,7 @@ class UpdateExpectedReportsJdbcRepository(
                        """).updateMany(toAdd)
     } yield {
       configs
-    }).attempt.transact(xa).run
+    }).attempt.transact(xa).unsafePerformSync
   }
 
 
@@ -352,7 +352,7 @@ class UpdateExpectedReportsJdbcRepository(
                  |]]""".stripMargin)
 
     (for {
-       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafePerformSync
     } yield {
        i
     }) match {
@@ -380,7 +380,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafePerformSync
     } yield {
       i
     }) match  {
@@ -416,7 +416,7 @@ class UpdateExpectedReportsJdbcRepository(
                  |]]""".stripMargin)
 
     (for {
-       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafePerformSync
     } yield {
        i
     }) match {
@@ -444,7 +444,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafePerformSync
     } yield {
       i
     }) match  {
@@ -472,7 +472,7 @@ class UpdateExpectedReportsJdbcRepository(
       update                <- updateNodeConfigIdInfo(mapOfBeforeAfter.map{ case (nodeId, (old, current)) => (nodeId, current)})
     } yield {
       update.size
-    }).attempt.transact(xa).run
+    }).attempt.transact(xa).unsafePerformSync
   }
 
 

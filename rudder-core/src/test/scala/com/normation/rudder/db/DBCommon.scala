@@ -111,12 +111,12 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     if(sqlInit.trim.size > 0) {
       // Postgres'JDBC driver just accept multiple statement
       // in one query. No need to try to split ";" etc.
-      Update0(sqlInit, None).run.transact(doobie.xa).run
+      Update0(sqlInit, None).run.transact(doobie.xa).unsafePerformSync
     }
   }
 
   def cleanDb() = {
-    if(sqlClean.trim.size > 0) Update0(sqlClean, None).run.transact(doobie.xa).run
+    if(sqlClean.trim.size > 0) Update0(sqlClean, None).run.transact(doobie.xa).unsafePerformSync
 
     dataSource.close
   }
@@ -162,6 +162,6 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   sql"""
       insert into EventLog (creationDate, principal, eventType, severity, data, causeid)
       values (${log.timestamp}, ${log.principal}, ${log.eventType}, ${log.severity}, ${log.data}, ${log.cause})
-    """.update.withUniqueGeneratedKeys[Int]("id").transact(doobie.xa).run
+    """.update.withUniqueGeneratedKeys[Int]("id").transact(doobie.xa).unsafePerformSync
 }
 }

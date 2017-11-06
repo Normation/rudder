@@ -136,7 +136,7 @@ case class RoReportsExecutionRepositoryImpl (
             (run.agentRunId.nodeId, AgentRunWithNodeConfig(run.agentRunId, config, run.isCompleted, run.insertionId))
           }).toMap
           nodeIds.map(id => (id, runsMap.get(id))).toMap
-        }).attempt.transact(xa).run
+        }).attempt.transact(xa).unsafePerformSync
     }
   }
 }

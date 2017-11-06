@@ -169,12 +169,6 @@ class DirectiveAgregationTest {
   @Test
   def arrayedDirectiveTest() {
 
-    val newTechniqueId = TechniqueId(TechniqueName("name"), TechniqueVersion("1.0"))
-    def newTechnique = Technique(newTechniqueId, "tech" + newTechniqueId, "", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
-
-    val instance = new Cf3PolicyDraft("id", newTechnique, DateTime.now, Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"),
-        directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None, isSystem = false)
-
     val machineA = new Cf3PolicyDraftContainer(Set(), Set(
         createDirectiveWithArrayBinding(activeTechniqueId1,1)
       , createDirectiveWithArrayBinding(activeTechniqueId1,2)

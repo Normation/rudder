@@ -86,7 +86,6 @@ class SearchNodeComponent(
   private[this] var query = _query.map(x => x.copy())
   private[this] var srvList = _srvList.map(x => Seq() ++ x)
 
-  private[this] val nodeInfoService = RudderConfig.nodeInfoService
   private[this] val queryProcessor  = RudderConfig.acceptedNodeQueryProcessor
 
   // The portlet for the server detail

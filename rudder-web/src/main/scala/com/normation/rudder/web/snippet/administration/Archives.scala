@@ -59,7 +59,6 @@ class Archives extends DispatchSnippet with Loggable {
 
   private[this] val itemArchiver        = RudderConfig.itemArchiveManager
   private[this] val personIdentService  = RudderConfig.personIdentService
-  private[this] val gitRevisionProvider = RudderConfig.gitRevisionProvider
   private[this] val uuidGen             = RudderConfig.stringUuidGenerator
 
   private[this] val noElements = NotArchivedElements(Seq(),Seq(),Seq())
