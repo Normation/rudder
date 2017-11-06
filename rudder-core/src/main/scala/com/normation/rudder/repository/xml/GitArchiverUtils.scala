@@ -191,7 +191,7 @@ trait GitArchiverFullCommitUtils extends Loggable {
       val commit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
       val path = GitPath(tagPrefix+DateTime.now.toString(GitTagDateTimeFormatter))
       logger.info("Create a new archive: " + path)
-      val tagCommit = gitRepo.git.tag.setMessage(commitMessage).
+      gitRepo.git.tag.setMessage(commitMessage).
         setName(path.value).
         setTagger(commiter).
         setObjectId(commit).call

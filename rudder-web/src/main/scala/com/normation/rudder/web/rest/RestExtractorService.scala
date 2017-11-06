@@ -101,23 +101,10 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def extractList[T] (params : Map[String,List[String]], key: String)(to: (List[String]) => Box[T] = ( (values:List[String]) => Full(values))) : Box[Option[T]] = {
+  private[this] def extractList[T] (params : Map[String,List[String]], key: String)(to: (List[String]) => Box[T]) : Box[Option[T]] = {
     params.get(key) match {
       case None       => Full(None)
       case Some(list) => to(list).map(Some(_))
-    }
-  }
-
-  private[this] def extractJsonList[T] (json: JValue, key: String)( convertTo: JValue => Box[T] ): Box[Option[List[T]]] = {
-    json \ key match {
-      case JArray(values) =>
-        for {
-          value <- sequence(values) { convertTo(_) }
-        } yield {
-          Some(value.toList)
-        }
-      case JNothing => Full(None)
-      case _        => Failure(s"Not a good value for parameter ${key}")
     }
   }
 
@@ -150,16 +137,6 @@ case class RestExtractorService (
 
   private[this] def toQuery (value:String) : Box[Query] = {
     queryParser(value)
-  }
-
-  private[this] def toCriterionLine (value:String) : Box[List[StringCriterionLine]] = {
-    JsonParser.parseOpt(value) match {
-      case None => Failure("Could not parse 'select' cause in api query ")
-      case Some(value) =>
-        // Need to encapsulate this in a json Object, so it parse correctly
-        val json  = ("where" -> value)
-        queryParser.parseCriterionLine(json)
-    }
   }
 
   private[this] def toQueryCriterion (value:String) : Box[List[StringCriterionLine]] = {

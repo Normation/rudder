@@ -247,7 +247,6 @@ case class RuleApiService2 (
   def deleteRule(id:String, req:Req) = {
     implicit val action = "deleteRule"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    val modId = ModificationId(uuidGen.newUuid)
     val actor = RestUtils.getActor(req)
     val ruleId = RuleId(id)
 
@@ -266,7 +265,6 @@ case class RuleApiService2 (
   def updateRule(id: String, req: Req, restValues : Box[RestRule]) = {
     implicit val action = "updateRule"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    val modId = ModificationId(uuidGen.newUuid)
     val actor = getActor(req)
     val ruleId = RuleId(id)
 

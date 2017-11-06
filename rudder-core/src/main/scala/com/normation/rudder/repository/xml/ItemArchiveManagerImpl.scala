@@ -301,7 +301,7 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  private[this] def importRulesAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true) : Box[GitCommitId] = {
+  private[this] def importRulesAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing rules archive with id '%s'".format(archiveId.value))
     for {
       categories  <- importRuleCategories(archiveId)
@@ -371,7 +371,7 @@ class ItemArchiveManagerImpl(
       archiveId
   }
 
-  private[this] def importParametersAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true) : Box[GitCommitId] = {
+  private[this] def importParametersAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing Parameters archive with id '%s'".format(archiveId.value))
     for {
       parsed      <- parseGlobalParameters.getArchive(archiveId)

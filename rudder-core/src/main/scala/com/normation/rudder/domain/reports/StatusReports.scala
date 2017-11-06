@@ -341,7 +341,6 @@ object ComponentValueStatusReport extends Loggable {
     val pairs = values.groupBy(_.unexpandedComponentValue).map { case (unexpanded, values) =>
       //the unexpanded value should be the same on all values.
       //if not, report an error for devs
-      val allReports = values.toList
       (
           unexpanded,
           ComponentValueStatusReport(unexpanded, unexpanded, values.toList.flatMap(_.messages))

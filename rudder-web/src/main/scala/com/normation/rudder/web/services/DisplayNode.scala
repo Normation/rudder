@@ -55,7 +55,6 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.model.JsInitContextLinkUtil
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -82,7 +81,6 @@ object DisplayNode extends Loggable {
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
-  private[this] val configService        = RudderConfig.configService
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
@@ -135,9 +133,8 @@ object DisplayNode extends Loggable {
     val jsId = JsNodeId(nodeId,salt)
     val detailsId = htmlId(jsId,"details_")
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
-    val softGridId = htmlId(jsId,"soft_")
     val softPanelId = htmlId(jsId,"sd_soft_")
-    var eltIdswidth = List( ("process",List("50","50","50","60","120","50","100","850"),1),("var",List("200","800"),0))
+    val eltIdswidth = List( ("process",List("50","50","50","60","120","50","100","850"),1),("var",List("200","800"),0))
     val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos")
 
     JsRaw("var "+softGridDataId +"= null") &
@@ -449,9 +446,9 @@ object DisplayNode extends Loggable {
                   case Full(Some(nodeInfo)) => <span>{nodeInfo.cfengineKeyHash}</span>
                   case _ => <i>CFEngine Key Hash not found</i>
                 }
-                <b><a href="#" onclick={s"$$('#publicKey-${sm.node.main.id.value}').toggle(300); return false;"}>Display Node key {checked}</a></b>
+                <b><a href="#" onclick={s"$$('#${publicKeyId}').toggle(300); return false;"}>Display Node key {checked}</a></b>
                 <div style="width=100%; overflow:auto;">
-                  <pre id={s"publicKey-${sm.node.main.id.value}"} class="display-keys" style="display:none;"><label>Public key:</label>{key.key}<label>CFEngine Key Hash:</label>{cfKeyHash}</pre>
+                  <pre id={s"${publicKeyId}"} class="display-keys" style="display:none;"><label>Public key:</label>{key.key}<label>CFEngine Key Hash:</label>{cfKeyHash}</pre>
                 </div> ++
                 Script(OnLoad(JsRaw(s"""createTooltip();""")))
               case None => NodeSeq.Empty
@@ -469,8 +466,8 @@ object DisplayNode extends Loggable {
       </div>
   }
 
-  private def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
-  private def htmlId_#(jsId:JsNodeId, prefix:String="") : String = "#" + prefix + jsId.toString
+  private def htmlId(jsId:JsNodeId, prefix:String) : String = prefix + jsId.toString
+  private def htmlId_#(jsId:JsNodeId, prefix:String) : String = "#" + prefix + jsId.toString
 
   private def ?(in:Option[String]) : NodeSeq = in.map(Text(_)).getOrElse(NodeSeq.Empty)
 
@@ -543,30 +540,6 @@ object DisplayNode extends Loggable {
         }
       )
     }
-  }
-
-  private def displayPublicKeys(node:NodeInventory) : NodeSeq = <b>Public Key(s): </b> ++ {if(node.publicKeys.isEmpty) {
-          Text(DEFAULT_COMPONENT_KEY)
-        } else <ul>{node.publicKeys.zipWithIndex.flatMap{ case (x,i) => (<b>{"[" + i + "] "}</b> ++ {Text(x.key.grouped(65).toList.mkString("\n"))})}}</ul> }
-
-  private def displayNodeInventoryInfo(node:NodeInventory) : NodeSeq = {
-    val details : NodeSeq = node.main.osDetails match {
-      case Linux(os, osFullName, osVersion, osServicePack, kernelVersion) => //display kernelVersion, distribution, distributionVersion
-        (<li><b>Distribution (version): </b> {os.name} ({osVersion.value})</li>
-        <li><b>Kernel version: </b> {kernelVersion.value}</li>
-        <li><b>Service Pack: </b> {?(osServicePack)}</li>)
-      case Windows(os, osFullName, osVersion, osServicePack, kernelVersion, domain, company, key, id) =>
-        (<li><b>Version:</b>: {osVersion.value}</li>
-        <li><b>Kernel version: </b> {kernelVersion.value}</li>
-        <li><b>Service Pack: </b> {?(osServicePack)}</li>
-        <li><b>User Domain:</b> {domain}</li>
-        <li><b>Company:</b> {company}</li>
-        <li><b>Id:</b> {id}</li>
-        <li><b>Key:</b> {key}</li>)
-      case _ => NodeSeq.Empty
-    }
-    <li><b>Complete name: </b> {node.main.osDetails.fullName}</li> ++
-    details
   }
 
   //show a comma separated list with description in tooltip
@@ -806,40 +779,6 @@ object DisplayNode extends Loggable {
         ( "Quantity" , {x:Video => Text(x.quantity.toString)}) ::
         Nil
     }
-
-  private[this] def showPopup(nodeId : NodeId) : JsCmd = {
-    val popupHtml =
-    <div class="modal-backdrop fade in" style="height: 100%;"></div>
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="close" data-dismiss="modal">
-                    <span aria-hidden="true">&times;</span>
-                    <span class="sr-only">Close</span>
-                </div>
-                <h4 class="modal-title">
-                    Remove a node from Rudder
-                </h4>
-            </div>
-            <div class="modal-body">
-                <h4 class="text-center">If you choose to remove this node from Rudder, it won't be managed anymore, and all information about it will be removed from the application</h4>
-            </div>
-            <div class="modal-footer">
-                {
-                    SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } },("class","btn btn-danger"))
-                }
-
-                <button class="btn btn-default" type="button" data-dismiss="modal">
-                    Cancel
-                </button>
-            </div>
-        </div>
-    </div>; ;
-
-    SetHtml(deleteNodePopupHtmlId, popupHtml) &
-    JsRaw(s""" createPopup("${deleteNodePopupHtmlId}") """)
-
-  }
 
   private[this] def showDeleteButton(nodeId : NodeId) = {
     def toggleDeletion() : JsCmd = {

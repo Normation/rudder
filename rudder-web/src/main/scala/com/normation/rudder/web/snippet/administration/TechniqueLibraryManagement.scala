@@ -86,7 +86,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
   private[this] val uuidGen                     = RudderConfig.stringUuidGenerator
   //transform Technique variable to human viewable HTML fields
-  private[this] val directiveEditorService      = RudderConfig.directiveEditorService
   private[this] val treeUtilService             = RudderConfig.jsTreeUtilService
   private[this] val userPropertyService         = RudderConfig.userPropertyService
   private[this] val updateTecLibInterval        = RudderConfig.RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
@@ -730,12 +729,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           toList.sortWith( (x,y) => treeUtilService.sortPt( x._1.techniqueName, y._1.techniqueName) ).
           map { case (activeTechnique,technique) => jsTreeNodeOf_upt(activeTechnique, technique) }
     }
-  }
-
-  ///////////// success pop-up ///////////////
-    private[this] def successPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog")
-    """)
   }
 
   private[this] def showCreateActiveTechniqueCategoryPopup() : JsCmd = {

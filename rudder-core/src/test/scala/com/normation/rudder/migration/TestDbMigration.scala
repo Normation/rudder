@@ -134,7 +134,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
       sql"""
           insert into EventLog (creationDate, principal, eventType, severity, data, causeid)
           values (${log.timestamp}, ${log.principal}, ${log.eventType}, ${log.severity}, ${log.data}, ${log.cause})
-        """.update.withUniqueGeneratedKeys[Int]("id").transact(xa).run
+        """.update.withUniqueGeneratedKeys[Int]("id").transact(xa).unsafePerformSync
     }
 
     // init datas, get the map of ids
@@ -162,7 +162,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
   "Event Logs" should {
 
     "be all found" in {
-      val logs = migration.findBatch.transact(doobie.xa).run
+      val logs = migration.findBatch.transact(doobie.xa).unsafePerformSync
       logs.size must beEqualTo(migration.batchSize) and
       forallWhen(logs) {
         case MigrationEventLog(id, eventType, data) =>
@@ -178,7 +178,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
       val logs = sql"""
         select id, eventtype, creationdate, principal, causeid, severity, data
         from eventlog
-      """.query[MigrationTestLog].vector.transact(xa).run.filter(log =>
+      """.query[MigrationTestLog].vector.transact(xa).unsafePerformSync.filter(log =>
                    //only actually migrated file format
                    try {
                      log.data \\ "@fileFormat" exists { _.text.toInt == 6 }

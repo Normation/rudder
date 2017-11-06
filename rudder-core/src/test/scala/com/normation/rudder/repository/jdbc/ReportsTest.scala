@@ -67,7 +67,7 @@ class ReportsTest extends DBCommon {
 
   //clean data base
   def cleanTables() = {
-    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).run
+    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).unsafePerformSync
   }
 
   lazy val repostsRepo = new ReportsJdbcRepository(doobie)
@@ -117,8 +117,8 @@ class ReportsTest extends DBCommon {
       )
     )
     "correctly init info" in {
-      DB.insertReports(reports.values.toList.flatten).transact(xa).run
-      sql"""select id from ruddersysevents""".query[Long].vector.transact(xa).run.size === 8
+      DB.insertReports(reports.values.toList.flatten).transact(xa).unsafePerformSync
+      sql"""select id from ruddersysevents""".query[Long].vector.transact(xa).unsafePerformSync.size === 8
     }
 
     "find the last reports for node0" in {
@@ -167,7 +167,7 @@ class ReportsTest extends DBCommon {
     )
     step {
       cleanTables()
-      DB.insertReports(reports.values.toList.flatten).transact(xa).run
+      DB.insertReports(reports.values.toList.flatten).transact(xa).unsafePerformSync
     }
 
 

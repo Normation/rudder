@@ -46,7 +46,6 @@ import JsCmds._
 import com.normation.rudder.batch._
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.eventlog.EventLog
 import org.joda.time.DateTime
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
@@ -55,17 +54,11 @@ import com.normation.rudder.web.snippet.administration.ClearCache
 class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   private[this] val asyncDeploymentAgent      = RudderConfig.asyncDeploymentAgent
-  private[this] val eventLogDeploymentService = RudderConfig.eventLogDeploymentService
-  private[this] val eventList                 = RudderConfig.eventListDisplayer
   private[this] val uuidGen                   = RudderConfig.stringUuidGenerator
   private[this] val clearCache                = new ClearCache()
 
   //current states of the deployment
   private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
-
-  // the last deployment data
-  private[this] var lastSuccessfulDeployement : Box[EventLog] = eventLogDeploymentService.getLastSuccessfulDeployement()
-  private[this] var lastEventSinceDeployment : Box[Seq[EventLog]] = Empty
 
   override def registerWith = asyncDeploymentAgent
 

@@ -58,7 +58,6 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.web.components.RuleGrid
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.rudder.web.model.RudderBaseField
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.nodes.ChangeRequestNodeGroupDiff
 import com.normation.eventlog.ModificationId
@@ -227,15 +226,9 @@ class ModificationValidationPopup(
   private[this] val asyncDeploymentAgent     = RudderConfig.asyncDeploymentAgent
   private[this] val woNodeGroupRepository    = RudderConfig.woNodeGroupRepository
   private[this] val woDirectiveRepository    = RudderConfig.woDirectiveRepository
-  private[this] val woRuleRepository         = RudderConfig.woRuleRepository
-  private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
-  private[this] val recentChangesService     = RudderConfig.recentChangesService
 
   //fonction to read state of things
   private[this] val getGroupLib              = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
-  private[this] val getDirectiveLib          = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
-  private[this] val getAllNodeInfos          = RudderConfig.nodeInfoService.getAll _
-  private[this] val getRootRuleCategory      = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }
@@ -312,14 +305,6 @@ class ModificationValidationPopup(
 
   // _1 is explanation message, _2 is dependant rules
   def popupContent() : NodeSeq = {
-    val (titleAction) = (action) match {
-      case (CreateSolo) => ("create")
-      case (CreateAndModRules) => ("create")
-      case (Delete) => ("delete")
-      case (Save) => ("update")
-      case (Enable) => ("enable")
-      case (Disable) => ("disable")
-    }
 
     def workflowMessage(directiveCreation: Boolean) =
         <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
@@ -379,12 +364,6 @@ class ModificationValidationPopup(
        ".notifications *" #> updateAndDisplayNotifications()
 
     )(html)
-  }
-
-  private[this] def showError(field:RudderBaseField) : NodeSeq = {
-    if(field.hasErrors) {
-      <ul>{field.errors.map { e => <li>{e}</li> }}</ul>
-    } else { NodeSeq.Empty }
   }
 
   private[this] def showDependentRules(rules : Set[Rule]) : NodeSeq = {

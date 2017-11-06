@@ -144,8 +144,6 @@ class RuleGrid(
   private[this] val htmlId_rulesGridId = "grid_" + htmlId_rulesGridZone
   private[this] val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
-  private[this] val htmlId_rulesGridWrapper = htmlId_rulesGridId + "_wrapper"
-  private[this] val tableId_reportsPopup = "popupReportsGrid"
 
   /*
    * Compliance and recent changes columns (not forced):
@@ -321,8 +319,6 @@ class RuleGrid(
   }
 
   //////////////////////////////// utility methods ////////////////////////////////
-
-  private[this] def jsVarNameForId(tableId:String) = "oTable" + tableId
 
   private[this] def selectAllVisibleRules(status : Boolean) : JsCmd= {
     directiveApplication match {
