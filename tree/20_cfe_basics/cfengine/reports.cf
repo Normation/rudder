@@ -39,44 +39,28 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.7.0 to 3.7.x
-# Databases bodies
-
-###################################################
-# If you find CFEngine useful, please consider    #
-# purchasing a commercial version of the software.#
-###################################################
-
-##-------------------------------------------------------
-## database promises
-##-------------------------------------------------------
-
-body database_server local_mysql(username, password)
-# @brief Defines a MySQL server running on localhost
-# @param username The username for the server connection
-# @param password The password for the server connection
-#
-# **See also:** `db_server_owner`, `db_server_password`
+body printfile cat(file)
+# @brief Report the contents of a file
+# @param file The full path of the file to report
 {
-      db_server_owner => "$(username)";
-      db_server_password => "$(password)";
-      db_server_host => "localhost";
-      db_server_type => "mysql";
-      db_server_connection_db => "mysql";
+        file_to_print => "$(file)";
+        number_of_lines => "inf";
 }
 
-##
-
-body database_server local_postgresql(username, password)
-# @brief Defines a PostgreSQL server running on localhost
-# @param username The username for the server connection
-# @param password The password for the server connection
-#
-# **See also:** `db_server_owner`, `db_server_password`
+body printfile head(file)
+# @brief Report the first 10 lines of a file
+# @param file The full path of the file to report
 {
-      db_server_owner => "$(username)";
-      db_server_password => "$(password)";
-      db_server_host => "localhost";
-      db_server_type => "postgres";
-      db_server_connection_db => "postgres";
+        file_to_print => "$(file)";
+      # GNU head defaults to 10, but we start counting from 0
+        number_of_lines => "10";
+}
+
+body printfile head_n(file, n)
+# @brief Report the first 10 lines of a file
+# @param file The full path of the file to report
+# @param n The number of lines to report
+{
+        file_to_print => "$(file)";
+        number_of_lines => "$(n)";
 }

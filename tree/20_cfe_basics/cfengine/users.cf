@@ -40,80 +40,33 @@
 #
 
 # For CFEngine Core: 3.7.0 to 3.7.x
-# Storage bodies
+# Users bodies
 
 ###################################################
 # If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
 
-##-------------------------------------------------------
-## storage promises
-##-------------------------------------------------------
-
-body volume min_free_space(free)
-# @brief Warn if the storage doesn't have at least `free` free space.
+body password plaintext_password(text)
+# @brief Sets the plaintext password for the user to `text`
+# @param text the plain text version of the password
 #
-# A warnings is also generated if the storage is smaller than 10K or as
-# less than 2 file entries.
+# **Note:** Don't use that unless you really have no choice
 #
-# @param free Absolute or percentage minimum disk space that should be
-# available before warning
+# **See also:** `hashed_password()`
 {
-      check_foreign  => "false";
-      freespace      => "$(free)";
-      sensible_size  => "10000";
-      sensible_count => "2";
+    format => "plaintext";
+    data => $(text);
 }
 
-##
-
-body mount nfs(server,source)
-# @brief Mounts the storage at `source` on `server` via nfs protocol.
+body password hashed_password(hash)
+# @brief Sets the hashed password for the user to `hash`
+# @param hash the hashed representation of the password
 #
-# Also modifies the file system table.
+# The hashing method is up to the platform.
 #
-# @param server Hostname or IP of remote server
-# @param source Path of remote file system to mount
-#
-# **See also:** `nfs_p()`, `unmount()`
+# **See also:** `plaintext_password()`
 {
-      mount_type => "nfs";
-      mount_source => "$(source)";
-      mount_server => "$(server)";
-      edit_fstab => "true";
-}
-
-##
-
-body mount nfs_p(server,source,perm)
-# @brief Mounts the storage via nfs, with `perm` passed as options to mount.
-#
-# Also modifies the file system table.
-#
-# @param server Hostname or IP of remote server
-# @param source Path of remote file system to mount
-# @param perm A list of options that's passed to the mount command
-#
-# **See also:** `nfs`, `unmount()`
-{
-      mount_type => "nfs";
-      mount_source => "$(source)";
-      mount_server => "$(server)";
-      mount_options => {"$(perm)"};
-      edit_fstab => "true";
-}
-
-##
-
-body mount unmount
-# @brief Unmounts the nfs storage.
-#
-# Also modifies the file system table.
-#
-# **See also:** `nfs()`, `nfs_p()`
-{
-      mount_type => "nfs";
-      edit_fstab => "true";
-      unmount => "true";
+    format => "hash";
+    data => $(hash);
 }

@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) CFEngine AS
+#  Copyright 2017 Northern.tech AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -39,7 +39,7 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.6.0 to 3.6.x
+# For CFEngine Core: 3.7.0 to 3.7.x
 # Paths bundle (used by other bodies)
 
 ###################################################
@@ -85,6 +85,7 @@ bundle common paths
     !(freebsd|darwin|smartos)::
       "path[npm]"      string => "/usr/bin/npm";
       "path[pip]"      string => "/usr/bin/pip";
+      "path[virtualenv]" string => "/usr/bin/virtualenv";
 
     !(freebsd|darwin)::
       "path[getfacl]"  string => "/usr/bin/getfacl";
@@ -92,6 +93,8 @@ bundle common paths
     freebsd|darwin::
       "path[npm]"      string => "/usr/local/bin/npm";
       "path[pip]"      string => "/usr/local/bin/pip";
+      "path[virtualenv]" string => "/usr/local/bin/virtualenv";
+      "path[automount]" string => "/usr/sbin/automount";
 
     _have_bin_env::
       "path[env]"      string => "/bin/env";
@@ -106,7 +109,9 @@ bundle common paths
     linux::
       "path[lsattr]"        string => "/usr/bin/lsattr";
       "path[tar]"           string => "/bin/tar";
-      "path[chkconfig]"     string => "/sbin/chkconfig";
+      "path[pgrep]"         string => "/usr/bin/pgrep";
+      "path[getent]"        string => "/usr/bin/getent";
+      "path[mailx]"         string => "/usr/bin/mailx";
 
     aix::
 
@@ -126,6 +131,7 @@ bundle common paths
       "path[grep]"     string => "/usr/bin/grep";
       "path[ls]"       string => "/usr/bin/ls";
       "path[netstat]"  string => "/usr/bin/netstat";
+      "path[oslevel]"  string => "/usr/bin/oslevel";
       "path[ping]"     string => "/usr/bin/ping";
       "path[perl]"     string => "/usr/bin/perl";
       "path[printf]"   string => "/usr/bin/printf";
@@ -216,8 +222,10 @@ bundle common paths
 
     freebsd::
 
+      "path[bhyvectl]" string => "/usr/sbin/bhyvectl";
       "path[getfacl]"  string => "/bin/getfacl";
       "path[dtrace]"   string => "/usr/sbin/dtrace";
+      "path[service]"  string => "/usr/sbin/service";
       "path[zpool]"    string => "/sbin/zpool";
       "path[zfs]"      string => "/sbin/zfs";
 
@@ -260,6 +268,7 @@ bundle common paths
       "path[svcs]"     string => "/usr/bin/svcs";
       "path[svcadm]"   string => "/usr/sbin/svcadm";
       "path[svccfg]"   string => "/usr/sbin/svccfg";
+      "path[svcprop]"  string => "/usr/bin/svcprop";
       "path[netadm]"   string => "/usr/sbin/netadm";
       "path[dladm]"    string => "/usr/sbin/dladm";
       "path[ipadm]"    string => "/usr/sbin/ipadm";
@@ -409,7 +418,10 @@ bundle common paths
       "path[apt_key]"             string => "/usr/bin/apt-key";
       "path[aptitude]"            string => "/usr/bin/aptitude";
       "path[dpkg]"                string => "/usr/bin/dpkg";
+      "path[dpkg_divert]"         string => "/usr/bin/dpkg-divert";
       "path[groupadd]"            string => "/usr/sbin/groupadd";
+      "path[groupdel]"            string => "/usr/sbin/groupdel";
+      "path[groupmod]"            string => "/usr/sbin/groupmod";
       "path[ifconfig]"            string => "/sbin/ifconfig";
       "path[ip]"                  string => "/sbin/ip";
       "path[service]"             string => "/usr/sbin/service";
@@ -417,6 +429,8 @@ bundle common paths
       "path[update_alternatives]" string => "/usr/bin/update-alternatives";
       "path[update_rc_d]"         string => "/usr/sbin/update-rc.d";
       "path[useradd]"             string => "/usr/sbin/useradd";
+      "path[userdel]"             string => "/usr/sbin/userdel";
+      "path[usermod]"             string => "/usr/sbin/usermod";
 
     archlinux||darwin::
 
@@ -491,6 +505,8 @@ bundle common paths
     freebsd|openbsd|netbsd|darwin::
 
       "path[shadow]"       string => "/etc/master.passwd";
+
+      "path[mailx]"        string => "/usr/bin/mailx";
 
     aix::
 

@@ -40,80 +40,93 @@
 #
 
 # For CFEngine Core: 3.7.0 to 3.7.x
-# Storage bodies
+# edit_xml bundles
 
 ###################################################
 # If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
 
-##-------------------------------------------------------
-## storage promises
-##-------------------------------------------------------
-
-body volume min_free_space(free)
-# @brief Warn if the storage doesn't have at least `free` free space.
+bundle edit_xml xml_insert_tree_nopath(treestring)
+# @brief Insert XML tree with no path
 #
-# A warnings is also generated if the storage is smaller than 10K or as
-# less than 2 file entries.
+# This `edit_xml` bundle inserts the given XML tree.  Use with an
+# empty XML document.
 #
-# @param free Absolute or percentage minimum disk space that should be
-# available before warning
+# @param treestring The XML tree, as a string
+#
+# **Example:**
+#
+# ```cf3
+#  files:
+#      "/newfile" edit_xml => xml_insert_tree_nopath('<x>y</x>');
+# ```
 {
-      check_foreign  => "false";
-      freespace      => "$(free)";
-      sensible_size  => "10000";
-      sensible_count => "2";
+  insert_tree:
+      '$(treestring)';
 }
 
-##
-
-body mount nfs(server,source)
-# @brief Mounts the storage at `source` on `server` via nfs protocol.
+bundle edit_xml xml_insert_tree(treestring, xpath)
+# @brief Insert XML tree at the given XPath
 #
-# Also modifies the file system table.
+# This `edit_xml` bundle inserts the given XML tree at a specific
+# XPath.  Uses `insert_tree`.
 #
-# @param server Hostname or IP of remote server
-# @param source Path of remote file system to mount
+# @param treestring The XML tree, as a string
+# @param xpath A valid XPath string
 #
-# **See also:** `nfs_p()`, `unmount()`
+# **Example:**
+#
+# ```cf3
+#  files:
+#      "/file.xml" edit_xml => xml_insert_tree('<x>y</x>', '/a/b/c');
+# ```
 {
-      mount_type => "nfs";
-      mount_source => "$(source)";
-      mount_server => "$(server)";
-      edit_fstab => "true";
+  insert_tree:
+      '$(treestring)' select_xpath => "$(xpath)";
 }
 
-##
-
-body mount nfs_p(server,source,perm)
-# @brief Mounts the storage via nfs, with `perm` passed as options to mount.
+bundle edit_xml xml_set_value(value, xpath)
+# @brief Sets or replaces a value in XML at the given XPath
 #
-# Also modifies the file system table.
+# This `edit_xml` bundle sets or replaces the value at a specific
+# XPath with the given value.  Uses `set_text`.
 #
-# @param server Hostname or IP of remote server
-# @param source Path of remote file system to mount
-# @param perm A list of options that's passed to the mount command
+# @param value The new value
+# @param xpath A valid XPath string
 #
-# **See also:** `nfs`, `unmount()`
+# **Example:**
+#
+# ```cf3
+#  files:
+#      "/file.xml" edit_xml => xml_set_value('hello', '/a/b/c');
+# ```
 {
-      mount_type => "nfs";
-      mount_source => "$(source)";
-      mount_server => "$(server)";
-      mount_options => {"$(perm)"};
-      edit_fstab => "true";
+  set_text:
+      "$(value)"
+      select_xpath => "$(xpath)";
 }
 
-##
-
-body mount unmount
-# @brief Unmounts the nfs storage.
+bundle edit_xml xml_set_attribute(attr, value, xpath)
+# @brief Sets or replaces an attribute in XML at the given XPath
 #
-# Also modifies the file system table.
+# This `edit_xml` bundle sets or replaces an attribute at a specific
+# XPath with the given value.  Uses `set_attribute`.
 #
-# **See also:** `nfs()`, `nfs_p()`
+# @param attr The attribute name
+# @param value The new attribute value
+# @param xpath A valid XPath string
+#
+# **Example:**
+#
+# ```cf3
+#  files:
+#      "/file.xml" edit_xml => xml_set_attribute('parameter', 'ha', '/a/b/c');
+# ```
 {
-      mount_type => "nfs";
-      edit_fstab => "true";
-      unmount => "true";
+  set_attribute:
+      "$(attr)"
+      attribute_value => "$(value)",
+      select_xpath => "$(xpath)";
+
 }

@@ -1,0 +1,379 @@
+############################################################################
+#  Copyright 2017 Northern.tech AS
+#
+#  This program is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License LGPL as published by the
+#  Free Software Foundation; version 3.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  To the extent this program is licensed as part of the Enterprise
+#  versions of CFEngine, the applicable Commercial Open Source License
+#  (COSL) may apply to this file if you as a licensee so wish it. See
+#  included file COSL.txt.
+###########################################################################
+#
+# CFEngine Community Open Promise-Body Library
+#
+# This initiative started by CFEngine promotes a
+# standardized set of names and promise specifications
+# for template functionality within CFEngine 3.
+#
+# The aim is to promote an industry standard for
+# naming of configuration patterns, leading to a
+# de facto middleware of standardized syntax.
+#
+# Names should be intuitive and parameters should be
+# minimal to assist readability and comprehensibility.
+
+# Contributions to this file are voluntarily given to
+# the cfengine community, and are moderated by CFEngine.
+# No liability or warranty for misuse is implied.
+#
+# If you add to this file, please try to make the
+# contributions "self-documenting". Comments made
+# after the bundle/body statement are retained in
+# the online docs
+#
+
+# For CFEngine Core: 3.7.0 to 3.7.x
+# VCS Bundles
+
+###################################################
+# If you find CFEngine useful, please consider    #
+# purchasing a commercial version of the software.#
+###################################################
+
+bundle common vcs_common
+# @ignore
+{
+  vars:
+      "inputs" slist => { "$(this.promise_dirname)/common.cf",
+                          "$(this.promise_dirname)/paths.cf",
+                          "$(this.promise_dirname)/commands.cf" };
+}
+
+body file control
+# @ignore
+{
+      inputs => { @(vcs_common.inputs) };
+}
+
+bundle agent git_init(repo_path)
+# @brief initializes a new git repository if it does not already exist
+# @depends git
+# @param repo_path absolute path of where to initialize a git repository
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent my_git_repositories
+# {
+#   vars:
+#     "basedir"  string => "/var/git";
+#     "repos"    slist  => { "myrepo", "myproject", "myPlugForMoreHaskell" };
+#
+#   files:
+#     "$(basedir)/$(repos)/."
+#       create => "true";
+#
+#   methods:
+#     "git_init" usebundle => git_init("$(basedir)/$(repos)");
+# }
+# ```
+{
+  classes:
+    "ok_norepo" not => fileexists("$(repo_path)/.git");
+
+  methods:
+    ok_norepo::
+      "git_init"  usebundle => git("$(repo_path)", "init", "");
+}
+
+bundle agent git_add(repo_path, file)
+# @brief adds files to the supplied repository's index
+# @depends git
+# @param repo_path absolute path to a git repository
+# @param file a file to stage in the index
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent add_files_to_git_index
+# {
+#   vars:
+#     "repo"  string => "/var/git/myrepo";
+#     "files" slist  => { "fileA", "fileB", "fileC" };
+#
+#   methods:
+#     "git_add" usebundle => git_add("$(repo)", "$(files)");
+# }
+# ```
+{
+  classes:
+    "ok_repo" expression => fileexists("$(repo_path)/.git");
+
+  methods:
+    ok_repo::
+      "git_add" usebundle => git("$(repo_path)", "add", "$(file)");
+}
+
+bundle agent git_checkout(repo_path, branch)
+# @brief checks out an existing branch in the supplied git repository
+# @depends git
+# @param repo_path absolute path to a git repository
+# @param branch the name of an existing git branch to checkout
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent git_checkout_some_existing_branch
+# {
+#   vars:
+#     "repo"   string => "/var/git/myrepo";
+#     "branch" string => "dev/some-topic-branch";
+#
+#   methods:
+#     "git_checkout" usebundle => git_checkout("$(repo)", "$(branch)");
+# }
+# ```
+{
+  classes:
+    "ok_repo" expression => fileexists("$(repo_path)/.git");
+
+  methods:
+    ok_repo::
+      "git_checkout" usebundle => git("$(repo_path)", "checkout", "$(branch)");
+}
+
+bundle agent git_checkout_new_branch(repo_path, new_branch)
+# @brief checks out and creates a new branch in the supplied git repository
+# @depends git
+# @param repo_path absolute path to a git repository
+# @param new_branch the name of the git branch to create and checkout
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent git_checkout_new_branches
+# {
+#   vars:
+#     "repo[myrepo]"    string => "/var/git/myrepo";
+#     "branch[myrepo]"  string => "dev/some-new-topic-branch";
+#
+#     "repo[myproject]"   string => "/var/git/myproject";
+#     "branch[myproject]" string => "dev/another-new-topic-branch";
+#
+#     "repo_names"        slist => getindices("repo");
+#
+#   methods:
+#     "git_checkout_new_branch" usebundle => git_checkout_new_branch("$(repo[$(repo_names)])", "$(branch[$(repo_names)])");
+# }
+# ```
+{
+  classes:
+    "ok_repo" expression => fileexists("$(repo_path)/.git");
+
+  methods:
+    ok_repo::
+      "git_checkout" usebundle => git("$(repo_path)", "checkout -b", "$(branch)");
+}
+
+bundle agent git_clean(repo_path)
+# @brief Ensure that a given git repo is clean
+# @param repo_path Path to the clone
+#
+# **Example:**
+#
+# ```cf3
+#  methods:
+#    "test"
+#      usebundle => git_clean("/opt/cfengine/masterfiles_staging_tmp"),
+#      comment => "Ensure that the staging area is a clean clone";
+# ```
+{
+  methods:
+      "" usebundle => git("$(repo_path)", "clean", ' --force -d'),
+      comment => "To have a clean clone we must remove any untracked files and
+                  directories. These should have all been stashed, but in case
+                  of error we go ahead and clean anyway.";
+}
+
+bundle agent git_stash(repo_path, stash_name)
+# @brief Stash any changes (including untracked files) in repo_path
+# @param repo_path Path to the clone
+# @param stash_name Stash name
+#
+# **Example:**
+#
+# ```cf3
+#  methods:
+#    "test"
+#      usebundle => git_stash("/opt/cfengine/masterfiles_staging_tmp", "temp"),
+#      comment => "Stash any changes, including untracked files";
+# ```
+{
+  methods:
+      "" usebundle => git($(repo_path), "stash", 'save --quiet --include-untracked "$(stash_name)"'),
+      comment => "So that we don't lose any trail of what happened and so that
+                    we don't accidentally delete something important we stash any
+                    changes.
+  Note:
+                      1. This promise will fail if user.email is not set
+                      2. We are respecting ignored files.";
+}
+
+bundle agent git_stash_and_clean(repo_path)
+# @brief Ensure that a given git repo is clean and attempt to save any modifications
+# @param repo_path Path to the clone
+#
+# **Example:**
+#
+# ```cf3
+#  methods:
+#    "test"
+#      usebundle => git_stash_and_clean("/opt/cfengine/masterfiles_staging_tmp"),
+#      comment => "Ensure that the staging area is a clean clone after attempting to stash any changes";
+# ```
+{
+  vars:
+      "stash" string => "CFEngine AUTOSTASH: $(sys.date)";
+
+  methods:
+      "" usebundle => git_stash($(repo_path), $(stash)),
+      classes => scoped_classes_generic("bundle", "git_stash");
+
+    git_stash_ok::
+      "" usebundle => git_clean($(repo_path));
+
+  reports:
+    git_stash_not_ok::
+      "$(this.bundle):: Warning: Not saving changes or cleaning. Git stash failed. Perhaps 'user.email' or 'user.name' is not set.";
+}
+
+bundle agent git_commit(repo_path, message)
+# @brief executes a commit to the specificed git repository
+# @depends git
+# @param repo_path absolute path to a git repository
+# @param message the message to associate to the commmit
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent make_git_commit
+# {
+#   vars:
+#     "repo"  string => "/var/git/myrepo";
+#     "msg"   string => "dituri added some bundles for common git operations";
+#
+#   methods:
+#     "git_commit" usebundle => git_commit("$(repo)", "$(msg)");
+# }
+# ```
+{
+  classes:
+    "ok_repo" expression => fileexists("$(repo_path)/.git");
+
+  methods:
+    ok_repo::
+      "git_commit" usebundle => git("$(repo_path)", "commit", '-m "$(message)"');
+}
+
+bundle agent git(repo_path, subcmd, args)
+# @brief generic interface to git
+# @param repo_path absolute path to a new or existing git repository
+# @param subcmd any valid git sub-command
+# @param args a single string of arguments to pass
+#
+# This bundle will drop privileges if running as root (uid 0) and the
+# repository is owned by a different user. Use `DEBUG` or `DEBUG_git` (from the
+# command line, `-D DEBUG_git`) to see every Git command it runs.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent git_rm_files_from_staging
+# {
+#   vars:
+#     "repo"        string => "/var/git/myrepo";
+#     "git_cmd"     string => "reset --soft";
+#     "files"       slist  => { "fileA", "fileB", "fileC" };
+#
+#   methods:
+#     "git_reset" usebundle => git("$(repo)", "$(git_cmd)", "HEAD -- $(files)");
+# }
+# ```
+{
+  vars:
+      "oneliner" string => "$(paths.path[git])";
+
+      "repo_uid"
+      string  => filestat($(repo_path), "uid"),
+      comment => "So that we don't mess up permissions, we will just execute
+                    all commands as the current owner of .git";
+
+      "repo_gid"
+      string  => filestat($(repo_path), "gid"),
+      comment => "So that we don't mess up permissions, we will just execute
+                    all commands as the current group of .git";
+
+      # We get the passwd entry from the user that owns the repo so
+      # that we can extract the home directory for later use.
+      "repo_uid_passwd_ent"
+        string => execresult("$(paths.getent) passwd $(repo_uid)", noshell),
+        comment => "We need to extract the home directory of the repo
+                    owner so that it can be used to avoid errors from
+                    unprivledged execution trying to access the root
+                    users git config.";
+
+  classes:
+      "am_root" expression => strcmp($(this.promiser_uid), "0");
+
+      # $(repo_uid) must be defined before we try to test this or we will end up
+      # having at least one pass during evaluation the agent will not know it
+      # needs to drop privileges, leading to some files like .git/index being
+      # created with elevated privileges, and subsequently causing the agent to
+      # not be able to commit as a normal user.
+      "need_to_drop"
+        not => strcmp($(this.promiser_uid), $(repo_uid)),
+        ifvarclass => isvariable( repo_uid );
+
+    am_root.need_to_drop::
+      # This regular expression could be tightened up
+      # Extract the home directory from the owner of the repository
+      # into $(repo_uid_passwd[1])
+      "extracted_repo_uid_home"
+        expression => regextract( ".*:.*:\d+:\d+:.*:(.*):.*",
+                                  $(repo_uid_passwd_ent),
+                                  "repo_uid_passwd" ),
+        ifvarclass => isvariable("repo_uid_passwd_ent");
+
+  commands:
+    am_root.need_to_drop::
+      # Because cfengine does not inherit the shell environment when
+      # executing commands, git will look for the root users git
+      # config and error when the executing user does not have
+      # access. So we need to set the home directory of the executing
+      # user.
+      "$(paths.env) HOME=$(repo_uid_passwd[1]) $(oneliner)"
+        args => "$(subcmd) $(args)",
+        classes => kept_successful_command,
+        contain => setuidgid_dir( $(repo_uid), $(repo_gid), $(repo_path) );
+
+    !am_root|!need_to_drop::
+      "$(oneliner)"
+      args => "$(subcmd) $(args)",
+      classes => kept_successful_command,
+      contain => in_dir( $(repo_path) );
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle).am_root.need_to_drop"::
+      "DEBUG $(this.bundle): with dropped privileges to uid '$(repo_uid)' and gid '$(repo_gid)', in directory '$(repo_path)', running Git command '$(paths.env) HOME=\"$(repo_uid_passwd[1])\" $(oneliner) $(subcmd) $(args)'"
+        ifvarclass => isvariable("repo_uid_passwd[1]");
+
+    "DEBUG|DEBUG_$(this.bundle).(!am_root|!need_to_drop)"::
+      "DEBUG $(this.bundle): with current privileges, in directory '$(repo_path)', running Git command '$(oneliner) $(subcmd) $(args)'";
+}

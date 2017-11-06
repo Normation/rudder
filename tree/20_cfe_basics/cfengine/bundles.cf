@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) CFEngine AS
+#  Copyright 2017 Northern.tech AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -39,13 +39,28 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.5.1 to 3.5.x
+# For CFEngine Core: 3.7.0 to 3.7.x
 # Bundles
 
 ###################################################
 # If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
+
+bundle common bundles_common
+# @ignore
+{
+  vars:
+      "inputs" slist => { "$(this.promise_dirname)/paths.cf",
+                          "$(this.promise_dirname)/files.cf",
+                          "$(this.promise_dirname)/commands.cf" };
+}
+
+body file control
+# @ignore
+{
+      inputs => { @(bundles_common.inputs) };
+}
 
 ###################################################
 # agent bundles
@@ -69,18 +84,34 @@ bundle agent cronjob(commands,user,hours,mins)
 # ```
 {
   vars:
-    SuSE::
+    suse::
       "crontab" string => "/var/spool/cron/tabs";
     redhat|fedora::
       "crontab" string => "/var/spool/cron";
     freebsd::
       "crontab" string => "/var/cron/tabs";
-    !(SuSE|redhat|fedora|freebsd)::
+    !(suse|redhat|fedora|freebsd)::
       "crontab" string => "/var/spool/cron/crontabs";
+
+    any::
+      # We escape the user supplied values so that we can search to see if the
+      # entry already exists with slightly different spacing.
+      "e_mins" string => escape("$(mins)");
+      "e_hours" string => escape("$(hours)");
+      "e_commands" string => escape("$(commands)");
+
+  classes:
+    !windows::
+
+      # We tolerate existing entries that differ only in whitespace and avoid
+      # entering duplicate entries.
+
+      "present_with_potentially_different_spacing"
+        expression => regline( "^$(e_mins)\s+$(e_hours)\s+\*\s+\*\s+\*\s+$(e_commands)", "$(crontab)/$(user)");
 
   files:
 
-    !windows::
+    !windows.!present_with_potentially_different_spacing::
       "$(crontab)/$(user)"
 
       comment => "A user's regular batch jobs are added to this file",
@@ -178,6 +209,7 @@ bundle agent fileinfo(f)
 #     "fileinfo" usebundle => fileinfo( "/tmp/example3" );
 #
 #   reports:
+#     "$(this.bundle): $(files): $(fileinfo.fields) = '$(fileinfo.stat[$(files)][$(fileinfo.fields)])'";
 #     "$(this.bundle): $(fileinfo.stat[/tmp/example3][size])";
 #     "$(this.bundle): $(fileinfo.stat[/tmp/example3][gid])";
 #     "$(this.bundle): $(fileinfo.stat[/tmp/example3][uid])";
@@ -200,7 +232,7 @@ bundle agent fileinfo(f)
 # ```
 {
   vars:
-      "fields" slist => splitstring("size,gid,uid,ino,nlink,ctime,atime,mtime,mode,modeoct,permstr,permoct,type,devno,dev_minor,dev_major,basename,dirname", ",", 999);
+      "fields" slist => splitstring("size,gid,uid,ino,nlink,ctime,atime,mtime,mode,modeoct,permstr,permoct,type,devno,dev_minor,dev_major,basename,dirname,linktarget,linktarget_shallow", ",", 999);
 
       "stat[$(f)][$(fields)]" string => filestat($(f), $(fields));
 
@@ -269,55 +301,37 @@ bundle agent prunedir(dir, max_days)
       depth_search  => recurse("1");
 }
 
-bundle agent tcdb_fix
-# @brief Optimize tcdb and repair tcdb corruption
+bundle agent prunetree(dir, depth, max_days)
+# @brief Delete files and directories inside "dir" up to "depth" older than "max_days".
+# @depends delete tidy
+# @depends depth_search recurse_with_base
+# @depends file_select days_old
+# @param dir directory to examine for files
+# @param depth How many levels to descend
+# @param max_days maximum number of days old a files mtime is allowed to before deletion
 #
-# **Example**:
+# **Example:**
+#
 # ```cf3
-# methods:
-#   "Manage Tokyo Cabinet Corruption"
-#     usebundle => tcdb_fix,
-#     handle => "main_methods_tcdb_fix",
-#     comment => "Optimize/Repair or regenerate corrupt tcdb files";
+# bundle agent example
+# {
+#   vars:
+#     "dirs" slist => { "/tmp/logs", "/tmp/logs2" };
+#
+#   methods:
+#     "prunetree" usebundle => prunetree( @(dirs), inf, "1" );
+# }
 # ```
-# This bundle works around corruption issues with Tokyo Cabinet database files
-# in CFEngine 3.5. Find all tcdb files in $(sys.workdir) and run tchmgr
-# optimize on them. If any invalid record headers are found we remove the
-# affected database so that it can be re-created. This occurs hourly based on
-# `splayclass` and assumes a 5 minute agent execution interval.
 {
-  vars:
+  files:
+      "$(dir)"
+      comment => "Delete files and directories under $(dir) up to $(depth)
+                    depth older than $(max_days)",
 
-    linux::
-      "db" slist => splitstring( execresult("/usr/bin/find $(sys.workdir) -name '*.tcdb' 2>/dev/null", "useshell"), "\n", "1000");
+      delete        => tidy,
+      file_select   => days_old( $(max_days) ),
+      depth_search  => recurse_with_base( $(depth) );
 
-
-  classes:
-
-      # NOTE: assumes that CFEngine is set to run every 5 minutes
-      "hourly_class" expression => splayclass("$(sys.host)$(sys.ipv4)", "hourly");
-
-    hourly_class.linux::
-      "detected_invalid_record_$(db)" expression => returnszero("/var/cfengine/bin/tchmgr optimize $(db) 2>&1 | grep -q 'invalid record header'", "useshell");
-
-
-  commands:
-
-      "$(paths.rm)"
-        args => "-f $(db)",
-        ifvarclass => canonify("detected_invalid_record_$(db)"),
-        classes => scoped_classes_generic("bundle", "absent_$(db)"),
-        handle => "fix_tcdb_commands_detected_invalid_record_rm_$(db)",
-        comment => "Invalid record headers indicate that the database corruption is beyond repair. It will be automatically re-created.";
-
-
-  reports:
-
-      "$(this.bundle) $(sys.fqhost): Detected invalid record header in $(db) - tried to repair"
-        ifvarclass => canonify("detected_invalid_record_$(db)");
-
-      "$(this.bundle) $(sys.fqhost): Repair failed, removed corrupt database: $(db)"
-        ifvarclass => canonify("absent_$(db)_repaired");
 }
 
 bundle agent url_ping(host, method, port, uri)
@@ -370,4 +384,163 @@ bundle agent url_ping(host, method, port, uri)
       ifvarclass => "url_ok_$(chost)";
       "$(this.bundle): $(method) $(host):$(port)/$(uri) did *not* get 200 OK"
       ifvarclass => "url_not_ok_$(chost)";
+}
+
+bundle agent cmerge(name, varlist)
+# @brief bundle to merge many data containers into one
+# @param name the variable name to create
+# @param varlist a list of variable names (**MUST** be a list)
+#
+# The result will be in `cmerge.$(name)`.  You can also use
+# `cmerge.$(name)_str` for a string version of the merged containers.
+#
+# The name is variable so you can call this bundle for more than one
+# merge.
+#
+# If you merge a key-value map into an array or vice versa, the map
+# always wins.  So this example will result in a key-value map even
+# though `cmerge.$(name)` starts as an array.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent run
+# {
+#   vars:
+#       # the "mymerge" tag is user-defined
+#       "a"       data  => parsejson('{ "mark": "b" }'), meta => { "mymerge" };
+#       "b"       data  => parsejson('{ "volker": "h" }'), meta => { "mymerge" };
+#
+#       # you can list them explicitly: "default:run.a" through "default:run.d"
+#       "todo"    slist => variablesmatching(".*", "mymerge");
+#
+#       # you can use cmerge.all_str instead of accessing the merged data directly
+#       "merged_str" string => format("%S", "cmerge.all");
+#
+#   methods:
+#       "go" usebundle => cmerge("all", @(todo)); # merge a, b into container cmerge.all
+#
+#   reports:
+#       "merged = $(cmerge.all_str)"; # will print a map with keys "mark" and "volker"
+# }
+# ```
+{
+  vars:
+      "$(name)" data => parsejson('[]'),            policy => "free";
+      "$(name)" data => mergedata($(name), $(varlist)), policy => "free"; # iterates!
+      "$(name)_str" string => format("%S", $(name)),    policy => "free";
+}
+
+bundle agent collect_vars(name, tag, flatten)
+# @brief bundle to collect tagged variables into a data container
+# @param name the variable name to create inside `collect_vars`
+# @param tag the tag regex string to match e.g. "beta,gamma=.*"
+# @param flatten to flatten variable values, set to "any" or "true" or "1"
+#
+# The result will be a map in `collect.$(name)`. You can also use
+# `cmerge.$(name)_str` for a string version of the merged containers
+# (if it fits in a CFEngine string).
+#
+# The name is variable so you can call this bundle for more than one
+# collection.
+#
+# Every found variable will be a key in the map, unless you specify
+# `flatten`, in which case they'll be flattened into a top-level array
+# of data.
+#
+# The `flatten` parameter can be "any" or "true" or "1" to be true.
+#
+# **Example:**
+#
+# ```cf3
+# body common control
+# {
+#       inputs => { "$(sys.libdir)/stdlib.cf" };
+# }
+#
+# bundle agent main
+# {
+#   vars:
+#       # the "mymerge" tag is user-defined
+#       "a" data  => parsejson('{ "mark": "burgess" }'), meta => { "mymerge" };
+#       "b" data  => parsejson('{ "volker": "hilsheimer" }'), meta => { "mymerge" };
+#
+#   methods:
+#       # merge a, b into container collect_vars.all
+#       "go" usebundle => collect_vars("all", "mymerge", "");
+#       # flatten a, b into container collect_vars.flattened
+#       "go_flatten" usebundle => collect_vars("flattened", "mymerge", "true");
+#
+#   reports:
+#       # merged = {"default:main.a":{"mark":"burgess"},"default:main.b":{"volker":"hilsheimer"}}
+#       "merged = $(collect_vars.all_str)";
+#       # flattened = {"mark":"burgess","volker":"hilsheimer"}
+#       "flattened = $(collect_vars.flattened_str)";
+# }
+# ```
+{
+  classes:
+      "flatten" expression => strcmp($(flatten), "any");
+      "flatten" expression => strcmp($(flatten), "1");
+      "flatten" expression => strcmp($(flatten), "true");
+
+  vars:
+      "todo_$(name)"    slist => variablesmatching(".*", $(tag));
+
+    !flatten::
+      "$(name)"
+        data => parsejson('{}'),
+        policy => "free";
+
+      # this iterates!
+      "$(name)"
+        data => mergedata($(name), '{ "$(todo_$(name))": $(todo_$(name)) }'),
+        policy => "free";
+
+    flatten::
+      "$(name)"
+        data => parsejson('[]'),
+        policy => "free";
+
+      # this iterates!
+      "$(name)"
+        data => mergedata($(name), "$(todo_$(name))"),
+        policy => "free";
+
+    any::
+      "$(name)_str"
+        string => format("%S", $(name)),
+        policy => "free";
+}
+
+bundle agent run_ifdefined(namespace, mybundle)
+# @brief bundle to maybe run another bundle dynamically
+# @param namespace the namespace, usually `$(this.namespace)`
+# @param mybundle the bundle to maybe run
+#
+# This bundle simply is a way to run another bundle only if it's defined.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent run
+# {
+#   methods:
+#       # does nothing if bundle "runthis" is not defined
+#       "go" usebundle => run_ifdefined($(this.namespace), runthis);
+# }
+# ```
+{
+  vars:
+      "bundlesfound" slist => bundlesmatching("^$(namespace):$(mybundle)$");
+      "count" int => length(bundlesfound);
+
+  methods:
+      "any"
+      usebundle  => $(bundlesfound),
+      ifvarclass => strcmp(1, $(count));
+
+  reports:
+    verbose_mode::
+      "$(this.bundle): found matching bundles $(bundlesfound) for namespace '$(namespace)' and bundle '$(mybundle)'";
 }

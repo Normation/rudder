@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) CFEngine AS
+#  Copyright 2017 Northern.tech AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -39,100 +39,87 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.5.0 to 3.5.x
-# Internal hub maintenance bundles
-
+# For CFEngine Core: 3.8.0 to 3.8.x
 ###################################################
 # If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
 
-bundle agent cfe_internal_hub_maintain
-# @brief Executes reporting database maintenance process
-# When modifying this, the following must be considered:
-#  - Intervals less than 6 hours must be used with caution
-#       as maintenance process could take a considerable time
-#  - parameters to action => bg("<if_elapsed>", "<expireafter>")
-#       must be changed accordingly
-{
-  commands:
-
-    (Hr00|Hr06|Hr12|Hr18).Min00_05::
-
-      "$(sys.cf_hub) -m"
-      comment => "Perform hub database maintenance. This removes expired entries in the enterprise database and creates a total compliance cache for Mission Portal",
-      classes => kept_successful_command,
-      handle => "cfe_internal_start_hub_start_maintenance",
-      action => bg("60","60");
-}
-
-bundle common cfengine_enterprise_hub_ha
+bundle common cfe_internal_common
+# @brief Select parts of the standard library that are dependant
 {
   vars:
-    "classification_bundles"
-        slist => { };
-
-    "management_bundles"
-        slist => { };
+      "inputs" slist => { "$(this.promise_dirname)/common.cf",
+                          "$(this.promise_dirname)/commands.cf"};
 }
 
-bundle agent cfe_internal_database_cleanup_consumer_status (row_count)
-# @ignore
-# @brief keep up to row_count entries in the database
+body file control
+# @brief Include necessary parts of stdlib
 {
-
-  vars:
-      "remove_query"
-      string => "DELETE FROM status WHERE ts IN (SELECT ts FROM status ORDER BY ts DESC OFFSET $(row_count));";
-
-  commands:
-      "$(sys.bindir)/psql cfdb -c \"$(remove_query)\""
-      contain => in_shell_and_silent,
-      classes => kept_successful_command,
-      handle => "cf_database_maintain_consumer_status";
-}
-
-bundle agent cfe_internal_database_cleanup_diagnostics (settings)
-{
-  vars:
-      "index" slist => getindices("settings");
-
-      "remove_query_$(settings[$(index)][report])"
-      string => "DELETE FROM $(settings[$(index)][table]) WHERE $(settings[$(index)][time_key]) < (CURRENT_TIMESTAMP - INTERVAL '$(settings[$(index)][history_length_days]) day');";
-
-  commands:
-      "$(sys.bindir)/psql cfdb -c \"$(remove_query_$(settings[$(index)][report]))\""
-      contain => in_shell_and_silent,
-      classes => kept_successful_command,
-      handle => "cf_database_maintain_diagnostics_$(settings[$(index)][report])";
+      inputs => { @(cfe_internal_common.inputs) };
 }
 
 bundle agent cfe_internal_cleanup_agent_reports
-# @ignore
-# @brief cleanup accumulated agent reports if they grow too large
+# @brief Cleanup accumulated agent reports
 {
   vars:
     any::
-      "report_files" slist => findfiles("$(sys.workdir)/state/diff/*.diff");
-      "reports_size[$(report_files)]" int => filesize("$(report_files)");
-      "tmpmap" slist => maparray("$(this.v)", reports_size);
+      # To avoid unnecessary work, we only findfiles if there is not already a
+      # variable defined.
+      "diff_files"
+        slist => findfiles("$(sys.workdir)/state/diff/*.diff"),
+        unless => isvariable( $(this.promiser) );
 
-    # We need to make sure that we have diff files before summing or errors are
+      "promise_log_files"
+        slist => findfiles("$(sys.workdir)/state/promise_log/*.csv"),
+        unless => isvariable( $(this.promiser) );
+
+      "previous_state_files"
+        slist => findfiles("$(sys.workdir)/state/previous_state/*.cache"),
+        unless => isvariable( $(this.promiser) );
+
+      "untracked_files"
+        slist => findfiles("$(sys.workdir)/state/untracked/*.idx"),
+        unless => isvariable( $(this.promiser) );
+
+      "files"
+        slist => { @(diff_files),
+                   @(promise_log_files),
+                   @(previous_state_files),
+                   @(untracked_files) };
+
+      "reports_size[$(files)]"
+        int => filesize("$(files)"),
+        unless => isvariable( $(this.promiser) );
+
+      "tmpmap"
+        slist => maparray("$(this.v)", reports_size);
+
+    # We need to make sure that we have files before summing or errors are
     # produced in the log
-    have_diff_files::
+    have_files::
       "total_report_size" real => sum(tmpmap);
 
   classes:
-      "cfe_internal_purge_diff_reports"
+      "cfe_internal_purge_reports"
         expression => isgreaterthan("$(total_report_size)","$(def.max_client_history_size)"),
-        comment => "Determine if the current sum of report diffs exceeds the max desired";
+        comment => "Determine if the current sum of reports exceeds the max desired";
 
-      "have_diff_files"
+      "have_files"
         expression => isgreaterthan(length(tmpmap), 0);
 
   files:
-    cfe_internal_purge_diff_reports::
-      "$(report_files)"
+    cfe_internal_purge_reports::
+      "$(files)"
         delete => tidy,
-        handle => "cf_cleanup_agent_reports_$(report_files)";
+        handle => "cf_cleanup_agent_reports_$(files)";
+
+  reports:
+    DEBUG|DEBUG_cfe_internal_cleanup_agent_reports::
+      "DEBUG $(this.bundle): Size of '$(files)' =  '$(reports_size[$(files)])'";
+      "DEBUG $(this.bundle): Size of all reports = '$(total_report_size)'";
+      "DEBUG $(this.bundle): Purge threshold = '$(def.max_client_history_size)'";
+      "DEBUG $(this.bundle): Client history purge triggered"
+        ifvarclass => "cfe_internal_purge_reports";
+
 }

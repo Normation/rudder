@@ -16,67 +16,6 @@
 #
 #####################################################################################
 
-# @agent_version >=3.7
-# Comes from CFEngine's stdlib
-#
-# This collection of bodies configure the package modules
-# As it require the new package modules introduced in 3.7, we need to load it only on CFEngine 3.7.
-
-bundle common package_module_knowledge
-# @brief common package_module_knowledge bundle
-#
-# This common bundle defines which package modules are the defaults on different
-# platforms.
-{
-  vars:
-    debian::
-      "platform_default" string => "apt";
-
-    redhat::
-      "platform_default" string => "yum";
-
-    suse::
-      "platform_default" string => "zypper";
-
-    freebsd::
-      "platform_default" string => "pkg";
-}
-
-body package_module apt_get
-{
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "240";
-    #default_options =>  {};
-}
-
-body package_module yum
-{
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "240";
-    #default_options => {};
-}
-
-body package_module zypper
-{
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "240";
-    #default_options => {};
-}
-
-body package_module pkg
-{
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "240";
-    #default_options => {};
-}
-
-body package_module test
-{
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "240";
-    default_options => { "$(G.testfile)" };
-}
-
 # Called by package_* generic methods
 bundle agent ncf_package(name, version, architecture, provider, state, options)
 {

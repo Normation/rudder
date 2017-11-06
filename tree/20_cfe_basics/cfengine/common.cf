@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) CFEngine AS
+#  Copyright 2017 Northern.tech AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -39,7 +39,7 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.5.1 to 3.5.x
+# For CFEngine Core: 3.7.0 to 3.7.x
 # Common bodies
 
 ###################################################
@@ -171,8 +171,6 @@ body action policy(p)
 
 ##
 
-# Log a message to log=[/file|stdout]
-
 body action log_repaired(log,message)
 # @brief Log `message` to a file `log`=[/file|stdout]
 # @param log The log file for repaired messages
@@ -244,7 +242,7 @@ body classes cf2_if_else(yes,no)
 # does not require any repair.
 #
 # @param yes The name of the class that should be defined if the promise is repaired
-# @param no The name of the class that should be defind if teh promise could not be repaired
+# @param no The name of the class that should be defined if the promise could not be repaired
 {
       promise_repaired => { "$(yes)" };
       repair_failed    => { "$(no)" };
@@ -304,14 +302,147 @@ body classes classes_generic(x)
       promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
       repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
       repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
-      repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error","$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+      repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
       promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
 }
 
+body classes results(scope, class_prefix)
+# @brief Define classes prefixed with `class_prefix` and suffixed with
+# appropriate outcomes: _kept, _repaired, _not_kept, _error, _failed,
+# _denied, _timeout, _reached
+#
+# @param scope The scope in which the class should be defined (`bundle` or `namespace`)
+# @param class_prefix The prefix for the classes defined
+#
+# This body can be applied to any promise and sets global
+# (`namespace`) or local (`bundle`) classes based on its outcome. For
+# instance, with `class_prefix` set to `abc`:
+#
+# * if the promise is to change a file's owner to `nick` and the file
+# was already owned by `nick`, the classes `abc_reached` and
+# `abc_kept` will be set.
+#
+# * if the promise is to change a file's owner to `nick` and the file
+# was owned by `adam` and the change succeeded, the classes
+# `abc_reached` and `abc_repaired` will be set.
+#
+# This body is a simpler, more consistent version of the body
+# `scoped_classes_generic`, which see. The key difference is that
+# fewer classes are defined, and only for outcomes that we can know.
+# For example this body does not define "OK/not OK" outcome classes,
+# since a promise can be both kept and failed at the same time.
+#
+# It's important to understand that promises may do multiple things,
+# so a promise is not simply "OK" or "not OK." The best way to
+# understand what will happen when your specific promises get this
+# body is to test it in all the possible combinations.
+#
+# **Suffix Notes:**
+#
+# * `_reached` indicates the promise was tried. Any outcome will result
+#   in a class with this suffix being defined.
+#
+# * `_kept` indicates some aspect of the promise was kept
+#
+# * `_repaired` indicates some aspect of the promise was repaired
+#
+# * `_not_kept` indicates some aspect of the promise was not kept.
+#   error, failed, denied and timeout outcomes will result in a class
+#   with this suffix being defined
+#
+# * `_error` indicates the promise repair encountered an error
+#
+# * `_failed` indicates the promise failed
+#
+# * `_denied` indicates the promise repair was denied
+#
+# * `_timeout` indicates the promise timed out
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   commands:
+#     "/bin/true"
+#       classes => results("bundle", "my_class_prefix");
+#
+#   reports:
+#     my_class_prefix_kept::
+#       "My promise was kept";
+#
+#     my_class_prefix_repaired::
+#       "My promise was repaired";
+# }
+# ```
+#
+# **See also:** `scope`, `scoped_classes_generic`, `classes_generic`
+{
+  scope => "$(scope)";
+
+  promise_kept => { "$(class_prefix)_reached",
+                    "$(class_prefix)_kept" };
+
+  promise_repaired => { "$(class_prefix)_reached",
+                        "$(class_prefix)_repaired" };
+
+  repair_failed => { "$(class_prefix)_reached",
+                     "$(class_prefix)_error",
+                     "$(class_prefix)_not_kept",
+                     "$(class_prefix)_failed" };
+
+  repair_denied => { "$(class_prefix)_reached",
+                     "$(class_prefix)_error",
+                     "$(class_prefix)_not_kept",
+                     "$(class_prefix)_denied" };
+
+  repair_timeout => { "$(class_prefix)_reached",
+                      "$(class_prefix)_error",
+                      "$(class_prefix)_not_kept",
+                      "$(class_prefix)_timeout" };
+}
+
+@if minimum_version(3.8)
+body classes diff_results(scope, x)
+# @brief Define `x` prefixed/suffixed with promise outcome with command return codes adjusted to align with `diff`.
+# @param scope The scope the class should be defined with [bundle|namespace].
+# @param x The unique part of the classes to be defined.
+#
+# From man diff:
+# Exit status is 0 if inputs are the  same,  1  if
+# different, 2 if trouble.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   commands:
+#     "/usr/bin/diff"
+#       args => "/tmp/file1 /tmp/file2",
+#       classes => diff_results("diff");
+#
+#   vars:
+#     "c" slist => classesmatching("diff_.*");
+#
+#   reports:
+#     "Found class '$(c)'";
+#     "Files Differ!"
+#        if => "diff_failed|diff_error|diff_not_kept";
+#     "Files are the same."
+#        if => "diff_kept";
+# }
+# ```
+{
+      inherit_from => results( $(scope), $(x) );
+      kept_returncodes => { "0" };
+      failed_returncodes => { "1","2" };
+}
+@endif
+
 body classes scoped_classes_generic(scope, x)
 # @brief Define `x` prefixed/suffixed with promise outcome
-# 
-# **See also:** [`scope`][Promise Types and Attributes#scope]
+# **See also:** `scope`
 #
 # @param scope The scope in which the class should be defined
 # @param x The unique part of the classes to be defined
@@ -324,11 +455,20 @@ body classes scoped_classes_generic(scope, x)
       promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
 }
 
+# special body for update/*.cf compatibility
+body classes u_kept_successful_command
+# @brief Set command to "kept" instead of "repaired" if it returns 0
+{
+      kept_returncodes => { "0" };
+}
+
 ##-------------------------------------------------------
 ## Persistent classes
 ##-------------------------------------------------------
 
 body classes state_repaired(x)
+# @brief Define `x` for 10 minutes if the promise was repaired
+# @param x The name of the class that should be defined
 {
       promise_repaired => { "$(x)" };
       persist_time => "10";
@@ -339,7 +479,7 @@ body classes state_repaired(x)
 body classes enumerate(x)
 # @brief Define `x` for 15 minutes if the promise is either kept or repaired
 # This is used by commercial editions to count instances of jobs in a cluster
-# @param x The unqiue part of the class that should be defind
+# @param x The unique part of the class that should be defined
 # The class defined is prefixed with `mXC_`
 {
       promise_repaired => { "mXC_$(x)" };

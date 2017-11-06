@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) CFEngine AS
+#  Copyright 2017 Northern.tech AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -39,7 +39,7 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.5.1 to 3.5.x
+# For CFEngine Core: 3.7.0 to 3.7.x
 # Processes bodies
 
 ###################################################
@@ -75,15 +75,13 @@ body process_select days_older_than(d)
 body process_select by_owner(u)
 # @brief Select processes owned by user `u`
 # @param u The name of the user
-# 
+#
 # Matches processes against the given username and the given username's uid
 # in case only uid is visible in process list.
 {
       process_owner => { "$(u)", canonify(getuid("$(u)")) };
       process_result => "process_owner";
 }
-
-##
 
 body process_select by_pid(pid)
 # @brief Select a process matching the given PID
