@@ -870,9 +870,7 @@ object DisplayNode extends Loggable {
     <div style="margin:5px;">
      <div>
       <div>
-          <img src={"/" + StaticResourceRewrite.prefix + "/images/icWarn.png"} alt="Warning!" height="25" width="25" class="warnicon"
-            style="vertical-align: middle; padding: 0px 0px 2px 0px;"
-          />
+          <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
           <b>Are you sure you want to delete this node?</b>
       </div>
       <div style="margin-top:7px">If you choose to remove this node from Rudder, it won't be managed anymore,

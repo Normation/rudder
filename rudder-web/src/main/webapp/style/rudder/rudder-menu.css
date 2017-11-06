@@ -2703,6 +2703,7 @@ span.techversion {
   font-weight: bold;
 }
 
+/* ICONS */
 .dsc-icon{
   background-position : center;
   background-image    : url(../../images/dsc-icon.svg);
@@ -2714,6 +2715,26 @@ span.techversion {
   height     : 20px;
   width      : 16px;
   top        : 5px;
+}
+.fa.warnicon{
+  margin-left:8px;
+  font-size:32px;
+  color:#f08004;
+}
+#confirmDeletion .fa.warnicon{
+  font-size: 22px;
+  margin-left: 0;
+}
+.fa.targetRemove{
+  margin:2px;
+  cursor:pointer;
+}
+table a > i.fa-pencil{
+  color:#555;
+  transition-duration:.2s;
+}
+table a > i.fa-pencil:hover{
+  color:#333;
 }
 
 @keyframes opacity-1 {
