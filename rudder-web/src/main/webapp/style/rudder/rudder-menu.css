@@ -1055,7 +1055,12 @@ table.tablewidth{
   padding-left:0;
   padding-right:0;
 }
-
+table.dataTable td img.space-left{
+  visibility:hidden;
+}
+table.dataTable td:hover img.space-left{
+  visibility:visible;
+}
 table > tbody > tr > td.action{
   width:80px;
 }
@@ -1200,6 +1205,9 @@ pre.display-keys > label{
 }
 .space-bottom{
   margin-bottom: 30px;
+}
+.space-left{
+	margin-left:5px !important;
 }
 .padding-col{
   margin-left: 15px;
