@@ -1063,11 +1063,11 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "sTitle": "Node name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, false)
-        var icon = $("<i>");
-        icon.addClass("fa fa-search space-left");
         var el = "<span>"+sData+"</span>";
         var nodeLink = $(el);
         link.append(nodeLink);
+        var icon = $("<i>");
+        icon.addClass("fa fa-search space-left");
         link.append(icon);
         $(nTd).empty();
         $(nTd).append(link);
