@@ -141,7 +141,7 @@ class RuleCompliance (
         Details of changes for each period are displayed below the graph. Click to change the selected period.
         </div>
         <div class="recentChange_refresh">
-          {SHtml.ajaxButton(<img src={"/" + StaticResourceRewrite.prefix +"/images/icRefresh.png"}/>, () => refresh() , ("class","recentChangeGraph refreshButton btn btn-default") , ("title","Refresh"))}
+          {SHtml.ajaxButton(<i class="fa fa-refresh"></i>, () => refresh() , ("class","btn btn-primary btn-refresh") , ("title","Refresh"))}
         </div>
       </div>
 
