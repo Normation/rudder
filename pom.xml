@@ -161,8 +161,19 @@ limitations under the License.
             <arg>${basedir}/.scala_dependencies</arg>
           </args>
           <jvmArgs>
-            <jvmArg>-Xmx1G</jvmArg>
-            <jvmArg>-Xss32m</jvmArg>
+            <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>
+            <jvmArg>-Xms${jvmArg-Xmx}</jvmArg>
+            <jvmArg>-Xss${jvmArg-Xss}</jvmArg>
+            <jvmArg>${jvmArg-arg0}</jvmArg>
+            <jvmArg>${jvmArg-arg1}</jvmArg>
+            <jvmArg>${jvmArg-arg2}</jvmArg>
+            <jvmArg>${jvmArg-arg3}</jvmArg>
+            <jvmArg>${jvmArg-arg4}</jvmArg>
+            <jvmArg>${jvmArg-arg5}</jvmArg>
+            <jvmArg>${jvmArg-arg6}</jvmArg>
+            <jvmArg>${jvmArg-arg7}</jvmArg>
+            <jvmArg>${jvmArg-arg8}</jvmArg>
+            <jvmArg>${jvmArg-arg9}</jvmArg>
           </jvmArgs>
         </configuration>
       </plugin>
@@ -348,6 +359,27 @@ limitations under the License.
     <scalaz-stream-version>0.8.6a</scalaz-stream-version>
     <doobie-version>0.4.0</doobie-version>
     <http4s-version>0.15.3a</http4s-version>
+
+    <!-- 
+      Hack to make scalac jvm parameters like RAM configurable.
+      With that, one can override Xmx or add jvm parameters either
+      in command line invocation: mvn compile -DjvmArg-Xmx="4G"
+      or in ~/.m2/settings.xml with profiles. 
+    -->
+
+    <jvmArg-Xmx>1G</jvmArg-Xmx>
+    <jvmArg-Xss>32m</jvmArg-Xss>
+    <jvmArg-arg0></jvmArg-arg0>
+    <jvmArg-arg1></jvmArg-arg1>
+    <jvmArg-arg2></jvmArg-arg2>
+    <jvmArg-arg3></jvmArg-arg3>
+    <jvmArg-arg4></jvmArg-arg4>
+    <jvmArg-arg5></jvmArg-arg5>
+    <jvmArg-arg6></jvmArg-arg6>
+    <jvmArg-arg7></jvmArg-arg7>
+    <jvmArg-arg8></jvmArg-arg8>
+    <jvmArg-arg9></jvmArg-arg9>
+
   </properties>
 
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
