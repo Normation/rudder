@@ -363,9 +363,8 @@ class EventListDisplayer(
 
       val dialog =
       <p>
-          <img src={"/" + StaticResourceRewrite.prefix + "/images/icWarn.png"} alt="Warning!" height="25" width="25" class="warnicon"
-            style="vertical-align: middle; padding: 0px 0px 2px 0px;"/>
-          <b>{"Are you sure you want to restore configuration policy %s this change".format(action.name)}</b>
+        <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
+        <b>{"Are you sure you want to restore configuration policy %s this change".format(action.name)}</b>
       </p>
       <span class="tw-bs"> {
         SHtml.ajaxButton(
