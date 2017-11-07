@@ -45,7 +45,6 @@ import com.normation.rudder.authorization.Read
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.TargetExclusion
@@ -136,12 +135,6 @@ class RuleEditForm(
   private[this] val htmlId_EditZone = "editRuleZone"
 
   private[this] val roRuleRepository     = RudderConfig.roRuleRepository
-  private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
-  private[this] val reportingService     = RudderConfig.reportingService
-  private[this] val userPropertyService  = RudderConfig.userPropertyService
-  private[this] val categoryService      = RudderConfig.ruleCategoryService
-
-  private[this] val roChangeRequestRepo  = RudderConfig.roChangeRequestRepository
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
   private[this] var ruleTarget = RuleTarget.merge(rule.targets)
@@ -185,17 +178,6 @@ class RuleEditForm(
           } else {
             <div>You have no rights to see rules details, please contact your administrator</div>
           }
-        }
-
-        def updateCompliance() = {
-           roRuleRepository.get(rule.id) match {
-             case Full(updatedrule) =>
-               new RuleCompliance(updatedrule, rootRuleCategory).display
-             case eb:EmptyBox =>
-               logger.error("could not get updated version of the Rule")
-               <div>Could not get updated version of the Rule, please try again</div>
-           }
-
         }
 
         form ++
@@ -354,21 +336,6 @@ class RuleEditForm(
     Serialization.write(ids.map( "jsTree-" + _.value ))
   }
 
-  private[this] def serializeTargets(targets:Seq[RuleTarget]) : String = {
-    implicit val formats = Serialization.formats(NoTypeHints)
-    Serialization.write(
-        targets.map { target =>
-          target match {
-            case GroupTarget(g) => "jsTree-" + g.value
-            case _ => "jsTree-" + target.target
-          }
-        }
-    )
-  }
-  private[this] def serializeTarget(target:RuleTarget) : String = {
-    target.toString()
-  }
-
   /*
    * from a JSON array: [ "id1", "id2", ...], get the list of
    * Directive Ids.
@@ -437,10 +404,6 @@ class RuleEditForm(
 
   private[this] def directiveClick(directive: Directive) : JsCmd = {
     JsRaw(s"""onClickDirective("${directive.id.value}", ${directive.name.encJs});""")
-  }
-
-  private[this] def includeDirective(directive: Directive) : JsCmd = {
-    JsRaw(s"""includeDirective("${directive.id.value}", ${directive.name.encJs});""")
   }
 
   private[this] def includeRuleTarget(targetInfo: FullRuleTargetInfo) : JsCmd = {

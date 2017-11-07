@@ -43,9 +43,6 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.SerialedRuleId
-import com.normation.rudder.domain.policies.SerialedRuleId
-import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.reports.ComplianceMode
@@ -66,7 +63,6 @@ class ExecutionBatchTest extends Specification {
   private implicit def str2directiveId(s:String) = DirectiveId(s)
   private implicit def str2ruleId(s:String) = RuleId(s)
   private implicit def str2nodeId(s:String) = NodeId(s)
-  private implicit def str2nodeConfigIds(ss:Seq[String]) = ss.map(s =>  (NodeId(s), Some(NodeConfigId("version_" + s)))).toMap
 
   import ReportType._
 
@@ -76,8 +72,6 @@ class ExecutionBatchTest extends Specification {
     , serial : Int
     , directives: List[DirectiveExpectedReports]
   ): Map[NodeId, NodeExpectedReports] = {
-    val rid = SerialedRuleId(RuleId(ruleId), serial)
-//    val exp = Map(rid -> RuleNodeExpectedReports(rid.ruleId, rid.serial, directives))
     val globalPolicyMode = GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always)
     val now = DateTime.now
     val mode = NodeModeConfig(GlobalComplianceMode(FullCompliance, 30), None, AgentRunInterval(None, 5, 14, 5, 4), None, globalPolicyMode, Some(PolicyMode.Enforce))
@@ -292,6 +286,9 @@ class ExecutionBatchTest extends Specification {
     }
     "return a component with both cfengine keys repaired " in {
       withGood.componentValues("${sys.bla}").messages.size === 1
+    }
+    "with bad reports return a component with three key values" in {
+      withBad.componentValues.size === 3
     }
   }
 

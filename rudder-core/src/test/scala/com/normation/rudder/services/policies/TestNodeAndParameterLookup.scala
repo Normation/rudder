@@ -385,10 +385,6 @@ class TestNodeAndParameterLookup extends Specification {
    */
   "Interpretation of a parsed interpolated string" should {
 
-    val nodeId = compileAndGet("${rudder.node.uuid}")
-    val policyServerId = compileAndGet("${rudder.node.id}")
-    val paramVar = compileAndGet("${rudder.node.uuid}")
-
     "know for the 6 node & policy server param" in {
 
       //build a triplet: accessor, interpolation function, expected
@@ -436,7 +432,6 @@ class TestNodeAndParameterLookup extends Specification {
     }
 
     "fails on missing param in context" in {
-      val res = "p1 replaced"
       val i = compileAndGet("${rudder.param.p1}")
       i(context) match {
         case Full(_) => ko("The parameter should not have been found")
@@ -479,7 +474,6 @@ class TestNodeAndParameterLookup extends Specification {
       val p1value = compileAndGet("${rudder.param.p2}")
       val p2value = compileAndGet("${rudder.param.p3}")
       val p3value = compileAndGet("${rudder.param.p4}")
-      val p4value = compileAndGet("${rudder.param.p5}")
       val c = context.copy(parameters = Map(
           (ParameterName("p1"), p1value)
         , (ParameterName("p2"), p2value)

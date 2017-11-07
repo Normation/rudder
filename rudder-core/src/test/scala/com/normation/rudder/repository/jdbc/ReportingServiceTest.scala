@@ -100,7 +100,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   //clean data base
   def cleanTables() = {
-    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).run
+    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).unsafePerformSync
   }
 
   val nodeInfoService = new NodeInfoService {
@@ -332,7 +332,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //        (r, e, n)
 //      }
 //
-//      val (r, e, n) = q.transact(xa).run
+//      val (r, e, n) = q.transact(xa).unsafePerformSync
 //
 //      (r must be_==(30)) and (e must be_==(6)) and (n must be_==(20))
 //    }

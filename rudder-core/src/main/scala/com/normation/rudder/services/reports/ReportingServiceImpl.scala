@@ -358,7 +358,6 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     , complianceModeName: ComplianceModeName
   ): Box[Map[NodeId, NodeStatusReport]] = {
 
-    val now = DateTime.now
     val t0 = System.currentTimeMillis
 
     /*

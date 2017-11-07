@@ -88,8 +88,6 @@ object GitFindUtils extends Loggable {
    * relative to git root)
    */
   def getFileContent[T](db:Repository, revTreeId:ObjectId, path:String)(useIt : InputStream => Box[T]) : Box[T] = {
-    var is : InputStream = null
-
     val filePath = {
       var p = path
       while (path.endsWith("/")) p = p.substring(0, p.length - 1)
@@ -119,10 +117,6 @@ object GitFindUtils extends Loggable {
     } catch {
       case ex:Exception =>
         Failure("Exception caught when trying to acces file '%s'".format(filePath),Full(ex),Empty)
-    } finally {
-      if(null != is) {
-        is.close
-      }
     }
   }
 

@@ -105,7 +105,6 @@ case class Modified[T](
 object DiffDisplayer extends Loggable {
 
   //Directive targets Displayer
-  private[this] val roDirectiveRepo = RudderConfig.roDirectiveRepository
   private[this] implicit def displayDirective(directiveId: DirectiveId) = {
     <span> Directive {createDirectiveLink(directiveId)}</span>
   }
@@ -132,10 +131,6 @@ object DiffDisplayer extends Loggable {
       } }
     </ul>
   }
-
-  //Node groups targets Displayer
-  private[this] val roNodeGroupRepository = RudderConfig.roNodeGroupRepository
-
 
   // Almost the same as display Directive see comments there for more details
   def displayRuleTargets (

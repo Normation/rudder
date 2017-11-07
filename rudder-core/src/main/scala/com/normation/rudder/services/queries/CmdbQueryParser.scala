@@ -225,7 +225,6 @@ trait JsonQueryLexer extends QueryLexer {
 
     json match {
       case q@JObject(attrs) =>
-        val values = q.values
         //target returned object
         for {
           target <- parseTarget(q)

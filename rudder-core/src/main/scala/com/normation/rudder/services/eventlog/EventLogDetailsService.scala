@@ -864,24 +864,6 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-  // Node modification
-  private[this] def getSubModifyNodeDetails[T, U](xml:NodeSeq, tag: String, details: NodeSeq => Box[T], build: (NodeId, Option[SimpleDiff[T]]) => U) : Box[U] = {
-    for {
-      entry        <- getEntryContent(xml)
-      node         <- (entry \ "node" ).headOption ?~!
-                        (s"Entry type is not a node modification: ${entry}")
-      fileFormatOk <- TestFileFormat(node)
-      changeTypeOk <- {
-                        if(node.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
-                        else Failure(s"API Account attribute does not have changeType=modify in ${entry}")
-                      }
-      id           <- (node \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type API Account : " + entry)
-      info         <- getFromTo[T]((node \ tag).headOption, details(_) )
-    } yield {
-      build(NodeId(id), info)
-    }
-  }
-
   private[this] def extractAgentRun(xml : NodeSeq)( details : NodeSeq ) = {
     if((details \ "_").isEmpty) { //no children
       Full(None)
@@ -907,7 +889,7 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-   private[this] def extractHeartbeatConfiguration(xml : NodeSeq)(details: NodeSeq) = {
+  private[this] def extractHeartbeatConfiguration(xml : NodeSeq)(details: NodeSeq) = {
       if((details\"_").isEmpty) { //no children
         Full(None)
       } else for {

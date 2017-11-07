@@ -260,14 +260,14 @@ class WoLDAPParameterRepository(
                          case ok:Full[_] => ok
                          case eb:EmptyBox => //ok, so there, we have a problem
                            val e = eb ?~! "Error when importing params, trying to restore old Parameters"
-                           logger.error(eb)
+                           logger.error(e)
                            restore(con, existingParams) match {
                              case _:Full[_] =>
                                logger.info("Rollback parameters")
-                               eb ?~! "Rollbacked imported parameters to previous state"
+                               e ?~! "Rollbacked imported parameters to previous state"
                              case x:EmptyBox =>
                                val m = "Error when rollbacking corrupted import for parameters, expect other errors. Archive ID: '%s'".format(id.value)
-                               eb ?~! m
+                               e ?~! m
                            }
 
                        } }

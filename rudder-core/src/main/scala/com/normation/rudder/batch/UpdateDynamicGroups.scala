@@ -135,6 +135,7 @@ class UpdateDynamicGroups(
                 LAUpdateDyngroup ! StartDynamicUpdate(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds))
               case e:EmptyBox =>
                 val error = (e?~! "Error when trying to get the list of dynamic group to update")
+                logger.error( error.messageChain )
 
             }
           case _:StartDynamicUpdate if(!onePending) => onePending = true

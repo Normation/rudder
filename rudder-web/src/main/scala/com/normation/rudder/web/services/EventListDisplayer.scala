@@ -1239,34 +1239,6 @@ class EventListDisplayer(
 
   }
 
-  private[this] def directiveTargetDetails(set: Set[DirectiveId]): NodeSeq = {
-    if(set.size < 1)
-      Text("None")
-    else {
-      set match {
-        case Seq() => NodeSeq.Empty
-        case _ =>
-          val res = {
-            set
-              .toSeq
-              .sortWith( _.value < _.value )
-              .map { id =>
-                directiveRepository.getDirective(id) match {
-                  case t: EmptyBox =>
-                    <span>Directive (Rudder ID: {id.value})</span>
-                  case Full(directive) =>
-                    <span>Directive "<a href={directiveLink(id)}>{directive.name}</a>" (Rudder ID: {id.value})</span>
-                }
-              }
-              .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
-          }
-          (
-            ".groupSeparator" #> ", "
-          ).apply(res)
-      }
-    }
-  }
-
   private[this] def ruleDetails(xml:NodeSeq, rule:Rule, groupLib: FullNodeGroupCategory, rootRuleCategory: RuleCategory) = {
 
     (
@@ -1510,18 +1482,6 @@ class EventListDisplayer(
       {liModDetailsXML("isSystem", "System")}
     </xml:group>
 
-  private[this] val piModDetailsXML =
-    <xml:group>
-      {liModDetailsXML("name", "Name")}
-      {liModDetailsXML("shortDescription", "Description")}
-      {liModDetailsXML("longDescription", "Details")}
-      {liModDetailsXML("ptVersion", "Target")}
-      {liModDetailsXML("parameters", "Policy parameters")}
-      {liModDetailsXML("priority", "Priority")}
-      {liModDetailsXML("isEnabled", "Activation status")}
-      {liModDetailsXML("isSystem", "System")}
-    </xml:group>
-
   private[this] val piModDirectiveDetailsXML =
     <xml:group>
       {liModDetailsXML("name", "Name")}
@@ -1549,8 +1509,6 @@ class EventListDisplayer(
       {liModDetailsXML("description", "Description")}
       {liModDetailsXML("isEnabled", "Enabled")}
     </xml:group>
-
-  private[this] val globalPropertyModDetailsXML = {liModDirectiveDetailsXML("value", "Value")}
 
   private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int) = {
     val rollbackedEvents = rollbackInfo.rollbacked

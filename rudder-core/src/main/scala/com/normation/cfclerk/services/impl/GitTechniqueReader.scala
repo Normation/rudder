@@ -787,7 +787,7 @@ class GitTechniqueReader(
    * need to keep track of there relative id
    */
   private[this] def getTechniquePath(techniqueInfos:TechniquesInfo) : Set[(TechniquePath, TechniqueId)] = {
-    var set = scala.collection.mutable.Set[(TechniquePath, TechniqueId)]()
+    val set = scala.collection.mutable.Set[(TechniquePath, TechniqueId)]()
     techniqueInfos.rootCategory.techniqueIds.foreach { id =>
       set += ((TechniquePath( "/" + id.toString), id))
     }
