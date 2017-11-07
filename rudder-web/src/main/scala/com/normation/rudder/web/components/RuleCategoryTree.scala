@@ -47,8 +47,6 @@ import JsCmds._
 import JE._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-import com.normation.rudder.repository._
-import com.normation.rudder.services.policies._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.rule.category._
 import net.liftweb.json._

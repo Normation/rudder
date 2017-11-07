@@ -39,7 +39,6 @@ package com.normation.rudder.reports.execution
 
 import scalaz.{ Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 
 import com.normation.rudder.db.DB
 
@@ -86,7 +85,6 @@ class LastProcessedReportRepositoryImpl (
   }
 
   def setExecutionStatus(newId : Long, reportsDate : DateTime) : Box[DB.StatusUpdate] = {
-    import doobie.postgres.sqlstate.class23.UNIQUE_VIOLATION
 
     //upsert of the poor :)
     val insert = sql"""

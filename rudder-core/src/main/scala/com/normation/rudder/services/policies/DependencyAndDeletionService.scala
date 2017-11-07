@@ -40,7 +40,6 @@ package com.normation.rudder.services.policies
 import com.normation.rudder.domain.policies.{
   GroupTarget,RuleTarget,CompositeRuleTarget
 }
-import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.Rule
@@ -54,7 +53,6 @@ import BuildFilter._
 import com.normation.rudder.repository._
 import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching
-import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import com.normation.ldap.sdk.RoLDAPConnection
 

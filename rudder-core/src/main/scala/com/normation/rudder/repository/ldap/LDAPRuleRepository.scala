@@ -39,23 +39,16 @@ package com.normation.rudder.repository
 package ldap
 
 
-import com.normation.rudder.domain.nodes.NodeGroupId
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies._
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core.LDAPConstants.{A_OC, A_NAME}
-import com.unboundid.ldap.sdk.{DN,Filter}
+import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
 import com.normation.ldap.sdk._
 import BuildFilter._
 import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
 import RudderLDAPConstants._
 import net.liftweb.common._
 import com.normation.utils.Control.sequence
-import com.normation.cfclerk.domain.TechniqueId
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.eventlog.{
-  DeleteRule, AddRule, ModifyRule
-}
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.unboundid.ldif.LDIFChangeRecord
@@ -130,7 +123,7 @@ class WoLDAPRuleRepository(
   repo =>
 
 
-  import roLDAPRuleRepository.{ ldap => roLdap, _ }
+  import roLDAPRuleRepository._
 
   /**
    * Check if a configuration exist with the given name, and another id

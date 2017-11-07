@@ -39,9 +39,7 @@ package com.normation.rudder.web.rest.parameter
 
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.domain.parameters._
-import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.rudder.services.workflows.ChangeRequestService
@@ -53,12 +51,10 @@ import com.normation.rudder.web.rest.RestUtils.toJsonResponse
 import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
-import net.liftweb.common.Box.box2Option
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
-import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Loggable
 import com.normation.rudder.web.rest.RestDataSerializer

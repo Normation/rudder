@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
-import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.NodeId
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
@@ -52,6 +51,7 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+import com.normation.cfclerk.domain.Variable
 
 
 case class PolicyHash(

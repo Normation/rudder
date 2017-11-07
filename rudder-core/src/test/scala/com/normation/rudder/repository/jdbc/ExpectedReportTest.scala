@@ -37,40 +37,12 @@
 
 package com.normation.rudder.repository.jdbc
 
-import com.normation.cfclerk.domain.InputVariableSpec
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
 import com.normation.rudder.db.DBCommon
-import com.normation.rudder.services.policies.ExpandedDirectiveVal
-import com.normation.rudder.services.policies.ExpandedRuleVal
-import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
-import com.normation.rudder.services.policies.UniqueOverrides
 
-import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import org.springframework.jdbc.datasource.DataSourceTransactionManager
 
-import net.liftweb.common._
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
-import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.db.DB
-import com.normation.rudder.db.Doobie._
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
-import scalaz.concurrent.Task
-import com.normation.rudder.services.policies.NodeConfigData
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides
+import scalaz.{Failure => _}
 
 
 /**
@@ -79,7 +51,6 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides
 @RunWith(classOf[JUnitRunner])
 class ExpectedReportsTest extends DBCommon {
 
-  import doobie._
 
   "test" should {
     "be rewrote" in { true == true }

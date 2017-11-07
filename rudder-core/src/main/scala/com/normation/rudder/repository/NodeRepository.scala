@@ -40,11 +40,7 @@ package com.normation.rudder.repository
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.HeartbeatConfiguration
 import net.liftweb.common._
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.PolicyMode
 
 /**
  * Node Repository

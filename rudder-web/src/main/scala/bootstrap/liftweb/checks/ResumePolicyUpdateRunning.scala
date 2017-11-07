@@ -38,7 +38,6 @@
 package bootstrap.liftweb
 package checks
 
-import net.liftweb.common._
 import java.io.File
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.eventlog.ModificationId

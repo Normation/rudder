@@ -51,10 +51,8 @@ import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPo
 import net.liftweb.http.js.JE._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-import com.normation.rudder.repository._
 import net.liftweb.http.LocalSnippet
 import net.liftweb.json._
-import net.liftweb.http.IdMemoizeTransform
 import com.normation.rudder.web.components.popup.GiveReasonPopup
 import com.normation.rudder.web.services.ReasonBehavior._
 import com.normation.rudder.authorization.Write
@@ -63,11 +61,9 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.Box.option2Box
-import net.liftweb.http.NodeSeqFuncOrSeqNodeSeqFunc.promoteNodeSeq
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
 import scala.Option.option2Iterable
 import scala.xml.NodeSeq.seqToNodeSeq
-import com.normation.rudder.web.snippet.configuration._
 import com.normation.rudder.web.components._
 import com.normation.rudder.web.services.AgentCompat
 

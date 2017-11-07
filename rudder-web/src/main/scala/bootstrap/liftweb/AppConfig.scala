@@ -37,17 +37,64 @@
 
 package bootstrap.liftweb
 
+import com.normation.inventory.domain._
+import com.normation.inventory.services.core._
+import com.normation.inventory.ldap.core._
+import com.normation.rudder.batch._
+import com.normation.rudder.services.nodes._
+import com.normation.rudder.repository._
+import com.normation.rudder.services.queries._
+import com.normation.rudder.services.servers._
+import com.normation.rudder.services.system._
+import com.normation.rudder.services.policies._
+import com.normation.rudder.services.reports._
+import com.normation.rudder.domain.queries._
 import bootstrap.liftweb.checks._
 import com.normation.cfclerk.services._
-import com.normation.cfclerk.services.impl._
+import org.springframework.context.annotation.{ Bean, Configuration, Import }
+import com.normation.ldap.sdk._
+import com.normation.rudder.domain._
+import com.normation.rudder.web.services._
+import com.normation.utils.StringUuidGenerator
+import com.normation.utils.StringUuidGeneratorImpl
+import com.normation.rudder.repository.ldap._
+import java.io.File
+import com.normation.rudder.services.eventlog._
 import com.normation.cfclerk.xmlparsers._
+import com.normation.cfclerk.services.impl._
+import com.normation.rudder.repository.ldap._
+import com.normation.rudder.repository.xml._
+import com.normation.rudder.repository.jdbc._
+import com.normation.rudder.repository._
+import net.liftweb.common.Loggable
+import com.normation.rudder.services.eventlog.HistorizationServiceImpl
+import com.normation.rudder.services.policies.DeployOnTechniqueCallback
+import com.normation.rudder.services.marshalling._
+import com.normation.utils.ScalaLock
+import com.normation.rudder.web.rest._
+import com.normation.rudder.services.user.TrivialPersonIdentService
+import com.normation.rudder.services.eventlog.EventLogFactoryImpl
+import com.normation.rudder.web.services.UserPropertyService
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.migration.DefaultXmlEventLogMigration
+import net.liftweb.common._
+import com.normation.rudder.repository._
+import com.normation.rudder.services.modification.ModificationService
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
+import scala.util.Try
+import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.services.core._
-import com.normation.ldap.sdk._
-import com.normation.rudder.api.RoApiAccountRepository
+import com.normation.rudder.services.modification.DiffServiceImpl
+import com.normation.rudder.services.modification.DiffService
+import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.services.workflows._
+import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.web.rest.rule._
+import com.normation.rudder.web.rest.directive._
+import com.normation.rudder.web.rest.group._
+import com.normation.rudder.web.rest.node._
 import com.normation.rudder.api.RoLDAPApiAccountRepository
 import com.normation.rudder.api.TokenGeneratorImpl
 import com.normation.rudder.api.WoApiAccountRepository
@@ -65,11 +112,7 @@ import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.ComplianceModeServiceImpl
 import com.normation.rudder.reports.execution._
-import com.normation.rudder.repository._
-import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
-import com.normation.rudder.repository.jdbc._
-import com.normation.rudder.repository.ldap._
-import com.normation.rudder.repository.xml._
+import com.normation.rudder.appconfig._
 import com.normation.rudder.rule.category._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.services.eventlog._
@@ -128,6 +171,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import scala.util.Try
 import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
+import com.normation.rudder.api.RoApiAccountRepository
 
 /**
  * Define a resource for configuration.

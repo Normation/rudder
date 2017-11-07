@@ -38,11 +38,9 @@
 package com.normation.rudder.domain
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.{DirectiveId, RuleId}
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.cfclerk.domain.TechniqueId
 
-import org.joda.time.Duration
 
 object Constants {
 

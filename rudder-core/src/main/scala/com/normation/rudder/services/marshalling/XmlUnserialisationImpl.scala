@@ -67,7 +67,6 @@ import com.normation.rudder.batch.NoStatus
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import scala.xml.Node
 import com.normation.rudder.domain.Constants._
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -86,12 +85,9 @@ import com.normation.cfclerk.domain.TechniqueId
 import scala.util.Try
 import scala.util.Success
 import scala.util.{Failure => Catch}
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
 import com.normation.rudder.rule.category.RuleCategoryId
-import scala.xml.XML
-import scala.xml.PrettyPrinter
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.PolicyMode

@@ -39,7 +39,6 @@ package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.services.nodes.NodeInfoService
 import scala.collection.mutable.Buffer
 import com.normation.rudder.domain.queries.{
   CriterionComposition,
@@ -47,23 +46,17 @@ import com.normation.rudder.domain.queries.{
   CriterionLine,
   Query
 }
-import com.normation.rudder.services.queries.QueryProcessor
-import net.liftweb.http.Templates
 import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import net.liftweb.common._
 import net.liftweb.http.{SHtml,S,DispatchSnippet}
 import scala.xml._
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-import com.normation.exceptions.TechnicalException
-import com.normation.rudder.web.services.SrvGrid
 import scala.collection.mutable.ArrayBuffer
 import com.normation.inventory.ldap.core.LDAPConstants
 import LDAPConstants._
 import com.normation.rudder.domain.queries.OstypeComparator
-import net.liftweb.util.ToJsCmd
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 import scala.collection.mutable.{Map => MutMap}

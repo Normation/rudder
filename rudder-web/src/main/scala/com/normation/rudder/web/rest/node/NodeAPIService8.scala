@@ -41,18 +41,12 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain._
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.nodes.JsonSerialisation._
-import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.repository.WoNodeRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.web.rest.RestUtils._
-import com.normation.rudder.web.rest.RestUtils
 import com.normation.utils.StringUuidGenerator
 
 import net.liftweb.common._
-import net.liftweb.http.Req
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.eventlog.EventActor
@@ -60,13 +54,9 @@ import com.normation.rudder.domain.nodes.Node
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.IOException
-import com.zaxxer.nuprocess.NuAbstractProcessHandler
-import java.nio.ByteBuffer
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
-import com.zaxxer.nuprocess.NuProcessBuilder
 import java.util.Arrays
-import com.normation.rudder.domain.nodes.NodeInfo
 import scalaj.http.Http
 import com.normation.rudder.domain.nodes.CompareProperties
 import scalaj.http.HttpOptions
@@ -157,7 +147,6 @@ class NodeApiService8 (
 
   def runAllNodes(classes : List[String]) : Box[JValue] = {
 
-    import net.liftweb.util.Helpers.tryo
     for {
       nodes <- nodeInfoService.getAll() ?~! s"Could not find nodes informations"
 

@@ -37,21 +37,16 @@
 
 package com.normation.rudder.migration
 
-import java.sql.ResultSet
-import java.util.concurrent.TimeUnit
 
 import com.normation.BoxSpecMatcher
 
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import org.springframework.jdbc.core.RowCallbackHandler
 
-import net.liftweb.common.Failure
 import com.normation.rudder.db.DBCommon
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 import com.normation.BoxSpecMatcher
 
 /**

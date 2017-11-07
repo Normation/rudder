@@ -38,16 +38,11 @@
 package com.normation.rudder.web.components
 
 import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository._
-import com.normation.rudder.services.reports.ReportingService
-import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.inventory.domain.NodeId
@@ -55,11 +50,7 @@ import JE._
 import net.liftweb.common._
 import net.liftweb.http._
 import scala.xml._
-import net.liftweb.util._
 import net.liftweb.util.Helpers._
-import com.normation.rudder.web.model._
-import com.normation.utils.StringUuidGenerator
-import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control.sequence
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
@@ -69,12 +60,9 @@ import net.liftweb.json.JsonParser
 import net.liftweb.json.JString
 import net.liftweb.json.JObject
 import net.liftweb.json.JField
-import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.rudder.web.services.JsTableData
 import net.liftweb.http.js.JE.AnonFunc
-import com.normation.rudder.web.services.NodeComplianceLine
-import org.joda.time.DateTime
 import org.joda.time.Interval
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.domain.logger.TimingDebugLogger

@@ -37,11 +37,7 @@
 
 package com.normation.rudder.web.rest.rule
 
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.common._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rule.category._
 import com.normation.eventlog._

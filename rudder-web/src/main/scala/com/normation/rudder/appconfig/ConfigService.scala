@@ -63,8 +63,6 @@ import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 import com.normation.rudder.reports._
 import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
 import scala.language.implicitConversions
-import ca.mrvisser.sealerate
-import com.normation.rudder.web.components.popup.ModificationValidationPopup.Disable
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyMode._

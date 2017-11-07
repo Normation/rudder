@@ -40,20 +40,17 @@ package com.normation.rudder.repository.xml
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling._
-import com.normation.utils.Utils
 import com.normation.utils.Control.sequence
-import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.Constants.{
     CONFIGURATION_RULES_ARCHIVE_TAG
   , GROUPS_ARCHIVE_TAG
   , POLICY_LIBRARY_ARCHIVE_TAG
   , PARAMETERS_ARCHIVE_TAG
-  , RULE_CATEGORY_ARCHIVE_TAG
+
 }
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupCategory
@@ -61,15 +58,10 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroup
 import java.io.File
 import org.apache.commons.io.FileUtils
-import org.eclipse.jgit.api.Git
-import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
-import scala.xml.Elem
 import scala.collection.mutable.Buffer
-import scala.collection.JavaConversions._
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.parameters.GlobalParameter

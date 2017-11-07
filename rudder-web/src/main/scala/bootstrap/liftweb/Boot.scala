@@ -37,17 +37,11 @@
 
 package bootstrap.liftweb
 
-import scala.xml._
-import net.liftweb.util._
 import net.liftweb.http._
 import net.liftweb.common._
 import net.liftweb.sitemap._
 import net.liftweb.sitemap.Loc._
-import Helpers._
-import javax.servlet.UnavailableException
-import LiftSpringApplicationContext.inject
 import com.normation.plugins.RudderPluginDef
-import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.domain.eventlog.ApplicationStarted
 import com.normation.rudder.web.rest._
 import com.normation.eventlog.EventLogDetails
@@ -56,10 +50,8 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization._
 import com.normation.authorization.AuthorizationType
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import java.util.Locale
-import java.util.Properties
 import net.liftweb.http.rest.RestHelper
 import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource

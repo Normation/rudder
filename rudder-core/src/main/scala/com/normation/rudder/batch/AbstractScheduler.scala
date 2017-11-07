@@ -40,7 +40,6 @@ package com.normation.rudder.batch
 import net.liftweb.actor.LiftActor
 import net.liftweb.actor.LAPinger
 import net.liftweb.common._
-import net.liftweb.util.Helpers
 import org.joda.time.DateTime
 import com.normation.rudder.domain.logger.ApplicationLogger
 

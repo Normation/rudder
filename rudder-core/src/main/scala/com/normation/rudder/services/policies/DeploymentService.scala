@@ -55,12 +55,10 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationService
 import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
-import com.normation.rudder.services.reports.ReportingService
 import com.normation.utils.Control._
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import com.normation.rudder.domain.parameters.GlobalParameter
-import scala.collection.immutable.TreeMap
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.AcceptedInventory
@@ -88,11 +86,8 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.inventory.domain.AixOS
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.reports.HeartbeatConfiguration
-import org.joda.time.format.DateTimeFormatter
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.hooks.HookEnvPair
-import ch.qos.logback.core.db.DataSourceConnectionSource
 import scala.concurrent.Future
 import com.normation.rudder.hooks.HooksImplicits
 

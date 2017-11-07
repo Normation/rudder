@@ -37,41 +37,15 @@
 
 package com.normation.rudder.rule.category
 
-import com.normation.rudder.domain.nodes._
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.queries.Query
 import net.liftweb.common._
-import com.normation.eventlog.EventActor
-import com.normation.utils.HashcodeCaching
-import scala.collection.SortedMap
-import com.normation.rudder.services.marshalling.DirectiveUnserialisation
-import com.normation.rudder.services.marshalling.ActiveTechniqueUnserialisation
-import com.normation.rudder.services.marshalling.ActiveTechniqueCategoryUnserialisation
-import com.normation.rudder.repository.ParseActiveTechniqueLibrary
-import com.normation.utils.XmlUtils
-import java.io.File
-import java.io.FileInputStream
-import com.normation.utils.UuidRegex
 import com.normation.utils.Control.sequence
-import com.normation.rudder.repository.ImportTechniqueLibrary
-import com.normation.rudder.domain.policies.ActiveTechniqueId
-import com.normation.rudder.domain.policies.DirectiveId
-import com.unboundid.ldap.sdk.RDN
 import com.normation.rudder.domain.RudderDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.utils.ScalaReadWriteLock
 import com.unboundid.ldap.sdk.DN
-import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.cfclerk.domain.TechniqueName
 import com.normation.ldap.sdk.RwLDAPConnection
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.inventory.ldap.core.LDAPConstants.A_OC
-import com.normation.ldap.sdk.GeneralizedTime
-import com.normation.rudder.repository.ImportGroupLibrary
-import com.normation.rudder.repository.NodeGroupLibraryArchiveId
-import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.archives.RuleCategoryArchiveId
 import com.normation.rudder.repository.ldap._
 

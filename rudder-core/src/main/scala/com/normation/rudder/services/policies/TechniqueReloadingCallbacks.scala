@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment

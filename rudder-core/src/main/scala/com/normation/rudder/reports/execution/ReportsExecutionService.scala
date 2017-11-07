@@ -37,7 +37,6 @@
 
 package com.normation.rudder.reports.execution
 
-import java.util.concurrent.TimeUnit
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global

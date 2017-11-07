@@ -37,14 +37,11 @@
 
 package com.normation.rudder.services.queries
 
-import com.normation.rudder.services.queries._
 import org.junit._
 import org.junit.Assert._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 import net.liftweb.common._
-import com.normation.rudder.domain._
-import com.normation.rudder.services.queries._
 import com.normation.rudder.domain.queries.NodeReturnType
 
 

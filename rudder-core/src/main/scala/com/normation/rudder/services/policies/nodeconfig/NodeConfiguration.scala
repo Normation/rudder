@@ -49,7 +49,6 @@ import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Loggable
 
-
 case class ParameterForConfiguration(
     name       : ParameterName
   , value      : String

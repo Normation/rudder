@@ -38,19 +38,12 @@ package com.normation.rudder.repository
 package ldap
 
 import com.normation.eventlog.EventActor
-import com.normation.eventlog.EventLog
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.NodeId
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies.SimpleDiff
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.HeartbeatConfiguration
 import net.liftweb.common._
 import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 
 class WoLDAPNodeRepository(

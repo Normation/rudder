@@ -44,7 +44,6 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import net.liftweb.common._
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import java.io.File
 import net.liftweb.util.ControlHelpers.tryo
 

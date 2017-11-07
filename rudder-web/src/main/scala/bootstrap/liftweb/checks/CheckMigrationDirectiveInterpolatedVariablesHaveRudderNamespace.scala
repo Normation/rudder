@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 import net.liftweb.common.Failure
 import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.domain.logger.MigrationLogger
 import com.normation.rudder.domain.policies.Directive
 import com.normation.utils.Control.sequence
 import com.normation.eventlog.ModificationId

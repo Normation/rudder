@@ -52,7 +52,6 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.repository._
-import com.normation.rudder.repository.json._
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.CmdbQueryParser._
