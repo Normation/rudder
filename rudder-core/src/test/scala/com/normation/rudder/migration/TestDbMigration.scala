@@ -37,26 +37,21 @@
 
 package com.normation.rudder.migration
 
-import scala.collection.JavaConverters.asScalaBufferConverter
 
 import org.junit.runner.RunWith
 import org.specs2.matcher.XmlMatchers
 import org.specs2.runner.JUnitRunner
 
-import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
-import net.liftweb.common.Full
 import scala.xml.Elem
 import java.sql.Timestamp
 import java.sql.Connection
-import com.normation.BoxSpecMatcher
 import com.normation.rudder.db.DBCommon
 
 import com.normation.rudder.db.Doobie._
 
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 
 case class MigEx102(msg:String) extends Exception(msg)
 

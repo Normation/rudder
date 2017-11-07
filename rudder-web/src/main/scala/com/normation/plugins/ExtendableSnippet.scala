@@ -39,7 +39,6 @@ package com.normation.plugins
 
 import net.liftweb.http._
 import scala.xml.NodeSeq
-import net.liftweb.util.Props
 import com.normation.utils.HashcodeCaching
 
 
@@ -97,7 +96,6 @@ trait SnippetExtensionPoint[T] {
 trait ExtendableSnippet[T] extends DispatchSnippet {
   self : T =>
 
-  import ExtendableSnippet._
 
   //reminder:
   //type DispatchIt = PartialFunction[String, NodeSeq => NodeSeq]

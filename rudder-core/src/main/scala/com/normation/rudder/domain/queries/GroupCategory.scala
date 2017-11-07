@@ -38,9 +38,6 @@
 package com.normation.rudder.domain.queries
 
 import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core._
-import com.normation.rudder.domain.RudderLDAPConstants.A_GROUP_CATEGORY_UUID
-import com.unboundid.ldap.sdk.DN
 import com.normation.utils.HashcodeCaching
 
 

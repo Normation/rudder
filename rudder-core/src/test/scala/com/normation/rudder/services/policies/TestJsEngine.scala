@@ -43,17 +43,11 @@ import org.specs2.runner._
 
 import net.liftweb.common._
 import org.specs2.matcher.MatchResult
-import javax.script.ScriptException
 import com.normation.rudder.domain.appconfig.FeatureSwitch
-import org.specs2.matcher.BeEqualTo
 import com.normation.cfclerk.domain.InputVariableSpec
-import com.normation.rudder.services.policies.JsEngine.SandboxSecurityManager
 import org.specs2.matcher.Matcher
-import java.util.regex.Pattern
 import scala.util.matching.Regex
-import com.normation.cfclerk.domain.InputVariable
 import com.normation.cfclerk.domain.Variable
-import org.apache.commons.io.FileUtils
 
 /*
  * This class test the JsEngine.

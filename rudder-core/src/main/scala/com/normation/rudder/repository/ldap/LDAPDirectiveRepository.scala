@@ -48,12 +48,8 @@ import RudderLDAPConstants._
 import net.liftweb.common._
 import com.normation.utils.Control.sequence
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.eventlog.{
-  DeleteDirective,AddDirective,ModifyDirective
-}
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.repository.ldap
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.cfclerk.domain.Technique
 import com.normation.eventlog.ModificationId
@@ -65,7 +61,6 @@ import com.normation.cfclerk.domain.TechniqueName
 import scala.collection.immutable.SortedMap
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.utils.StringUuidGenerator
-import net.liftweb.json.Printer
 import net.liftweb.json.JsonAST
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueId
@@ -546,10 +541,8 @@ class WoLDAPDirectiveRepository(
 ) extends WoDirectiveRepository with Loggable {
 
 
-  import roDirectiveRepos.{ ldap => roLdap, _ }
+  import roDirectiveRepos._
 
-  import scala.collection.mutable.{Map => MutMap}
-  import scala.xml.Text
 
 
   /**

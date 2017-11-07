@@ -37,15 +37,10 @@
 
 package com.normation.rudder.web.services
 
-import com.unboundid.ldap.sdk.DN
-import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.utils.Utils.isEmpty
 import com.normation.inventory.domain.{NodeId,InventoryStatus}
 import com.normation.inventory.ldap.core._
-import LDAPConstants._
 import com.normation.rudder.domain.servers.Srv
-import com.normation.inventory.services.core.FullInventoryRepository
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import org.slf4j.LoggerFactory
 import scala.xml._
 import net.liftweb.common._
@@ -55,11 +50,7 @@ import Helpers._
 import net.liftweb.http.js._
 import JsCmds._
 import JE._
-import net.liftweb.http.SHtml._
 import net.liftweb.json._
-import NodeGrid._
-import com.unboundid.ldif.LDIFRecord
-import net.liftweb.http.Templates
 import com.normation.rudder.domain.servers.Srv
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.nodes.NodeInfoService

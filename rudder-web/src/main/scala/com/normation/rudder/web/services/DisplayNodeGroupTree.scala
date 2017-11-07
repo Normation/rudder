@@ -39,21 +39,16 @@ package com.normation.rudder.web.services
 
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
-import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.FullGroupTarget
-import com.normation.rudder.domain.policies.FullOtherTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
 import net.liftweb.http.js._
-import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers
-import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.domain.policies.FullRuleTarget
 import com.normation.rudder.domain.policies.RuleTarget
-import net.liftweb.http.S
 import com.normation.rudder.web.model.JsInitContextLinkUtil._
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo

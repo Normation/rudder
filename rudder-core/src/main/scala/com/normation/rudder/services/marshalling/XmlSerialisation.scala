@@ -48,7 +48,6 @@ import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.workflows.ChangeRequest
-import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.rule.category.RuleCategory

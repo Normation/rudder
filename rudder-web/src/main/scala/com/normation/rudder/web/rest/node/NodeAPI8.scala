@@ -49,8 +49,6 @@ import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.rest.RestUtils
 import com.normation.rudder.web.rest.ApiVersion
-import com.normation.rudder.web.rest.RestDataSerializer
-import com.normation.rudder.domain.nodes.Node
 import net.liftweb.http.OutputStreamResponse
 
 class NodeAPI8 (

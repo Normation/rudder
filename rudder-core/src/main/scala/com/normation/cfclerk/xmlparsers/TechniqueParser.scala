@@ -41,7 +41,6 @@ import CfclerkXmlConstants._
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.exceptions.ParsingException
-import com.normation.utils.Utils._
 import scala.xml._
 import net.liftweb.common._
 import com.normation.inventory.domain.AgentType

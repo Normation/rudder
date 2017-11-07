@@ -37,21 +37,18 @@
 
 package com.normation.rudder.services.eventlog
 
-import scala.xml.{Node => XNode, _}
+import scala.xml._
 import net.liftweb.common._
 import net.liftweb.common.Box._
 import net.liftweb.util.Helpers.tryo
 import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
 
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.Control.sequence
-import com.normation.eventlog.EventLog
 import com.normation.eventlog.ModificationId
 
 import com.normation.rudder.api._
@@ -60,7 +57,6 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.Constants._
@@ -74,7 +70,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.marshalling._
 import com.normation.rudder.services.marshalling.TestFileFormat
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonAST.JString
 
 /**

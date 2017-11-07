@@ -38,26 +38,15 @@
 package com.normation.rudder.services.reports
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.DirectiveId
 import org.joda.time._
-import org.joda.time.format._
-import com.normation.rudder.domain.Constants
-import com.normation.utils.HashcodeCaching
-import scala.collection.mutable.Buffer
-import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.domain.logger.ComplianceDebugLogger._
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.domain.policies.Directive
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports._
-import com.normation.utils.Control.sequence
 import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution.AgentRunId
 import net.liftweb.common.Loggable
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import java.util.regex.Pattern

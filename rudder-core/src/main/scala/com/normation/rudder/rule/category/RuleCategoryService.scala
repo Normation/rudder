@@ -38,7 +38,6 @@
 package com.normation.rudder.rule.category
 
 import net.liftweb.common.Box
-import net.liftweb.common.Full
 
 class RuleCategoryService {
 

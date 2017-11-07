@@ -38,13 +38,6 @@
 package com.normation.rudder.web.rest.parameter
 
 
-import net.liftweb.common.Box
-import net.liftweb.common.Loggable
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import net.liftweb.http.rest.RestHelper
-import com.normation.rudder.domain.parameters.Parameter
-import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.web.rest.RestAPI
 

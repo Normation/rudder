@@ -41,7 +41,7 @@ import javax.sql.DataSource
 import doobie.imports._
 import doobie.enum.jdbctype.Other
 import doobie.postgres.pgtypes._
-import scalaz.{Failure => _, _}, Scalaz._
+import scalaz.{Failure => _, _}
 import scalaz.concurrent.Task
 import org.joda.time.DateTime
 import scala.xml.XML
@@ -202,7 +202,6 @@ object Doobie {
 
   implicit val ComplianceRunInfoComposite: Composite[(RunAndConfigInfo, RunComplianceInfo)] = {
     import NodeStatusReportSerialization._
-    import net.liftweb.json._
     Composite[String].xmap(
         json => throw new RuntimeException(s"You can deserialize run compliance info for now")
       , x    => x.toJson
@@ -211,7 +210,6 @@ object Doobie {
 
   implicit val AggregatedStatusReportComposite: Composite[AggregatedStatusReport] = {
     import NodeStatusReportSerialization._
-    import net.liftweb.json._
     Composite[String].xmap(
         json => throw new RuntimeException(s"You can deserialize aggredatedStatusReport for now")
       , x    => x.toJson

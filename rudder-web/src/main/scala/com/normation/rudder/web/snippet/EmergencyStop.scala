@@ -37,17 +37,11 @@
 
 package com.normation.rudder.web.snippet
 
-import com.normation.rudder.services.system.StartStopOrchestrator
-import com.normation.rudder.domain.system.{OrchestratorStatus,ButtonActivated,ButtonReleased}
+import com.normation.rudder.domain.system.{ButtonActivated,ButtonReleased}
 import scala.xml._
-import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
-import net.liftweb.http.js._
-import JsCmds._
-import JE._
-import net.liftweb.http.SHtml._
 
 import EmergencyStop._
 import bootstrap.liftweb.RudderConfig

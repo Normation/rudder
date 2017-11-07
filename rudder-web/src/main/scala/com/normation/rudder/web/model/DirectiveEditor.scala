@@ -40,20 +40,21 @@ package com.normation.rudder.web.model
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.utils.HashcodeCaching
-import com.normation.utils.Utils._
-import net.liftweb.common._
 import net.liftweb.common.Box
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.BaseField
-import net.liftweb.util.Helpers
-import net.liftweb.util.Helpers._
+import net.liftweb.common._
+import com.normation.utils.Utils._
 import org.slf4j.LoggerFactory
-import scala.collection.mutable.Buffer
 import scala.xml._
+import net.liftweb.http._
+import js._
+import JsCmds._
+import JE._
+import com.normation.cfclerk.domain.{ VariableSpec, TechniqueId }
+import org.slf4j.LoggerFactory
+import scala.xml._
+import com.normation.utils.HashcodeCaching
+import net.liftweb.util.Helpers
 
 /**
  * A displayable field has 2 methods :

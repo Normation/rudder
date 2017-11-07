@@ -39,10 +39,6 @@ package com.normation.rudder.domain.eventlog
 
 
 import com.normation.eventlog._
-import scala.xml._
-import com.normation.rudder.domain.policies._
-import org.joda.time.DateTime
-import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
 
 

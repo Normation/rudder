@@ -39,10 +39,6 @@ package com.normation.rudder.web.services
 
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.FullGroupTarget
-import com.normation.rudder.domain.policies.FullOtherTarget
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
@@ -59,20 +55,15 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
-import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.S
 import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.web.model.JsInitContextLinkUtil._
 import bootstrap.liftweb.RudderConfig
-import net.liftweb.common.Full
-import net.liftweb.common.EmptyBox
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import net.liftweb.http.js.JsObj
-import com.normation.cfclerk.domain.AgentConfig
 import com.normation.inventory.domain.AgentType
 
 /**

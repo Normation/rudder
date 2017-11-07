@@ -39,7 +39,6 @@ package com.normation.rudder.reports.execution
 
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
-import org.joda.time.DateTime
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.reports.NodeAndConfigId

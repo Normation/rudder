@@ -85,7 +85,7 @@ object ZipUtils {
           use(addToZout)
         }
       }
-      Full()
+      Full(())
     } catch {
       case e:Exception => Failure("Error when trying to zip file", Full(e), Empty)
     } finally {

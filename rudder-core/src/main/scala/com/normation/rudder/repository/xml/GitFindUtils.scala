@@ -149,9 +149,6 @@ object GitFindUtils extends Loggable {
   * a root path.
   */
   def getZip(db:Repository, revTreeId:ObjectId, onlyUnderPaths: List[String] = Nil) : Box[Array[Byte]] = {
-    import scala.collection.mutable.{Set,Buffer}
-
-
     val directories = scala.collection.mutable.Set[String]()
 
     val zipEntries = scala.collection.mutable.Buffer[Zippable]()

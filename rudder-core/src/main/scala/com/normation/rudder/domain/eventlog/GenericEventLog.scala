@@ -37,8 +37,6 @@
 
 package com.normation.rudder.domain.eventlog
 
-import org.joda.time.DateTime
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventLogDetails

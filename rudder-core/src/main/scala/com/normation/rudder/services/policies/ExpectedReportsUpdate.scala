@@ -44,39 +44,17 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.reports.NodeConfigId
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
-import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.reports.ComplianceMode
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.{Set => MutSet}
-import scala.collection.mutable.{Map => MutMap}
-import com.normation.rudder.domain.reports.NodeConfigVersions
-import com.normation.utils.Control.sequence
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.domain.reports.ComponentExpectedReport
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.reports.NodeExpectedReports
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyMode
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
-import scalaz.concurrent.Task
-import net.liftweb.common.Full
-import net.liftweb.common.Failure
-import net.liftweb.common.Empty
-import com.normation.rudder.domain.reports.NodeConfigIdInfo
-import com.normation.rudder.domain.reports.NodeConfigIdSerializer
+import scalaz.{Failure => _}
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.reports.AgentRunInterval
 
-import com.normation.rudder.domain.logger.PolicyLogger
 
 /**
  * The purpose of that service is to handle the update of

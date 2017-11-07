@@ -39,12 +39,9 @@ package com.normation.rudder.web.components
 
 import com.normation.plugins.SpringExtendableSnippet
 import com.normation.plugins.SnippetExtensionKey
-import com.normation.inventory.domain.NodeId
 import com.normation.rudder.authorization._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField,WBSelectField,WBRadioField
@@ -53,7 +50,6 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 import com.normation.utils.HashcodeCaching
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.js._
@@ -62,12 +58,10 @@ import JE._
 import net.liftweb.common._
 import net.liftweb.http._
 import scala.xml._
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.web.ChooseTemplate
-import bootstrap.liftweb.StaticResourceRewrite
 
 object NodeGroupForm {
   val templatePath = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil

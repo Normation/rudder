@@ -38,14 +38,12 @@
 package bootstrap.liftweb
 
 import net.liftweb.common._
-import javax.servlet.{ServletContextEvent,ServletContextListener}
-import org.springframework.web.context.{WebApplicationContext,ContextLoaderListener}
+import javax.servlet.ServletContextEvent
+import org.springframework.web.context.ContextLoaderListener
 import org.springframework.web.context.support.WebApplicationContextUtils
 import org.springframework.core.io.{ClassPathResource => CPResource,FileSystemResource => FSResource}
 import java.io.File
-import com.typesafe.config.ConfigException
 import com.normation.rudder.domain.logger.ApplicationLogger
-import javax.servlet.UnavailableException
 
 /**
  * A context loader listener for initializing Spring webapp context

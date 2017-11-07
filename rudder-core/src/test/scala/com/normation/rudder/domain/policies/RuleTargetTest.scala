@@ -9,10 +9,8 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner._
 import net.liftweb.common._
-import com.normation.cfclerk.domain._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.domain.nodes.Node
 import com.normation.inventory.domain.Debian

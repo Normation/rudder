@@ -43,7 +43,8 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.services.policies.BundleOrder
-import com.normation.utils.Control._
+import com.normation.utils.Control.sequence
+import com.normation.utils.Control.bestEffort
 import net.liftweb.common._
 import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.services.SystemVariableSpecService

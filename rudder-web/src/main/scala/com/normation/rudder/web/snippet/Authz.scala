@@ -40,13 +40,7 @@ package com.normation.rudder.web.snippet
 import net.liftweb._
 import http._
 import common._
-import util.Helpers._
-import js._
-import JsCmds._
-import JE._
 import scala.xml.NodeSeq
-import collection.mutable.Buffer
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization.AuthzToRights
 import com.normation.rudder.authorization.NoRights

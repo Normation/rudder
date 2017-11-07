@@ -82,7 +82,6 @@ object SearchNodes {
 
 class SearchNodes extends StatefulSnippet with Loggable {
 
-  import SearchNodes._
 
   private[this] val queryParser = RudderConfig.cmdbQueryParser
   private[this] val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
@@ -116,8 +115,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
   var activateSubmitButton = true
 
   def head(html:NodeSeq) : NodeSeq = {
-    import net.liftweb.json._
-    import net.liftweb.json.JsonDSL._
 
     //add a function name to force reparse hashtag for other js elt of the page
 

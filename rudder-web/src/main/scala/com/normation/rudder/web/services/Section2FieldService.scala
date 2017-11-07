@@ -37,12 +37,13 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.cfclerk.domain._
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.web.model._
-import com.normation.utils.Control._
+import net.liftweb.common._
+import com.normation.cfclerk.domain._
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
+import com.normation.utils.Control.sequence
 
 /**
  * Create web representation of Directive in the goal

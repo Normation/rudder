@@ -38,22 +38,14 @@
 package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
-import com.normation.cfclerk.domain.{
-  TechniqueId,Technique,
-  TechniqueCategoryId, TechniqueCategory
-}
-import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S}
 import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import JsCmds._
 import JE._
-import net.liftweb.util.Helpers
-import net.liftweb.util.Helpers._
-import com.normation.rudder.repository._
 import com.normation.rudder.services.policies._
 import bootstrap.liftweb.RudderConfig
 

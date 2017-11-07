@@ -49,9 +49,7 @@ import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import net.liftweb.common.Box
-import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.workflows.DirectiveChange
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.policies.RuleId
