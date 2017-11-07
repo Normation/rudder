@@ -53,7 +53,6 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import scala.util.{Try, Failure => Catch, Success}
 import scala.collection.JavaConversions._
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.RuleId
@@ -65,14 +64,11 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.services.marshalling.ChangeRequestChangesUnserialisation
 import scala.xml.XML
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.workflows.DirectiveChanges
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.eventlog.ModificationId
 import scala.xml.Elem
 
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
-import scalaz.concurrent.Task
+import scalaz.{Failure => _, _}
 
 class RoChangeRequestJdbcRepository(
     jdbcTemplate         : JdbcTemplate

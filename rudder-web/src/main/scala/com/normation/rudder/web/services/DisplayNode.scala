@@ -40,10 +40,7 @@ package services
 
 import model.JsNodeId
 import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core.LDAPConstants
-import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.web.components.DateFormaterService
-import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -52,23 +49,14 @@ import Helpers._
 import net.liftweb.http.js._
 import JsCmds._
 import JE.{JsRaw, JsVar, JsArray, Str}
-import net.liftweb.http.SHtml._
-import com.normation.exceptions.TechnicalException
-import net.liftweb.http.Templates
 import org.joda.time.DateTime
-import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.model.JsInitContextLinkUtil
-import com.normation.rudder.domain.nodes.NodeProperty
-import com.normation.rudder.domain.nodes.{Node => RudderNode}
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import bootstrap.liftweb.StaticResourceRewrite

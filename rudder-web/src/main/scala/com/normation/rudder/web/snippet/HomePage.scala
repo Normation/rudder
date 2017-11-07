@@ -55,13 +55,12 @@ import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.Control.sequence
 import com.unboundid.ldap.sdk.SearchRequest
-import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
-import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
-import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.AgentType.Dsc
+import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
+import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
+import com.unboundid.ldap.sdk.DN
 
 sealed trait ComplianceLevelPieChart{
   def color : String
@@ -341,9 +340,9 @@ class HomePage extends Loggable {
    */
   private[this] def getRudderAgentVersion() : Box[Map[String, Int]] = {
     import com.normation.ldap.sdk._
-    import com.normation.ldap.sdk.BuildFilter.{SUB,OR}
+    import com.normation.ldap.sdk.BuildFilter.SUB
+    import com.normation.ldap.sdk.BuildFilter.OR
     import com.normation.inventory.ldap.core.LDAPConstants.{A_NAME, A_NODE_UUID, A_SOFTWARE_DN}
-    import com.unboundid.ldap.sdk.DN
 
     val unknown = new Version("Unknown")
 
@@ -361,10 +360,10 @@ class HomePage extends Loggable {
                                 case None => s
                                 // only keep before first "." because in some case, the distrib reports "rudder-agent.x86-64"
                                 case Some(name) => name.toLowerCase.split("""\.""").head match {
-                                  case CfeEnterprise.inventorySoftwareName =>
-                                    s.copy(version = s.version.map(v => new Version(CfeEnterprise.toAgentVersionName(v.value))))
-                                  case ag if ag == Dsc.inventorySoftwareName.toLowerCase =>
-                                    s.copy(version = s.version.map(v => new Version(Dsc.toAgentVersionName(v.value))))
+                                  case AgentType.CfeEnterprise.inventorySoftwareName =>
+                                    s.copy(version = s.version.map(v => new Version(AgentType.CfeEnterprise.toAgentVersionName(v.value))))
+                                  case ag if ag == AgentType.Dsc.inventorySoftwareName.toLowerCase =>
+                                    s.copy(version = s.version.map(v => new Version(AgentType.Dsc.toAgentVersionName(v.value))))
                                   case _ => s
                                 }
                               }

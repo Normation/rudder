@@ -38,15 +38,12 @@
 package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.cfclerk.domain.Technique
 import net.liftweb.http.js._
 import JsCmds._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http._
-import com.normation.rudder.services.policies._
-import com.normation.rudder.domain.eventlog.RudderEventActor
 import JE._
 import net.liftweb.common._
 import scala.xml._
@@ -54,21 +51,12 @@ import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.RudderLDAPConstants
-import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.domain.eventlog._
-import com.normation.eventlog.EventActor
-import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
-import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.workflows._
-import org.joda.time.DateTime
-import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.web.rest.settings._
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable

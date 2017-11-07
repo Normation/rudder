@@ -38,8 +38,6 @@
 package com.normation.rudder.domain.queries
 
 import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core._
-import com.unboundid.ldap.sdk.DN
 import com.normation.utils.HashcodeCaching
 
 case class QueryUuid(val value:String) extends Uuid with HashcodeCaching

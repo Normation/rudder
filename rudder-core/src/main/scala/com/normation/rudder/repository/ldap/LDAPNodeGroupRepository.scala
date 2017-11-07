@@ -40,7 +40,6 @@ package ldap
 
 import com.normation.rudder.domain.nodes._
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.queries.Query
 import net.liftweb.common._
 import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.{DN,Filter}
@@ -52,7 +51,6 @@ import RudderLDAPConstants._
 import com.normation.utils.Control.sequence
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.utils.ScalaReadWriteLock
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
@@ -539,7 +537,7 @@ class WoLDAPNodeGroupRepository(
 ) extends WoNodeGroupRepository with Loggable {
   repo =>
 
-  import roGroupRepo.{ldap => roLdap, _}
+  import roGroupRepo._
 
   /**
    * Check if a group category exist with the given name

@@ -47,14 +47,12 @@ import net.liftweb.http._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
-import net.liftweb.util._
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.cfclerk.domain.TechniqueId
-import net.liftweb.util.CanBind
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.eventlog.EventActor

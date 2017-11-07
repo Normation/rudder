@@ -38,35 +38,23 @@
 package com.normation.rudder.web.snippet.configuration
 
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.services.policies._
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.services.TechniqueRepository
 import net.liftweb.http.LocalSnippet
 import net.liftweb.common._
-import Box._
-import net.liftweb.http.{SHtml,S}
+import net.liftweb.http.SHtml
 import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import JE._
-import net.liftweb.util.Helpers
-import net.liftweb.util.Helpers._
 import com.normation.rudder.web.components.{
   RuleEditForm,
-  ComponentInitializationException,
+
   RuleGrid
 }
-import com.normation.rudder.domain.policies.{GroupTarget,Rule}
-import com.normation.rudder.repository._
-import com.normation.utils.StringUuidGenerator
+import com.normation.rudder.domain.policies.Rule
 import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.web.components.RuleCategoryTree
-import com.normation.rudder.rule.category._
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.components.RuleDisplayer
 import com.normation.rudder.web.components.RuleDisplayer
 import com.normation.rudder.web.components.DisplayColumn

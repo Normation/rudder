@@ -41,7 +41,6 @@ import net.liftweb.json._
 import net.liftweb.common._
 import com.normation.utils.Control._
 import scalaz.Monad
-import scalaz.Id
 import scalaz.std.option._
 import com.normation.rudder.domain.policies.JsonTagExtractor
 import scala.language.higherKinds

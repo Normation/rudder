@@ -38,10 +38,7 @@
 package com.normation.rudder.web.snippet.administration
 
 import com.normation.eventlog.EventLog
-import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.web.services.EventListDisplayer
 import net.liftweb.common._
-import net.liftweb.http.js.JsCmds.Script
 import net.liftweb.http.DispatchSnippet
 import bootstrap.liftweb.RudderConfig
 

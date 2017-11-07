@@ -41,22 +41,15 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
-import scala.xml._
 import net.liftweb.http._
 import net.liftweb.common._
 import com.normation.rudder.domain.reports._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Helpers
-import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsExp
-import bootstrap.liftweb.RudderConfig
 import com.normation.cfclerk.domain.TechniqueVersion
-import org.joda.time.DateTime
 import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.Interval
-import com.normation.rudder.services.reports.NodeChanges
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.rudder.domain.policies.PolicyMode._
 

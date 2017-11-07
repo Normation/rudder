@@ -73,7 +73,6 @@ trait StartStopOrchestrator {
 import scala.sys.process._
 import SystemStartStopOrchestrator._
 import org.slf4j.LoggerFactory
-import java.io.File
 
 /**
  * A class that manage orchestrator state thanks to the call

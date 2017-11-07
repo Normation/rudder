@@ -37,12 +37,6 @@
 
 package com.normation.rudder.domain.reports
 
-import org.joda.time.DateTime
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleId
-import net.liftweb.common.Loggable
-import com.normation.rudder.reports.ReportsDisabled
 import net.liftweb.http.js.JE
 import net.liftweb.http.js.JE.JsArray
 import net.liftweb.json.JsonAST.JObject

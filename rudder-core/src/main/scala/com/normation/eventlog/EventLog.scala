@@ -21,10 +21,7 @@
 package com.normation.eventlog
 
 import org.joda.time.DateTime
-import org.joda.time.format._
-import scala.collection._
 import scala.xml._
-import java.security.Principal
 import com.normation.utils.HashcodeCaching
 
 

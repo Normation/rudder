@@ -40,26 +40,11 @@ package com.normation.rudder.web.rest
 import com.normation.rudder.web.rest.RestUtils._
 
 import net.liftweb.common._
-import net.liftweb.http.JsonResponse
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsExp
 
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JArray
-import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.services.quicksearch.FullQuickSearchService
-import com.normation.rudder.services.quicksearch.QuickSearchResult
-import com.normation.rudder.services.quicksearch.QuickSearchResultId
-import com.normation.rudder.services.quicksearch.QSObject
-import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.authorization.Read
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
-import scala.collection.SortedSet
-import com.normation.rudder.domain.policies.Tags
-import com.normation.rudder.domain.policies.Tag
 
 class RestCompletion(
   completion : RestCompletionService

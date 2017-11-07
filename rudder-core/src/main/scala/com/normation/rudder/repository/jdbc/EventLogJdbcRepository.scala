@@ -39,40 +39,21 @@ package com.normation.rudder.repository.jdbc
 
 import com.normation.rudder.repository.EventLogRepository
 import org.joda.time.DateTime
-import org.slf4j.{Logger,LoggerFactory}
 import com.normation.eventlog._
 import com.normation.rudder.domain.eventlog._
-import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core._
 import java.sql.ResultSet
-import java.sql.Connection
-import java.sql.PreparedStatement
-import java.sql.Timestamp
-import org.springframework.jdbc.support.GeneratedKeyHolder
-import com.normation.utils.User
 import net.liftweb.common._
 import scala.xml._
-import scala.collection.JavaConversions._
-import org.joda.time.format.ISODateTimeFormat
-import com.normation.rudder.domain.policies.DeleteRuleDiff
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.rudder.domain.eventlog._
-import scala.collection.mutable.Buffer
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import scala.util.Try
-import scala.util.Success
-import scala.util.{Failure => Catch}
 
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
 import doobie.postgres.pgtypes._
-import scalaz.concurrent.Task
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.DB
-import doobie.free.preparedstatement.PreparedStatementIOOps
 
 /**
  * The EventLog repository

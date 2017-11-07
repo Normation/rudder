@@ -48,12 +48,10 @@ import com.normation.rudder.reports.execution.AgentRunId
 
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 import com.normation.rudder.db.DB
 
 

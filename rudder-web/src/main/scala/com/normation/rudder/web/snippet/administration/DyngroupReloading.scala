@@ -43,13 +43,6 @@ import common._
 import util.Helpers._
 import js._
 import JsCmds._
-import JE._
-import scala.xml.NodeSeq
-import collection.mutable.Buffer
-import com.normation.utils.NetUtils.isValidNetwork
-import com.normation.rudder.domain.Constants
-import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.batch.UpdateDynamicGroups
 import bootstrap.liftweb.RudderConfig
 
 

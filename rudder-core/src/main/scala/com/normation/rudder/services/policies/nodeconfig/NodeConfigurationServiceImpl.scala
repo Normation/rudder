@@ -39,10 +39,10 @@ package com.normation.rudder.services.policies.nodeconfig
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.services.policies.BundleOrder
-import com.normation.utils.Control._
+import com.normation.utils.Control.sequence
 import net.liftweb.common._
 import org.joda.time.DateTime
+import com.normation.rudder.services.policies.BundleOrder
 
 
 /**

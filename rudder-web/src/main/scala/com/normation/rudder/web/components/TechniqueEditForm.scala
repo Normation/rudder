@@ -38,9 +38,6 @@
 package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.web.services.UserPropertyService
-import com.normation.rudder.repository._
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies._
 import net.liftweb.http.js._
 import JsCmds._
@@ -49,16 +46,12 @@ import net.liftweb.common._
 import net.liftweb.http._
 import scala.xml._
 import com.normation.rudder.web.model._
-import com.normation.utils.StringUuidGenerator
 import com.normation.cfclerk.domain.{
-  TechniqueId,Technique,
-  TechniqueCategoryId, TechniqueCategory
+Technique,
+TechniqueCategory
 }
-import com.normation.rudder.repository._
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.rudder.services.policies._
-import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
+import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 import com.normation.eventlog.ModificationId

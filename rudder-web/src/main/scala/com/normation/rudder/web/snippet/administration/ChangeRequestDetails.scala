@@ -49,9 +49,6 @@ import scala.xml.Text
 import scala.xml.NodeSeq
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.web.model._
-import org.joda.time.DateTime
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.domain.policies._
 import com.normation.rudder.web.components._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog

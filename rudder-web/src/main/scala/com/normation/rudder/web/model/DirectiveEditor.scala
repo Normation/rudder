@@ -40,22 +40,16 @@ package com.normation.rudder.web.model
 import net.liftweb.util.Helpers
 import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.common.Box
-import scala.collection.mutable.Buffer
 import net.liftweb.util.BaseField
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import net.liftweb.common._
-import org.joda.time.{ DateTime, LocalDate, LocalTime, Duration, Period }
-import org.joda.time.format._
 import com.normation.utils.Utils._
-import java.util.Locale
 import org.slf4j.LoggerFactory
 import scala.xml._
 import net.liftweb.http._
 import js._
 import JsCmds._
 import JE._
-import net.liftweb.util.Helpers._
-import com.normation.cfclerk.domain.{ VariableSpec, TechniqueId, Technique }
+import com.normation.cfclerk.domain.{ VariableSpec, TechniqueId }
 import com.normation.exceptions.TechnicalException
 import org.slf4j.LoggerFactory
 import com.normation.utils.HashcodeCaching

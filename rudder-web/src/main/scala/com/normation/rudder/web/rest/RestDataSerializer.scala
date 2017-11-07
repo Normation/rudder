@@ -58,7 +58,6 @@ import com.normation.rudder.web.rest.node.CustomDetailLevel
 import com.normation.rudder.web.rest.node.MinimalDetailLevel
 import com.normation.rudder.repository.FullActiveTechnique
 import scala.language.implicitConversions
-import com.normation.rudder.web.components.DateFormaterService
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest

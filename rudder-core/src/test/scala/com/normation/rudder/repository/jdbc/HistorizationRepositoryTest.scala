@@ -48,7 +48,6 @@ import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.policies.NodeConfigData
 
 import org.junit.runner.RunWith
-import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
 /**

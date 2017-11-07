@@ -39,14 +39,12 @@ package com.normation.rudder.migration
 
 import scala.xml.Elem
 
-import org.springframework.jdbc.core.JdbcTemplate
 
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.marshalling.TestFileFormat
 
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.StringToCssBindPromoter
-import net.liftweb.util.Helpers.tryo
 import com.normation.rudder.db.Doobie
 
 /**

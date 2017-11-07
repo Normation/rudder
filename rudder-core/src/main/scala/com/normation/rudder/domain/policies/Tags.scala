@@ -37,9 +37,9 @@
 package com.normation.rudder.domain.policies
 
 import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
-import com.normation.utils.Control._
 import com.normation.rudder.repository.json.JsonExctractorUtils
+import scala.language.implicitConversions
+import scala.language.higherKinds
 
 /**
  * Tags that apply on Rules and Directives
@@ -54,7 +54,6 @@ object Tag {
 final case class TagName ( val value : String )
 final case class TagValue( val value : String )
 
-import Tag._
 
 final case class Tag( name : TagName, value : TagValue )
 
@@ -87,7 +86,6 @@ object JsonTagSerialisation {
 
 trait JsonTagExtractor[M[_]] extends JsonExctractorUtils[M] {
   import net.liftweb.json._
-  import net.liftweb.json.JsonDSL._
 
   def unserializeTags(value:String): Box[M[Tags]] = {
 

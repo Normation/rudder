@@ -39,7 +39,6 @@ package com.normation.rudder.web.components.popup
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import scala.xml._
 import net.liftweb.http._
@@ -47,11 +46,9 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
 import com.normation.rudder.domain.parameters._
-import com.normation.eventlog.ModificationId
-import org.joda.time.DateTime
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField, WBRadioField
+  WBTextField, FormTracker, WBTextAreaField
 }
 import java.util.regex.Pattern
 import CreateOrUpdateGlobalParameterPopup._

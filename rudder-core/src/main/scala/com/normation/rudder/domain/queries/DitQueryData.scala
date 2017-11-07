@@ -42,7 +42,7 @@ import com.normation.ldap.sdk._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
 import BuildFilter._
-import scala.collection.{SortedMap,SortedSet}
+import scala.collection.SortedMap
 import com.normation.rudder.services.queries.SpecialFilter
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.NodeDit

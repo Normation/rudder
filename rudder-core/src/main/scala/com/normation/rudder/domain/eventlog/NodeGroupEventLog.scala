@@ -39,12 +39,6 @@ package com.normation.rudder.domain.eventlog
 
 
 import com.normation.eventlog._
-import scala.xml._
-import org.joda.time.DateTime
-import net.liftweb.common._
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.queries.Query
-import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
 
 sealed trait NodeGroupEventLog extends EventLog { override final val eventLogCategory = NodeGroupLogCategory }

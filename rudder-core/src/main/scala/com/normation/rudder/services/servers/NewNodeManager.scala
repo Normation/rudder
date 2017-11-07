@@ -53,7 +53,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.ldap.sdk.BuildFilter.{ ALL, EQ }
+import com.normation.ldap.sdk.BuildFilter.ALL
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
@@ -61,7 +61,6 @@ import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
-import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
@@ -86,7 +85,6 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.services.queries.QueryProcessor
-import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.utils.Control.sequence
 import com.normation.utils.Control.bestEffort
 import com.normation.rudder.hooks.RunHooks
@@ -95,7 +93,6 @@ import com.normation.rudder.domain.eventlog.InventoryLogDetails
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.domain.eventlog.InventoryLogDetails
 import com.normation.rudder.hooks.HooksLogger
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 
 

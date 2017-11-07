@@ -39,10 +39,7 @@ package com.normation.rudder.repository.jdbc
 
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import net.liftweb.common.Full
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -54,39 +51,28 @@ import com.normation.rudder.reports.execution._
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
-import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.reports.AgentRunIntervalService
 import org.joda.time.Duration
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.AgentRunInterval
 import net.liftweb.common.Box
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
-import org.slf4j.LoggerFactory
-import ch.qos.logback.classic.Level
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
 import net.liftweb.common.Empty
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
-import net.liftweb.common.Failure
-import net.liftweb.common.EmptyBox
-import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
-import com.normation.rudder.db.DB
-import doobie.util.update.Update
 
-import scalaz.{Failure => _, _}, Scalaz._
+import scalaz.{Failure => _, _}
 import doobie.imports._
-import scalaz.concurrent.Task
 import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.services.reports.Unexpected
-import com.normation.rudder.services.reports.{Pending => RPending}
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -335,7 +321,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   sequential
 
   "Init data" should {
-    import doobie._
 
 //    "insert reports 1" in {
 //

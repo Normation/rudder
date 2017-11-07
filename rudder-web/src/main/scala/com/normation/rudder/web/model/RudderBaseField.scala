@@ -38,7 +38,7 @@
 package com.normation.rudder.web.model
 
 import net.liftweb.util.{
-  FieldError,BaseField,FieldContainer,Bindable,Helpers,StringValidators
+  FieldError,BaseField,FieldContainer,Helpers,StringValidators
 }
 import scala.xml._
 import net.liftweb.common._
@@ -46,8 +46,6 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml._
 import net.liftweb.http.SHtml.ElemAttr._
 import net.liftweb.util.Helpers._
-import net.liftweb.http.js._
-import JsCmds._
 
 /**
  * A simple class that allows to register error information

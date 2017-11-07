@@ -48,7 +48,6 @@ import com.normation.rudder.db.Doobie._
 
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeConfigId
 import org.joda.time.DateTime
