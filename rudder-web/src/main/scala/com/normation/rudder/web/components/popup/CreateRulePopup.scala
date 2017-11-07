@@ -78,11 +78,9 @@ class CreateOrCloneRulePopup(
     , "rule-createrulepopup"
   )
 
-  private[this] val roRuleRepository    = RudderConfig.roRuleRepository
   private[this] val woRuleRepository    = RudderConfig.woRuleRepository
   private[this] val uuidGen             = RudderConfig.stringUuidGenerator
   private[this] val userPropertyService = RudderConfig.userPropertyService
-  private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
   def dispatch = {

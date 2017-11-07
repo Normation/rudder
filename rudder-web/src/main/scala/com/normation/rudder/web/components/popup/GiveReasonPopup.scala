@@ -70,7 +70,6 @@ class GiveReasonPopup(
   )
 
   private[this] val uuidGen                     = RudderConfig.stringUuidGenerator
-  private[this] val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
   private[this] val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
   private[this] val userPropertyService         = RudderConfig.userPropertyService
   private[this] val techniqueRepository         = RudderConfig.techniqueRepository
@@ -121,8 +120,6 @@ class GiveReasonPopup(
     val fields = List() ++ crReasons
     new FormTracker(fields)
   }
-
-  private[this] var notifications = List.empty[NodeSeq]
 
   private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
@@ -180,18 +177,5 @@ class GiveReasonPopup(
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("There was problem with your request"))
     updateFormClientSide()
-  }
-
-  private[this] def updateAndDisplayNotifications() : NodeSeq = {
-    notifications :::= formTracker.formErrors
-    formTracker.cleanErrors
-
-    if(notifications.isEmpty) NodeSeq.Empty
-    else {
-      val html = <div id="notifications" class="notify">
-        <ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
-      notifications = Nil
-      html
-    }
   }
 }

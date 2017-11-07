@@ -150,12 +150,6 @@ object RestTestSetUp {
     mockReq
   }
 
-  private[this] def mockDataRequest (path : String, method : String, data : Map[String,String]) = {
-    val mockReq = mockRequest(path,method)
-    mockReq.body = data.map{case (key,value) => s"$key=$value"}.mkString("\n")
-    mockReq
-  }
-
   def jsonPUT(path: String, json : JValue) = {
     mockJsonRequest(path,"PUT", json)
   }

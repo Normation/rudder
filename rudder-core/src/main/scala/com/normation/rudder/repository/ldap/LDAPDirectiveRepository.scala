@@ -47,6 +47,7 @@ import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
 import RudderLDAPConstants._
 import net.liftweb.common._
 import com.normation.utils.Control.sequence
+import com.normation.utils.Control.bestEffort
 import com.normation.eventlog.EventActor
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.TechniqueId

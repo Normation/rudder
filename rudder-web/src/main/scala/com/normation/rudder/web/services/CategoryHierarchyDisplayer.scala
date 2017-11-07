@@ -68,21 +68,10 @@ class CategoryHierarchyDisplayer() {
 
 
   def getRuleCategoryHierarchy(rootCategory:RuleCategory, exclude: Option[RuleCategory => Boolean], size:Int = 0) : List[(RuleCategoryId, String)] = {
-    //always exclude system categories (minus root one)
-    val excludeSystem = (cat: RuleCategory) => (cat.id != rootCategory.id && cat.isSystem)
-    val ex = exclude match {
-      case None =>
-        (cat: RuleCategory) => excludeSystem(cat)
-      case Some(ex1) =>
-        (cat: RuleCategory) => excludeSystem(cat) || ex1(cat)
-    }
-
-         (if (size == 0) {
-           (rootCategory.id, rootCategory.name)
-         }
-         else {
-          (rootCategory.id, ("\u00a0\u00a0\u00a0\u00a0\u00a0"*(size-1) + "\u2514"+"\u2500 " + rootCategory.name))
-         }) :: rootCategory.childs.sortBy(_.name).flatMap { case category => getRuleCategoryHierarchy(category, exclude, size+1)
-    }
+    (if (size == 0) {
+      (rootCategory.id, rootCategory.name)
+    } else {
+       (rootCategory.id, ("\u00a0\u00a0\u00a0\u00a0\u00a0"*(size-1) + "\u2514"+"\u2500 " + rootCategory.name))
+    }) :: rootCategory.childs.sortBy(_.name).flatMap { case category => getRuleCategoryHierarchy(category, exclude, size+1) }
   }
 }

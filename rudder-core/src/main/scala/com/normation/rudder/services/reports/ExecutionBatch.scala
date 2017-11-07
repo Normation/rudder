@@ -879,14 +879,6 @@ object ExecutionBatch extends Loggable {
     (computed ++ newStatus).toSet
   }
 
-  private[this] def getUnexpanded(seq: Seq[Option[String]]): Option[String] = {
-    val unexpanded = seq.toSet
-    if(unexpanded.size > 1) {
-      logger.debug("Several same looking expected component values have different unexpanded value, which is not supported: " + unexpanded.mkString(","))
-    }
-    unexpanded.head
-  }
-
   private[this] def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Set[RuleNodeStatusReport] = {
     reports.groupBy(x => (x.ruleId, x.serial)).map { case ((ruleId, serial), seq) =>
       RuleNodeStatusReport(

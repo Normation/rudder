@@ -131,8 +131,8 @@ class AccepetedNodesLDAPQueryProcessor(
    */
   private[this] def queryAndChekNodeId(
       query:Query,
-      select:Seq[String] = Seq(),
-      limitToNodeIds:Option[Seq[NodeId]] = None
+      select:Seq[String],
+      limitToNodeIds:Option[Seq[NodeId]]
   ) : Box[Seq[QueryResult]] = {
 
     val debugId = if(logger.isDebugEnabled) Helpers.nextNum else 0L

@@ -106,7 +106,7 @@ class DirectiveAgregationTest {
     , systemVariableServiceSpec
     , new BuildBundleSequence(systemVariableServiceSpec, new WriteAllAgentSpecificFiles())
   )
-  
+
   def createInstance(activeTechniqueId:TechniqueId, id: String) = {
     new Cf3PolicyDraft(
         id
@@ -182,12 +182,6 @@ class DirectiveAgregationTest {
   // Create a Directive with arrayed value , and add it to a server, and agregate values
   @Test
   def arrayedDirectiveTest() {
-
-    val newTechniqueId = TechniqueId(TechniqueName("name"), TechniqueVersion("1.0"))
-    def newTechnique = Technique(newTechniqueId, "tech" + newTechniqueId, "", Nil, TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
-
-
-    val instance = createInstance(newTechniqueId, "id")
 
     val machineA = new Cf3PolicyDraftContainer(Set(), Set(
         createDirectiveWithArrayBinding(activeTechniqueId1,1)

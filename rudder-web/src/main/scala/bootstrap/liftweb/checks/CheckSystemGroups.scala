@@ -49,7 +49,6 @@ import BuildFilter._
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
 import RudderLDAPConstants._
-import com.normation.utils.ScalaReadWriteLock
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries._
@@ -57,6 +56,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 
 /**
  * The goal is to check that system groups (name are "hasPolicyServer-")
@@ -68,8 +68,8 @@ class CheckSystemGroups(
   , ldap          : LDAPConnectionProvider[RoLDAPConnection]
   , mapper        : LDAPEntityMapper
   , groupLibMutex : ScalaReadWriteLock
-  , rwRepos: WoNodeGroupRepository
-  , uuidGen: StringUuidGenerator
+  , rwRepos       : WoNodeGroupRepository
+  , uuidGen       : StringUuidGenerator
 ) extends BootstrapChecks {
 
   override val description = "Check that system groups 'hasPolicyServer-*' are dynamics and correct them"

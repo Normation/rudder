@@ -60,7 +60,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
   import db._
 
   def getAllOpenedNodes(): Seq[DB.SerializedNodes[Long]] = {
-    sql"select * from nodes where endtime is null".query[DB.SerializedNodes[Long]].vector.transact(xa).run
+    sql"select * from nodes where endtime is null".query[DB.SerializedNodes[Long]].vector.transact(xa).unsafePerformSync
   }
 
 
@@ -87,7 +87,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                       ).updateMany(nodes.map(DB.Historize.fromNode).toList)
         } yield {
           ()
-        }).transact(xa).run
+        }).transact(xa).unsafePerformSync
     }
   }
 
@@ -114,7 +114,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       groups.map(x => (x, byIds.getOrElse(x.id, Nil)))
     }
 
-    action.transact(xa).run
+    action.transact(xa).unsafePerformSync
   }
 
 
@@ -129,7 +129,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                       ).updateMany(groups.map(DB.Historize.fromNodeGroup).toList)
         } yield {
           ()
-        }).transact(xa).run
+        }).transact(xa).unsafePerformSync
       }
   }
 
@@ -137,7 +137,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     sql"""select id, directiveid, directivename, directivedescription, priority, techniquename,
                   techniquehumanname, techniquedescription, techniqueversion, starttime, endtime
           from directives
-          where endtime is null""".query[DB.SerializedDirectives[Long]].vector.transact(xa).run
+          where endtime is null""".query[DB.SerializedDirectives[Long]].vector.transact(xa).unsafePerformSync
   }
 
   def updateDirectives(
@@ -155,7 +155,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                       """).updateMany(directives.map(DB.Historize.fromDirective).toList)
         } yield {
           ()
-        }).transact(xa).run
+        }).transact(xa).unsafePerformSync
     }
   }
 
@@ -188,7 +188,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
           , gMap.getOrElse(rule.id, Seq())
           , dMap.getOrElse(rule.id, Seq())
         ) )
-    }).transact(xa).run
+    }).transact(xa).unsafePerformSync
   }
 
 
@@ -225,12 +225,12 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
           inserted <- rules.map(r => insertRule(now)(r).transact(xa)).toList.sequence
         } yield {
           ()
-        }).run
+        }).unsafePerformSync
     }
   }
 
   def getOpenedGlobalSchedule() : Option[DB.SerializedGlobalSchedule[Long]] = {
-    sql"select id, interval, splaytime, start_hour, start_minute, starttime, endtime from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa).run
+    sql"select id, interval, splaytime, start_hour, start_minute, starttime, endtime from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa).unsafePerformSync
   }
 
   def updateGlobalSchedule(interval: Int, splaytime: Int, start_hour: Int, start_minute: Int  ) : Unit = {
@@ -240,7 +240,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                           values($interval, $splaytime, $start_hour, $start_minute, ${DateTime.now})""".update.run
       } yield {
         ()
-      }).transact(xa).run
+      }).transact(xa).unsafePerformSync
   }
 
 }

@@ -49,7 +49,6 @@ import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField
 }
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.web.model.RudderBaseField
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 
@@ -138,7 +137,6 @@ class RuleModificationValidationPopup(
   import RuleModificationValidationPopup._
 
   private[this] val userPropertyService      = RudderConfig.userPropertyService
-  private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
   private[this] val changeRequestService     = RudderConfig.changeRequestService
   private[this] val workflowService          = RudderConfig.workflowService
 
@@ -192,12 +190,6 @@ class RuleModificationValidationPopup(
        ".notifications *" #> updateAndDisplayNotifications()
 
     )(html)
-  }
-
-  private[this] def showError(field:RudderBaseField) : NodeSeq = {
-    if(field.hasErrors) {
-      <ul>{field.errors.map { e => <li>{e}</li> }}</ul>
-    } else { NodeSeq.Empty }
   }
 
   ///////////// fields for category settings ///////////////////

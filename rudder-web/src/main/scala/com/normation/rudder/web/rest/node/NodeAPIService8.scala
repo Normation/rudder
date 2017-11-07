@@ -74,7 +74,6 @@ class NodeApiService8 (
   def updateRestNode(nodeId: NodeId, restNode: RestNode, actor : EventActor, reason : Option[String]) : Box[Node] = {
 
     val modId = ModificationId(uuidGen.newUuid)
-    val propNames = restNode.properties.getOrElse(Nil).map( _.name ).toSet
 
     for {
       node           <- nodeInfoService.getNode(nodeId)

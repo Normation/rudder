@@ -60,7 +60,6 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.S
 import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.web.model.JsInitContextLinkUtil._
-import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import net.liftweb.http.js.JsObj
@@ -223,7 +222,6 @@ object DisplayDirectiveTree extends Loggable {
       }
 
       override def body = {
-        val tooltipId = Helpers.nextFuncName
         //display information (name, etc) relative to last technique version
         val xml = activeTechnique.newestAvailableTechnique match {
           case Some(technique) =>
@@ -260,7 +258,6 @@ object DisplayDirectiveTree extends Loggable {
       , onClickDirective : Option[Directive => JsCmd]
       , activeTechnique  : FullActiveTechnique
     ) : JsTreeNode = new JsTreeNode {
-      private[this] val configService  = RudderConfig.configService
 
       val isAssignedTo = usedDirectiveIds.find{ case(id,_) => id == directive.id }.map(_._2).getOrElse(0)
 

@@ -85,7 +85,6 @@ class RuleCategoryPopup(
   private[this] val woRulecategoryRepository   = RudderConfig.woRuleCategoryRepository
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
   private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
-  private[this] val userPropertyService        = RudderConfig.userPropertyService
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }

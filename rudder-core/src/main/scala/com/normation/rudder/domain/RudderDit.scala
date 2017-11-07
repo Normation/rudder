@@ -67,7 +67,7 @@ class CATEGORY(
     val isSystem : Boolean = false,
     val objectClass : String,
     val objectClassUuid : String
-)(implicit dit:AbstractDit) extends ENTRY1(objectClassUuid, uuid) {
+) extends ENTRY1(objectClassUuid, uuid) {
 
   lazy val rdn : RDN = this.rdn(this.rdnValue._1)
   lazy val dn = new DN(rdn, parentDN)

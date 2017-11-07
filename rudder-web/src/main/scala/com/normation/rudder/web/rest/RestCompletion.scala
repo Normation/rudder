@@ -118,7 +118,7 @@ class RestCompletionService (
     } yield {
       (for {
       tag <- lib.allDirectives.flatMap(_._2._2.tags.tags).toList
-      val name = tag.name.value
+      name = tag.name.value
       if name.startsWith(matching)
       } yield {
         name

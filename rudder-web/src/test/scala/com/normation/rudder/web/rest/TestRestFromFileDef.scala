@@ -39,7 +39,6 @@ package com.normation.rudder.web.rest
 
 import scala.collection.JavaConverters._
 
-import org.apache.commons.io.Charsets
 import org.apache.commons.io.IOUtils
 import org.junit.runner.RunWith
 import org.specs2.mutable._
@@ -56,6 +55,7 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
+import java.nio.charset.StandardCharsets
 
 /*
  * Utily data structures
@@ -86,7 +86,7 @@ class TestRestFromFileDef extends Specification with Loggable {
   def filename(name: String) = "api/" + name
   def src_test_resources_api_(name: String) = this.getClass.getClassLoader.getResourceAsStream(filename(name))
 
-  val files = IOUtils.readLines(src_test_resources_api_(""), Charsets.UTF_8).asScala
+  val files = IOUtils.readLines(src_test_resources_api_(""), StandardCharsets.UTF_8).asScala
 
   /*
    * I *love* java. The snakeyaml parser returns a list of Objects. The may be null if empty, or

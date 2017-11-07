@@ -30,7 +30,6 @@ class CreateCloneGroupPopup(
 
   private[this] val roNodeGroupRepository = RudderConfig.roNodeGroupRepository
   private[this] val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
-  private[this] val nodeInfoService       = RudderConfig.nodeInfoService
   private[this] val uuidGen               = RudderConfig.stringUuidGenerator
   private[this] val userPropertyService   = RudderConfig.userPropertyService
 

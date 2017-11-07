@@ -170,7 +170,7 @@ trait TStringComparator extends CriterionType {
       comparator match {
         case Regex | NotRegex =>
           try {
-            val ok = java.util.regex.Pattern.compile(v) //yes, ok is not used, side effect are fabulous! KEEP IT
+            val _ = java.util.regex.Pattern.compile(v) //yes, "_" is not used, side effect are fabulous! KEEP IT
             Full(v)
           } catch {
             case ex: java.util.regex.PatternSyntaxException => Failure(s"The regular expression '${v}' is not valid. Expected regex syntax is the java one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html", Full(ex), Empty)

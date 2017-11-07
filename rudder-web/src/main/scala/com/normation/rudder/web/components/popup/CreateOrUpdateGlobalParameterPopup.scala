@@ -61,12 +61,8 @@ class CreateOrUpdateGlobalParameterPopup(
   , onSuccessCallback : (Either[GlobalParameter,ChangeRequestId]) => JsCmd = { x => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet  with Loggable {
-  private[this] val roParameterService = RudderConfig.roParameterService
-  private[this] val woParameterService = RudderConfig.woParameterService
-  private[this] val uuidGen            = RudderConfig.stringUuidGenerator
   private[this] val userPropertyService= RudderConfig.userPropertyService
 
-  private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
   private[this] val changeRequestService     = RudderConfig.changeRequestService
   private[this] val workflowService          = RudderConfig.workflowService
 
@@ -273,8 +269,6 @@ class CreateOrUpdateGlobalParameterPopup(
     }
     new FormTracker(fields)
   }
-
-  private[this] var notifications = List.empty[NodeSeq]
 
   private[this] def error(msg:String) = Text(msg)
 

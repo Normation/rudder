@@ -961,7 +961,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl,removedNodesDitImpl)
   private[this] lazy val uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
   private[this] lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
-  private[this] lazy val variableBuilderService: VariableBuilderService = new VariableBuilderServiceImpl()
   private[this] lazy val ldapEntityMapper = new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, acceptedNodesDitImpl, queryParser, inventoryMapper)
 
   ///// items serializer - service that transforms items to XML /////
@@ -1042,8 +1041,6 @@ object RudderConfig extends Loggable {
     , techniqueRepository
     , sectionSpecParser
   )
-
-  private[this] lazy val deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
 
   private[this] lazy val entityMigration = DefaultXmlEventLogMigration
 
@@ -1593,8 +1590,6 @@ object RudderConfig extends Loggable {
     val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
     template
   }
-
-  private[this] lazy val transactionManager = new org.springframework.jdbc.datasource.DataSourceTransactionManager(dataSourceProvider.datasource)
 
   private[this] lazy val parseRules : ParseRules = new GitParseRules(
       ruleUnserialisation

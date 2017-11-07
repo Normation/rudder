@@ -65,7 +65,7 @@ class AgentRunsTest extends DBCommon {
 
   //clean data base
   def cleanTables() = {
-    sql"DELETE FROM ReportsExecution;".update.run.transact(doobie.xa).run
+    sql"DELETE FROM ReportsExecution;".update.run.transact(doobie.xa).unsafePerformSync
   }
 
 

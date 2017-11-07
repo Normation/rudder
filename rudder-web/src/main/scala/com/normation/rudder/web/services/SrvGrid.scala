@@ -56,7 +56,6 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
-import com.normation.rudder.web.ChooseTemplate
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -82,8 +81,6 @@ class SrvGrid(
   , asyncComplianceService: AsyncComplianceService
   , configService         : ReadConfigService
 ) extends Loggable {
-
-  private def tableTemplate = ChooseTemplate(List("templates-hidden", "srv_grid"), "servergrid-table")
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 

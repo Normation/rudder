@@ -109,12 +109,9 @@ class DirectiveEditForm(
   val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
 
   private[this] val directiveEditorService = RudderConfig.directiveEditorService
-  private[this] val woChangeRequestRepo    = RudderConfig.woChangeRequestRepository
-  private[this] val roChangeRequestRepo    = RudderConfig.roChangeRequestRepository
   private[this] val techniqueRepo          = RudderConfig.techniqueRepository
   private[this] val roRuleRepo             = RudderConfig.roRuleRepository
   private[this] val roRuleCategoryRepo     = RudderConfig.roRuleCategoryRepository
-  private[this] val configService          = RudderConfig.configService
 
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = {
@@ -458,7 +455,6 @@ class DirectiveEditForm(
       </p>
   }
     private[this] val policyModes = {
-      val policyName = directive.policyMode.getOrElse(globalMode.mode).name
       val l = Seq(
           None -> s"Use global default mode (currently ${globalMode.mode.name})"
         , Some(Enforce) -> "Override to Enforce"
@@ -710,11 +706,6 @@ class DirectiveEditForm(
   ///////////// success pop-up ///////////////
 
   private[this] def successPopup(message: NodeSeq) : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog") """) &
-    JsRaw(s""" $$("#successDialogContent").html('${message}') """)
-  }
-
-  private[this] def failurePopup(message: NodeSeq) : JsCmd = {
     JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog") """) &
     JsRaw(s""" $$("#successDialogContent").html('${message}') """)
   }

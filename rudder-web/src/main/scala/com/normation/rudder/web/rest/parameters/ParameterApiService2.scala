@@ -38,7 +38,6 @@
 package com.normation.rudder.web.rest.parameter
 
 import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
@@ -134,7 +133,6 @@ case class ParameterApiService2 (
   def createParameter(restParameter: Box[RestParameter], parameterName : ParameterName, req:Req) = {
     implicit val action = "createParameter"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    val modId = ModificationId(uuidGen.newUuid)
     val actor = RestUtils.getActor(req)
 
     restParameter match {
@@ -177,7 +175,6 @@ case class ParameterApiService2 (
   def deleteParameter(id:String, req:Req) = {
     implicit val action = "deleteParameter"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    val modId = ModificationId(uuidGen.newUuid)
     val actor = RestUtils.getActor(req)
     val parameterId = ParameterName(id)
 
@@ -196,7 +193,6 @@ case class ParameterApiService2 (
   def updateParameter(id: String, req: Req, restValues : Box[RestParameter]) = {
     implicit val action = "updateParameter"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    val modId = ModificationId(uuidGen.newUuid)
     val actor = getActor(req)
     val parameterId = ParameterName(id)
     logger.info(req)
