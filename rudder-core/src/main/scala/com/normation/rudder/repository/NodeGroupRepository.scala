@@ -39,7 +39,6 @@ package com.normation.rudder.repository
 
 import com.normation.rudder.domain.nodes._
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.queries.Query
 import net.liftweb.common._
 import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching

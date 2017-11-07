@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.model
 
-import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.context.SecurityContextHolder
 import com.normation.eventlog.EventActor
 import net.liftweb.http.SessionVar

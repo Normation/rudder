@@ -44,13 +44,14 @@ import java.io.File
 import java.io.IOException
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
-import org.apache.commons.io.FileUtils
+import org.eclipse.jgit.revwalk.RevTag
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.collection.JavaConversions.asScalaSet
 import scala.xml.Elem
+import org.apache.commons.io.FileUtils
 
 
 /**

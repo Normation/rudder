@@ -36,14 +36,6 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.normation.cfclerk.domain.Variable
-import com.normation.inventory.domain.AgentType._
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.reports.ReportingConfiguration
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
-import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
-import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner

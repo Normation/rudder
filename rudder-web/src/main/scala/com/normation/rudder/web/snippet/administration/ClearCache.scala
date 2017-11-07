@@ -37,18 +37,19 @@
 
 package com.normation.rudder.web.snippet.administration
 
-import bootstrap.liftweb.RudderConfig
-import com.normation.eventlog.EventLog
-import com.normation.eventlog.EventLogDetails
-import com.normation.eventlog.ModificationId
+import net.liftweb._
+import http._
+import common._
+import util.Helpers._
+import js._
+import JsCmds._
+import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.ClearCacheEventLog
-import com.normation.rudder.web.model.CurrentUser
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers._
+import com.normation.eventlog.EventLogDetails
+import com.normation.eventlog.EventLog
+import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 
 class ClearCache extends DispatchSnippet with Loggable {

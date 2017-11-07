@@ -43,10 +43,8 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import bootstrap.liftweb.RudderConfig
-import net.liftweb.http.SHtml
 import net.liftweb.http.S
 import net.liftweb.common.Full
-import scala.xml.Text
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.parameters.ParameterName

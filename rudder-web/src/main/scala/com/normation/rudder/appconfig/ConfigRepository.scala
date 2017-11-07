@@ -41,11 +41,9 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.OC_PROPERTY
-import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.utils.Control._
 import net.liftweb.common.Box
-import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.eventlog.ModifyGlobalPropertyEventType
 import com.normation.rudder.repository.EventLogRepository
@@ -54,7 +52,6 @@ import net.liftweb.common.Full
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 
 /**
  * A basic config repository, NOT typesafe.

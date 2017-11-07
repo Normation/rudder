@@ -1,7 +1,6 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
-import com.normation.utils.HashcodeCaching
 
 case class ModifyGlobalProperty(
     eventType: ModifyGlobalPropertyEventType

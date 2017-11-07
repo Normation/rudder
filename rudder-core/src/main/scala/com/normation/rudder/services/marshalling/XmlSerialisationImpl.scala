@@ -37,17 +37,24 @@
 
 package com.normation.rudder.services.marshalling
 
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.domain.TechniqueId
+import com.normation.rudder.domain.policies.Directive
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.cfclerk.xmlwriters.SectionSpecWriter
-import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.batch.CurrentDeploymentStatus
-import com.normation.rudder.batch.ErrorStatus
-import com.normation.rudder.batch.SuccessStatus
+import com.normation.rudder.domain.policies.SectionVal
+import net.liftweb.common._
+import scala.xml.NodeSeq
+import scala.xml._
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechnique
+import org.joda.time.format.ISODateTimeFormat
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.rudder.batch.{CurrentDeploymentStatus,SuccessStatus,ErrorStatus}
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
 import com.normation.rudder.domain.Constants._
-import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
@@ -76,10 +83,14 @@ import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
 import net.liftweb.common._
-import net.liftweb.common.Box._
 import org.joda.time.format.ISODateTimeFormat
 import scala.xml.{ Node => XNode, _ }
 import scala.xml.NodeSeq
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.xmlwriters.SectionSpecWriter
+import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.api.ApiAccount
+import com.normation.cfclerk.domain.TechniqueId
 
 //serialize / deserialize tags
 object TagsXml {

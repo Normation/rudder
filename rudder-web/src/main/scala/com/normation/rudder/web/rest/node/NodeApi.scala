@@ -37,15 +37,10 @@
 
 package com.normation.rudder.web.rest.node
 
-import net.liftweb.common.Box
-import net.liftweb.common.Loggable
-import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.RestAPI
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies.PolicyMode
-import net.liftweb.json.JsonAST.JString
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization._
 

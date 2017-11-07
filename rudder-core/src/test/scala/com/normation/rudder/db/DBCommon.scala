@@ -52,7 +52,6 @@ import org.specs2.specification.BeforeAfterAll
 import doobie.imports. _
 import net.liftweb.common.Loggable
 import scalaz._
-import scalaz.Scalaz._
 import com.normation.rudder.migration.MigrationTestLog
 import org.joda.time.DateTime
 

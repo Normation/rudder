@@ -40,29 +40,23 @@ package com.normation.rudder.rule.category
 import com.normation.rudder.domain.RudderDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.rudder.repository.ldap
 import net.liftweb.common._
 import com.normation.ldap.sdk.RoLDAPConnection
-import com.unboundid.ldap.sdk.Filter._
 import com.normation.ldap.sdk.BuildFilter._
 import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk.LDAPEntry
-import scala.collection.immutable.SortedMap
 import com.normation.ldap.sdk._
-import com.normation.utils.Control.{boxSequence, sequence}
+import com.normation.utils.Control.sequence
 import com.normation.utils.Utils
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.repository.GitRuleArchiver
 import com.unboundid.ldap.sdk.LDAPException
 import com.unboundid.ldap.sdk.ResultCode
-import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 
 
@@ -163,7 +157,7 @@ class WoLDAPRuleCategoryRepository(
 ) extends WoRuleCategoryRepository with Loggable {
   repo =>
 
-  import roruleCategoryRepo.{ldap => roLdap, _}
+  import roruleCategoryRepo._
 
   /**
    * Check if a category exist with the given name

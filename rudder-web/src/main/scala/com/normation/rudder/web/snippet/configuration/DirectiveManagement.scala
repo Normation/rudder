@@ -37,11 +37,8 @@
 
 package com.normation.rudder.web.snippet.configuration
 
-import com.normation.rudder.web.model.JsTreeNode
 import com.normation.rudder.domain.policies.{DirectiveId, Directive}
-import com.normation.cfclerk.domain.{Technique,TechniqueId}
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.utils.StringUuidGenerator
+import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.web.components.{DirectiveEditForm,DateFormaterService}
 import com.normation.rudder.repository._
 import scala.xml._
@@ -52,27 +49,19 @@ import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import net.liftweb.util.Helpers._
-import net.liftweb.util._
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.web.services.JsTreeUtilService
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
-import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.authorization.AuthzToRights
-import com.normation.rudder.authorization.NoRights
 import org.joda.time.DateTime
 import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.Tags
-import com.normation.rudder.domain.policies.Tag
-import com.normation.inventory.domain.AgentType
-import com.normation.rudder.web.services.AgentCompat
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.services.AgentCompat
 
 /**
  * Snippet for managing the System and Active Technique libraries.

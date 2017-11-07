@@ -40,7 +40,6 @@ package com.normation.rudder.services.servers
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryDit
-import com.unboundid.ldap.sdk._
 import com.normation.ldap.sdk._
 import net.liftweb.common._
 import Box._
@@ -56,8 +55,6 @@ trait NodeSummaryService {
 }
 
 import com.normation.inventory.ldap.core._
-import BuildFilter._
-import LDAPConstants._
 import com.normation.rudder.domain.RudderLDAPConstants._
 import org.joda.time.DateTime
 

@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.rest.technique
 
-import scala.annotation.migration
 import scala.collection.SortedMap
 
 import com.normation.cfclerk.domain.Technique

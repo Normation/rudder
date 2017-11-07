@@ -38,7 +38,6 @@
 package com.normation.rudder.reports
 
 import com.normation.utils.HashcodeCaching
-import net.liftweb.json.JBool
 import net.liftweb.common._
 import org.joda.time.Duration
 import com.normation.inventory.domain.NodeId

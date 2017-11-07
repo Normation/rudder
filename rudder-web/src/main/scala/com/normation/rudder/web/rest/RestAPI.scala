@@ -43,7 +43,6 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
-import net.liftweb.json.JString
 import net.liftweb.json.JValue
 import scala.language.implicitConversions
 

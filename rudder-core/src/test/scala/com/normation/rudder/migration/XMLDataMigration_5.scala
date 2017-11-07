@@ -41,7 +41,6 @@ import scala.xml.Elem
 
 object DATA_5 {
   import Migration_5_DATA_Rule._
-  import Migration_5_DATA_ChangeRequest._
   
   def e(xml:Elem) = <entry>{xml}</entry>
 

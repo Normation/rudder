@@ -42,37 +42,24 @@ import JsCmds._
 import com.normation.rudder.domain.policies._
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,DispatchSnippet,Templates}
+import net.liftweb.http.{SHtml,DispatchSnippet}
 import scala.xml._
 import net.liftweb.util.Helpers._
-import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField
 }
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.cfclerk.domain.{TechniqueVersion,TechniqueName}
+import com.normation.cfclerk.domain.TechniqueName
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.nodes.NodeGroup
-import net.liftweb.http.SHtml.ChoiceHolder
-import com.normation.rudder.web.model.WBSelectField
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.web.model.CurrentUser
-import org.joda.time.DateTime
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.web.components.RuleGrid
-import com.normation.rudder.services.policies.OnlyDisableable
-import com.normation.rudder.services.policies.OnlyEnableable
-import com.normation.rudder.services.workflows.ChangeRequestService
-import com.normation.rudder.repository.RoChangeRequestRepository
-import com.normation.rudder.repository.WoChangeRequestRepository
-import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.web.model.RudderBaseField
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.domain.nodes.NodeGroupDiff
 import com.normation.rudder.domain.nodes.ChangeRequestNodeGroupDiff
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
@@ -81,7 +68,6 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
-import com.normation.utils.Control.boxSequence
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
 

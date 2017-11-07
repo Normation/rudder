@@ -37,26 +37,12 @@
 
 package com.normation.rudder.services.workflows
 
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.{ Map => MutMap }
-import org.joda.time.DateTime
-import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows._
-import com.normation.rudder.services.policies.DependencyAndDeletionService
-import com.normation.utils.Control._
-import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
 import com.normation.rudder.services.eventlog.WorkflowEventLogService
-import net.liftweb.http.CometActor
 import com.normation.rudder.batch.AsyncWorkflowInfo
 
 

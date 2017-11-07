@@ -41,7 +41,6 @@ import RudderLDAPConstants._
 import net.liftweb.common._
 import com.normation.ldap.sdk._
 import com.normation.ldap.sdk.BuildFilter._
-import com.unboundid.ldap.sdk.{DN,Filter}
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.utils.Control.sequence
@@ -50,7 +49,6 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.parameters._
 import com.normation.eventlog.EventActor
-import com.normation.rudder.repository.ldap
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -113,7 +111,7 @@ class WoLDAPParameterRepository(
 ) extends WoParameterRepository with Loggable {
   repo =>
 
-  import roLDAPParameterRepository.{ ldap => roLdap, _ }
+  import roLDAPParameterRepository._
 
   def saveParameter(
       parameter : GlobalParameter

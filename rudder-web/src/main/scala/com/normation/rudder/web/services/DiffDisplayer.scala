@@ -40,13 +40,8 @@ package com.normation.rudder.web.services
 import scala.xml.NodeSeq
 import com.normation.rudder.domain.policies.DirectiveId
 import bootstrap.liftweb.RudderConfig
-import net.liftweb.http.S
 import com.normation.rudder.web.model.JsInitContextLinkUtil._
-import scala.xml.Text
-import net.liftweb.http.SHtml
-import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategoryId
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox

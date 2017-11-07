@@ -42,7 +42,7 @@ import JsCmds._
 import com.normation.rudder.domain.policies._
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,DispatchSnippet,Templates}
+import net.liftweb.http.{SHtml,DispatchSnippet}
 import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model.{

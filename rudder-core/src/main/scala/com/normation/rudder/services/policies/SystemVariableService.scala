@@ -37,38 +37,30 @@
 
 package com.normation.rudder.services.policies
 
-import net.liftweb.common.EmptyBox
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.repository.LicenseRepository
-import com.normation.cfclerk.domain._
-import com.normation.rudder.domain.nodes.NodeInfo
-import net.liftweb.common.Box
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain._
-import com.normation.inventory.domain.AgentType._
-import net.liftweb.common._
-import org.slf4j.{ Logger, LoggerFactory }
-import com.normation.rudder.exceptions.LicenseException
 import com.normation.cfclerk.services.SystemVariableSpecService
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.Constants
-import com.normation.rudder.services.servers.PolicyServerManagementService
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.FullCompliance
-import com.normation.rudder.reports.ChangesOnly
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.SyslogProtocol
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
-import com.normation.rudder.reports.AgentRunIntervalService
-import com.normation.rudder.reports.ComplianceModeService
-import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
-import  com.normation.rudder.domain.nodes.CFEngineKey
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.ChangesOnly
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.SyslogProtocol
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.services.servers.PolicyServerManagementService
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import com.normation.cfclerk.domain.Variable
+import net.liftweb.common.Loggable
+import com.normation.inventory.domain.ServerRole
+import com.normation.inventory.domain.PublicKey
+import com.normation.inventory.domain.Certificate
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Empty
+import com.normation.cfclerk.domain.SystemVariable
+import com.normation.inventory.domain.AgentType
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]]
@@ -257,7 +249,7 @@ class SystemVariableServiceImpl(
     val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable().copyWithSavedValue(varNodeRoleValue)
 
     // Set the licences for the CfeEnterprise
-    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(CfeEnterprise)) {
+    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(AgentType.CfeEnterprise)) {
       allLicenses.get(nodeInfo.policyServerId) match {
         case None =>
           logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered CfeEnterprise license. You will have to get one if you run more than 25 nodes")

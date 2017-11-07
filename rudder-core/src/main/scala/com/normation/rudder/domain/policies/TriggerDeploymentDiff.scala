@@ -37,7 +37,6 @@
 
 package com.normation.rudder.domain.policies
 
-import com.normation.utils.HashcodeCaching
 
 
 /**

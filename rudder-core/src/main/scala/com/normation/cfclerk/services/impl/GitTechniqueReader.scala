@@ -45,7 +45,6 @@ import com.normation.cfclerk.exceptions._
 import java.io.File
 import net.liftweb.common._
 import scala.collection.mutable.{ Map => MutMap }
-import com.normation.utils.Utils
 import scala.collection.immutable.SortedMap
 import java.io.InputStream
 import org.eclipse.jgit.treewalk.TreeWalk

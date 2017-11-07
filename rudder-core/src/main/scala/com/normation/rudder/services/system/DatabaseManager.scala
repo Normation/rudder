@@ -40,7 +40,6 @@ package com.normation.rudder.services.system
 
 import net.liftweb.common._
 import org.joda.time.DateTime
-import org.springframework.jdbc.core.JdbcTemplate
 import net.liftweb.common.Loggable
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository

@@ -40,8 +40,6 @@ package com.normation.rudder.web.services
 
 import org.springframework.context.ApplicationListener
 import org.springframework.context.ApplicationEvent
-import org.springframework.security.core.session.SessionDestroyedEvent
-import org.springframework.security.core.session.SessionCreationEvent
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.domain.eventlog._

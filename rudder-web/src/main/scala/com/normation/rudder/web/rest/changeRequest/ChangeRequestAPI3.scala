@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.rest.changeRequest
 
-import com.normation.rudder.repository.RoChangeRequestRepository
 import com.normation.rudder.web.rest.RestUtils.toJsonError
 import com.normation.rudder.web.rest.RestExtractorService
 import net.liftweb.common.Box
@@ -46,7 +45,6 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JString
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.web.rest.ApiVersion

@@ -43,7 +43,6 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.workflows.WorkflowNode
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.RuleId

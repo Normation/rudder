@@ -45,7 +45,6 @@ import com.normation.rudder.db.Doobie
 
 import scalaz._, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 import com.normation.rudder.db.Doobie._
 
 class MigrationEventLogRepository(val db: Doobie) {

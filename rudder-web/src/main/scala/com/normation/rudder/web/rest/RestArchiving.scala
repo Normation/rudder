@@ -37,8 +37,6 @@
 
 package com.normation.rudder.web.rest
 
-import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.batch.ManualStartDeployment
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.xml._
 import com.normation.rudder.services.user.PersonIdentService

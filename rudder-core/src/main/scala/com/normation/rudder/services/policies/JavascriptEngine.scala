@@ -45,7 +45,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
-import java.io.File
 
 import scala.language.implicitConversions
 
@@ -72,7 +71,6 @@ import java.security.SecurityPermission
 import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
 import com.normation.cfclerk.domain.AixPasswordHashAlgo
-import com.normation.cfclerk.domain.HashAlgoConstraint
 import com.normation.cfclerk.domain.AbstactPassword
 import java.security.NoSuchAlgorithmException
 import java.net.NetPermission

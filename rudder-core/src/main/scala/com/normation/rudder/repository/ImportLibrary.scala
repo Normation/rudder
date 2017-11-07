@@ -37,7 +37,6 @@
 
 package com.normation.rudder.repository
 
-import java.io.File
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.policies.Directive

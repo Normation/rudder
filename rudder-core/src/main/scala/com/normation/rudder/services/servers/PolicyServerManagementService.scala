@@ -37,14 +37,15 @@
 
 package com.normation.rudder.services.servers
 
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
+import net.liftweb.common.Box
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
-import net.liftweb.common.Box
+import com.normation.rudder.domain.Constants
 import net.liftweb.common.Loggable
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 import sun.net.util.IPAddressUtil
 
 /**

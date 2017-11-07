@@ -38,7 +38,6 @@
 package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
-import bootstrap.liftweb.StaticResourceRewrite
 import com.normation.eventlog._
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.RemovedInventory

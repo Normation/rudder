@@ -38,34 +38,19 @@
 package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeInfo
 import scala.xml._
 import net.liftweb.http._
 import net.liftweb.common._
-import com.normation.rudder.domain.reports._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Helpers
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmd
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.web.model.WBTextField
-import com.normation.rudder.web.model.WBTextAreaField
-import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.services.ComplianceData
 import com.normation.rudder.rule.category.RuleCategory
-import org.joda.time.DateTime
-import org.joda.time.format.PeriodFormatterBuilder
-import org.joda.time.Interval
-import com.normation.rudder.web.services.ReportLine
 import com.normation.rudder.web.services.ChangeLine
 import com.normation.rudder.services.reports.NodeChanges
-import net.liftweb.http.js.JsExp
-import net.liftweb.http.js.JsObj
 import com.normation.rudder.web.ChooseTemplate
-import bootstrap.liftweb.StaticResourceRewrite
 
 object RuleCompliance {
   private def details = ChooseTemplate(

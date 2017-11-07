@@ -39,35 +39,22 @@ package com.normation.rudder.web.services
 
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.Utils.isEmpty
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core._
-import LDAPConstants._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import org.slf4j.LoggerFactory
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
 import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
-import net.liftweb.http.Templates
-import com.normation.rudder.repository.ReportsRepository
-import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.appconfig.ReadConfigService
-import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.web.ChooseTemplate
 

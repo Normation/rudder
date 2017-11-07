@@ -39,15 +39,12 @@ package com.normation.rudder.web.rest
 
 import net.liftweb.http._
 import net.liftweb.http.rest._
-import org.eclipse.jgit.revwalk.RevTree
 import com.normation.rudder.repository.xml.GitFindUtils
 import com.normation.cfclerk.services.GitRepositoryProvider
 import net.liftweb.common._
-import org.eclipse.jgit.lib.ObjectId
 import org.joda.time.DateTime
 import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.format.DateTimeFormat
-import org.eclipse.jgit.treewalk.TreeWalk
 import net.liftweb.util.Helpers
 import org.joda.time.format.DateTimeFormatterBuilder
 

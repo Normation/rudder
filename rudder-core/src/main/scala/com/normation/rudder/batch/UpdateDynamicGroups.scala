@@ -38,7 +38,7 @@
 package com.normation.rudder.batch
 
 import com.normation.rudder.services.queries._
-import com.normation.rudder.domain.nodes.{NodeGroup,NodeGroupId}
+import com.normation.rudder.domain.nodes.NodeGroupId
 import net.liftweb.common._
 import net.liftweb.actor._
 import org.joda.time._

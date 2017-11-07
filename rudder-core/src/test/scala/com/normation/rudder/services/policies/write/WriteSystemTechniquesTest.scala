@@ -100,11 +100,11 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.cfclerk.domain.Variable
+import com.normation.rudder.services.policies.NodeConfigData.{root, node1, rootNodeConfig}
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.inventory.domain.AgentType
-import com.normation.rudder.services.policies.NodeConfigData.{root, node1, rootNodeConfig}
 
 /**
  * Details of tests executed in each instances of
@@ -344,7 +344,7 @@ object TestSystemData {
      ).map(v => (v.spec.name, v)).toMap
   }
 
-  
+
   def policy (
       id : Cf3PolicyDraftId
     , technique   : Technique
@@ -359,7 +359,7 @@ object TestSystemData {
         id
       , technique
       , DateTime.now
-      , variableMap 
+      , variableMap
       , tracker
       , 0
       , system
@@ -371,7 +371,7 @@ object TestSystemData {
       , Set()
     )
   }
-  
+
   def common(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = policy(
       Cf3PolicyDraftId(RuleId("hasPolicyServer-root"), DirectiveId("common-root"))
     , commonTechnique
@@ -379,7 +379,7 @@ object TestSystemData {
     , commonTechnique.trackerVariableSpec.toVariable(Seq())
     , BundleOrder("Rudder system policy: basic setup (common)")
     , BundleOrder("Common")
-    
+
   )
 
   val rolesTechnique = techniqueRepository.get(TechniqueId(TechniqueName("server-roles"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -571,7 +571,7 @@ object TestSystemData {
 }
 
 trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll {
-  
+
   import TestSystemData._
    /*
    * put regex for line you don't want to be compared for difference
@@ -598,7 +598,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
         case Some(is) => IOUtils.toString(is) === expectedContent
       }
   }
-  
+
   def compareWith(path: File, expectedPath: String, ignoreRegex: List[String] = Nil) = {
     /*
      * And compare them with expected, modulo the configId and the name
@@ -613,7 +613,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
         :: ignoreRegex
       ))
   }
-  
+
 }
 
 @RunWith(classOf[JUnitRunner])

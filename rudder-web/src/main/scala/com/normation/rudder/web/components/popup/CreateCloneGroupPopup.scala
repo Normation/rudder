@@ -2,29 +2,18 @@ package com.normation.rudder.web.components.popup
 
 import com.normation.rudder.domain.nodes._
 import net.liftweb.http.DispatchSnippet
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.domain.policies.{ Rule, RuleId }
-import net.liftweb.http.Templates
-import org.slf4j.LoggerFactory
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain.NodeId
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{ SHtml, DispatchSnippet, Templates }
+import net.liftweb.http.{ SHtml, DispatchSnippet }
 import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField, WBSelectField, WBRadioField
 }
-import com.normation.rudder.repository._
-import com.normation.rudder.domain.eventlog.AddRule
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.repository._
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.ChooseTemplate

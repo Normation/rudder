@@ -36,9 +36,7 @@
 */
 
 package com.normation.rudder.web.services
-import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import net.liftweb.common._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.FullNodeGroupCategory

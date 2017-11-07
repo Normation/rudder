@@ -44,22 +44,13 @@ import util.Helpers._
 import js._
 import JsCmds._
 import JE._
-import scala.xml.NodeSeq
-import collection.mutable.Buffer
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository._
-import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.components.DateFormaterService
-import net.liftweb.http.SHtml.PairStringPromoter
-import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
-import scala.xml.Text
 import com.normation.eventlog.EventActor
-import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig
 
 class Archives extends DispatchSnippet with Loggable {

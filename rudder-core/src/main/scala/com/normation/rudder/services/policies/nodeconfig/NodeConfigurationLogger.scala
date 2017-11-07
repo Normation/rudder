@@ -37,8 +37,9 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
+
 import com.normation.inventory.domain.NodeId
-import com.normation.utils.Control._
+import com.normation.utils.Control.sequence
 import java.io.File
 import java.io.PrintWriter
 import net.liftweb.common._

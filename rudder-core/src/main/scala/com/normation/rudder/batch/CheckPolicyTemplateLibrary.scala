@@ -46,9 +46,6 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
-import net.liftweb.common.Full
-import net.liftweb.common.EmptyBox
-import java.io.File
 
 case class StartLibUpdate(actor: EventActor)
 

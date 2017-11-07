@@ -37,24 +37,19 @@
 
 package com.normation.rudder.web.snippet
 
-import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._
-import JE._
 import net.liftweb.util.Helpers._
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
-import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.domain.eventlog.LogoutEventLog
 import com.normation.eventlog.EventActor
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
-import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 
