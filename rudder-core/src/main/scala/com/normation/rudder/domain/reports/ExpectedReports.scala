@@ -323,15 +323,6 @@ object ExpectedReportsSerialisation {
       }
     }
 
-    def globalPolicyMode(json: JValue): Box[GlobalPolicyMode] = {
-      (policyMode(json \ "mode" ), (json \ "overridable") ) match {
-        case (Some(mode), JBool(overridable)) =>
-          Full(GlobalPolicyMode(mode, if(overridable) Always else Unoverridable) )
-        case _ =>
-          Failure(s"Error when parsing mandatory global policy mode from json: '${compactRender(json)}'")
-      }
-    }
-
     def rule(json: JValue): Box[RuleExpectedReports] = {
       (
           (json \ "ruleId" )

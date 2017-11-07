@@ -83,7 +83,6 @@ class CreateCategoryOrGroupPopup(
   )
 
   private[this] val woNodeGroupRepository      = RudderConfig.woNodeGroupRepository
-  private[this] val nodeInfoService            = RudderConfig.nodeInfoService
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
   private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
   private[this] val userPropertyService        = RudderConfig.userPropertyService
@@ -318,15 +317,6 @@ class CreateCategoryOrGroupPopup(
         }
       }
     }
-  }
-
-  private[this] def onCreateSuccess : JsCmd = {
-    notifications ::=  <span class="greenscala">The group was successfully created</span>
-    updateFormClientSide
-  }
-  private[this] def onUpdateSuccess : JsCmd = {
-    notifications ::=  <span class="greenscala">The group was successfully updated</span>
-    updateFormClientSide
   }
 
   private[this] def onFailure : JsCmd = {

@@ -78,7 +78,7 @@ class LastProcessedReportRepositoryImpl (
         select lastid, date from statusupdate where key=${PROP_EXECUTION_STATUS}
       """.query[(Long, DateTime)].option
 
-    sql.attempt.transact(xa).run match {
+    sql.attempt.transact(xa).unsafePerformSync match {
       case \/-(x)  => Full(x)
       case -\/(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
     }
@@ -108,7 +108,7 @@ class LastProcessedReportRepositoryImpl (
       entry
     }
 
-    action.attempt.transact(xa).run match {
+    action.attempt.transact(xa).unsafePerformSync match {
       case \/-(x)  => Full(DB.StatusUpdate(PROP_EXECUTION_STATUS, newId, reportsDate))
       case -\/(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
     }

@@ -291,8 +291,6 @@ object QSLdapBackend {
     m
   }
 
-  private[this] val ldapNameMapping = attributeNameMapping.map { case(k,v) => (v, k) }.toMap.filterKeys( _ != "")
-
   implicit class QSAttributeLdapName(a: QSAttribute) {
     def ldapName(): String = attributeNameMapping(a)
   }

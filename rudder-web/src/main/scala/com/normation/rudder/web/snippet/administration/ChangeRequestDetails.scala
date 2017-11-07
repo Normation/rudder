@@ -75,9 +75,6 @@ object ChangeRequestDetails {
 class ChangeRequestDetails extends DispatchSnippet with Loggable {
   import ChangeRequestDetails._
 
-  private[this] val techRepo = RudderConfig.techniqueRepository
-  private[this] val rodirective = RudderConfig.roDirectiveRepository
-  private[this] val uuidGen = RudderConfig.stringUuidGenerator
   private[this] val userPropertyService      = RudderConfig.userPropertyService
   private[this] val workFlowEventLogService =  RudderConfig.workflowEventLogService
   private[this] val changeRequestService  = RudderConfig.changeRequestService
@@ -86,7 +83,6 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
   private[this] val commitAndDeployChangeRequest =  RudderConfig.commitAndDeployChangeRequest
 
   private[this] def checkAccess(cr:ChangeRequest) = CurrentUser.checkRights(Read("validator"))||CurrentUser.checkRights(Read("deployer"))||cr.owner == CurrentUser.getActor.name
-  private[this] val changeRequestTableId = "ChangeRequestId"
   private[this] val CrId: Box[Int] = {S.param("crId").map(x=>x.toInt) }
   private[this] var changeRequest: Box[ChangeRequest] = {
     CrId match {
@@ -270,13 +266,8 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
           nextSteps.map(v => (v,v._1.value)), Full(nextChosen)
         , {t:(WorkflowNodeId,stepChangeFunction) => nextChosen = t}
       ) % ("class", "form-control space-bottom")
-    def nextOne(next:String) : NodeSeq=
 
-        <span id="CRStatus">
-          {next}
-        </span>
-
-    def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    def buildReasonField(mandatory:Boolean, containerClass:String) = {
       new WBTextAreaField("Change audit message", "") {
         override def setFilter = notNull _ :: trim _ :: Nil
         override def inputField = super.inputField  %  ("style" -> "height:8em;") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})

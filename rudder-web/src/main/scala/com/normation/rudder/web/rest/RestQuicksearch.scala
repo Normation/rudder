@@ -194,13 +194,10 @@ class RestQuicksearch (
     import com.normation.rudder.domain.nodes.NodeGroupId
     import com.normation.rudder.domain.parameters.ParameterName
     import com.normation.rudder.web.model.JsInitContextLinkUtil._
-    import net.liftweb.http.S
     import com.normation.rudder.services.quicksearch.QSAttribute._
     import com.normation.rudder.services.quicksearch.QuickSearchResultId._
 
     def toJson(): JObject = {
-      def enc(s: String) = S.encodeURL(s).encJs
-
       val url = r.id match {
         case QRNodeId(v)      => nodeLink(NodeId(v))
         case QRRuleId(v)      => ruleLink(RuleId(v))

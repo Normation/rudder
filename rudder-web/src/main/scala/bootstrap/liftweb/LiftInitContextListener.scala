@@ -84,8 +84,6 @@ class LiftInitContextListener extends ContextLoaderListener {
     Logger.setup = Full(Logback.withFile(logbackFile))
     /// init all our non-spring services ///
 
-    val ms = System.currentTimeMillis()
-
     /*
      *
      * If any excpetion reach that point in init, we want to stop

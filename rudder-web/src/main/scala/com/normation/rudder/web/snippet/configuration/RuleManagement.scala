@@ -69,9 +69,6 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
   import RuleManagement._
 
   private[this] val ruleRepository       = RudderConfig.roRuleRepository
-  private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
-  private[this] val woCategoryRepository = RudderConfig.woRuleCategoryRepository
-  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
 
   //the popup component
   private[this] val currentRuleForm = new LocalSnippet[RuleEditForm]
@@ -260,7 +257,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     currentRuleForm.set(Full(form))
   }
 
-  private[this] def detailsCallbackLink(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule:Rule, action:String="showForm") : JsCmd = {
+  private[this] def detailsCallbackLink(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule:Rule, action:String) : JsCmd = {
     updateEditComponent(rule, workflowEnabled, changeMsgEnabled)
     //update UI
     Replace(htmlId_editRuleDiv, editRule(workflowEnabled, changeMsgEnabled, action )) &

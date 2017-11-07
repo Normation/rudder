@@ -230,9 +230,7 @@ class TestJsEngine extends Specification {
 
     "not be able to access the content of a previously setted var" in {
       val (res1, res2) = context { engine =>
-        val b1 = JsRudderLibBinding.Crypt.bindings.entrySet()
         val x = engine.eval(setFooVariable, JsRudderLibBinding.Crypt)
-        val b2 = JsRudderLibBinding.Crypt.bindings.entrySet()
         val y = engine.eval(getFooVariable, JsRudderLibBinding.Crypt)
         Full((x,y))
       }.openOrThrowException("test")

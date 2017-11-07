@@ -73,7 +73,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
   "Git modification repo" should {
 
     "found nothing at start" in {
-      sql"select gitcommit from gitcommit".query[String].vector.transact(xa).run must beEmpty
+      sql"select gitcommit from gitcommit".query[String].vector.transact(xa).unsafePerformSync must beEmpty
     }
 
     "be able to add commits" in {
@@ -89,7 +89,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
       )
 
       (res must contain((y:ADD) => y.mustFull).foreach) and
-      (sql"select count(*) from gitcommit".query[Long].unique.transact(xa).run === 5)
+      (sql"select count(*) from gitcommit".query[Long].unique.transact(xa).unsafePerformSync === 5)
 
     }
 

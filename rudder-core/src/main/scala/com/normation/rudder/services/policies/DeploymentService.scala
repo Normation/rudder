@@ -80,8 +80,6 @@ import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
-import javax.script.ScriptEngine
-import javax.script.ScriptEngineManager
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.inventory.domain.AixOS
 import com.normation.rudder.domain.reports.NodeModeConfig
@@ -813,7 +811,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                                                          }
                                   } yield {
 
-                                    
+
                                     Cf3PolicyDraft(
                                         Cf3PolicyDraftId(draft.ruleId, draft.directiveId)
                                       , draft.technique

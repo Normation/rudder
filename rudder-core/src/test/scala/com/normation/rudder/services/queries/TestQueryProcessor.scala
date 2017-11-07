@@ -475,7 +475,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       sr)
 
-    testQueries( q1 :: Nil)
+    testQueries( q0 :: q1 :: Nil)
   }
 
   @Test def agentTypeQueries {

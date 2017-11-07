@@ -87,9 +87,6 @@ object QSRegexQueryParser extends RegexParsers {
       case (EmptyQuery, _) =>
         FailedBox("No query string was found (the query is only composed of whitespaces and filters)")
       case (CharSeq(query), filters) =>
-        // get all keys, and sort them between objets/attributes/ERRORS
-        val names = filters.map( _.keys).flatten.toSet
-
         val is = filters.collect { case FilterType(set) => set }.flatten
         val in = filters.collect { case FilterAttr(set) => set }.flatten
 

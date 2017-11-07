@@ -84,7 +84,7 @@ class TestManageMigration_5_6 extends DBCommon with BoxSpecMatcher {
     val  res = f()
 
     //delete line
-    sql"DELETE FROM MigrationEventLog WHERE id=${id}".update.run.transact(doobie.xa).run
+    sql"DELETE FROM MigrationEventLog WHERE id=${id}".update.run.transact(doobie.xa).unsafePerformSync
 
     res
   }

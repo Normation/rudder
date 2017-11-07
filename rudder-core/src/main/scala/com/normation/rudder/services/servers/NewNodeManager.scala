@@ -164,9 +164,7 @@ class PostNodeAcceptanceHookScripts(
       import scala.collection.JavaConverters._
       HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
     }
-    val hookEnv = HookEnvPairs.build(
-        ("RUDDER_NODEID", nodeId.value)
-    )
+
     val postHooksTime =  System.currentTimeMillis
     HooksLogger.info(s"Executing post-node-acceptance hooks for node with id '${nodeId.value}'")
     for {

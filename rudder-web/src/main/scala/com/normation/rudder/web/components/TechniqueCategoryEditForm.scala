@@ -64,8 +64,6 @@ class TechniqueCategoryEditForm(
    onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-
-  private[this] val htmlId_addUserCategoryForm = "addUserCategoryForm"
   private[this] val htmlId_categoryDetailsForm = "categoryDetailsForm"
 
   private[this] val activeTechniqueCategoryRepository = RudderConfig.woDirectiveRepository

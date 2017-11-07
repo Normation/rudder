@@ -57,7 +57,6 @@ import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
 import com.normation.rudder.web.model.JsInitContextLinkUtil
-import com.normation.rudder.web.ChooseTemplate
 
 /**
  *
@@ -73,12 +72,6 @@ import com.normation.rudder.web.ChooseTemplate
  * immemorial times (see http://caniuse.com/hashchange for details)
  *
  */
-
-object SearchNodes {
-  private val searchNodes = ChooseTemplate(
-      List("templates-hidden", "server", "server_details")
-    , "query-searchnodes")
-}
 
 class SearchNodes extends StatefulSnippet with Loggable {
 
