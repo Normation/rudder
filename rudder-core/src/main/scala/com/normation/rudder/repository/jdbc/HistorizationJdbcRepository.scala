@@ -48,7 +48,6 @@ import com.normation.rudder.repository.HistorizationRepository
 
 import doobie.imports._
 import scalaz._, Scalaz._
-import scalaz.concurrent.Task
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.domain.policies.ActiveTechnique

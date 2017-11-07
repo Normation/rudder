@@ -41,27 +41,20 @@ import com.normation.inventory.domain._
 import org.joda.time.DateTime
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.NodeDit
 import net.liftweb.common._
-import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.nodes.{NodeInfo, Node}
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.rudder.domain.Constants._
 import com.unboundid.ldap.sdk._
 import com.normation.ldap.sdk._
 import BuildFilter._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.utils.Control._
 import com.normation.inventory.ldap.core.InventoryMapper
-import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.repository.CachedRepository
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
-import com.normation.inventory.ldap.core.LDAPConstants
-import com.normation.rudder.domain.nodes.MachineInfo
 
 /*
  * General logic for the cache implementation of NodeInfo.

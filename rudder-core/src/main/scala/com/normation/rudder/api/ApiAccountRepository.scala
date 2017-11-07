@@ -38,13 +38,11 @@ package com.normation.rudder.api
 
 import net.liftweb.common.Box
 import net.liftweb.common.Full
-import org.joda.time.DateTime
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.domain.RudderDit
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.rudder.services.queries.LDAPFilter
 import com.normation.ldap.sdk.BuildFilter
 import com.normation.rudder.domain.RudderLDAPConstants
 import net.liftweb.common.Loggable

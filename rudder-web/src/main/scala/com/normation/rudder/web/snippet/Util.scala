@@ -37,27 +37,14 @@
 
 package com.normation.rudder.web.snippet
 
-import com.normation.rudder.web.services._
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.ldap.core.LDAPConstants._
 
-import com.unboundid.ldap.sdk.{SearchScope,SearchResult}
 
-import scala.collection.mutable.Buffer
-import scala.collection.JavaConversions._
 
-import org.slf4j.{Logger,LoggerFactory}
+import org.slf4j.LoggerFactory
 
 //lift std import
 import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
-import net.liftweb.http.js._
-import JsCmds._ // For implicits
-import JE._
-import net.liftweb.http.SHtml._
+import net.liftweb.http._// For implicits
 
 object Util {
   val logger = LoggerFactory.getLogger(classOf[Util])

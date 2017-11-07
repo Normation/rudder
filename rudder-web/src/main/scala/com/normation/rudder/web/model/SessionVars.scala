@@ -37,24 +37,10 @@
 
 package com.normation.rudder.web.model
 
-import org.slf4j.LoggerFactory
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain._
-import com.normation.utils.Utils
 
 //lift std import
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
-import net.liftweb.http.js._
-import JsCmds._ // For implicits
-import JE._
-import net.liftweb.http.SHtml._
+import net.liftweb.http._// For implicits
 
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import com.normation.ldap.sdk.LDAPConnectionProvider
 
 object CurrentDirectiveEditor extends SessionVar[Option[DirectiveEditor]](None)
 

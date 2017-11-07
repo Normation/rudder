@@ -39,8 +39,6 @@ package com.normation.rudder.services.modification
 
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeGroupDiff
-import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.parameters.GlobalParameter

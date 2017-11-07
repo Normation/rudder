@@ -38,7 +38,6 @@
 package com.normation.rudder.repository.ldap
 
 import com.unboundid.ldap.sdk.DN
-import com.normation.utils.Utils
 import com.normation.utils.Control._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryDit
@@ -46,24 +45,17 @@ import com.normation.inventory.ldap.core.LDAPConstants
 import LDAPConstants._
 import com.normation.ldap.sdk._
 import com.normation.cfclerk.domain._
-import com.normation.cfclerk.services._
-import com.normation.rudder.domain.Constants._
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.{NodeDit,RudderDit}
-import com.normation.rudder.domain.servers._
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.JsonSerialisation._
-import com.normation.rudder.domain.queries._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.services.queries._
-import org.joda.time.Duration
 import org.joda.time.DateTime
 import net.liftweb.common._
 import Box.{tryo => _, _}
 import net.liftweb.util.Helpers._
-import scala.xml.{Text,NodeSeq}
-import com.normation.exceptions.{BusinessException,TechnicalException}
 import net.liftweb.json.JsonAST.JObject
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountId
@@ -77,7 +69,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import net.liftweb.json._
-import JsonDSL._
 import com.normation.rudder.reports._
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.rudder.domain.policies.PolicyMode

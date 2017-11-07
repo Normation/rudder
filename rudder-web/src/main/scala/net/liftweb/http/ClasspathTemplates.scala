@@ -42,7 +42,6 @@ import java.io.InputStream
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.util._
-import net.liftweb.util.Helpers._
 import org.springframework.core.io.ClassPathResource
 
 /**

@@ -48,22 +48,15 @@ import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
-import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.reports.ReportsDisabled
-import com.normation.rudder.reports.ResolvedAgentRunInterval
-import com.normation.rudder.reports.execution.AgentRun
-import com.normation.rudder.reports.execution.AgentRunId
 
 import org.joda.time.DateTime
-import org.joda.time.Duration
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.reports.AgentRunInterval
 
 

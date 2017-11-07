@@ -39,7 +39,6 @@ package com.normation.rudder.domain.reports
 
 import org.joda.time.DateTime
 
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId

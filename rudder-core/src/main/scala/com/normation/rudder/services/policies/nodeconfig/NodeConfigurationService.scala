@@ -37,12 +37,9 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
-import com.normation.rudder.domain.servers._
 import net.liftweb.common.Box
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.NodeConfigId
 import org.joda.time.DateTime
 
 trait NodeConfigurationService {

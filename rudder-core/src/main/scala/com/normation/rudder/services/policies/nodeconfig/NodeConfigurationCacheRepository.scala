@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -52,7 +51,6 @@ import net.liftweb.common.Loggable
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.services.policies.write.Cf3PolicyDraft
-import com.normation.rudder.domain.reports.NodeModeConfig
 
 
 case class PolicyHash(

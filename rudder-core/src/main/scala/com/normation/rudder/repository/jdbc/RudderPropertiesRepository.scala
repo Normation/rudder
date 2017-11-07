@@ -39,12 +39,9 @@ package com.normation.rudder.repository.jdbc
 
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 
-import com.normation.rudder.db.DB
 
 import net.liftweb.common._
-import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
 import com.normation.rudder.db.Doobie
 

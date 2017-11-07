@@ -41,7 +41,6 @@ import java.io.File
 import scala.collection.JavaConversions.asScalaSet
 import scala.xml.Elem
 import org.apache.commons.io.FileUtils
-import org.eclipse.jgit.api.Git
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.DateTime
 import com.normation.cfclerk.services.GitRepositoryProvider
@@ -49,10 +48,7 @@ import com.normation.exceptions.TechnicalException
 import com.normation.utils.Utils
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
-import org.joda.time.format.DateTimeFormatterBuilder
-import org.joda.time.DateTimeFieldType
 import org.eclipse.jgit.revwalk.RevTag
-import org.eclipse.jgit.api.errors.JGitInternalException
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.rudder.repository._
 import com.normation.eventlog.ModificationId
@@ -242,7 +238,6 @@ trait GitArchiverFullCommitUtils extends Loggable {
    * date of the tag.
    */
   def getTags() : Box[Map[DateTime, GitArchiveId]] = {
-    import scala.collection.JavaConversions._
     tryo {
 //      TODO: use that when JGit version > 1.2
 //      gitRepo.git.tagList.call.flatMap { revTag =>

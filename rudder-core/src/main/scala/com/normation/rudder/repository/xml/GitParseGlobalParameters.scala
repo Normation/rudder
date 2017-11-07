@@ -42,7 +42,6 @@ import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.rudder.repository.ParseGlobalParameters
 import com.normation.rudder.repository.GitCommitId
 import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.revwalk.RevTag
 import com.normation.utils.Control._
 import com.normation.utils.XmlUtils
 import net.liftweb.common.Box

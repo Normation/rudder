@@ -38,18 +38,14 @@
 package com.normation.rudder.repository.xml
 
 import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.revwalk.RevTag
 
 import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.cfclerk.services.GitRevisionProvider
-import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling.RuleUnserialisation
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
 
-import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import com.normation.rudder.migration.XmlEntityMigration
 

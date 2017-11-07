@@ -54,7 +54,7 @@ package com.normation.rudder.web.components
  */
 
 
-import _root_.scala.xml.{NodeSeq, Node, Elem, PCData, Text}
+import _root_.scala.xml.Elem
 import _root_.net.liftweb.common._
 import _root_.net.liftweb.util._
 import _root_.net.liftweb.http._
@@ -62,7 +62,6 @@ import _root_.net.liftweb.http.js._
 import JsCmds._
 import JE._
 import S._
-import SHtml._
 import Helpers._
 
 /**

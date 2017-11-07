@@ -47,7 +47,6 @@ import com.normation.rudder.reports.execution.WoReportsExecutionRepositoryImpl
 
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
 import net.liftweb.common.EmptyBox
@@ -55,7 +54,6 @@ import net.liftweb.common.Full
 
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 
 /**
  *

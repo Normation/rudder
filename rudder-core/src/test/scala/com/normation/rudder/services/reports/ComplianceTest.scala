@@ -39,7 +39,6 @@ package com.normation.rudder.services.reports
 
 import scala.io.Source
 
-import com.normation.rudder.reports.ComplianceMode
 
 import org.junit.runner._
 import org.specs2.mutable._
@@ -49,17 +48,13 @@ import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import com.normation.rudder.domain.reports.Reports
-import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
 import com.normation.rudder.domain.reports.NodeConfigId
-import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
-import org.joda.time.format.DateTimeParser
-import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.domain.reports.ComplianceLevel
 
 

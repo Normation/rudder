@@ -39,34 +39,24 @@ package com.normation.rudder.web.components.popup
 
 import com.normation.rudder.domain.nodes._
 import com.normation.inventory.domain.NodeId
-import org.slf4j.LoggerFactory
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.NodeReturnType
-import net.liftweb.http.LocalSnippet
-import net.liftweb.http.Templates
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.utils.StringUuidGenerator
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S,DispatchSnippet,Templates}
+import net.liftweb.http.{SHtml,S,DispatchSnippet}
 import scala.xml._
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField, WBSelectField, WBRadioField
 }
 import com.normation.rudder.repository._
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.domain.queries.DitQueryData
 import com.normation.rudder.domain.queries.And
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.domain.queries.CriterionLine
-import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.ChooseTemplate
 

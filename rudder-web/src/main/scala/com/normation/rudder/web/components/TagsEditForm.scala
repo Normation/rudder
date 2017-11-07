@@ -1,14 +1,11 @@
 package com.normation.rudder.web.components
 
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S}
-import scala.xml._
+import net.liftweb.http.SHtml
 import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import net.liftweb.util.Helpers._
-import net.liftweb.http.Templates
 import net.liftweb.util.CssSel
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.policies.JsonTagSerialisation

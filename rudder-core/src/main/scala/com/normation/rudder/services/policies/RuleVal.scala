@@ -41,12 +41,9 @@ import scala.collection.immutable.TreeMap
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.Variable
-import com.normation.inventory.domain.NodeInventory
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.reports.NodeAndConfigId
-import com.normation.rudder.services.policies.write.Cf3PolicyDraft
-import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.DirectiveId

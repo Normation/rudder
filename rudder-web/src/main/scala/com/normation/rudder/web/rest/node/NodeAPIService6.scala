@@ -44,7 +44,6 @@ import com.normation.rudder.web.rest._
 import com.normation.rudder.web.rest.RestUtils._
 import com.normation.rudder.services.queries._
 import com.normation.inventory.domain._
-import com.normation.rudder.domain.nodes._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.domain.queries.Query

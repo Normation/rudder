@@ -11,7 +11,6 @@ import com.normation.rudder.db.Doobie
 
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 
 class GitModificationRepositoryImpl(
     db : Doobie

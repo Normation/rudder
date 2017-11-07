@@ -38,12 +38,9 @@
 package com.normation.rudder.web.rest.node
 
 import net.liftweb.json._
-import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import com.normation.inventory.domain._
 import com.normation.rudder.web.components.DateFormaterService
-import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.JsonSerialisation._
 import com.normation.rudder.domain.nodes.NodeInfo
 

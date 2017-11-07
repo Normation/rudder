@@ -100,10 +100,6 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.cfclerk.domain.Variable
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TrackerVariable
-import com.normation.inventory.domain.AgentType
 import com.normation.rudder.services.policies.NodeConfigData.{root, node1, rootNodeConfig}
 
 /**

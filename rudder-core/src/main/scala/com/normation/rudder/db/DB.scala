@@ -49,7 +49,6 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.reports.execution.{ AgentRun => RudderAgentRun }
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.repository.GitCommitId
@@ -59,11 +58,9 @@ import org.joda.time.DateTime
 
 import doobie.imports._
 import scalaz._, Scalaz._
-import scalaz.concurrent.Task
 import com.normation.rudder.db.Doobie._
 
 
-import doobie.postgres.pgtypes._
 
 
 

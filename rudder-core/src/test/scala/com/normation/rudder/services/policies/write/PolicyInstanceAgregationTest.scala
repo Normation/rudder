@@ -49,8 +49,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 import com.normation.cfclerk.services.DummyTechniqueRepository
-import scala.collection.immutable.Set
-import scala.language.implicitConversions
 import org.joda.time.DateTime
 
 

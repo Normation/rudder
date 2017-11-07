@@ -37,7 +37,6 @@
 package com.normation.rudder.repository
 
 import net.liftweb.common.Box
-import com.normation.rudder.domain.workflows.WorkflowNode
 import com.normation.rudder.domain.workflows.WorkflowNodeId
 import com.normation.rudder.domain.workflows.ChangeRequestId
 

@@ -42,7 +42,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RuleStatusReport
 import net.liftweb.common.Box
-import com.normation.rudder.domain.reports.RuleNodeStatusReport
 
 /**
  * That service allows to retrieve status of nodes or

@@ -39,14 +39,12 @@ package com.normation.rudder.web.rest.compliance
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
 import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JString
-import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.rest.ApiVersion
 
 

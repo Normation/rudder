@@ -42,7 +42,6 @@ import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestDataSerializer
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain._
-import com.normation.rudder.domain.nodes._
 import net.liftweb.http.Req
 import net.liftweb.common._
 import com.normation.rudder.web.rest.RestUtils._
