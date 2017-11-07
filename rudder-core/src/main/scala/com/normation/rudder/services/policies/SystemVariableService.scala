@@ -60,7 +60,6 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import com.normation.cfclerk.domain.SystemVariable
-import com.normation.inventory.domain.AgentType
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]]
@@ -247,19 +246,6 @@ class SystemVariableServiceImpl(
     }
 
     val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable().copyWithSavedValue(varNodeRoleValue)
-
-    // Set the licences for the CfeEnterprise
-    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(AgentType.CfeEnterprise)) {
-      allLicenses.get(nodeInfo.policyServerId) match {
-        case None =>
-          logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered CfeEnterprise license. You will have to get one if you run more than 25 nodes")
-          //that's the default value
-          "25"
-        case Some(x) => x.licenseNumber.toString
-      }
-    } else {
-      "1"
-    }
 
     val authorizedNetworks = policyServerManagementService.getAuthorizedNetworks(nodeInfo.id) match {
       case eb:EmptyBox =>

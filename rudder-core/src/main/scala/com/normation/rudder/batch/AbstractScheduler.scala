@@ -110,7 +110,7 @@ trait AbstractScheduler extends Loggable {
     private var updateId = 0L
     private var currentState: UpdaterStates = IdleUpdater
     private var onePending = false
-    private var realUpdateInterval = {
+    private val realUpdateInterval = {
       if(updateInterval < schedulerMinimumIntervalTime) {
         logger.warn(s"Value '${updateInterval}' for ${propertyName} is too small for [${displayName}] scheduler interval, using '${schedulerMinimumIntervalTime}'")
         schedulerMinimumIntervalTime

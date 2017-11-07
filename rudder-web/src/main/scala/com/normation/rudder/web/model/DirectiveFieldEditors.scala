@@ -279,8 +279,6 @@ class SelectOneField(val id: String, valueslabels: Seq[ValueLabel]) extends Dire
   }
 
   def radios = {
-    //
-    val labels = valueslabels.map(_.label)
     val choiceHolder: ChoiceHolder[String] = SHtml.radio(valueslabels.map(_.value), Full(toClient), { x => parseClient(x) })
     Full(<div class="tw-bs">{
       choiceHolder.flatMap {
@@ -527,7 +525,6 @@ class FilePermsField(val id: String) extends DirectiveField {
   type ValueType = FilePerms
 
   private val _x: ValueType = getDefaultValue
-  private var errors: List[FieldError] = Nil
 
   def get = _x
   def set(x: ValueType) = { _x.set(x); _x }

@@ -47,7 +47,6 @@ import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.web.rest.RestUtils
 import com.normation.rudder.web.rest.ApiVersion
 import net.liftweb.http.OutputStreamResponse
 
@@ -62,7 +61,6 @@ class NodeAPI8 (
     case Post( "applyPolicy" ::Nil, req) => {
       implicit val prettify = extractor.extractPrettify(req.params)
       implicit val action = "applyPolicyAllNodes"
-      val actor = RestUtils.getActor(req)
 
       (for {
         classes <- extractor.extractList("classes")(req)(json => Full(json))

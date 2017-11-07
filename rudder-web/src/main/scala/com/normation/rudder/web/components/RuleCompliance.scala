@@ -51,7 +51,6 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.web.services.ChangeLine
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.web.ChooseTemplate
-import bootstrap.liftweb.StaticResourceRewrite
 
 object RuleCompliance {
   private def details = ChooseTemplate(

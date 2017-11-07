@@ -63,7 +63,6 @@ import net.liftweb.http.SHtml.SelectableOption
 
 class ChangeRequestManagement extends DispatchSnippet with Loggable {
 
-  private[this] val uuidGen = RudderConfig.stringUuidGenerator
   private[this] val roCrRepo = RudderConfig.roChangeRequestRepository
   private[this] val workflowService = RudderConfig.workflowService
   private[this] val changeRequestEventLogService = RudderConfig.changeRequestEventLogService

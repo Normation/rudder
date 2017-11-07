@@ -122,7 +122,6 @@ class TechniqueEditForm(
       activeTech
     }
   }
-  private[this] var uptCurrentStatusIsActivated = currentActiveTechnique.map( _.isEnabled)
 
   currentActiveTechnique match {
     case f: Failure =>

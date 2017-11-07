@@ -360,7 +360,6 @@ class ReportDisplayer(
 
   private[this] def showReportDetail(reports: NodeStatusReport, node: NodeInfo, withCompliance: Boolean): NodeSeq = {
     val data = getComplianceData(node.id, reports).map(_.json).getOrElse(JsArray())
-    val configService = RudderConfig.configService
 
     val jsFunctionName = if(withCompliance) {
       "createRuleComplianceTable"

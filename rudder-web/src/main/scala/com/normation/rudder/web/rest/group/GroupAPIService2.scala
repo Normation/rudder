@@ -254,7 +254,6 @@ case class GroupApiService2 (
             case Full(nodeList) =>
               val updatedGroup = group.copy(serverList = nodeList.map(_.id).toSet)
               val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
-              val message = s"Reload Group ${group.name} ${id} from API "
               createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), actor, req, "Reload", apiVersion)
             case eb:EmptyBox =>
               val fail = eb ?~(s"Could not fetch Nodes" )
@@ -283,7 +282,6 @@ case class GroupApiService2 (
     readGroup.getNodeGroup(groupId) match {
       case Full((group,_)) =>
         val deleteGroupDiff = DeleteNodeGroupDiff(group)
-        val message = s"Delete Group ${group.name} ${id} from API "
         createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), actor, req, "Delete", apiVersion)
 
       case eb:EmptyBox =>
@@ -305,7 +303,6 @@ case class GroupApiService2 (
           case Full(restGroup) =>
             val updatedGroup = restGroup.updateGroup(group)
             val diff = ModifyToNodeGroupDiff(updatedGroup)
-            val message = s"Modify Group ${group.name} ${id} from API "
             createChangeRequestAndAnswer(id, diff, updatedGroup, Some(group), actor, req, "Update", apiVersion)
 
           case eb : EmptyBox =>
