@@ -1,13 +1,9 @@
 package com.normation.rudder.migration
 
-import java.sql.PreparedStatement
-import java.sql.ResultSet
-import java.util.concurrent.TimeUnit
 
 import scala.xml.Elem
 import scala.xml.Node
 import scala.xml.NodeSeq
-import scala.xml.XML
 
 import com.normation.rudder.db.DB
 import com.normation.rudder.domain.logger.MigrationLogger
@@ -17,12 +13,9 @@ import com.normation.utils.XmlUtils
 import org.joda.time.DateTime
 
 import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
-import scala.collection.JavaConverters.asScalaBufferConverter
 
 import scalaz.{ Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 
 import scalaz.{\/-, -\/}
 import com.normation.rudder.db.Doobie

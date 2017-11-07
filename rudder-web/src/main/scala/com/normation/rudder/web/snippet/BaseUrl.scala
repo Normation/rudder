@@ -37,13 +37,9 @@
 
 package com.normation.rudder.web.snippet
 
-import scala.xml._
 import net.liftweb.http._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
-import net.liftweb.util._
-import com.normation.rudder.web.services.GetBaseUrlService
-import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.StaticResourceRewrite
 
 /**

@@ -44,8 +44,7 @@ import com.normation.rudder.web.model.{ DirectiveEditor }
 import com.normation.cfclerk.services.TechniqueRepository
 import net.liftweb.common._
 import Box._
-import com.normation.cfclerk.domain.{ TechniqueId, Technique }
-import org.joda.time.{ LocalDate, LocalTime, Duration, DateTime }
+import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
 
 trait DirectiveEditorService {
@@ -75,7 +74,6 @@ class DirectiveEditorServiceImpl(
    * For each found, we change the default
    * var value by the parameter one.
    */
-  import scala.util.control.Breaks._
 
   /*
    * We exactly set the variable values to varValues,

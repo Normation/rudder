@@ -37,7 +37,6 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.utils.HashcodeCaching
 
 /**
  * Representation of a technique resource id.

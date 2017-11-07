@@ -40,16 +40,12 @@ package com.normation.rudder.services.eventlog
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import javax.mail.search.DateTerm
-import org.joda.time.DateTime
-import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.SimpleDiff
 import net.liftweb.common.Full
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.ModifyNodeDiff
-import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.reports.HeartbeatConfiguration
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonDSL._

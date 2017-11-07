@@ -43,10 +43,7 @@ import com.normation.rudder.web.components.{
   NodeGroupForm,NodeGroupCategoryForm
 }
 import com.normation.rudder.web.model._
-import com.normation.rudder.web.model.WBTextField
-import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.http.LocalSnippet
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.repository._
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import scala.xml._
@@ -57,22 +54,16 @@ import Helpers._
 import net.liftweb.http.js._
 import JsCmds._
 import JE._
-import net.liftweb.http.SHtml._
 import net.liftweb.json._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.rudder.domain.policies.RuleTargetInfo
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.plugins.ExtendableSnippet
 import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
 import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import com.normation.rudder.authorization.Edit

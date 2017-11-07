@@ -43,20 +43,12 @@ import common._
 import util.Helpers._
 import js._
 import JsCmds._
-import JE._
-import scala.xml.NodeSeq
-import collection.mutable.Buffer
-import com.normation.utils.NetUtils.isValidNetwork
-import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationService
-import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
+import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.ClearCacheEventLog
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
-import com.normation.rudder.repository.EventLogRepository
 import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig
 
 

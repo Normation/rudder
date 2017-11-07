@@ -86,7 +86,6 @@ object QSPattern {
 object QSDirectiveBackend extends Loggable {
   import com.normation.rudder.repository.FullActiveTechnique
   import com.normation.rudder.domain.policies.Directive
-  import com.normation.rudder.domain.policies.DirectiveId
   import QSObject.{Directive => QSDirective }
   import QSAttribute.{ DirectiveId => QSDirectiveId, _ }
   import QuickSearchResultId.QRDirectiveId
@@ -406,7 +405,6 @@ object QSLdapBackend {
    * The transformation may fail (option = none).
    */
   implicit class LdapAttributeValueTransform( a: QSAttribute) {
-    import QSAttributeLdapFilter._
 
     def transform(pattern: Pattern, value: String): Option[String] = {
 

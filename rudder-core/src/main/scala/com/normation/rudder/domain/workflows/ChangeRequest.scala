@@ -48,8 +48,6 @@ import net.liftweb.common.Full
 import net.liftweb.common.Failure
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.eventlog.EventLog
-import com.normation.rudder.domain.eventlog.ChangeRequestLogCategory
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.parameters._
 

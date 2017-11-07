@@ -2,8 +2,6 @@ package com.normation.rudder.domain.reports
 
 import com.normation.rudder.domain.logger.ReportLogger
 import org.joda.time.DateTime
-import net.liftweb.http.js._
-import net.liftweb.http.js.JsCmds._
 import net.liftweb.common._
 import com.normation.rudder.services.system.DatabaseManager
 import com.normation.rudder.batch._

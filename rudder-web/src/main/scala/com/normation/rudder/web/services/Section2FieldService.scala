@@ -37,17 +37,11 @@
 
 package com.normation.rudder.web.services
 
-import bootstrap.liftweb._
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.web.model._
-import scala.xml._
 import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util.Helpers
-import scala.collection.mutable.{ Map => MutMap }
 import com.normation.cfclerk.domain._
 import com.normation.exceptions.TechnicalException
-import org.slf4j.LoggerFactory
 import com.normation.utils.HashcodeCaching
 import com.normation.utils.Control.sequence
 

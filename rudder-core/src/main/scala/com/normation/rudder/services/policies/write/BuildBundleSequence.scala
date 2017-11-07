@@ -37,34 +37,13 @@
 
 package com.normation.rudder.services.policies.write
 
-import scala.annotation.migration
-import scala.io.Codec
 
 import com.normation.cfclerk.domain.Bundle
-import com.normation.cfclerk.domain.PARAMETER_VARIABLE
-import com.normation.cfclerk.domain.SectionVariableSpec
-import com.normation.cfclerk.domain.SystemVariable
-import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.TechniqueResourceId
-import com.normation.cfclerk.domain.TrackerVariable
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.cfclerk.domain.Variable
-import com.normation.cfclerk.exceptions.VariableException
-import com.normation.cfclerk.services.SystemVariableSpecService
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.inventory.domain.COMMUNITY_AGENT
-import com.normation.inventory.domain.NOVA_AGENT
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.BundleOrder
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
-import com.normation.templates.STVariable
 import com.normation.utils.Control._
-import scala.language.implicitConversions
 
-import org.joda.time.DateTime
 
 import net.liftweb.common._
 import com.normation.rudder.domain.policies.PolicyMode

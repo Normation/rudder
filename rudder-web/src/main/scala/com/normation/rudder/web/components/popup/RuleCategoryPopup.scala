@@ -37,25 +37,17 @@
 
 package com.normation.rudder.web.components.popup
 
-import org.slf4j.LoggerFactory
-import net.liftweb.http.LocalSnippet
-import net.liftweb.http.Templates
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.utils.StringUuidGenerator
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S,DispatchSnippet,Templates}
+import net.liftweb.http.{SHtml,DispatchSnippet}
 import scala.xml._
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField, WBSelectField, WBRadioField
+  WBTextField, FormTracker, WBTextAreaField, WBSelectField
 }
-import com.normation.rudder.repository._
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.web.services.UserPropertyService
-import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategory

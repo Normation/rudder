@@ -37,15 +37,11 @@
 
 package com.normation.rudder.web.rest.group
 
-import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.common._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
 import com.normation.rudder.repository._
 import com.normation.eventlog._
 import com.normation.rudder.web.rest._
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.RudderDit
 
 case class GroupApiService6 (
     readGroup         : RoNodeGroupRepository

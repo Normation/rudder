@@ -39,7 +39,6 @@ package com.normation.rudder.web.snippet.node
 
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
-import com.normation.exceptions.TechnicalException
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -53,7 +52,6 @@ import net.liftweb.http.LocalSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
 import net.liftweb.http.StatefulSnippet
-import net.liftweb.http.Templates
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd
@@ -84,7 +82,6 @@ object SearchNodes {
 
 class SearchNodes extends StatefulSnippet with Loggable {
 
-  import SearchNodes._
 
   private[this] val queryParser = RudderConfig.cmdbQueryParser
   private[this] val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
@@ -118,8 +115,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
   var activateSubmitButton = true
 
   def head(html:NodeSeq) : NodeSeq = {
-    import net.liftweb.json._
-    import net.liftweb.json.JsonDSL._
 
     //add a function name to force reparse hashtag for other js elt of the page
 

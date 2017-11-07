@@ -1,7 +1,5 @@
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog.EventActor
-import org.joda.time.DateTime
 import com.normation.utils._
 import com.normation.eventlog._
 import com.normation.rudder.domain.workflows.ChangeRequest

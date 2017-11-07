@@ -46,7 +46,6 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.ReportingService
 import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.nodes.NodeInfo
 import net.liftweb.common.Full
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.repository.RoDirectiveRepository

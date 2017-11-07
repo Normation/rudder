@@ -44,15 +44,12 @@ import com.normation.rudder.db.DBCommon
 import com.normation.rudder.repository.GitCommitId
 
 import org.junit.runner.RunWith
-import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
 import net.liftweb.common.Box
-import net.liftweb.common.Full
 
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 
 /**
  *

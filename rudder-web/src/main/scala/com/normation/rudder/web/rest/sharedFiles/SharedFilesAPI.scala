@@ -40,12 +40,8 @@ package com.normation.rudder.web.rest.sharedFiles
 import net.liftweb.common.Box
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import com.normation.rudder.web.rest.RestAPI
 import net.liftweb.json.JsonAST.JValue
 import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.web.rest.RestUtils
-import com.normation.rudder.web.rest.ApiVersion
-import com.normation.rudder.appconfig._
 import net.liftweb.common.Full
 import net.liftweb.common.Failure
 import java.io.File
@@ -55,8 +51,6 @@ import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.Files
 import java.nio.file.Paths
 import org.joda.time.DateTime
-import com.normation.rudder.web.components.DateFormaterService
-import net.liftweb.json.JsonDSL
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.http.JsonResponse
@@ -64,10 +58,8 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import java.nio.charset.StandardCharsets
 import net.liftweb.http.StreamingResponse
-import java.io.ByteArrayInputStream
 import java.nio.file.Path
 import net.liftweb.http.rest.RestHelper
-import java.io.FileInputStream
 
 class SharedFilesAPI(
     restExtractor    : RestExtractorService

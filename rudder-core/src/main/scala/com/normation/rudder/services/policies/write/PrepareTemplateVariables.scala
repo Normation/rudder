@@ -37,10 +37,8 @@
 
 package com.normation.rudder.services.policies.write
 
-import scala.annotation.migration
 import scala.io.Codec
 
-import com.normation.cfclerk.domain.Bundle
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
 import com.normation.cfclerk.domain.SystemVariable
@@ -58,11 +56,9 @@ import com.normation.inventory.domain.COMMUNITY_AGENT
 import com.normation.inventory.domain.NOVA_AGENT
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.templates.STVariable
 import com.normation.utils.Control._
-import scala.language.implicitConversions
 
 import org.joda.time.DateTime
 

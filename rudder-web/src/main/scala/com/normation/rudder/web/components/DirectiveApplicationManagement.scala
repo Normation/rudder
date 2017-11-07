@@ -38,7 +38,6 @@
 package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
-import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import net.liftweb.common._

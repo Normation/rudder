@@ -46,7 +46,7 @@ import JsCmds._
 import JE._
 import net.liftweb.util.Helpers._
 import java.io.File
-import org.joda.time.{ DateTime, LocalDate, LocalTime, Duration, Period }
+import org.joda.time.{ DateTime, LocalDate, LocalTime, Period }
 import org.joda.time.format.DateTimeFormatter
 import net.liftweb.util.FieldError
 import com.normation.cfclerk.domain._
@@ -55,8 +55,6 @@ import com.normation.cfclerk.domain.HashAlgoConstraint.PLAIN
 import com.normation.cfclerk.domain.HashAlgoConstraint.PreHashed
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers
-import com.normation.utils.Control
-import com.normation.rudder.web.rest.RestUtils
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.appconfig.FeatureSwitch.Disabled
 import com.normation.rudder.domain.appconfig.FeatureSwitch.Enabled
@@ -227,7 +225,6 @@ class InputSizeField(
 /* Multiple values, display check boxes by default */
 class SelectField(val id: String, items: Seq[ValueLabel]) extends DirectiveField {
   self =>
-  import collection.mutable.ListBuffer
   type ValueType = Seq[String]
   private var values: ValueType = getDefaultValue
 

@@ -38,24 +38,13 @@
 package com.normation.rudder.services.queries
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.{NodeGroup,NodeGroupId}
-import com.unboundid.ldap.sdk.{DN,Filter}
-import com.normation.ldap.sdk._
-import BuildFilter._
-import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
-import com.normation.inventory.ldap.core.LDAPConstants.{A_OC, A_NAME}
-import RudderLDAPConstants._
-import com.normation.utils.Control.sequence
-import com.normation.inventory.ldap.core.LDAPConstants
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.normation.rudder.domain.nodes.NodeGroupId
 import net.liftweb.common._
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
-import scala.util.matching.Regex
-import com.normation.rudder.domain.queries._
 
 
 /**

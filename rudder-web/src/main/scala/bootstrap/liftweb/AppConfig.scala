@@ -40,7 +40,6 @@ package bootstrap.liftweb
 import com.normation.inventory.domain._
 import com.normation.inventory.services.core._
 import com.normation.inventory.ldap.core._
-import com.normation.inventory.services._
 import com.normation.rudder.batch._
 import com.normation.rudder.services.nodes._
 import com.normation.rudder.repository._
@@ -52,25 +51,17 @@ import com.normation.rudder.services.reports._
 import com.normation.rudder.domain.queries._
 import bootstrap.liftweb.checks._
 import com.normation.cfclerk.services._
-import org.springframework.context.annotation.Lazy
-import org.springframework.context.annotation.{ Bean, Configuration, Import, ImportResource }
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.{ ApplicationContext, ApplicationContextAware }
-import org.springframework.context.annotation.AnnotationConfigApplicationContext
-import com.normation.spring.ScalaApplicationContext
+import org.springframework.context.annotation.{ Bean, Configuration, Import }
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain._
 import com.normation.rudder.web.services._
-import com.normation.rudder.web.model._
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.rudder.repository.ldap._
 import java.io.File
-import org.joda.time.DateTime
 import com.normation.rudder.services.eventlog._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.services.impl._
-import scala.collection.JavaConversions._
 import com.normation.rudder.repository.ldap._
 import com.normation.rudder.repository.xml._
 import com.normation.rudder.repository.jdbc._
@@ -84,9 +75,7 @@ import com.normation.rudder.web.rest._
 import com.normation.rudder.services.user.TrivialPersonIdentService
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
 import com.normation.rudder.web.services.UserPropertyService
-import java.lang.IllegalArgumentException
 import com.normation.rudder.domain.logger.ApplicationLogger
-import logger.MigrationLogger
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import net.liftweb.common._
 import com.normation.rudder.repository._
@@ -106,7 +95,6 @@ import com.normation.rudder.web.rest.rule._
 import com.normation.rudder.web.rest.directive._
 import com.normation.rudder.web.rest.group._
 import com.normation.rudder.web.rest.node._
-import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.RoLDAPApiAccountRepository
 import com.normation.rudder.api.WoApiAccountRepository
 import com.normation.rudder.api.RoApiAccountRepository
@@ -116,7 +104,6 @@ import com.normation.rudder.migration._
 import com.normation.rudder.web.rest.parameter._
 import com.normation.rudder.web.rest.changeRequest._
 import com.normation.rudder.reports.execution._
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.appconfig._
 import com.normation.rudder.rule.category._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl

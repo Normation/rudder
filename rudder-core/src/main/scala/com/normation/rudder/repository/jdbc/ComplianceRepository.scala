@@ -45,14 +45,10 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
-import doobie.postgres.pgtypes._
-import com.normation.rudder.db.DB
 import com.normation.rudder.services.reports._
 import com.normation.inventory.domain.NodeId
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.RunComplianceInfo
-import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.AggregatedStatusReport
 import com.normation.rudder.domain.reports.CompliancePercent
 

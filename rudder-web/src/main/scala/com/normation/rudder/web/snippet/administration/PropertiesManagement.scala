@@ -51,9 +51,6 @@ import net.liftweb.http.SHtml._
 import com.normation.rudder.appconfig._
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.reports.FullCompliance
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.web.components.AgentScheduleEditForm
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.web.components.ComplianceModeEditForm
@@ -61,8 +58,6 @@ import com.normation.rudder.reports.SyslogUDP
 import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.web.components.popup.ModificationValidationPopup.Enable
-import com.normation.rudder.domain.appconfig.FeatureSwitch._
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
 
 /**

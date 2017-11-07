@@ -43,7 +43,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.domain.policies.DirectiveId
-import net.liftweb.json.JDouble
 import net.liftweb.json.JsonAST
 import com.normation.rudder.reports.ComplianceModeName
 

@@ -37,13 +37,10 @@
 
 package com.normation.rudder.repository.jdbc
 
-import java.sql.ResultSet
 import java.sql.Timestamp
 
-import scala.collection.JavaConverters.asScalaBufferConverter
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.reports.Reports
@@ -52,19 +49,13 @@ import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.repository.ReportsRepository
 
 import org.joda.time._
-import org.slf4j.{Logger,LoggerFactory}
-import org.springframework.jdbc.core._
 
 import net.liftweb.common._
-import net.liftweb.common.Box._
-import org.springframework.dao.DataAccessException
 
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
-import scalaz.concurrent.Task
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.DB
 
 class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
   import doobie._

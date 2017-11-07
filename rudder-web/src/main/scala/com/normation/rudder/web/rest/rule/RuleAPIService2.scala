@@ -46,7 +46,6 @@ import com.normation.rudder.domain.policies.DeleteRuleDiff
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.services.workflows.ChangeRequestService
@@ -63,10 +62,8 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
-import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.rest.RestDataSerializer
-import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 
 case class RuleApiService2 (

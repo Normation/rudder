@@ -43,7 +43,6 @@ import com.normation.ldap.sdk._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
 import RudderLDAPConstants._
-import com.normation.utils.Utils.nonEmpty
 import com.normation.inventory.domain._
 
 class NodeDit(val BASE_DN:DN) extends AbstractDit {

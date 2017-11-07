@@ -39,14 +39,8 @@ package com.normation.rudder.web.services
 
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.js.JsObj
-import scala.collection.TraversableLike
 import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.domain.reports.ComplianceLevel
-import net.liftweb.http.js.JE
-import org.joda.time.DateTime
-import org.joda.time.Period
-import org.joda.time.format.PeriodFormatterBuilder
-import org.joda.time.Interval
 import net.liftweb.common.Loggable
 
 

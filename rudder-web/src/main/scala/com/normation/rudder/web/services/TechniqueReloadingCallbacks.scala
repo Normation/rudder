@@ -47,11 +47,9 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.utils.Control._
-import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import net.liftweb.common.Full
 import net.liftweb.common.Box
-import net.liftweb.common.Failure
 
 
 /**
