@@ -129,11 +129,7 @@ class DirectiveEditForm(
       }
     }
   }
-  val parametersHtml = if(directive.parameters.size > 0){
-    parameterEditor.toFormNodeSeq
-  }else{
-    <div class="alert alert-info">This Technique has no configurable parameters.</div>
-  }
+
   val rules = roRuleRepo.getAll(false).getOrElse(Seq()).toList
   val rootCategory = roRuleCategoryRepo.getRootCategory.getOrElse(throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report."))
   val directiveApp = new DirectiveApplicationManagement(directive,rules,rootCategory)
@@ -280,7 +276,7 @@ class DirectiveEditForm(
       "#policyModes" #> policyModes.toForm_! &
       "#version" #> versionSelect.toForm_! &
       "#version *+" #> migrateButton(directiveVersion.get,"Migrate") &
-      "#parameters" #> parametersHtml &
+      "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class","btn btn-success") } &
       "#notifications *" #> updateAndDisplayNotifications() &
