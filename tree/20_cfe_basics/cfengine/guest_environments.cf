@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) CFEngine AS
+#  Copyright 2017 Northern.tech AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -39,7 +39,7 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.5.1 to 3.5.x
+# For CFEngine Core: 3.7.0 to 3.7.x
 # Guest environments bodies
 
 ###################################################
@@ -52,9 +52,33 @@
 ##-------------------------------------------------------
 
 body environment_resources kvm(name, arch, cpu_count, mem_kb, disk_file)
+# @brief An `environment_resources` body for a KVM virtual machine.
+#
+# The `env_spec` attribute is set to a KVM XML specification.
+#
+# @param name The name of the virtual machine
+# @param arch The architecture
+# @param cpu_count The number of CPUs the virtual machine should have
+# @param mem_kb The amount of RAM in kilobyte
+# @param disk_file The file on the host system for the virtual machine's harddrive
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent manage_vm
+# {
+# guest_environments:
+#   am_vm_host::
+#     "db_server"
+#       environment_host      => atlas,
+#       environment_type      => "kvm",
+#       environment_state     => "create",
+#       environment_resources => kvm("PSQL1, "x86_64", "4", "4096", "/var/lib/libvirt/images/psql1.iso")
+# }
+# ```
 {
-env_spec =>
-"<domain type='kvm'>
+      env_spec =>
+      "<domain type='kvm'>
   <name>$(name)</name>
   <memory>$(mem_kb)</memory>
   <currentMemory>$(mem_kb)</currentMemory>

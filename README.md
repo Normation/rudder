@@ -55,7 +55,7 @@ Each level uses items from lower levels (lower numbers) or, in some cases, from 
 
 ## Requirements
 
-There are none, other than CFEngine itself. ncf currently supports CFEngine 3.6 and higher.
+There are none, other than CFEngine itself. ncf currently supports CFEngine 3.7 and higher.
 
 ncf is a pure-CFEngine framework, so you can just add it in your CFEngine policy files. Nothing else is needed.
 

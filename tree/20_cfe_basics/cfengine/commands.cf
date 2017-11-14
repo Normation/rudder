@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) CFEngine AS
+#  Copyright 2017 Northern.tech AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -39,7 +39,7 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.5.1 to 3.5.x
+# For CFEngine Core: 3.7.0 to 3.7.x
 # Commands bodies
 
 ###################################################
@@ -66,8 +66,8 @@ bundle agent daemonize(command)
         contain => in_shell;
 
   reports:
-    windows.(inform_mode|verbose_mode)::
-      "$(this.bundle): This bundle does not support Windows";
+    "windows.(DEBUG|DEBUG_$(this.bundle))"::
+      "DEBUG $(this.bundle): This bundle does not support Windows";
 }
 
 ##-------------------------------------------------------

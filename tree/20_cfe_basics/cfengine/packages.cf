@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) CFEngine AS
+#  Copyright 2017 Northern.tech AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -39,13 +39,157 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.5.1 to 3.5.x
+# For CFEngine Core: 3.7.0 to 3.7.x
 # Packages bodies
 
 ###################################################
 # If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
+
+bundle common package_module_knowledge
+# @brief common package_module_knowledge bundle
+#
+# This common bundle defines which package modules are the defaults on different
+# platforms.
+{
+  vars:
+    debian::
+      "platform_default" string => "apt_get";
+
+    freebsd::
+      "platform_default" string => "pkg";
+
+    redhat::
+      "platform_default" string => "yum";
+
+    suse::
+      "platform_default" string => "zypper";
+
+    aix::
+      "platform_default" string => "nimclient";
+}
+
+body package_module apt_get
+{
+    query_installed_ifelapsed => "60";
+    query_updates_ifelapsed => "240";
+    #default_options =>  {};
+}
+
+body package_module zypper
+{
+      query_installed_ifelapsed => "60";
+      query_updates_ifelapsed => "240";
+      #default_options =>  {};
+}
+
+body package_module nimclient
+# @brief Define details used when interfacing with nimclient package
+# module
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example_nimclient
+# {
+#   packages:
+#       "expect.base"
+#         policy => "present",
+#         options => { "lpp_source=lppaix71034" },
+#         package_module => nimclient;
+# }
+# ```
+{
+    query_installed_ifelapsed => "60";
+    query_updates_ifelapsed => "14400";
+
+    # This would likey be customized based on your infrastructure specifics
+    # you may for example want to default the lpp_source based on something
+    # like `oslevel -s` output.
+    #default_options =>  {};
+}
+body package_module pkgsrc
+# @brief Define details used when interfacing with the pkgsrc package
+# module.
+#
+# **Example:**
+# ```cf3
+# bundle agent main
+# {
+#   packages:
+#       "vim"
+#         policy => "present",
+#         package_module => pkgsrc;
+# }
+# ```
+{
+    query_installed_ifelapsed => "60";
+    query_updates_ifelapsed => "14400";
+}
+
+body package_module yum
+{
+    query_installed_ifelapsed => "60";
+    query_updates_ifelapsed => "240";
+    #default_options => {};
+}
+
+body package_module pkg
+{
+    query_installed_ifelapsed => "60";
+    query_updates_ifelapsed => "240";
+    #default_options => {};
+}
+
+
+body package_module freebsd_ports
+# @brief Define details used when interfacing with the freebsd ports package
+# module.
+#
+# **Note:** Ports are expected to be setup prior to trying to use the packages
+# promise. You may need to ensure that `portsnap extract` has been run, e.g.
+# fileexists("/usr/ports/Mk/bsd.port.mk")
+#
+# **Example:**
+# ```cf3
+# bundle agent main
+# {
+#   packages:
+#     freebsd::
+#       "vim"
+#         policy => "present",
+#         package_module => freebsd_ports;
+# }
+# ```
+{
+    query_installed_ifelapsed => "60";
+    query_updates_ifelapsed => "240";
+}
+
+body package_module test
+{
+    query_installed_ifelapsed => "60";
+    query_updates_ifelapsed => "240";
+    default_options => { "$(G.testfile)" };
+}
+
+bundle common packages_common
+# @ignore
+{
+  vars:
+      "inputs" slist => {
+                          "$(this.promise_dirname)/paths.cf",
+                          "$(this.promise_dirname)/files.cf",
+                          "$(this.promise_dirname)/common.cf"
+      };
+}
+
+body file control
+# @ignore
+{
+      inputs => { @(packages_common.inputs) };
+}
 
 ##--------------------------------------------------------------
 ## Packages promises
@@ -58,7 +202,6 @@ bundle common common_knowledge
 {
   vars:
       "list_update_ifelapsed" string => "240";
-      "list_update_ifelapsed_now" string => "0";
 }
 
 bundle common debian_knowledge
@@ -68,6 +211,11 @@ bundle common debian_knowledge
 # This common bundle has useful information about Debian.
 {
   vars:
+      # Debian default package architecture, see https://wiki.debian.org/Multiarch/Tuples
+      "default_arch" string => ifelse("x86_64", "amd64",
+                                      "i386", "i386",
+                                      $(sys.arch));
+
       "apt_prefix" string => "/usr/bin/env DEBIAN_FRONTEND=noninteractive LC_ALL=C PATH=/bin:/sbin/:/usr/bin:/usr/sbin";
       "call_dpkg" string => "$(apt_prefix) $(paths.path[dpkg])";
       "call_apt_get" string => "$(apt_prefix) $(paths.path[apt_get])";
@@ -85,6 +233,9 @@ bundle common debian_knowledge
 }
 
 bundle common rpm_knowledge
+# @depends paths
+# @brief common RPM knowledge bundle
+#
 # This common bundle has useful information about platforms using RPM
 {
   vars:
@@ -106,20 +257,10 @@ bundle common rpm_knowledge
       "rpm3_arch_regex" string => "\S+\s+(\S+).*";
 }
 
-bundle common redhat_no_locking_knowledge {
-  vars:
-    redhat_setopt_available::
-      "no_locking_option" string => "--setopt=exit_on_lock=True";
-    !redhat_setopt_available::
-      "no_locking_option" string => "";
-
-
-  classes:
-    redhat::
-      "redhat_setopt_available" not => returnszero("LANG=C ${paths.path[yum]} --setopt=exit_on_lock=True 2>&1 | ${paths.path[grep]} -q -E '(Command line error: no such option: --setopt|Main config did not have a exit_on_lock attr. before setopt)'", "useshell");
-
-}
 bundle common redhat_knowledge
+# @depends paths
+# @brief common Red Hat knowledge bundle
+#
 # This common bundle has useful information about Red Hat and its
 # derivatives
 {
@@ -131,13 +272,8 @@ bundle common redhat_knowledge
       "call_rpmvercmp" string => "$(sys.bindir)/rpmvercmp";
 
       # on RHEL 4, Yum doesn't know how to be --quiet
-    centos_4|redhat_4|centos_3|redhat_3::
-      "yum_options" string => "";
-
-      # for centos 5 and more, we have a chance to have also a non locking yum
-    !(centos_4|redhat_4|centos_3|redhat_3)::
-      "yum_options" string => "--quiet ${redhat_no_locking_knowledge.no_locking_option}";
-    any::
+      "yum_options" string => ifelse("centos_4|redhat_4", "",
+                                     "--quiet");
       "yum_offline_options" string => "$(yum_options) -C";
 
       "rpm_compare_equal" string => "$(call_rpmvercmp) '$(v1)' eq '$(v2)'";
@@ -171,10 +307,11 @@ bundle common redhat_knowledge
             bbegin;            # Jump back to begin.
         };
         p;                     # Print current buffer.'";
-
 }
 
 bundle common suse_knowledge
+# @depends paths
+# @brief common SUSE knowledge bundle
 {
   vars:
       # SUSE default package architecture
@@ -184,6 +321,9 @@ bundle common suse_knowledge
 }
 
 bundle common darwin_knowledge
+# @depends paths
+# @brief common Darwin / Mac OS X knowledge bundle
+#
 # This common bundle has useful information about Darwin / Mac OS X.
 {
   vars:
@@ -197,6 +337,9 @@ bundle common darwin_knowledge
 }
 
 bundle common npm_knowledge
+# @depends paths
+# @brief Node.js `npm' knowledge bundle
+#
 # This common bundle has useful information about the Node.js `npm' package manager.
 {
   vars:
@@ -208,6 +351,9 @@ bundle common npm_knowledge
 }
 
 bundle common pip_knowledge
+# @depends paths
+# @brief Python `pip' knowledge bundle
+#
 # This common bundle has useful information about the Python `pip' package manager.
 {
   vars:
@@ -219,6 +365,9 @@ bundle common pip_knowledge
 }
 
 bundle common solaris_knowledge
+# @depends paths
+# @brief Solaris knowledge bundle
+#
 # This common bundle has useful information about the Solaris packages.
 {
   vars:
@@ -245,8 +394,205 @@ basedir=default";
 
 }
 
+body package_method pip(flags)
+# @depends common_knowledge pip_knowledge
+# @brief Python `pip' package management
+#
+# `pip' is a package manager for Python
+# http://www.pip-installer.org/en/latest/
+#
+# Available commands : add, delete, (add)update, verify
+#
+# @param flags The command line parameter passed to `pip`
+#
+# Note: "update" command performs recursive upgrade (of dependencies) by
+# default. Set $flags to "--no-deps" to perform non-recursive upgrade.
+# http://www.pip-installer.org/en/latest/cookbook.html#non-recursive-upgrades
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "Django"              package_method => pip(""), package_policy => "add";
+#     "django-registration" package_method => pip(""), package_policy => "delete";
+#     "requests"            package_method => pip(""), package_policy => "verify";
+#
+# ```
+#
+# **Note:** "Django" with a capital 'D' in the example above.
+# Explicitly match the name of the package, capitalization does count!
+#
+# ```console
+#     $ pip search django | egrep "^Django\s+-"
+#     Django - A high-level Python Web framework [..output trimmed..]
+# ```
+{
+      package_changes => "individual";
+
+      package_noverify_regex => "";
+
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
+
+      package_list_name_regex    => "$(pip_knowledge.pip_list_name_regex)";
+      package_list_version_regex => "$(pip_knowledge.pip_list_version_regex)";
+      package_installed_regex    => "$(pip_knowledge.pip_installed_regex)";
+
+      package_name_convention   => "$(name)";
+      package_delete_convention => "$(name)";
+
+      package_list_command   => "$(paths.path[pip]) list $(flags)";
+      package_verify_command => "$(paths.path[pip]) show $(flags)";
+      package_add_command    => "$(paths.path[pip]) install $(flags)";
+      package_delete_command => "$(paths.path[pip]) uninstall --yes $(flags)";
+      package_update_command => "$(paths.path[pip]) install --upgrade $(flags)";
+}
+
+body package_method npm(dir)
+# @depends common_knowledge npm_knowledge
+# @brief Node.js `npm' local-mode package management
+#
+# `npm' is a package manager for Node.js
+# https://npmjs.org/package/npm
+#
+# Available commands : add, delete, (add)update, verify
+#
+# For the difference between local and global install see here:
+# https://npmjs.org/doc/cli/npm-install.html
+#
+# @param dir The prefix path to ./node_modules/
+#
+# **Example:**
+#
+# ```cf3
+# vars:
+#     "dirs"    slist => { "/root/myproject", "/home/somedev/someproject" };
+#
+# packages:
+#     "express"              package_method => npm("$(dirs)"), package_policy => "add";
+#     "redis"                package_method => npm("$(dirs)"), package_policy => "delete";
+# ```
+{
+      package_changes => "individual";
+
+      package_noverify_regex => "";
+
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
+
+      package_list_name_regex    => "$(npm_knowledge.npm_list_name_regex)";
+      package_list_version_regex => "$(npm_knowledge.npm_list_version_regex)";
+      package_installed_regex    => "$(npm_knowledge.npm_installed_regex)";
+
+      package_name_convention   => "$(name)";
+      package_delete_convention => "$(name)";
+
+      package_list_command   => "$(npm_knowledge.call_npm) list --prefix $(dir)";
+      package_verify_command => "$(npm_knowledge.call_npm) list --prefix $(dir)";
+      package_add_command    => "$(npm_knowledge.call_npm) install --prefix $(dir)";
+      package_delete_command => "$(npm_knowledge.call_npm) remove --prefix $(dir)";
+      package_update_command => "$(npm_knowledge.call_npm) update --prefix $(dir)";
+}
+
+body package_method npm_g
+# @depends common_knowledge npm_knowledge
+# @brief Node.js `npm' global-mode package management
+#
+# `npm' is a package manager for Node.js
+# https://npmjs.org/package/npm
+#
+# Available commands : add, delete, (add)update, verify
+#
+# For the difference between global and local install see here:
+# https://npmjs.org/doc/cli/npm-install.html
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "express"              package_method => npm_g, package_policy => "add";
+#     "redis"                package_method => npm_g, package_policy => "delete";
+# ```
+{
+      package_changes => "individual";
+
+      package_noverify_regex => "";
+
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
+
+      package_list_name_regex    => "$(npm_knowledge.npm_list_name_regex)";
+      package_list_version_regex => "$(npm_knowledge.npm_list_version_regex)";
+      package_installed_regex    => "$(npm_knowledge.npm_installed_regex)";
+
+      package_name_convention   => "$(name)";
+      package_delete_convention => "$(name)";
+
+      package_list_command   => "$(npm_knowledge.call_npm) list --global";
+      package_verify_command => "$(npm_knowledge.call_npm) list --global";
+      package_add_command    => "$(npm_knowledge.call_npm) install --global";
+      package_delete_command => "$(npm_knowledge.call_npm) remove --global";
+      package_update_command => "$(npm_knowledge.call_npm) update --global";
+}
+
+body package_method brew(user)
+# @depends common_knowledge darwin_knowledge
+# @brief Darwin/Mac OS X + Homebrew installation method
+#
+# Homebrew is a package manager for OS X -- http://brew.sh
+#
+# Available commands : add, delete, (add)update (with package_version).
+#
+# @param user The user under which to run the commands
+#
+# Homebrew expects a regular (non-root) user to install packages.
+# https://github.com/mxcl/homebrew/wiki/FAQ#why-does-homebrew-say-sudo-is-bad
+# As CFEngine doesn't give the possibility to run package_add_command
+# with a different user, this body uses sudo -u.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => brew("adminuser"), package_policy => "add";
+#     "uppackage" package_method => brew("adminuser"), package_policy => "update", package_version => "3.5.2";
+# ```
+{
+
+      package_changes               => "bulk";
+      package_add_command           => "$(darwin_knowledge.call_sudo) -u $(user) $(darwin_knowledge.call_brew) install";
+      package_delete_command        => "$(darwin_knowledge.call_sudo) -u $(user) $(darwin_knowledge.call_brew) uninstall";
+      package_delete_convention     => "$(name)";
+      package_name_convention       => "$(name)";
+
+      # Homebrew can list only installed packages along versions.
+      # for a complete list of packages, we could use `brew search`, but there's no easy
+      # way to determine the version or wether it's installed.
+      package_installed_regex       => ".*";
+      package_list_command          => "$(darwin_knowledge.call_sudo) -u $(user) $(darwin_knowledge.call_brew) list --versions";
+      package_list_name_regex       => "$(darwin_knowledge.brew_name_regex)";
+      package_list_version_regex    => "$(darwin_knowledge.brew_version_regex)";
+      package_list_update_command   => "$(darwin_knowledge.call_sudo) -u $(user) $(darwin_knowledge.call_brew) update";
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
+
+      # brew list [package] will print the installed files and return 1 if not found.
+      package_verify_command        => "$(darwin_knowledge.call_sudo) -u $(user) $(darwin_knowledge.call_brew) list";
+      package_noverify_returncode   => "1";
+
+      # remember to specify the package version
+      package_update_command        => "$(darwin_knowledge.call_sudo) -u $(user) $(darwin_knowledge.call_brew) upgrade";
+
+}
 
 body package_method apt
+# @depends common_knowledge debian_knowledge
+# @brief APT installation package method
+#
+# This package method interacts with the APT package manager through `aptitude`.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => apt, package_policy => "add";
+# ```
 {
       package_changes => "bulk";
       package_list_command => "$(debian_knowledge.call_dpkg) -l";
@@ -297,6 +643,68 @@ body package_method apt
 #  4) aptitude provides little benefit
 #  5) have_aptitude is a hard class and thus cannot be unset
 body package_method apt_get
+# @depends common_knowledge debian_knowledge
+# @brief APT installation package method
+#
+# This package method interacts with the APT package manager through `apt-get`.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => apt_get, package_policy => "add";
+# ```
+{
+      package_changes => "bulk";
+      package_list_command => "$(debian_knowledge.call_dpkg) -l";
+      package_list_name_regex => "$(debian_knowledge.list_name_regex)";
+      package_list_version_regex => "$(debian_knowledge.list_version_regex)";
+      package_installed_regex => ".i.*"; # packages that have been uninstalled may be listed
+      package_name_convention => "$(name)=$(version)";
+
+      # set it to "0" to avoid caching of list during upgrade
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
+
+      # Target a specific release, such as backports
+      package_add_command => "$(debian_knowledge.call_apt_get) $(debian_knowledge.dpkg_options) --yes install";
+      package_list_update_command => "$(debian_knowledge.call_apt_get) update";
+      package_delete_command => "$(debian_knowledge.call_apt_get) $(debian_knowledge.dpkg_options) --yes -q remove";
+      package_update_command =>  "$(debian_knowledge.call_apt_get) $(debian_knowledge.dpkg_options) --yes install";
+      package_patch_command =>  "$(debian_knowledge.call_apt_get) $(debian_knowledge.dpkg_options) --yes install";
+      package_verify_command => "$(debian_knowledge.call_dpkg) -s";
+      package_noverify_returncode => "1";
+
+      package_patch_list_command => "$(debian_knowledge.call_apt_get) --just-print dist-upgrade";
+      package_patch_name_regex => "$(debian_knowledge.patch_name_regex)";
+      package_patch_version_regex => "$(debian_knowledge.patch_version_regex)";
+
+      # make correct version comparisons
+      package_version_less_command => "$(debian_knowledge.dpkg_compare_less)";
+      package_version_equal_command => "$(debian_knowledge.dpkg_compare_equal)";
+}
+
+body package_method apt_get_permissive
+# @depends common_knowledge debian_knowledge
+# @brief APT permissive (just by name) package method
+#
+# This package method interacts with the APT package manager through
+# `apt-get`.
+#
+# Normally you have to specify the package version, and it defaults to
+# `*`, which then triggers the bug of installing `xyz-abc` when you ask for `xyz`.
+#
+# This "permissive" body sets
+#
+#    package_name_convention => "$(name)";
+#
+# which is permissive in the sense of not requiring the version.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => apt_get_permissive, package_policy => "add";
+# ```
 {
       package_changes => "bulk";
       package_list_command => "$(debian_knowledge.call_dpkg) -l";
@@ -327,6 +735,18 @@ body package_method apt_get
 }
 
 body package_method apt_get_release(release)
+# @depends common_knowledge debian_knowledge
+# @brief APT installation package method
+# @param release specific release to use
+#
+# This package method interacts with the APT package manager through `apt-get` but sets a specific target release.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => apt_get_release("xyz"), package_policy => "add";
+# ```
 {
       package_changes => "bulk";
       package_list_command => "$(debian_knowledge.call_dpkg) -l";
@@ -360,6 +780,18 @@ body package_method apt_get_release(release)
 ##
 
 body package_method dpkg_version(repo)
+# @depends common_knowledge debian_knowledge
+# @brief dpkg installation package method
+# @param repo specific repo to use
+#
+# This package method interacts with `dpkg`.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => dpkg_version("xyz"), package_policy => "add";
+# ```
 {
       package_changes => "individual";
       package_list_command => "$(debian_knowledge.call_dpkg) -l";
@@ -405,6 +837,18 @@ body package_method dpkg_version(repo)
 ##
 
 body package_method rpm_version(repo)
+# @depends common_knowledge rpm_knowledge redhat_knowledge
+# @brief RPM direct installation method
+# @param repo the specific repository for `package_file_repositories`
+#
+# This package method interacts with the RPM package manager for a specific repo.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => rpm_version("myrepo"), package_policy => "add";
+# ```
 {
       package_changes => "individual";
 
@@ -437,6 +881,7 @@ body package_method rpm_version(repo)
 ##
 
 body package_method windows_feature
+# @brief Method for managing Windows features
 {
       package_changes => "individual";
 
@@ -455,8 +900,13 @@ body package_method windows_feature
 ##
 
 body package_method msi_implicit(repo)
-# Use whole file name as promiser, e.g. "7-Zip-4.50-x86_64.msi",
-# the name, version and arch is then deduced from the promiser
+# @brief Windows MSI method
+# @param repo The package file repository
+#
+# Uses the whole file name as promiser, e.g. "7-Zip-4.50-x86_64.msi".
+# The name, version and arch is then deduced from the promiser.
+#
+# **See also:** `msi_explicit()`
 {
       package_changes => "individual";
       package_file_repositories => { "$(repo)" };
@@ -478,8 +928,13 @@ body package_method msi_implicit(repo)
 ##
 
 body package_method msi_explicit(repo)
-# use software name as promiser, e.g. "7-Zip", and explicitly
-# specify any package_version and package_arch
+# @brief Windows MSI method
+# @param repo The package file repository
+#
+# Uses software name as promiser, e.g. "7-Zip", and explicitly
+# specify any `package_version` and `package_arch`.
+#
+# **See also:** `msi_implicit()`
 {
       package_changes => "individual";
       package_file_repositories => { "$(repo)" };
@@ -496,37 +951,49 @@ body package_method msi_explicit(repo)
 
 ##
 
-# This package_method uses yum to install, update and list packages.
-#
-# It will use "rpm -e" to remove packages. Please note that if several packages
-# with the same name but varying versions or architectures are installed,
-# "rpm -e" will return an error and not delete any of them.
 body package_method yum
+# @depends common_knowledge rpm_knowledge redhat_knowledge
+# @brief Yum+RPM installation method
+#
+# This package method interacts with the Yum and RPM package managers.
+# It is a copy of `yum_rpm()`, which was contributed by Trond Hasle
+# Amundsen.  The old `yum` package method has been removed.
+#
+# This is an efficient package method for RPM-based systems - uses `rpm`
+# instead of `yum` to list installed packages.
+#
+# It will use `rpm -e` to remove packages. Please note that if several packages
+# with the same name but varying versions or architectures are installed,
+# `rpm -e` will return an error and not delete any of them.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => yum, package_policy => "add";
+# ```
 {
       package_changes => "bulk";
-      package_list_command => "/usr/bin/yum ${redhat_knowledge.yum_options} list installed";
-      package_patch_list_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
+      package_list_command => "$(rpm_knowledge.call_rpm) -qa --qf '$(rpm_knowledge.rpm3_output_format)'";
+      package_patch_list_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_offline_options) check-update $(redhat_knowledge.check_update_postproc)";
 
-      # Remember to escape special characters like |
+      package_list_name_regex    => "$(rpm_knowledge.rpm3_name_regex)";
+      package_list_version_regex => "$(rpm_knowledge.rpm3_version_regex)";
+      package_list_arch_regex    => "$(rpm_knowledge.rpm3_arch_regex)";
 
-      package_list_name_regex    => "([^.]+).*";
-      package_list_version_regex => "[^\s]\s+([^\s]+).*";
-      package_list_arch_regex    => "[^.]+\.([^\s]+).*";
-
-      package_installed_regex => ".*(installed|\s+@).*";
+      package_installed_regex => ".*";
       package_name_convention => "$(name)-$(version).$(arch)";
 
       # just give the package name to rpm to delete, otherwise it gets "name.*" (from package_name_convention above)
       package_delete_convention => "$(name)";
 
       # set it to "0" to avoid caching of list during upgrade
-      package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-      package_list_update_ifelapsed => "240";
+      package_list_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) check-update $(redhat_knowledge.check_update_postproc)";
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
 
-      package_patch_installed_regex => "^\s.*";
-      package_patch_name_regex    => "([^.]+).*";
-      package_patch_version_regex => "[^\s]\s+([^\s]+).*";
-      package_patch_arch_regex    => "[^.]+\.([^\s]+).*";
+      package_patch_name_regex    => "$(redhat_knowledge.patch_name_regex)";
+      package_patch_version_regex => "$(redhat_knowledge.patch_version_regex)";
+      package_patch_arch_regex    => "$(redhat_knowledge.patch_arch_regex)";
 
       package_add_command    => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y install";
       package_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y update";
@@ -541,39 +1008,109 @@ body package_method yum
 ##
 
 body package_method yum_rpm
-
-# Contributed by Trond Hasle Amundsen
-# More efficient package method for RPM-based systems - uses rpm
-# instead of yum to list installed packages
+# @depends common_knowledge rpm_knowledge redhat_knowledge
+# @brief Yum+RPM installation method
 #
-# It will use "rpm -e" to remove packages. Please note that if several packages
+# This package method interacts with the Yum and RPM package managers.
+#
+# Contributed by Trond Hasle Amundsen
+#
+# This is an efficient package method for RPM-based systems - uses `rpm`
+# instead of `yum` to list installed packages.
+#
+# It will use `rpm -e` to remove packages. Please note that if several packages
 # with the same name but varying versions or architectures are installed,
-# "rpm -e" will return an error and not delete any of them.
-
+# `rpm -e` will return an error and not delete any of them.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => yum_rpm, package_policy => "add";
+# ```
 {
-  package_changes => "bulk";
-  package_list_command => "/bin/rpm -qa --qf '%{name}.%{arch} %{version}-%{release}\n'";
-  package_patch_list_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
+      package_changes => "bulk";
+      package_list_command => "$(rpm_knowledge.call_rpm) -qa --qf '$(rpm_knowledge.rpm3_output_format)'";
+      package_patch_list_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_offline_options) check-update $(redhat_knowledge.check_update_postproc)";
 
-  package_list_name_regex    => "([^.]+).*";
-  package_list_version_regex => "[^\s]\s+([^\s]+).*";
-  package_list_arch_regex    => "[^.]+\.([^\s]+).*";
+      package_list_name_regex    => "$(rpm_knowledge.rpm3_name_regex)";
+      package_list_version_regex => "$(rpm_knowledge.rpm3_version_regex)";
+      package_list_arch_regex    => "$(rpm_knowledge.rpm3_arch_regex)";
 
-  package_installed_regex => ".*";
-  package_name_convention => "$(name)-$(version).$(arch)";
+      package_installed_regex => ".*";
+      package_name_convention => "$(name)-$(version).$(arch)";
 
-  # just give the package name to rpm to delete, otherwise it gets "name.*" (from package_name_convention above)
-  package_delete_convention => "$(name)";
+      # just give the package name to rpm to delete, otherwise it gets "name.*" (from package_name_convention above)
+      package_delete_convention => "$(name)";
 
-  # set it to "0" to avoid caching of list during upgrade
-  package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-  package_list_update_ifelapsed => "240";
+      # set it to "0" to avoid caching of list during upgrade
+      package_list_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) check-update $(redhat_knowledge.check_update_postproc)";
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
 
-  package_patch_installed_regex => "^\s.*";
-  package_patch_name_regex    => "([^.]+).*";
-  package_patch_version_regex => "[^\s]\s+([^\s]+).*";
-  package_patch_arch_regex    => "[^.]+\.([^\s]+).*";
+      package_patch_name_regex    => "$(redhat_knowledge.patch_name_regex)";
+      package_patch_version_regex => "$(redhat_knowledge.patch_version_regex)";
+      package_patch_arch_regex    => "$(redhat_knowledge.patch_arch_regex)";
 
+      package_add_command    => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y install";
+      package_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y update";
+      package_patch_command  => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y update";
+      package_delete_command => "$(rpm_knowledge.call_rpm) -e --nodeps";
+      package_verify_command => "$(rpm_knowledge.call_rpm) -V";
+      package_noverify_returncode => "1";
+      package_version_less_command => "$(redhat_knowledge.rpm_compare_less)";
+      package_version_equal_command => "$(redhat_knowledge.rpm_compare_equal)";
+}
+
+body package_method yum_rpm_permissive
+# @depends common_knowledge rpm_knowledge redhat_knowledge
+# @brief Yum+RPM permissive (just by name) package method
+#
+# This package method interacts with the Yum and RPM package managers.
+#
+# Copy of yum_rpm which was contributed by Trond Hasle Amundsen
+#
+# This is an efficient package method for RPM-based systems - uses
+# `rpm` instead of `yum` to list installed packages. It can't delete
+# packages and can't take a target version or architecture, so only
+# the "add" and "addupdate" methods should be used.
+#
+# Normally you have to specify the package version, and it defaults to
+# `*`, which then triggers the bug of installing `xyz-abc` when you ask for `xyz`.
+#
+# This "permissive" body sets
+#
+#    package_name_convention => "$(name)";
+#
+# which is permissive in the sense of not requiring the version.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => yum_rpm_permissive, package_policy => "add";
+# ```
+{
+      package_changes => "bulk";
+      package_list_command => "$(rpm_knowledge.call_rpm) -qa --qf '$(rpm_knowledge.rpm3_output_format)'";
+      package_patch_list_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_offline_options) check-update $(redhat_knowledge.check_update_postproc)";
+
+      package_list_name_regex    => "$(rpm_knowledge.rpm3_name_regex)";
+      package_list_version_regex => "$(rpm_knowledge.rpm3_version_regex)";
+      package_list_arch_regex    => "$(rpm_knowledge.rpm3_arch_regex)";
+
+      package_installed_regex => ".*";
+      package_name_convention => "$(name)";
+
+      # not needed, same as package_name_convention above
+      package_delete_convention => "$(name)";
+
+      # set it to "0" to avoid caching of list during upgrade
+      package_list_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) check-update $(redhat_knowledge.check_update_postproc)";
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
+
+      package_patch_name_regex    => "$(redhat_knowledge.patch_name_regex)";
+      package_patch_version_regex => "$(redhat_knowledge.patch_version_regex)";
+      package_patch_arch_regex    => "$(redhat_knowledge.patch_arch_regex)";
 
       package_add_command    => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y install";
       package_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y update";
@@ -588,15 +1125,28 @@ body package_method yum_rpm
 ##
 
 body package_method yum_rpm_enable_repo(repoid)
-
-# based on yum_rpm with addition to enable a repository for the install
+# @depends common_knowledge rpm_knowledge redhat_knowledge
+# @brief Yum+RPM repo-specific installation method
+# @param repoid the repository name as in `yum --enablerepo=???`
+#
+# This package method interacts with the RPM package manager for a specific repo.
+#
+# Based on `yum_rpm()` with addition to enable a repository for the install.
+#
 # Sometimes repositories are configured but disabled by default. For example
 # this pacakge_method could be used when installing a package that exists in
 # the EPEL, which normally you do not want to install packages from.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => yum_rpm_enable_repo("myrepo"), package_policy => "add";
+# ```
 {
       package_changes => "bulk";
       package_list_command => "$(rpm_knowledge.call_rpm) -qa --qf '$(rpm_knowledge.rpm2_output_format)'";
-      package_patch_list_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_offline_options) check-update";
+      package_patch_list_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_offline_options) check-update $(redhat_knowledge.check_update_postproc)";
 
       package_list_name_regex    => "$(rpm_knowledge.rpm2_name_regex)";
       package_list_version_regex => "$(rpm_knowledge.rpm2_version_regex)";
@@ -606,13 +1156,12 @@ body package_method yum_rpm_enable_repo(repoid)
       package_name_convention => "$(name)";
 
       # set it to "0" to avoid caching of list during upgrade
-      package_list_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) check-update";
+      package_list_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) check-update $(redhat_knowledge.check_update_postproc)";
       package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
 
-  package_patch_installed_regex => "^\s.*";
-  package_patch_name_regex    => "([^.]+).*";
-  package_patch_version_regex => "[^\s]\s+([^\s]+).*";
-  package_patch_arch_regex    => "[^.]+\.([^\s]+).*";
+      package_patch_name_regex    => "$(redhat_knowledge.patch_name_regex)";
+      package_patch_version_regex => "$(redhat_knowledge.patch_version_regex)";
+      package_patch_arch_regex    => "$(redhat_knowledge.patch_arch_regex)";
 
       package_add_command    => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) --enablerepo=$(repoid) -y install";
       package_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) --enablerepo=$(repoid) -y update";
@@ -627,13 +1176,24 @@ body package_method yum_rpm_enable_repo(repoid)
 ##
 
 body package_method yum_group
-
-# Makes use of the "groups of packages" feature of Yum possible. (yum groupinstall, groupremove)
+# @depends common_knowledge redhat_knowledge
+# @brief RPM direct installation method
 #
-# Groups must be specified by their groupids, available through yum grouplist -v (between parentheses)
+# Makes use of the "groups of packages" feature of Yum possible. (`yum
+# groupinstall`, `yum groupremove`)
+#
+# Groups must be specified by their groupids, available through `yum
+# grouplist -v` (between parentheses).  For example, below
+# `network-tools` is the groupid.
+#
+# ```console
 # $ yum grouplist -v|grep Networking|head -n 1
-#   Networking Tools (network-tools)       <--- network-tools is the groupid
+#   Networking Tools (network-tools)
+# ```
 #
+# **Example:**
+#
+# ```cf3
 # Policies examples:
 #
 # -Install "web-server" group:
@@ -654,9 +1214,8 @@ body package_method yum_group
 #   "$(groups)"
 #      package_policy   =>   "delete",
 #      package_method   =>   yum_group;
-#
-
-{ 
+# ```
+{
       package_add_command             =>  "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) groupinstall -y";
       package_changes                 =>  "bulk";
       package_delete_command          =>  "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) groupremove -y";
@@ -668,7 +1227,7 @@ body package_method yum_group
       "$(redhat_knowledge.call_yum) grouplist -v|awk '$0 ~ /^Done$/ {next} {sub(/.*\(/, \"\");sub(/\).*/, \"\")} /Available/ {h=\"a\";next} /Installed/ {h=\"i\";next} h==\"i\" || h==\"a\" {print h\" \"$0\" 1\"}'";
 
       package_list_name_regex         =>  "a|i ([^\s]+) 1";
-      package_list_update_command     =>  "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) check-update";
+      package_list_update_command     =>  "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) check-update $(redhat_knowledge.check_update_postproc)";
       package_list_update_ifelapsed   =>  "$(common_knowledge.list_update_ifelapsed)";
       package_list_version_regex      =>  "(1)";
       package_name_convention         =>  "$(name)";
@@ -683,23 +1242,23 @@ body package_method yum_group
 ##
 
 body package_method rpm_filebased(path)
-
-# Contributed by Aleksey Tsalolikhin. Written on 29-Feb-2012.
-# Based on yum_rpm body in COPBL by Trond Hasle Amundsen.
-# Purpose: install packages from local filesystem-based package repository.
-# Note: Specify the path to the local package repository in the argument.
-
-# Example of how to use it:
+# @depends common_knowledge rpm_knowledge redhat_knowledge
+# @brief install packages from local filesystem-based RPM repository.
+# @param path the path to the local package repository
 #
-# {{{
+# Contributed by Aleksey Tsalolikhin. Written on 29-Feb-2012.
+# Based on `yum_rpm()` body by Trond Hasle Amundsen.
+#
+# **Example:**
+#
+# ```cf3
 # packages:
-# "epel-release"
-# package_policy => "add",
-# package_version => "5-4",
-# package_architectures => { "noarch" },
-# package_method => rpm_filebased("/repo/RPMs");
-# }}}
-
+#     "epel-release"
+#     package_policy => "add",
+#     package_version => "5-4",
+#     package_architectures => { "noarch" },
+#     package_method => rpm_filebased("/repo/RPMs");
+# ```
 {
       package_file_repositories => { "$(path)" };
       # the above is an addition to Trond's yum_rpm body
@@ -716,7 +1275,7 @@ body package_method rpm_filebased(path)
       # CFEngine 3 Reference Manual
 
       # set it to "0" to avoid caching of list during upgrade
-      package_list_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) check-update";
+      package_list_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) check-update $(redhat_knowledge.check_update_postproc)";
       package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
 
       # The rest is unchanged from Trond's yum_rpm body
@@ -738,16 +1297,20 @@ body package_method rpm_filebased(path)
 
 ##
 
-# OpenSolaris based systems (Solaris 11, Illumos, etc) use the much better
-# Image Package System.
+body package_method ips
+# @depends paths
+# @depends common_knowledge
+# @brief Image Package System method, used by OpenSolaris based systems (Solaris 11, Illumos, etc)
 #
 # A note about Solaris 11.1 versioning format:
 #
+# ```
 # $ pkg list -v --no-refresh zsh
 # FMRI                                                                         IFO
 # pkg://solaris/shell/zsh@4.3.17,5.11-0.175.1.0.0.24.0:20120904T174236Z        i--
 # name--------- |<----->| |/________________________\|
 # version---------------- |\                        /|
+# ```
 #
 # Notice that the publisher and timestamp aren't used. And that the package
 # version then must have the commas replaced by underscores.
@@ -758,13 +1321,14 @@ body package_method rpm_filebased(path)
 #     4.3.17_5.11-0.175.1.0.0.24.0
 #
 # Therefore, a properly formatted package promise looks like this:
+#
+# ```cf3
 #    "shell/zsh"
 #      package_policy  => "addupdate",
 #      package_method  => ips,
 #      package_select  => ">=",
 #      package_version => "4.3.17_5.11-0.175.1.0.0.24.0";
-
-body package_method ips
+# ```
 {
       package_changes => "bulk";
       package_list_command => "$(paths.path[pkg]) list -v --no-refresh";
@@ -786,51 +1350,91 @@ body package_method ips
 
 ##
 
-# SmartOS (solaris 10 fork by Joyent) uses pkgin
-
 body package_method smartos
+# @depends common_knowledge
+# @brief pkgin method for SmartOS (solaris 10 fork by Joyent)
 {
-  package_changes => "bulk";
-  package_list_command => "/opt/local/bin/pkgin list";
-  package_list_name_regex    => "(.*)\-[0-9]+.*";
-  package_list_version_regex => ".*\-([0-9][^\s]+).*";
+      package_changes => "bulk";
+      package_list_command => "/opt/local/bin/pkgin list";
+      package_list_name_regex    => "([^\s]+)\-[0-9][^\s;]+.*[\s;]";
+      package_list_version_regex => "[^\s]+\-([0-9][^\s;]+).*[\s;]";
 
-  package_installed_regex => ".*"; # all reported are installed
+      package_installed_regex => ".*"; # all reported are installed
 
-  package_list_update_command => "/opt/local/bin/pkgin -y update";
-  package_list_update_ifelapsed => "240";
+      package_list_update_command => "/opt/local/bin/pkgin -y update";
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
 
-  package_add_command => "/opt/local/bin/pkgin -y install";
+      package_add_command => "/opt/local/bin/pkgin -y install";
 
-  package_delete_command => "/opt/local/bin/pkgin -y remove";
-  package_update_command =>  "/opt/local/bin/pkgin upgrade";
+      package_delete_command => "/opt/local/bin/pkgin -y remove";
+
+      # pkgin update doesn't do what you think it does. pkgin install against and
+      # already installed package will upgrade it however.
+
+      package_update_command =>  "/opt/local/bin/pkgin -y install";
 }
 
-# OpenCSW (Solaris software packages)
+body package_method smartos_pkg_add(repo)
+# @brief SmartOS pkg_add installation package method
+#
+# This package method interacts with SmartOS pkg_add to install from local
+# or remote repositories. It is slightly different than the FreeBSD pkg_add.
+#
+# This example installs "perl5" from a remote repository:
+#
+# ```cf3
+# ----------------------------
+# packages:
+#   "perl5"
+#     package_policy   =>  "add",
+#     package_method   =>  smartos_pkg_add("http://pkg.example.com/packages/");
+#
+# ```
+{
+      package_changes => "individual";
+      package_list_command => "/opt/local/sbin/pkg_info";
+      package_list_name_regex    => "([^\s]+)\-[0-9]+.*\s";
+      package_list_version_regex => "[^\s]+\-([0-9][^\s]+)\s";
+
+      package_installed_regex => ".*"; # all reported are installed
+
+      package_add_command => "/usr/bin/env PKG_PATH=$(repo) /opt/local/sbin/pkg_add";
+
+      package_delete_command => "/opt/local/sbin/pkg_delete";
+      package_update_command => "/usr/bin/env PKG_PATH=$(repo) /opt/local/sbin/pkg_add";
+}
 
 body package_method opencsw
+# @depends common_knowledge
+# @brief OpenCSW (Solaris software packages) method
 {
-  package_changes => "bulk";
-  package_list_command => "/opt/csw/bin/pkgutil -c";
-  package_list_name_regex    => "CSW(.*?)\s.*";
-  package_list_version_regex => ".*?\s+(.*),.*";
+      package_changes => "bulk";
+      package_list_command => "/opt/csw/bin/pkgutil -c";
+      package_list_name_regex    => "CSW(.*?)\s.*";
+      package_list_version_regex => ".*?\s+(.*),.*";
 
-  package_installed_regex => ".*"; # all reported are installed
+      package_installed_regex => ".*"; # all reported are installed
 
-  package_list_update_command => "/opt/csw/bin/pkgutil -U";
-  package_list_update_ifelapsed => "240";
+      package_list_update_command => "/opt/csw/bin/pkgutil -U";
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
 
-  package_add_command => "/opt/csw/bin/pkgutil -yi";
+      package_add_command => "/opt/csw/bin/pkgutil -yi";
 
-  package_delete_command => "/opt/csw/bin/pkgutil -yr";
-  package_update_command =>  "/opt/csw/bin/pkgutil -yu";
+      package_delete_command => "/opt/csw/bin/pkgutil -yr";
+      package_update_command =>  "/opt/csw/bin/pkgutil -yu";
 }
 
+body package_method solaris(pkgname, spoolfile, adminfile)
+# @depends paths
+# @brief Package method for old Solaris package system
+#
+# @param pkgname Not used
+# @param spoolfile The spool file, located in `/tmp`
+# @param adminfile The admin file, located in `/tmp`
+#
 # The older solaris package system is poorly designed, with too many different
 # names to track. See the example in tests/units/unit_package_solaris.cf
-# to see how to use this
-
-body package_method solaris (pkgname, spoolfile, adminfile)
+# to see how to use this.
 {
       package_changes => "individual";
       package_list_command => "$(solaris_knowledge.call_pkginfo) -l";
@@ -847,9 +1451,10 @@ body package_method solaris (pkgname, spoolfile, adminfile)
 ##
 
 body package_method solaris_install(adminfile)
-# Package method for old Solaris package system
+# @depends paths
+# @brief Package method for old Solaris package system
 #
-# adminfile The admin file created by `create_solaris_admin_file`
+# @param adminfile The admin file created by `create_solaris_admin_file`
 {
       package_changes => "individual";
       package_list_command => "$(solaris_knowledge.call_pkginfo) -l";
@@ -863,64 +1468,93 @@ body package_method solaris_install(adminfile)
       package_delete_command => "$(solaris_knowledge.call_pkgrm) -n -a $(adminfile)";
 }
 
-#
-# The following bundle is part of a package setup for solaris, see unit examples
-#
+##
 
 bundle edit_line create_solaris_admin_file
+# @brief The following bundle is part of a package setup for solaris
+#
+# See unit examples.
 {
-insert_lines:
+  insert_lines:
 
-  "mail=
-instance=unique
-partial=nocheck
-runlevel=nocheck
-idepend=nocheck
-rdepend=nocheck
-space=nocheck
-setuid=nocheck
-conflict=nocheck
-action=nocheck
-networktimeout=60
-networkretries=3
-authentication=quit
-keystore=/var/sadm/security
-proxy=
-basedir=default"
+      "$(solaris_knowledge.admin_nocheck)"
       comment => "Insert contents of Solaris admin file (automatically install packages)";
 }
 
 ##
 
 body package_method freebsd
-{
- package_changes => "individual";
-
- # Could use rpm for this
- package_list_command => "/usr/sbin/pkg_info";
-
- # Remember to escape special characters like |
-
- package_list_name_regex    => "([^\s]+)-.*";
- package_list_version_regex => "[^\s]+-([^\s]+).*";
-
- package_name_regex    => "([^\s]+)-.*";
- package_version_regex => "[^\s]+-([^\s]+).*";
-
- package_installed_regex => ".*";
-
- package_name_convention => "$(name)-$(version)";
-
-
- package_add_command => "/usr/sbin/pkg_add -r";
- package_delete_command => "/usr/sbin/pkg_delete";
-}
-
-body package_method freebsd_portmaster
+# @depends common_knowledge
+# @brief FreeBSD pkg_add installation package method
+#
+# This package method interacts with FreeBSD pkg_add to install from remote
+# repositories.
+#
+# **Example:**
+# NOTE: Do not use this method on pkgng systems! It will appear to operate
+# normally but is highly likely to break your package system.
+#
+# This example installs "perl5" from a non-default repository:
+#
+# ```cf3
+# ----------------------------
+#
+# vars:
+#   environment => { "PACKAGESITE=http://repo.example.com/private/8_STABLE/" };
+# packages:
+#   "perl5"
+#     package_policy   =>  "add",
+#     package_method   =>  freebsd;
+#
+# ```
 {
       package_changes => "individual";
 
-      package_list_command => "/usr/sbin/pkg_info";
+      # Could use rpm for this
+      package_list_command => "/usr/sbin/pkg info";
+
+      # Remember to escape special characters like |
+
+      package_list_name_regex    => "([^\s]+)-.*";
+      package_list_version_regex => "[^\s]+-([^\s]+).*";
+
+      package_name_regex    => "([^\s]+)-.*";
+      package_version_regex => "[^\s]+-([^\s]+).*";
+
+      package_installed_regex => ".*";
+
+      package_name_convention => "$(name)-$(version)";
+
+      package_add_command => "/usr/sbin/pkg install -y";
+      package_delete_command => "/usr/sbin/pkg delete -y";
+}
+
+body package_method freebsd_portmaster
+# @depends common_knowledge
+# @brief FreeBSD portmaster package installation method
+#
+# This package method interacts with portmaster to build and install packages.
+#
+# Note that you must use the complete package name as it appears in
+# /usr/ports/*/name, such as 'perl5.14' rather than 'perl5'.
+# Repositories are hard-coded to /usr/ports; alternate locations are
+# unsupported at this time.
+# This method supports both pkg_* and pkgng systems.
+#
+# **Example:**
+#
+# ```cf3
+#
+# packages:
+#   "perl5.14"
+#     package_policy   =>  "add",
+#     package_method   =>  freebsd_portmaster;
+#
+# ```
+{
+      package_changes => "individual";
+
+      package_list_command => "/usr/sbin/pkg info";
 
       package_list_name_regex    => "([^\s]+)-.*";
       package_list_version_regex => "[^\s]+-([^\s]+).*";
@@ -1005,6 +1639,20 @@ body package_method freebsd_portmaster
 ##
 
 body package_method alpinelinux
+# @brief Alpine Linux apk package installation method
+#
+# This package method interacts with apk to manage packages.
+#
+# **Example:**
+#
+# ```cf3
+#
+# packages:
+#   "vim"
+#     package_policy   =>  "add",
+#     package_method   =>  alpinelinux;
+#
+# ```
 {
       package_changes => "bulk";
       package_list_command => "/sbin/apk info -v";
@@ -1020,6 +1668,21 @@ body package_method alpinelinux
 ##
 
 body package_method emerge
+# @depends common_knowledge
+# @brief Gentoo emerge package installation method
+#
+# This package method interacts with emerge to build and install packages.
+#
+# **Example:**
+#
+# ```cf3
+#
+# packages:
+#   "zsh"
+#     package_policy   =>  "add",
+#     package_method   =>  emerge;
+#
+# ```
 {
       package_changes => "individual";
       package_list_command => "/bin/sh -c '/bin/ls -d /var/db/pkg/*/* | cut -c 13-'";
@@ -1042,7 +1705,8 @@ body package_method emerge
 ##
 
 body package_method pacman
-
+# @depends common_knowledge
+# @brief Arch Linux pacman package management method
 {
       package_changes => "bulk";
 
@@ -1063,10 +1727,10 @@ body package_method pacman
       package_update_command => "/usr/bin/pacman -S --noconfirm --noprogressbar --needed";
 }
 
-##
-
 body package_method zypper
-# SUSE installation method
+# @depends paths
+# @depends common_knowledge rpm_knowledge suse_knowledge
+# @brief SUSE installation method
 #
 # This package method interacts with the SUSE Zypper package manager
 #
@@ -1103,16 +1767,28 @@ body package_method zypper
       package_verify_command => "$(suse_knowledge.call_zypper) --non-interactive verify$";
 }
 
- # Single bundle for all the similar managers simplifies promises
-
 body package_method generic
+# @depends paths common_knowledge debian_knowledge rpm_knowledge redhat_knowledge
+# @brief Generic installation package method
+#
+# This package method attempts to handle all platforms.
+#
+# The Redhat section is a verbatim insertion of `yum_rpm()`, which was
+# contributed by Trond Hasle Amundsen.
+#
+# **Example:**
+#
+# ```cf3
+# packages:
+#     "mypackage" package_method => generic, package_policy => "add";
+# ```
 {
-SuSE::
- package_changes => "bulk";
+    suse::
+      package_changes => "bulk";
       package_list_command => "$(rpm_knowledge.call_rpm) -qa --queryformat \"$(rpm_knowledge.rpm_output_format)\"";
       # set it to "0" to avoid caching of list during upgrade
       package_list_update_command => "$(suse_knowledge.call_zypper) list-updates";
-      package_list_update_ifelapsed => "0";
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
       package_patch_list_command => "$(suse_knowledge.call_zypper) patches";
       package_installed_regex => "i.*";
       package_list_name_regex    => "$(rpm_knowledge.rpm_name_regex)";
@@ -1128,21 +1804,29 @@ SuSE::
       package_patch_command => "$(suse_knowledge.call_zypper) --non-interactive patch$"; # $ means no args
       package_verify_command => "$(suse_knowledge.call_zypper) --non-interactive verify$";
 
-redhat::
- package_changes => "bulk";
- package_list_command => "$(rpm_knowledge.call_rpm) -qa --qf '%{name} %{version}-%{release} %{arch}\n'";
- package_patch_list_command => "$(redhat_knowledge.call_yum) ${redhat_knowledge.yum_options} check-update";
- package_list_name_regex    => "^(\S+?)\s\S+?\s\S+$";
- package_list_version_regex => "^\S+?\s(\S+?)\s\S+$";
- package_list_arch_regex    => "^\S+?\s\S+?\s(\S+)$";
- package_installed_regex => ".*";
- package_name_convention => "$(name)";
- package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
- package_list_update_ifelapsed => "0";     # sometimes, caching is pretty disturbing
- package_patch_installed_regex => "^\s.*";
- package_patch_name_regex    => "([^.]+).*";
- package_patch_version_regex => "[^\s]\s+([^\s]+).*";
- package_patch_arch_regex    => "[^.]+\.([^\s]+).*";
+    redhat::
+      package_changes => "bulk";
+      package_list_command => "$(rpm_knowledge.call_rpm) -qa --qf '$(rpm_knowledge.rpm3_output_format)'";
+      package_patch_list_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_offline_options) check-update $(redhat_knowledge.check_update_postproc)";
+
+      package_list_name_regex    => "$(rpm_knowledge.rpm3_name_regex)";
+      package_list_version_regex => "$(rpm_knowledge.rpm3_version_regex)";
+      package_list_arch_regex    => "$(rpm_knowledge.rpm3_arch_regex)";
+
+      package_installed_regex => ".*";
+      package_name_convention => "$(name)-$(version).$(arch)";
+
+      # just give the package name to rpm to delete, otherwise it gets "name.*" (from package_name_convention above)
+      package_delete_convention => "$(name)";
+
+      # set it to "0" to avoid caching of list during upgrade
+      package_list_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) check-update $(redhat_knowledge.check_update_postproc)";
+      package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
+
+      package_patch_name_regex    => "$(redhat_knowledge.patch_name_regex)";
+      package_patch_version_regex => "$(redhat_knowledge.patch_version_regex)";
+      package_patch_arch_regex    => "$(redhat_knowledge.patch_arch_regex)";
+
       package_add_command    => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y install";
       package_update_command => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y update";
       package_patch_command  => "$(redhat_knowledge.call_yum) $(redhat_knowledge.yum_options) -y update";
@@ -1152,24 +1836,7 @@ redhat::
       package_version_less_command => "$(redhat_knowledge.rpm_compare_less)";
       package_version_equal_command => "$(redhat_knowledge.rpm_compare_equal)";
 
-# package_changes => "bulk";
-# package_list_command => "/usr/bin/yum list installed";
-# package_patch_list_command => "/usr/bin/yum check-update";
-# package_list_name_regex    => "([^.]+).*";
-# package_list_version_regex => "[^\s]\s+([^\s]+).*";
-# package_list_arch_regex    => "[^.]+\.([^\s]+).*";
-# package_installed_regex => ".*(installed|\s+@).*";
-# package_name_convention => "$(name).$(arch)";
-# package_list_update_ifelapsed => "240";
-# package_patch_installed_regex => "^\s.*";
-# package_patch_name_regex    => "([^.]+).*";
-# package_patch_version_regex => "[^\s]\s+([^\s]+).*";
-# package_patch_arch_regex    => "[^.]+\.([^\s]+).*";
-# package_add_command => "/usr/bin/yum -y install";
-# package_delete_command => "/bin/rpm -e --nodeps";
-# package_verify_command => "/bin/rpm -V";
-
-debian::
+    debian::
       package_changes => "bulk";
       package_list_command => "$(debian_knowledge.call_dpkg) -l";
       package_list_name_regex => "$(debian_knowledge.list_name_regex)";
@@ -1182,8 +1849,7 @@ debian::
       package_version_less_command => "$(debian_knowledge.dpkg_compare_less)";
       package_version_equal_command => "$(debian_knowledge.dpkg_compare_equal)";
 
-
-debian.have_aptitude::
+    debian.have_aptitude::
       package_add_command => "$(debian_knowledge.call_aptitude) $(debian_knowledge.dpkg_options) --assume-yes install";
       package_list_update_command => "$(debian_knowledge.call_aptitude) update";
       package_delete_command => "$(debian_knowledge.call_aptitude) $(debian_knowledge.dpkg_options) --assume-yes remove";
@@ -1196,7 +1862,7 @@ debian.have_aptitude::
       package_patch_name_regex => "$(debian_knowledge.patch_name_regex)";
       package_patch_version_regex => "$(debian_knowledge.patch_version_regex)";
 
-debian.!have_aptitude::
+    debian.!have_aptitude::
       package_add_command => "$(debian_knowledge.call_apt_get) $(debian_knowledge.dpkg_options) --yes install";
       package_list_update_command => "$(debian_knowledge.call_apt_get) update";
       package_delete_command => "$(debian_knowledge.call_apt_get) $(debian_knowledge.dpkg_options) --yes remove";
@@ -1211,15 +1877,15 @@ debian.!have_aptitude::
 
     freebsd::
       package_changes => "individual";
-      package_list_command => "/usr/sbin/pkg_info";
+      package_list_command => "/usr/sbin/pkg info";
       package_list_name_regex    => "([^\s]+)-.*";
       package_list_version_regex => "[^\s]+-([^\s]+).*";
       package_name_regex    => "([^\s]+)-.*";
       package_version_regex => "[^\s]+-([^\s]+).*";
       package_installed_regex => ".*";
       package_name_convention => "$(name)-$(version)";
-      package_add_command => "/usr/sbin/pkg_add -r";
-      package_delete_command => "/usr/sbin/pkg_delete";
+      package_add_command => "/usr/sbin/pkg install -y";
+      package_delete_command => "/usr/sbin/pkg delete";
 
     alpinelinux::
       package_changes => "bulk";
@@ -1265,4 +1931,317 @@ debian.!have_aptitude::
       package_update_command => "/usr/bin/pacman -S --noconfirm --noprogressbar --needed";
 }
 
-##
+## Useful bundles ##
+
+bundle agent package_absent_legacy(package)
+# @brief Ensure package is absent
+# @param package the packages to remove
+#
+# This package method will remove `package`, using
+# `package_ensure`.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#     "nozip" usebundle => package_absent("zip");
+# ```
+{
+  packages:
+    debian::
+      "$(package)"
+      package_policy => "delete",
+      package_method => apt_get_permissive;
+
+    redhat::
+      "$(package)"
+      package_policy => "delete",
+      package_method => yum_rpm_permissive;
+
+    suse::
+      "$(package)"
+      package_policy => "delete",
+      package_method => zypper;
+
+    !debian.!redhat.!suse::
+      "$(package)"
+      package_policy => "delete",
+      package_method => generic;
+}
+
+bundle agent package_present_legacy(package)
+# @brief Ensure package is present
+# @param package the packages to install
+#
+# This package method will install `package`. On Debian, it will use
+# `apt_get_permissive`. On Red Hat, `yum_rpm_permissive`. Otherwise,
+# `generic`.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#     "pleasezip" usebundle => package_present("zip");
+# ```
+{
+  packages:
+    debian::
+      "$(package)"
+      package_policy => "add",
+      package_method => apt_get_permissive;
+
+    redhat::
+      "$(package)"
+      package_policy => "add",
+      package_method => yum_rpm_permissive;
+
+    suse::
+      "$(package)"
+      package_policy => "add",
+      package_method => zypper;
+
+    !debian.!redhat.!suse::
+      "$(package)"
+      package_policy => "add",
+      package_method => generic;
+}
+
+bundle agent package_latest(package)
+# @brief Ensure package is present and updated
+# @param package the package to add/update
+#
+# This package method will install `package` or update it to the
+# latest version. On Debian, it will use `apt_get_permissive`. On Red
+# Hat, `yum_rpm_permissive`. Otherwise, `generic`.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#     "latestzip" usebundle => package_latest("zip");
+# ```
+{
+  packages:
+    debian::
+      "$(package)"
+      package_policy => "addupdate",
+      package_version => "999999999",
+      package_method => apt_get_permissive;
+
+    redhat::
+      "$(package)"
+      package_policy => "addupdate",
+      package_version => "999999999",
+      package_method => yum_rpm_permissive;
+
+    suse::
+      "$(package)"
+      package_policy => "addupdate",
+      package_version => "999999999",
+      package_method => zypper;
+
+    !debian.!redhat.!suse::
+      "$(package)"
+      package_policy => "addupdate",
+      package_method => generic;
+}
+
+bundle agent package_specific_present(packageorfile, package_version, package_arch)
+# @depends package_specific
+# @brief Ensure package is present
+# @param packageorfile the package or full filename to add
+# @param package_version the `package_version` desired
+# @param package_arch a string determining the `package_architectures` desired
+#
+# This package method will add `packageorfile` as a package or file,
+# using `package_specific`.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "addfilezip"
+#      usebundle => package_specific_present("/mydir/zip",
+#                                            "3.0-7",
+#                                            $(debian_knowledge.default_arch));
+# ```
+{
+  methods:
+      "ensure" usebundle => package_specific($(packageorfile),
+                                             "add",
+                                             $(package_version),
+                                             $(package_arch));
+}
+
+bundle agent package_specific_absent(packageorfile, package_version, package_arch)
+# @depends package_specific
+# @brief Ensure package is absent
+# @param packageorfile the package or full filename to delete
+# @param package_version the `package_version` desired
+# @param package_arch a string determining the `package_architectures` desired
+#
+# This package method will remove `packageorfile` as a package or file,
+# using `package_specific`.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "addfilezip"
+#      usebundle => package_specific_absent("/mydir/zip",
+#                                           "3.0-7",
+#                                           $(debian_knowledge.default_arch));
+# ```
+{
+  methods:
+      "ensure" usebundle => package_specific($(packageorfile),
+                                             "delete",
+                                             $(package_version),
+                                             $(package_arch));
+}
+
+bundle agent package_specific_latest(packageorfile, package_version, package_arch)
+# @depends package_specific
+# @brief Ensure package is added or updated
+# @param packageorfile the package or full filename to add or update
+# @param package_version the `package_version` desired
+# @param package_arch a string determining the `package_architectures` desired
+#
+# This package method will add or update `packageorfile` as a package
+# or file, using `package_specific`.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "latestfilezip"
+#      usebundle => package_specific_latest("/mydir/zip",
+#                                           "3.0-7",
+#                                           $(debian_knowledge.default_arch));
+#      "latestzip"
+#      usebundle => package_specific_latest("/mydir/zip",
+#                                           "3.0-7",
+#                                           $(debian_knowledge.default_arch));
+# ```
+{
+  methods:
+      "ensure" usebundle => package_specific($(packageorfile),
+                                             "addupdate",
+                                             $(package_version),
+                                             $(package_arch));
+}
+
+bundle agent package_specific(package_name, desired, package_version, package_arch)
+# @depends apt_get yum_rpm generic dpkg_version rpm_version zypper
+# @brief Ensure `package_name` has the `desired` state
+# @param package_name the packages to ensure (can be files)
+# @param desired the desired `package_policy`, add or delete or addupdate
+# @param package_version the desired `package_version`
+# @param package_arch the desired package architecture
+#
+# This package method will manage `packages` with `package_policy` set
+# to `desired`, using `package_version`, and `package_arch`.
+#
+# If `package_name` is **not** a file name: on Debian, it will use
+# `apt_get`.  On Red Hat, `yum_rpm`.  Otherwise, `generic`.
+#
+# If `package_name` **is** a file name, it will use `dpkg_version` or
+# `rpm_version` from the file's directory.
+#
+# For convenience on systems where `sys.arch` is not correct, you can
+# use `debian_knowledge.default_arch` and
+# `redhat_knowledge.default_arch`.
+#
+# Solaris is only supported with pkgadd.  Patches welcome.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "ensure" usebundle => package_specific("zsh", "add", "1.2.3", "amd64");
+#      "ensure" usebundle => package_specific("/mydir/package.deb", "add", "9.8.7", "amd64");
+#      "ensure" usebundle => package_specific("tcsh", "delete", "2.3.4", "x86_64");
+# ```
+{
+  classes:
+      "filebased" expression => fileexists($(package_name));
+      "solaris_pkgadd" and => { "solaris", "_stdlib_path_exists_pkgadd" };
+
+  vars:
+      "solaris_adminfile" string => "/tmp/cfe-adminfile";
+
+    filebased::
+      "package_basename" string => lastnode($(package_name), "/");
+      "dir" string => dirname($(package_name));
+
+  methods:
+    solaris_pkgadd.filebased::
+      "" usebundle => file_make($(solaris_adminfile),
+                                $(solaris_knowledge.admin_nocheck)),
+      classes => scoped_classes_generic("bundle", "solaris_adminfile");
+
+  packages:
+
+    debian.!filebased::
+
+      "$(package_name)"
+      package_policy => $(desired),
+      package_select => '>=', # see verify_packages.c
+      package_version => $(package_version),
+      package_architectures => { $(package_arch) },
+      package_method => apt_get;
+
+    debian.filebased::
+
+      "$(package_basename)"
+      package_policy => $(desired),
+      package_select => '>=',
+      package_version => $(package_version),
+      package_architectures => { $(package_arch) },
+      package_method => dpkg_version($(dir));
+
+    redhat.!filebased::
+
+      "$(package_name)"
+      package_policy => $(desired),
+      package_select => '>=', # see verify_packages.c
+      package_version => $(package_version),
+      package_architectures => { $(package_arch) },
+      package_method => yum_rpm;
+
+    suse::
+
+      "$(package_name)"
+      package_policy => $(desired),
+      package_select => '>=', # see verify_packages.c
+      package_version => $(package_version),
+      package_architectures => { $(package_arch) },
+      package_method => zypper;
+
+    (redhat|aix).filebased::
+
+      "$(package_basename)"
+      package_policy => $(desired),
+      package_select => '>=',
+      package_version => $(package_version),
+      package_architectures => { $(package_arch) },
+      package_method => rpm_version($(dir));
+
+    solaris_adminfile_ok::
+
+      "$(package_name)"
+      package_policy => $(desired),
+      package_select => '>=',
+      package_version => $(package_version),
+      package_method => solaris_install($(solaris_admin_file));
+
+    !filebased.!debian.!redhat.!suse::
+
+      "$(package_name)"
+      package_policy => $(desired),
+      package_method => generic;
+
+  reports:
+    "(DEBUG|DEBUG_$(this.bundle)).filebased.!suse.!debian.!redhat.!aix.!solaris_pkgadd"::
+      "DEBUG $(this.bundle): sorry, can't do file-based installs on $(sys.os)";
+}
