@@ -394,10 +394,23 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] val piPriority =
+  private[this] val piPriority = {
+    val priorities = List(
+        ( 0, "Highest")
+      , ( 1, "+4")
+      , ( 2, "+3")
+      , ( 3, "+2")
+      , ( 4, "+1")
+      , ( 5, "Default")
+      , ( 6, "-1")
+      , ( 7, "-2")
+      , ( 8, "-3")
+      , ( 9, "-4")
+      , (10, "Lowest")
+    )
     new WBSelectObjField(
         "Priority"
-      , (0 to 10).map(i => (i, i.toString))
+      , priorities
       , defaultValue = directive.priority
     ) {
       override val displayHtml =
@@ -409,7 +422,6 @@ class DirectiveEditForm(
               <h4> Priority </h4>
               <p>Priority determines which <b> unique </b> Directive will be applied.</p>
               <p>Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied.</p>
-              <p>Highest Priority is 0.</p>
             </div>
           </span>
         </div>
@@ -417,6 +429,7 @@ class DirectiveEditForm(
       override def labelClassName = "col-xs-12"
       override def subContainerClassName = "col-xs-12"
     }
+  }
 
   private[this] var newTags = directive.tags
 
