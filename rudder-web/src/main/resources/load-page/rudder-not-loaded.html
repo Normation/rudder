@@ -24,10 +24,11 @@ li { list-style-type: disc  }
         This may be caused by:
 
         <ul style=" width: 300px; margin: 10px 30%; text-align: left; ">
-          <li>A non-existing URL</li>
-          <li>An essential component (LDAP or PostgreSQL) that is not accessible</li>
-          <li>The web application being unable to load</li>
-          <li>A non initialised Rudder installation. Please run /opt/rudder/bin/rudder-init to set it up</li>
+          <li>A non-existing URL.</li>
+          <li>An essential component (LDAP or PostgreSQL) that is not accessible.</li>
+          <li>The web application being unable to load.</li>
+          <li>A non initialised Rudder installation. Please run /opt/rudder/bin/rudder-init to set it up.</li>
+          <li>Not space left on disk, Rudder may have been stopped to prevent data corruption. Please check that you have available space.</li>
         </ul>
         More information can be found in the Rudder webapp log file in /var/log/rudder/webapp/ on the Rudder server.
       </div>
