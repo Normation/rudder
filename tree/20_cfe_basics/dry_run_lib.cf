@@ -35,6 +35,22 @@
 # When trying to enable dry-run on systems that do not support the dry-run lib,
 # the agent will abort execution to avoid making unwanted changes.
 #
+# There is a push/pop mechanism for dry-run mode.
+# This mechanism is meant to be used in generic methods when a specific mode is required temporarily
+# but the original mode must be restored afterwards.
+#
+# A real example should look like:
+#
+# ```
+# methods:
+#   "enable dry-run"  usebundle => push_dry_run_mode("true");
+#   "dry-run part"    usebundle => package_present("htop");
+#   "restore dry-run" usebundle => pop_dry_run_mode();
+# ```
+#
+# Be careful that modes must be popped as many times as pushed.
+# If a pop without push is detected, the agent will abort execution to avoid making unwanted changes.
+#
 # There are alternate ways to control the dry-run mode, but they are less safe
 # and should be used with caution.
 #  - set the global_dry_run class (this one is never set by ncf)
@@ -80,6 +96,82 @@ bundle agent set_dry_run_mode(mode)
       "${configuration.debug} Disabling dry-run mode";
     pass2.debug.!unset_mode::
       "${configuration.debug} Enabling dry-run mode";
+}
+
+
+# Bundle that hold global values used by push_dry_run_mode and pop_dry_run_mode.
+# Do not call directly as this would reinitialize its content.
+# The content is automatically initialized by cfengine's first global pass on variables.
+bundle agent dry_run_unique
+{
+  vars:
+      # designed to be incremented when a global unique ID is needed
+      "value" string => "1";
+      # stack of dry_run modes
+      "stack" slist => {};
+}
+
+# Push current dry-run mode to the stack and set a new mode instead.
+# You must call pop_dry_run_mode later to retrieve it.
+bundle agent push_dry_run_mode(mode)
+{
+  vars:
+    dry_run::
+      "last_mode" => "true";
+    !dry_run::
+      "last_mode" => "false";
+    # pass3 because this must be evaluated exactly only once
+    pass3::
+      # this value is used as a unique value in the set_dry_run_mode promiser
+      "dry_run_unique.value" string => eval("${dry_run_unique.value}+1", "math", "infix");
+      # copy the full slist but disable convergence detection
+      "stack" slist => sublist("dry_run_unique.stack", "head", "99999");
+      # push the old value to the stack
+      "dry_run_unique.stack" slist => { "${last_mode}", @{stack}};
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3::
+      "set_mode_to ${dry_run_unique.value}" usebundle => set_dry_run_mode("${mode}");
+}
+
+# Pop dry-run mode from the stack to current dry-run mode.
+# Warning: push and pop must match otherwise bad things may happen
+#          if a pop occurs when the stack is empty, an abort class will be raised.
+bundle agent pop_dry_run_mode()
+{
+  vars:
+    # pass3 because this must be evaluated exactly only once
+    pass3::
+      # this value is used as a unique value in the set_dry_run_mode promiser
+      "dry_run_unique.value" string => eval("${dry_run_unique.value}+1", "math", "infix");
+      # get first value in the stack
+      "mode" string => nth("dry_run_unique.stack", 0);
+      # compute stack length minus 1
+      "stack_len" int => length("dry_run_unique.stack");
+      "new_len_float" string => eval("${stack_len}-1", "math", "infix");
+      "new_len" sring => format("%d", "${new_len_float}");
+      # remove first value
+      "dry_run_unique.stack" slist => sublist("dry_run_unique.stack", "tail", "${new_len}");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      # initial stack length must have at least one element
+      "empty_stack" expression => islessthan("${stack_len}", "1");
+
+  methods:
+    empty_stack::
+      "abort" usebundle => _abort("BUG in dry-run stack", "pop_dry_run_mode was called mor times than push_dry_run_mode. Stopping immediately to prevent any unwanted behaviour."),
+                action  => immediate;
+    pass3::
+      "set_mode_to ${dry_run_unique.value}" usebundle => set_dry_run_mode("${mode}");
 }
 
 ###############################################################################
