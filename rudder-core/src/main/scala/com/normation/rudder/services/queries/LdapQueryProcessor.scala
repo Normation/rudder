@@ -72,8 +72,8 @@ final case class RegexFilter(attributeName:String, regex:String) extends Special
 final case class NotRegexFilter(attributeName:String, regex:String) extends SpecialFilter with HashcodeCaching
 
 /*
- * An NodeQuery differ a little from a Query because it's component are sorted in two way :
- * - the server is apart with it's possible filter from criteria;
+ * An NodeQuery differ a little from a Query because its components are sorted in two ways:
+ * - the server is apart with its possible filter from criteria
  * - other criteria are sorted by group of things that share the same dependency path to server,
  *   and the attribute on witch join are made.
  *   The attribute must be on server.
@@ -82,7 +82,7 @@ final case class NotRegexFilter(attributeName:String, regex:String) extends Spec
  *   - Machine and physical element : get the Machine DN
  *   - Logical Element : get the Node DN
  *
- *   More over, we need a "DN to filter" function for the requested object type
+ *   Moreover, we need a "DN to filter" function for the requested object type
  */
 case class LDAPNodeQuery(
     //filter on the return type.
@@ -229,8 +229,6 @@ class InternalLDAPQueryProcessor(
    * relevant logics.
    * Sub classes should call that method to
    * implement process&check method
-   *
-   * TODO: there is a lot of room to be smarter here.
    */
   def internalQueryProcessor(
       query:Query,
