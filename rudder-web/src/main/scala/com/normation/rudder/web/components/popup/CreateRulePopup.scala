@@ -198,7 +198,6 @@ class CreateOrCloneRulePopup(
         Rule(
             RuleId(uuidGen.newUuid)
           , ruleName.get
-          , 0
           , RuleCategoryId(category.get)
           , targets = clonedRule.map( _.targets).getOrElse(Set())
           , directiveIds = clonedRule.map( _.directiveIds).getOrElse(Set())

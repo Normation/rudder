@@ -256,7 +256,7 @@ bundle agent clean_red_button()
 
   methods:
     safe::
-      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@2", "Red Button", "None", "Authorizing agent to restart");
+      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@0", "Red Button", "None", "Authorizing agent to restart");
 
   commands:
     safe.policy_server::
@@ -293,9 +293,9 @@ bundle agent setStopFile
 
   methods:
     danger.!policy_server::
-      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@2", "Red Button", "None", "Creating local stop file for this node");
+      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@0", "Red Button", "None", "Creating local stop file for this node");
     danger.policy_server::
-      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@2", "Red Button", "None", "Creating stop files for all clients of this policy server");
+      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@0", "Red Button", "None", "Creating stop files for all clients of this policy server");
 
 }
 
@@ -307,7 +307,7 @@ bundle agent stopClients
 
   methods:
     danger.policy_server::
-      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Red Button", "None", "Actively stopping agent operations on all nodes managed by this server");
+      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Red Button", "None", "Actively stopping agent operations on all nodes managed by this server");
 
   commands:
     danger.policy_server::
@@ -325,7 +325,7 @@ bundle agent check_red_button_status()
 
   methods:
     !should_not_continue::
-      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Red Button", "None", "Red Button is not in effect, continuing as normal...");
+      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Red Button", "None", "Red Button is not in effect, continuing as normal...");
 
 }
 
@@ -335,7 +335,7 @@ bundle agent check_red_button_status()
 bundle agent abort_rudder(reason, message)
 {
   methods:
-      "abort log" usebundle => rudder_common_report("Common", "log_info", "hasPolicyServer-root@@common-root@@2", "Abort run", "${reason}", "${message}");
+      "abort log" usebundle => rudder_common_report("Common", "log_info", "hasPolicyServer-root@@common-root@@0", "Abort run", "${reason}", "${message}");
       "end run"   usebundle => endExecution;
 }
 
@@ -351,9 +351,9 @@ bundle agent initialize_ncf()
       # because the first call to the logger may be in audit mode.
       "create ncf expected reports"     usebundle => _create_current_expected_reports_file;
       !logger_rudder_final_resfile_error::
-        "report about ncf init"         usebundle => rudder_common_reports_generic("Common", "ncf_init", "hasPolicyServer-root@@common-root@@2", "ncf Initialization", "None", "Configuration library initialization");
+        "report about ncf init"         usebundle => rudder_common_reports_generic("Common", "ncf_init", "hasPolicyServer-root@@common-root@@0", "ncf Initialization", "None", "Configuration library initialization");
       logger_rudder_final_resfile_error::
-        "report about expected reports" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "ncf Initialization", "None", "Could not generate expected reports file");
+        "report about expected reports" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "ncf Initialization", "None", "Could not generate expected reports file");
 
 }
 
@@ -388,17 +388,17 @@ bundle agent check_cf_processes_running
   methods:
     pass3.!windows::
 
-      "any" usebundle => rudder_common_report("Common", "result_na", "hasPolicyServer-root@@common-root@@2", "Process checking", "None", "Rudder agent proccesses check is done by the rudder-agent cron job");
+      "any" usebundle => rudder_common_report("Common", "result_na", "hasPolicyServer-root@@common-root@@0", "Process checking", "None", "Rudder agent proccesses check is done by the rudder-agent cron job");
 
     pass3.windows::
-      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Process checking", "None", "There is an acceptable number of Rudder agent processes running"),
+      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Process checking", "None", "There is an acceptable number of Rudder agent processes running"),
       # Here, I can not use the binaries variable as CFEngine will iterate and output two reports, breaking the reporting.
         ifvarclass => "!agent_has_gone_wild.!agent_has_gone_really_wild.!execd_has_gone_wild.!execd_has_gone_really_wild";
 
-      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@2", "Process checking", "None", "Warning, more than ${process_term[${binaries}]} cf-${binaries} processes were detected. They have been sent a graceful termination signal."),
+      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@0", "Process checking", "None", "Warning, more than ${process_term[${binaries}]} cf-${binaries} processes were detected. They have been sent a graceful termination signal."),
         ifvarclass => "${binaries}_has_gone_wild.!${binaries}_has_gone_really_wild";
 
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Process checking", "None", "ALERT: more than ${process_term[${binaries}]} cf-${binaries} processes were detected. Killing processes that do not respect graceful termination signals."),
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Process checking", "None", "ALERT: more than ${process_term[${binaries}]} cf-${binaries} processes were detected. Killing processes that do not respect graceful termination signals."),
         ifvarclass => "${binaries}_has_gone_really_wild";
 
   processes:
@@ -558,25 +558,25 @@ bundle agent check_log_system
   methods:
 
     pass2.syslogd::
-      "any" usebundle => rudder_common_report("Common", "log_info", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Detected running syslog as syslogd");
+      "any" usebundle => rudder_common_report("Common", "log_info", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Detected running syslog as syslogd");
 
     pass2.syslogng::
-      "any" usebundle => rudder_common_report("Common", "log_info", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Detected running syslog as syslog-ng");
+      "any" usebundle => rudder_common_report("Common", "log_info", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Detected running syslog as syslog-ng");
 
     pass2.rsyslogd::
-      "any" usebundle => rudder_common_report("Common", "log_info", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Detected running syslog as rsyslog");
+      "any" usebundle => rudder_common_report("Common", "log_info", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Detected running syslog as rsyslog");
 
     pass3.(syslogd_failed|syslog_ng_failed|rsyslog_failed)::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Logging system could not be configured for report centralization");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Logging system could not be configured for report centralization");
 
     pass3.!(syslogd_failed|syslog_ng_failed|rsyslog_failed).(syslogd_repaired|syslog_ng_repaired|rsyslog_repaired)::
-      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Configured logging system for report centralization");
+      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Configured logging system for report centralization");
 
     pass3.!(syslogd_failed|syslog_ng_failed|rsyslog_failed).!(syslogd_repaired|syslog_ng_repaired|rsyslog_repaired).(syslogd.syslogd_kept|syslogng.syslog_ng_kept|rsyslogd.rsyslog_kept))::
-      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Logging system for report centralization is already correctly configured");
+      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Logging system for report centralization is already correctly configured");
 
     pass3.android::
-      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "This is an android machine: Logging system configuration skipped.");
+      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "This is an android machine: Logging system configuration skipped.");
 
   commands:
       
@@ -624,13 +624,13 @@ bundle agent check_rsyslog_version {
   methods:
 
     pass3.(rsyslogd.!check_rsyslog_version_present)::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "The file ${g.rudder_tools}/check-rsyslog-version is missing");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "The file ${g.rudder_tools}/check-rsyslog-version is missing");
 
     pass3.rsyslog_limit_error::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Could not remove message limit in rsyslog");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Could not remove message limit in rsyslog");
 
     pass3.rsyslog_limit_repaired::
-      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Updated the rsyslog configuration to remove message limit");
+      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Updated the rsyslog configuration to remove message limit");
 
   commands:
     rsyslogd.check_rsyslog_version_present::
@@ -685,7 +685,7 @@ bundle agent remove_rudder_syslog_configuration {
 
   methods:
       "merge result classes" usebundle  => _classes_combine_three("remove_rudder_syslog_configuration_rsyslog", "remove_rudder_syslog_configuration_syslogng", "remove_rudder_syslog_configuration_syslog", "remove_rudder_syslog_configuration_result");
-      "reports"              usebundle  => rudder_common_reports_generic("Common", "remove_rudder_syslog_configuration_result", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Rudder syslog configuration removed");
+      "reports"              usebundle  => rudder_common_reports_generic("Common", "remove_rudder_syslog_configuration_result", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Rudder syslog configuration removed");
 
 }
 ###################################################################
@@ -754,19 +754,19 @@ bundle agent check_binaries_freshness
   methods:
 
     binaries_fresh.!binaries_rotten.!binaries_missing::
-      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Binaries update", "None", "The agent binaries in ${sys.workdir}/bin are up to date");
+      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Binaries update", "None", "The agent binaries in ${sys.workdir}/bin are up to date");
 
     binaries_rotten.!binaries_missing::
-      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@2", "Binaries update", "None", "The agent binaries have been updated in ${sys.workdir}/bin");
+      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@0", "Binaries update", "None", "The agent binaries have been updated in ${sys.workdir}/bin");
 
     binaries_missing::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Binaries update", "None", "An error occurred while updating the agent binaries in ${sys.workdir}/bin");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Binaries update", "None", "An error occurred while updating the agent binaries in ${sys.workdir}/bin");
 
     android::
-      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Binaries update", "None", "This is an android machine: no agent binaries update needed");
+      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Binaries update", "None", "This is an android machine: no agent binaries update needed");
 
     nova_edition::
-      "any" usebundle => rudder_common_report("Common", "result_na", "hasPolicyServer-root@@common-root@@2", "Binaries update", "None", "This is an CFEngine enterprise system: binaries update are handled differently");
+      "any" usebundle => rudder_common_report("Common", "result_na", "hasPolicyServer-root@@common-root@@0", "Binaries update", "None", "This is an CFEngine enterprise system: binaries update are handled differently");
 
 }
 
@@ -778,25 +778,25 @@ bundle agent update_reports
 {
   methods:
     no_update::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Cannot update configuration policy");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Cannot update configuration policy");
 
     rudder_tools_updated_error::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Cannot update tools (update flag file)");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Cannot update tools (update flag file)");
 
     rudder_tools_update_error::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Cannot update tools");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Cannot update tools");
 
     rudder_ncf_hash_update_error::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Cannot update common configuration library (update flag file)");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Cannot update common configuration library (update flag file)");
 
     rudder_ncf_common_update_error::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Cannot update common configuration library");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Cannot update common configuration library");
 
     rudder_ncf_local_update_error::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Cannot update local configuration library");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Cannot update local configuration library");
 
     rudder_promises_generated_tmp_file_error::
-      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Cannot update configuration policy");
+      "any" usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Cannot update configuration policy");
 
     # Success report relies on several matching conditions (nodes except root_server)
     # On all nodes except root server:
@@ -806,7 +806,7 @@ bundle agent update_reports
     # There must be NO components in repair or error
     # Note: we can't use classes new_promises_available and new_tools_available here because they are local to the update_action bundle
     !root_server.(rudder_ncf_hash_update_ok|(rudder_ncf_hash_update_repaired.rudder_ncf_common_updated_ok.rudder_ncf_local_updated_ok)).(policy_server|rudder_tools_updated_kept|(rudder_tools_updated_repaired.rudder_tools_updated_ok)).(rudder_promises_generated_tmp_file_kept|(rudder_promises_generated_tmp_file_repaired.config_ok)).!(rudder_promises_generated_tmp_file_error|rudder_tools_updated_error|rudder_tools_updated|rudder_tools_update_error|rudder_ncf_common_updated|rudder_ncf_common_update_error|rudder_ncf_local_updated|rudder_ncf_local_update_error|config|no_update|rudder_ncf_hash_update_error|rudder_ncf_hash_update_repaired)::
-      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Policy, tools and configuration library are already up to date. No action required.");
+      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Policy, tools and configuration library are already up to date. No action required.");
 
     # Success report relies on several matching conditions (root_server only)
     # On the root server only:
@@ -814,27 +814,27 @@ bundle agent update_reports
     #   - Simple test: rudder_ncf_local_updated_ok
     # There must be NO components in repair or error
     root_server.rudder_ncf_common_updated_ok.rudder_ncf_local_updated_ok.!(rudder_ncf_common_updated|rudder_ncf_common_update_error|rudder_ncf_local_updated|rudder_ncf_local_update_error)::
-      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Configuration library already up to date on this root server. No action required.");
+      "any" usebundle => rudder_common_report("Common", "result_success", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Configuration library already up to date on this root server. No action required.");
 
     rudder_tools_updated::
-      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Tools updated");
+      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Tools updated");
 
     rudder_ncf_common_updated::
-      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Common configuration library updated");
+      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Common configuration library updated");
 
     rudder_ncf_local_updated::
-      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Local configuration library updated");
+      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Local configuration library updated");
 
     config::
-      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Configuration policy updated");
+      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Configuration policy updated");
 
     (config|rudder_tools_updated|rudder_ncf_common_updated|rudder_ncf_local_updated|server_ok|executor_ok).!(rudder_promises_generated_tmp_file_error|rudder_tools_updated_error|rudder_tools_update_error|rudder_ncf_common_update_error|rudder_ncf_local_update_error|no_update|rudder_ncf_hash_update_error)::
-      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Policy, tools or configuration library were updated or agent service restarted");
+      "any" usebundle => rudder_common_report("Common", "result_repaired", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Policy, tools or configuration library were updated or agent service restarted");
 
     server_ok::
-      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Started the server (cf-serverd)");
+      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Started the server (cf-serverd)");
     executor_ok::
-      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Update", "None", "Started the scheduler (cf-execd)");
+      "any" usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Update", "None", "Started the scheduler (cf-execd)");
 
     reports:
       # We want to have always reports if something goes bad

@@ -71,13 +71,13 @@ bundle agent root_component_check
       "any" usebundle => root_password_restart_jetty;
 
     !role_rudder_server_root::
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "${root_password_check_ldap}", "None", "Checking LDAP passwords is unnecessary on this machine, skipping."
         );
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "${root_password_check_psql}", "None", "Checking SQL passwords is unnecessary on this machine, skipping."
         );
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check rudder-passwords.conf and pgpass files", "None", "Checking the password files is unnecessary on this machine, skipping..."
         );
 
@@ -89,17 +89,17 @@ bundle agent root_component_check
       "any" usebundle => generic_process_check_bootstart("${service[apache][binary]}", "${service[apache][service]}", "${service[apache][name]}");
 
     !(root_server|policy_server)|role_rudder_relay_promises_only::
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check allowed networks configuration", "None", "Checking the allowed networks configuration is unnecessary on this machine, skipping."
         );
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check WebDAV credentials", "None", "Checking WebDAV credentials is unnecessary on this machine, skipping."
         );
 
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check apache process", "None", "Checking apache process state is unnecessary on this machine, skipping."
         );
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check apache boot script", "None", "Checking apache boot settings is unnecessary on this machine, skipping."
         );
 
@@ -108,7 +108,7 @@ bundle agent root_component_check
       "any" usebundle => compress_webapp_log;
 
     !role_rudder_jetty::
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check jetty process", "None", "Checking jetty process state is unnecessary on this machine, skipping."
         );
 
@@ -118,10 +118,10 @@ bundle agent root_component_check
       "any" usebundle => generic_alive_check("rudder");
 
     !role_rudder_webapp::
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "${root_integrity_check}", "None", "Checking configuration-repository is unnecessary on this machine, skipping."
         );
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check rudder status", "None", "Checking rudder web interface status is unnecessary on this machine, skipping."
         );
 
@@ -129,7 +129,7 @@ bundle agent root_component_check
       "any" usebundle => generic_alive_check("endpoint");
 
     !role_rudder_inventory_endpoint::
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check endpoint status", "None", "Checking rudder inventory endpoint status is unnecessary on this machine, skipping."
         );
 
@@ -138,7 +138,7 @@ bundle agent root_component_check
       "any" usebundle => compress_ldap_backups;
 
     !role_rudder_inventory_ldap::
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check slapd process", "None", "Checking slapd process state is unnecessary on this machine, skipping."
         );
 
@@ -148,14 +148,14 @@ bundle agent root_component_check
       "any" usebundle => generic_process_check_bootstart("${service[rudder_reports][binary]}", "${service[rudder_reports][service]}", "${service[rudder_reports][name]}");
 
     !role_rudder_reports::
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check PostgreSQL configuration", "None", "Checking PostgreSQL configuration is unnecessary on this machine, skipping."
         );
 
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check postgresql process", "None", "Checking postgresql process state is unnecessary on this machine, skipping."
         );
-      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@2",
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "server-roles@@server-roles-directive@@0",
           "Check postgresql boot script", "None", "Checking postgresql boot settings is unnecessary on this machine, skipping."
         );
 

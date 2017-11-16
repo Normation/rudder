@@ -100,6 +100,9 @@ class TechniqueParser(
             }
           )
 
+          // 4.3: does the technique support generation without directive merge (i.e mutli directive)
+          val generationMode = nonEmpty((xml \ TECHNIQUE_GENERATION_MODE).text).flatMap(TechniqueGenerationMode.parse).getOrElse(TechniqueGenerationMode.MergeDirectives)
+
           val technique = Technique(
               id
             , name
@@ -114,6 +117,7 @@ class TechniqueParser(
             , longDescription
             , isSystem
             , providesExpectedReports
+            , generationMode
           )
 
           /*

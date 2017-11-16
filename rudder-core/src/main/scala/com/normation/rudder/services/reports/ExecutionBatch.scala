@@ -47,12 +47,12 @@ import com.normation.rudder.domain.reports._
 import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution.AgentRunId
 import net.liftweb.common.Loggable
-import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import java.util.regex.Pattern
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import com.normation.rudder.domain.policies.RuleId
 
 /*
  *  we want to retrieve for each node the expected reports that matches it LAST
@@ -728,9 +728,9 @@ object ExecutionBatch extends Loggable {
   ): Set[RuleNodeStatusReport] = {
 
     val t0 = System.currentTimeMillis
-    val complianceForRun: Map[SerialedRuleId, RuleNodeStatusReport] = (for {
+    val complianceForRun: Map[RuleId, RuleNodeStatusReport] = (for {
       RuleExpectedReports(ruleId
-        , serial, directives     ) <- lastRunNodeConfig.ruleExpectedReports
+        , directives       ) <- lastRunNodeConfig.ruleExpectedReports
       directiveStatusReports =  {
 
                                    val t1 = System.currentTimeMillis
@@ -738,9 +738,7 @@ object ExecutionBatch extends Loggable {
 
                                    val reportsForThatNodeRule: Seq[ResultReports] = executionReports.filter( _.ruleId == ruleId)
 
-                                   val (goodReports, badReports) =  reportsForThatNodeRule.partition(r => r.serial == serial)
-
-                                   val reports = goodReports.groupBy(x => (x.directiveId, x.component) )
+                                   val reports = reportsForThatNodeRule.groupBy(x => (x.directiveId, x.component) )
 
                                    val expectedComponents = (for {
                                      directive <- directives
@@ -800,8 +798,7 @@ object ExecutionBatch extends Loggable {
 
                                    //unexpected contains the one with unexpected key and all non matching serial/version
                                    val unexpected = buildUnexpectedDirectives(
-                                       reports.filterKeys(k => !expectedKeys.contains(k)).values.flatten.toSeq ++
-                                       badReports
+                                       reports.filterKeys(k => !expectedKeys.contains(k)).values.flatten.toSeq
                                    )
                                    val t4 = System.currentTimeMillis
                                    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - unexpected directives computation: ${t4-t3}ms")
@@ -819,11 +816,10 @@ object ExecutionBatch extends Loggable {
                                 }
     } yield {
       (
-          SerialedRuleId(ruleId, serial)
+          ruleId
         , RuleNodeStatusReport(
               mergeInfo.nodeId
             , ruleId
-            , serial //can not be empty because of groupBy
             , mergeInfo.run
             , mergeInfo.configId
             , DirectiveStatusReport.merge(directiveStatusReports)
@@ -844,7 +840,7 @@ object ExecutionBatch extends Loggable {
     TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute buildRuleNodeStatusReport: ${t11-t10}ms")
 
     val (computed, newStatus) = ((nil, nil)/: currentRunReports) { case ( (c,n), currentStatusReports) =>
-      complianceForRun.get(SerialedRuleId(currentStatusReports.ruleId, currentStatusReports.serial)) match {
+      complianceForRun.get(currentStatusReports.ruleId) match {
         case None => //the whole rule is new!
           //here, the reports are ACTUALLY pending, not missing.
           (c, n++Set(currentStatusReports))
@@ -868,9 +864,9 @@ object ExecutionBatch extends Loggable {
 
 
     ComplianceDebugLogger.node(mergeInfo.nodeId).trace(s"Compute compliance for node ${mergeInfo.nodeId.value} using: rules for which compliance is based on run reports: ${
-      computed.map { x => s"[${x.ruleId.value}->${x.serial}]"}.mkString("")
+      computed.map { x => s"[${x.ruleId.value}]"}.mkString("")
     };"+s" rule updated since run: ${
-      newStatus.map { x => s"${x.ruleId.value}->${x.serial}"}.mkString("[", "][", "]")
+      newStatus.map { x => s"${x.ruleId.value}"}.mkString("[", "][", "]")
     }")
 
     val t13 = System.currentTimeMillis
@@ -880,11 +876,10 @@ object ExecutionBatch extends Loggable {
   }
 
   private[this] def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Set[RuleNodeStatusReport] = {
-    reports.groupBy(x => (x.ruleId, x.serial)).map { case ((ruleId, serial), seq) =>
+    reports.groupBy(x => x.ruleId).map { case (ruleId, seq) =>
       RuleNodeStatusReport(
           mergeInfo.nodeId
         , ruleId
-        , serial //can not be empty because of groupBy
         , mergeInfo.run
         , mergeInfo.configId
         , DirectiveStatusReport.merge(buildUnexpectedDirectives(seq))
@@ -912,7 +907,7 @@ object ExecutionBatch extends Loggable {
     , status         : ReportType
     , message        : String = ""
   ): Set[RuleNodeStatusReport] = {
-    expectedReports.ruleExpectedReports.map { case RuleExpectedReports(ruleId, serial, directives) =>
+    expectedReports.ruleExpectedReports.map { case RuleExpectedReports(ruleId, directives) =>
       val d = directives.map { d =>
         DirectiveStatusReport(d.directiveId,
           d.components.map { c =>
@@ -927,7 +922,6 @@ object ExecutionBatch extends Loggable {
       RuleNodeStatusReport(
           mergeInfo.nodeId
         , ruleId
-        , serial
         , mergeInfo.run
         , mergeInfo.configId
         , DirectiveStatusReport.merge(d)

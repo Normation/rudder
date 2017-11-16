@@ -279,9 +279,6 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
       Rule(
           RuleId(id)
         , name
-        // current serial should to be in Rule, we set it to 0
-        // its value must be handled by the caller of the unserialisation
-        , 0
         , category
         , targets.toSet
         , directiveIds

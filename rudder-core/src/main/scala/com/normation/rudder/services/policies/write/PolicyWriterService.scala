@@ -301,7 +301,8 @@ class Cf3PromisesFileWriterServiceImpl(
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
-                              _ <- writeAllAgentSpecificFiles.write(prepared)
+                              // todo : for #10625: also write the new json files.
+                              _ <- writeAllAgentSpecificFiles.write(prepared /*, newJsonD-by-DTechniques */)
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
                               "OK"

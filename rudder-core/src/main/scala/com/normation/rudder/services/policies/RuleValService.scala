@@ -174,7 +174,6 @@ class RuleValServiceImpl(
         rule.id,
         targets,
         containers.flatten,
-        rule.serial,
         BundleOrder(rule.name)
       )
     }

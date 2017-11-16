@@ -70,20 +70,6 @@ case class NodeConfiguration(
   , isRootServer: Boolean = false
 ) extends HashcodeCaching with Loggable {
 
-  /**
-   * Return a copy of that node configuration
-   * with the "serial" value of given rules updated to the given value.
-   *
-   */
-  def setSerial(rules : Map[RuleId,Int]) : NodeConfiguration = {
-
-    val updatedCf3PolicyDrafts = this.policyDrafts.map { d =>
-      d.copy(serial = rules.getOrElse(d.id.ruleId, d.serial))
-    }
-
-    this.copy(policyDrafts = updatedCf3PolicyDrafts)
-  }
-
   def findDirectiveByTechnique(techniqueId : TechniqueId): Map[Cf3PolicyDraftId, Cf3PolicyDraft] = {
     policyDrafts.filter(x =>
       x.technique.id.name.value.equalsIgnoreCase(techniqueId.name.value) &&

@@ -104,7 +104,6 @@ final case class NodeExpectedReports(
 
 final case class RuleExpectedReports(
     ruleId    : RuleId
-  , serial    : Int
   , directives: List[DirectiveExpectedReports]
 )
 
@@ -228,7 +227,6 @@ object ExpectedReportsSerialisation {
      ~  ("rules" -> (n.ruleExpectedReports.map { r =>
            (
              ("ruleId"     -> r.ruleId.value)
-           ~ ("serial"     -> r.serial)
            ~ ("directives" -> (r.directives.map { d =>
                (
                  ("directiveId" -> d.directiveId.value)
@@ -326,18 +324,16 @@ object ExpectedReportsSerialisation {
     def rule(json: JValue): Box[RuleExpectedReports] = {
       (
           (json \ "ruleId" )
-        , (json \ "serial")
         , (json \ "directives")
      ) match {
-        case (JString(id), JInt(bigSerial), jsonDirectives) =>
+        case (JString(id), jsonDirectives) =>
           for {
-            serial     <- tryo(bigSerial.toValidInt)
             directives <- jsonDirectives match {
                             case JArray(directives) => sequence(directives)(directive)
                             case x                  => Failure(s"Error when parsing the list of directives from expected rule report: '${compactRender(x)}'")
                           }
           } yield {
-            RuleExpectedReports(RuleId(id), serial, directives.toList)
+            RuleExpectedReports(RuleId(id), directives.toList)
           }
         case _ =>
           Failure(s"Error when parsing rule expected reports from json: '${compactRender(json)}'")

@@ -60,10 +60,10 @@ bundle agent restart_services
       
     any::
       # Final report about (sys)log setting enforcement / restart
-      "any"  usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Logging system has been restarted"),
+      "any"  usebundle => rudder_common_report("Common", "log_repaired", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Logging system has been restarted"),
             ifvarclass => "service_restart_rsyslog_repaired|service_restart_syslog_ng_repaired|service_restart_syslog_repaired|${restart_cmd_class}_repaired";
 
-      "any"  usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@2", "Log system for reports", "None", "Could not restart the logging system"),
+      "any"  usebundle => rudder_common_report("Common", "result_error", "hasPolicyServer-root@@common-root@@0", "Log system for reports", "None", "Could not restart the logging system"),
             ifvarclass => "service_restart_rsyslog_not_ok|service_restart_syslog_ng_not_ok|service_restart_syslog_not_ok|${restart_cmd_class}_not_ok";
 
 }

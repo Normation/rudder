@@ -174,7 +174,6 @@ case class RuleVal(
   ruleId       : RuleId,
   targets      : Set[RuleTarget],  //list of target for that directive (server groups, server ids, etc)
   directiveVals: Seq[DirectiveVal],
-  serial       : Int, // the generation serial of the Rule. Do we need it ?
   ruleOrder    : BundleOrder
 ) extends HashcodeCaching
 
@@ -195,7 +194,6 @@ case class ExpandedDirectiveVal(
 
 case class ExpandedRuleVal(
     ruleId       : RuleId
-  , serial       : Int // the generation serial of the Rule
   , configs      : Map[NodeAndConfigId, Seq[ExpandedDirectiveVal]] // A map of NodeId->DirectiveId, where all vars are expanded
 ) extends HashcodeCaching
 
