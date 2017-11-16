@@ -436,17 +436,136 @@ case object EditorComparator extends CriterionType {
   override def toLDAP(value:String) = Full(value)
 }
 
+/*
+ * This comparator is used to look for a specific key=value in a json value, where key is known
+ * before hand. Typically, that comparator is used when you serialized several field in one json,
+ * and you need to lookup one of these field's value.
+ * Ex:
+ * LDAP attritude and value:
+ *    my_serialized_data: {"key1": "value1", "key2": "value2" }
+ *
+ * JsonFixedKeyComparator("my_serialized_data", "key2", false) => will search for value in "value2"
+ *
+ * Used for "process" attribute
+ */
+case class JsonFixedKeyComparator(ldapAttr:String, jsonKey: String, numericvalue: Boolean) extends TStringComparator with Loggable {
+  override val comparators = BaseComparators.comparators
+
+  def format(attribute:String, value:String) = {
+    val v = if (numericvalue) value else s""""$value""""
+    s""""${attribute}":${v}"""
+  }
+  def regex(attribute: String, value: String) = {
+    s".*${format(attribute, value)}.*"
+  }
+  override def buildRegex(attribute:String,value:String) : Box[RegexFilter] = {
+    Full(RegexFilter(ldapAttr,regex(attribute, value)))
+  }
+
+  override def buildNotRegex(attribute:String,value:String) : Box[NotRegexFilter] = {
+    Full(NotRegexFilter(ldapAttr,regex(attribute, value)))
+  }
+
+  override def buildFilter(key: String, comparator:CriterionComparator,value: String) : Filter = {
+    val sub = SUB(ldapAttr, null, Array(format(key, value).getBytes("UTF-8")), null)
+    comparator match {
+      case Equals    => sub
+      case NotEquals => NOT(sub)
+      case NotExists => NOT(HAS(ldapAttr))
+      case Regex     => HAS(ldapAttr) //default, non interpreted regex
+      case NotRegex  => HAS(ldapAttr) //default, non interpreted regex
+      case HasKey    => sub
+      case _         => HAS(key) //default to Exists
+    }
+  }
+}
+
+
+/*
+ * This JSON comparator is defined for the subcase where a "k=v" business property is
+ * serialized using JSON towards:
+ *   { "name":"k", "value":"v" }
+ *
+ *  So the user can specify in the field input with the format: k=v
+ *  We then split on '=' on look for each parts.
+ *  We have a comparator specific only to check existence of a specific key
+ *  (but can actually be replaced by: "k=.*" in regex.)
+ *
+ *  Used for environmentVariable
+ */
+case class NameValueComparator(ldapAttr: String) extends TStringComparator with Loggable {
+  override val comparators = HasKey +: BaseComparators.comparators
+
+  // split k=v (v may not exists if there is no '='
+  // is there is several '=', we consider they are part of the value
+  def splitInput(value: String): (String, Option[String]) = {
+    val array = value.split('=')
+    val k = array(0) //always exists with split
+    val v = array.toList.tail match {
+      case Nil => None
+      case t   => Some(t.mkString("="))
+    }
+    (k, v)
+  }
+
+  // produce the correct "serialized" JSON to look for
+  def formatKV(kv: (String, Option[String])): String = {
+    //no englobing {} to allow use in regex
+    s""""name":"${kv._1}","value":"${kv._2.getOrElse("")}""""
+  }
+
+  //the first arg is "name.value", not interesting here
+  override def buildRegex(_x: String, value: String) : Box[RegexFilter] = {
+    Full(RegexFilter(ldapAttr,"""\{"""+formatKV(splitInput(value))+"""\}""" ))
+  }
+
+  //the first arg is "name.value", not interesting here
+  override def buildNotRegex(_x: String, value: String) : Box[NotRegexFilter] = {
+    Full(NotRegexFilter(ldapAttr,"""\{"""+formatKV(splitInput(value))+"""\}"""))
+  }
+
+  //the first arg is "name.value", not interesting here
+  override def buildFilter(_x:String, comparator:CriterionComparator, value:String) : Filter = {
+    val kv = splitInput(value)
+    val sub = SUB(ldapAttr, null, Array(formatKV(kv).getBytes("UTF-8")), null)
+    comparator match {
+      case Equals    => sub
+      case NotEquals => NOT(sub)
+      case NotExists => NOT(HAS(ldapAttr))
+      case Regex     => HAS(ldapAttr) //default, non interpreted regex
+      case NotRegex  => HAS(ldapAttr) //default, non interpreted regex
+      case HasKey    => SUB(ldapAttr, null, Array(s""""${kv._1}"""".getBytes("UTF-8") ), null)
+      case _         => HAS(ldapAttr) //default to Exists
+    }
+  }
+}
+
+
+/*
+ * This class is used to look in a JSON key/value pair for an LDAPAttribute (with a JSON value) when neither the key nor
+ * tha value is known before hand (i.e: it's what one would expect for a json search).
+ *
+ * The expected value has the format: "key=value", and we split at the "=" to get each parts.
+ *
+ * The json is expected to be like:
+ * {"name":"key", "value": VALUE }
+ *
+ * with VALUE either a string or a JSON object.
+ *
+ * How to search for k/v pair in VALUE ?
+ *
+ */
 case class JsonComparator(key:String, splitter:String = "", numericvalue:Boolean = false) extends TStringComparator with Loggable {
   override val comparators = HasKey +: BaseComparators.comparators
 
   def splitJson(attribute:String, value:String) = {
-    val (splittedvalue,splittedattribute) =
+    val (splittedattribute,splittedvalue) =
       if (splitter!="")
-        (value.split(splitter), attribute.split('.'))
+        (attribute.split('.'), value.split(splitter))
       else
-        (Array(value), Array(attribute))
+        (Array(attribute), Array(value))
 
-    if (splittedvalue.size == splittedattribute.size){
+    if (splittedvalue.size == splittedattribute.size) {
       val keyvalue = (splittedattribute.toList,splittedvalue.toList).zipped map( (attribute,value) => (attribute,value))
       Full(keyvalue.map(attval =>
         if (numericvalue)

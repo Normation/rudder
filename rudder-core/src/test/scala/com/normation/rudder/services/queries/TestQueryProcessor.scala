@@ -479,9 +479,35 @@ class TestQueryProcessor extends Loggable {
   }
 
   /**
+   * Test environment variable
+   */
+  @Test def nodeJsonFixedKeyQueries() {
+
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      {"select":"node","composition":"And","where":[
+        {"objectType":"process","attribute":"started","comparator":"eq","value":"2015-01-21 17:24"}
+      ]}
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    val q2 = TestQuery(
+      "q2",
+      parser("""
+      {"select":"node","composition":"And","where":[
+        {"objectType":"process","attribute":"commandName","comparator":"regex","value":".*vtmp.*"}
+      ]}
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    testQueries(q1 :: q2 :: Nil)
+  }
+
+  /**
    * Test environment variable and nodeProperty
    */
-  @Test def nodeKeyValuesPairsPropertiesQueries() {
+  @Test def nodeNameValueQueries() {
 
     val q1 = TestQuery(
       "q1",
@@ -495,13 +521,26 @@ class TestQueryProcessor extends Loggable {
     val q2 = TestQuery(
       "q2",
       parser("""
+      {"select":"node","composition":"And","where":[
+        {"objectType":"environmentVariable","attribute":"name.value","comparator":"regex","value":".+=/.*/rudder.*"}
+      ]}
+      """).openOrThrowException("For tests"),
+      s(2) :: s(3) :: Nil)
+
+    testQueries(q1 :: q2 :: Nil)
+  }
+
+  @Test def nodeProperties() {
+    val q1 = TestQuery(
+      "q2",
+      parser("""
       { "select":"node", "where":[
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"eq", "value":"foo=bar" }
       ] }
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
-    val q3 = TestQuery(
+    val q2 = TestQuery(
       "q3",
       parser("""
       { "select":"node", "where":[
@@ -510,10 +549,10 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
-    testQueries(q1 :: q2 :: q3 :: Nil)
+     testQueries(q1 :: q2 :: Nil)
   }
 
-  @Test def failingRequestOnProperties() {
+  @Test def nodePropertiesFailingReq() {
     // Failing request, see #10570
     val failingRegexRequest =
       parser("""
@@ -578,15 +617,6 @@ class TestQueryProcessor extends Loggable {
       assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected entries (process)\n Found: %s\n Wants: %s".
           format(name,foundWithLimit,ids),ids.size.toLong,foundWithLimit.size.toLong)
   }
-
-//  private def testQueryResultChecker(name:String,query:Query, ids:Seq[NodeId]) = {
-//      val checked = queryProcessor.check(query,s).openOrThrowException("For tests")
-//
-//      assertEquals("[%s]Size differ between awaited and found entry set (check)\n Found: %s\n Wants: %s".
-//          format(name,checked,ids),ids.size,checked.size)
-//      assertTrue("[%s]Entries differ between awaited and found entry set (check)\n Found: %s\n Wants: %s".
-//          format(name,checked,ids),checked.forall { f => ids.exists( f == _) })
-//  }
 
   @After def after() {
     ldap.server.shutDown(true)

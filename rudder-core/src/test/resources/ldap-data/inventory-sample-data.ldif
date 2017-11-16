@@ -42,6 +42,7 @@ cn:has software
 isSystem: false
 isBroken: false
 createTimestamp: 20070101000000Z
+serializedNodeProperty: {"name":"datacenter", "value":{ "country" : "France" , "id" : 1234, "replicated" : true } }
 
 dn: nodeId=node3,ou=Nodes,cn=rudder-configuration
 objectClass: top
@@ -51,6 +52,7 @@ cn:has logical elements
 isSystem: false
 isBroken: false
 createTimestamp: 20070101000000Z
+serializedNodeProperty: {"name":"datacenter", "value":{ "country" : "Germany" , "id" : 12345, "replicated" : true } }
 
 dn: nodeId=node4,ou=Nodes,cn=rudder-configuration
 objectClass: top
@@ -189,6 +191,12 @@ policyServerId:root-policy-server
 ipHostNumber: 192.168.56.101
 ipHostNumber: 127.0.0.1
 environmentVariable: {"name":"SHELL","value":"/bin/sh"}
+process: {"pid":1,"commandName":"init [2]","cpuUsage":0.0,"memory":0.2000000
+ 0298023224,"started":"2015-01-21 17:24","tty":"?","user":"root","virtualMem
+ ory":10648}
+process: {"pid":10,"commandName":"[kdevtmpfs]","cpuUsage":0.0,"memory":0.0,"
+ started":"2015-01-21 17:24","tty":"?","user":"root","virtualMemory":0}
+
 
 # Example of a node
 dn: nodeId=node2,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
@@ -210,6 +218,8 @@ policyServerId:root-policy-server
 nodeHostname: node2.normation.com
 ipHostNumber: 192.168.56.102
 ipHostNumber: 127.0.0.1
+environmentVariable: {"name":"PWD","value":"/var/rudder"}
+environmentVariable: {"name":"SUDO_GID","value":"1000"}
 
 dn: nodeId=node3,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
@@ -227,6 +237,8 @@ policyServerId:root-policy-server
 nodeHostname: node3.normation.com
 ipHostNumber: 192.168.56.103
 ipHostNumber: 127.0.0.1
+environmentVariable: {"name":"PATH","value":"/usr/local/sbin:/usr/local/bin:
+ /usr/sbin:/usr/bin:/sbin:/bin:/var/rudder/cfengine-community/bin"}
 
 dn: nodeId=node4,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
