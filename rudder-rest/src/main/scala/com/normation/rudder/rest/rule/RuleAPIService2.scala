@@ -202,7 +202,7 @@ case class RuleApiService2 (
                   case Full(enabled) =>
                     val enableCheck = restRule.onlyName || (!enabled && defaultEnabled)
                     val category = restRule.category.getOrElse(RuleCategoryId("rootRuleCategory"))
-                    val baseRule = Rule(ruleId,name,0,category)
+                    val baseRule = Rule(ruleId,name,category)
                     // The enabled value in restRule will be used in the saved Rule
                     actualRuleCreation(restRule.copy(enabled = Some(enableCheck)),baseRule)
 

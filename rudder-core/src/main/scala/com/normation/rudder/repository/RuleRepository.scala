@@ -117,13 +117,6 @@ trait WoRuleRepository {
   def updateSystem(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]]
 
   /**
-   * Increment the serial of rules with given ID by one.
-   * Return the new serial value.
-   * The method fails if no rule has such ID.
-   */
-  def incrementSerial(id:RuleId) : Box[Int]
-
-  /**
    * Delete the rule with the given ID.
    * If no rule with such ID exists, it is an error
    * (it's the caller site responsability to decide if it's

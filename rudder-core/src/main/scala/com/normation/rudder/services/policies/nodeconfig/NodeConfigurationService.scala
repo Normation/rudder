@@ -58,9 +58,6 @@ trait NodeConfigurationService {
   def sanitize(targets : Seq[NodeConfiguration]): Box[Map[NodeId, NodeConfiguration]]
 
 
-  def detectSerialIncrementRequest(nodes : Seq[NodeConfiguration], cacheIsEmpty: Boolean): Set[RuleId]
-
-
   /**
    * Delete a list of node configurations
    * If a NodeConfiguration is not found, ignore it.

@@ -98,6 +98,17 @@ class PrepareTemplateVariablesImpl(
   , buildBundleSequence      : BuildBundleSequence
 ) extends PrepareTemplateVariables with Loggable {
 
+
+  //
+  // #10625: this is the method to change.
+  // IDEA: make in two steps, the first one produce "json" parameter files
+  // D-by-D, and the second one merge where its needed for old techniques.
+  //
+  //
+  //
+  //
+
+
   override def prepareTemplateForAgentNodeConfiguration(
       agentNodeConfig  : AgentNodeConfiguration
     , nodeConfigVersion: NodeConfigId
@@ -204,7 +215,7 @@ class PrepareTemplateVariablesImpl(
    * the serial
    */
   private[this] def createRudderId(cf3PolicyDraft: Cf3PolicyDraft): String = {
-    cf3PolicyDraft.id.value + "@@" + cf3PolicyDraft.serial
+    cf3PolicyDraft.id.value + "@@0" // as of Rudder 4.3, serial is always 0
   }
 
   private[this] def prepareVariables(
@@ -273,6 +284,10 @@ class PrepareTemplateVariablesImpl(
   }
 
   /**
+   *
+   * #10625 that need to be updated to also write/call the correct bundle
+   * for D-by-D techniques.
+   *
    * Compute the TMLs list to be written and their variables
    * @param container : the container of the policies we want to write
    * @param extraVariables : optional : extra system variables that we could want to add

@@ -179,8 +179,7 @@ object NodeConfigurationHash {
         PolicyHash(
             r.id
           , (
-              r.serial
-            + r.technique.id.hashCode
+              r.technique.id.hashCode
             + r.techniqueUpdateTime.hashCode
             + r.priority
             + r.ruleOrder.hashCode + r.directiveOrder.hashCode

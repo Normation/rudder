@@ -99,6 +99,12 @@ class NodeConfigurationServiceImpl(
         main
       }
 
+
+      // #10625 : we need to keep technique info and only fails if a
+      // technique is used several times whence it does not support directive
+      // by directive generaction.
+
+
       //now, check for technique version consistency
       val techniqueByName = nodeConfig.policyDrafts.groupBy(x => x.technique.id.name)
       // Filter this grouping by technique having two different version
@@ -117,6 +123,10 @@ class NodeConfigurationServiceImpl(
       val (otherDrafts, uniqueTechniqueBasedDrafts) = deduplicateDraft.partition(_.technique.isMultiInstance)
 
       //sort unique based draft by technique, and then check priority on each groups
+
+
+      // #10625: actually we could that check before failing on multiple techniques,
+      // so that in that simple case we don't fail for nothing.
 
       val keptUniqueDraft = uniqueTechniqueBasedDrafts.groupBy(_.technique.id).map { case (techniqueId, setDraft) =>
 
@@ -186,24 +196,5 @@ class NodeConfigurationServiceImpl(
       nodeConfigurations.keySet.intersect(nodeToKeep)
     }
   }
-
-  override def detectSerialIncrementRequest(nodes : Seq[NodeConfiguration], cacheIsEmpty: Boolean) : Set[RuleId] = {
-
-    // changes in nodes don't imply changes in directives / rules / serial.
-    // these change will lead to a new config id and generation if needed.
-    // we only increment serial when the cache is empty, which mean that it
-    // is a new rudder, or a "clear cache".
-    // Note that if the cache is empty, all nodes will be rewriten in all
-    // cases, but that allows to check that nodes really get their
-    // policies (because node config id may be the same, but they will continue sending
-    // reports with the previous serial)
-
-    if(cacheIsEmpty) {
-      nodes.flatMap( _.policyDrafts.map( _.id.ruleId ) ).toSet
-    } else {
-      Set()
-    }
-  }
-
 
 }

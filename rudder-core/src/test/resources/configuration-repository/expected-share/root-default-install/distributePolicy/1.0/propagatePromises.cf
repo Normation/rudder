@@ -155,42 +155,42 @@ bundle agent propagatePromises
 
   methods:
     root_server::
-      "any" usebundle => rudder_common_reports_generic("DistributePolicy", "configure_ncf_config", "root-DP@@root-distributePolicy@@2", "Configure ncf", "None", "Configure configuration library");
+      "any" usebundle => rudder_common_reports_generic("DistributePolicy", "configure_ncf_config", "root-DP@@root-distributePolicy@@0", "Configure ncf", "None", "Configure configuration library");
 
     !root_server::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_na", "root-DP@@root-distributePolicy@@2", "Configure ncf", "None", "Configuration of configuration library is not necessary on non root servers");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_na", "root-DP@@root-distributePolicy@@0", "Configure ncf", "None", "Configuration of configuration library is not necessary on non root servers");
 
     # Success if files are updated or not changed (kept or repaired).
     # root server have only tools to be updated and others have tools,
     # promises, masterfiles folder to be updated.
     pass3.(((root_server.propagate_tools_ok)|(!root_server.propagate_tools_ok.(promises_propagated|empty_promises_to_propagate).(shared_files_propagated|sharedfiles_not_existent).masterfiles_propagated.ncf_local_promises_propagated.ncf_common_promises_propagated.nodeslist_copied)).!(propagate_tools_error|promises_to_propagate_not_copied|sharedfiles_not_copied|could_not_propagate_masterfiles|could_not_propagate_ncf_local_promise|could_not_propagate_ncf_common_promise|could_not_copy_nodeslist))::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "root-DP@@root-distributePolicy@@2", "Propagate promises", "None", "All files have been propagated");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "root-DP@@root-distributePolicy@@0", "Propagate promises", "None", "All files have been propagated");
     pass3.promises_to_propagate_not_copied::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@2", "Propagate promises", "None", "Cannot propagate policy");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@0", "Propagate promises", "None", "Cannot propagate policy");
 
     pass3.sharedfiles_not_copied::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@2", "Propagate promises", "None", "Cannot propagate shared files");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@0", "Propagate promises", "None", "Cannot propagate shared files");
 
     pass3.could_not_propagate_files::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@2", "Propagate promises", "None", "Cannot propagate shared files");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@0", "Propagate promises", "None", "Cannot propagate shared files");
 
     pass3.propagate_tools_error::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@2", "Propagate promises", "None", "Cannot propagate tools");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@0", "Propagate promises", "None", "Cannot propagate tools");
 
     pass3.could_not_propagate_ncf_local_promise::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@2", "Propagate promises", "None", "Cannot propagate local configuration library");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@0", "Propagate promises", "None", "Cannot propagate local configuration library");
 
     pass3.could_not_propagate_ncf_common_promise::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@2", "Propagate promises", "None", "Cannot propagate common configuration library");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@0", "Propagate promises", "None", "Cannot propagate common configuration library");
 
     pass3.could_not_propagate_masterfiles::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@2", "Propagate promises", "None", "Cannot propagate masterfiles");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@0", "Propagate promises", "None", "Cannot propagate masterfiles");
 
     pass3.could_not_copy_license::
-      "any" usebundle => rudder_common_report("DistributePolicy", "log_warn", "root-DP@@root-distributePolicy@@2", "Propagate promises", "None", "Cannot copy local license");
+      "any" usebundle => rudder_common_report("DistributePolicy", "log_warn", "root-DP@@root-distributePolicy@@0", "Propagate promises", "None", "Cannot copy local license");
 
     pass3.could_not_copy_nodeslist::
-      "any" usebundle => rudder_common_report("DistributePolicy", "log_warn", "root-DP@@root-distributePolicy@@2", "Propagate nodeslist", "None", "Cannot copy local nodes list");
+      "any" usebundle => rudder_common_report("DistributePolicy", "log_warn", "root-DP@@root-distributePolicy@@0", "Propagate nodeslist", "None", "Cannot copy local nodes list");
 
 }
 
@@ -262,28 +262,28 @@ bundle agent sendInventoryToCmdb
   methods:
 
     pass3.(rudder_inventory_processing_repaired.!rudder_inventory_processing_error)::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "root-DP@@root-distributePolicy@@2", "Send inventories to CMDB", "None", "Incoming inventories were successfully sent to the inventory API");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "root-DP@@root-distributePolicy@@0", "Send inventories to CMDB", "None", "Incoming inventories were successfully sent to the inventory API");
 
     pass3.rudder_inventory_processing_error::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@2", "Send inventories to CMDB", "None", "Some incoming inventories could not be sent to the inventory API");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@0", "Send inventories to CMDB", "None", "Some incoming inventories could not be sent to the inventory API");
 
     pass3.((root_server|role_rudder_relay_top|role_rudder_relay_promises_only).!rudder_inventory_processing_repaired.!rudder_inventory_processing_error)::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "root-DP@@root-distributePolicy@@2", "Send inventories to CMDB", "None", "No inventory to send");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "root-DP@@root-distributePolicy@@0", "Send inventories to CMDB", "None", "No inventory to send");
 
     pass3.(rudder_inventory_relay_repaired.!rudder_inventory_relay_error)::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "root-DP@@root-distributePolicy@@2", "Send inventories to CMDB", "None", "Incoming inventories were successfully relayed to the root server");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "root-DP@@root-distributePolicy@@0", "Send inventories to CMDB", "None", "Incoming inventories were successfully relayed to the root server");
 
     pass3.rudder_inventory_relay_error::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@2", "Send inventories to CMDB", "None", "Cannot relay some inventories to the root server");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@0", "Send inventories to CMDB", "None", "Cannot relay some inventories to the root server");
 
     pass3.(policy_server.!(root_server|role_rudder_relay_top|role_rudder_relay_promises_only).!rudder_inventory_relay_repaired.!rudder_inventory_relay_error)::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "root-DP@@root-distributePolicy@@2", "Send inventories to CMDB", "None", "No inventory to relay");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "root-DP@@root-distributePolicy@@0", "Send inventories to CMDB", "None", "No inventory to relay");
 
     pass3.(rudder_inventory_cleanup_repaired.!rudder_inventory_cleanup_error)::
-      "any" usebundle => rudder_common_report("DistributePolicy", "log_info", "root-DP@@root-distributePolicy@@2", "Send inventories to CMDB", "None", "Sent incoming inventories were removed from local cache");
+      "any" usebundle => rudder_common_report("DistributePolicy", "log_info", "root-DP@@root-distributePolicy@@0", "Send inventories to CMDB", "None", "Sent incoming inventories were removed from local cache");
 
     pass3.rudder_inventory_cleanup_error::
-      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@2", "Send inventories to CMDB", "None", "Cannot remove incoming inventories from local cache");
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "root-DP@@root-distributePolicy@@0", "Send inventories to CMDB", "None", "Cannot remove incoming inventories from local cache");
 
 }
 

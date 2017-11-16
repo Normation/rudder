@@ -96,7 +96,7 @@ object RudderLDAPConstants extends Loggable {
 
   val A_PRIORITY = "directivePriority"
   val A_LONG_DESCRIPTION = "longDescription"
-  val A_SERIAL = "serial"
+  //val A_SERIAL = "serial" - removed in 4.3 but kept in schema for compatibility reason
 
   val A_NODE_CONFIGURATION_SYSTEM_VARIABLE = "systemVariable"
   val A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE = "targetSystemVariable"
@@ -151,8 +151,6 @@ object RudderLDAPConstants extends Loggable {
   val OC_RULE = "rule"
   val OC_ACTIVE_TECHNIQUE_LIB_VERSION = "activeTechniqueLibraryVersion"
   val OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT = "abstractDirectiveNodeConfiguration"
-  val OC_RULE_WITH_CF3POLICYDRAFT = "directiveNodeConfiguration"
-  val OC_TARGET_RULE_WITH_CF3POLICYDRAFT = "targetDirectiveNodeConfiguration"
   val OC_NODE_CONFIGURATION = "nodeConfiguration" //actually a node configuration, not a "rudder server"
   val OC_PARAMETER = "parameter"
   val OC_PROPERTY = "property"
@@ -166,7 +164,7 @@ object RudderLDAPConstants extends Loggable {
 
   OC += (OC_RULE,
     must = Set(A_RULE_UUID),
-    may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM, A_RULE_TARGET, A_DIRECTIVE_UUID, A_SERIAL, A_RULE_CATEGORY, A_SERIALIZED_TAGS))
+    may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM, A_RULE_TARGET, A_DIRECTIVE_UUID, "serial", A_RULE_CATEGORY, A_SERIALIZED_TAGS))
 
   OC += (OC_RUDDER_NODE,
     must = Set(A_NODE_UUID, A_NAME, A_IS_BROKEN, A_IS_SYSTEM),
@@ -217,12 +215,6 @@ object RudderLDAPConstants extends Loggable {
     must = Set(A_NAME, A_LAST_UPDATE_DATE),
     may = Set(A_DESCRIPTION, A_RULE_TARGET, A_DIRECTIVE_VARIABLES,
               A_IS_SYSTEM, A_IS_ENABLED))
-
-  OC += (OC_RULE_WITH_CF3POLICYDRAFT, sup = OC(OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT),
-    must = Set(A_DIRECTIVE_UUID, A_RULE_UUID, A_PRIORITY, A_SERIAL))
-
-  OC += (OC_TARGET_RULE_WITH_CF3POLICYDRAFT, sup = OC(OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT),
-    must = Set(A_TARGET_DIRECTIVE_UUID, A_RULE_UUID, A_PRIORITY, A_SERIAL))
 
   OC += (OC_ACTIVE_TECHNIQUE_LIB_VERSION,
     may = Set(A_INIT_DATETIME))

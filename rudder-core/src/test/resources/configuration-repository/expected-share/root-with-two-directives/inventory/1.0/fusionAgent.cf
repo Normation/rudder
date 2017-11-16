@@ -61,7 +61,7 @@ bundle agent doInventory
     ignore_disable_inventory|!disable_inventory::
       "any" usebundle => doInventory_always;
     !(ignore_disable_inventory|!disable_inventory)::
-      "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@2", "inventory", "None", "The file ${g.rudder_disable_inventory_file} is present, so Rudder will not send an inventory. Use 'rudder agent inventory -f' to override this temporarily");
+      "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@0", "inventory", "None", "The file ${g.rudder_disable_inventory_file} is present, so Rudder will not send an inventory. Use 'rudder agent inventory -f' to override this temporarily");
 }
 bundle agent doInventory_always
 {
@@ -114,14 +114,14 @@ bundle agent doInventory_always
       "any" usebundle => cleanForceInventoryFlagFile;
 
     pass3.uuid_succesfully_downloaded.uuid_validity_checked.!uuid_valid::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not retrieve a valid UUID from the policy server");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not retrieve a valid UUID from the policy server");
 
     # Send reports to confirm this technique success even if we don't need to send an inventory
     pass3.inventory_sent::
-      "any" usebundle => rudder_common_report("Inventory", "log_info", "inventory-all@@inventory-all@@2", "inventory", "None", "An inventory was already sent less than 8 hours ago");
+      "any" usebundle => rudder_common_report("Inventory", "log_info", "inventory-all@@inventory-all@@0", "inventory", "None", "An inventory was already sent less than 8 hours ago");
 
     pass3.!(Night.splaying).!force_inventory::
-      "any" usebundle => rudder_common_report("Inventory", "result_success", "inventory-all@@inventory-all@@2", "inventory", "None", "Next inventory scheduled between 00:00 and 06:00");
+      "any" usebundle => rudder_common_report("Inventory", "result_success", "inventory-all@@inventory-all@@0", "inventory", "None", "Next inventory scheduled between 00:00 and 06:00");
 
 }
 
@@ -139,7 +139,7 @@ bundle agent download_server_uuid
 
   methods:
     could_not_download_uuid::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not retrieve the UUID of the policy server");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not retrieve the UUID of the policy server");
 
   commands:
 
@@ -242,25 +242,25 @@ bundle agent fusionAgent
 
   methods:
     pass3.run_inventory::
-      "any" usebundle => rudder_common_report("Inventory", "log_debug", "inventory-all@@inventory-all@@2", "inventory", "None", "Running inventory");
+      "any" usebundle => rudder_common_report("Inventory", "log_debug", "inventory-all@@inventory-all@@0", "inventory", "None", "Running inventory");
 
     pass3.inventory_failed::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not execute the inventory");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not execute the inventory");
 
     pass3.cant_install_curl::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not install curl");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not install curl");
 
     pass3.cant_install_ocs::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not install ocs");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not install ocs");
 
     pass3.cant_install_xen::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not install Xen utils on Xen system");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not install Xen utils on Xen system");
 
     pass3.xen_installed::
-      "any" usebundle => rudder_common_report("Inventory", "log_info", "inventory-all@@inventory-all@@2", "inventory", "None", "Xen utils installed");
+      "any" usebundle => rudder_common_report("Inventory", "log_info", "inventory-all@@inventory-all@@0", "inventory", "None", "Xen utils installed");
 
     pass3.curl_installed::
-      "any" usebundle => rudder_common_report("Inventory", "log_info", "inventory-all@@inventory-all@@2", "inventory", "None", "Curl installed");
+      "any" usebundle => rudder_common_report("Inventory", "log_info", "inventory-all@@inventory-all@@0", "inventory", "None", "Curl installed");
 
   commands:
     !windows.inventoryfoldercreated::
@@ -296,10 +296,10 @@ bundle agent listInstalledVM
 
   methods:
     pass3.cant_list_vm::
-      "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not list installed VMWare machines");
+      "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not list installed VMWare machines");
 
     pass3.cant_list_vb::
-      "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not list installed VirtualBox machines");
+      "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not list installed VirtualBox machines");
 
   commands:
     !windows.VirtualBoxInstalled::
@@ -328,24 +328,24 @@ bundle agent generateExtraInformations
 
   methods:
     pass3.userlist::
-      "any" usebundle => rudder_common_report("Inventory", "log_debug", "inventory-all@@inventory-all@@2", "inventory", "None", "Generated the userlist");
+      "any" usebundle => rudder_common_report("Inventory", "log_debug", "inventory-all@@inventory-all@@0", "inventory", "None", "Generated the userlist");
     pass3.cpuid::
-      "any" usebundle => rudder_common_report("Inventory", "log_debug", "inventory-all@@inventory-all@@2", "inventory", "None", "Generated the CPUID");
+      "any" usebundle => rudder_common_report("Inventory", "log_debug", "inventory-all@@inventory-all@@0", "inventory", "None", "Generated the CPUID");
 
 
     pass3.userlist_fail::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not generate the user list");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not generate the user list");
 
     pass3.cpuid_fail::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not generate the CPUID");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not generate the CPUID");
 
     pass3.!rudder_inventory_userlist_tool_present::
 
-      "any" usebundle => rudder_common_report("Inventory", "log_debug", "inventory-all@@inventory-all@@2", "inventory", "None", "User list generation tool is not present yet. Skipping...");
+      "any" usebundle => rudder_common_report("Inventory", "log_debug", "inventory-all@@inventory-all@@0", "inventory", "None", "User list generation tool is not present yet. Skipping...");
 
     pass3.!rudder_inventory_cpuid_tool_present::
 
-      "any" usebundle => rudder_common_report("Inventory", "log_debug", "inventory-all@@inventory-all@@2", "inventory", "None", "CPUID generation tool not available for this platform, or not present yet. Skipping...");
+      "any" usebundle => rudder_common_report("Inventory", "log_debug", "inventory-all@@inventory-all@@0", "inventory", "None", "CPUID generation tool not available for this platform, or not present yet. Skipping...");
 
   commands:
 
@@ -557,7 +557,7 @@ bundle agent checkInventoryFile
 
   methods:
     pass2.inventory_file_exist.!inventory_valid::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@2", "inventory", "None", "Generated inventory has been detected as invalid");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "inventory", "None", "Generated inventory has been detected as invalid");
 
   reports:
     pass2.inventory_file_exist.!inventory_valid::
@@ -673,13 +673,13 @@ bundle agent sendInventory
 
   methods:
     pass3.inventory_sent::
-      "any" usebundle => rudder_common_report("Inventory", "result_success", "inventory-all@@inventory-all@@2", "inventory", "None", "The inventory has been successfully sent");
+      "any" usebundle => rudder_common_report("Inventory", "result_success", "inventory-all@@inventory-all@@0", "inventory", "None", "The inventory has been successfully sent");
 
     pass3.cant_send_inventory::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not send the inventory");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not send the inventory");
 
     pass3.cant_delete_inventory_file::
-      "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@2", "inventory", "None", "Could not delete inventory file after sending to server");
+      "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@0", "inventory", "None", "Could not delete inventory file after sending to server");
 
 }
 

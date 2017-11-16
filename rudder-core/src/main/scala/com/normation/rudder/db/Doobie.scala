@@ -56,6 +56,7 @@ import com.normation.rudder.services.reports.RunAndConfigInfo
 import org.slf4j.LoggerFactory
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
+import scala.language.implicitConversions
 
 /**
  *
