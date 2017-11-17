@@ -532,7 +532,7 @@ class TestQueryProcessor extends Loggable {
 
   @Test def nodeProperties() {
     val q1 = TestQuery(
-      "q2",
+      "q1",
       parser("""
       { "select":"node", "where":[
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"eq", "value":"foo=bar" }
@@ -541,7 +541,7 @@ class TestQueryProcessor extends Loggable {
       s(1) :: Nil)
 
     val q2 = TestQuery(
-      "q3",
+      "q2",
       parser("""
       { "select":"node", "where":[
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"foo?=.*ar" }
@@ -549,7 +549,72 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
-     testQueries(q1 :: q2 :: Nil)
+
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"hasKey", "value":"datacenter" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(2) :: s(3) :: Nil)
+
+    // same as "haskey"
+    val q4 = TestQuery(
+      "q4",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"datacenter=.*" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(2) :: s(3) :: Nil)
+
+    // kind of matching sub-keys
+    val q5 = TestQuery(
+      "q5",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"datacenter=.*\"id\":1234,.*" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(2) :: Nil)
+
+    // matching unquoted number
+    val q6 = TestQuery(
+      "q6",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"number=42" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(3) :: s(4) :: Nil)
+
+    // matching provider, but the user data only
+    val q7 = TestQuery(
+      "q7",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"datacenter=.*provider.*" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(3) :: Nil)
+
+    testQueries(q1 :: q2 :: q3 :: q4 :: q5 ::  q6 :: q7 :: Nil)
+  }
+
+  @Test def nodePropertiesMissingEqualsReq() {
+    // Failing request, see #10570
+    // if there is no "=", we must only find node with empty value for the key
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"foo" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(4) :: Nil)
+
+     testQueries(q1 :: Nil)
   }
 
   @Test def nodePropertiesFailingReq() {
@@ -557,7 +622,7 @@ class TestQueryProcessor extends Loggable {
     val failingRegexRequest =
       parser("""
       { "select":"node", "where":[
-        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"foo" }
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"f{o}o" }
       ] }""")
     failingRegexRequest match {
       case Full(query) =>
