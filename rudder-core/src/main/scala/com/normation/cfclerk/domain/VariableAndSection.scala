@@ -304,59 +304,6 @@ object Variable {
   }
 
   /**
-   * Set the first value
-   */
-//  def setUniqueValue(variable: Variable, value: String): Unit = {
-//    if (value != null) {
-//
-//      if (!variable.spec.checked) {
-//        variable.internalValues(0) = value
-//      } else if (checkValue(variable, value)) {
-//        if (variable.internalValues.size > 0)
-//          variable.internalValues(0) = value
-//        else
-//          variable.internalValues += value
-//      }
-//    }
-//  }
-
-  /**
-   * Replace all values with the ones in argument
-   */
-//  def setValues(variable: Variable, values: Seq[String]): Unit = {
-//    if (values != null) {
-//      if (!variable.spec.checked) {
-//        variable.internalValues.clear
-//        variable.internalValues ++= values
-//      } else if (!variable.spec.multivalued && values.size > 1) {
-//        throw new VariableException("Wrong variable length for " + variable.spec.name)
-//      } else if (values.map(x => checkValue(variable, x)).contains(false)) {
-//        throw new VariableException("Wrong variable value for " + variable.spec.name) // this should really not be thrown
-//      } else {
-//        variable.internalValues.clear
-//        variable.internalValues ++= values
-//      }
-//    }
-//  }
-
-  /**
-   * Append values in argument to the value list
-   */
-//  def copyWithAppendedValues(variable: Variable, values: Seq[String]): Unit = {
-//    if (values != null) {
-//      if (!variable.spec.checked) {
-//        variable.internalValues ++= values
-//      } else if (!variable.spec.multivalued && (values.size + variable.internalValues.size) > 1) {
-//        throw new VariableException("Wrong variable length for " + variable.spec.name)
-//      } else if (values.map(x => checkValue(variable, x)).contains(false)) {
-//        throw new VariableException("Wrong variable value for " + variable.spec.name) // this should really not be thrown
-//      } else {
-//        variable.internalValues ++= values
-//      }
-//    }
-//  }
-
-  /**
    * Check the value we intend to put in the variable
    */
   def checkValue(variable: Variable, value: String): Boolean = {

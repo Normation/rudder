@@ -44,18 +44,19 @@ import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_CONFIG
 import com.normation.rudder.domain.RudderLDAPConstants.OC_NODES_CONFIG
-import com.normation.rudder.services.policies.write.Cf3PolicyDraft
-import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Variable
+import com.normation.rudder.services.policies.PolicyId
+import com.normation.rudder.services.policies.Policy
+import com.normation.rudder.services.policies.NodeConfiguration
 
 
 case class PolicyHash(
-    draftId   : Cf3PolicyDraftId
+    draftId   : PolicyId
   , cacheValue: Int
 )
 
@@ -173,7 +174,7 @@ object NodeConfigurationHash {
      * System variables are tracked throught the node context afterward.
      */
     val policyHashValue = {
-      nodeConfig.policyDrafts.map { case r:Cf3PolicyDraft =>
+      nodeConfig.policies.map { case r:Policy =>
         //don't take into account "overrides" in cache: having more or less
         //ignored things must not impact the cache computation
         PolicyHash(
@@ -184,7 +185,7 @@ object NodeConfigurationHash {
             + r.priority
             + r.ruleOrder.hashCode + r.directiveOrder.hashCode
             + r.policyMode.hashCode()
-            + variablesToHash(r.variableMap.values)
+            + variablesToHash(r.expandedVars.values)
             )
         )
       }.toSet
@@ -320,7 +321,7 @@ class LdapNodeConfigurationHashRepository(
 
   /*
    * Logic: there is only one object that contains all node config cache.
-   * Each node config cache is store in one value of the "nodeConfig" attribute.
+   * Each node config cache is stored in one value of the "nodeConfig" attribute.
    * The serialisation is simple json.
    * We won't be able to simply delete one value with that method, but it is not
    * the principal use case.

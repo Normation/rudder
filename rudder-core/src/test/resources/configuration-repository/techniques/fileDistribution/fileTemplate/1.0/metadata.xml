@@ -1,0 +1,184 @@
+<TECHNIQUE name="File content (from remote template)">
+
+  <DESCRIPTION>This technique load a mustache/jinja template from the server's shared-files or a text input and expand it on the given location. Variables needed to expand the templates must already be loaded.
+    For jinja2 template type, python must also be installed on the agent.
+    A limit of 16.383 characters is set for the "template from text" case.
+  </DESCRIPTION>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <POLICYGENERATION>separated</POLICYGENERATION>
+
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>fileTemplate</NAME>
+    </BUNDLES>
+    <TMLS>
+      <TML name="fileTemplate.ps1">
+        <OUTPATH>fileTemplate/1.0/fileTemplate.ps1</OUTPATH>
+      </TML>
+    </TMLS>
+  </AGENT>
+
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>fileTemplate_RudderUniqueID</NAME>
+    </BUNDLES>
+    <TMLS>
+      <TML name="fileTemplate"/>
+    </TMLS>
+  </AGENT>
+
+  <TRACKINGVARIABLE>
+    <SAMESIZEAS>FILE_TEMPLATE_AGENT_DESTINATION_PATH</SAMESIZEAS>
+  </TRACKINGVARIABLE>
+
+  <SYSTEMVARS>
+    <NAME>SHARED_FILES_FOLDER</NAME>
+  </SYSTEMVARS>
+
+  <SECTIONS>
+    <SECTION name="Apply template" multivalued="true" component="false">
+      <SECTION name="Load Template from a file or text input" multivalued="false" component="true" componentKey="FILE_TEMPLATE_AGENT_DESTINATION_PATH">
+        <SELECT1>
+          <NAME>FILE_TEMPLATE_RAW_OR_NOT</NAME>
+          <DESCRIPTION>Template source</DESCRIPTION>
+          <ITEM>
+            <VALUE>Raw</VALUE>
+            <LABEL>From Text</LABEL>
+          </ITEM>
+          <ITEM>
+            <VALUE>File</VALUE>
+            <LABEL>From a File</LABEL>
+          </ITEM>
+
+          <CONSTRAINT>
+            <DEFAULT>File</DEFAULT>
+          </CONSTRAINT>
+        </SELECT1>
+
+        <INPUT>
+          <NAME>FILE_TEMPLATE_TEMPLATE</NAME>
+          <DESCRIPTION>Relative template file path</DESCRIPTION>
+          <LONGDESCRIPTION>Relative to /var/rudder/configuration-repository/repository/shared-files/</LONGDESCRIPTION>
+          <CONSTRAINT>
+            <MAYBEEMPTY>true</MAYBEEMPTY>
+            <TYPE>string</TYPE>
+            <DEFAULT>myTemplateName</DEFAULT>
+          </CONSTRAINT>
+        </INPUT>
+
+
+          <INPUT>
+            <NAME>FILE_TEMPLATE_RAW_TEMPLATE</NAME>
+            <DESCRIPTION>Raw text of your template</DESCRIPTION>
+            <CONSTRAINT>
+              <MAYBEEMPTY>true</MAYBEEMPTY>
+              <TYPE>textarea</TYPE>
+            <REGEX error="You can't exceed 16.383 chars, please load your template from a remote file!">^.{1,16383}$</REGEX>
+            </CONSTRAINT>
+          </INPUT>
+
+
+        <INPUT>
+          <NAME>FILE_TEMPLATE_AGENT_DESTINATION_PATH</NAME>
+          <DESCRIPTION>Destination file full path</DESCRIPTION>
+          <CONSTRAINT>
+            <MAYBEEMPTY>false</MAYBEEMPTY>
+            <TYPE>string</TYPE>
+          </CONSTRAINT>
+        </INPUT>
+
+
+        <SECTION name="UNIX specific options" multivalued="false" component="false">
+          <SELECT1>
+            <NAME>FILE_TEMPLATE_TEMPLATE_TYPE</NAME>
+            <DESCRIPTION>Template type</DESCRIPTION>
+            <ITEM>
+              <VALUE>mustache</VALUE>
+              <LABEL>mustache</LABEL>
+            </ITEM>
+            <ITEM>
+              <VALUE>jinja2</VALUE>
+              <LABEL>jinja2</LABEL>
+            </ITEM>
+
+            <CONSTRAINT>
+              <DEFAULT>mustache</DEFAULT>
+            </CONSTRAINT>
+          </SELECT1>
+
+          <INPUT>
+            <NAME>FILE_TEMPLATE_OWNER</NAME>
+            <DESCRIPTION>File owner</DESCRIPTION>
+            <CONSTRAINT>
+              <DEFAULT>root</DEFAULT>
+              <MAYBEEMPTY>false</MAYBEEMPTY>
+              <TYPE>string</TYPE>
+            </CONSTRAINT>
+          </INPUT>
+
+          <INPUT>
+            <NAME>FILE_TEMPLATE_GROUP_OWNER</NAME>
+            <DESCRIPTION>File group</DESCRIPTION>
+            <CONSTRAINT>
+              <DEFAULT>root</DEFAULT>
+              <MAYBEEMPTY>false</MAYBEEMPTY>
+              <TYPE>string</TYPE>
+            </CONSTRAINT>
+          </INPUT>
+
+          <INPUT>
+            <NAME>FILE_TEMPLATE_PERMISSIONS</NAME>
+            <DESCRIPTION>File mode</DESCRIPTION>
+            <CONSTRAINT>
+              <MAYBEEMPTY>false</MAYBEEMPTY>
+              <DEFAULT>700</DEFAULT>
+              <TYPE>perm</TYPE>
+            </CONSTRAINT>
+          </INPUT>
+          <SELECT1>
+            <NAME>FILE_TEMPLATE_PERSISTENT_POST_HOOK</NAME>
+            <DESCRIPTION>Retry hook on error</DESCRIPTION>
+            <ITEM>
+              <VALUE>true</VALUE>
+              <LABEL>Yes</LABEL>
+            </ITEM>
+            <ITEM>
+              <VALUE>false</VALUE>
+              <LABEL>False</LABEL>
+            </ITEM>
+
+            <CONSTRAINT>
+              <DEFAULT>true</DEFAULT>
+              <MAYBEEMPTY>false</MAYBEEMPTY>
+            </CONSTRAINT>
+          </SELECT1>
+        </SECTION>
+
+        <SECTION name="Expand template" multivalued="false" component="true" componentKey="FILE_TEMPLATE_AGENT_DESTINATION_PATH">
+        </SECTION>
+
+        <SECTION name="Put permissions" multivalued="false" component="true" componentKey="FILE_TEMPLATE_AGENT_DESTINATION_PATH">
+        </SECTION>
+
+        <SECTION name="Posthook" multivalued="false" component="true" componentKey="FILE_TEMPLATE_AGENT_DESTINATION_PATH">
+          <INPUT>
+            <NAME>FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND</NAME>
+            <DESCRIPTION>Command(s) to run after any modification made on the destination file</DESCRIPTION>
+            <LONGDESCRIPTION>List of shell-compatible statements to be executed. Multiple commands may be specified on separate lines.</LONGDESCRIPTION>
+            <CONSTRAINT>
+              <MAYBEEMPTY>true</MAYBEEMPTY>
+              <TYPE>string</TYPE>
+            </CONSTRAINT>
+          </INPUT>
+        </SECTION>
+
+        <SECTION name="Templates location" multivalued="false" component="true" componentKey="FILE_TEMPLATE_AGENT_DESTINATION_PATH">
+        </SECTION>
+
+        <SECTION name="Templates directory permissions" multivalued="false" component="true" componentKey="FILE_TEMPLATE_AGENT_DESTINATION_PATH">
+        </SECTION>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>
+

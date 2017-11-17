@@ -43,7 +43,6 @@ import org.specs2.mutable._
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
 import com.normation.utils.Control._
 
 import org.junit.runner.RunWith

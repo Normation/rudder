@@ -50,7 +50,6 @@ import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.execution._
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.services.reports.ReportingServiceImpl
-import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
 import com.normation.rudder.reports.AgentRunIntervalService
 import org.joda.time.Duration
 import com.normation.rudder.reports.ResolvedAgentRunInterval
@@ -163,7 +162,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   lazy val reportsRepo = new ReportsJdbcRepository(doobie)
   lazy val findExpected = new FindExpectedReportsJdbcRepository(doobie, pgIn)
   lazy val updateExpected = new UpdateExpectedReportsJdbcRepository(doobie, pgIn)
-  lazy val updateExpectedService = new ExpectedReportsUpdateImpl(updateExpected)
 
   lazy val agentRunService = new AgentRunIntervalService() {
     private[this] val interval = Duration.standardMinutes(5)

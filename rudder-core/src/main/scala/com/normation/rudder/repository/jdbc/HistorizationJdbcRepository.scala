@@ -60,7 +60,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
   import db._
 
   def getAllOpenedNodes(): Seq[DB.SerializedNodes[Long]] = {
-    sql"select * from nodes where endtime is null".query[DB.SerializedNodes[Long]].vector.transact(xa).unsafePerformSync
+    sql"select id, nodeid, nodename, nodedescription, starttime, endtime from nodes where endtime is null".query[DB.SerializedNodes[Long]].vector.transact(xa).unsafePerformSync
   }
 
 

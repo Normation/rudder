@@ -38,13 +38,11 @@
 package com.normation.rudder.services.policies.write
 
 import com.normation.cfclerk.domain.BundleName
-import com.normation.cfclerk.domain.Technique
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.utils.Control.sequence
-import com.normation.utils.Control.bestEffort
 import net.liftweb.common._
 import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.services.SystemVariableSpecService
@@ -53,7 +51,9 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.OsDetails
-
+import com.normation.rudder.services.policies.Policy
+import com.normation.rudder.services.policies.ParameterEntry
+import com.normation.cfclerk.domain.TechniqueGenerationMode
 
 
 /**
@@ -115,7 +115,7 @@ object BuildBundleSequence {
   // be used to identify reports for that bundle
   final case class Bundle(id: ReportId, name: BundleName)
 
-  // The rudder id is directiveid@@ruleid@@serial
+  // The rudder id is ruleid@@directiveid@@0
   final case class ReportId(value: String)
 
 
@@ -170,63 +170,59 @@ class BuildBundleSequence(
     , osDetails       : OsDetails
     , nodePolicyMode  : Option[PolicyMode]
     , globalPolicyMode: GlobalPolicyMode
-    , container       : Cf3PolicyDraftContainer
+    , policies        : List[Policy]
   ): Box[List[SystemVariable]] = {
 
     logger.trace(s"Preparing bundle list and input list for node : ${nodeId.value}")
 
-    // Fetch the policies configured and sort them according to rules and with the system policies first
-    sortTechniques(nodeId, nodePolicyMode, globalPolicyMode, container) match {
-      case eb: EmptyBox =>
-        val msg = eb match {
-          case Empty      => ""
-          case f: Failure => //here, dedup
-            ": " + f.failureChain.map(m => m.msg.trim).toSet.mkString("; ")
-        }
-        Failure(s"Error when trying to generate the list of directive to apply to node '${nodeId.value}' ${msg}")
+    // Fetch the policies configured and sort them according to (rules, directives)
 
-      case Full(sortedTechniques) =>
+    val sortedPolicies = sortPolicies(policies)
 
-        // Then builds bundles and inputs:
+    // Then builds bundles and inputs:
+    // - build list of inputs file to include: all the outPath of templates that should be "included".
+    //   (returns the pair of (outpath, isSystem) )
 
-        // - build list of inputs file to include: all the outPath of templates that should be "included".
-        //   (returns the pair of (outpath, isSystem) )
-
-        val inputs: List[InputFile] = sortedTechniques.flatMap {case (technique, _, _, _) =>
-          technique.agentConfigs.find( _.agentType == agentType) match {
-            case None      => Nil
-            case Some(cfg) =>
-              cfg.templates.collect { case template if(template.included) => InputFile(template.outPath, technique.isSystem) } ++
-              cfg.files.collect { case file if(file.included) => InputFile(file.outPath, technique.isSystem) }
+    val inputs: List[InputFile] = sortedPolicies.flatMap { p =>
+      p.technique.agentConfigs.find( _.agentType == agentType) match {
+        case None      => Nil
+        case Some(cfg) =>
+          val inputs = cfg.templates.collect { case template if(template.included) => InputFile(template.outPath, p.technique.isSystem) } ++
+                       cfg.files.collect { case file if(file.included) => InputFile(file.outPath, p.technique.isSystem) }
+          //must replace RudderUniqueID in the paths
+          p.technique.generationMode match {
+            case TechniqueGenerationMode.MultipleDirectives =>
+              inputs.map(i => i.copy(path = Policy.makeUniqueDest(i.path, p)))
+            case _ =>
+              inputs
           }
-        }.toList
-
-        //split system and user inputs
-        val (systemInputFiles, userInputFiles) = inputs.partition( _.isSystem )
-
-        // get the output string for each bundle variables, agent dependant
-        for {
-          // - build techniques bundles from the sorted list of techniques
-          techniquesBundles          <- sequence(sortedTechniques)(buildTechniqueBundles(nodeId, agentType))
-          //split system and user directive (technique)
-          (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
-          bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentType, osDetails, systemInputFiles, systemBundle, userInputFiles, userBundle) ?~!
-                                        s"Error with node '${nodeId.value}'"
-        } yield {
-
-          // map to correct variables
-          List(
-              //this one is CFengine specific and kept for historical reason
-              SystemVariable(systemVariableSpecService.get("INPUTLIST") , CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path)))
-              //this one is CFengine specific and kept for historical reason
-            , SystemVariable(systemVariableSpecService.get("BUNDLELIST"), techniquesBundles.flatMap( _.bundleSequence.map(_.name)).mkString(", ", ", ", "") :: Nil)
-            , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , bundleVars.systemDirectivesInputFiles)
-            , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), bundleVars.systemDirectivesUsebundle)
-            , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")         , bundleVars.directivesInputFiles)
-            , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE")       , bundleVars.directivesUsebundle)
-          )
-        }
       }
+    }.toList
+
+    //split (system | user) inputs
+    val (systemInputFiles, userInputFiles) = inputs.partition( _.isSystem )
+
+    // get the output string for each bundle variables, agent dependant
+    for {
+      // - build techniques bundles from the sorted list of techniques
+      techniquesBundles          <- sequence(sortedPolicies)(buildTechniqueBundles(nodeId, agentType, globalPolicyMode, nodePolicyMode))
+      //split system and user directive (technique)
+      (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
+      bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentType, osDetails, systemInputFiles, systemBundle, userInputFiles, userBundle) ?~!
+                                    s"Error for node '${nodeId.value}' bundle creation"
+    } yield {
+      // map to correct variables
+      List(
+          //this one is CFengine specific and kept for historical reason
+          SystemVariable(systemVariableSpecService.get("INPUTLIST") , CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path)))
+          //this one is CFengine specific and kept for historical reason
+        , SystemVariable(systemVariableSpecService.get("BUNDLELIST"), techniquesBundles.flatMap( _.bundleSequence.map(_.name)).mkString(", ", ", ", "") :: Nil)
+        , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , bundleVars.systemDirectivesInputFiles)
+        , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), bundleVars.systemDirectivesUsebundle)
+        , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")         , bundleVars.directivesInputFiles)
+        , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE")       , bundleVars.directivesUsebundle)
+      )
+    }
   }
 
   ////////////////////////////////////////////
@@ -254,106 +250,62 @@ class BuildBundleSequence(
    * (and it is also why we get it from sortTechniques, which is kind of strange :)
    *
    */
-  def buildTechniqueBundles(nodeId: NodeId, agentType: AgentType)(t3: (Technique, ReportId, List[BundleOrder], PolicyMode)): Box[TechniqueBundles] = {
+  def buildTechniqueBundles(nodeId: NodeId, agentType: AgentType, globalPolicyMode: GlobalPolicyMode, nodePolicyMode: Option[PolicyMode])(policy: Policy): Box[TechniqueBundles] = {
     // naming things to make them clear
-    val technique  = t3._1
-    val reportId   = t3._2
-    val name       = Directive(t3._3.map(_.value).mkString("/"))
-    val policyMode = t3._4
+    val name = Directive(policy.ruleOrder.value + "/" + policy.directiveOrder.value)
 
     // and for now, all bundle get the same reportKey
-    technique.agentConfigs.find(_.agentType == agentType) match {
+    policy.technique.agentConfigs.find(_.agentType == agentType) match {
       case Some(cfg) =>
         val techniqueBundles = cfg.bundlesequence.map { bundleName =>
           if(bundleName.value.trim.size > 0) {
-            List(Bundle(reportId, bundleName))
+            List(Bundle(ReportId(policy.id.getReportId), bundleName))
           } else {
-            logger.warn(s"Technique '${technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
+            logger.warn(s"Technique '${policy.technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
             Nil
           }
         }.flatten.toList
-        Full(TechniqueBundles(name, technique.id, Nil, techniqueBundles, Nil, technique.isSystem, technique.providesExpectedReports, policyMode))
+        for {
+          policyMode <- PolicyMode.computeMode(globalPolicyMode, nodePolicyMode, policy.policyMode :: Nil)
+        } yield {
+          //we must update technique bundle in case policy generation is multi-instance
+          val bundles = policy.technique.generationMode match {
+            case TechniqueGenerationMode.MultipleDirectives =>
+              techniqueBundles.map(b => b.copy(name = BundleName(b.name.value.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, policy.id.getRudderUniqueId))))
+            case _ =>
+              techniqueBundles
+          }
+
+
+          TechniqueBundles(name, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policy.technique.providesExpectedReports, policyMode)
+        }
+
       case None =>
-        Failure(s"Node with id '${nodeId.value}' is configured with agent type='${agentType.toString}' but technique '${technique.id.toString}' applying via Directive '${name.value}' is not compatible with that agent type.")
+        Failure(s"Node with id '${nodeId.value}' is configured with agent type='${agentType.toString}' but technique '${policy.technique.id.toString}' applying via Directive '${name.value}' is not compatible with that agent type.")
     }
   }
 
   /*
-   * Sort the techniques according to the order of the associated BundleOrder of Cf3PolicyDraft.
+   * Sort the techniques according to the order of the associated BundleOrder of Policy.
    * Sort at best: sort rule then directives, and take techniques on that order, only one time.
    *
    * CAREFUL: this method only take care of sorting based on "BundleOrder", other sorting (like
    * "system must go first") are not taken into account here !
-   *
-   * Actually, sortTechnique does more because it is the point where we look if a technique is
-   * used in several rules/directives and where we choose what rule/directive will be used,
-   * so we are also looking for:
-   * - the Audit Mode consistancy (and return it if consistant),
-   * - the ReportId of the chosen couple.
-   *
    */
-  def sortTechniques(
-      nodeId          : NodeId
-    , nodePolicyMode  : Option[PolicyMode]
-    , globalPolicyMode: GlobalPolicyMode
-    , container       : Cf3PolicyDraftContainer
-  ): Box[Seq[(Technique, ReportId, List[BundleOrder], PolicyMode)]] = {
-
-    val techniques = container.getTechniques().values.toList
-
-    def compareBundleOrder(a: Cf3PolicyDraft, b: Cf3PolicyDraft): Boolean = {
+  def sortPolicies(
+      policies: List[Policy]
+  ): List[Policy] = {
+    def compareBundleOrder(a: Policy, b: Policy): Boolean = {
       BundleOrder.compareList(List(a.ruleOrder, a.directiveOrder), List(b.ruleOrder, b.directiveOrder)) <= 0
     }
+    val sorted = policies.sortWith(compareBundleOrder)
 
-    val drafts = container.cf3PolicyDrafts.values.toList
-
-    for {
-      //for each technique, get it's best order from draft (if several directive use it)
-      techBundle <- bestEffort(techniques) { t =>
-
-                   val tDrafts = drafts.filter { _.technique.id == t.id }.sortWith( compareBundleOrder )
-
-                   tDrafts match {
-                     case Nil => //that should not happen because we only chose techniques with draft, but still
-                       Failure(s"Error with Technique ${t.name} during bundle sequence generation, we found a techniques without any bundle" +
-                           s" for node '${nodeId.value}' but it should not happen. " +
-                           "This is likely a bug, please report it to https://rudder-project.org/issues")
-                     case draft :: _ =>
-                       // the bundle full order in the couple (rule name, directive name)
-                       val bundleOrder = List(draft.ruleOrder, draft.directiveOrder)
-                       // the rudderId is homogeneous for the whole technique
-                       val rudderId = ReportId(s"${draft.id.value}@@0") // as of Rudder 4.3, serial is always set to 0
-
-                       // until we have a directive-level granularity for policy mode, we have to define a technique-level policy mode
-                       // if directives don't have a consistant policy mode, we fail (and report it)
-                       (PolicyMode.computeMode(globalPolicyMode, nodePolicyMode, tDrafts.map(_.policyMode)).map { policyMode =>
-                         (t, rudderId, bundleOrder, policyMode)
-                       }) match {
-                         case Full(x)      => Full(x)
-                         case eb: EmptyBox =>
-                           val msg = eb match {
-                             case Empty            => ""
-                             case Failure(m, _, _) => ": " + m
-                           }
-                           Failure(s"Error with Technique ${t.name} and [Rule ID // Directives ID: Policy Mode] ${tDrafts.map { x =>
-                             s"[${x.id.ruleId.value} // ${x.id.directiveId.value}: ${x.policyMode.map(_.name).getOrElse("inherited")}]"
-                           }.mkString("; ") } ${msg}")
-                       }
-                   }
-                 }
-    } yield {
-
-      //now that we have the (rule/directive) for each technique, sort techniques
-      val ordered = techBundle.sortWith { case ((_, _, o1, _), (_, _, o2, _)) => BundleOrder.compareList(o1, o2) <= 0 }
-
-      //some debug info to understand what order was used for each node:
-      if(logger.isDebugEnabled) {
-        val sorted = ordered.map(p => s"${p._1.name}: [${p._3.map(_.value).mkString(" | ")}]").mkString("[","][", "]")
-        logger.debug(s"Sorted Technique (and their Rules and Directives used to sort): ${sorted}")
-      }
-
-      ordered
+    //some debug info to understand what order was used for each node:
+    if(logger.isDebugEnabled) {
+      val logSorted = sorted.map(p => s"${p.technique.id}: [${p.ruleOrder.value} | ${p.directiveOrder.value}]").mkString("[","][", "]")
+      logger.debug(s"Sorted Technique (and their Rules and Directives used to sort): ${logSorted}")
     }
+    sorted
   }
 }
 

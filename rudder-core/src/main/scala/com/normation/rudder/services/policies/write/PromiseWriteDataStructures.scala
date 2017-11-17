@@ -41,11 +41,12 @@ import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.utils.HashcodeCaching
 import com.normation.templates.STVariable
 import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.OsDetails
+import com.normation.rudder.services.policies.PolicyId
 
 /**
  * That file store utility case classes about information used to
@@ -111,6 +112,7 @@ case class PreparedTechnique(
     templatesToProcess  : Set[TechniqueTemplateCopyInfo]
   , environmentVariables: Seq[STVariable]
   , filesToCopy         : Set[TechniqueFile]
+  , reportIdToReplace   : Option[PolicyId] // if the technique is multi-instance multi-policy, the id to use in replacement
 ) extends HashcodeCaching
 
 /**

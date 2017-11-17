@@ -160,6 +160,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>org.tpolecat</groupId>
       <artifactId>doobie-specs2_${scala-binary-version}</artifactId>
       <version>${doobie-version}</version>
+      <exclusions>
+        <exclusion>
+          <artifactId></artifactId>
+          <groupId>orgorg.specs2</groupId>
+        </exclusion>
+      </exclusions>
       <scope>test</scope>
     </dependency>
     

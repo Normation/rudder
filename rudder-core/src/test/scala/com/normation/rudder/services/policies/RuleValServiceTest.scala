@@ -56,7 +56,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
 
 /**
- * Test how RuleVal and DirectiveVal are constructed, and if they
+ * Test how RuleVal and ParsedPolicyDraft are constructed, and if they
  * returns what is expected for meta techinques
  */
 @RunWith(classOf[JUnitRunner])
@@ -66,7 +66,7 @@ class RuleValServiceTest extends Specification {
    * Instanciate the services
    */
   val ruleValService = new RuleValServiceImpl(new InterpolatedValueCompilerImpl())
-  val computeCardinality = ComputeCardinalityOfDirectiveVal
+  val computeCardinality = ComputeCardinalityOfUnboundBoundedPolicyDraft
 
   /**
    * Create the objects for tests
@@ -179,13 +179,13 @@ class RuleValServiceTest extends Specification {
     // Ok, now I can test
     "The RuleValService, with one directive, one Meta-technique " should {
 
-      val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory)
+      val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map())
 
       "return a Full(RuleVal)" in {
         ruleVal.isDefined == true
       }
 
-      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").directiveVals
+      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").parsedPolicyDraft
 
       "the ruleval should have only one directiveVal" in {
         directivesVals.size == 1
@@ -218,10 +218,10 @@ class RuleValServiceTest extends Specification {
     }
 
     "The cardinality computed " should {
-      val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory)
-      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").directiveVals
+      val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map())
+      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").parsedPolicyDraft
 
-      val cardinality = directivesVals.head.toExpandedDirectiveVal(null).map { x =>
+      val cardinality = directivesVals.head.toExpandedUnboundBoundedPolicyDraft(null).map { x =>
         computeCardinality.getTrackingKeyLinearisation(x)
       }
 

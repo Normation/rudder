@@ -265,7 +265,7 @@ class ExpectedReportsTest extends DBCommon {
 //    def buildDirective(id: String, priority: Int) = {
 //      val vars = Map("foo" -> fooSpec.toVariable(List(id + "_value")))
 //
-//      ExpandedDirectiveVal(
+//      ExpandedUnboundBoundedPolicyDraft(
 //          tech
 //        , DirectiveId(id)
 //        , priority
@@ -288,7 +288,7 @@ class ExpectedReportsTest extends DBCommon {
 //    )
 //
 //    //and so, on n1, we have an override:
-//    val n1_overrides = UniqueOverrides(n1.nodeId, r1, DirectiveId("d2"), Cf3PolicyDraftId(r1, DirectiveId("d1")))
+//    val n1_overrides = UniqueOverrides(n1.nodeId, r1, DirectiveId("d2"), PolicyId(r1, DirectiveId("d1")))
 //
 //    /*
 //     * And now, for the expectations

@@ -78,7 +78,6 @@ trait ReportsRepository {
   /**
    * Returns all reports for the node, between the two differents date (optionnal)
    * for a rule (optionnal) and for a specific serial of this rule (optionnal)
-   * Note : serial is used only if rule is used
    * Note : only the 1000 first entry are returned
    */
   def findReportsByNode(
