@@ -145,6 +145,10 @@ final case class FullActiveTechniqueCategory(
       (TechniqueId(at.techniqueName, version) -> ((technique, at.acceptationDatetimes.get(version))))
     }) }
   }
+
+  def getUpdateDateTime(id: TechniqueId): Option[DateTime] = {
+    allTechniques.get(id).flatMap( _._2 )
+  }
 }
 
 

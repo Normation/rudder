@@ -404,7 +404,7 @@ CREATE SEQUENCE rulesId START 101;
 CREATE TABLE Rules (
   rulePkeyId       integer PRIMARY KEY default nextval('rulesId')
 , ruleId           text NOT NULL CHECK (ruleId <> '')
-, serial           integer NOT NULL
+, serial           integer DEFAULT 0
 , categoryid       text
 , name             text
 , shortdescription text

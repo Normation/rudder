@@ -126,7 +126,7 @@ import com.normation.rudder.services.policies._
 import com.normation.rudder.services.policies.DeployOnTechniqueCallback
 import com.normation.rudder.services.policies.nodeconfig._
 import com.normation.rudder.services.policies.write.BuildBundleSequence
-import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterServiceImpl
+import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl
 import com.normation.rudder.services.policies.write.PathComputerImpl
 import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
 import com.normation.rudder.services.queries._
@@ -433,7 +433,6 @@ object RudderConfig extends Loggable {
   val automaticReportsCleaning: AutomaticReportsCleaning = dbCleaner
   val checkTechniqueLibrary: CheckTechniqueLibrary = techniqueLibraryUpdater
   val automaticReportLogger: AutomaticReportLogger = autoReportLogger
-  val nodeConfigurationService: NodeConfigurationService = nodeConfigurationServiceImpl
   val removeNodeService: RemoveNodeService = removeNodeServiceImpl
   val nodeInfoService: NodeInfoService = nodeInfoServiceImpl
   val reportDisplayer: ReportDisplayer = reportDisplayerImpl
@@ -1208,11 +1207,8 @@ object RudderConfig extends Loggable {
   private[this] lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
   private[this] lazy val diffRepos: InventoryHistoryLogRepository =
     new InventoryHistoryLogRepository(HISTORY_INVENTORIES_ROOTDIR, new FullInventoryFileMarshalling(fullInventoryFromLdapEntries, inventoryMapper))
-//  private[this] lazy val serverPolicyDiffService = new NodeConfigurationDiffService
 
   private[this] lazy val personIdentServiceImpl = new TrivialPersonIdentService
-//  private[this] lazy val ldapNodeConfigurationMapper = new LDAPNodeConfigurationMapper(rudderDitImpl, acceptedNodesDitImpl, systemVariableSpecService, techniqueRepositoryImpl, variableBuilderService, rwLdap)
-//  private[this] lazy val ldapNodeConfigurationRepository = new LDAPNodeConfigurationRepository(rwLdap, rudderDitImpl, ldapNodeConfigurationMapper)
 
   private[this] lazy val roParameterServiceImpl = new RoParameterServiceImpl(roLDAPParameterRepository)
   private[this] lazy val woParameterServiceImpl = new WoParameterServiceImpl(roParameterServiceImpl, woLDAPParameterRepository, asyncDeploymentAgentImpl)
@@ -1443,7 +1439,7 @@ object RudderConfig extends Loggable {
     , configService.send_server_metrics _
     , configService.rudder_syslog_protocol _
   )
-  private[this] lazy val rudderCf3PromisesFileWriterService = new Cf3PromisesFileWriterServiceImpl(
+  private[this] lazy val rudderCf3PromisesFileWriterService = new PolicyWriterServiceImpl(
       techniqueRepositoryImpl
     , pathComputer
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
@@ -1485,10 +1481,10 @@ object RudderConfig extends Loggable {
       , woLdapRuleRepository
       , ruleValService
       , systemVariableService
-      , nodeConfigurationServiceImpl
+      , nodeConfigurationHashRepo
       , nodeInfoServiceImpl
       , licenseRepository
-      , updateExpectedReports
+      , updateExpectedRepo
       , historizationService
       , roNodeGroupRepository
       , roDirectiveRepository
@@ -1558,10 +1554,8 @@ object RudderConfig extends Loggable {
     )
   }
 
-  private[this] lazy val nodeConfigurationServiceImpl: NodeConfigurationService = new NodeConfigurationServiceImpl(
-      new LdapNodeConfigurationHashRepository(rudderDit, rwLdap)
-  )
-//  private[this] lazy val licenseService: CfeEnterpriseLicenseService = new CfeEnterpriseLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
+  lazy val nodeConfigurationHashRepo: NodeConfigurationHashRepository = new LdapNodeConfigurationHashRepository(rudderDit, rwLdap)
+
   private[this] lazy val reportingServiceImpl = new CachedReportingServiceImpl(
       new ReportingServiceImpl(
           findExpectedRepo
@@ -1575,8 +1569,6 @@ object RudderConfig extends Loggable {
       )
     , nodeInfoServiceImpl
   )
-
-  private[this] lazy val updateExpectedReports = new ExpectedReportsUpdateImpl(updateExpectedRepo)
 
   private[this] lazy val pgIn = new PostgresqlInClause(70)
   private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(doobie, pgIn)
@@ -1789,7 +1781,7 @@ object RudderConfig extends Loggable {
           case BooleanVType => new CheckboxField(id)
           case TextareaVType(r) => new TextareaField(id,configService.rudder_featureSwitch_directiveScriptEngine)
           // Same field type for password and MasterPassword, difference is that master will have slave/used derived passwords, and password will not have any slave/used field
-          case PasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty , configService.rudder_featureSwitch_directiveScriptEngine)
+          case PasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty , configService.rudder_featureSwitch_directiveScriptEngine _)
           case MasterPasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty, configService.rudder_featureSwitch_directiveScriptEngine)
           case AixDerivedPasswordVType => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.AIX)
           case LinuxDerivedPasswordVType => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.Linux)

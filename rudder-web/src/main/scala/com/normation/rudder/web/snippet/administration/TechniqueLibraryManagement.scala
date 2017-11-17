@@ -160,7 +160,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     giveReasonPopup.set(Full(new GiveReasonPopup(
         onSuccessCallback = { onSuccessReasonPopup }
       , onFailureCallback = { onFailureReasonPopup }
-      , refreshActiveTreeLibrary = { refreshActiveTreeLibrary }
+      , refreshActiveTreeLibrary = { refreshActiveTreeLibrary _ }
       , sourceActiveTechniqueId = s
       , destCatId = d)
     ))

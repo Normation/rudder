@@ -47,7 +47,7 @@ import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.utils.HashcodeCaching
 import com.normation.utils.Control.sequence
-import com.normation.rudder.services.policies.write.ParameterEntry
+import com.normation.rudder.services.policies.ParameterEntry
 
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.SimpleDiff

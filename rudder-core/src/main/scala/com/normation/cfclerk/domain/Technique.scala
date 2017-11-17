@@ -94,7 +94,7 @@ final object TechniqueGenerationMode {
    * This is the historical way of working for Rudder techniques.
    */
   final case object MergeDirectives extends TechniqueGenerationMode {
-    override val name = "merge_directives"
+    override val name = "merged"
   }
 
   /*
@@ -102,7 +102,7 @@ final object TechniqueGenerationMode {
    * several technique version or modes).
    */
   final case object MultipleDirectives extends TechniqueGenerationMode {
-    override val name = "multi_directives"
+    override val name = "separated"
   }
 
   def allValues = ca.mrvisser.sealerate.values[TechniqueGenerationMode]

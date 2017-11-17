@@ -45,9 +45,13 @@ import com.normation.cfclerk.domain._
 import com.normation.cfclerk.exceptions._
 import com.normation.utils.Control.bestEffort
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import org.joda.time.DateTime
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeInfo
 
 trait RuleValService {
-  def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal]
+  def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[RuleVal]
 
   def lookupNodeParameterization(variables:Seq[Variable]): InterpolationContext => Box[Map[String, Variable]]
 }
@@ -120,14 +124,14 @@ class RuleValServiceImpl(
   }
 
 
-  private[this] def getContainer(piId : DirectiveId, ruleId:RuleId, directiveLib: FullActiveTechniqueCategory) : Box[Option[DirectiveVal]]= {
+  def getParsedPolicyDraft(piId : DirectiveId, ruleId:RuleId, ruleOrder: BundleOrder, directiveLib: FullActiveTechniqueCategory) : Box[Option[ParsedPolicyDraft]]= {
     directiveLib.allDirectives.get(piId) match {
       case None => Failure("Cannot find Directive with id %s when building Rule %s".format(piId.value, ruleId.value))
       case Some((_, directive) ) if !(directive.isEnabled) =>
-        logger.debug("The Directive with id %s is disabled and we don't generate a DirectiveVal for Rule %s".format(piId.value, ruleId.value))
+        logger.debug("The Directive with id %s is disabled and we don't generate a ParsedPolicyDraft for Rule %s".format(piId.value, ruleId.value))
         Full(None)
       case Some((fullActiveDirective, _) ) if !(fullActiveDirective.isEnabled) =>
-        logger.debug(s"The Active Technique with id ${fullActiveDirective.id.value} is disabled and we don't generate a DirectiveVal for Rule ${ruleId.value}")
+        logger.debug(s"The Active Technique with id ${fullActiveDirective.id.value} is disabled and we don't generate a ParsedPolicyDraft for Rule ${ruleId.value}")
         Full(None)
       case Some((fullActiveTechnique, directive)) =>
         for {
@@ -146,36 +150,44 @@ class RuleValServiceImpl(
           otherVars = vared - policyPackage.trackerVariableSpec.name
           //only normal vars can be interpolated
         } yield {
-            logger.trace("Creating a DirectiveVal %s from the ruleId %s".format(fullActiveTechnique.techniqueName, ruleId.value))
+            logger.trace("Creating a ParsedPolicyDraft %s from the ruleId %s".format(fullActiveTechnique.techniqueName, ruleId.value))
 
-            Some(DirectiveVal(
-                policyPackage
-              , directive.id
+            Some(ParsedPolicyDraft(
+                PolicyId(ruleId, piId)
+              , policyPackage
+                // if the technique don't have an acceptation date time, this is bad. Use "now",
+                // which mean that it will be considered as new every time.
+              , fullActiveTechnique.acceptationDatetimes.get(policyPackage.id.version).getOrElse(DateTime.now)
               , directive.priority
               , directive.isSystem
               , directive.policyMode
               , policyPackage.trackerVariableSpec.toVariable(trackerVariable.values)
               , lookupNodeParameterization(otherVars.values.toSeq)
               , vared
+              , ruleOrder
               , BundleOrder(directive.name)
             ))
         }
     }
   }
 
-  override def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal] = {
-    val targets      = rule.targets
-    val directiveIds = rule.directiveIds.toSeq
+  def getTargetedNodes(rule: Rule, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[NodeId] = {
+    val wantedNodeIds = groupLib.getNodeIds(rule.targets, allNodeInfos)
+    val nodeIds = wantedNodeIds.intersect(allNodeInfos.keySet)
+    if(nodeIds.size != wantedNodeIds.size) {
+      logger.error(s"Some nodes are in the target of rule '${rule.name}' (${rule.id.value}) but are not present " +
+          s"in the system. It looks like an inconsistency error. Ignored nodes: ${(wantedNodeIds -- nodeIds).map( _.value).mkString(", ")}")
+    }
+    nodeIds
+  }
+
+  override def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[RuleVal] = {
+    val nodeIds = getTargetedNodes(rule, groupLib, allNodeInfos)
 
     for {
-      containers   <- bestEffort(directiveIds) { getContainer(_, rule.id, directiveLib) }
+      drafts <- bestEffort(rule.directiveIds.toSeq) { getParsedPolicyDraft(_, rule.id, BundleOrder(rule.name), directiveLib) }
     } yield {
-      RuleVal(
-        rule.id,
-        targets,
-        containers.flatten,
-        BundleOrder(rule.name)
-      )
+      RuleVal(rule.id, nodeIds, drafts.flatten)
     }
   }
 }

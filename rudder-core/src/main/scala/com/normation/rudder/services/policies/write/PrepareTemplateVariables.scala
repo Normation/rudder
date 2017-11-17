@@ -41,10 +41,8 @@ import scala.io.Codec
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
 import com.normation.cfclerk.domain.SystemVariableSpec
-import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueResourceId
-import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.exceptions.VariableException
@@ -52,9 +50,8 @@ import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.templates.STVariable
 import com.normation.utils.Control.bestEffort
 import net.liftweb.common._
@@ -62,7 +59,10 @@ import org.joda.time.DateTime
 import scala.io.Codec
 import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain.TechniqueFile
-import com.normation.inventory.domain.OsDetails
+import com.normation.rudder.services.policies.ParameterEntry
+import com.normation.rudder.services.policies.Policy
+import com.normation.utils.Control.sequence
+import com.normation.cfclerk.domain.TechniqueGenerationMode
 
 trait PrepareTemplateVariables {
 
@@ -84,6 +84,7 @@ trait PrepareTemplateVariables {
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
+    , generationTime   : DateTime
   ): Box[AgentNodeWritableConfiguration]
 
 }
@@ -99,16 +100,6 @@ class PrepareTemplateVariablesImpl(
 ) extends PrepareTemplateVariables with Loggable {
 
 
-  //
-  // #10625: this is the method to change.
-  // IDEA: make in two steps, the first one produce "json" parameter files
-  // D-by-D, and the second one merge where its needed for old techniques.
-  //
-  //
-  //
-  //
-
-
   override def prepareTemplateForAgentNodeConfiguration(
       agentNodeConfig  : AgentNodeConfiguration
     , nodeConfigVersion: NodeConfigId
@@ -117,42 +108,52 @@ class PrepareTemplateVariablesImpl(
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
-  ): Box[AgentNodeWritableConfiguration] = {
+    , generationTime   : DateTime
+  ) : Box[AgentNodeWritableConfiguration] = {
 
-   logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})")
-
-    val container = new Cf3PolicyDraftContainer(
-          agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value, agentNodeConfig.agentType)).toSet
-        , agentNodeConfig.config.policyDrafts
-    )
-
-    //Generate for each node an unique timestamp.
-    val generationTimestamp = DateTime.now().getMillis
+    val nodeId = agentNodeConfig.config.nodeInfo.id
+    logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${nodeId.value})")
 
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
-        systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == AgentType.CfeEnterprise     ) Seq("true") else Seq())
-      , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == AgentType.CfeCommunity) Seq("true") else Seq())
+        systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == AgentType.CfeEnterprise) Seq("true") else Seq())
+      , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == AgentType.CfeCommunity ) Seq("true") else Seq())
       , systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.toString))
       , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
 
     ).map(x => (x.spec.name, x)).toMap
 
+    val parameters = agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value, agentNodeConfig.agentType)).toSeq
+
+    val boxBundleVars = buildBundleSequence.prepareBundleVars(
+                            nodeId
+                          , agentNodeConfig.agentType
+                          , agentNodeConfig.config.nodeInfo.osDetails
+                          , agentNodeConfig.config.nodeInfo.policyMode
+                          , globalPolicyMode
+                          , agentNodeConfig.config.policies
+                        ).map { bundleVars => bundleVars.map(x => (x.spec.name, x)).toMap }
+
     for {
-      bundleVars <- prepareBundleVars(agentNodeConfig.config.nodeInfo.id, agentNodeConfig.agentType, agentNodeConfig.config.nodeInfo.osDetails
-                                    , agentNodeConfig.config.nodeInfo.policyMode, globalPolicyMode, container)
+      bundleVars       <- boxBundleVars
+      allSystemVars    =  systemVariables.toMap ++ bundleVars
+      preparedTemplate <- prepareTechniqueTemplate(
+                              nodeId
+                            , agentNodeConfig.agentType
+                            , agentNodeConfig.config.policies
+                            , parameters
+                            , allSystemVars
+                            , templates
+                            , generationTime.getMillis
+                          )
     } yield {
-      val allSystemVars = systemVariables.toMap ++ bundleVars
-      val preparedTemplate = prepareTechniqueTemplate(
-          agentNodeConfig.config.nodeInfo.id, agentNodeConfig.agentType, container, allSystemVars, templates, generationTimestamp
-      )
 
       // we only need to generate expected_reports.csv for CFEngine-like agent
       val csv = ExpectedReportsCsv(agentNodeConfig.agentType match {
         case AgentType.CfeCommunity | AgentType.CfeEnterprise =>
-          logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: creating lines for expected reports CSV files")
-          prepareReportingDataForMetaTechnique(container, rudderIdCsvTag)
+          logger.trace(s"${nodeId.value}: creating lines for expected reports CSV files")
+          prepareReportingDataForMetaTechnique(agentNodeConfig.config.policies, rudderIdCsvTag)
         case _ => // DSC_AGENT or other
-          logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: not creating lines for expected reports CSV files - agent type '${agentNodeConfig.agentType.id}' does not need them")
+          logger.trace(s"${nodeId.value}: not creating lines for expected reports CSV files - agent type '${agentNodeConfig.agentType.id}' does not need them")
           Seq()
       })
 
@@ -160,105 +161,106 @@ class PrepareTemplateVariablesImpl(
           agentNodeConfig.agentType
         , agentNodeConfig.config.nodeInfo.osDetails
         , agentNodeConfig.paths
-        , preparedTemplate.values.toSeq
+        , preparedTemplate
         , csv
         , allSystemVars
       )
     }
   }
 
+
   private[this] def prepareTechniqueTemplate(
       nodeId              : NodeId // for log message
     , agentType           : AgentType
-    , container           : Cf3PolicyDraftContainer
-    , extraSystemVariables: Map[String, Variable]
+    , policies            : List[Policy]
+    , parameters          : Seq[ParameterEntry]
+    , systemVars          : Map[String, Variable]
     , allTemplates        : Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
     , generationTimestamp : Long
-  ) : Map[TechniqueId, PreparedTechnique] = {
+  ) : Box[Seq[PreparedTechnique]] = {
 
-    val techniques = container.getTechniques().values.toList
-    val variablesByTechnique = prepareVariables(nodeId, container, extraSystemVariables, techniques)
-
-    /*
-     * From the container, convert the parameter into StringTemplate variable, that contains a list of
-     * parameterName, parameterValue (really, the ParameterEntry itself)
-     * This is quite naive for the moment
-     */
-    val rudderParametersVariable = STVariable(
-        PARAMETER_VARIABLE
-      , true
-      , container.parameters.toSeq
-      , true
-    )
+    val rudderParametersVariable = STVariable(PARAMETER_VARIABLE, true, parameters, true)
     val generationVariable = STVariable("GENERATIONTIMESTAMP", false, Seq(generationTimestamp), true)
 
-    techniques.map {technique =>
-      val techniqueTemplatesIds = technique.templatesIds
-      // this is an optimisation to avoid re-redeading template each time, for each technique. We could
-      // just, from a strict correctness point of view, just do a techniquerepos.getcontent for each technique.template here
-      val techniqueTemplates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 ==  agentType).values.toSet
-      val variables = variablesByTechnique(technique.id) :+ rudderParametersVariable :+ generationVariable
-      val files = (technique.agentConfigs.find( _.agentType == agentType).map( _.files) match {
-        case None    => Set.empty[TechniqueFile]
-        case Some(x) => x.toSet[TechniqueFile]
-     })
+    sequence(policies) { p =>
+      for {
+        variables <- prepareVariables(nodeId, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${nodeId.value}"
+      } yield {
+        val techniqueTemplatesIds = p.technique.templatesIds
+        // only set if technique is multi-policy
+        val reportId = p.technique.generationMode match {
+          case TechniqueGenerationMode.MultipleDirectives => Some(p.id)
+          case _ => None
+        }
+        //if technique is multi-policy, we need to update destination path to add an unique id along with the version
+        //to have one directory by directive.
+        val techniqueTemplates = {
+          val templates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 ==  agentType).values.toSet
+          p.technique.generationMode match {
+            case TechniqueGenerationMode.MultipleDirectives =>
+              templates.map( copyInfo => copyInfo.copy(destination = Policy.makeUniqueDest(copyInfo.destination, p)))
+            case _ =>
+              templates
+          }
+        }
+        val files = (p.technique.agentConfigs.find( _.agentType == agentType).map( _.files) match {
+            case None    => Set.empty[TechniqueFile]
+            case Some(x) =>
+              val files = x.toSet[TechniqueFile]
+              p.technique.generationMode match {
+                case TechniqueGenerationMode.MultipleDirectives =>
+                  files.map( file => file.copy(outPath = Policy.makeUniqueDest(file.outPath, p)))
+                case _ =>
+                  files
+              }
+        })
 
-      (
-          technique.id
-        , PreparedTechnique(techniqueTemplates, variables, files)
-      )
-    }.toMap
-  }
-
-  /**
-   * Create the value of the Rudder Id from the Id of the Cf3PolicyDraft and
-   * the serial
-   */
-  private[this] def createRudderId(cf3PolicyDraft: Cf3PolicyDraft): String = {
-    cf3PolicyDraft.id.value + "@@0" // as of Rudder 4.3, serial is always 0
+        PreparedTechnique(techniqueTemplates, variables:+ rudderParametersVariable :+ generationVariable, files, reportId)
+      }
+    }
   }
 
   private[this] def prepareVariables(
-      nodeId: NodeId // for log message
-    , container : Cf3PolicyDraftContainer
+      nodeId    : NodeId // for log message
+    , policy    : Policy
     , systemVars: Map[String, Variable]
-    , techniques: Seq[Technique]
-  ) : Map[TechniqueId,Seq[STVariable]] = {
+  ) : Box[Seq[STVariable]] = {
 
-    val variablesValues = prepareAllCf3PolicyDraftVariables(container)
+    // we want to check that all technique variables are correctly provided.
+    // we can't do it when we built node configuration because some (system variable at least (note: but only? If so, we could just check
+    // them here, not everything).
 
-    // fill the variable
-    (bestEffort(techniques) { technique =>
+    val variables = policy.expandedVars + ((policy.trackerVariable.spec.name, policy.trackerVariable))
 
-      val techniqueValues = variablesValues(technique.id)
-      for {
-        variables <- bestEffort(technique.getAllVariableSpecs) { variableSpec =>
-                       variableSpec match {
-                         case x : TrackerVariableSpec =>
-                           techniqueValues.get(x.name) match {
-                             case None => Failure(s"[${nodeId.value}:${technique.id}] Misssing mandatory value for tracker variable: '${x.name}'")
-                             case Some(v) => Full(Some(x.toVariable(v.values)))
-                           }
-                         case x : SystemVariableSpec => systemVars.get(x.name) match {
-                             case None =>
-                               if(x.constraint.mayBeEmpty) { //ok, that's expected
-                                 logger.trace(s"[${nodeId.value}:${technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
-                                 Full(None)
-                               } else {
-                                 Failure(s"[${nodeId.value}:${technique.id}] Missing value for system variable: '${x.name}'")
-                               }
-                             case Some(sysvar) => Full(Some(x.toVariable(sysvar.values)))
+    for {
+      variables <- bestEffort(policy.technique.getAllVariableSpecs) { variableSpec =>
+                     variableSpec match {
+                       case x : TrackerVariableSpec =>
+                         variables.get(x.name) match {
+                           case None    => Failure(s"[${nodeId.value}:${policy.technique.id}] Misssing mandatory value for tracker variable: '${x.name}'")
+                           case Some(v) => Full(Some(x.toVariable(v.values)))
                          }
-                         case x : SectionVariableSpec =>
-                           techniqueValues.get(x.name) match {
-                             case None => Failure(s"[${nodeId.value}:${technique.id}] Misssing value for standard variable: '${x.name}'")
-                             case Some(v) => Full(Some(x.toVariable(v.values)))
-                           }
+                       case x : SystemVariableSpec => systemVars.get(x.name) match {
+                           case None =>
+                             if(x.constraint.mayBeEmpty) { //ok, that's expected
+                               logger.trace(s"[${nodeId.value}:${policy.technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
+                               Full(None)
+                             } else {
+                               Failure(s"[${nodeId.value}:${policy.technique.id}] Missing value for system variable: '${x.name}'")
+                             }
+                           case Some(sysvar) =>
+                             Full(Some(x.toVariable(sysvar.values)))
                        }
+                       case x : SectionVariableSpec =>
+                         variables.get(x.name) match {
+                           case None     => Failure(s"[${nodeId.value}:${policy.technique.id}] Misssing value for standard variable: '${x.name}'")
+                           case Some(v) => Full(Some(x.toVariable(v.values)))
+                         }
                      }
-      } yield {
+                   }
+    } yield {
       //return STVariable in place of Rudder variables
-      val stVariables = variables.flatten.map { v => STVariable(
+      variables.flatten.map { v => STVariable(
           name = v.spec.name
         , mayBeEmpty = v.spec.constraint.mayBeEmpty
         , values = v.getTypedValues match {
@@ -267,148 +269,33 @@ class PrepareTemplateVariablesImpl(
           }
         , v.spec.isSystem
       ) }
-      (technique.id,stVariables)
     }
-    }) match {
-      case Full(seq) => seq.toMap
-      case eb: EmptyBox =>
-
-        val errors = (eb ?~! "").messageChain.split(" <- ").tail.distinct.sorted
-
-        errors.foreach { msg =>
-          logger.error(s"${msg}")
-        }
-
-        throw new VariableException( s"Error when trying to build variables for technique(s) in node ${nodeId.value}: ${errors.mkString("; ")}")
-      }
-  }
-
-  /**
-   *
-   * #10625 that need to be updated to also write/call the correct bundle
-   * for D-by-D techniques.
-   *
-   * Compute the TMLs list to be written and their variables
-   * @param container : the container of the policies we want to write
-   * @param extraVariables : optional : extra system variables that we could want to add
-   * @return
-   */
-  private[this] def prepareBundleVars(
-      nodeId          : NodeId
-    , agentType       : AgentType
-    , osDetails       : OsDetails
-    , nodePolicyMode  : Option[PolicyMode]
-    , globalPolicyMode: GlobalPolicyMode
-    , container       : Cf3PolicyDraftContainer
-  ) : Box[Map[String,Variable]] = {
-
-    buildBundleSequence.prepareBundleVars(nodeId, agentType, osDetails, nodePolicyMode, globalPolicyMode, container).map { bundleVars =>
-      bundleVars.map(x => (x.spec.name, x)).toMap
-    }
-  }
-
-  /**
-   * Concatenate all the variables for each policy Instances.
-   *
-   * The serialization is done
-   *
-   * visibility needed for tests
-   */
-  def prepareAllCf3PolicyDraftVariables(cf3PolicyDraftContainer: Cf3PolicyDraftContainer): Map[TechniqueId, Map[String, Variable]] = {
-    (for {
-      // iterate over each policyName
-      (techniqueId, technique) <- cf3PolicyDraftContainer.getTechniques
-    } yield {
-      val cf3PolicyDraftVariables = scala.collection.mutable.Map[String, Variable]()
-
-      for {
-        // over each cf3PolicyDraft for this name
-        (directiveId, cf3PolicyDraft) <- cf3PolicyDraftContainer.findById(techniqueId)
-      } yield {
-        // start by setting the TRACKINGKEY variable
-        // we need to deal with it appart because we need to have the
-        // number of values for the tracked variable
-        val (trackingKeyVariable, trackedVariable) = cf3PolicyDraft.getDirectiveVariable
-
-        val values = {
-          // Only multi-instance policy may have a trackingKeyVariable with high cardinal
-          // Because if the technique is Unique, then we can't have several directive ID on the same
-          // rule, and we just always use the same cf3PolicyDraftId
-          val size = if (technique.isMultiInstance) { trackedVariable.values.size } else { 1 }
-          Seq.fill(size)(createRudderId(cf3PolicyDraft))
-        }
-        cf3PolicyDraftVariables.get(trackingKeyVariable.spec.name) match {
-          case None =>
-              //directiveVariable.values = scala.collection.mutable.Buffer[String]()
-              cf3PolicyDraftVariables.put(trackingKeyVariable.spec.name, trackingKeyVariable.copy(values = values))
-          case Some(x) =>
-              cf3PolicyDraftVariables.put(trackingKeyVariable.spec.name, x.copyWithAppendedValues(values))
-        }
-
-        // All other variables now
-        for (variable <- cf3PolicyDraft.getVariables) {
-          variable._2 match {
-            case _     : TrackerVariable => // nothing, it's been dealt with already
-            case newVar: Variable        =>
-              if ((!newVar.spec.checked) || (newVar.spec.isSystem)) {} else { // Only user defined variables should need to be agregated
-                val variable = cf3PolicyDraftVariables.get(newVar.spec.name) match {
-                  case None =>
-                    Variable.matchCopy(newVar, setMultivalued = true) //asIntance is ok here, I believe
-                  case Some(existingVariable) => // value is already there
-                    // hope it is multivalued, otherwise BAD THINGS will happen
-                    if (!existingVariable.spec.multivalued) {
-                      logger.warn("Attempt to append value into a non multivalued variable, bad things may happen")
-                    }
-                    existingVariable.copyWithAppendedValues(newVar.values)
-                }
-                cf3PolicyDraftVariables.put(newVar.spec.name, variable)
-              }
-          }
-        }
-      }
-
-      (techniqueId, cf3PolicyDraftVariables.toMap)
-    }).toMap
   }
 
   /**
    * From a container, containing meta technique, fetch the csv included, and add the Rudder UUID within, and return the new lines
    */
-  private[this] def prepareReportingDataForMetaTechnique(cf3PolicyDraftContainer: Cf3PolicyDraftContainer, rudderTag: String ): Seq[String] = {
-    (for {
-      // iterate over each policyName
-      (techniqueId, technique) <- cf3PolicyDraftContainer.getTechniques()
-    } yield {
-
-      technique.providesExpectedReports match {
-        case true =>
-            // meta Technique are UNIQUE, hence we can get at most ONE cf3PolicyDraft per activeTechniqueId
-            cf3PolicyDraftContainer.findById(techniqueId) match {
-              case seq if seq.size == 0 =>
-                Seq[String]()
-              case seq if seq.size == 1 =>
-                val cf3PolicyDraft = seq.head._2
-                val rudderId = createRudderId(cf3PolicyDraft)
-                val csv = techniqueRepository.getReportingDetailsContent[Seq[String]](technique.id) { optInputStream =>
-                    optInputStream match {
-                      case None => throw new RuntimeException(s"Error when trying to open reports descriptor `expected_reports.csv` for technique ${technique}. Check that the report descriptor exist and is correctly commited in Git, or that the metadata for the technique are corrects.")
-                      case Some(inputStream) =>
-                        scala.io.Source.fromInputStream(inputStream)(Codec.UTF8).getLines().map{ case line =>
-                          line.trim.startsWith("#") match {
-                            case true  => line
-                            case false => line.replaceAll(rudderTag, rudderId)
-                          }
-                        }.toSeq
-                    }
-                }
-                csv
-              case _ =>
-                throw new RuntimeException("There cannot be two identical meta Technique on a same node");
+  private[this] def prepareReportingDataForMetaTechnique(policies: List[Policy], rudderTag: String): List[String] = {
+    policies.flatMap { p => p.technique.providesExpectedReports match {
+      case true =>
+        val rudderId = p.id.getReportId
+        val csv = techniqueRepository.getReportingDetailsContent[Seq[String]](p.technique.id) { optInputStream =>
+            optInputStream match {
+              case None => throw new RuntimeException(s"Error when trying to open reports descriptor `expected_reports.csv` for technique ${p.technique}." +
+                                                      s"Check that the report descriptor exist and is correctly commited in Git, or that the metadata for the technique are corrects.")
+              case Some(inputStream) =>
+                scala.io.Source.fromInputStream(inputStream)(Codec.UTF8).getLines().map{ case line =>
+                  line.trim.startsWith("#") match {
+                    case true  => line
+                    case false => line.replaceAll(rudderTag, rudderId)
+                  }
+                }.toList
             }
-        case false =>
-          Seq[String]()
-      }
-    }).toList.flatten
+        }
+        csv
+      case false =>
+        Nil
+    }}
   }
 
 }

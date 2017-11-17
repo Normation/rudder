@@ -90,8 +90,7 @@ trait WoRuleRepository {
    * NOTE: only save here, deploy is done in the DeploymentService
    *
    * NOTE: some parameter may be forced to a value different from the
-   * one provided (typically, serial will be set to 0 whatever it's value
-   * is). It is the responsability of the user to check that if he wants
+   * one provided. It is the responsability of the user to check that if he wants
    * with the provided resulting rule.
    *
    */
@@ -103,7 +102,6 @@ trait WoRuleRepository {
    *
    * If the rule is not in the repos, the method fails.
    * If the rule is a system one, the methods fails.
-   * NOTE: the serial is *never* updated with that methods.
    */
   def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]]
 
@@ -111,8 +109,6 @@ trait WoRuleRepository {
   /**
    * Update the system configuration rule with the given ID with the given
    * parameters.
-   *
-   * NOTE: the serial is *never* updated with that methods.
    */
   def updateSystem(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]]
 

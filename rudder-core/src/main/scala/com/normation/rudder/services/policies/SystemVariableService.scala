@@ -428,7 +428,7 @@ class SystemVariableServiceImpl(
      * it must not be used to assess node config stability from
      * run to run.
      * So we set it to a default value and handle it specialy in
-     * Cf3PromisesFileWriterServiceImpl#prepareRulesForAgents
+     * PolicyWriterServiceImpl#prepareRulesForAgents
      */
     val varNodeConfigVersion = systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq("DUMMY NODE CONFIG VERSION"))
 

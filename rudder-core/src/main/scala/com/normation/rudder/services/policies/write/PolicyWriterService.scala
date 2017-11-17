@@ -53,7 +53,6 @@ import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLogger
 import com.normation.templates.FillTemplatesService
 import com.normation.templates.STVariable
@@ -79,6 +78,10 @@ import scala.util.Success
 import scala.util.Try
 import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.domain.Variable
+import com.normation.rudder.services.policies.NodeConfiguration
+import com.normation.rudder.services.policies.ParameterEntry
+import com.normation.rudder.services.policies.PolicyId
+import com.normation.rudder.services.policies.Policy
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -101,7 +104,7 @@ trait PolicyWriterService {
   ) : Box[Seq[NodeConfiguration]]
 }
 
-class Cf3PromisesFileWriterServiceImpl(
+class PolicyWriterServiceImpl(
     techniqueRepository       : TechniqueRepository
   , pathComputer              : PathComputer
   , logNodeConfig             : NodeConfigurationLogger
@@ -111,8 +114,6 @@ class Cf3PromisesFileWriterServiceImpl(
   , HOOKS_D                   : String
   , HOOKS_IGNORE_SUFFIXES     : List[String]
 ) extends PolicyWriterService with Loggable {
-
-  val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
 
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
@@ -296,7 +297,7 @@ class Cf3PromisesFileWriterServiceImpl(
 
       preparedPromises <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                             val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode)
+                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime)
                           }
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             for {
@@ -483,7 +484,7 @@ class Cf3PromisesFileWriterServiceImpl(
       _ <- sequence(preparedTechniques) { preparedTechnique =>
              for {
                templates <-  sequence(preparedTechnique.templatesToProcess.toSeq) { template =>
-                               writePromisesFiles(template, preparedTechnique.environmentVariables , paths.newFolder)
+                               writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
                files     <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
                               copyResourceFile(file, paths.newFolder)
@@ -664,6 +665,7 @@ class Cf3PromisesFileWriterServiceImpl(
       templateInfo          : TechniqueTemplateCopyInfo
     , variableSet           : Seq[STVariable]
     , outPath               : String
+    , reportIdToReplace     : Option[PolicyId]
   ): Box[String] = {
 
     //here, we need a big try/catch, because almost anything in string template can
@@ -672,7 +674,12 @@ class Cf3PromisesFileWriterServiceImpl(
     logger.trace(s"Create promises file ${outPath} ${templateInfo.destination}")
 
     for {
-      replaced <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
+      filled   <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
+      // if the technique is multipolicy, replace rudderTag by reportId
+      replaced =  reportIdToReplace match {
+                    case None => filled
+                    case Some(id) => filled.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
+                  }
       _        <- tryo { FileUtils.writeStringToFile(new File(outPath, templateInfo.destination), replaced, Codec.UTF8.charSet) } ?~!
                     s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
     } yield {

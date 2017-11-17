@@ -54,7 +54,7 @@ import bootstrap.liftweb.RudderConfig
 
 class ClearCache extends DispatchSnippet with Loggable {
 
-  private[this] val nodeConfigurationService = RudderConfig.nodeConfigurationService
+  private[this] val nodeConfigurationService = RudderConfig.nodeConfigurationHashRepo
   private[this] val asyncDeploymentAgent     = RudderConfig.asyncDeploymentAgent
   private[this] val eventLogRepository       = RudderConfig.eventLogRepository
   private[this] val uuidGen                  = RudderConfig.stringUuidGenerator

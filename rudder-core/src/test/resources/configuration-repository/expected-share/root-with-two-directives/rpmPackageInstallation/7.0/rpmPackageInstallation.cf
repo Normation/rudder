@@ -36,12 +36,18 @@ bundle agent check_rpm_package_installation {
       "package_number" int => readstringarrayidx("rpm_data","${this.promise_dirname}/rpmPackageInstallationData", "#[^\n]*",":",9000,1600000);
 
       "rpm_package[0]" string => "plop";
+      "rpm_package[1]" string => "foo";
+      "rpm_package[2]" string => "bar";
 
 
       "rpm_version[0]" string => "";
+      "rpm_version[1]" string => "";
+      "rpm_version[2]" string => "";
 
 
       "rpm_posthook[0]" string => "";
+      "rpm_posthook[1]" string => "";
+      "rpm_posthook[2]" string => "";
 
 
       "index_rpmpkg" slist => getindices("rpm_package");
@@ -101,6 +107,8 @@ bundle agent check_rpm_package_installation {
 
   classes:
       "execute_command_0" expression => strcmp("false", "true");
+      "execute_command_1" expression => strcmp("false", "true");
+      "execute_command_2" expression => strcmp("false", "true");
 
 
       # Check if update file exists

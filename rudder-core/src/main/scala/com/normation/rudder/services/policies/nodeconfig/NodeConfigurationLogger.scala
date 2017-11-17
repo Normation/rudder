@@ -48,6 +48,7 @@ import net.liftweb.json.Serialization
 import net.liftweb.json.Serialization.writePretty
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
+import com.normation.rudder.services.policies.NodeConfiguration
 
 
 trait NodeConfigurationLogger {
