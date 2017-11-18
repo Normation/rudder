@@ -43,6 +43,7 @@ import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.authorization._
 import com.normation.rudder.service.user.UserService
+import com.normation.rudder.domain.nodes.NodeState
 
 trait NodeAPI extends RestAPI {
   val kind = "nodes"
@@ -64,4 +65,5 @@ case class RestNodeProperties(
 case class RestNode (
     properties : Option[Seq[NodeProperty]]
   , policyMode : Option[Option[PolicyMode]]
+  , state      : Option[NodeState]
 )

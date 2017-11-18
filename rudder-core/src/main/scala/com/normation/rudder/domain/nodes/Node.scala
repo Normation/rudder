@@ -71,7 +71,7 @@ case class Node(
     id                        : NodeId
   , name                      : String
   , description               : String
-  , isBroken                  : Boolean
+  , state                     : NodeState
   , isSystem                  : Boolean
   , isPolicyServer            : Boolean
   , creationDate              : DateTime
@@ -86,7 +86,7 @@ case object Node {
         inventory.node.main.id
       , inventory.node.main.hostname
       , inventory.node.description.getOrElse("")
-      , false
+      , NodeState.Enabled
       , false
       , false
       , inventory.node.inventoryDate.getOrElse(new DateTime(0))
@@ -95,6 +95,17 @@ case object Node {
       , None
     )
   }
+}
+
+sealed trait NodeState { def name: String }
+final object NodeState {
+
+  final case object Enabled          extends NodeState { val name = "enabled"          }
+  final case object Disabled         extends NodeState { val name = "disabled"         }
+  final case object Initializing     extends NodeState { val name = "initializing"     }
+  final case object Decommissionning extends NodeState { val name = "decommissionning" }
+
+  def values = ca.mrvisser.sealerate.values[NodeState]
 }
 
 /*

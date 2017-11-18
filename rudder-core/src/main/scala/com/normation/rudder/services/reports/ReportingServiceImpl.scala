@@ -56,6 +56,7 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.nodes.NodeState
 
 /**
  * Defaults non-cached version of the reporting service.
@@ -161,6 +162,8 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * For the nodeIds in parameter, check that the cache is:
    * - initialized, else go find missing rule node status reports (one time for all)
    * - none reports is expired, else switch its status to "missing" for all components
+   *
+   * - ignore nodes in "disabled" state
    */
   private[this] def checkAndUpdateCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, NodeStatusReport]] = scala.concurrent.blocking { this.synchronized {
     if(nodeIdsToCheck.isEmpty) {
@@ -169,7 +172,8 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       val now = DateTime.now
 
       for {
-        allNodeIds        <- nodeInfoService.getAll.map( _.keySet)
+        // disabled nodes are ignored
+        allNodeIds        <- nodeInfoService.getAll.map( _.filter { case(_,n) => n.state != NodeState.Disabled }.keySet )
         //only try to update nodes that are accepted in Rudder
         nodeIds            =  nodeIdsToCheck.intersect(allNodeIds)
         /*

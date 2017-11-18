@@ -84,7 +84,7 @@ object RudderLDAPConstants extends Loggable {
   val A_IS_DYNAMIC = "isDynamic"
   /* is it a system object ? boolean */
   val A_IS_SYSTEM = "isSystem"
-  val A_IS_BROKEN = "isBroken"
+  val A_STATE = "state"
   val A_IS_POLICY_SERVER = "isPolicyServer"
 
   val A_SERIALIZED_AGENT_RUN_INTERVAL = "serializedAgentRunInterval"
@@ -167,7 +167,7 @@ object RudderLDAPConstants extends Loggable {
     may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM, A_RULE_TARGET, A_DIRECTIVE_UUID, "serial", A_RULE_CATEGORY, A_SERIALIZED_TAGS))
 
   OC += (OC_RUDDER_NODE,
-    must = Set(A_NODE_UUID, A_NAME, A_IS_BROKEN, A_IS_SYSTEM),
+    must = Set(A_NODE_UUID, A_NAME, A_STATE, A_IS_SYSTEM),
     may = Set(A_DESCRIPTION, A_SERIALIZED_AGENT_RUN_INTERVAL, A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, A_NODE_PROPERTY))
 
   OC += (OC_POLICY_SERVER_NODE, sup = OC(OC_RUDDER_NODE),

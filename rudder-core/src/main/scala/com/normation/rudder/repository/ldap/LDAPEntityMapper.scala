@@ -92,6 +92,16 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
 
+final object NodeStateEncoder {
+  implicit def enc(state: NodeState): String = state.name
+  implicit def dec(state: String): Either[Throwable, NodeState] = {
+    NodeState.values.find { state.toLowerCase() == _.name } match {
+      case Some(s) => Right(s)
+      case None    => Left(new IllegalArgumentException(s"'${state}' can not be decoded to a NodeState"))
+    }
+  }
+}
+
 /**
  * Map objects from/to LDAPEntries
  *
@@ -107,6 +117,7 @@ class LDAPEntityMapper(
     //////////////////////////////    Node    //////////////////////////////
 
   def nodeToEntry(node:Node) : LDAPEntry = {
+    import NodeStateEncoder._
     val entry =
       if(node.isPolicyServer) {
         nodeDit.NODES.NODE.policyServerNodeModel(node.id)
@@ -115,7 +126,7 @@ class LDAPEntityMapper(
       }
     entry +=! (A_NAME, node.name)
     entry +=! (A_DESCRIPTION, node.description)
-    entry +=! (A_IS_BROKEN, node.isBroken.toLDAPString)
+    entry +=! (A_STATE, enc(node.state))
     entry +=! (A_IS_SYSTEM, node.isSystem.toLDAPString)
 
     node.nodeReportingConfiguration.agentRunInterval match {
@@ -182,11 +193,18 @@ class LDAPEntityMapper(
           case None => Failure("Invalid data when unserializing node property")
         })
       } yield {
+        val hostname = e(A_NAME).getOrElse("")
         Node(
             id
-          , e(A_NAME).getOrElse("")
+          , hostname
           , e(A_DESCRIPTION).getOrElse("")
-          , e.getAsBoolean(A_IS_BROKEN).getOrElse(false)
+            // node state missing or unknown value => enable, so that we are upward compatible
+          , NodeStateEncoder.dec(e(A_STATE).getOrElse(NodeState.Enabled.name)) match {
+              case Right(s) => s
+              case Left(ex) =>
+                logger.debug(s"Can not decode 'state' for node '${hostname}' (${id.value}): ${ex.getMessage}")
+                NodeState.Enabled
+            }
           , e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
           , e.isA(OC_POLICY_SERVER_NODE)
           , date.dateTime
@@ -235,7 +253,7 @@ class LDAPEntityMapper(
                   NodeId(id)
                 , inventoryEntry(A_NAME).getOrElse("")
                 , inventoryEntry(A_DESCRIPTION).getOrElse("")
-                , inventoryEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false)
+                , NodeState.Enabled
                 , inventoryEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
                 , false //we don't know anymore if it was a policy server
                 , new DateTime(0) // we don't know anymore the acceptation date

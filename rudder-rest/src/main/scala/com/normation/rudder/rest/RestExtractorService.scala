@@ -76,6 +76,7 @@ import com.normation.rudder.domain.nodes.NodePropertyProvider
 import com.normation.rudder.web.rest.parameter.RestParameter
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.services.ReasonBehavior
+import com.normation.rudder.repository.ldap.NodeStateEncoder
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -593,8 +594,9 @@ case class RestExtractorService (
     for {
       properties <- extractNodeProperties(params)
       mode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault)
+      state      <- extractOneValue(params, "state")(x => NodeStateEncoder.dec(x).toOption)
     } yield {
-      RestNode(properties,mode)
+      RestNode(properties, mode, state)
     }
   }
 
@@ -648,8 +650,9 @@ case class RestExtractorService (
     for {
       properties <- extractNodePropertiesFromJSON(json)
       mode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault)
+      state      <- extractJsonString(json, "state", x => NodeStateEncoder.dec(x).toOption)
     } yield {
-      RestNode(properties,mode)
+      RestNode(properties, mode, state)
     }
   }
 

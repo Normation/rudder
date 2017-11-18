@@ -88,6 +88,7 @@ import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.hooks.HookEnvPairs
 import scala.concurrent.Future
 import com.normation.rudder.hooks.HooksImplicits
+import com.normation.rudder.domain.nodes.NodeState
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -148,7 +149,12 @@ trait PromiseGenerationService extends Loggable {
       allRules            <- findDependantRules() ?~! "Could not find dependant rules"
       fetch1Time          =  System.currentTimeMillis
       _                   =  logger.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
-      allNodeInfos        <- getAllNodeInfos ?~! "Could not get Node Infos"
+      allNodeInfos        <- getAllNodeInfos.map( _.filter { case(_,n) =>
+                               if(n.state == NodeState.Disabled) {
+                                 logger.debug(s"Skipping node '${n.id.value}' because the node is in state '${n.state.name}'")
+                                 false
+                               } else true
+                             })  ?~! "Could not get Node Infos" //disabled node don't get new policies
       fetch2Time          =  System.currentTimeMillis
       _                   =  logger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
       directiveLib        <- getDirectiveLibrary() ?~! "Could not get the directive library"

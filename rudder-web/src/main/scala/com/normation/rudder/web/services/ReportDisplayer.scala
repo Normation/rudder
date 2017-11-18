@@ -61,6 +61,7 @@ import org.joda.time.format.DateTimeFormat
 import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.domain.nodes.NodeState
 
 /**
  * Display the last reports of a server
@@ -286,6 +287,9 @@ class ReportDisplayer(
 
   private[this] def displayReports(node : NodeInfo) : NodeSeq = {
     val boxXml = (
+      if(node.state == NodeState.Disabled) {
+        Full(<div class="tw-bs"><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>)
+      } else {
       for {
         report       <- reportingService.findNodeStatusReport(node.id)
         directiveLib <- directiveRepository.getFullDirectiveLibrary
@@ -347,6 +351,7 @@ class ReportDisplayer(
               & "lastreportgrid-unexpected" #> showUnexpectedReports(unexpected)
             )(reportByNodeTemplate)
         }
+      }
       }
     )
 

@@ -166,7 +166,7 @@ object NodeInfoService {
     //  id, name, description, isBroken, isSystem
     //, isPolicyServer <- this one is special and decided based on objectClasss rudderPolicyServer
     //, creationDate, nodeReportingConfiguration, properties
-    , A_NODE_UUID, A_NAME, A_DESCRIPTION, A_IS_BROKEN, A_IS_SYSTEM
+    , A_NODE_UUID, A_NAME, A_DESCRIPTION, A_STATE, A_IS_SYSTEM
     , A_SERIALIZED_AGENT_RUN_INTERVAL, A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, A_NODE_PROPERTY, A_POLICY_MODE
 
     // machine inventory

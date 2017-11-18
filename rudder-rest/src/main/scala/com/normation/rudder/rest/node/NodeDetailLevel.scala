@@ -107,7 +107,8 @@ case class CustomDetailLevel (
 object NodeDetailLevel {
 
   val otherDefaultFields = List(
-        "os"
+        "state"
+      , "os"
       , "architectureDescription"
       , "ram"
       , "machine"
@@ -162,6 +163,7 @@ object NodeDetailLevel {
 
     val id           : NodeInfo => JValue = (inv: NodeInfo) => inv.id.value
     val hostname     : NodeInfo => JValue = (inv: NodeInfo) => inv.hostname
+    val state        : NodeInfo => JValue = (inv: NodeInfo) => inv.state.name
     val description  : NodeInfo => JValue = (inv: NodeInfo) => inv.description
     val policyServer : NodeInfo => JValue = (inv: NodeInfo) => inv.policyServerId.value
     val ram          : NodeInfo => JValue = (inv: NodeInfo) => inv.ram.map(MemorySize.sizeMb)
@@ -222,6 +224,7 @@ object NodeDetailLevel {
     Map (
         ( "id"       -> id )
       , ( "hostname" -> hostname )
+      , ( "state" -> state )
       , ( "os"  -> os )
       , ( "ram" -> ram )
       , ( "machine"     -> machine )
