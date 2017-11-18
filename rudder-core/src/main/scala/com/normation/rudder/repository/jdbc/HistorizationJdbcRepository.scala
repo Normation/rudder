@@ -165,7 +165,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     }
 
     (for {
-      rules      <- sql"""select rulepkeyid, ruleid, serial, categoryid, name, shortdescription,
+      rules      <- sql"""select rulepkeyid, ruleid, categoryid, name, shortdescription,
                                  longdescription, isenabled, starttime, endtime
                           from rules
                           where endtime is null""".query[DB.SerializedRules[Long]].vector

@@ -79,7 +79,7 @@ class NodeApiService8 (
     for {
       node           <- nodeInfoService.getNode(nodeId)
       newProperties  <- CompareProperties.updateProperties(node.properties, restNode.properties)
-      updated        =  node.copy(properties = newProperties, policyMode = restNode.policyMode.getOrElse(node.policyMode))
+      updated        =  node.copy(properties = newProperties, policyMode = restNode.policyMode.getOrElse(node.policyMode), state=restNode.state.getOrElse(node.state))
       saved          <- if(updated == node) Full(node)
                         else nodeRepository.updateNode(updated, modId, actor, reason)
     } yield {

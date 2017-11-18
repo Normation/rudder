@@ -94,6 +94,7 @@ import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.domain.eventlog.InventoryLogDetails
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.domain.nodes.NodeState
 
 
 /**
@@ -775,7 +776,7 @@ class AcceptFullInventoryInNodeOu(
         sm.node.main.id
       , name
       , description
-      , false
+      , NodeState.Enabled
       , false
       , isPolicyServer
       , DateTime.now // won't be used on save - dummy value

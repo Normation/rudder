@@ -121,6 +121,7 @@ case class RestDataSerializerImpl (
     (   ("id"         -> node.id.value)
       ~ ("properties" -> node.properties.toApiJson)
       ~ ("policyMode" -> node.policyMode.map(_.name).getOrElse("default"))
+      ~ ("state"      -> node.state.name)
     )
   }
 

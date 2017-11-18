@@ -302,7 +302,7 @@ class Cf3PromisesFileWriterServiceImpl(
                             for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
                               // todo : for #10625: also write the new json files.
-                              _ <- writeAllAgentSpecificFiles.write(prepared /*, newJsonD-by-DTechniques */)
+                              _ <- writeAllAgentSpecificFiles.write(prepared /*, newJsonD-by-DTechniques */) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
                               "OK"

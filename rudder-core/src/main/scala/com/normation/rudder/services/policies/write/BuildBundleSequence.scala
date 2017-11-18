@@ -210,7 +210,8 @@ class BuildBundleSequence(
           techniquesBundles          <- sequence(sortedTechniques)(buildTechniqueBundles(nodeId, agentType))
           //split system and user directive (technique)
           (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
-          bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentType, osDetails, systemInputFiles, systemBundle, userInputFiles, userBundle)
+          bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentType, osDetails, systemInputFiles, systemBundle, userInputFiles, userBundle) ?~!
+                                        s"Error with node '${nodeId.value}'"
         } yield {
 
           // map to correct variables

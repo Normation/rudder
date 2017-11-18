@@ -98,6 +98,7 @@ import com.normation.inventory.domain.Windows
 import com.normation.inventory.domain.Windows2012
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Certificate
+import com.normation.rudder.domain.nodes.NodeState
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -133,7 +134,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       rootId
     , "root"
     , ""
-    , false
+    , NodeState.Enabled
     , false
     , true
     , DateTime.now
@@ -171,7 +172,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       id1
     , "node1"
     , ""
-    , false
+    , NodeState.Enabled
     , false
     , true //is policy server
     , DateTime.now
@@ -237,7 +238,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       NodeId("node-dsc")
     , "node-dsc"
     , ""
-    , false
+    , NodeState.Enabled
     , false
     , true //is policy server
     , DateTime.now
@@ -343,7 +344,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     NodeId(s"${i}")
   }).toSet
 
-  def newNode(id : NodeId) = Node(id,"" ,"", false, false, false, DateTime.now, ReportingConfiguration(None,None), Seq(), None)
+  def newNode(id : NodeId) = Node(id,"" ,"", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None,None), Seq(), None)
 
   val nodes = (Set(root, node1, node2) ++ nodeIds.map {
     id =>

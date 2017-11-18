@@ -90,7 +90,7 @@ final case class NodeInfo(
   val id                         = node.id
   val name                       = node.name
   val description                = node.description
-  val isBroken                   = node.isBroken
+  val state                      = node.state
   val isSystem                   = node.isSystem
   val isPolicyServer             = node.isPolicyServer
   val creationDate               = node.creationDate
