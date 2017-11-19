@@ -528,9 +528,35 @@ class TestQueryProcessor extends Loggable {
     testQueries( allCfengine :: community :: nova :: dsc :: notCfengine :: Nil)
   }
   /**
+   * Test environment variable
+   */
+  @Test def nodeJsonFixedKeyQueries() {
+
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      {"select":"node","composition":"And","where":[
+        {"objectType":"process","attribute":"started","comparator":"eq","value":"2015-01-21 17:24"}
+      ]}
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    val q2 = TestQuery(
+      "q2",
+      parser("""
+      {"select":"node","composition":"And","where":[
+        {"objectType":"process","attribute":"commandName","comparator":"regex","value":".*vtmp.*"}
+      ]}
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    testQueries(q1 :: q2 :: Nil)
+  }
+
+  /**
    * Test environment variable and nodeProperty
    */
-  @Test def nodeKeyValuesPairsPropertiesQueries() {
+  @Test def nodeNameValueQueries() {
 
     val q1 = TestQuery(
       "q1",
@@ -544,14 +570,27 @@ class TestQueryProcessor extends Loggable {
     val q2 = TestQuery(
       "q2",
       parser("""
+      {"select":"node","composition":"And","where":[
+        {"objectType":"environmentVariable","attribute":"name.value","comparator":"regex","value":".+=/.*/rudder.*"}
+      ]}
+      """).openOrThrowException("For tests"),
+      s(2) :: s(3) :: Nil)
+
+    testQueries(q1 :: q2 :: Nil)
+  }
+
+  @Test def nodeProperties() {
+    val q1 = TestQuery(
+      "q1",
+      parser("""
       { "select":"node", "where":[
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"eq", "value":"foo=bar" }
       ] }
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
-    val q3 = TestQuery(
-      "q3",
+    val q2 = TestQuery(
+      "q2",
       parser("""
       { "select":"node", "where":[
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"foo?=.*ar" }
@@ -559,15 +598,80 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
-    testQueries(q1 :: q2 :: q3 :: Nil)
+
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"hasKey", "value":"datacenter" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(2) :: s(3) :: Nil)
+
+    // same as "haskey"
+    val q4 = TestQuery(
+      "q4",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"datacenter=.*" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(2) :: s(3) :: Nil)
+
+    // kind of matching sub-keys
+    val q5 = TestQuery(
+      "q5",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"datacenter=.*\"id\":1234,.*" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(2) :: Nil)
+
+    // matching unquoted number
+    val q6 = TestQuery(
+      "q6",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"number=42" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(3) :: s(4) :: Nil)
+
+    // matching provider, but the user data only
+    val q7 = TestQuery(
+      "q7",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"datacenter=.*provider.*" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(3) :: Nil)
+
+    testQueries(q1 :: q2 :: q3 :: q4 :: q5 ::  q6 :: q7 :: Nil)
   }
 
-  @Test def failingRequestOnProperties() {
+  @Test def nodePropertiesMissingEqualsReq() {
+    // Failing request, see #10570
+    // if there is no "=", we must only find node with empty value for the key
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"foo" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(4) :: Nil)
+
+     testQueries(q1 :: Nil)
+  }
+
+  @Test def nodePropertiesFailingReq() {
     // Failing request, see #10570
     val failingRegexRequest =
       parser("""
       { "select":"node", "where":[
-        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"foo" }
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"f{o}o" }
       ] }""")
     failingRegexRequest match {
       case Full(query) =>
@@ -625,15 +729,6 @@ class TestQueryProcessor extends Loggable {
       assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected entries (process)\n Found: %s\n Wants: %s".
           format(name,foundWithLimit,ids),ids.size.toLong,foundWithLimit.size.toLong)
   }
-
-//  private def testQueryResultChecker(name:String,query:Query, ids:Seq[NodeId]) = {
-//      val checked = queryProcessor.check(query,s).openOrThrowException("For tests")
-//
-//      assertEquals("[%s]Size differ between awaited and found entry set (check)\n Found: %s\n Wants: %s".
-//          format(name,checked,ids),ids.size,checked.size)
-//      assertTrue("[%s]Entries differ between awaited and found entry set (check)\n Found: %s\n Wants: %s".
-//          format(name,checked,ids),checked.forall { f => ids.exists( f == _) })
-//  }
 
   @After def after() {
     ldap.server.shutDown(true)

@@ -55,6 +55,7 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.LDAPNodeInfo
+import net.liftweb.json.JsonAST.JObject
 
 /*
  * We have two type of filters:
@@ -67,13 +68,21 @@ sealed trait ExtendedFilter
 final case class LDAPFilter(f:Filter) extends ExtendedFilter with HashcodeCaching
 
 //special ones
-sealed trait SpecialFilter extends ExtendedFilter
-final case class RegexFilter(attributeName:String, regex:String) extends SpecialFilter with HashcodeCaching
-final case class NotRegexFilter(attributeName:String, regex:String) extends SpecialFilter with HashcodeCaching
+sealed trait SpecialFilter  extends ExtendedFilter
+sealed trait GeneralRegexFilter extends SpecialFilter {
+  def attributeName:String
+  def regex:String
+}
+sealed trait RegexFilter    extends GeneralRegexFilter
+sealed trait NotRegexFilter extends GeneralRegexFilter
+final case class SimpleRegexFilter         (attributeName:String, regex:String) extends RegexFilter    with HashcodeCaching
+final case class SimpleNotRegexFilter      (attributeName:String, regex:String) extends NotRegexFilter with HashcodeCaching
+final case class NodePropertyRegexFilter   (attributeName:String, regex:String) extends RegexFilter    with HashcodeCaching
+final case class NodePropertyNotRegexFilter(attributeName:String, regex:String) extends NotRegexFilter with HashcodeCaching
 
 /*
- * An NodeQuery differ a little from a Query because it's component are sorted in two way :
- * - the server is apart with it's possible filter from criteria;
+ * An NodeQuery differ a little from a Query because its components are sorted in two ways:
+ * - the server is apart with its possible filter from criteria
  * - other criteria are sorted by group of things that share the same dependency path to server,
  *   and the attribute on witch join are made.
  *   The attribute must be on server.
@@ -82,7 +91,7 @@ final case class NotRegexFilter(attributeName:String, regex:String) extends Spec
  *   - Machine and physical element : get the Machine DN
  *   - Logical Element : get the Node DN
  *
- *   More over, we need a "DN to filter" function for the requested object type
+ *   Moreover, we need a "DN to filter" function for the requested object type
  */
 case class LDAPNodeQuery(
     //filter on the return type.
@@ -229,8 +238,6 @@ class InternalLDAPQueryProcessor(
    * relevant logics.
    * Sub classes should call that method to
    * implement process&check method
-   *
-   * TODO: there is a lot of room to be smarter here.
    */
   def internalQueryProcessor(
       query:Query,
@@ -451,14 +458,7 @@ class InternalLDAPQueryProcessor(
 
       //special filter can modify the filter and the attributes to get
       val params = ( (filter,attributes) /: addedSpecialFilters) {
-            case ( (f, currentAttributes), r:RegexFilter) =>
-              val filterToApply = composition match {
-                case Or => Some(ALL)
-                case And => f.orElse(Some(ALL))             }
-
-              (filterToApply, currentAttributes ++ getAdditionnalAttributes(Set(r)))
-
-            case ( (f, currentAttributes), r:NotRegexFilter) =>
+            case ( (f, currentAttributes), r:GeneralRegexFilter) =>
               val filterToApply = composition match {
                 case Or => Some(ALL)
                 case And => f.orElse(Some(ALL))             }
@@ -593,9 +593,8 @@ class InternalLDAPQueryProcessor(
   private[this] def unspecialiseFilters(filters:Set[ExtendedFilter]) : Box[(Set[Filter], Set[SpecialFilter])] = {
     val start = (Set[Filter](), Set[SpecialFilter]())
     Full((start /: filters) {
-      case (  (ldapFilters,specials), LDAPFilter(f) ) => (ldapFilters + f, specials)
-      case (  (ldapFilters,specials), r:RegexFilter ) => (ldapFilters, specials + r)
-      case (  (ldapFilters,specials), r:NotRegexFilter ) => (ldapFilters, specials + r)
+      case (  (ldapFilters,specials), LDAPFilter(f)        ) => (ldapFilters + f, specials)
+      case (  (ldapFilters,specials), r:GeneralRegexFilter ) => (ldapFilters, specials + r)
       case (x, f) => return Failure("Can not handle filter type: '%s', abort".format(f))
     })
   }
@@ -606,8 +605,7 @@ class InternalLDAPQueryProcessor(
    */
   private[this] def getAdditionnalAttributes(filters:Set[SpecialFilter]) : Set[String] = {
     filters.flatMap {
-      case RegexFilter(attr,v) => Set(attr)
-      case NotRegexFilter(attr,v) => Set(attr)
+      case f:GeneralRegexFilter => Set(f.attributeName)
     }
   }
 
@@ -626,40 +624,94 @@ class InternalLDAPQueryProcessor(
         }
       }
 
+      /*
+       * Apply the regex match filter on entries-> attribute after applying the valueFormatter function
+       * (which can be used to normalized the value)
+       */
+      def regexMatch(attr: String, regexText: String, entries: Seq[LDAPEntry], valueFormatter: String => Box[String]) = {
+        for {
+          pattern <- getRegex(regexText)
+        } yield {
+          /*
+           * We want to match "OK" an entry if any of the values for
+           * the given attribute matches the regex.
+           */
+          entries.filter { entry =>
+            val res = entry.valuesFor(attr).exists { value =>
+              valueFormatter(value) match {
+                case Full(v) => pattern.matcher( v ).matches
+                case _       => false
+              }
+            }
+            logger.trace("[%5s] for regex check '%s' on attribute %s of entry: %s:%s".format(res, regexText, attr, entry.dn,entry.valuesFor(attr).mkString(",")))
+            res
+          }
+        }
+      }
+
+      /*
+       * Apply the regex NOT match filter on entries-> attribute after applying the valueFormatter function
+       * (which can be used to normalized the value)
+       */
+      def regexNotMatch(attr: String, regexText: String, entries: Seq[LDAPEntry], valueFormatter: String => Box[String]) = {
+        for {
+          pattern <- getRegex(regexText)
+        } yield {
+          /*
+           * We want to match "OK" an entry if the entry does not
+           * have the attribute or NONE of the value matches the regex.
+           */
+          entries.filter { entry =>
+            logger.trace("Filtering with regex not matching '%s' entry: %s:%s".format(regexText,entry.dn,entry.valuesFor(attr).mkString(",")))
+            val res = entry.valuesFor(attr).forall { value =>
+              valueFormatter(value) match {
+                case Full(v) => !pattern.matcher( v ).matches
+                case _       => false
+              }
+            }
+            logger.trace("Entry matches: " + res)
+            res
+          }
+        }
+      }
+
+      /*
+       * Parse the value as json and write it back as wanted.
+       * Perf won't be amazing, but it's the only sane way
+       * to do it.
+       */
+      def normalizeJsonNodeProperty(value: String): Box[String] = {
+        import net.liftweb.json._
+        import net.liftweb.json.JsonDSL._
+
+        for {
+          j <- parseOpt(value) match {
+                 case Some(j:JObject) => Full(j)
+                 case _               => Failure("The node property can not be parsed as JSON")
+               }
+          n =  j \ "name"
+          v =  j \ "value"
+        } yield {
+         compactRender((( "name" -> n) ~ ("value" -> v)))
+        }
+      }
+
       specialFilter match {
-        case RegexFilter(attr,regexText) =>
-          for {
-            pattern <- getRegex(regexText)
-          } yield {
-            /*
-             * We want to match "OK" an entry if any of the values for
-             * the given attribute matches the regex.
-             */
-            entries.filter { entry =>
-              val res = entry.valuesFor(attr).exists { value =>
-                pattern.matcher( value ).matches
-              }
-              logger.trace("[%5s] for regex check '%s' on attribute %s of entry: %s:%s".format(res, regexText, attr, entry.dn,entry.valuesFor(attr).mkString(",")))
-              res
-            }
-          }
-        case NotRegexFilter(attr,regexText) =>
-          for {
-            pattern <- getRegex(regexText)
-          } yield {
-            /*
-             * We want to match "OK" an entry if the entry does not
-             * have the attribute or NONE of the value matches the regex.
-             */
-            entries.filter { entry =>
-              logger.trace("Filtering with regex not matching '%s' entry: %s:%s".format(regexText,entry.dn,entry.valuesFor(attr).mkString(",")))
-              val res = entry.valuesFor(attr).forall { value =>
-                !pattern.matcher( value ).matches
-              }
-              logger.trace("Entry matches: " + res)
-              res
-            }
-          }
+        case SimpleRegexFilter(attr, regexText) =>
+          regexMatch(attr, regexText, entries, x => Full(x))
+
+        case SimpleNotRegexFilter(attr, regexText) =>
+          regexNotMatch(attr, regexText, entries, x => Full(x))
+
+        case NodePropertyRegexFilter(attr, regexText) =>
+          //here, we need to put the value in expected {"name":"k","value":v} minified format (and only name & value field)
+          regexMatch(attr, regexText, entries, normalizeJsonNodeProperty)
+
+        case NodePropertyNotRegexFilter(attr, regexText) =>
+          //here, we need to put the value in expected {"name":"k","value":v} minified format (and only name & value field)
+          regexMatch(attr, regexText, entries,normalizeJsonNodeProperty)
+
+
         case x => Failure("Don't know how to post process query results for filter '%s'".format(x))
       }
     }
