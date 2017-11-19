@@ -233,14 +233,14 @@ class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
       Criterion(A_TOTAL_SPACE, MemoryComparator)
     )),
     ObjectCriterion(A_PROCESS, Seq(
-      Criterion("pid", JsonComparator(A_PROCESS,"",true)),
-      Criterion("commandName", JsonComparator(A_PROCESS)),
-      Criterion("cpuUsage", JsonComparator(A_PROCESS,"",true)),
-      Criterion("memory", JsonComparator(A_PROCESS,"",true)),
-      Criterion("tty", JsonComparator(A_PROCESS)),
-      Criterion("virtualMemory", JsonComparator(A_PROCESS,"",true)),
-      Criterion("datetime", JsonComparator(A_PROCESS)),
-      Criterion("user", JsonComparator(A_PROCESS))
+      Criterion("pid", JsonFixedKeyComparator(A_PROCESS, "pid", false)),
+      Criterion("commandName", JsonFixedKeyComparator(A_PROCESS, "commandName", true)),
+      Criterion("cpuUsage", JsonFixedKeyComparator(A_PROCESS, "cpuUsage",false)),
+      Criterion("memory", JsonFixedKeyComparator(A_PROCESS, "memory",false)),
+      Criterion("tty", JsonFixedKeyComparator(A_PROCESS, "tty", true)),
+      Criterion("virtualMemory", JsonFixedKeyComparator(A_PROCESS, "virtualMemory", false)),
+      Criterion("started", JsonFixedKeyComparator(A_PROCESS, "started", true)),
+      Criterion("user", JsonFixedKeyComparator(A_PROCESS, "user", true))
     )),
     ObjectCriterion(OC_VM_INFO, leObjectCriterion.criteria ++ Seq(
       Criterion(A_VM_TYPE, StringComparator),
@@ -253,10 +253,10 @@ class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
       Criterion(A_VM_NAME, StringComparator)
     )),
     ObjectCriterion(A_EV, Seq(
-      Criterion("name.value", JsonComparator(A_EV,"=") )
+      Criterion("name.value", NameValueComparator(A_EV) )
     ))
   , ObjectCriterion(A_NODE_PROPERTY, Seq(
-      Criterion("name.value", JsonComparator(A_NODE_PROPERTY,"=") )
+      Criterion("name.value", NodePropertyComparator(A_NODE_PROPERTY) )
     ))
   )
 
