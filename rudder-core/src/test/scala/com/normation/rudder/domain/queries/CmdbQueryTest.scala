@@ -38,16 +38,8 @@ class CmdbQueryTest extends Specification {
 class JsonQueryTest extends Specification {
 
   "JsonComparator " should {
-    "Convert a search request to a valid json request on one attribute " in {
-      JsonComparator("attribute").buildFilter("key",Equals,"value") must beEqualTo(SUB("attribute",null,("\"key\":\"value\""::Nil).toArray,null))
-    }
-
     "Convert a search request to a valid json request on 2 attributes" in {
-      JsonComparator("attribute","=").buildFilter("key.key2",Equals,"value=value2") must beEqualTo(SUB("attribute",null,("\"key\":\"value\""::"\"key2\":\"value2\""::Nil).toArray,null))
-    }
-
-    "Convert a search request to a valid json request on one numeric attribute" in {
-      JsonComparator("attribute","",true).buildFilter("key",Equals,"1") must beEqualTo(SUB("attribute",null,("\"key\":1"::Nil).toArray,null))
+      NodePropertyComparator("attribute").buildFilter("name.value",Equals,"value=value2") must beEqualTo(SUB("attribute",null,("\"name\":\"value\",\"value\":\"value2\""::Nil).toArray,null))
     }
   }
 }
