@@ -39,7 +39,11 @@ class JsonQueryTest extends Specification {
 
   "JsonComparator " should {
     "Convert a search request to a valid json request on 2 attributes" in {
-      NodePropertyComparator("attribute").buildFilter("name.value",Equals,"value=value2") must beEqualTo(SUB("attribute",null,("\"name\":\"value\",\"value\":\"value2\""::Nil).toArray,null))
+      NodePropertyComparator("attribute").buildFilter("name.value",Equals,"value=value2") must beEqualTo(
+        OR( SUB("attribute","{\"name\":\"value\",\"value\":\"value2\"",null,null)
+          , SUB("attribute","{\"name\":\"value\",\"value\":value2"    ,null,null)
+        )
+      )
     }
   }
 }
