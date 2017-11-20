@@ -627,11 +627,14 @@ case class NodePropertyComparator(ldapAttr: String) extends TStringComparator wi
   //the first arg is "name.value", not interesting here
   override def buildFilter(_x:String, comparator:CriterionComparator, value:String) : Filter = {
     val kv = splitInput(value)
+    //we must let { open in the end to accomodate of other field than value ("provider":"datasources"
+    //for ex). It is not grave to have them because we are comparing the start of the attribute value
+    //and at least until the end of value field, without wildcare.
     def buildEq = {
       // value is a string
       val kv1  = s"""{"name":"${kv._1}","value":"${kv._2.getOrElse("")}""""
       // value is unquoted: number, boolean, array, object
-      val kv2  = s"""{"name":"${kv._1}","value":${kv._2.getOrElse("")}}"""
+      val kv2  = s"""{"name":"${kv._1}","value":${kv._2.getOrElse("")}"""
 
       OR(SUB(ldapAttr, kv1.getBytes("UTF-8"), null, null)
         ,SUB(ldapAttr, kv2.getBytes("UTF-8"), null, null)
