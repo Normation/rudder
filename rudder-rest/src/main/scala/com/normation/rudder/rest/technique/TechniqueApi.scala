@@ -35,9 +35,9 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.technique
+package com.normation.rudder.rest.technique
 
-import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.rest.RestAPI
 
 trait TechniqueAPI extends RestAPI {
   val kind = "techniques"

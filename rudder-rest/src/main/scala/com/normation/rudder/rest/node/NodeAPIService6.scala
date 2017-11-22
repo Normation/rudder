@@ -35,13 +35,13 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.node
+package com.normation.rudder.rest.node
 
 import com.normation.rudder.services.nodes._
 import net.liftweb.common._
 import com.normation.inventory.ldap.core._
-import com.normation.rudder.web.rest._
-import com.normation.rudder.web.rest.RestUtils._
+import com.normation.rudder.rest._
+import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.services.queries._
 import com.normation.inventory.domain._
 import net.liftweb.json._

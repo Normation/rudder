@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.technique
+package com.normation.rudder.rest.technique
 
 import scala.collection.SortedMap
 
@@ -45,7 +45,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.web.rest.RestDataSerializer
+import com.normation.rudder.rest.RestDataSerializer
 import com.normation.utils.Control.boxSequence
 import com.normation.utils.Control.sequence
 

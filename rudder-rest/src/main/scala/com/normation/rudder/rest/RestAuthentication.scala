@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest
 
 import net.liftweb.common.Loggable
 import net.liftweb.http.JsonResponse

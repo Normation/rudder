@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest
 
 import com.normation.rudder.rule.category._
 import net.liftweb.common._

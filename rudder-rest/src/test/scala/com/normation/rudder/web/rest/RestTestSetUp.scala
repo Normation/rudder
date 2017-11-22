@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest
 
 import org.specs2.matcher.MatchResult
 
@@ -61,6 +61,8 @@ import net.liftweb.json.JsonAST.JValue
 import com.normation.rudder.service.user.UserService
 import com.normation.rudder.service.user.User
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.rest.v1.RestTechniqueReload
+import com.normation.rudder.rest.v1.RestStatus
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.

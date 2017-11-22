@@ -35,19 +35,19 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.directive
+package com.normation.rudder.rest.directive
 
 import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.rest.RestExtractorService
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.web.rest.RestUtils
+import com.normation.rudder.rest.RestUtils
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.service.user.UserService
 

@@ -35,9 +35,9 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.compliance
+package com.normation.rudder.rest.compliance
 
-import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.rest.RestAPI
 
 
 trait ComplianceAPI extends RestAPI {

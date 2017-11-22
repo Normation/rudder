@@ -35,17 +35,17 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.compliance
+package com.normation.rudder.rest.compliance
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.web.rest.RestUtils._
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils._
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JString
-import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.rest.ApiVersion
 
 
 class ComplianceAPI7 (

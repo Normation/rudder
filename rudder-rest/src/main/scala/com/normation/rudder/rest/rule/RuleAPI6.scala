@@ -35,9 +35,9 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.rule
+package com.normation.rudder.rest.rule
 
-import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.rest.RestExtractorService
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
@@ -46,9 +46,9 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.web.rest.RestUtils
+import com.normation.rudder.rest.RestUtils
 import net.liftweb.json._
-import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.service.user.UserService
 import com.normation.rudder.service.user.UserService
 

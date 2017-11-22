@@ -35,9 +35,9 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.changeRequest
+package com.normation.rudder.rest.changeRequest
 
-import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.rest.RestAPI
 
 trait ChangeRequestAPI extends RestAPI {
   val kind = "changeRequests"

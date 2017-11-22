@@ -35,13 +35,13 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.rule
+package com.normation.rudder.rest.rule
 
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.rest.RestAPI
 import com.normation.rudder.domain.policies.Tags
 
 trait RuleAPI extends RestAPI {

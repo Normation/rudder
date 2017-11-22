@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest
 
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full

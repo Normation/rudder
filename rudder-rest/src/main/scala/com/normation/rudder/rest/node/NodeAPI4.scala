@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.node
+package com.normation.rudder.rest.node
 
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common.Box
@@ -43,11 +43,11 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
-import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.web.rest.RestUtils._
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils._
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.service.user.UserService
 
 class NodeAPI4 (

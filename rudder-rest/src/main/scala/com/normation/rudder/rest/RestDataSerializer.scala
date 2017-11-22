@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest
 
 import com.normation.rudder.domain.workflows._
 import net.liftweb.common._
@@ -50,12 +50,12 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.parameters._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.web.rest.node.NodeDetailLevel
+import com.normation.rudder.rest.node.NodeDetailLevel
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.web.rest.node.CustomDetailLevel
-import com.normation.rudder.web.rest.node.MinimalDetailLevel
+import com.normation.rudder.rest.node.CustomDetailLevel
+import com.normation.rudder.rest.node.MinimalDetailLevel
 import com.normation.rudder.repository.FullActiveTechnique
 import scala.language.implicitConversions
 

@@ -35,29 +35,24 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest.v1
 
-import net.liftweb.http._
-import net.liftweb.http.rest._
-import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.batch.ManualStartDeployment
-import com.normation.utils.StringUuidGenerator
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.service.user.UserService
+import com.normation.rudder.batch.UpdateDynamicGroups
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.http.PlainTextResponse
+
 
 /**
  * A rest api that allows to deploy promises.
  *
  */
-class RestDeploy(
-    asyncDeploymentAgent: AsyncDeploymentAgent
-  , uuidGen             : StringUuidGenerator
-) ( implicit userService : UserService )
-extends RestHelper {
+class RestDyngroupReload(
+    updateDynamicGroups: UpdateDynamicGroups
+) extends RestHelper {
 
   serve {
-    case Get("api" :: "deploy" :: "reload" :: Nil, req) =>
-      asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), "Policy update asked by REST request")
+    case Get("api" :: "dyngroup" :: "reload" :: Nil, req) =>
+      updateDynamicGroups.startManualUpdate
       PlainTextResponse("OK")
   }
 

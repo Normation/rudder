@@ -43,7 +43,7 @@ import net.liftweb.sitemap._
 import net.liftweb.sitemap.Loc._
 import com.normation.plugins.RudderPluginDef
 import com.normation.rudder.domain.eventlog.ApplicationStarted
-import com.normation.rudder.web.rest._
+import com.normation.rudder.rest.v1.RestStatus
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
 import com.normation.rudder.web.model.CurrentUser

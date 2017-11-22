@@ -35,11 +35,11 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.group
+package com.normation.rudder.rest.group
 
 import net.liftweb.common._
 import net.liftweb.http.Req
-import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.rest.ApiVersion
 
 case class GroupApiService5 (
     apiService2            : GroupApiService2

@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.rule
+package com.normation.rudder.rest.rule
 
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -50,11 +50,11 @@ import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowService
-import com.normation.rudder.web.rest.RestUtils
-import com.normation.rudder.web.rest.RestUtils.getActor
-import com.normation.rudder.web.rest.RestUtils.toJsonError
-import com.normation.rudder.web.rest.RestUtils.toJsonResponse
-import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.RestUtils.getActor
+import com.normation.rudder.rest.RestUtils.toJsonError
+import com.normation.rudder.rest.RestUtils.toJsonResponse
+import com.normation.rudder.rest.RestExtractorService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.Box.box2Option
@@ -63,7 +63,7 @@ import net.liftweb.common.Full
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.web.rest.RestDataSerializer
+import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.service.user.UserService
 

@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest
 
 import org.junit.runner.RunWith
 import org.specs2.mutable._
@@ -43,6 +43,7 @@ import org.specs2.runner.JUnitRunner
 
 import net.liftweb.common.Full
 import net.liftweb.http.PlainTextResponse
+import com.normation.rudder.rest.v1.RestStatus
 
 @RunWith(classOf[JUnitRunner])
 class RestStatusTest extends Specification {

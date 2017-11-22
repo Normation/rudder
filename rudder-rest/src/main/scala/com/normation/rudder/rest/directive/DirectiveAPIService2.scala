@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.directive
+package com.normation.rudder.rest.directive
 
 import com.normation.cfclerk.domain.Technique
 import com.normation.eventlog.EventActor
@@ -55,14 +55,14 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.web.model.DirectiveEditor
 import com.normation.rudder.web.services.DirectiveEditorService
-import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.rest.RestExtractorService
 import com.normation.utils.Control._
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
 import net.liftweb.json.JArray
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.web.rest.RestDataSerializer
+import com.normation.rudder.rest.RestDataSerializer
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
 import net.liftweb.json.JsonAST.JValue

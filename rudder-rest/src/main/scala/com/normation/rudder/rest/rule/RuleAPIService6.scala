@@ -35,13 +35,13 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.rule
+package com.normation.rudder.rest.rule
 
 import net.liftweb.common._
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rule.category._
 import com.normation.eventlog._
-import com.normation.rudder.web.rest._
+import com.normation.rudder.rest._
 
 case class RuleApiService6 (
     readRuleCategory     : RoRuleCategoryRepository

@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest.v1
 
 import net.liftweb.http._
 import net.liftweb.http.rest._

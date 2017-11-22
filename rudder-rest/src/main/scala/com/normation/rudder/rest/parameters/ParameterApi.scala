@@ -35,11 +35,11 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.parameter
+package com.normation.rudder.rest.parameter
 
 
 import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.rest.RestAPI
 
 trait ParameterAPI extends RestAPI{
   val kind = "parameters"

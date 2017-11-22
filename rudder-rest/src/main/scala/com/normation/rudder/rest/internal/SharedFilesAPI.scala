@@ -35,13 +35,13 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.sharedFiles
+package com.normation.rudder.rest.internal
 
 import net.liftweb.common.Box
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.rest.RestExtractorService
 import net.liftweb.common.Full
 import net.liftweb.common.Failure
 import java.io.File
