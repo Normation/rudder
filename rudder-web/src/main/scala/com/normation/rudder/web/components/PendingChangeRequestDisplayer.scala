@@ -43,7 +43,6 @@ import bootstrap.liftweb.RudderConfig
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import net.liftweb.common.Full
-import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.workflows.ChangeRequest
 import net.liftweb.common.Box
@@ -51,7 +50,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.authorization.Read
+import com.normation.rudder.AuthorizationType
 
 object PendingChangeRequestDisplayer extends Loggable{
 
@@ -74,7 +73,7 @@ object PendingChangeRequestDisplayer extends Loggable{
         val pendingChangeRequestLink =( NodeSeq.Empty /: crs) {
           (res,cr) => res ++
           {
-            if (CurrentUser.checkRights(Read("validator"))||CurrentUser.checkRights(Read("deployer"))||cr.owner == CurrentUser.getActor.name) {
+            if (CurrentUser.checkRights(AuthorizationType.Read("validator"))||CurrentUser.checkRights(AuthorizationType.Read("deployer"))||cr.owner == CurrentUser.getActor.name) {
               <li><a href={linkUtil.baseChangeRequestLink(cr.id)}>CR #{cr.id}: {cr.info.name}</a></li>
             } else {
               <li>CR #{cr.id}</li>

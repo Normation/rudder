@@ -41,18 +41,18 @@ import net.liftweb.http.Req
 import com.normation.rudder.web.rest.RestAPI
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.authorization._
 import com.normation.rudder.service.user.UserService
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.AuthorizationType
 
 trait NodeAPI extends RestAPI {
   val kind = "nodes"
   def userService : UserService
 
   override protected def checkSecure : PartialFunction[Req, Boolean] = {
-    case Get(_,_) => userService.getCurrentUser.checkRights(Read("node"))
+    case Get(_,_) => userService.getCurrentUser.checkRights(AuthorizationType.Read("node"))
     case Post(_,_) | Put(_,_) | Delete(_,_) => val user = userService.getCurrentUser
-      user.checkRights(Write("node")) || user.checkRights(Edit("node"))
+      user.checkRights(AuthorizationType.Write("node")) || user.checkRights(AuthorizationType.Edit("node"))
     case _=> false
 
   }

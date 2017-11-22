@@ -65,10 +65,10 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.reports.ComplianceModeName
 import net.liftweb.common.EmptyBox
 import net.liftweb.json.JsonAST._
-import com.normation.rudder.authorization._
 import com.normation.rudder.service.user.UserService
 import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.appconfig.UpdateConfigService
+import com.normation.rudder.AuthorizationType
 
 trait SettingsApi extends RestAPI {
   val kind = "settings"
@@ -79,13 +79,13 @@ trait SettingsApi extends RestAPI {
     // Without that it will prevnet being able to modify policy mode node by node
     case Get(key@("global_policy_mode" | "global_policy_mode_overridable") :: Nil,_) =>
         val user = userService.getCurrentUser
-        user.checkRights(Read("administration")) ||
-        user.checkRights(Read("node"))
-    case Get(_,_) => userService.getCurrentUser.checkRights(Read("administration"))
+        user.checkRights(AuthorizationType.Read("administration")) ||
+        user.checkRights(AuthorizationType.Read("node"))
+    case Get(_,_) => userService.getCurrentUser.checkRights(AuthorizationType.Read("administration"))
     case Post(_,_) | Put(_,_) | Delete(_,_) =>
       val user = userService.getCurrentUser
-      user.checkRights(Write("administration")) ||
-      user.checkRights(Edit("administration"))
+      user.checkRights(AuthorizationType.Write("administration")) ||
+      user.checkRights(AuthorizationType.Edit("administration"))
     case _=> false
 
   }

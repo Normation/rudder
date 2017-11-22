@@ -79,7 +79,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def disableInputs = {
-    import com.normation.rudder.authorization.Edit
+    import com.normation.rudder.AuthorizationType.Edit
     //If user does not have the Edit("administration") right, all inputs are disabled
     val disable = !CurrentUser.checkRights(Edit("administration"))
     S.appendJs(JsRaw(s"""$$("input, select").attr("disabled",${disable})"""))

@@ -39,7 +39,7 @@ package com.normation.rudder.web.components
 
 import com.normation.plugins.SpringExtendableSnippet
 import com.normation.plugins.SnippetExtensionKey
-import com.normation.rudder.authorization._
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.workflows.ChangeRequestId
@@ -176,11 +176,11 @@ class NodeGroupForm(
                        case Full(req) => req.buildQuery
                        case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
       })
-      & "group-clone" #> { if (CurrentUser.checkRights(Write("group")))
+      & "group-clone" #> { if (CurrentUser.checkRights(AuthorizationType.Write("group")))
                      SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % ("id", "groupCloneButtonId") % ("class"," btn btn-default")
                    else NodeSeq.Empty
                  }
-      & "group-save" #> { if (CurrentUser.checkRights(Edit("group")))
+      & "group-save" #> { if (CurrentUser.checkRights(AuthorizationType.Edit("group")))
                     <div  tooltipid="saveButtonToolTip" class="tooltipable" title=""> {
                       SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId) % ("class"," btn btn-success")
                     } </div>

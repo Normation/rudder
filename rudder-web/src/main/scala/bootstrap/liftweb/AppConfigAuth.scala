@@ -67,11 +67,11 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.xml.sax.SAXParseException
-import com.normation.authorization._
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.api.ApiToken
 import com.normation.rudder.api.RoApiAccountRepository
-import com.normation.rudder.authorization.AuthzToRights
-import com.normation.rudder.authorization.NoRights
+import com.normation.rudder.AuthzToRights
+import com.normation.rudder.Rights
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.utils.HashcodeCaching
@@ -353,7 +353,7 @@ case object RoleUserAuthority extends GrantedAuthority {
 case object RoleApiAuthority extends GrantedAuthority {
   override val getAuthority = "ROLE_REMOTE"
 
-  val apiRudderRights = new Rights(Read, Write, Create, Delete, Search)
+  val apiRudderRights = new Rights(AuthorizationType.AnyRights)
 }
 
 /**
@@ -502,7 +502,7 @@ class RudderXmlUserDetailsContextMapper(authConfig: AuthConfig) extends UserDeta
   def mapUserToContext(user: UserDetails, ctx: DirContextAdapter) : Unit = ()
 
   def mapUserFromContext(ctx: DirContextOperations, username: String, authorities: Collection[_ <:GrantedAuthority]): UserDetails = {
-    users.getOrElse(username, RudderUserDetail(username, "", new Rights(NoRights)))
+    users.getOrElse(username, RudderUserDetail(username, "", new Rights(AuthorizationType.NoRights)))
   }
 
 }
@@ -554,7 +554,7 @@ object AppConfigAuth extends Loggable {
          ) match {
            case (Some(name :: Nil) , Some(pwd :: Nil), roles ) if(name.size > 0 && pwd.size > 0) => roles match {
              case Some(roles:: Nil) => (name, pwd, roles) :: Nil
-             case _ =>  (name, pwd, new Rights(NoRights)) :: Nil
+             case _ =>  (name, pwd, new Rights(AuthorizationType.NoRights)) :: Nil
            }
 
            case _ =>
@@ -565,7 +565,7 @@ object AppConfigAuth extends Loggable {
 
         //and now, return the list of users
         users map { user =>
-        if (user._3.authorizationTypes.contains(NoRights))
+        if (user._3.authorizationTypes.contains(AuthorizationType.NoRights))
           ApplicationLogger.warn("User %s authorisation are not defined correctly, please fix it (defined authorizations: %s)".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
         ApplicationLogger.debug("User %s with defined authorizations: %s".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
         }

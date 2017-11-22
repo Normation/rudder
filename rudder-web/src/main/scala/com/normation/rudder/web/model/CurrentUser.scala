@@ -41,9 +41,9 @@ import org.springframework.security.core.context.SecurityContextHolder
 import com.normation.eventlog.EventActor
 import net.liftweb.http.SessionVar
 import bootstrap.liftweb.RudderUserDetail
-import com.normation.rudder.authorization._
-import com.normation.authorization._
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.service.user.User
+import com.normation.rudder.Rights
 
 /**
  * An utility class that get the currently logged user
@@ -63,7 +63,7 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]] ({
 
   def getRights : Rights = this.get match {
     case Some(u) => u.authz
-    case None => new Rights(NoRights)
+    case None => new Rights(AuthorizationType.NoRights)
   }
 
   def getActor : EventActor = this.get match {
@@ -75,9 +75,9 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]] ({
 
   def checkRights(auth:AuthorizationType) : Boolean = {
     val authz = getRights.authorizationTypes
-    if (authz.contains(NoRights)) false
+    if (authz.contains(AuthorizationType.NoRights)) false
     else auth match{
-      case NoRights => false
+      case AuthorizationType.NoRights => false
       case _ =>  authz.contains(auth)
     }
 

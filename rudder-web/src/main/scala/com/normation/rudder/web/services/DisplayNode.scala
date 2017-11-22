@@ -643,11 +643,12 @@ object DisplayNode extends Loggable {
 
     private def displayTabProperties(jsId:JsNodeId, node: NodeInfo) : NodeSeq = {
       import com.normation.rudder.domain.nodes.JsonSerialisation._
-      import com.normation.rudder.authorization._
+      import com.normation.rudder.AuthorizationType
       import net.liftweb.json._
+
       val nodeId = node.id.value
       val jsonProperties = compactRender(node.properties.toApiJson())
-      val userHasRights = CurrentUser.checkRights(Write("node"))
+      val userHasRights = CurrentUser.checkRights(AuthorizationType.Write("node"))
       def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties") , "nodeproperties-tab")
 
       val css: CssSel =  "#tabPropsId [id]" #> htmlId(jsId,"sd_props_")

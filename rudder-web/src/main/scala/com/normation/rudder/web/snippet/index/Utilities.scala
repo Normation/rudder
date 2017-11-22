@@ -41,7 +41,7 @@ package com.normation.rudder.web.snippet.index
 import scala.xml._
 import net.liftweb.http._
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.authorization._
+import com.normation.rudder.AuthorizationType
 import bootstrap.liftweb.RudderConfig
 
 /**
@@ -50,10 +50,10 @@ import bootstrap.liftweb.RudderConfig
 class Utilities {
 
   def index(xhtml:NodeSeq) : NodeSeq = {
-    if ( CurrentUser.checkRights(Read("administration")) ) {
+    if ( CurrentUser.checkRights(AuthorizationType.Read("administration")) ) {
       S.redirectTo("eventLogs")
     } else {
-      if ( CurrentUser.checkRights(Read("technique")) ) {
+      if ( CurrentUser.checkRights(AuthorizationType.Read("technique")) ) {
         S.redirectTo("techniqueEditor")
       } else {
         //if we are not able to read workflow, redirect to index

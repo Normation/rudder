@@ -38,7 +38,7 @@
 package com.normation.rudder.service.user
 
 import com.normation.eventlog.EventActor
-import com.normation.authorization.AuthorizationType
+import com.normation.rudder.AuthorizationType
 
 trait UserService {
   def getCurrentUser: User

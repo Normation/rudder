@@ -57,8 +57,7 @@ import com.normation.rudder.domain.eventlog.AddChangeRequest
 import com.normation.rudder.domain.eventlog.DeleteChangeRequest
 import com.normation.rudder.services.workflows.NoWorkflowAction
 import com.normation.rudder.services.workflows.WorkflowAction
-import com.normation.rudder.authorization.Edit
-import com.normation.rudder.authorization.Read
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.web.ChooseTemplate
 
 object ChangeRequestDetails {
@@ -82,7 +81,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
   private[this] val eventlogDetailsService = RudderConfig.eventLogDetailsService
   private[this] val commitAndDeployChangeRequest =  RudderConfig.commitAndDeployChangeRequest
 
-  private[this] def checkAccess(cr:ChangeRequest) = CurrentUser.checkRights(Read("validator"))||CurrentUser.checkRights(Read("deployer"))||cr.owner == CurrentUser.getActor.name
+  private[this] def checkAccess(cr:ChangeRequest) = CurrentUser.checkRights(AuthorizationType.Read("validator"))||CurrentUser.checkRights(AuthorizationType.Read("deployer"))||cr.owner == CurrentUser.getActor.name
   private[this] val CrId: Box[Int] = {S.param("crId").map(x=>x.toInt) }
   private[this] var changeRequest: Box[ChangeRequest] = {
     CrId match {
@@ -168,7 +167,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
   }
 
   def displayActionButton(cr:ChangeRequest,step:WorkflowNodeId):NodeSeq = {
-    val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case Edit(right) => right}
+    val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case AuthorizationType.Edit(right) => right}
     val isOwner = cr.owner == CurrentUser.getActor.name
     ( "#backStep" #> {
       workflowService.findBackSteps(authz, step,isOwner) match {

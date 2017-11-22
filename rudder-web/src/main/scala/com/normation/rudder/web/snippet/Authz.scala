@@ -42,8 +42,8 @@ import http._
 import common._
 import scala.xml.NodeSeq
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.authorization.AuthzToRights
-import com.normation.rudder.authorization.NoRights
+import com.normation.rudder.AuthzToRights
+import com.normation.rudder.AuthorizationType
 
 
 class Authz extends DispatchSnippet with Loggable {
@@ -62,7 +62,7 @@ class Authz extends DispatchSnippet with Loggable {
    * make it true
    */
   private[this] def noRights(): Boolean = {
-    CurrentUser.getRights.authorizationTypes.contains(NoRights)
+    CurrentUser.getRights.authorizationTypes.contains(AuthorizationType.NoRights)
   }
 
   /*
@@ -83,7 +83,7 @@ class Authz extends DispatchSnippet with Loggable {
 
   def testRight(xml:NodeSeq):NodeSeq =
    S.attr("role") match {
-    case Full(role) if (CurrentUser.checkRights(AuthzToRights.parseAuthz(role).headOption.getOrElse(NoRights))) => xml
+    case Full(role) if (CurrentUser.checkRights(AuthzToRights.parseAuthz(role).headOption.getOrElse(AuthorizationType.NoRights))) => xml
     case x => NodeSeq.Empty
   }
 }

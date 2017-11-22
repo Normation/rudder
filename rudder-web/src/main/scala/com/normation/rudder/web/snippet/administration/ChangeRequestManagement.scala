@@ -53,7 +53,7 @@ import net.liftweb.http.SHtml
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.components.DateFormaterService
 import scala.xml.Elem
-import com.normation.rudder.authorization.Read
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.web.services.JsTableData
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.rudder.domain.workflows.ChangeRequestId
@@ -68,7 +68,7 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
   private[this] val changeRequestEventLogService = RudderConfig.changeRequestEventLogService
   private[this] val workflowLoggerService = RudderConfig.workflowEventLogService
   private[this] val changeRequestTableId = "changeRequestTable"
-  private[this] val currentUser = CurrentUser.checkRights(Read("validator")) || CurrentUser.checkRights(Read("deployer"))
+  private[this] val currentUser = CurrentUser.checkRights(AuthorizationType.Read("validator")) || CurrentUser.checkRights(AuthorizationType.Read("deployer"))
 
   private[this] val initFilter : Box[String] = S.param("filter").map(_.replace("_", " "))
 

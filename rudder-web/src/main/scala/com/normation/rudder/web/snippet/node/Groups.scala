@@ -41,7 +41,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.eventlog.ModificationId
 import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
-import com.normation.rudder.authorization.Edit
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
@@ -293,7 +293,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       //build jstree and
       //init bind callback to move
       JsRaw(s"""
-        buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', '${selectedNode}', 'off', true, ${CurrentUser.checkRights(Edit("group"))});
+        buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', '${selectedNode}', 'off', true, ${CurrentUser.checkRights(AuthorizationType.Edit("group"))});
         if(${foldCategories}){
           $$('#${htmlId_groupTree}').jstree().close_all();
         }

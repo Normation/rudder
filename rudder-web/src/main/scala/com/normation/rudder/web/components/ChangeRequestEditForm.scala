@@ -46,7 +46,7 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.authorization.Edit
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.web.ChooseTemplate
 
 object ChangeRequestEditForm {
@@ -95,7 +95,7 @@ class ChangeRequestEditForm (
     updateFomClientSide
   }
   private[this] val isEditable = {
-    val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case Edit(right) => right}
+    val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case AuthorizationType.Edit(right) => right}
     val isOwner = creator == CurrentUser.getActor.name
     step.map(workflowService.isEditable(authz,_,isOwner))
     }.openOr(false)

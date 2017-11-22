@@ -34,25 +34,60 @@
 *
 *************************************************************************************
 */
-package com.normation.rudder.authorization
-
-import com.normation.authorization._
+package com.normation.rudder
 
 /**
- * That file describe the UI available roles and bounded authorization.
- * For now, they are kind of ad-hoc, but some of the logic
- * could be generalized to build a full
+ * Base class for Authorization types.
+ * Common types are read, write, etc but the list is
+ * open and implementations are free to add their semantic.
+ *
  */
+sealed trait AuthorizationType {
 
-// list of know rights
+  /**
+   * A string identifier of that authorization type
+   * which may be use to transform string to that
+   * type.
+   */
+  val id : String
 
-case object NoRights extends AuthorizationType { val id = "NO_RIGHTS" }
-case class Read(name:String) extends AuthorizationType { val id = "%s_READ".format(name.toUpperCase()) }
-case class Edit(name:String) extends AuthorizationType { val id = "%s_EDIT".format(name.toUpperCase()) }
-case class Write(name:String) extends AuthorizationType { val id = "%s_WRITE".format(name.toUpperCase()) }
-case object AnyRights extends AuthorizationType { val id = "ANY_RIGHTS" }
+}
+
+case object AuthorizationType {
+
+  case object NoRights  extends AuthorizationType { val id = "NO_RIGHTS" }
+  case object AnyRights extends AuthorizationType { val id = "ANY_RIGHTS"}
+  case class  Read(name:String)  extends AuthorizationType { val id = s"${name.toUpperCase()}_READ" }
+  case class  Edit(name:String)  extends AuthorizationType { val id = s"${name.toUpperCase()}_EDIT" }
+  case class  Write(name:String) extends AuthorizationType { val id = s"${name.toUpperCase()}_WRITE"}
+
+}
+
+/**
+ * That class represents a set of AuthorizationType that
+ * HAS TO all be validated at the same time. It acts like
+ * a new AuthorizationType which melt each AuthorizationType
+ * that composed it.
+ */
+class Rights(_authorizationTypes:AuthorizationType*) {
+
+  require(null != _authorizationTypes && _authorizationTypes.nonEmpty, "At least one AuthorizationType must be include in a Rights object")
+
+  val authorizationTypes = _authorizationTypes.toSet
+
+  override lazy val hashCode = 23 * authorizationTypes.hashCode
+
+  override def equals(other:Any) = other match {
+    case that:Rights => this.authorizationTypes == that.authorizationTypes
+    case _ => false
+  }
+
+}
+
+
 
 object AuthzToRights {
+  import AuthorizationType._
 
   /*
    * Authorization kind
@@ -99,9 +134,9 @@ object AuthzToRights {
   }
 
   def parseAuthz(role : String) : List[AuthorizationType] = {
-	  val authz = """(.*)_(.*)""".r
+    val authz = """(.*)_(.*)""".r
      role.toLowerCase() match {
-	     case "any" => List(AnyRights)
+       case "any" => List(AnyRights)
        case authz(authType,kind)  if (allKind.contains(authType)) => toAuthz(List(authType),kind)
        case _ =>  List(NoRights)
      }
