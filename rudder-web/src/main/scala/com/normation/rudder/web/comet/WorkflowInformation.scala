@@ -44,7 +44,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.services.workflows.WorkflowUpdate
 import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.authorization.Edit
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.workflows.EitherWorkflowService
 
@@ -55,8 +55,8 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
   private[this] val workflowService = RudderConfig.workflowService
   private[this] val asyncWorkflow   = RudderConfig.asyncWorkflowInfo
 
-  private[this] val isValidator = CurrentUser.checkRights(Edit("validator"))
-  private[this] val isDeployer = CurrentUser.checkRights(Edit("deployer"))
+  private[this] val isValidator = CurrentUser.checkRights(AuthorizationType.Edit("validator"))
+  private[this] val isDeployer = CurrentUser.checkRights(AuthorizationType.Edit("deployer"))
   def registerWith = asyncWorkflow
 
 

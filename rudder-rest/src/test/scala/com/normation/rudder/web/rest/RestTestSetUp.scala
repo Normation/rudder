@@ -60,7 +60,7 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.json.JsonAST.JValue
 import com.normation.rudder.service.user.UserService
 import com.normation.rudder.service.user.User
-import com.normation.authorization.AuthorizationType
+import com.normation.rudder.AuthorizationType
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.

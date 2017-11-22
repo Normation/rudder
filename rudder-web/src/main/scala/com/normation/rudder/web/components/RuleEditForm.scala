@@ -41,7 +41,7 @@ import scala.xml.NodeSeq
 import scala.xml.Text
 import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
-import com.normation.rudder.authorization.Read
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
@@ -162,8 +162,8 @@ class RuleEditForm(
       case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory), Full(globalMode)) =>
 
         val form = {
-          if(CurrentUser.checkRights(Read("rule"))) {
-            val formContent = if (CurrentUser.checkRights(Read("rule"))) {
+          if(CurrentUser.checkRights(AuthorizationType.Read("rule"))) {
+            val formContent = if (CurrentUser.checkRights(AuthorizationType.Read("rule"))) {
               showCrForm(groupLib, directiveLib, globalMode)
             } else {
               <div>You have no rights to see rules details, please contact your administrator</div>

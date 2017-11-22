@@ -49,7 +49,6 @@ import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QuickSearchResult
 import com.normation.rudder.services.quicksearch.QuickSearchResultId
 import com.normation.rudder.services.quicksearch.QSObject
-import com.normation.rudder.authorization.Read
 import com.normation.rudder.service.user.UserService
 import com.normation.rudder.web.model.LinkUtil
 
@@ -103,6 +102,8 @@ class RestQuicksearch (
   }
 
   private[this] def filter (results : Set[QuickSearchResult]) = {
+    import com.normation.rudder.AuthorizationType._
+
     val user = userService.getCurrentUser
 
     val nodeOK      = user.checkRights(Read("node"))

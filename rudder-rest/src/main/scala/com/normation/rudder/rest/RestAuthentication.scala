@@ -37,15 +37,13 @@
 
 package com.normation.rudder.web.rest
 
-import com.normation.rudder.authorization.Read
-import com.normation.rudder.authorization.Write
-
 import net.liftweb.common.Loggable
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.LiftSession
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.service.user.UserService
+import com.normation.rudder.AuthorizationType
 
 class RestAuthentication(
   userService : UserService
@@ -60,7 +58,7 @@ class RestAuthentication(
       //the result depends upon the "acl" param value, defaulted to "non read" (write).
       val (message, status) = req.param("acl").openOr("write").toLowerCase match {
         case "read" => //checking if current user has read rights on techniques
-          if(currentUser.checkRights(Read("technique"))) {
+          if(currentUser.checkRights(AuthorizationType.Read("technique"))) {
             (session.uniqueId, RestOk)
           } else {
             val msg = s"Authentication API forbids read access to Techniques for user ${currentUser.actor.name}"
@@ -68,7 +66,7 @@ class RestAuthentication(
             (msg, ForbiddenError)
           }
         case _ => //checking for write access - by defaults, we look for the higher priority
-          if(currentUser.checkRights(Write("technique"))) {
+          if(currentUser.checkRights(AuthorizationType.Write("technique"))) {
             (session.uniqueId, RestOk)
           } else {
             val msg = s"Authentication API forbids write access to Techniques for user ${currentUser.actor.name}"

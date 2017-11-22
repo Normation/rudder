@@ -45,7 +45,7 @@ import net.liftweb.http.{SHtml,DispatchSnippet}
 import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.nodes.{NodeGroupCategory,NodeGroupCategoryId}
-import com.normation.rudder.authorization._
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
 }
@@ -133,11 +133,11 @@ class NodeGroupCategoryForm(
           & "directive-delete"        #> deleteButton
         ) else (
             "directive-save" #> (
-                if (CurrentUser.checkRights(Edit("group"))) SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default"))
+                if (CurrentUser.checkRights(AuthorizationType.Edit("group"))) SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default"))
                 else NodeSeq.Empty
             )
           & "directive-delete" #> (
-              if (CurrentUser.checkRights(Write("group"))) deleteButton
+              if (CurrentUser.checkRights(AuthorizationType.Write("group"))) deleteButton
                 else NodeSeq.Empty
             )
         ))

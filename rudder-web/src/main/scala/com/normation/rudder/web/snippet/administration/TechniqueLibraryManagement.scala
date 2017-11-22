@@ -55,7 +55,7 @@ import net.liftweb.http.LocalSnippet
 import net.liftweb.json._
 import com.normation.rudder.web.components.popup.GiveReasonPopup
 import com.normation.rudder.web.services.ReasonBehavior._
-import com.normation.rudder.authorization.Write
+import com.normation.rudder.AuthorizationType
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import bootstrap.liftweb.RudderConfig
@@ -539,7 +539,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Javascript to initialize the user library tree
    */
   private[this] def buildUserLibraryJsTree : JsExp = JsRaw(
-    """buildActiveTechniqueTree('#%s', '%s', %s ,'%s')""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree, CurrentUser.checkRights(Write("technique")), S.contextPath)
+    """buildActiveTechniqueTree('#%s', '%s', %s ,'%s')""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree, CurrentUser.checkRights(AuthorizationType.Write("technique")), S.contextPath)
   )
 
   //ajax function that update the bottom of the page when a Technique is clicked
