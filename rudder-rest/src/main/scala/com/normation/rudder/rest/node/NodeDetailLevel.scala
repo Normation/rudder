@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.node
+package com.normation.rudder.rest.node
 
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._

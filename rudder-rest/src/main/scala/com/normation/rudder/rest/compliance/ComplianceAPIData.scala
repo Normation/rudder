@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.compliance
+package com.normation.rudder.rest.compliance
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId

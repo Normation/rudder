@@ -35,17 +35,17 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.settings
+package com.normation.rudder.rest.settings
 
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.rest.RestAPI
 import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.web.rest.RestUtils
-import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.appconfig._
 import com.normation.eventlog.EventActor
 import net.liftweb.common.Full

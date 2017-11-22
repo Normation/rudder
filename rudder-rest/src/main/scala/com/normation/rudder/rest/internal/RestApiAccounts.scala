@@ -1,10 +1,10 @@
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest
 
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.common.Loggable
 import com.normation.rudder.api.WoApiAccountRepository
 import com.normation.rudder.api.RoApiAccountRepository
-import com.normation.rudder.web.rest.RestUtils._
+import com.normation.rudder.rest.RestUtils._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common._
 import net.liftweb.json.JArray

@@ -35,10 +35,10 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.changeRequest
+package com.normation.rudder.rest.changeRequest
 
-import com.normation.rudder.web.rest.RestUtils.toJsonError
-import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils.toJsonError
+import com.normation.rudder.rest.RestExtractorService
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -47,7 +47,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JString
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.rest.ApiVersion
 
 class ChangeRequestAPI3 (
     restExtractor : RestExtractorService

@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.changeRequest
+package com.normation.rudder.rest.changeRequest
 
 import net.liftweb.common._
 import net.liftweb.http.Req
@@ -45,10 +45,10 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST._
 import com.normation.rudder.repository._
 import com.normation.rudder.services.workflows._
-import com.normation.rudder.web.rest._
+import com.normation.rudder.rest._
 import com.normation.rudder.domain.workflows._
 import com.normation.utils.Control.boxSequence
-import com.normation.rudder.web.rest.RestUtils._
+import com.normation.rudder.rest.RestUtils._
 import net.liftweb.json.JsonDSL._
 import com.normation.cfclerk.services.TechniqueRepository
 import net.liftweb.http.LiftResponse

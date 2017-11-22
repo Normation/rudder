@@ -34,21 +34,21 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.node
+package com.normation.rudder.rest.node
 
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.web.rest.RestDataSerializer
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestDataSerializer
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain._
 import net.liftweb.http.Req
 import net.liftweb.common._
-import com.normation.rudder.web.rest.RestUtils._
+import com.normation.rudder.rest.RestUtils._
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.rest.ApiVersion
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 
 class NodeApiService4 (

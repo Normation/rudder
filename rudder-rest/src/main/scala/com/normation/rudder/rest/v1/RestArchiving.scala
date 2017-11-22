@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest
 
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.xml._

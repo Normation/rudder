@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.technique
+package com.normation.rudder.rest.technique
 
 import scala.util.{ Failure => TryFailure }
 import scala.util.Success
@@ -43,9 +43,9 @@ import scala.util.Try
 
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.web.rest.RestUtils.response
-import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils.response
+import com.normation.rudder.rest.ApiVersion
 
 import net.liftweb.common.Box
 import net.liftweb.common.Failure

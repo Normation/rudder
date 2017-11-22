@@ -35,11 +35,11 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.directive
+package com.normation.rudder.rest.directive
 
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.rest.RestAPI
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.cfclerk.domain.Technique

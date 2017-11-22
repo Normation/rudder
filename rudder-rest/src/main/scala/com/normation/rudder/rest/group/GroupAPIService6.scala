@@ -35,12 +35,12 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.group
+package com.normation.rudder.rest.group
 
 import net.liftweb.common._
 import com.normation.rudder.repository._
 import com.normation.eventlog._
-import com.normation.rudder.web.rest._
+import com.normation.rudder.rest._
 import com.normation.rudder.domain.nodes._
 
 case class GroupApiService6 (

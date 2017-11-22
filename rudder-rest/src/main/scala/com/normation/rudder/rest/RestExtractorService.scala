@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest
 
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
@@ -59,12 +59,12 @@ import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
 import com.normation.rudder.services.workflows.WorkflowService
-import com.normation.rudder.web.rest.changeRequest.APIChangeRequestInfo
-import com.normation.rudder.web.rest.directive.RestDirective
-import com.normation.rudder.web.rest.group.RestGroup
-import com.normation.rudder.web.rest.node._
-import com.normation.rudder.web.rest.parameter.RestParameter
-import com.normation.rudder.web.rest.rule.RestRule
+import com.normation.rudder.rest.changeRequest.APIChangeRequestInfo
+import com.normation.rudder.rest.directive.RestDirective
+import com.normation.rudder.rest.group.RestGroup
+import com.normation.rudder.rest.node._
+import com.normation.rudder.rest.parameter.RestParameter
+import com.normation.rudder.rest.rule.RestRule
 import com.normation.utils.Control._
 
 import net.liftweb.common._
@@ -73,7 +73,7 @@ import net.liftweb.json._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.domain.nodes.NodePropertyProvider
-import com.normation.rudder.web.rest.parameter.RestParameter
+import com.normation.rudder.rest.parameter.RestParameter
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.services.ReasonBehavior
 import com.normation.rudder.repository.ldap.NodeStateEncoder

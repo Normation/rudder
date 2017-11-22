@@ -35,11 +35,11 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.group
+package com.normation.rudder.rest.group
 
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.rest.RestAPI
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 
 trait GroupAPI extends RestAPI {

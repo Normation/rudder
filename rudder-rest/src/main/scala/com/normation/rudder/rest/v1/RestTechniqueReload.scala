@@ -35,26 +35,38 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
-
-import com.normation.rudder.batch.UpdateDynamicGroups
+package com.normation.rudder.rest.v1
 
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.PlainTextResponse
-
+import net.liftweb.common._
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
+import com.normation.rudder.service.user.UserService
+import com.normation.rudder.rest.RestUtils
 
 /**
  * A rest api that allows to deploy promises.
- *
  */
-class RestDyngroupReload(
-    updateDynamicGroups: UpdateDynamicGroups
-) extends RestHelper {
+class RestTechniqueReload(
+    updatePTLibService : UpdateTechniqueLibrary
+  , uuidGen            : StringUuidGenerator
+) ( implicit userService : UserService )
+ extends RestHelper with Loggable {
 
   serve {
-    case Get("api" :: "dyngroup" :: "reload" :: Nil, req) =>
-      updateDynamicGroups.startManualUpdate
-      PlainTextResponse("OK")
+    case Get("api" :: "techniqueLibrary" :: "reload" :: Nil, req) =>
+      updatePTLibService.update(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), Some("Technique library reloaded from REST API")) match {
+        case Full(x) => PlainTextResponse("OK")
+        case eb:EmptyBox =>
+          val e = eb ?~! "An error occured when updating the Technique library from file system"
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Root exception cause was:", ex)
+          }
+          PlainTextResponse(s"Error: ${e.messageChain.split(" <- ").mkString("","\ncause:","\n")}", 500)
+      }
   }
 
 }

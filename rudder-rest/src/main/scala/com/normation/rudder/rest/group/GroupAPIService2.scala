@@ -35,18 +35,18 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.group
+package com.normation.rudder.rest.group
 
 import com.normation.rudder.repository._
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.services.workflows._
-import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.rest.RestExtractorService
 import com.normation.eventlog.EventActor
 import net.liftweb.common._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.web.rest._
+import com.normation.rudder.rest._
 import net.liftweb.http.Req
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment

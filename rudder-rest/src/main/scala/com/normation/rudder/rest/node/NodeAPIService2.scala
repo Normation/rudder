@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.node
+package com.normation.rudder.rest.node
 
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -43,10 +43,10 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
-import com.normation.rudder.web.rest.RestUtils.getActor
-import com.normation.rudder.web.rest.RestUtils.toJsonError
-import com.normation.rudder.web.rest.RestUtils.toJsonResponse
-import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils.getActor
+import com.normation.rudder.rest.RestUtils.toJsonError
+import com.normation.rudder.rest.RestUtils.toJsonResponse
+import com.normation.rudder.rest.RestExtractorService
 import com.normation.utils.Control._
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.EmptyBox
@@ -59,7 +59,7 @@ import net.liftweb.json.JsonDSL.pair2jvalue
 import net.liftweb.json.JsonDSL.string2jvalue
 import net.liftweb.common.Box
 import net.liftweb.json.JValue
-import com.normation.rudder.web.rest.RestDataSerializer
+import com.normation.rudder.rest.RestDataSerializer
 import net.liftweb.common.Failure
 import com.normation.rudder.service.user.UserService
 

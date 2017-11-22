@@ -35,37 +35,31 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+package com.normation.rudder.rest.v1
 
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.PlainTextResponse
-import net.liftweb.common._
-import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.eventlog.ModificationId
+import net.liftweb.http._
+import net.liftweb.http.rest._
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.ManualStartDeployment
 import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
 import com.normation.rudder.service.user.UserService
+import com.normation.rudder.rest.RestUtils
 
 /**
  * A rest api that allows to deploy promises.
+ *
  */
-class RestTechniqueReload(
-    updatePTLibService : UpdateTechniqueLibrary
-  , uuidGen            : StringUuidGenerator
+class RestDeploy(
+    asyncDeploymentAgent: AsyncDeploymentAgent
+  , uuidGen             : StringUuidGenerator
 ) ( implicit userService : UserService )
- extends RestHelper with Loggable {
+extends RestHelper {
 
   serve {
-    case Get("api" :: "techniqueLibrary" :: "reload" :: Nil, req) =>
-      updatePTLibService.update(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), Some("Technique library reloaded from REST API")) match {
-        case Full(x) => PlainTextResponse("OK")
-        case eb:EmptyBox =>
-          val e = eb ?~! "An error occured when updating the Technique library from file system"
-          logger.error(e.messageChain)
-          e.rootExceptionCause.foreach { ex =>
-            logger.error("Root exception cause was:", ex)
-          }
-          PlainTextResponse(s"Error: ${e.messageChain.split(" <- ").mkString("","\ncause:","\n")}", 500)
-      }
+    case Get("api" :: "deploy" :: "reload" :: Nil, req) =>
+      asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), "Policy update asked by REST request")
+      PlainTextResponse("OK")
   }
 
 }
