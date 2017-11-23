@@ -593,7 +593,7 @@ object RudderConfig extends Loggable {
     def getCurrentUser = CurrentUser
   }
 
-  val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeInfoService)
+  lazy val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeInfoService)
   // REST API
   val restAuthentication    = new RestAuthentication(userService)
   val restDeploy            = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
