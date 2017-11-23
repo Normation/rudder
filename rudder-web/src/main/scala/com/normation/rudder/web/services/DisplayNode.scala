@@ -402,6 +402,10 @@ object DisplayNode extends Loggable {
 
       <h4 class="tablemargin">Rudder information</h4>
         <div class="tablepadding">
+         { nodeAndGlobalMode match {
+           case Some((n, _)) => <b>Rudder node state: </b> ++ n.state.name ++ <br/>
+           case None         => NodeSeq.Empty
+         } }
          { nodePolicyMode match {
            case None => NodeSeq.Empty
            case Some((mode,explanation)) =>
