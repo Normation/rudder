@@ -202,7 +202,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.6.1</version>
+        <version>3.7.0</version>
         <configuration>
           <!-- require java8, cf http://www.rudder-project.org/redmine/issues/8963 -->
           <source>1.8</source>
@@ -220,7 +220,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>2.2.1</version>
+        <version>3.0.1</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -254,7 +254,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>3.2.0</version>
         <configuration>      
           <archive>
             <addMavenDescriptor>false</addMavenDescriptor>
@@ -331,24 +331,24 @@ limitations under the License.
     <rudder-version>4.2.3-SNAPSHOT</rudder-version>
     <spring-run-dep-version>4.2.3-SNAPSHOT</spring-run-dep-version>
 
-    <scala-version>2.12.3</scala-version>
+    <scala-version>2.12.4</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
-    <lift-version>3.0.1</lift-version>
-    <slf4j-version>1.7.22</slf4j-version>
-    <logback-version>1.1.9</logback-version>
+    <lift-version>3.0.2</lift-version>
+    <slf4j-version>1.7.25</slf4j-version>
+    <logback-version>1.2.3</logback-version>
     <junit-version>4.12</junit-version>
-    <jodatime-version>2.9.7</jodatime-version>
-    <jodaconvert-version>1.8.1</jodaconvert-version>
-    <commons-io-version>2.5</commons-io-version>
-    <commons-codec-version>1.10</commons-codec-version>
+    <jodatime-version>2.9.9</jodatime-version>
+    <jodaconvert-version>1.9.2</jodaconvert-version>
+    <commons-io-version>2.6</commons-io-version>
+    <commons-codec-version>1.11</commons-codec-version>
     <commons-lang-version>2.6</commons-lang-version>
     <spring-version>3.2.18.RELEASE</spring-version>
     <spring-security-version>3.2.10.RELEASE</spring-security-version>
-    <jgit-version>4.6.0.201612231935-r</jgit-version>
-    <cglib-version>3.2.4</cglib-version>
+    <jgit-version>4.9.0.201710071750-r</jgit-version>
+    <cglib-version>3.2.5</cglib-version>
     <asm-version>5.2</asm-version>
-    <bcpkix-jdk15on-version>1.56</bcpkix-jdk15on-version>
-    <monix-version>2.2.3</monix-version>
+    <bcpkix-jdk15on-version>1.58</bcpkix-jdk15on-version>
+    <monix-version>2.2.4</monix-version>
     <!-- 
       These one must be updated to work together 
       We declare scalaz in "test" here, because it adds ~12Mo of dep. 
