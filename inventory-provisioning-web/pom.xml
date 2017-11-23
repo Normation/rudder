@@ -41,19 +41,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <artifactId>inventory-provisioning-web</artifactId>
   <packaging>war</packaging>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.mortbay.jetty</groupId>
-        <artifactId>maven-jetty-plugin</artifactId>
-        <configuration>
-          <contextPath>/</contextPath>
-          <scanIntervalSeconds>0</scanIntervalSeconds>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-
   <dependencies>
     <dependency>
       <groupId>com.normation.inventory</groupId>
@@ -75,13 +62,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>io.monix</groupId>
       <artifactId>monix-reactive_${scala-binary-version}</artifactId>
-      <version>${monix-version}</version>
     </dependency>
     <!-- Needed for fileupload -->
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>${commons-io-version}</version>
     </dependency>
     <!-- Spring Framework Project libraries -->
     <!-- Needed to use spring configuration by annotation -->

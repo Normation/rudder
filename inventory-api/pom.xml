@@ -45,21 +45,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>utils</artifactId>
       <version>${rudder-version}</version>
     </dependency>
-
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
-      <version>${bcpkix-jdk15on-version}</version>
-    </dependency>
-   
+    </dependency>   
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-json_${scala-binary-version}</artifactId>
-      <version>${lift-version}</version>
     </dependency>
-    
   </dependencies>
-
-
-
 </project>

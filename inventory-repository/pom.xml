@@ -58,18 +58,15 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>commons-lang</groupId>
       <artifactId>commons-lang</artifactId>
-      <version>${commons-lang-version}</version>
     </dependency>
 
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-json_${scala-binary-version}</artifactId>
-      <version>${lift-version}</version>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-util_${scala-binary-version}</artifactId>
-      <version>${lift-version}</version>
     </dependency>
   </dependencies>
 
