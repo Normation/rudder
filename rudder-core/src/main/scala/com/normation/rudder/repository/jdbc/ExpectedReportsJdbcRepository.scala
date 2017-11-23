@@ -49,8 +49,8 @@ import org.joda.time.DateTime
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
 import com.normation.rudder.domain.logger.PolicyLogger
 
 
@@ -115,20 +115,20 @@ class FindExpectedReportsJdbcRepository(
       case nodeAndIds =>
 
         (for {
-          configs <- query[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]](s"""
+          configs <- query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]](s"""
                        select nodeid, nodeconfigid, begindate, enddate, configuration
                        from nodeconfigurations
                        where (nodeid, nodeconfigid) in (${nodeAndIds.map(x => s"('${x.nodeId.value}','${x.version.value}')").mkString(",")} )
                      """).vector
         }yield {
           val configsMap = (configs.flatMap {
-            case -\/((id, c, _)) =>
+            case Left((id, c, _)) =>
               logger.error(s"Error when deserializing JSON for expected node configuration ${id.value} (${c.value})")
               None
-            case \/-(x) => Some((NodeAndConfigId(x.nodeId, x.nodeConfigId), x))
+            case Right(x) => Some((NodeAndConfigId(x.nodeId, x.nodeConfigId), x))
           }).toMap
           nodeConfigIds.map(id => (id, configsMap.get(id))).toMap
-        }).attempt.transact(xa).unsafePerformSync
+        }).attempt.transact(xa).unsafeRunSync
     }
   }
 
@@ -149,18 +149,18 @@ class FindExpectedReportsJdbcRepository(
                        from nodeconfigurations
                        inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
                        where enddate is null"""
-                     ).query[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].vector
+                     ).query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].vector
         } yield {
           val t1 =  System.currentTimeMillis
           TimingDebugLogger.trace(s"Compliance: query to get current expected reports: ${t1-t0}ms")
           val configsMap = (configs.flatMap {
-            case -\/((id, c, _)) =>
+            case Left((id, c, _)) =>
               logger.error(s"Error when deserializing JSON for expected node configuration ${id.value} (${c.value})")
               None
-            case \/-(x) => Some((x.nodeId, x))
+            case Right(x) => Some((x.nodeId, x))
           }).toMap
           nodeIds.map(id => (id, configsMap.get(id))).toMap
-        }).attempt.transact(xa).unsafePerformSync
+        }).attempt.transact(xa).unsafeRunSync
     }
   }
 
@@ -169,7 +169,7 @@ class FindExpectedReportsJdbcRepository(
     sql"""
       select distinct nodeid from nodeconfigurations
       where enddate is null and configuration like ${"%"+ruleId.value+"%"}
-    """.query[NodeId].to[Set].attempt.transact(xa).unsafePerformSync
+    """.query[NodeId].to[Set].attempt.transact(xa).unsafeRunSync
   }
 
 
@@ -185,7 +185,7 @@ class FindExpectedReportsJdbcRepository(
       } yield {
         val res = entries.map{ case(nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
         nodeIds.map(n => (n, res.get(n))).toMap
-      }).attempt.transact(xa).unsafePerformSync
+      }).attempt.transact(xa).unsafeRunSync
     }
   }
 }
@@ -204,7 +204,7 @@ class UpdateExpectedReportsJdbcRepository(
   override def closeNodeConfigurations(nodeId: NodeId): Box[NodeId] = {
     sql"""
       update nodeconfigurations set enddate = ${DateTime.now} where nodeid = ${nodeId} and enddate is null
-    """.update.run.attempt.transact(xa).unsafePerformSync.map( _ => nodeId )
+    """.update.run.attempt.transact(xa).unsafeRunSync.map( _ => nodeId )
   }
 
 
@@ -217,22 +217,22 @@ class UpdateExpectedReportsJdbcRepository(
 
         val withFrag = Fragment.const(s"with tempnodeid (id) as (values ${nodeIds.mkString(",")})")
 
-        type A = \/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
-        val getConfigs: \/[Throwable, List[A]] = (
+        type A = Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
+        val getConfigs: Either[Throwable, List[A]] = (
                         withFrag ++ fr"""
                            select nodeid, nodeconfigid, begindate, enddate, configuration
                            from nodeconfigurations
                            inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
                            where enddate is NULL"""
-                        ).query[A].list.attempt.transact(xa).unsafePerformSync
+                        ).query[A].list.attempt.transact(xa).unsafeRunSync
 
         type B = (NodeId, Vector[NodeConfigIdInfo])
-        val getInfos: \/[Throwable, List[B]] = (
+        val getInfos: Either[Throwable, List[B]] = (
                             withFrag ++ fr"""
                               select node_id, config_ids from nodes_info
                               inner join tempnodeid on tempnodeid.id = nodes_info.node_id
                             """
-                          ).query[B].list.attempt.transact(xa).unsafePerformSync
+                          ).query[B].list.attempt.transact(xa).unsafeRunSync
 
         // common part: find old configs and node config info for all config to update
         val time_0 = System.currentTimeMillis
@@ -258,9 +258,9 @@ class UpdateExpectedReportsJdbcRepository(
    */
   def doUpdateNodeExpectedReports(
       configs    : List[NodeExpectedReports]
-    , oldConfigs : List[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]]
+    , oldConfigs : List[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]]
     , configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]
-  ): \/[Throwable, List[NodeExpectedReports]] = {
+  ): Either[Throwable, List[NodeExpectedReports]] = {
 
     import Doobie._
     import doobie.xa
@@ -272,8 +272,8 @@ class UpdateExpectedReportsJdbcRepository(
     // we keep valid current identified by nodeId, we won't have to save them afterward.
     val (toClose, okConfigs) = ( (List[(DateTime, NodeId, NodeConfigId, DateTime)](), List[NodeId]() ) /: oldConfigs) { case ((nok, ok), next) =>
       next match {
-        case -\/(n) => ((currentConfigs(n._1)._2, n._1, n._2, n._3)::nok, ok)
-        case \/-(r) =>
+        case Left(n) => ((currentConfigs(n._1)._2, n._1, n._2, n._3)::nok, ok)
+        case Right(r) =>
           if(currentConfigs(r.nodeId)._1 == r.nodeConfigId) { //config didn't change
             (nok, r.nodeId :: ok)
           } else { // config changed, we need to close it
@@ -327,7 +327,7 @@ class UpdateExpectedReportsJdbcRepository(
                        """).updateMany(toAdd)
     } yield {
       configs
-    }).attempt.transact(xa).unsafePerformSync
+    }).attempt.transact(xa).unsafeRunSync
   }
 
 
@@ -352,15 +352,15 @@ class UpdateExpectedReportsJdbcRepository(
                  |]]""".stripMargin)
 
     (for {
-       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafePerformSync
+       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafeRunSync
     } yield {
        i
     }) match {
-      case -\/(ex) =>
+      case Left(ex) =>
         val msg ="Could not archive NodeConfigurations in the database, cause is " + ex.getMessage()
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
-      case \/-(i)  => Full(i.sum)
+      case Right(i)  => Full(i.sum)
      }
   }
 
@@ -380,15 +380,15 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafePerformSync
+      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafeRunSync
     } yield {
       i
     }) match  {
-      case -\/(ex) =>
+      case Left(ex) =>
         val msg ="Could not delete NodeConfigurations in the database, cause is " + ex.getMessage()
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
-      case \/-(i)  => Full(i.sum)
+      case Right(i)  => Full(i.sum)
     }
   }
 
@@ -416,15 +416,15 @@ class UpdateExpectedReportsJdbcRepository(
                  |]]""".stripMargin)
 
     (for {
-       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafePerformSync
+       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafeRunSync
     } yield {
        i
     }) match {
-      case -\/(ex) =>
+      case Left(ex) =>
         val msg ="Could not archive NodeCompliance in the database, cause is " + ex.getMessage()
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
-      case \/-(i)  => Full(i.sum)
+      case Right(i)  => Full(i.sum)
      }
   }
 
@@ -444,15 +444,15 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafePerformSync
+      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafeRunSync
     } yield {
       i
     }) match  {
-      case -\/(ex) =>
+      case Left(ex) =>
         val msg ="Could not delete NodeCompliance in the database, cause is " + ex.getMessage()
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
-      case \/-(i)  => Full(i.sum)
+      case Right(i)  => Full(i.sum)
     }
   }
 
@@ -472,13 +472,13 @@ class UpdateExpectedReportsJdbcRepository(
       update                <- updateNodeConfigIdInfo(mapOfBeforeAfter.map{ case (nodeId, (old, current)) => (nodeId, current)})
     } yield {
       update.size
-    }).attempt.transact(xa).unsafePerformSync
+    }).attempt.transact(xa).unsafeRunSync
   }
 
 
   private[this] def updateNodeConfigIdInfo(configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]): ConnectionIO[Set[NodeId]] = {
     if(configInfos.isEmpty) {
-      Set.empty[NodeId].point[ConnectionIO]
+      Set.empty[NodeId].pure[ConnectionIO]
     } else {
       val params = configInfos.map { case (node, configs) =>
         (NodeConfigIdSerializer.serialize(configs), node.value)

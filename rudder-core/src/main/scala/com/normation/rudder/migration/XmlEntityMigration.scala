@@ -14,12 +14,11 @@ import org.joda.time.DateTime
 
 import net.liftweb.common._
 
-import scalaz.{ Failure => _, _}, Scalaz._
-import doobie.imports._
-
-import scalaz.{\/-, -\/}
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+
 
 
 /**
@@ -166,8 +165,8 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
      * test is we have to migrate, and execute migration
      */
     migrationEventLogRepository.getLastDetectionLine match {
-        case -\/(ex) => Failure("Error when retrieving migration information", Full(ex), Empty)
-        case \/-(None) =>
+        case Left(ex) => Failure("Error when retrieving migration information", Full(ex), Empty)
+        case Right(None) =>
           logger.info(s"No migration detected by migration script (table '${migrationEventLogRepository.table}' is empty or does not exist)")
           Full(NoMigrationRequested)
 
@@ -180,7 +179,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
          */
 
         //new migration
-        case \/-(Some(DB.MigrationEventLog(
+        case Right(Some(DB.MigrationEventLog(
             id
           , _
           , detectedFileFormat
@@ -223,7 +222,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           }
 
         //a past migration was done, but the final format is not the one we want
-        case \/-(Some(x@DB.MigrationEventLog(
+        case Right(Some(x@DB.MigrationEventLog(
             _
           , _
           , _
@@ -238,7 +237,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           this.migrate()
 
             // lower file format found, send to parent)
-        case \/-(Some(status@DB.MigrationEventLog(
+        case Right(Some(status@DB.MigrationEventLog(
             _
           , _
           , detectedFileFormat
@@ -272,7 +271,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           }
 
         //a past migration was done, but the final format is not the one we want
-        case \/-(Some(x@DB.MigrationEventLog(
+        case Right(Some(x@DB.MigrationEventLog(
             _
           , _
           , _
@@ -290,7 +289,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
 
 
         //other case: does nothing
-        case \/-(Some(x)) =>
+        case Right(Some(x)) =>
           logger.debug(s"Migration of EventLog from format '${fromVersion}' to '${toVersion}': nothing to do")
           Full(MigrationVersionNotHandledHere)
       }
@@ -353,23 +352,25 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
    */
   def process() : Box[MigrationProcessResult] = {
     def recProcessOneBatch(mig: MigrationProcessResult): Box[MigrationProcessResult] = {
-      val res = (for {
+      val exec: ConnectionIO[Vector[T]] = (for {
         elts     <- findBatch
         migrated =  migrate(elts, errorLogger)
         saved    <- save(migrated)
       } yield {
         saved
-      }).attempt.transact(doobie.xa).unsafePerformSync
+      })
+
+      val res = exec.attempt.transact(doobie.xa).unsafeRunSync
 
       res match {
-        case \/-(k) if(k.size < 1) =>
+        case Right(k) if(k.size < 1) =>
           logger.debug(s"Migration from file format ${fromVersion} to ${toVersion} ended after ${mig.nbBatches} batches")
           Full(mig)
-        case \/-(k) =>
+        case Right(k) =>
           successLogger(k)
           logger.debug(s"Migration from file format ${fromVersion} to ${toVersion}: starting batch #${mig.nbBatches+1}")
           recProcessOneBatch(MigrationProcessResult(mig.totalMigrated+k.size, mig.nbBatches+1))
-        case -\/(ex) =>
+        case Left(ex) =>
           val f = Failure("Error when migrating eventlog", Full(ex), Empty)
           if(mig.nbBatches > 0) f ?~! s"(already migrated ${mig.nbBatches} entries"
           else f

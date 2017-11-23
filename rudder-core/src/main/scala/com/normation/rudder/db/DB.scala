@@ -56,9 +56,10 @@ import com.normation.rudder.rule.category.RuleCategoryId
 
 import org.joda.time.DateTime
 
-import doobie.imports._
-import scalaz._, Scalaz._
+import doobie._
+import doobie.implicits._
 import com.normation.rudder.db.Doobie._
+import cats._, cats.data._, cats.effect.IO, cats.implicits._
 
 
 

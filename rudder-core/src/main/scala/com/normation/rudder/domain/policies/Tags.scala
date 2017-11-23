@@ -100,13 +100,13 @@ trait JsonTagExtractor[M[_]] extends JsonExctractorUtils[M] {
         tagName <- extractJsonString(jsonTag, "key", s => Full(TagName(s)))
         tagValue <- extractJsonString(jsonTag, "value", s => Full(TagValue(s)))
       } yield {
-        monad.apply2(tagName, tagValue)( (k,v) => Tag(k,v))
+        monad.map2(tagName, tagValue)( (k,v) => Tag(k,v))
       }
   }
 
   def extractTags(value:JValue): Box[M[Tags]] = {
 
-    extractJsonArray(value)(convertToTag).map(monad.apply(_)(tags => Tags(tags.toSet))) ?~! s"Invalid JSON serialization for Tags ${value}"
+    extractJsonArray(value)(convertToTag).map(monad.map(_)(tags => Tags(tags.toSet))) ?~! s"Invalid JSON serialization for Tags ${value}"
   }
 
 }

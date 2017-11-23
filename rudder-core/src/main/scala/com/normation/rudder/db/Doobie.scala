@@ -38,11 +38,8 @@
 package com.normation.rudder.db
 
 import javax.sql.DataSource
+import cats._, cats.data._, cats.implicits._, cats.effect.IO
 import doobie.imports._
-import doobie.enum.jdbctype.Other
-import doobie.postgres.pgtypes._
-import scalaz.{Failure => _, _}
-import scalaz.concurrent.Task
 import org.joda.time.DateTime
 import scala.xml.XML
 import java.sql.SQLXML
@@ -57,6 +54,7 @@ import org.slf4j.LoggerFactory
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
 import scala.language.implicitConversions
+import doobie.postgres._, doobie.postgres.implicits._
 
 /**
  *
@@ -66,7 +64,7 @@ import scala.language.implicitConversions
  */
 class Doobie(datasource: DataSource) {
 
-  val xa = DataSourceTransactor[Task](datasource)
+  val xa =Transactor.fromDataSource[IO](datasource)
 
 }
 
@@ -110,21 +108,21 @@ object Doobie {
 
 
   /**
-   * Utility method that maps a scalaz either into a Lift Box.
+   * Utility method that maps a either into a Lift Box.
    * Implicitly, because there is ton of it needed.
    */
-  implicit def xorToBox[A](res: \/[Throwable, A]): Box[A] = res match {
-    case -\/(e) => Failure(e.getMessage, Full(e), Empty)
-    case \/-(a) => Full(a)
+  implicit def xorToBox[A](res: Either[Throwable, A]): Box[A] = res match {
+    case Left(e) => Failure(e.getMessage, Full(e), Empty)
+    case Right(a) => Full(a)
   }
-  implicit class XorToBox[A](res: \/[Throwable, A]) {
+  implicit class XorToBox[A](res: Either[Throwable, A]) {
     def box = xorToBox(res)
   }
-  implicit def xorBoxToBox[A](res: \/[Throwable, Box[A]]): Box[A] = res match {
-    case -\/(e) => Failure(e.getMessage, Full(e), Empty)
-    case \/-(a) => a
+  implicit def xorBoxToBox[A](res: Either[Throwable, Box[A]]): Box[A] = res match {
+    case Left(e) => Failure(e.getMessage, Full(e), Empty)
+    case Right(a) => a
   }
-  implicit class XorBoxToBox[A](res: \/[Throwable, Box[A]]) {
+  implicit class XorBoxToBox[A](res: Either[Throwable, Box[A]]) {
     def box = xorBoxToBox(res)
   }
 
@@ -145,21 +143,21 @@ object Doobie {
 
   implicit val ReportComposite: Composite[Reports] = {
     type R = (DateTime, RuleId, DirectiveId, NodeId, Int, String, String, DateTime, String, String)
-    Composite[R].xmap(
-        (t: R      ) => Reports.factory(t._1,t._2,t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10)
-     ,  (r: Reports) => Reports.unapply(r).get
+    Composite[R].imap(
+        (t: R      ) => Reports.factory(t._1,t._2,t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10))(
+        (r: Reports) => Reports.unapply(r).get
     )
   }
 
   implicit val NodesConfigVerionComposite: Composite[NodeConfigVersions] = {
-    Composite[(NodeId, Option[List[String]])].xmap(
-        tuple => NodeConfigVersions(tuple._1, tuple._2.getOrElse(Nil).map(NodeConfigId))
-     ,  ncv   => (ncv.nodeId, Some(ncv.versions.map(_.value)))
+    Composite[(NodeId, Option[List[String]])].imap(
+        tuple => NodeConfigVersions(tuple._1, tuple._2.getOrElse(Nil).map(NodeConfigId)))(
+        ncv   => (ncv.nodeId, Some(ncv.versions.map(_.value)))
     )
   }
 
-  implicit val NodeConfigIdComposite: Atom[Vector[NodeConfigIdInfo]] = {
-    Atom[String].xmap(
+  implicit val NodeConfigIdComposite: Meta[Vector[NodeConfigIdInfo]] = {
+    Meta[String].xmap(
         tuple => NodeConfigIdSerializer.unserialize(tuple)
       , obj   => NodeConfigIdSerializer.serialize(obj)
     )
@@ -170,9 +168,9 @@ object Doobie {
    */
   implicit val SerializeNodeExpectedReportsComposite: Composite[NodeExpectedReports] = {
     import ExpectedReportsSerialisation._
-    Composite[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].xmap(
-        tuple => throw new RuntimeException(s"Error: that method should not be used to deserialize NodeExpectedReports")
-      , ner   => (ner.nodeId, ner.nodeConfigId, ner.beginDate, ner.endDate, ner.toJson)
+    Composite[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].imap(
+          tuple => throw new RuntimeException(s"Error: that method should not be used to deserialize NodeExpectedReports"))(
+          ner   => (ner.nodeId, ner.nodeConfigId, ner.beginDate, ner.endDate, ner.toJson)
     )
   }
 
@@ -180,60 +178,61 @@ object Doobie {
    * As we have some json in NodeExpectedReports, it is expected to fail somewhen like
    * at each format update. We need to enforce that.
    */
-  implicit val DeserializeNodeExpectedReportsComposite: Composite[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]] = {
+  implicit val DeserializeNodeExpectedReportsComposite: Composite[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]] = {
     import ExpectedReportsSerialisation._
-    Composite[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].xmap(
+    Composite[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].imap(
         tuple => {
               parseJsonNodeExpectedReports(tuple._5) match {
                 case Full(x)      =>
-                  \/-(NodeExpectedReports(tuple._1, tuple._2, tuple._3, tuple._4, x.modes, x.ruleExpectedReports))
+                  Right(NodeExpectedReports(tuple._1, tuple._2, tuple._3, tuple._4, x.modes, x.ruleExpectedReports))
                 case eb: EmptyBox =>
-                  -\/((tuple._1, tuple._2, tuple._3))
+                  Left((tuple._1, tuple._2, tuple._3))
               }
           }
-      , ner   => throw new RuntimeException(s"Error: that method should not be used to serialize NodeExpectedReports")
+      )(
+        ner   => throw new RuntimeException(s"Error: that method should not be used to serialize NodeExpectedReports")
     )
   }
 
   implicit val CompliancePercentComposite: Composite[CompliancePercent] = {
     import ComplianceLevelSerialisation._
     import net.liftweb.json._
-    Composite[String].xmap(
-        json => parsePercent(parse(json))
-      , x    => compactRender(x.toJson)
+    Composite[String].imap(
+        json => parsePercent(parse(json)))(
+        x    => compactRender(x.toJson)
     )
   }
 
   implicit val ComplianceRunInfoComposite: Composite[(RunAndConfigInfo, RunComplianceInfo)] = {
     import NodeStatusReportSerialization._
-    Composite[String].xmap(
-        json => throw new RuntimeException(s"You can deserialize run compliance info for now")
-      , x    => x.toJson
+    Composite[String].imap(
+        json => throw new RuntimeException(s"You can deserialize run compliance info for now"))(
+        x    => x.toJson
     )
   }
 
   implicit val AggregatedStatusReportComposite: Composite[AggregatedStatusReport] = {
     import NodeStatusReportSerialization._
-    Composite[String].xmap(
-        json => throw new RuntimeException(s"You can deserialize aggredatedStatusReport for now")
-      , x    => x.toJson
+    Composite[String].imap(
+        json => throw new RuntimeException(s"You can deserialize aggredatedStatusReport for now"))(
+        x    => x.toJson
     )
   }
 
 
-
+  import doobie.enum.JdbcType.Other
   implicit val XmlMeta: Meta[Elem] =
     Meta.advanced[Elem](
-        NonEmptyList(Other)
-      , NonEmptyList("xml")
-      , (rs, n) => XML.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),
-        (n,  e) => FPS.raw { ps =>
-          val sqlXml = ps.getConnection.createSQLXML
-          val osw = new java.io.OutputStreamWriter(sqlXml.setBinaryStream)
-          XML.write(osw, e, "UTF-8", false, null)
-          osw.close
-          ps.setObject(n, sqlXml)
-        }
-      , (_,  _) => sys.error("update not supported, sorry")
+      NonEmptyList.of(Other),
+      NonEmptyList.of("xml"),
+      (rs, n) => XML.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),
+      (ps, n,  e) => {
+        val sqlXml = ps.getConnection.createSQLXML
+        val osw = new java.io.OutputStreamWriter(sqlXml.setBinaryStream)
+        XML.write(osw, e, "UTF-8", false, null)
+        osw.close
+        ps.setObject(n, sqlXml)
+      },
+      (_, _,  _) => sys.error("update not supported, sorry")
     )
 }

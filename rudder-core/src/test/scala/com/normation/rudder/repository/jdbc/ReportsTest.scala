@@ -50,8 +50,9 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+
 import com.normation.rudder.db.DB
 
 
@@ -67,7 +68,7 @@ class ReportsTest extends DBCommon {
 
   //clean data base
   def cleanTables() = {
-    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).unsafePerformSync
+    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).unsafeRunSync
   }
 
   lazy val repostsRepo = new ReportsJdbcRepository(doobie)
@@ -117,8 +118,8 @@ class ReportsTest extends DBCommon {
       )
     )
     "correctly init info" in {
-      DB.insertReports(reports.values.toList.flatten).transact(xa).unsafePerformSync
-      sql"""select id from ruddersysevents""".query[Long].vector.transact(xa).unsafePerformSync.size === 8
+      DB.insertReports(reports.values.toList.flatten).transact(xa).unsafeRunSync
+      sql"""select id from ruddersysevents""".query[Long].vector.transact(xa).unsafeRunSync.size === 8
     }
 
     "find the last reports for node0" in {
@@ -167,7 +168,7 @@ class ReportsTest extends DBCommon {
     )
     step {
       cleanTables()
-      DB.insertReports(reports.values.toList.flatten).transact(xa).unsafePerformSync
+      DB.insertReports(reports.values.toList.flatten).transact(xa).unsafeRunSync
     }
 
 

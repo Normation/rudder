@@ -65,8 +65,9 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
 
-import scalaz.{Failure => _, _}
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+
 import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.nodes.LDAPNodeInfo
@@ -98,7 +99,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   //clean data base
   def cleanTables() = {
-    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).unsafePerformSync
+    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).unsafeRunSync
   }
 
   val nodeInfoService = new NodeInfoService {
@@ -329,7 +330,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //        (r, e, n)
 //      }
 //
-//      val (r, e, n) = q.transact(xa).unsafePerformSync
+//      val (r, e, n) = q.transact(xa).unsafeRunSync
 //
 //      (r must be_==(30)) and (e must be_==(6)) and (n must be_==(20))
 //    }

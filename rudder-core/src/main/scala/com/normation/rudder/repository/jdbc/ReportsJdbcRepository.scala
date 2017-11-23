@@ -49,8 +49,9 @@ import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.repository.ReportsRepository
 import org.joda.time._
 import net.liftweb.common._
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+import doobie.postgres._, doobie.postgres.implicits._
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
 
@@ -88,7 +89,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       s"""select ${common_reports_column}
           from RudderSysEvents
           where (nodeid, executiontimestamp) in (VALUES ${nodeParam})
-      """ + ruleClause).vector.attempt.transact(xa).unsafePerformSync.map( _.groupBy( _.nodeId)) ?~!
+      """ + ruleClause).vector.attempt.transact(xa).unsafeRunSync.map( _.groupBy( _.nodeId)) ?~!
       s"Error when trying to get last run reports for ${runs.size} nodes"
     }
   }
@@ -96,7 +97,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   override def findReportsByNode(nodeId   : NodeId) : Vector[Reports] = {
     val q = Query[NodeId, Reports](baseQuery + " and nodeId = ? order by id desc limit 1000", None).toQuery0(nodeId)
     // not a boxed return for that one?
-    q.vector.transact(xa).unsafePerformSync
+    q.vector.transact(xa).unsafeRunSync
   }
 
   override def findReportsByNodeOnInterval(
@@ -107,7 +108,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     val q = Query[(NodeId, DateTime, DateTime), Reports](baseQuery +
         " and nodeId = ? and executionTimeStamp >= ?  and executionTimeStamp < ? ORDER BY executionTimeStamp asc"
       , None).toQuery0((nodeId, start, end))
-    q.vector.transact(xa).unsafePerformSync
+    q.vector.transact(xa).unsafeRunSync
   }
 
   override def getReportsInterval(): Box[(Option[DateTime], Option[DateTime])] = {
@@ -118,7 +119,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                                    order by executionTimeStamp desc limit 1""").option
     } yield {
       (oldest, newest)
-    }).attempt.transact(xa).unsafePerformSync ?~! "Could not fetch the reports interval from the database."
+    }).attempt.transact(xa).unsafeRunSync ?~! "Could not fetch the reports interval from the database."
   }
 
   override def getArchivedReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
@@ -129,12 +130,12 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                                    order by executionTimeStamp desc limit 1""").option
     } yield {
       (oldest, newest)
-    }).attempt.transact(xa).unsafePerformSync ?~! "Could not fetch the reports interval from the database."
+    }).attempt.transact(xa).unsafeRunSync ?~! "Could not fetch the reports interval from the database."
   }
 
   override def getDatabaseSize(databaseName:String) : Box[Long] = {
     val q = query[Long](s"""select pg_total_relation_size('${databaseName}') as "size" """).unique
-    q.attempt.transact(xa).unsafePerformSync ?~! "Could not compute the size of the database"
+    q.attempt.transact(xa).unsafeRunSync ?~! "Could not compute the size of the database"
   }
 
   override def archiveEntries(date : DateTime) : Box[Int] = {
@@ -183,18 +184,18 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                  |]]""".stripMargin)
 
           (for {
-            i <- (archiveQuery :: deleteQuery :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafePerformSync
+            i <- (archiveQuery :: deleteQuery :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafeRunSync
             _ = logger.debug("Archiving and deleting done, starting to vacuum reports table")
             // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
-            _ <- (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).attempt.transact(xa).unsafePerformSync
+            _ <- (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).attempt.transact(xa).unsafeRunSync
           } yield {
             i
           }) match {
-            case -\/(ex) =>
+            case Left(ex) =>
               val msg ="Could not archive entries in the database, cause is " + ex.getMessage()
               logger.error(msg)
               Failure(msg, Full(ex), Empty)
-            case \/-(i)  => Full(i.sum)
+            case Right(i)  => Full(i.sum)
           }
       }
     }) match {
@@ -206,15 +207,15 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   // Utilitary methods for reliable archiving of reports
   private[this] def getHighestArchivedReports() : Box[Option[Long]] = {
-    query[Long]("select id from archivedruddersysevents order by id desc limit 1").option.attempt.transact(xa).unsafePerformSync ?~!"Could not fetch the highest archived report in the database"
+    query[Long]("select id from archivedruddersysevents order by id desc limit 1").option.attempt.transact(xa).unsafeRunSync ?~!"Could not fetch the highest archived report in the database"
   }
 
   private[this] def getLowestReports() : Box[Option[Long]] = {
-    query[Long]("select id from ruddersysevents order by id asc limit 1").option.attempt.transact(xa).unsafePerformSync ?~! "Could not fetch the lowest report in the database"
+    query[Long]("select id from ruddersysevents order by id asc limit 1").option.attempt.transact(xa).unsafeRunSync ?~! "Could not fetch the lowest report in the database"
   }
 
   private[this] def getHighestIdBeforeDate(date : DateTime) : Box[Option[Long]] = {
-    query[Long](s"select id from ruddersysevents where executionTimeStamp < '${date.toString("yyyy-MM-dd")}' order by id desc limit 1").option.attempt.transact(xa).unsafePerformSync ?~! s"Could not fetch the highest id before date ${date.toString("yyyy-MM-dd")} in the database"
+    query[Long](s"select id from ruddersysevents where executionTimeStamp < '${date.toString("yyyy-MM-dd")}' order by id desc limit 1").option.attempt.transact(xa).unsafeRunSync ?~! s"Could not fetch the highest id before date ${date.toString("yyyy-MM-dd")} in the database"
   }
 
   override def deleteEntries(date : DateTime) : Box[Int] = {
@@ -237,45 +238,45 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                    |]]""".stripMargin)
 
     (for {
-      i <- (d1 :: d2 :: d3 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafePerformSync
+      i <- (d1 :: d2 :: d3 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).unsafeRunSync
            // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
       _ <- { (v1 :: v2 :: v3 :: Nil).map { vacuum =>
-                (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).attempt.transact(xa).unsafePerformSync }.sequenceU
+                (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).attempt.transact(xa).unsafeRunSync }.sequence
            }
     } yield {
       i
     }) match  {
-      case -\/(ex) =>
+      case Left(ex) =>
         val msg ="Could not delete entries in the database, cause is " + ex.getMessage()
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
-      case \/-(i)  => Full(i.sum)
+      case Right(i)  => Full(i.sum)
     }
   }
 
   override def getHighestId() : Box[Long] = {
-    query[Long](s"select id from RudderSysEvents order by id desc limit 1").unique.attempt.transact(xa).unsafePerformSync
+    query[Long](s"select id from RudderSysEvents order by id desc limit 1").unique.attempt.transact(xa).unsafeRunSync
   }
 
   override def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Long, Reports)]] = {
     val events = kinds.map(k => s"eventtype='${k}'").mkString(" or ")
     val q = query[(Long, Reports)](s"${idQuery} and (${events}) order by executiondate desc limit 100")
 
-    q.vector.attempt.transact(xa).unsafePerformSync match {
-      case -\/(e)    =>
+    q.vector.attempt.transact(xa).unsafeRunSync match {
+      case Left(e)    =>
           val msg = s"Could not fetch last hundred reports in the database. Reason is : ${e.getMessage}"
           logger.error(msg)
           Failure(msg, Full(e), Empty)
-      case \/-(list) => Full(list)
+      case Right(list) => Full(list)
     }
   }
 
   override def getReportsWithLowestId : Box[Option[(Long, Reports)]] = {
     val q = query[(Long, Reports)](s"${idQuery} order by id asc limit 1")
-    q.option.attempt.transact(xa).unsafePerformSync match {
-      case -\/(e)    =>
+    q.option.attempt.transact(xa).unsafeRunSync match {
+      case Left(e)    =>
           Failure(e.getMessage, Full(e), Empty)
-      case \/-(option) => Full(option)
+      case Right(option) => Full(option)
 
     }
   }
@@ -298,7 +299,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
     def getRuns(fromId: Long, toId: Long): ConnectionIO[Vector[AgentRun]] = {
       if(fromId >= toId) {
-        Vector.empty[AgentRun].point[ConnectionIO]
+        Vector.empty[AgentRun].pure[ConnectionIO]
       } else {
         /*
          * Here, we use a special mapping for configurationid, because there is a bunch
@@ -310,7 +311,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
         //we want to match: """End execution with config [75rz605art18a05]"""
         // the (?s) allows . to match any characters, even non displayable ones
         implicit val ReportComposite: Composite[AgentRun] = {
-           Composite[T].xmap(
+           Composite[T].imap(
                (t: T       ) => {
                  val optNodeConfigId = t._3.flatMap(version => version match {
                    case "" => None
@@ -318,8 +319,8 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
                  })
                  AgentRun(AgentRunId(NodeId(t._1), t._2), optNodeConfigId, t._4, t._5)
-               }
-            ,  (x: AgentRun) => ( x.agentRunId.nodeId.value, x.agentRunId.date
+               })(
+               (x: AgentRun) => ( x.agentRunId.nodeId.value, x.agentRunId.date
                                 , x.nodeConfigVersion.map(_.value), x.isCompleted, x.insertionId)
            )
          }
@@ -388,7 +389,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       reports <- getRuns(lastProcessedId, toId)
     } yield {
       (distinctRuns(reports), toId)
-    }).attempt.transact(xa).unsafePerformSync ?~! s"Could not fetch the last completed runs from database."
+    }).attempt.transact(xa).unsafeRunSync ?~! s"Could not fetch the last completed runs from database."
   }
 
   override def countChangeReports(startTime: DateTime, intervalInHour: Int): Box[Map[RuleId, Map[Interval, Int]]] = {
@@ -410,7 +411,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
           where eventtype = 'result_repaired' and executionTimeStamp > '${new Timestamp(startTime.getMillis)}'::timestamp
           group by ruleid, interval;
       """
-    ).vector.attempt.transact(xa).unsafePerformSync ?~! "Error when trying to retrieve change reports").map { res =>
+    ).vector.attempt.transact(xa).unsafeRunSync ?~! "Error when trying to retrieve change reports").map { res =>
       val groups = res.groupBy(_._1).mapValues( _.groupBy(_._3).mapValues(_.map( _._2).head)) //head non empty due to groupBy, and seq == 1 by query
       groups
     }
@@ -420,7 +421,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     query[ResultRepairedReport](s"""
       ${typedQuery} and eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId}
       order by executionTimeStamp asc
-    """).vector.attempt.transact(xa).unsafePerformSync
+    """).vector.attempt.transact(xa).unsafeRunSync
   }
 
   override def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]] = {
@@ -432,7 +433,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       ${typedQuery} and eventtype='${Reports.RESULT_REPAIRED}' and ruleid='${ruleId.value}'
       and executionTimeStamp >  '${new Timestamp(interval.getStartMillis)}'::timestamp
       and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)  }'::timestamp order by executionTimeStamp asc ${l}
-    """).vector.attempt.transact(xa).unsafePerformSync
+    """).vector.attempt.transact(xa).unsafeRunSync
   }
 
   override def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long,Reports)]] = {
@@ -440,7 +441,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       Full(Nil)
     else{
       val q = s"${idQuery} and id between '${lower}' and '${upper}' and (${kinds.map(k => s"eventtype='${k}'").mkString(" or ")}) order by id asc limit ${limit}"
-      query[(Long, Reports)](q).vector.attempt.transact(xa).unsafePerformSync ?~! s"Could not fetch reports between ids ${lower} and ${upper} in the database."
+      query[(Long, Reports)](q).vector.attempt.transact(xa).unsafeRunSync ?~! s"Could not fetch reports between ids ${lower} and ${upper} in the database."
     }
   }
 }

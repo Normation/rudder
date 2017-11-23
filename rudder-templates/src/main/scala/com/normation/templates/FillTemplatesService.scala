@@ -133,7 +133,7 @@ class FillTemplatesService extends Loggable {
                     //return the actual template with replaced variable in case of success
                     replaced match {
                       case Full(_) => Full(template.toString())
-                      case Empty => //should not happen, but well, that the price of not using \/
+                      case Empty => //should not happen, but well, that the price of not using Either
                         Failure(s"An unknown error happen when trying to fill template '${templateName}'")
                       case f: Failure => //build a new failure with all the failure message concatenated and the templateName as context
                         Failure(s"Error with template '${templateName}': ${f.failureChain.map { _.msg }.mkString("; ") }")

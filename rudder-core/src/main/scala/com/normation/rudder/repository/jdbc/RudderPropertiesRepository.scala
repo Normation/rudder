@@ -37,9 +37,8 @@
 
 package com.normation.rudder.repository.jdbc
 
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
-
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
 
 import net.liftweb.common._
 import com.normation.rudder.repository.RudderPropertiesRepository
@@ -60,16 +59,16 @@ class RudderPropertiesRepositoryImpl(
   def getReportLoggerLastId: Box[Long] = {
 
     val sql = sql"select value from rudderproperties where name=${PROP_REPORT_LAST_ID}".query[Long].option
-    sql.attempt.transact(xa).unsafePerformSync match {
-      case \/-(None) =>
+    sql.attempt.transact(xa).unsafeRunSync match {
+      case Right(None) =>
           Empty
-      case \/-(Some(x)) =>
+      case Right(Some(x)) =>
         try {
           Full(x.toLong)
         } catch {
           case ex: Exception => Failure(s"Error when parsing property '${PROP_REPORT_LAST_ID}' with value '${x}' as long", Full(ex), Empty)
         }
-      case -\/(ex) => Failure(s"Error when parsing property '${PROP_REPORT_LAST_ID}'", Full(ex), Empty)
+      case Left(ex) => Failure(s"Error when parsing property '${PROP_REPORT_LAST_ID}'", Full(ex), Empty)
     }
   }
 
@@ -95,7 +94,7 @@ class RudderPropertiesRepositoryImpl(
                         case 0 =>
                           logger.warn("last id not present in database, create it with value %d".format(newId))
                           insert.run
-                        case 1 => 1.point[ConnectionIO]
+                        case 1 => 1.pure[ConnectionIO]
                         case n => throw new RuntimeException(s"Expected 0 or 1 change, not ${n} for ${PROP_REPORT_LAST_ID}")
                       }
     } yield {
@@ -103,9 +102,9 @@ class RudderPropertiesRepositoryImpl(
     }
 
 
-    sql.attempt.transact(xa).unsafePerformSync match {
-      case \/-(x)  => Full(newId)
-      case -\/(ex) => Failure(s"could not update lastId from database, cause is: ${ex.getMessage}", Full(ex), Empty)
+    sql.attempt.transact(xa).unsafeRunSync match {
+      case Right(x)  => Full(newId)
+      case Left(ex) => Failure(s"could not update lastId from database, cause is: ${ex.getMessage}", Full(ex), Empty)
     }
   }
 

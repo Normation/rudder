@@ -57,9 +57,9 @@ import scala.xml.Elem
 
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
-import doobie.postgres.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+import doobie.postgres._, doobie.postgres.implicits._
 import com.normation.rudder.repository.RoChangeRequestRepository
 
 class RoChangeRequestJdbcRepository(
@@ -81,7 +81,7 @@ class RoChangeRequestJdbcRepository(
         // we are just ignoring change request with unserialisation
         // error. Does not seem the best.
         _.map(_.flatten.toVector)
-    ).transact(xa).unsafePerformSync
+    ).transact(xa).unsafeRunSync
   }
 
   override def getAll() : Box[Vector[ChangeRequest]] = {
@@ -91,7 +91,7 @@ class RoChangeRequestJdbcRepository(
 
   override def get(changeRequestId:ChangeRequestId) : Box[Option[ChangeRequest]] = {
     val q = Query[ChangeRequestId, Box[ChangeRequest]](SELECT_SQL + " where id = ?", None).toQuery0(changeRequestId)
-    q.option.map(_.map(_.toOption)).transact(xa).unsafePerformSync
+    q.option.map(_.map(_.toOption)).transact(xa).unsafeRunSync
 
   }
 
@@ -189,7 +189,7 @@ class WoChangeRequestJdbcRepository(
        """.update.withUniqueGeneratedKeys[Int]("id")
 
     for {
-      id  <- (q.attempt.transact(xa).unsafePerformSync: Box[Int])
+      id  <- (q.attempt.transact(xa).unsafeRunSync: Box[Int])
       cr  <- roRepo.get(ChangeRequestId(id)).flatMap {
                case None    => Failure(s"The newly saved change request with ID ${id} was not found back in data base")
                case Some(x) => Full(x)
@@ -226,7 +226,7 @@ class WoChangeRequestJdbcRepository(
                    val (name, desc, xml, modId) = getAtom(changeRequest)
                    val q = sql"""update ChangeRequest set name = ${name}, description = ${desc}, content = ${xml}, modificationId = ${modId}
                                  where id = ${changeRequest.id}"""
-                   q.update.run.attempt.transact(xa).unsafePerformSync
+                   q.update.run.attempt.transact(xa).unsafeRunSync
                  }: Box[Int])
       updated <- roRepo.get(changeRequest.id).flatMap {
                    case None =>
@@ -253,7 +253,7 @@ class ChangeRequestMapper(
   // unserialize the XML.
   // If it fails, produce a failure
   // directives map is boxed because some Exception could be launched
-  def unserialize(id: Int, name: Option[String], description: Option[String], content: Elem, modId: Option[String]): Box[ConfigurationChangeRequest] = {
+  def unserialize(id: Int, name: Option[String], description: Option[String], content: Elem, modId: Option[String]): Box[ChangeRequest] = {
     crcUnserialiser.unserialise(content) match {
       case Full((directivesMaps, nodesMaps, ruleMaps, paramMaps)) =>
         directivesMaps match {
@@ -302,9 +302,9 @@ class ChangeRequestMapper(
   }
 
   implicit val ChangeRequestComposite: Composite[Box[ChangeRequest]] = {
-    Composite[CR].xmap(
-        (t : CR                ) => unserialize(t._1, t._2, t._3, t._4, t._5)
-     ,  (cr: Box[ChangeRequest]) => serialize(cr) // not sure we really need that, but Doobie force symetry on Composite
+    Composite[CR].imap(
+        (t : CR                ) => unserialize(t._1, t._2, t._3, t._4, t._5))(
+        (cr: Box[ChangeRequest]) => serialize(cr) // not sure we really need that, but Doobie force symetry on Composite
     )
 
   }

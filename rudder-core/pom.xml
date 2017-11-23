@@ -106,19 +106,16 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>${commons-io-version}</version>
     </dependency>
 
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
-      <version>${commons-codec-version}</version>
     </dependency>
     
     <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-jdk15on</artifactId>
-        <version>${bcpkix-jdk15on-version}</version>
     </dependency>
 
     <dependency>
@@ -126,23 +123,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>org.eclipse.jgit</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
-      <!-- BE CAREFUL CAN'T UPDATE VERSION DUE TO
-           https://github.com/tminglei/slick-pg/issues/220
-           which seems to impact also other drivers
-      -->
-      <version>9.4-1201-jdbc41</version>
-      <!-- scope must be compile, some object are used by Doobie -->
-    </dependency>
-
     <!-- pool connection: https://github.com/brettwooldridge/HikariCP -->
     <!-- http://blog.trustiv.co.uk/2014/06/battle-connection-pools -->
     <dependency>
         <groupId>com.zaxxer</groupId>
         <artifactId>HikariCP</artifactId>
-        <version>2.6.0</version>
+        <version>2.7.3</version>
     </dependency>
 
     <!-- Doobie for SQL queries -->
@@ -151,6 +137,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>doobie-core_${scala-binary-version}</artifactId>
       <version>${doobie-version}</version>
     </dependency>
+    <!-- now doobie-postgres comes with the correct version of postgres driver -->
     <dependency>
       <groupId>org.tpolecat</groupId>
       <artifactId>doobie-postgres_${scala-binary-version}</artifactId>
@@ -160,12 +147,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>org.tpolecat</groupId>
       <artifactId>doobie-specs2_${scala-binary-version}</artifactId>
       <version>${doobie-version}</version>
-      <exclusions>
-        <exclusion>
-          <artifactId></artifactId>
-          <groupId>orgorg.specs2</groupId>
-        </exclusion>
-      </exclusions>
       <scope>test</scope>
     </dependency>
     

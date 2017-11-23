@@ -45,8 +45,9 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
 import com.normation.rudder.db.DBCommon
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+
 import com.normation.BoxSpecMatcher
 
 /**
@@ -84,7 +85,7 @@ class TestManageMigration_5_6 extends DBCommon with BoxSpecMatcher {
     val  res = f()
 
     //delete line
-    sql"DELETE FROM MigrationEventLog WHERE id=${id}".update.run.transact(doobie.xa).unsafePerformSync
+    sql"DELETE FROM MigrationEventLog WHERE id=${id}".update.run.transact(doobie.xa).unsafeRunSync
 
     res
   }

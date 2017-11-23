@@ -43,8 +43,8 @@ import com.normation.rudder.db.DB
 import org.joda.time.DateTime
 import com.normation.rudder.db.Doobie
 
-import scalaz._, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect.IO, cats.implicits._
 import com.normation.rudder.db.Doobie._
 
 class MigrationEventLogRepository(val db: Doobie) {
@@ -58,38 +58,38 @@ class MigrationEventLogRepository(val db: Doobie) {
    * the SQL script.
    * If the database does not exist or no line are present, return none.
    */
-  def getLastDetectionLine: \/[Throwable, Option[DB.MigrationEventLog[Long]]] = {
+  def getLastDetectionLine: Either[Throwable, Option[DB.MigrationEventLog[Long]]] = {
     val sql = sql"""select id, detectiontime, detectedfileformat, migrationstarttime, migrationendtime, migrationfileformat, description
                     from migrationeventlog order by id desc limit 1""".query[DB.MigrationEventLog[Long]].option
-    sql.attempt.transact(xa).unsafePerformSync
+    sql.attempt.transact(xa).unsafeRunSync
   }
 
   /**
    * Update the corresponding detection line with
    * the starting time of the migration (from Rudder)
    */
-  def setMigrationStartTime(id: Long, startTime: DateTime) : \/[Throwable,Int] = {
+  def setMigrationStartTime(id: Long, startTime: DateTime) : Either[Throwable,Int] = {
     val sql = sql"""update migrationeventlog set migrationstarttime = ${startTime} where id=${id}""".update
-    sql.run.attempt.transact(xa).unsafePerformSync
+    sql.run.attempt.transact(xa).unsafeRunSync
   }
 
   /**
    * Update the corresponding detection line with the new,
    * up-to-date file format.
    */
-  def setMigrationFileFormat(id: Long, fileFormat: Long, endTime: DateTime) : \/[Throwable, Int] = {
+  def setMigrationFileFormat(id: Long, fileFormat: Long, endTime: DateTime) : Either[Throwable, Int] = {
     val sql = sql"""update migrationeventlog set migrationfileformat=${fileFormat}, migrationendtime=${endTime} where id=${id}""".update
-    sql.run.attempt.transact(xa).unsafePerformSync
+    sql.run.attempt.transact(xa).unsafeRunSync
   }
 
   /**
    * create a new status line with a timestamp of now and the given
    * detectedFileFormat.
    */
-  def createNewStatusLine(fileFormat: Long, description: Option[String] = None) : \/[Throwable, DB.MigrationEventLog[Long]] = {
+  def createNewStatusLine(fileFormat: Long, description: Option[String] = None) : Either[Throwable, DB.MigrationEventLog[Long]] = {
     val now = DateTime.now
     val sql = sql"""insert into migrationeventlog (detectiontime, detectedfileformat, description) values (${now}, ${fileFormat}, ${description})""".update
-    sql.withUniqueGeneratedKeys[Long]("id").attempt.transact(xa).unsafePerformSync.map(id =>
+    sql.withUniqueGeneratedKeys[Long]("id").attempt.transact(xa).unsafeRunSync.map(id =>
       DB.MigrationEventLog[Long](id, now, fileFormat, None, None, None, description)
     )
   }

@@ -37,8 +37,9 @@
 
 package com.normation.rudder.reports.execution
 
-import scalaz.{ Failure => _, _}, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+
 
 import com.normation.rudder.db.DB
 
@@ -78,9 +79,9 @@ class LastProcessedReportRepositoryImpl (
         select lastid, date from statusupdate where key=${PROP_EXECUTION_STATUS}
       """.query[(Long, DateTime)].option
 
-    sql.attempt.transact(xa).unsafePerformSync match {
-      case \/-(x)  => Full(x)
-      case -\/(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
+    sql.attempt.transact(xa).unsafeRunSync match {
+      case Right(x)  => Full(x)
+      case Left(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
     }
   }
 
@@ -97,20 +98,18 @@ class LastProcessedReportRepositoryImpl (
       where key=${PROP_EXECUTION_STATUS}
     """.update
 
-    val action = for {
+    (for {
       rowAffected <- update.run
       entry       <- rowAffected match {
                        case 0 => insert.run
-                       case 1 => 1.point[ConnectionIO]
+                       case 1 => 1.pure[ConnectionIO]
                        case n => throw new RuntimeException(s"Error when updating the table statusupdate properties ${PROP_EXECUTION_STATUS}")
                      }
     } yield {
       entry
-    }
-
-    action.attempt.transact(xa).unsafePerformSync match {
-      case \/-(x)  => Full(DB.StatusUpdate(PROP_EXECUTION_STATUS, newId, reportsDate))
-      case -\/(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
+    }).attempt.transact(xa).unsafeRunSync match {
+      case Right(x)  => Full(DB.StatusUpdate(PROP_EXECUTION_STATUS, newId, reportsDate))
+      case Left(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
     }
   }
 

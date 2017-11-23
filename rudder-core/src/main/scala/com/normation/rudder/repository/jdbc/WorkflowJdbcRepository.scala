@@ -44,8 +44,10 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+import doobie.postgres._, doobie.postgres.implicits._
+
 
 class RoWorkflowJdbcRepository(doobie: Doobie) extends RoWorkflowRepository with Loggable {
 
@@ -54,15 +56,15 @@ class RoWorkflowJdbcRepository(doobie: Doobie) extends RoWorkflowRepository with
   val SELECT_SQL = fr"SELECT id, state FROM Workflow "
 
   def getAllByState(state : WorkflowNodeId) :  Box[Seq[ChangeRequestId]] = {
-    sql"""select id from workflow where state = ${state}""".query[ChangeRequestId].vector.attempt.transact(xa).unsafePerformSync
+    sql"""select id from workflow where state = ${state}""".query[ChangeRequestId].vector.attempt.transact(xa).unsafeRunSync
   }
 
   def getStateOfChangeRequest(crId: ChangeRequestId) : Box[WorkflowNodeId] = {
-    sql"""select state from workflow where id = ${crId}""".query[WorkflowNodeId].unique.attempt.transact(xa).unsafePerformSync
+    sql"""select state from workflow where id = ${crId}""".query[WorkflowNodeId].unique.attempt.transact(xa).unsafeRunSync
   }
 
   def getAllChangeRequestsState() : Box[Map[ChangeRequestId,WorkflowNodeId]] = {
-    sql"select id, state from workflow".query[(ChangeRequestId, WorkflowNodeId)].vector.attempt.transact(xa).unsafePerformSync.map( _.toMap )
+    sql"select id, state from workflow".query[(ChangeRequestId, WorkflowNodeId)].vector.attempt.transact(xa).unsafeRunSync.map( _.toMap )
   }
 }
 
@@ -76,14 +78,14 @@ class WoWorkflowJdbcRepository(doobie: Doobie) extends WoWorkflowRepository with
         exists  <- sql"""select state from workflow where id = ${crId}""".query[WorkflowNodeId].option
         created <- exists match {
                      case None    => sql"""insert into workflow (id, state) values (${crId},${state})""".update.run.attempt
-                     case Some(s) => (-\/(s"Cannot start a workflow for Change Request id ${crId.value}, "+
+                     case Some(s) => (Left(s"Cannot start a workflow for Change Request id ${crId.value}, "+
                                      s"as it is already part of a workflow in state '${s}'")).pure[ConnectionIO]
                    }
       } yield {
         state
       }
     }
-    process.attempt.transact(xa).unsafePerformSync
+    process.attempt.transact(xa).unsafeRunSync
   }
 
   def updateState(crId: ChangeRequestId, from :  WorkflowNodeId, state : WorkflowNodeId) : Box[WorkflowNodeId] = {
@@ -95,16 +97,16 @@ class WoWorkflowJdbcRepository(doobie: Doobie) extends WoWorkflowRepository with
                        if(s == from) {
                          sql"""update workflow set state = ${state} where id = ${crId}""".update.run.attempt
                        } else {
-                         (-\/(s"Cannot change status of ChangeRequest '${crId.value}': it has the status '${s.value}' "+
+                         (Left(s"Cannot change status of ChangeRequest '${crId.value}': it has the status '${s.value}' "+
                               s"but we were expecting '${from.value}'. Perhaps someone else changed it concurently?").pure[ConnectionIO])
                        }
-                     case None    => (-\/(s"Cannot change a workflow for Change Request id ${crId.value}, "+
+                     case None    => (Left(s"Cannot change a workflow for Change Request id ${crId.value}, "+
                                      s"as it is not part of any workflow yet").pure[ConnectionIO])
                    }
       } yield {
         state
       }
     }
-    process.attempt.transact(xa).unsafePerformSync
+    process.attempt.transact(xa).unsafeRunSync
   }
 }

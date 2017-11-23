@@ -9,8 +9,8 @@ import com.normation.rudder.repository.GitModificationRepository
 import net.liftweb.common._
 import com.normation.rudder.db.Doobie
 
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
 
 class GitModificationRepositoryImpl(
     db : Doobie
@@ -24,9 +24,9 @@ class GitModificationRepositoryImpl(
     """.update
 
 
-    sql.run.attempt.transact(xa).unsafePerformSync match {
-      case \/-(x) => Full(DB.GitCommitJoin(commit, modId))
-      case -\/(ex) => Failure(s"Error when trying to add a Git Commit in DB: ${ex.getMessage}", Full(ex), Empty)
+    sql.run.attempt.transact(xa).unsafeRunSync match {
+      case Right(x) => Full(DB.GitCommitJoin(commit, modId))
+      case Left(ex) => Failure(s"Error when trying to add a Git Commit in DB: ${ex.getMessage}", Full(ex), Empty)
     }
   }
 
@@ -36,9 +36,9 @@ class GitModificationRepositoryImpl(
       select gitcommit from gitcommit where modificationid=${modificationId.value}
     """.query[String].option
 
-    sql.attempt.transact(xa).unsafePerformSync match {
-      case \/-(x)  => Full(x.map(id => GitCommitId(id)))
-      case -\/(ex) => Failure(s"Error when trying to get Git Commit for modification ID '${modificationId.value}': ${ex.getMessage}", Full(ex), Empty)
+    sql.attempt.transact(xa).unsafeRunSync match {
+      case Right(x)  => Full(x.map(id => GitCommitId(id)))
+      case Left(ex) => Failure(s"Error when trying to get Git Commit for modification ID '${modificationId.value}': ${ex.getMessage}", Full(ex), Empty)
     }
   }
 

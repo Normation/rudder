@@ -48,8 +48,9 @@ import org.specs2.runner.JUnitRunner
 
 import net.liftweb.common.Box
 
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+
 
 /**
  *
@@ -73,7 +74,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
   "Git modification repo" should {
 
     "found nothing at start" in {
-      sql"select gitcommit from gitcommit".query[String].vector.transact(xa).unsafePerformSync must beEmpty
+      sql"select gitcommit from gitcommit".query[String].vector.transact(xa).unsafeRunSync must beEmpty
     }
 
     "be able to add commits" in {
@@ -89,7 +90,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
       )
 
       (res must contain((y:ADD) => y.mustFull).foreach) and
-      (sql"select count(*) from gitcommit".query[Long].unique.transact(xa).unsafePerformSync === 5)
+      (sql"select count(*) from gitcommit".query[Long].unique.transact(xa).unsafeRunSync === 5)
 
     }
 

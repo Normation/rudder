@@ -201,4 +201,3 @@ body report_data_select rudder_data_select_policy_hub
     metatags_exclude => { "noreport" };
     monitoring_include => { ".*" };
 }
-
