@@ -96,7 +96,6 @@ trait ReadConfigService {
    * CFEngine server properties
    */
   def cfengine_server_denybadclocks(): Box[Boolean]
-  def cfengine_server_skipidentify(): Box[Boolean]
 
   /**
    * Agent execution interval and start run
