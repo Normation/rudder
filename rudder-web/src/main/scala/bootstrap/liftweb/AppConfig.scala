@@ -152,6 +152,7 @@ import com.normation.rudder.rest.node.NodeApiService2
 import com.normation.rudder.rest.parameter._
 import com.normation.rudder.rest.rule._
 import com.normation.rudder.rest.settings.SettingsAPI8
+import com.normation.rudder.rest.settings.SettingsAPI10
 import com.normation.rudder.rest.technique._
 import com.normation.rudder.web.services._
 import com.normation.rudder.web.services.UserPropertyService
@@ -852,6 +853,7 @@ object RudderConfig extends Loggable {
   val complianceApi7 = new ComplianceAPI7(restExtractorService, complianceAPIService)
 
   val settingsApi8 = new SettingsAPI8(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
+  val settingsApi10 = new SettingsAPI10(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
 
   // First working version with support for rules, directives, nodes and global parameters
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
@@ -867,6 +869,8 @@ object RudderConfig extends Loggable {
   val apiV7 = complianceApi7 :: apiV6.filter( _ != complianceApi6)
   // apiv8 add policy mode in node API and settings API
   val apiV8 = nodeApi8 :: settingsApi8 :: apiV7.filter( _ != nodeApi6)
+  // apiv10 removes skipIdentify in the settings API
+  val apiV10 = settingsApi10 :: apiV8.filter( _ != settingsApi8)
 
   val apis = {
     Map (
@@ -875,6 +879,9 @@ object RudderConfig extends Loggable {
         //Rudder 4.0
       , ( ApiVersion(8,false) -> apiV8 )
         //Rudder 4.1
+
+        // Rudder 4.3
+      , ( ApiVersion(10,false) -> apiV10 )
     )
   }
 
@@ -1432,7 +1439,6 @@ object RudderConfig extends Loggable {
     , RUDDER_DIR_GITROOT
     , RUDDER_SERVER_ROLES
     , configService.cfengine_server_denybadclocks _
-    , configService.cfengine_server_skipidentify _
     , configService.cfengine_modified_files_ttl _
     , configService.cfengine_outputs_ttl _
     , configService.rudder_store_all_centralized_logs_in_file _

@@ -72,7 +72,21 @@ import com.normation.rudder.AuthorizationType
 
 trait SettingsApi extends RestAPI {
   val kind = "settings"
-  def userService : UserService
+  implicit def userService : UserService
+
+  def restExtractor        : RestExtractorService
+  def configService        : ReadConfigService with UpdateConfigService
+  def asyncDeploymentAgent : AsyncDeploymentAgent
+  def uuidGen              : StringUuidGenerator
+
+  def allSettings : List[RestSetting[_]]
+  def settingFromKey(key : String) : Box[RestSetting[_]] = {
+      allSettings.find { _.key == key } match {
+        case Some(setting) => Full(setting)
+        case None          => Failure(s"'$key' is not a valid settings key")
+      }
+  }
+
 
   override protected def checkSecure : PartialFunction[Req, Boolean] = {
     // We need to give access to node modifications rights so they can read global policy mode data
@@ -89,15 +103,8 @@ trait SettingsApi extends RestAPI {
     case _=> false
 
   }
-}
 
-class SettingsAPI8(
-    restExtractor        : RestExtractorService
-  , configService        : ReadConfigService with UpdateConfigService
-  , asyncDeploymentAgent : AsyncDeploymentAgent
-  , uuidGen              : StringUuidGenerator
-) ( override implicit val userService : UserService )
-extends SettingsApi with Loggable {
+
   import net.liftweb.json.JsonDSL._
 
   sealed trait RestSetting[T] {
@@ -175,40 +182,6 @@ extends SettingsApi with Loggable {
       }
     }
 
-  }
-
-  object RestSetting {
-    val allSettings =
-      RestPolicyMode ::
-      RestPolicyModeOverridable ::
-      RestRunFrequency ::
-      RestRunHour ::
-      RestRunMinute ::
-      RestSplayTime ::
-      RestModifiedFileTTL ::
-      RestOutputFileTTL ::
-      RestRequireTimeSynch ::
-      RestUseReverseDNS ::
-      RestReportingProtocol ::
-      RestReportingMode ::
-      RestHeartbeat ::
-      RestLogAllReports ::
-      RestChangeMessageEnabled ::
-      RestChangeMessageManadatory ::
-      RestChangeMessagePrompt ::
-      RestChangeRequestEnabled ::
-      RestChangeRequestSelfValidation ::
-      RestChangeRequestSelfDeployment ::
-      RestChangesGraphs ::
-      RestJSEngine ::
-      RestSendMetrics ::
-      Nil
-    def apply(key : String) : Box[RestSetting[_]] = {
-      allSettings.find { _.key == key } match {
-        case Some(setting) => Full(setting)
-        case None          => Failure(s"'$key' is not a valid settings key")
-      }
-    }
   }
 
   case object RestPolicyMode extends RestSetting[PolicyMode] {
@@ -396,8 +369,8 @@ extends SettingsApi with Loggable {
   case object RestUseReverseDNS extends RestBooleanSetting {
     val key = "use_reverse_dns"
     val startPolicyGeneration = true
-    def get = configService.cfengine_server_skipidentify()
-    def set = (value : Boolean, _, _) => configService.set_cfengine_server_skipidentify(value)
+    def get = Full(false)
+    def set = (value : Boolean, _, _) => Full(Unit)
   }
   case object RestReportingProtocol extends RestSetting[SyslogProtocol] {
     val key = "rsyslog_reporting_protocol"
@@ -469,6 +442,31 @@ extends SettingsApi with Loggable {
     def set = (value : FeatureSwitch, _, _) => configService.set_rudder_featureSwitch_directiveScriptEngine(value)
   }
 
+    val baseSettings : List[RestSetting[_]] =
+      RestPolicyMode ::
+      RestPolicyModeOverridable ::
+      RestRunFrequency ::
+      RestRunHour ::
+      RestRunMinute ::
+      RestSplayTime ::
+      RestModifiedFileTTL ::
+      RestOutputFileTTL ::
+      RestRequireTimeSynch ::
+      RestReportingProtocol ::
+      RestReportingMode ::
+      RestHeartbeat ::
+      RestLogAllReports ::
+      RestChangeMessageEnabled ::
+      RestChangeMessageManadatory ::
+      RestChangeMessagePrompt ::
+      RestChangeRequestEnabled ::
+      RestChangeRequestSelfValidation ::
+      RestChangeRequestSelfDeployment ::
+      RestChangesGraphs ::
+      RestJSEngine ::
+      RestSendMetrics ::
+      Nil
+
   def startNewPolicyGeneration(actor : EventActor) = {
     val modId = ModificationId(uuidGen.newUuid)
     asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
@@ -482,7 +480,7 @@ extends SettingsApi with Loggable {
 
     case Get(Nil, req) => {
       val data = for {
-        setting <- RestSetting.allSettings
+        setting <- allSettings
       } yield {
         val result = setting.getJson match {
           case Full(res) => res
@@ -498,7 +496,7 @@ extends SettingsApi with Loggable {
       import net.liftweb.json.JsonDSL._
 
       val data : Box[JValue] = for {
-        setting <- RestSetting(key)
+        setting <- settingFromKey(key)
         value   <- setting.getJson
       } yield {
         (key -> value)
@@ -509,7 +507,7 @@ extends SettingsApi with Loggable {
     case Post(Nil, req) => {
       var generate = false
       val data = for {
-        setting <- RestSetting.allSettings
+        setting <- allSettings
         value   <- setting.setFromRequestOpt(req)
       } yield {
         if (value.isDefined) generate = generate || setting.startPolicyGeneration
@@ -521,7 +519,7 @@ extends SettingsApi with Loggable {
     case Post(key :: Nil, req) => {
       import net.liftweb.json.JsonDSL._
       val data : Box[JValue] = for {
-        setting <- RestSetting(key)
+        setting <- settingFromKey(key)
         value   <- setting.setFromRequest(req)
       } yield {
         (key -> value)
@@ -529,4 +527,32 @@ extends SettingsApi with Loggable {
       RestUtils.response(restExtractor, "settings", Some(key))(data, req, s"Could not modify parameter '${key}'")("modifySetting")
     }
   }
+
+}
+
+class SettingsAPI8(
+    override val restExtractor        : RestExtractorService
+  , override val configService        : ReadConfigService with UpdateConfigService
+  , override val asyncDeploymentAgent : AsyncDeploymentAgent
+  , override val uuidGen              : StringUuidGenerator
+) ( override implicit val userService : UserService )
+extends SettingsApi with Loggable {
+
+
+  val allSettings = RestUseReverseDNS :: baseSettings
+
+
+}
+
+class SettingsAPI10(
+    override val restExtractor        : RestExtractorService
+  , override val configService        : ReadConfigService with UpdateConfigService
+  , override val asyncDeploymentAgent : AsyncDeploymentAgent
+  , override val uuidGen              : StringUuidGenerator
+) ( override implicit val userService : UserService )
+extends SettingsApi with Loggable {
+
+
+  val allSettings = baseSettings
+
 }
