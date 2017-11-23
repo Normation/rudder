@@ -18,7 +18,7 @@ limitations under the License.
 
   <parent>
     <groupId>com.normation</groupId>
-    <artifactId>parent-pom</artifactId>
+    <artifactId>commons-parent</artifactId>
     <version>4.3.0~alpha1-SNAPSHOT</version>
   </parent>
 
@@ -29,7 +29,10 @@ limitations under the License.
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>${commons-io-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-common_${scala-binary-version}</artifactId>
     </dependency>
   </dependencies>
 
