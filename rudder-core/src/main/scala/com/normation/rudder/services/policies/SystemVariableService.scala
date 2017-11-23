@@ -99,9 +99,8 @@ class SystemVariableServiceImpl(
   , syslogPort               : Int
   , configurationRepository  : String
   , serverRoles              : Seq[RudderServerRole]
-  //denybadclocks and skipIdentify are runtime properties
+  //denybadclocks is runtime property
   , getDenyBadClocks: () => Box[Boolean]
-  , getSkipIdentify : () => Box[Boolean]
   // TTLs are runtime properties too
   , getModifiedFilesTtl             : () => Box[Int]
   , getCfengineOutputsTtl           : () => Box[Int]
@@ -143,7 +142,10 @@ class SystemVariableServiceImpl(
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]] = {
     logger.trace("Preparing the global system variables")
     val denyBadClocks = getProp("DENYBADCLOCKS", getDenyBadClocks)
-    val skipIdentify = getProp("SKIPIDENTIFY", getSkipIdentify)
+
+    // To prevent breaking everything if technique still announce SKIPIDENTIFY, we set the default value
+    val skipIdentify = getProp("SKIPIDENTIFY", () => Full(false))
+
     val modifiedFilesTtl = getProp("MODIFIED_FILES_TTL", getModifiedFilesTtl)
     val cfengineOutputsTtl = getProp("CFENGINE_OUTPUTS_TTL", getCfengineOutputsTtl)
     val reportProtocol = getProp("RUDDER_SYSLOG_PROTOCOL", () => getSyslogProtocol().map(_.value))

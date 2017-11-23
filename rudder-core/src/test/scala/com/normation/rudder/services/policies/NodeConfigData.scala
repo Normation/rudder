@@ -538,9 +538,8 @@ class TestNodeConfiguration() {
                                    , RudderServerRole("rudder-cfengine-mission-portal", "rudder.server-roles.cfengine-mission-portal")
                                  )
 
-    //denybadclocks and skipIdentify are runtime properties
+    //denybadclocks is runtime properties
     , getDenyBadClocks         = () => Full(true)
-    , getSkipIdentify          = () => Full(false)
     // TTLs are runtime properties too
     , getModifiedFilesTtl             = () => Full(30)
     , getCfengineOutputsTtl           = () => Full(7)
