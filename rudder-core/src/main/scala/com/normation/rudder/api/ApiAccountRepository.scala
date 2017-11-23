@@ -103,17 +103,21 @@ final class RoLDAPApiAccountRepository(
   , val ldapConnexion: LDAPConnectionProvider[RoLDAPConnection]
   , val mapper       : LDAPEntityMapper
   , val uuidGen      : StringUuidGenerator
+  , val systemAcl    : ApiAcl
 ) extends RoApiAccountRepository with Loggable {
 
   val systemAPIAccount =
     ApiAccount(
         ApiAccountId("rudder-system-api-account")
+      , ApiAccountKind.System
       , ApiAccountName("Rudder system account")
       , ApiToken(uuidGen.newUuid + "-system")
       , "For internal use"
       , true
       , DateTime.now
       , DateTime.now
+      , systemAcl
+      , None // no expiration, it will be regenerated on reboot
     )
 
   override def getSystemAccount: ApiAccount = systemAPIAccount

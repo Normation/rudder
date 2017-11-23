@@ -117,8 +117,11 @@ object RudderLDAPConstants extends Loggable {
   //API Token related
   val A_API_UUID = "apiAccountId"
   val A_CREATION_DATETIME = "creationTimestamp" //not operationnal, can be different from ldap entry value
+  val A_API_KIND = "apiAccountKind"
   val A_API_TOKEN = "apiToken"
   val A_API_TOKEN_CREATION_DATETIME = "apiTokenCreationTimestamp"
+  val A_API_EXPIRATION_DATETIME = "expirationTimestamp"
+  val A_API_ACL = "apiAcl"
 
   // Parameters
   val A_PARAMETER_NAME = "parameterName"
@@ -221,7 +224,7 @@ object RudderLDAPConstants extends Loggable {
 
   OC += (OC_API_ACCOUNT
       , must = Set(A_API_UUID, A_NAME, A_CREATION_DATETIME, A_API_TOKEN, A_API_TOKEN_CREATION_DATETIME)
-      , may = Set(A_DESCRIPTION)
+      , may = Set(A_DESCRIPTION, A_API_EXPIRATION_DATETIME, A_API_ACL, A_IS_ENABLED)
   )
 
   OC += ( OC_PARAMETER,

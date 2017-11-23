@@ -647,6 +647,39 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
   //we expect acceptation date to be in ISO-8601 format
   private[this] val dateFormatter = ISODateTimeFormat.dateTime
 
+  // <acl>
+  //   <authz path="/foo/bar/$baz", actions="get, post, patch" />
+  //   <authz path="/foo/wiz/$waz", actions="get, post, patch"/>
+  // </acl>
+  private def unserAcl(entry: XNode): Box[ApiAcl] = {
+    //at that point, any error is an grave error: we don't want to
+    // mess up with authz
+    import cats.implicits._
+
+    val authzs = sequence(entry \\ "authz") { e =>
+      for {
+        pathStr <- e \@ "path" match {
+                     case "" => Failure("Missing required attribute 'path' for element 'authz'")
+                     case s  => Full(s)
+                   }
+        path    <- AclPath.parse(pathStr).fold(Failure(_), Full(_))
+        actions <- e \@ "actions" match {
+                     case "" => Failure("Missing required attribute 'actions' for element 'authz'")
+                     case s  =>
+                       (s.split(",").map( _.trim ).toList.filter( _.isEmpty ).traverse(HttpAction.parse _)) match {
+                         case Left(s)  => Failure(s)
+                         case Right(x) => Full(x)
+                       }
+                   }
+      } yield {
+        ApiAuthz(path, actions.toSet)
+      }
+    }
+
+    authzs.map( a => ApiAcl(a.toList))
+  }
+
+
   def unserialise(entry:XNode) : Box[ApiAccount] = {
     for {
       apiAccount       <- {
@@ -661,15 +694,34 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
       isEnabled        <- (apiAccount \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type API Account : " + entry)
       creationDate     <- (apiAccount \ "creationDate").headOption.flatMap(s => tryo { dateFormatter.parseDateTime(s.text) } ) ?~! ("Missing attribute 'creationDate' in entry type API Account : " + entry)
       tokenGenDate     <- (apiAccount \ "tokenGenerationDate").headOption.flatMap(s => tryo { dateFormatter.parseDateTime(s.text) } ) ?~! ("Missing attribute 'tokenGenerationDate' in entry type API Account : " + entry)
+      expirationDate   <- (apiAccount \ "expirationDate").headOption match {
+                            case None    => Full(None)
+                            case Some(s) => tryo { Some(dateFormatter.parseDateTime(s.text)) } ?~! ("Bad date format for field 'expirationDate' in entry type API Account : " + entry)
+                          }
+      acl              <- (apiAccount \ "acl").headOption match {
+                            case None      =>
+                              // we are most likelly in a case where API ACL weren't implemented,
+                              // because the event was saved < Rudder 4.3. Use a "nil" ACL
+                              Full(ApiAcl.noAuthz)
+                            case Some(xml) =>
+                              unserAcl(xml)
+                          }
+      kind             = (apiAccount \ "kind").headOption.map( _.text ) match {
+                            case None    => ApiAccountKind.PublicApi
+                            case Some(s) => ApiAccountKind.values.find( _.name == s).getOrElse(ApiAccountKind.PublicApi)
+                          }
     } yield {
       ApiAccount(
           ApiAccountId(id)
+        , kind
         , ApiAccountName(name)
         , ApiToken(token)
         , description
         , isEnabled
         , creationDate
         , tokenGenDate
+        , acl
+        , expirationDate
       )
     }
   }

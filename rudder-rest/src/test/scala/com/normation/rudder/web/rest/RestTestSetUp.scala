@@ -63,6 +63,7 @@ import com.normation.rudder.service.user.User
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.rest.v1.RestStatus
+import com.normation.rudder.api.ApiAcl
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -76,6 +77,7 @@ object RestTestSetUp {
     val user = new User{
       val actor = new EventActor("test-user")
       def checkRights(auth : AuthorizationType) = true
+      def getApiAcl = ApiAcl.allAuthz
     }
     val getCurrentUser = user
 
@@ -103,15 +105,13 @@ object RestTestSetUp {
     , null //diffService
   )
 
-  val api = APIDispatcher(restExtractorService)
   // TODO
-  // api.addEndpoints(Map((ApiVersion(42,false)-> List(....))))
+  // all other apis
 
   val liftRules = {
     val l = new LiftRules()
     l.statelessDispatch.append(RestStatus)
     l.statelessDispatch.append(reloadTechniques)
-    l.statelessDispatch.append(api)
     //TODO: add all other rest classes here
     l
   }

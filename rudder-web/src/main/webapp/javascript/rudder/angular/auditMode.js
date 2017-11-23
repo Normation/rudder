@@ -40,7 +40,7 @@ var app = angular.module('auditmode', []);
 app.factory('configGlobalFactory', function ($http){
   //Case : global configuration
   this.policyMode = {
-    url      : contextPath+"/secure/api/latest/settings"
+    url      : contextPath+"/secure/api//settings"
   , getValue : function(){
                  return $http.get(this.url+"/global_policy_mode").then(function successCallback(response) {
                    return response.data.data.settings.global_policy_mode;
@@ -61,7 +61,7 @@ app.factory('configGlobalFactory', function ($http){
 	           }
   };
   this.overrideMode = {
-    url      : contextPath+"/secure/api/latest/settings/global_policy_mode_overridable"
+    url      : contextPath+"/secure/api/settings/global_policy_mode_overridable"
   , getValue : function(){
                  return $http.get(this.url).then(function successCallback(response) {
                    return response.data.data.settings.global_policy_mode_overridable;
@@ -77,7 +77,7 @@ app.factory('configNodeFactory', function ($http){
   //Case : node configuration
   return function(nodeId) {
     this.policyMode = {
-      url      : contextPath+"/secure/api/latest/nodes/" + nodeId
+      url      : contextPath+"/secure/api/nodes/" + nodeId
     , getValue : function(){
                    return $http.get(this.url).then(function successCallback(response) {
                      return response.data.data.nodes[0].policyMode;

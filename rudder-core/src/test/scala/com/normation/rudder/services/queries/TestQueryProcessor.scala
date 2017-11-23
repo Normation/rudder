@@ -53,6 +53,7 @@ import com.normation.inventory.ldap.core._
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.nodes.NaiveNodeInfoServiceCachedImpl
+import com.normation.rudder.api.ApiAcl
 
 /*
  * Test query parsing.

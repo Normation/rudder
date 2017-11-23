@@ -176,11 +176,11 @@ class NodeGroupForm(
                        case Full(req) => req.buildQuery
                        case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
       })
-      & "group-clone" #> { if (CurrentUser.checkRights(AuthorizationType.Write("group")))
+      & "group-clone" #> { if (CurrentUser.checkRights(AuthorizationType.Group.Write))
                      SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % ("id", "groupCloneButtonId") % ("class"," btn btn-default")
                    else NodeSeq.Empty
                  }
-      & "group-save" #> { if (CurrentUser.checkRights(AuthorizationType.Edit("group")))
+      & "group-save" #> { if (CurrentUser.checkRights(AuthorizationType.Group.Edit))
                     <div  tooltipid="saveButtonToolTip" class="tooltipable" title=""> {
                       SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId) % ("class"," btn btn-success")
                     } </div>

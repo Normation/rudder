@@ -43,24 +43,147 @@ package com.normation.rudder
  *
  */
 sealed trait AuthorizationType {
-
   /**
    * A string identifier of that authorization type
    * which may be use to transform string to that
    * type.
    */
-  val id : String
+  def id: String = authzKind + "_" + action
 
+  def authzKind: String
+  def action   : String
 }
 
-case object AuthorizationType {
+sealed trait ActionType {
+  def action  : String
+}
 
-  case object NoRights  extends AuthorizationType { val id = "NO_RIGHTS" }
-  case object AnyRights extends AuthorizationType { val id = "ANY_RIGHTS"}
-  case class  Read(name:String)  extends AuthorizationType { val id = s"${name.toUpperCase()}_READ" }
-  case class  Edit(name:String)  extends AuthorizationType { val id = s"${name.toUpperCase()}_EDIT" }
-  case class  Write(name:String) extends AuthorizationType { val id = s"${name.toUpperCase()}_WRITE"}
+/*
+ * Different action types for authorization.
+ * Read is to get information.
+ * Write is for creation / deletion of objects
+ * Edit is for update of one existing object
+ */
+object ActionType {
+  trait Read  extends ActionType { def action = "read"  }
+  trait Write extends ActionType { def action = "write" }
+  trait Edit  extends ActionType { def action = "edit"  }
+}
 
+sealed trait Configuration  extends AuthorizationType { def authzKind = "configuration"  }
+sealed trait Rule           extends AuthorizationType { def authzKind = "rules"          }
+sealed trait Directive      extends AuthorizationType { def authzKind = "directive"      }
+sealed trait Technique      extends AuthorizationType { def authzKind = "technique"      }
+sealed trait Node           extends AuthorizationType { def authzKind = "node"           }
+sealed trait Group          extends AuthorizationType { def authzKind = "group"          }
+sealed trait Validator      extends AuthorizationType { def authzKind = "validator"      }
+sealed trait Deployer       extends AuthorizationType { def authzKind = "deployer"       }
+sealed trait Deployment     extends AuthorizationType { def authzKind = "deployment"     }
+sealed trait Administration extends AuthorizationType { def authzKind = "administration" }
+sealed trait UserAccount    extends AuthorizationType { def authzKind = "userAccount"    }
+
+final object AuthorizationType {
+
+
+  final case object NoRights  extends AuthorizationType { val authzKind = "no"  ; val action = "rights" }
+  final case object AnyRights extends AuthorizationType { val authzKind = "any" ; val action = "rights" }
+
+  final case object Deployer {
+    final case object Read  extends Deployer with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Deployer with ActionType.Edit  with AuthorizationType
+    final case object Write extends Deployer with ActionType.Write with AuthorizationType
+
+    // can't use sealerate here: "knownDirectSubclasses of observed before subclass ... registered"
+    // I'm not sure exactly how/why it bugs. It's only for object where ".values" is used
+    // in Role.
+    def values = Set(Read, Edit, Write)
+  }
+
+  final case object Validator {
+    final case object Read  extends Validator with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Validator with ActionType.Edit  with AuthorizationType
+    final case object Write extends Validator with ActionType.Write with AuthorizationType
+
+    def values = Set(Read, Edit, Write)
+  }
+
+  final case object Administration {
+    final case object Read  extends Administration with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Administration with ActionType.Edit  with AuthorizationType
+    final case object Write extends Administration with ActionType.Write with AuthorizationType
+
+    def values = Set(Read, Edit, Write)
+  }
+
+  final case object Configuration {
+    final case object Read  extends Configuration with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Configuration with ActionType.Edit  with AuthorizationType
+    final case object Write extends Configuration with ActionType.Write with AuthorizationType
+
+    def values = Set(Read, Edit, Write)
+  }
+
+  final case object Deployment {
+    final case object Read  extends Deployment with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Deployment with ActionType.Edit  with AuthorizationType
+    final case object Write extends Deployment with ActionType.Write with AuthorizationType
+
+    def values = Set(Read, Edit, Write)
+  }
+
+  final case object Directive {
+    final case object Read  extends Directive with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Directive with ActionType.Edit  with AuthorizationType
+    final case object Write extends Directive with ActionType.Write with AuthorizationType
+
+    def values = Set(Read, Edit, Write)
+  }
+
+  final case object Group {
+    final case object Read  extends Group with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Group with ActionType.Edit  with AuthorizationType
+    final case object Write extends Group with ActionType.Write with AuthorizationType
+
+    def values = Set(Read, Edit, Write)
+  }
+
+  final case object Node {
+    final case object Read  extends Node with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Node with ActionType.Edit  with AuthorizationType
+    final case object Write extends Node with ActionType.Write with AuthorizationType
+
+    def values = Set(Read, Edit, Write)
+  }
+
+  final case object Rule {
+    final case object Read  extends Rule with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Rule with ActionType.Edit  with AuthorizationType
+    final case object Write extends Rule with ActionType.Write with AuthorizationType
+
+    def values = Set(Read, Edit, Write)
+  }
+
+  final case object Technique {
+    final case object Read  extends Technique with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Technique with ActionType.Edit  with AuthorizationType
+    final case object Write extends Technique with ActionType.Write with AuthorizationType
+
+    def values = Set(Read, Edit, Write)
+  }
+
+  final case object UserAccount {
+    final case object Read  extends UserAccount with ActionType.Read  with AuthorizationType
+    final case object Edit  extends UserAccount with ActionType.Edit  with AuthorizationType
+    final case object Write extends UserAccount with ActionType.Write with AuthorizationType
+
+    def values = Set(Read, Edit, Write)
+  }
+
+  def configurationKind: Set[AuthorizationType] = Configuration.values ++ Rule.values ++ Directive.values ++ Technique.values
+  def nodeKind: Set[AuthorizationType] = Node.values ++ Group.values
+  def workflowKind: Set[AuthorizationType] = Validator.values ++ Deployer.values
+  def complianceKind: Set[AuthorizationType] = (nodeKind ++ configurationKind).collect { case x: ActionType.Read  => x }
+  def allKind: Set[AuthorizationType] = ca.mrvisser.sealerate.collect[AuthorizationType] - NoRights
 }
 
 /**
@@ -75,6 +198,8 @@ class Rights(_authorizationTypes:AuthorizationType*) {
 
   val authorizationTypes = _authorizationTypes.toSet
 
+  def displayAuthorizations = authorizationTypes.map { _.id }.toList.sorted.mkString(", ")
+
   override lazy val hashCode = 23 * authorizationTypes.hashCode
 
   override def equals(other:Any) = other match {
@@ -84,61 +209,77 @@ class Rights(_authorizationTypes:AuthorizationType*) {
 
 }
 
-
-
-object AuthzToRights {
-  import AuthorizationType._
-
-  /*
-   * Authorization kind
-   */
-  val configurationKind = List("configuration","rule","directive","technique")
-  val nodeKind = List("node","group")
-  val workflowKind = List("validator", "deployer")
-  val allKind = "deployment"::"administration"::configurationKind ::: nodeKind ::: workflowKind
-
-  /*
-   * Authorization mapping
-   */
-  def toAuthz(auth:List[String], kind:String) =
-    kind match {
-    case "write" => auth.map(Write(_))
-    case "read" =>  auth.map(Read(_))
-    case "edit" =>  auth.map(Edit(_))
-    case "all"  =>  auth.flatMap(kind => List(Read(kind),Write(kind),Edit(kind)))
-    case _ => List(NoRights)
+/*
+ * Rudder "Role" which are kind of an aggregate of rights which somehow
+ * make sense froma rudder usage point of view.
+ */
+sealed trait Role {
+  def name  : String
+  def rights: Rights
+}
+object Role {
+  import com.normation.rudder.{AuthorizationType => A}
+  private implicit class ToRights[T <: AuthorizationType](authorizations: Set[T]) {
+    def toRights: Rights = new Rights(authorizations.toSeq: _*)
   }
-  val toWriteAuthz = toAuthz(_:List[String],"write")
-  val toReadAuthz = toAuthz(_:List[String],"read")
-  val toEditAuthz = toAuthz(_:List[String],"edit")
-  val toAllAuthz = toAuthz(_:List[String],"all")
+  def allRead = A.allKind.collect { case x: ActionType.Read => x }
 
+  // for now, all account type also have the "user account" rights
+  val ua = A.UserAccount.values
+
+  final case object Administrator extends Role { val name = "administrator"       ; val rights = (A.allKind                                    ).toRights }
+  final case object User          extends Role { val name = "user"                ; val rights = (ua ++ A.nodeKind ++ A.configurationKind      ).toRights }
+  final case object AdminOnly     extends Role { val name = "administration_only" ; val rights = (ua ++ A.Administration.values.map(identity)  ).toRights }
+  final case object Workflow      extends Role { val name = "workflow"            ; val rights = (ua ++ A.workflowKind ++ A.complianceKind     ).toRights }
+  final case object Deployer      extends Role { val name = "deployer"            ; val rights = (ua ++ A.Deployer.values ++ A.complianceKind  ).toRights }
+  final case object Validator     extends Role { val name = "validator"           ; val rights = (ua ++ A.Validator.values ++ A.complianceKind ).toRights }
+  final case object Configuration extends Role { val name = "configuration"       ; val rights = (ua ++ A.configurationKind.map(identity)      ).toRights }
+  final case object ReadOnly      extends Role { val name = "read_only"           ; val rights = (ua ++ allRead                                ).toRights }
+  final case object Compliance    extends Role { val name = "compliance"          ; val rights = (ua ++ A.complianceKind                       ).toRights }
+  final case object Inventory     extends Role { val name = "inventory"           ; val rights = (ua ++ Set(A.Node.Read)                       ).toRights }
+  final case object RuleOnly      extends Role { val name = "rule_only"           ; val rights = (ua ++ Set(A.Configuration.Read, A.Rule.Read) ).toRights }
+  final case object NoRights      extends Role { val name = "no_rights"           ; val rights = (Set(AuthorizationType.NoRights)              ).toRights }
+
+  final case class  Custom(rights: Rights) extends Role { val name = "custom" }
+
+  def values: Set[Role] = ca.mrvisser.sealerate.collect[Role]
+}
+
+
+object RoleToRights {
   /*
    * Authorization parser
    */
-  def parseRole(roles:Seq[String]):Rights = {
-    new Rights(roles.flatMap(_ match {
-      case "administrator"       => toAllAuthz (allKind)
-      case "user"                => toAllAuthz (nodeKind ::: configurationKind)
-      case "administration_only" => toAllAuthz (List("administration"))
-      case "workflow"            => toAllAuthz (workflowKind) ::: toReadAuthz (configurationKind)
-      case "deployer"            => toAllAuthz (List("deployer")) ::: toReadAuthz (nodeKind ::: configurationKind)
-      case "validator"           => toAllAuthz (List("validator")) ::: toReadAuthz (nodeKind ::: configurationKind)
-      case "configuration"       => toAllAuthz (configurationKind)
-      case "read_only"           => toReadAuthz (allKind)
-      case "compliance"          => toReadAuthz (nodeKind ::: configurationKind)
-      case "inventory"           => toReadAuthz (List("node"))
-      case "rule_only"           => toReadAuthz (List("configuration","rule"))
-      case role => parseAuthz(role)
-    }): _*)
+  def parseRole(roles:Seq[String]): Seq[Role] = {
+    def parseOne(role: String): Role = {
+      val r = role.toLowerCase
+      Role.values.find { _.name == r } match {
+        case Some(r) => r
+        case None    => // check if we have a custom roles based on authorization
+          val authz = parseAuthz(role)
+          if(authz.isEmpty) {
+            Role.NoRights
+          } else {
+            Role.Custom(new Rights(authz.toSeq: _*))
+          }
+
+      }
+    }
+    roles.map(parseOne)
   }
 
-  def parseAuthz(role : String) : List[AuthorizationType] = {
-    val authz = """(.*)_(.*)""".r
-     role.toLowerCase() match {
-       case "any" => List(AnyRights)
-       case authz(authType,kind)  if (allKind.contains(authType)) => toAuthz(List(authType),kind)
-       case _ =>  List(NoRights)
+  def parseAuthz(authz : String) : Set[AuthorizationType] = {
+    val regex = """(.*)_(.*)""".r
+     authz.toLowerCase() match {
+       case "any"                => AuthorizationType.allKind
+       case regex(authz, action) =>
+         val allActions = if(action == "all") {
+           Set("read", "write", "edit")
+         } else {
+           Set(action)
+         }
+         allActions.flatMap( a => AuthorizationType.allKind.find( x => x.authzKind == authz && x.action == a).toSet )
+       case _                    => Set()
      }
   }
 }

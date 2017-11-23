@@ -92,6 +92,11 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
 import scala.language.implicitConversions
+import com.normation.rudder.api.ApiAcl
+import com.normation.rudder.api.ApiAuthz
+import com.normation.rudder.api.AclPath
+import com.normation.rudder.api.HttpAction
+import com.normation.rudder.api.ApiAccountKind
 
 final object NodeStateEncoder {
   implicit def enc(state: NodeState): String = state.name
@@ -741,6 +746,36 @@ class LDAPEntityMapper(
 
   //////////////////////////////    API Accounts    //////////////////////////////
 
+  def serApiAcl(authz: ApiAcl): String = {
+    import net.liftweb.json._
+    import net.liftweb.json.Serialization._
+    implicit val formats = Serialization.formats(NoTypeHints)
+    val toSerialize = JsonApiAcl(acl = authz.acl.map(a =>
+      JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))
+    ))
+    write[JsonApiAcl](toSerialize)
+  }
+  def unserApiAuthz(s: String): Either[String, ApiAcl] = {
+    import cats.implicits._
+    import net.liftweb.json._
+    implicit val formats = net.liftweb.json.DefaultFormats
+    for {
+      json    <- parseOpt(s).toRight(s"The following string can not be parsed as a JSON object for API ACL: ${s}")
+      jacl    <- (json.extractOpt[JsonApiAcl]).toRight(s"Can not extract API ACL object from json: ${s}")
+      acl     <- jacl.acl.traverse { case JsonApiAuthz(path, actions) =>
+                   for {
+                     p <- AclPath.parse(path)
+                     a <- actions.traverse(HttpAction.parse)
+                   } yield {
+                     ApiAuthz(p, a.toSet)
+                   }
+                 }
+    } yield {
+      ApiAcl(acl)
+    }
+  }
+
+
   /**
    * Build an API Account from an entry
    */
@@ -755,14 +790,44 @@ class LDAPEntityMapper(
         tokenCreationDatetime <- e.getAsGTime(A_API_TOKEN_CREATION_DATETIME) ?~! s"Missing required token creation timestamp (attribute name ${A_API_TOKEN_CREATION_DATETIME}) in entry ${e}"
         isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         description = e(A_DESCRIPTION).getOrElse("")
+        // expiration date is optionnal
+        expirationDate = e.getAsGTime(A_API_EXPIRATION_DATETIME)
+        //api authz are not optionnal, but may be missing for Rudder < 4.3 migration
+        //in that case, use the defaultACL
+        acl <- e(A_API_ACL) match {
+          case None    => Full(ApiAcl.noAuthz) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
+          case Some(s) => unserApiAuthz(s) match {
+            case Right(x)  => Full(x)
+            case Left(msg) => Failure(msg)
+          }
+        }
+        kind = e(A_API_KIND) match {
+          case None    => ApiAccountKind.PublicApi // this is the default
+          case Some(s) => ApiAccountKind.values.find( _.name == s ).getOrElse(ApiAccountKind.PublicApi)
+        }
       } yield {
-        ApiAccount(id, name, token, description, isEnabled, creationDatetime.dateTime, tokenCreationDatetime.dateTime)
+        ApiAccount(id, kind, name, token, description, isEnabled, creationDatetime.dateTime, tokenCreationDatetime.dateTime, acl, expirationDate.map(_.dateTime))
       }
     } else Failure(s"The given entry is not of the expected ObjectClass '${OC_API_ACCOUNT}'. Entry details: ${e}")
   }
 
   def apiAccount2Entry(principal:ApiAccount) : LDAPEntry = {
-    rudderDit.API_ACCOUNTS.API_ACCOUNT.apiAccountModel(principal)
+    val mod = LDAPEntry(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id))
+    mod +=! (A_OC, OC.objectClassNames(OC_API_ACCOUNT).toSeq:_*)
+    mod +=! (A_API_UUID, principal.id.value)
+    mod +=! (A_NAME, principal.name.value)
+    mod +=! (A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
+    mod +=! (A_API_TOKEN, principal.token.value)
+    mod +=! (A_API_TOKEN_CREATION_DATETIME, GeneralizedTime(principal.tokenGenerationDate).toString)
+    mod +=! (A_DESCRIPTION, principal.description)
+    mod +=! (A_IS_ENABLED, principal.isEnabled.toLDAPString)
+    mod +=! (A_API_KIND, principal.kind.name)
+
+    principal.expirationDate.foreach { e =>
+      mod +=! (A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString())
+    }
+    mod +=! (A_API_ACL, serApiAcl(principal.authorizations))
+    mod
   }
 
   //////////////////////////////    Parameters    //////////////////////////////
@@ -825,3 +890,10 @@ class LDAPEntityMapper(
   }
 
 }
+
+// This need to be on top level, else lift json does absolutly nothing good.
+// a stable case class for json serialisation
+// { "acl": [ {"path":"some/path", "actions":["get","put"]}, {"path":"other/path","actions":["get"]}}
+final case class JsonApiAcl(acl: List[JsonApiAuthz])
+final case class JsonApiAuthz(path: String, actions: List[String])
+

@@ -159,12 +159,14 @@ object RestUtils extends Loggable {
 
   type ActionType = (EventActor, ModificationId, Option[String]) => Box[JValue]
   def actionResponse (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id : Option[String]) (function : Box[ActionType], req : Req, errorMessage : String)(implicit action : String, userService : UserService ) : LiftResponse = {
+    actionResponse2(restExtractor, dataName, uuidGen, id)(function, req, errorMessage)(action, RestUtils.getActor(req))
+  }
+  def actionResponse2 (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id : Option[String]) (function : Box[ActionType], req : Req, errorMessage : String)(implicit action : String, actor: EventActor ) : LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
     ( for {
       reason <- restExtractor.extractReason(req)
       modId = ModificationId(uuidGen.newUuid)
-      actor = RestUtils.getActor(req)
       result <- function.flatMap { _(actor,modId,reason) }
     } yield {
       result
@@ -179,11 +181,13 @@ object RestUtils extends Loggable {
 
   type WorkflowType = (EventActor, Option[String], String, String) => Box[JValue]
   def workflowResponse (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id : Option[String]) (function : Box[WorkflowType] , req : Req, errorMessage : String, defaultName : String)(implicit action : String, userService : UserService ) : LiftResponse = {
+    workflowResponse2(restExtractor, dataName, uuidGen, id)(function, req, errorMessage, defaultName)(action, RestUtils.getActor(req))
+  }
+  def workflowResponse2 (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id : Option[String]) (function : Box[WorkflowType] , req : Req, errorMessage : String, defaultName : String)(implicit action : String, actor: EventActor) : LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
     ( for {
       reason <- restExtractor.extractReason(req)
-      actor = RestUtils.getActor(req)
       crName <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(defaultName))
       crDesc = restExtractor.extractChangeRequestDescription(req)
       result <- function.flatMap { _(actor,reason, crName, crDesc) }

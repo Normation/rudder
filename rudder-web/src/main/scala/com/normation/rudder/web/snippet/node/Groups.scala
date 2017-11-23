@@ -293,7 +293,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       //build jstree and
       //init bind callback to move
       JsRaw(s"""
-        buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', '${selectedNode}', 'off', true, ${CurrentUser.checkRights(AuthorizationType.Edit("group"))});
+        buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', '${selectedNode}', 'off', true, ${CurrentUser.checkRights(AuthorizationType.Group.Edit)});
         if(${foldCategories}){
           $$('#${htmlId_groupTree}').jstree().close_all();
         }
