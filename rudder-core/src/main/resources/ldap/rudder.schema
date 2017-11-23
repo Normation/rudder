@@ -356,6 +356,27 @@ attributetype ( RudderAttributes:251
   EQUALITY generalizedTimeMatch
   ORDERING generalizedTimeOrderingMatch )
 
+attributetype ( RudderAttributes:252
+  NAME 'expirationTimestamp'
+  DESC 'Date and time on which the token expires'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
+
+attributetype ( RudderAttributes:253
+  NAME 'apiAcl'
+  DESC 'JSON serialization of ACL for an API token'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+attributetype ( RudderAttributes:254
+  NAME 'apiAccountKind'
+  DESC 'Kind of API account (public API, user-bounded, system)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+  
 attributetype ( RudderAttributes:301
   NAME 'parameterName'
   DESC 'Name of parameter that matches [a-zA-Z0-9_]+'
@@ -607,7 +628,8 @@ objectclass ( RudderObjectClasses:106
   STRUCTURAL
   MUST ( apiAccountId $ cn $ creationTimestamp $
          apiToken $ apiTokenCreationTimestamp) 
-  MAY ( description  $ isEnabled ) )
+  MAY ( description  $ isEnabled $ apiAccountKind $
+        apiAcl $ expirationTimestamp ) )
 
 # 
 # Parameters

@@ -55,8 +55,8 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
   private[this] val workflowService = RudderConfig.workflowService
   private[this] val asyncWorkflow   = RudderConfig.asyncWorkflowInfo
 
-  private[this] val isValidator = CurrentUser.checkRights(AuthorizationType.Edit("validator"))
-  private[this] val isDeployer = CurrentUser.checkRights(AuthorizationType.Edit("deployer"))
+  private[this] val isValidator = CurrentUser.checkRights(AuthorizationType.Validator.Edit)
+  private[this] val isDeployer = CurrentUser.checkRights(AuthorizationType.Deployer.Edit)
   def registerWith = asyncWorkflow
 
 

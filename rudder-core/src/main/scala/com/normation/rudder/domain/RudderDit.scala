@@ -404,18 +404,6 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       //build the dn from an UUID
       def dn(id:ApiAccountId) = new DN(this.rdn(id.value), principals.dn)
 
-      def apiAccountModel(principal:ApiAccount) : LDAPEntry = {
-        val mod = LDAPEntry(this.dn(principal.id))
-        mod +=! (A_OC, OC.objectClassNames(OC_API_ACCOUNT).toSeq:_*)
-        mod +=! (A_API_UUID, principal.id.value)
-        mod +=! (A_NAME, principal.name.value)
-        mod +=! (A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
-        mod +=! (A_API_TOKEN, principal.token.value)
-        mod +=! (A_API_TOKEN_CREATION_DATETIME, GeneralizedTime(principal.tokenGenerationDate).toString)
-        mod +=! (A_DESCRIPTION, principal.description)
-        mod +=! (A_IS_ENABLED, principal.isEnabled.toLDAPString)
-        mod
-      }
     }
   }
 

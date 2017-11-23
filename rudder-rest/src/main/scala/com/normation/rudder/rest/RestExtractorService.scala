@@ -59,12 +59,7 @@ import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
 import com.normation.rudder.services.workflows.WorkflowService
-import com.normation.rudder.rest.changeRequest.APIChangeRequestInfo
-import com.normation.rudder.rest.directive.RestDirective
-import com.normation.rudder.rest.group.RestGroup
-import com.normation.rudder.rest.node._
-import com.normation.rudder.rest.parameter.RestParameter
-import com.normation.rudder.rest.rule.RestRule
+import com.normation.rudder.rest.data._
 import com.normation.utils.Control._
 
 import net.liftweb.common._
@@ -86,6 +81,10 @@ import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.ncf.MethodParameter
 import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.ncf.{ Technique => NcfTechnique }
+import org.joda.time.format.ISODateTimeFormat
+import net.liftweb.util.Helpers
+import org.joda.time.DateTime
+import com.normation.rudder.api.ApiAcl
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -218,6 +217,10 @@ case class RestExtractorService (
 
   private[this] def toApiAccountName (value:String) : Box[ApiAccountName] = {
     Full(ApiAccountName(value))
+  }
+
+  private[this] def toDateTime (value:String) : Box[DateTime] = {
+    Helpers.tryo { ISODateTimeFormat.basicDateTime().parseDateTime(value) }
   }
 
   private[this] def toWorkflowStatus (value : String) : Box[Seq[WorkflowNodeId]] = {
@@ -814,9 +817,13 @@ case class RestExtractorService (
       name        <- extractJsonString(json, "name", toApiAccountName)
       description <- extractJsonString(json, "description")
       enabled     <- extractJsonBoolean(json, "enabled")
-      oldName     <- extractJsonString(json, "oldId", toApiAccountId)
+      oldId       <- extractJsonString(json, "oldId", toApiAccountId)
+      // TODO what is the serialization we want to show for Option[DataTime] of
+      // expiration token ?
+      expriration <- extractJsonString(json, "expiration", toDateTime)
+      // TODO parse ApiAcl
     } yield {
-      RestApiAccount(id, name, description, enabled, oldName)
+      RestApiAccount(id, name, description, enabled, oldId, expriration.map(Some(_)), Some(ApiAcl.noAuthz))
     }
   }
 
@@ -885,6 +892,48 @@ case class RestExtractorService (
         }
     }
   }
+
+   def extractInt[T](key : String) (req : Req)(fun : BigInt => Box[T]) : Box[Option[T]]  = {
+     req.json match {
+       case Full(json) => json \ key match {
+         case JInt(value) => fun(value).map(Some(_))
+         case JNothing => Full(None)
+         case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
+       }
+       case _ =>
+         req.params.get(key) match {
+           case None => Full(None)
+           case Some(head :: Nil) => try {
+             fun(head.toLong).map(Some(_))
+           } catch {
+             case e : Throwable =>
+               Failure(s"Parsing request parameter '${key}' as an integer failed, current value is '${head}'. Error message is: '${e.getMessage}'.")
+           }
+           case Some(list) => Failure(s"${list.size} values defined for 'id' parameter, only one needs to be defined")
+         }
+     }
+   }
+
+     def extractBoolean[T](key : String) (req : Req)(fun : Boolean => T) : Box[Option[T]]  = {
+     req.json match {
+       case Full(json) => json \ key match {
+         case JBool(value) => Full(Some(fun(value)))
+         case JNothing => Full(None)
+         case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
+       }
+       case _ =>
+         req.params.get(key) match {
+           case None => Full(None)
+           case Some(head :: Nil) => try {
+             Full(Some(fun(head.toBoolean)))
+           } catch {
+             case e : Throwable =>
+               Failure(s"Parsing request parameter '${key}' as a boolean failed, current value is '${head}'. Error message is: '${e.getMessage}'.")
+           }
+           case Some(list) => Failure(s"${list.size} values defined for 'id' parameter, only one needs to be defined")
+         }
+     }
+   }
 
   def extractMap[T,U](key : String)(req : Req)
     ( keyFun : String => T

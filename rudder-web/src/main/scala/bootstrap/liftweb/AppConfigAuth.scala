@@ -70,7 +70,7 @@ import org.xml.sax.SAXParseException
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.api.ApiToken
 import com.normation.rudder.api.RoApiAccountRepository
-import com.normation.rudder.AuthzToRights
+import com.normation.rudder.RoleToRights
 import com.normation.rudder.Rights
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.web.services.UserSessionLogEvent
@@ -95,6 +95,11 @@ import com.normation.rudder.web.services.UserSessionLogEvent
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.authentication.BadCredentialsException
+import com.normation.rudder.api.ApiAcl
+import com.normation.rudder.rest.RoleApiMapping
+import org.joda.time.DateTime
+import com.normation.rudder.Role
+import com.normation.rudder.api.ApiAccountKind
 
 /**
  * Spring configuration for user authentication.
@@ -120,6 +125,9 @@ class AppConfigAuth extends ApplicationContextAware {
   private[this] var appCtx: ApplicationContext = null //yeah...
 
   val logger = ApplicationLogger
+
+  // we define the System ApiAcl as one that is all mighty and can manage everything
+  val SYSTEM_API_ACL = ApiAcl.allAuthz
 
   def setApplicationContext(applicationContext: ApplicationContext) {
     //prepare specific properties for new context
@@ -185,7 +193,7 @@ class AppConfigAuth extends ApplicationContextAware {
       parseUsers(resource) match {
         case Some(config) =>
           new RudderInMemoryUserDetailsService(config.encoder, config.users.map { case (login,pass,roles) =>
-            RudderUserDetail(login, pass, roles)
+            RudderUserDetail(login, pass, roles.toSet, RoleApiMapping.getApiAclFromRoles(roles))
           }.toSet)
         case None =>
           ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
@@ -219,7 +227,8 @@ class AppConfigAuth extends ApplicationContextAware {
       val admin = RudderUserDetail(
           config.getString("rudder.auth.admin.login")
         , config.getString("rudder.auth.admin.password")
-        , AuthzToRights.parseRole(Seq("administrator"))
+        , RoleToRights.parseRole(Seq("administrator")).toSet
+        , SYSTEM_API_ACL
       )
       if(admin.login.isEmpty || admin.password.isEmpty) {
         Set.empty[RudderUserDetail]
@@ -241,7 +250,7 @@ class AppConfigAuth extends ApplicationContextAware {
 
   ///////////// FOR REST API /////////////
 
-  @Bean def restAuthenticationFilter = new RestAuthenticationFilter(RudderConfig.roApiAccountRepository)
+  @Bean def restAuthenticationFilter = new RestAuthenticationFilter(RudderConfig.roApiAccountRepository, rudderUserDetailsService, SYSTEM_API_ACL)
 
   @Bean def restAuthenticationEntryPoint = new AuthenticationEntryPoint() {
     override def commence(request: HttpServletRequest, response: HttpServletResponse, ex: AuthenticationException) : Unit = {
@@ -347,7 +356,8 @@ case object RoleUserAuthority extends GrantedAuthority {
 case object RoleApiAuthority extends GrantedAuthority {
   override val getAuthority = "ROLE_REMOTE"
 
-  val apiRudderRights = new Rights(AuthzToRights.toAllAuthz(AuthzToRights.allKind):_*)
+  val apiRudderRights = new Rights(AuthorizationType.NoRights)
+  val apiRudderRole: Set[Role] = Set(Role.NoRights)
 }
 
 /**
@@ -355,8 +365,10 @@ case object RoleApiAuthority extends GrantedAuthority {
  * Note that authorizations are not managed by spring, but by the
  * 'authz' token of RudderUserDetail.
  */
-case class RudderUserDetail(login:String, password:String, authz:Rights, grantedAuthorities: Seq[GrantedAuthority] = Seq(RoleUserAuthority)) extends UserDetails with HashcodeCaching {
+case class RudderUserDetail(login:String, password:String, roles: Set[Role], apiAuthz: ApiAcl, grantedAuthorities: Seq[GrantedAuthority] = Seq(RoleUserAuthority)) extends UserDetails with HashcodeCaching {
   import scala.collection.JavaConverters.asJavaCollectionConverter
+  // merge roles rights
+  val authz = new Rights(roles.flatMap(_.rights.authorizationTypes).toSeq:_*)
   override val getAuthorities:java.util.Collection[GrantedAuthority] = grantedAuthorities.asJavaCollection
   override val getPassword = password
   override val getUsername = login
@@ -368,11 +380,15 @@ case class RudderUserDetail(login:String, password:String, authz:Rights, granted
 
 /**
  * Our rest filter, we just look for X-API-Token and
- * ckeck if a token exists with that value
+ * ckeck if a token exists with that value.
+ * For Account with type "user", we need to also check
+ * for the user and update REST token ACL with that knowledge
  */
 class RestAuthenticationFilter(
     apiTokenRepository: RoApiAccountRepository
-  , headerName: String = "X-API-Token"
+  , userDetailsService: RudderInMemoryUserDetailsService
+  , systemApiAcl      : ApiAcl
+  , headerName        : String = "X-API-Token"
 ) extends Filter with Loggable {
   def destroy(): Unit = {}
   def init(config: FilterConfig): Unit = {}
@@ -433,7 +449,8 @@ class RestAuthenticationFilter(
               authenticate(RudderUserDetail(
                   "UnknownRestUser"
                  , ""
-                 , RoleApiAuthority.apiRudderRights
+                 , RoleApiAuthority.apiRudderRole
+                 , ApiAcl.noAuthz // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
                  , Seq(RoleApiAuthority)
               ))
               chain.doFilter(request, response)
@@ -450,7 +467,8 @@ class RestAuthenticationFilter(
               authenticate(RudderUserDetail(
                   REST_USER_PREFIX + s""""${systemAccount.name.value}"""" + s" (${systemAccount.id.value})"
                 , systemAccount.token.value
-                , RoleApiAuthority.apiRudderRights
+                , RoleApiAuthority.apiRudderRole
+                , systemApiAcl
                 , Seq(RoleApiAuthority)
               ))
 
@@ -465,17 +483,41 @@ class RestAuthenticationFilter(
 
                 case Full(Some(principal)) =>
                   if(principal.isEnabled) {
-                    val rest_principal = REST_USER_PREFIX + s""""${principal.name.value}"""" + s" (${principal.id.value})"
-                    //cool, build an authentication token from it
-                    authenticate(RudderUserDetail(
-                        rest_principal
-                      , principal.token.value
-                      , RoleApiAuthority.apiRudderRights
-                      , Seq(RoleApiAuthority)
-                    ))
+                    principal.expirationDate match {
+                      case Some(date) if(DateTime.now().isAfter(date)) =>
+                        failsAuthentication(httpRequest, httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
+                      case _ => // no expiration date or expiration date not reached
 
-                    chain.doFilter(request, response)
+                        val rest_principal = REST_USER_PREFIX + s""""${principal.name.value}"""" + s" (${principal.id.value})"
+                        val user = RudderUserDetail(
+                            rest_principal
+                          , principal.token.value
+                          , RoleApiAuthority.apiRudderRole
+                          , principal.authorizations
+                          , Seq(RoleApiAuthority)
+                        )
 
+                        // check API account type: User account need an update for their ACL.
+                        if(principal.kind == ApiAccountKind.User) {
+                          (try {
+                            Right(userDetailsService.loadUserByUsername(principal.id.value))
+                          } catch {
+                            case ex: UsernameNotFoundException => Left(s"User with id '${principal.id.value}' was not found on the system. The API token linked to that user can not be used anymore.")
+                            case ex: Exception                 => Left(s"Error when trying to get user information linked to user '${principal.id.value}' API token.")
+                          }) match {
+                            case Right(u) => //update acl
+                              authenticate(user.copy(apiAuthz = u.apiAuthz))
+                              chain.doFilter(request, response)
+
+                            case Left(er) =>
+                              failsAuthentication(httpRequest, httpResponse, Failure(er))
+                          }
+                        } else {
+                          //cool, build an authentication token from it
+                          authenticate(user)
+                          chain.doFilter(request, response)
+                        }
+                    }
                   } else {
                     failsAuthentication(httpRequest, httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
                   }
@@ -493,18 +535,18 @@ class RestAuthenticationFilter(
 
 case class AuthConfig(
   encoder: PasswordEncoder,
-  users:List[(String,String,Rights)]
+  users:List[(String,String,Seq[Role])]
 ) extends HashcodeCaching
 
 class RudderXmlUserDetailsContextMapper(authConfig: AuthConfig) extends UserDetailsContextMapper {
 
-  val users = authConfig.users.map { case(login,pass,roles) => (login, RudderUserDetail(login,pass,roles)) }.toMap
+  val users = authConfig.users.map { case(login,pass,roles) => (login, RudderUserDetail(login,pass,roles.toSet,RoleApiMapping.getApiAclFromRoles(roles))) }.toMap
 
   //we are not able to try to save user in the XML file
   def mapUserToContext(user: UserDetails, ctx: DirContextAdapter) : Unit = ()
 
   def mapUserFromContext(ctx: DirContextOperations, username: String, authorities: Collection[_ <:GrantedAuthority]): UserDetails = {
-    users.getOrElse(username, RudderUserDetail(username, "", new Rights(AuthorizationType.NoRights)))
+    users.getOrElse(username, RudderUserDetail(username, "", Set(Role.NoRights), ApiAcl.noAuthz))
   }
 
 }
@@ -552,24 +594,24 @@ object AppConfigAuth extends Loggable {
          //for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
          (   node.attribute("name").map(_.toList.map(_.text))
            , node.attribute("password").map(_.toList.map(_.text))
-           , node.attribute("role").map(_.toList.map( role => AuthzToRights.parseRole(role.text.split(",").toSeq.map(_.trim))))
+           , node.attribute("role").map(_.toList.map( role => RoleToRights.parseRole(role.text.split(",").toSeq.map(_.trim))))
          ) match {
            case (Some(name :: Nil) , Some(pwd :: Nil), roles ) if(name.size > 0 && pwd.size > 0) => roles match {
              case Some(roles:: Nil) => (name, pwd, roles) :: Nil
-             case _ =>  (name, pwd, new Rights(AuthorizationType.NoRights)) :: Nil
+             case _ =>  (name, pwd, Seq(Role.NoRights)) :: Nil
            }
 
            case _ =>
-             ApplicationLogger.error("Ignore user line in authentication file '%s', some required attribute is missing: %s".format(resource.getURL.toString, node.toString))
+             ApplicationLogger.error(s"Ignore user line in authentication file '${resource.getURL.toString}', some required attribute is missing: ${node.toString}")
              Nil
          }
         })
 
         //and now, return the list of users
         users map { user =>
-        if (user._3.authorizationTypes.contains(AuthorizationType.NoRights))
-          ApplicationLogger.warn("User %s authorisation are not defined correctly, please fix it (defined authorizations: %s)".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
-        ApplicationLogger.debug("User %s with defined authorizations: %s".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
+        if (user._3.contains(Role.NoRights))
+          ApplicationLogger.warn(s"User '${user._1}' authorisation are not defined correctly, please fix it (defined authorizations: ${user._3.map(_.name.toLowerCase()).mkString(", ")})")
+        ApplicationLogger.debug(s"User '${user._1}' with defined authorizations: ${user._3.map(_.name.toLowerCase()).mkString(", ")}")
         }
         Some(AuthConfig(hash, users))
       }

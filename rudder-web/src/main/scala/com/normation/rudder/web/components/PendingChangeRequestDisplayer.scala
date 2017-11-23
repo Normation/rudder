@@ -73,7 +73,7 @@ object PendingChangeRequestDisplayer extends Loggable{
         val pendingChangeRequestLink =( NodeSeq.Empty /: crs) {
           (res,cr) => res ++
           {
-            if (CurrentUser.checkRights(AuthorizationType.Read("validator"))||CurrentUser.checkRights(AuthorizationType.Read("deployer"))||cr.owner == CurrentUser.getActor.name) {
+            if (CurrentUser.checkRights(AuthorizationType.Validator.Read)||CurrentUser.checkRights(AuthorizationType.Deployer.Read)||cr.owner == CurrentUser.getActor.name) {
               <li><a href={linkUtil.baseChangeRequestLink(cr.id)}>CR #{cr.id}: {cr.info.name}</a></li>
             } else {
               <li>CR #{cr.id}</li>

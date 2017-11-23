@@ -90,10 +90,6 @@ import com.normation.rudder.services.modification.DiffService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows._
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.rule._
-import com.normation.rudder.rest.directive._
-import com.normation.rudder.rest.group._
-import com.normation.rudder.rest.node._
 import com.normation.rudder.api.RoLDAPApiAccountRepository
 import com.normation.rudder.api.TokenGeneratorImpl
 import com.normation.rudder.api.WoApiAccountRepository
@@ -140,17 +136,8 @@ import com.normation.rudder.services.workflows._
 import com.normation.rudder.web.model._
 import com.normation.rudder.rest._
 import com.normation.rudder.rest.v1._
+import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.internal._
-import com.normation.rudder.rest.ncf._
-import com.normation.rudder.rest.changeRequest._
-import com.normation.rudder.rest.compliance._
-import com.normation.rudder.rest.directive._
-import com.normation.rudder.rest.group._
-import com.normation.rudder.rest.node._
-import com.normation.rudder.rest.parameter._
-import com.normation.rudder.rest.rule._
-import com.normation.rudder.rest.settings._
-import com.normation.rudder.rest.technique._
 import com.normation.rudder.web.services._
 import com.normation.templates.FillTemplatesService
 import com.normation.utils.StringUuidGenerator
@@ -172,6 +159,7 @@ import com.normation.rudder.service.user.UserService
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueArchiverImpl
 import scala.concurrent.duration._
+import com.normation.rudder.api.ApiAcl
 
 /**
  * Define a resource for configuration.
@@ -480,7 +468,7 @@ object RudderConfig extends Loggable {
   val roChangeRequestRepository : RoChangeRequestRepository = {
     //a runtime checking of the workflow to use
     new EitherRoChangeRequestRepository(
-        configService.rudder_workflow_enabled
+        configService.rudder_workflow_enabled _
       , new RoChangeRequestJdbcRepository(doobie, changeRequestMapper)
       , inMemoryChangeRequestRepository
     )
@@ -489,7 +477,7 @@ object RudderConfig extends Loggable {
   val woChangeRequestRepository : WoChangeRequestRepository = {
     //a runtime checking of the workflow to use
     new EitherWoChangeRequestRepository(
-        configService.rudder_workflow_enabled
+        configService.rudder_workflow_enabled _
       , new WoChangeRequestJdbcRepository(doobie, changeRequestMapper, roChangeRequestRepository)
       , inMemoryChangeRequestRepository
     )
@@ -536,7 +524,7 @@ object RudderConfig extends Loggable {
       , woLDAPParameterRepository
       , asyncDeploymentAgent
       , dependencyAndDeletionService
-      , configService.rudder_workflow_enabled
+      , configService.rudder_workflow_enabled _
       , xmlSerializer
       , xmlUnserializer
       , sectionSpecParser
@@ -544,15 +532,15 @@ object RudderConfig extends Loggable {
   lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
   val workflowService: WorkflowService = {
     new EitherWorkflowService(
-        configService.rudder_workflow_enabled
+        configService.rudder_workflow_enabled _
       , new TwoValidationStepsWorkflowServiceImpl(
             workflowEventLogService
           , commitAndDeployChangeRequest
           , roWorkflowRepository
           , woWorkflowRepository
           , asyncWorkflowInfo
-          , configService.rudder_workflow_self_validation
-          , configService.rudder_workflow_self_deployment
+          , configService.rudder_workflow_self_validation _
+          , configService.rudder_workflow_self_deployment _
         )
       , new NoWorkflowServiceImpl(
             commitAndDeployChangeRequest
@@ -566,7 +554,7 @@ object RudderConfig extends Loggable {
     , woChangeRequestRepository
     , changeRequestEventLogService
     , uuidGen
-    , configService.rudder_workflow_enabled
+    , configService.rudder_workflow_enabled _
   )
 
   val roParameterService : RoParameterService = roParameterServiceImpl
@@ -615,18 +603,11 @@ object RudderConfig extends Loggable {
       , changeRequestService
       , workflowService
       , restExtractorService
-      , configService.rudder_workflow_enabled
+      , configService.rudder_workflow_enabled _
       , restDataSerializer
     )
 
-  val ruleApi2 =
-    new RuleAPI2 (
-        roRuleRepository
-      , restExtractorService
-      , ruleApiService2
-    )
-
-    val ruleApiService6 =
+  val ruleApiService6 =
     new RuleApiService6 (
         roRuleCategoryRepository
       , roRuleRepository
@@ -635,15 +616,7 @@ object RudderConfig extends Loggable {
       , restDataSerializer
     )
 
-  val ruleApi6 =
-    new RuleAPI6 (
-        ruleApiService6
-      , ruleApi2
-      , restExtractorService
-      , uuidGen
-    )
-
-   val directiveApiService2 =
+  val directiveApiService2 =
     new DirectiveAPIService2 (
         roDirectiveRepository
       , woDirectiveRepository
@@ -652,31 +625,17 @@ object RudderConfig extends Loggable {
       , changeRequestService
       , workflowService
       , restExtractorService
-      , configService.rudder_workflow_enabled
+      , configService.rudder_workflow_enabled _
       , directiveEditorService
       , restDataSerializer
       , techniqueRepositoryImpl
     )
 
-  val directiveApi2 =
-    new DirectiveAPI2 (
-        roDirectiveRepository
-      , restExtractorService
-      , directiveApiService2
-      , stringUuidGenerator
-    )
-
-  val TechniqueApiService6 =
+  val techniqueApiService6 =
     new TechniqueAPIService6 (
         roDirectiveRepository
       , restDataSerializer
       , techniqueRepositoryImpl
-    )
-
-  val techniqueApi6 =
-    new TechniqueAPI6 (
-        restExtractorService
-      , TechniqueApiService6
     )
 
   val groupApiService2 =
@@ -689,74 +648,37 @@ object RudderConfig extends Loggable {
       , workflowService
       , restExtractorService
       , queryProcessor
-      , configService.rudder_workflow_enabled
+      , configService.rudder_workflow_enabled _
       , restDataSerializer
     )
 
   val groupApiService5 = new GroupApiService5 (groupApiService2)
 
-  val groupApi2 =
-    new GroupAPI2 (
-        roNodeGroupRepository
-      , restExtractorService
-      , groupApiService2
-    )
-
-  val groupApi5 =
-    new GroupAPI5 (
-        restExtractorService
-      , groupApi2
-      , groupApiService5
-    )
-
-    val groupApiService6 =
+  val groupApiService6 =
     new GroupApiService6 (
-        roNodeGroupRepository
-      , woNodeGroupRepository
-      , restDataSerializer
-    )
+      roNodeGroupRepository
+    , woNodeGroupRepository
+    , restDataSerializer
+  )
 
-  val groupApi6 =
-    new GroupAPI6 (
-        groupApiService6
-      , groupApi5
-      , restExtractorService
-      , uuidGen
-    )
+  val nodeApiService2 = new NodeApiService2 (
+      newNodeManager
+    , nodeInfoService
+    , removeNodeService
+    , uuidGen
+    , restExtractorService
+    , restDataSerializer
+    , false
+  )
 
-    val nodeApiService2 =
-      NodeApiService2 (
-        newNodeManager
-      , nodeInfoService
-      , removeNodeService
-      , uuidGen
-      , restExtractorService
-      , restDataSerializer
-      , false
-    )
-
-  val nodeApi2 =
-    NodeAPI2 (
-        nodeApiService2
-      , restExtractorService
-    )
-
-  val nodeApi4 = {
-    val fixedApiService2 = nodeApiService2.copy(fixedTag = true)
-    val fixedApi2 = nodeApi2.copy(apiV2 = fixedApiService2)
-    new NodeAPI4 (
-        fixedApi2
-      , new NodeApiService4 (
-            fullInventoryRepository
-          , nodeInfoService
-          , softwareInventoryDAO
-          , uuidGen
-          , restExtractorService
-          , restDataSerializer
-        )
-      , restExtractorService
-    )
-  }
+  val nodeApiService4 = new NodeApiService4 (
+      fullInventoryRepository
+    , nodeInfoService
+    , softwareInventoryDAO
+    , uuidGen
+    , restExtractorService
+    , restDataSerializer
+  )
 
   val nodeApiService8 = {
     new NodeApiService8(
@@ -769,37 +691,14 @@ object RudderConfig extends Loggable {
     )
   }
 
-  val nodeApi5 = {
-    new NodeAPI5 (
-        nodeApi4
-      , nodeApiService8
-      , restExtractorService
-      , restDataSerializer
-    )
-  }
-
-  val nodeApi6 = {
-    new NodeAPI6 (
-        nodeApi5
-      , new NodeApiService6(
-            nodeInfoService
-          , fullInventoryRepository
-          , softwareInventoryDAO
-          , restExtractorService
-          , restDataSerializer
-          , queryProcessor
-        )
-      , restExtractorService
-    )
-  }
-
-  val nodeApi8 = {
-    new NodeAPI8 (
-        nodeApi6
-      , nodeApiService8
-      , restExtractorService
-    )
-  }
+  val nodeApiService6 = new NodeApiService6(
+      nodeInfoService
+    , fullInventoryRepository
+    , softwareInventoryDAO
+    , restExtractorService
+    , restDataSerializer
+    , queryProcessor
+  )
 
   val parameterApiService2 =
     new ParameterApiService2 (
@@ -809,36 +708,10 @@ object RudderConfig extends Loggable {
       , changeRequestService
       , workflowService
       , restExtractorService
-      , configService.rudder_workflow_enabled
+      , configService.rudder_workflow_enabled _
       , restDataSerializer
     )
 
-  val parameterApi2 =
-    new ParameterAPI2 (
-        restExtractorService
-      , parameterApiService2
-    )
-
-  val changeRequestApiService3 =
-    new ChangeRequestAPIService3 (
-        roChangeRequestRepository
-      , woChangeRequestRepository
-      , roWorkflowRepository
-      , woWorkflowRepository
-      , techniqueRepository
-      , changeRequestService
-      , workflowService
-      , commitAndDeployChangeRequest
-      , restExtractorService
-      , restDataSerializer
-      , configService.rudder_workflow_enabled
-    )
-
-  val changeRequestApi3 =
-    new ChangeRequestAPI3 (
-        restExtractorService
-      , changeRequestApiService3
-    )
 
   private[this] val complianceAPIService = new ComplianceAPIService(
           roRuleRepository
@@ -849,50 +722,46 @@ object RudderConfig extends Loggable {
         , globalComplianceModeService.getGlobalComplianceMode _
       )
 
-  val complianceApi6 = new ComplianceAPI7(restExtractorService, complianceAPIService, v6compatibility = true)
-  val complianceApi7 = new ComplianceAPI7(restExtractorService, complianceAPIService)
-
-  val settingsApi8 = new SettingsAPI8(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
-  val settingsApi10 = new SettingsAPI10(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
-
   val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
   val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, prettyPrinter, RUDDER_DIR_GITROOT)
-  val ncfAPI = new NcfApi9(ncfTechniqueWriter, restExtractorService, stringUuidGenerator, userService)
-  // First working version with support for rules, directives, nodes and global parameters
-  val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
-  // Add change request support
-  val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
-  // Add inventory support on nodes
-  val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
-  // Allow empty query for groups, add key-values support on nodes
-  val apiV5 : List[RestAPI] = nodeApi5 :: groupApi5 :: apiV4.filter( _ != nodeApi4).filter( _ != groupApi2)
-  // Add compliance and technique endpoint and filtering off node/rule/group results
-  val apiV6 : List[RestAPI] = techniqueApi6 ::complianceApi6 :: nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
-  // apiv7 just add compatible changes on compliances, adding "level" option and "compliance mode" attribute in response
-  val apiV7 = complianceApi7 :: apiV6.filter( _ != complianceApi6)
-  // apiv8 add policy mode in node API and settings API
-  val apiV8 = nodeApi8 :: settingsApi8 :: apiV7.filter( _ != nodeApi6)
-  // apiv9 add ncf api
-  val apiV9 = ncfAPI :: apiV8
-  // apiv10 removes skipIdentify in the settings API
-  val apiV10 = settingsApi10 :: apiV9.filter( _ != settingsApi8)
+
+  val ApiVersions =
+    ApiVersion(7  , true ) ::
+    ApiVersion(8  , false) ::
+    ApiVersion(9  , false) ::
+    ApiVersion(10 , false) ::
+    Nil
 
 
-  val apis = {
-    Map (
-        //Rudder 3.2
-        ( ApiVersion(7,true) -> apiV7 )
-        //Rudder 4.0 - 4.1
-      , ( ApiVersion(8,false) -> apiV8 )
-        //Rudder 4.2
-      , ( ApiVersion(9,false) -> apiV9 )
-        // Rudder 4.3
-      , ( ApiVersion(10,false) -> apiV10 )
+  // new api dispatcher
+  val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
+  val rudderApi = {
+    import com.normation.rudder.rest.lift._
+
+    val modules = List(
+        new ComplianceApi(restExtractorService, complianceAPIService)
+      , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6)
+      , new ChangeRequestApi(restExtractorService, roChangeRequestRepository, woChangeRequestRepository, roWorkflowRepository
+                              , woWorkflowRepository, techniqueRepository, changeRequestService, workflowService, commitAndDeployChangeRequest
+                              , restDataSerializer, configService.rudder_workflow_enabled _
+                            )
+      , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
+      , new NcfApi(ncfTechniqueWriter, restExtractorService, stringUuidGenerator)
+      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8)
+      , new ParameterApi(restExtractorService, parameterApiService2)
+      , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
+      , new TechniqueApi(restExtractorService, techniqueApiService6)
+      , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
+      , new UserApi(restExtractorService, roApiAccountRepository, woApiAccountRepository, tokenGenerator, stringUuidGenerator)
+        // info api must be resolved latter, because else it misses plugin apis !
     )
-  }
 
-  val apiDispatcher = APIDispatcher(restExtractorService)
-  apiDispatcher.addEndpoints(apis)
+    val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(userService), None)
+    modules.foreach { module =>
+      api.addModules(module.getLiftEndpoints)
+    }
+    api
+  }
 
   // Internal APIs
   val sharedFileApi = new SharedFilesAPI(restExtractorService,RUDDER_DIR_SHARED_FILES_FOLDER)
@@ -902,7 +771,7 @@ object RudderConfig extends Loggable {
         config
       , new LdapConfigRepository(rudderDit, rwLdap, ldapEntityMapper, eventLogRepository, stringUuidGenerator)
       , asyncWorkflowInfo
-  )
+    )
   }
 
   lazy val recentChangesService = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepository))
@@ -952,6 +821,7 @@ object RudderConfig extends Loggable {
     , roLdap
     , ldapEntityMapper
     , stringUuidGenerator
+    , ApiAcl.allAuthz // for system token
   )
 
   private[this] lazy val woLDAPApiAccountRepository = new WoLDAPApiAccountRepository(
@@ -1081,9 +951,9 @@ object RudderConfig extends Loggable {
   }
 
   private[this] lazy val userPropertyServiceImpl = new StatelessUserPropertyService(
-      configService.rudder_ui_changeMessage_enabled
-    , configService.rudder_ui_changeMessage_mandatory
-    , configService.rudder_ui_changeMessage_explanation
+      configService.rudder_ui_changeMessage_enabled _
+    , configService.rudder_ui_changeMessage_mandatory _
+    , configService.rudder_ui_changeMessage_explanation _
   )
 
   ////////////////////////////////////
@@ -1419,16 +1289,16 @@ object RudderConfig extends Loggable {
   private[this] lazy val globalComplianceModeService : ComplianceModeService =
     new ComplianceModeServiceImpl(
         configService.rudder_compliance_mode_name _
-      , configService.rudder_compliance_heartbeatPeriod
+      , configService.rudder_compliance_heartbeatPeriod _
     )
   private[this] lazy val globalAgentRunService : AgentRunIntervalService =
     new AgentRunIntervalServiceImpl(
         nodeInfoServiceImpl
-      , configService.agent_run_interval
-      , configService.agent_run_start_hour
-      , configService.agent_run_start_minute
-      , configService.agent_run_splaytime
-      , configService.rudder_compliance_heartbeatPeriod
+      , configService.agent_run_interval _
+      , configService.agent_run_start_hour _
+      , configService.agent_run_start_minute _
+      , configService.agent_run_splaytime _
+      , configService.rudder_compliance_heartbeatPeriod _
     )
 
   private[this] lazy val systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
@@ -1509,12 +1379,12 @@ object RudderConfig extends Loggable {
       , globalAgentRunService
       , reportingServiceImpl
       , rudderCf3PromisesFileWriterService
-      , configService.agent_run_interval
-      , configService.agent_run_splaytime
-      , configService.agent_run_start_hour
-      , configService.agent_run_start_minute
-      , configService.rudder_featureSwitch_directiveScriptEngine
-      , configService.rudder_global_policy_mode
+      , configService.agent_run_interval _
+      , configService.agent_run_splaytime _
+      , configService.agent_run_start_hour _
+      , configService.agent_run_start_minute _
+      , configService.rudder_featureSwitch_directiveScriptEngine _
+      , configService.rudder_global_policy_mode _
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
   )}
@@ -1765,6 +1635,7 @@ object RudderConfig extends Loggable {
         , uuidGen
       )
     , new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount)
+    , new CheckApiTokenAcl(rudderDit, rwLdap, ldapEntityMapper)
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////
@@ -1787,7 +1658,7 @@ object RudderConfig extends Loggable {
         case selectOne: SelectOneVariableSpec => new SelectOneField(id, selectOne.valueslabels)
         case select: SelectVariableSpec => new SelectField(id, select.valueslabels)
         case input: InputVariableSpec => v.constraint.typeName match {
-          case str: SizeVType => new InputSizeField(id, configService.rudder_featureSwitch_directiveScriptEngine, str.name.substring(prefixSize.size))
+          case str: SizeVType => new InputSizeField(id, configService.rudder_featureSwitch_directiveScriptEngine _, str.name.substring(prefixSize.size))
           case UploadedFileVType => new UploadedFileField(UPLOAD_ROOT_DIRECTORY)(id)
           case SharedFileVType => new FileField(id)
           case DestinationPathVType => default(id)
@@ -1795,10 +1666,10 @@ object RudderConfig extends Loggable {
           case TimeVType(r) => new TimeField(frenchTimeFormatter)(id)
           case PermVType => new FilePermsField(id)
           case BooleanVType => new CheckboxField(id)
-          case TextareaVType(r) => new TextareaField(id,configService.rudder_featureSwitch_directiveScriptEngine)
+          case TextareaVType(r) => new TextareaField(id,configService.rudder_featureSwitch_directiveScriptEngine _)
           // Same field type for password and MasterPassword, difference is that master will have slave/used derived passwords, and password will not have any slave/used field
           case PasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty , configService.rudder_featureSwitch_directiveScriptEngine _)
-          case MasterPasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty, configService.rudder_featureSwitch_directiveScriptEngine)
+          case MasterPasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty, configService.rudder_featureSwitch_directiveScriptEngine _)
           case AixDerivedPasswordVType => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.AIX)
           case LinuxDerivedPasswordVType => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.Linux)
           case _ => default(id)
@@ -1811,7 +1682,7 @@ object RudderConfig extends Loggable {
       }
     }
 
-    override def default(id: String) = new TextField(id,configService.rudder_featureSwitch_directiveScriptEngine)
+    override def default(id: String) = new TextField(id,configService.rudder_featureSwitch_directiveScriptEngine _)
   }
 
   private[this] lazy val section2FieldService: Section2FieldService = {

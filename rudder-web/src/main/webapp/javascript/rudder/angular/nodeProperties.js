@@ -42,7 +42,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
   $scope.properties;
   $scope.nodeId;
   $scope.tableId          = "#nodePropertiesTab";
-  $scope.urlAPI           = contextPath + '/secure/api/latest/nodes/';
+  $scope.urlAPI           = contextPath + '/secure/api/nodes/';
   $scope.newProperty      = {'name':"", 'value':""};
   $scope.deletedProperty  = {'name':"", 'index':""};
   $scope.alreadyUsed      = false;
@@ -126,7 +126,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
     //Get current node properties
     $scope.properties = properties;
     currentNodeId = nodeId;
-    $scope.urlAPI = contextPath + '/secure/api/latest/nodes/'+ nodeId;
+    $scope.urlAPI = contextPath + '/secure/api/nodes/'+ nodeId;
     $($scope.tableId).dataTable().fnAddData($scope.properties);
   }
 

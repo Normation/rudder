@@ -49,6 +49,7 @@ import com.normation.rudder.services.quicksearch.QSObject
 import com.normation.rudder.service.user.UserService
 import com.normation.rudder.web.model.LinkUtil
 import scala.collection.Seq
+import com.normation.rudder.AuthorizationType
 
 /**
  * A class for the Quicksearch rest endpoint.
@@ -100,16 +101,15 @@ class RestQuicksearch (
   }
 
   private[this] def filter (results : Set[QuickSearchResult]) = {
-    import com.normation.rudder.AuthorizationType._
     import com.normation.rudder.services.quicksearch.QuickSearchResultId._
 
     val user = userService.getCurrentUser
 
-    val nodeOK      = user.checkRights(Read("node"))
-    val groupOK     = user.checkRights(Read("group"))
-    val ruleOK      = user.checkRights(Read("configuration")) || user.checkRights(Read("rule"))
+    val nodeOK      = user.checkRights(AuthorizationType.Node.Read)
+    val groupOK     = user.checkRights(AuthorizationType.Group.Read)
+    val ruleOK      = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Rule.Read)
     // directive and parameters
-    val directiveOK = user.checkRights(Read("configuration")) || user.checkRights(Read("directive"))
+    val directiveOK = user.checkRights(AuthorizationType.Configuration.Read)|| user.checkRights(AuthorizationType.Directive.Read)
 
     results.filter { _.id match {
       case _: QRNodeId      => nodeOK

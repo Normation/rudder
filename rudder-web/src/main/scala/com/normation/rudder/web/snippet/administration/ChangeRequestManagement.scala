@@ -68,7 +68,7 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
   private[this] val changeRequestEventLogService = RudderConfig.changeRequestEventLogService
   private[this] val workflowLoggerService = RudderConfig.workflowEventLogService
   private[this] val changeRequestTableId = "changeRequestTable"
-  private[this] val currentUser = CurrentUser.checkRights(AuthorizationType.Read("validator")) || CurrentUser.checkRights(AuthorizationType.Read("deployer"))
+  private[this] val currentUser = CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser.checkRights(AuthorizationType.Deployer.Read)
 
   private[this] val initFilter : Box[String] = S.param("filter").map(_.replace("_", " "))
 

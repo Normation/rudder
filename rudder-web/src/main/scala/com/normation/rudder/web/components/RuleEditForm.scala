@@ -162,8 +162,8 @@ class RuleEditForm(
       case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory), Full(globalMode)) =>
 
         val form = {
-          if(CurrentUser.checkRights(AuthorizationType.Read("rule"))) {
-            val formContent = if (CurrentUser.checkRights(AuthorizationType.Read("rule"))) {
+          if(CurrentUser.checkRights(AuthorizationType.Rule.Read)) {
+            val formContent = if (CurrentUser.checkRights(AuthorizationType.Rule.Read)) {
               showCrForm(groupLib, directiveLib, globalMode)
             } else {
               <div>You have no rights to see rules details, please contact your administrator</div>

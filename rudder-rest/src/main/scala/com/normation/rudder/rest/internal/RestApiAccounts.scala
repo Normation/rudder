@@ -9,12 +9,12 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.common._
 import net.liftweb.json.JArray
 import org.joda.time.DateTime
-import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.api._
 import net.liftweb.http.LiftResponse
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.service.user.UserService
+import com.normation.rudder.rest.ApiAccountSerialisation._
 
 class RestApiAccounts (
     readApi        : RoApiAccountRepository
@@ -35,7 +35,7 @@ class RestApiAccounts (
     case Get("secure" :: "apiaccounts" :: Nil, req) =>
       readApi.getAll match {
         case Full(accountSeq) =>
-          val accounts = ("accounts" -> JArray(accountSeq.toList.map(toJson(_))))
+          val accounts = ("accounts" -> JArray(accountSeq.toList.map(_.toJson)))
           toJsonResponse(None,accounts)("getAllAccounts",true)
         case eb : EmptyBox =>
           logger.error(s"Could not get accounts cause : ${(eb ?~ "could not get account").msg}")
@@ -51,10 +51,25 @@ class RestApiAccounts (
             if (restApiAccount.name.isDefined) {
               // generate the id for creation
               val id = ApiAccountId(uuidGen.newUuid)
-              val account = ApiAccount(id, restApiAccount.name.get ,ApiToken(tokenGenerator.newToken(tokenSize)), restApiAccount.description.getOrElse(""), restApiAccount.enabled.getOrElse(true), DateTime.now, DateTime.now)
+              val now = DateTime.now
+              //by default, token expires after one month
+              val expiration = restApiAccount.expiration.getOrElse(Some(now.plusMonths(1)))
+              val acl = restApiAccount.acl.getOrElse(ApiAcl.noAuthz)
+
+              val account = ApiAccount(
+                  id
+                , ApiAccountKind.PublicApi
+                , restApiAccount.name.get ,ApiToken(tokenGenerator.newToken(tokenSize))
+                , restApiAccount.description.getOrElse("")
+                , restApiAccount.enabled.getOrElse(true)
+                , now
+                , now
+                , acl
+                , expiration
+              )
               writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor) match {
                 case Full(_) =>
-                  val accounts = ("accounts" -> JArray(List(toJson(account))))
+                  val accounts = ("accounts" -> JArray(List(account.toJson)))
                   toJsonResponse(None,accounts)("updateAccount",true)
 
                 case eb : EmptyBox =>
@@ -107,7 +122,7 @@ class RestApiAccounts (
         case Full(Some(account)) =>
           writeApi.delete(account.id, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor) match {
             case Full(_) =>
-              val accounts = ("accounts" -> JArray(List(toJson(account))))
+              val accounts = ("accounts" -> JArray(List(account.toJson)))
               toJsonResponse(None,accounts)("deleteAccount",true)
 
             case eb : EmptyBox =>
@@ -131,7 +146,7 @@ class RestApiAccounts (
             , ModificationId(uuidGen.newUuid)
             , userService.getCurrentUser.actor) match {
             case Full(account) =>
-              val accounts = ("accounts" -> JArray(List(toJson(account))))
+              val accounts = ("accounts" -> JArray(List(account.toJson)))
               toJsonResponse(None,accounts)("regenerateAccount",true)
 
             case eb : EmptyBox =>
@@ -152,7 +167,7 @@ class RestApiAccounts (
   def save(account:ApiAccount) : LiftResponse = {
     writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor) match {
       case Full(res) =>
-        val accounts = ("accounts" -> JArray(List(toJson(res))))
+        val accounts = ("accounts" -> JArray(List(res.toJson)))
         toJsonResponse(None,accounts)("updateAccount",true)
 
       case eb : EmptyBox =>
@@ -160,15 +175,6 @@ class RestApiAccounts (
     }
   }
 
-  def toJson(account : ApiAccount) = {
-    ("id" -> account.id.value) ~
-    ("name" -> account.name.value) ~
-    ("token" -> account.token.value) ~
-    ("tokenGenerationDate" -> DateFormaterService.getFormatedDate(account.tokenGenerationDate)) ~
-    ("description" -> account.description) ~
-    ("creationDate" -> DateFormaterService.getFormatedDate(account.creationDate)) ~
-    ("enabled" -> account.isEnabled)
-  }
 
 }
 
@@ -178,6 +184,8 @@ case class RestApiAccount(
   , description : Option[String]
   , enabled     : Option[Boolean]
   , oldId       : Option[ApiAccountId]
+  , expiration  : Option[Option[DateTime]]
+  , acl         : Option[ApiAcl]
 ) {
 
   // Id cannot change if already defined
@@ -185,7 +193,9 @@ case class RestApiAccount(
     val nameUpdate   = name.getOrElse(account.name)
     val enableUpdate = enabled.getOrElse(account.isEnabled)
     val descUpdate   = description.getOrElse(account.description)
+    val expUpdate    = expiration.getOrElse(account.expirationDate)
+    val aclUpdate    = acl.getOrElse(account.authorizations)
 
-    account.copy(name = nameUpdate, isEnabled = enableUpdate, description = descUpdate )
+    account.copy(name = nameUpdate, isEnabled = enableUpdate, description = descUpdate, expirationDate = expUpdate, authorizations = aclUpdate)
   }
 }

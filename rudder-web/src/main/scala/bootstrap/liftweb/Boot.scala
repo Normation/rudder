@@ -55,6 +55,8 @@ import net.liftweb.http.rest.RestHelper
 import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource
 import java.net.URLConnection
+import com.normation.rudder.rest.{InfoApi => InfoApiDef}
+import com.normation.rudder.rest.lift.InfoApi
 
 /*
  * Utilities about rights
@@ -145,6 +147,10 @@ class Boot extends Loggable {
       noRedirectPaths.exists(path.startsWith)
     })
 
+    //// init plugin code (ie: bootstrap their objects / connections / etc ////
+    val plugins = initPlugins()
+
+
     ////////// CACHE INVALIDATION FOR RESOURCES //////////
     // Resolve resources prefixed with the cache resource prefix
     LiftRules.statelessDispatch.append(StaticResourceRewrite)
@@ -152,21 +158,33 @@ class Boot extends Loggable {
     LiftRules.attachResourceId = (path: String) => { "/" + StaticResourceRewrite.prefix + path }
     LiftRules.snippetDispatch.append(Map("with-cached-resource" -> WithCachedResource))
 
-    // REST API
+    // REST API V1
     LiftRules.statelessDispatch.append(RestStatus)
-    LiftRules.statelessDispatch.append(RudderConfig.restAuthentication)
     LiftRules.statelessDispatch.append(RudderConfig.restDeploy)
     LiftRules.statelessDispatch.append(RudderConfig.restDyngroupReload)
     LiftRules.statelessDispatch.append(RudderConfig.restTechniqueReload)
     LiftRules.statelessDispatch.append(RudderConfig.restArchiving)
     LiftRules.statelessDispatch.append(RudderConfig.restGetGitCommitAsZip)
+
+    // REST API Internal
+    LiftRules.statelessDispatch.append(RudderConfig.restAuthentication)
     LiftRules.statelessDispatch.append(RudderConfig.restApiAccounts)
     LiftRules.statelessDispatch.append(RudderConfig.restQuicksearch)
     LiftRules.statelessDispatch.append(RudderConfig.restCompletion)
-    LiftRules.statelessDispatch.append(RudderConfig.apiDispatcher)
-
-    // Intern API
     LiftRules.statelessDispatch.append(RudderConfig.sharedFileApi)
+
+    // REST API (all public/internal API)
+    // we need to add "info" API here to have all used API (even plugins)
+    val infoApi = {
+      //all used api - add info as it is not yet declared
+      val schemas = RudderConfig.rudderApi.apis().map(_.schema) ++ InfoApiDef.endpoints
+      val endpoints = schemas.flatMap(RudderConfig.apiDispatcher.withVersion(_, RudderConfig.ApiVersions))
+      new InfoApi(RudderConfig.restExtractorService, RudderConfig.ApiVersions, endpoints)
+    }
+    RudderConfig.rudderApi.addModules(infoApi.getLiftEndpoints)
+    LiftRules.statelessDispatch.append(RudderConfig.rudderApi.getLiftRestApi())
+
+
 
     // URL rewrites
     LiftRules.statefulRewrite.append {
@@ -232,7 +250,7 @@ class Boot extends Loggable {
     val nodeManagerMenu =
       Menu("NodeManagerHome", <i class="fa fa-sitemap"></i> ++ <span>Node management</span>) /
         "secure" / "nodeManager" / "index"  >> TestAccess( ()
-            => userIsAllowed("/secure/index",AuthorizationType.Read("node")) ) submenus (
+            => userIsAllowed("/secure/index",AuthorizationType.Node.Read) ) submenus (
 
           Menu("List Nodes", <span>List nodes</span>) /
             "secure" / "nodeManager" / "nodes"
@@ -249,59 +267,59 @@ class Boot extends Loggable {
         , Menu("Groups", <span>Groups</span>) /
             "secure" / "nodeManager" / "groups"
             >> LocGroup("groupGroup")
-            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Read("group") ) )
+            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Group.Read ) )
 
       )
 
     def buildManagerMenu(name:String) =
       Menu(name+"ManagerHome", <i class="fa fa-gears"></i> ++ <span>{name.capitalize} policy</span>) /
         "secure" / (name+"Manager") / "index" >> TestAccess ( ()
-            => userIsAllowed("/secure/index",AuthorizationType.Read("configuration")) ) submenus (
+            => userIsAllowed("/secure/index",AuthorizationType.Configuration.Read) ) submenus (
 
           Menu(name+"RuleManagement", <span>Rules</span>) /
             "secure" / (name+"Manager") / "ruleManagement"
             >> LocGroup(name+"Group")
-            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Read("rule") ) )
+            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Rule.Read ) )
 
         , Menu(name+"DirectiveManagement", <span>Directives</span>) /
             "secure" / (name+"Manager") / "directiveManagement"
             >> LocGroup(name+"Group")
-            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Read("directive") ) )
+            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Directive.Read ) )
 
         , Menu(name+"ParameterManagement", <span>Parameters</span>) /
             "secure" / (name+"Manager") / "parameterManagement"
             >> LocGroup(name+"Group")
-            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Read("directive") ) )
+            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Directive.Read ) )
       )
 
     def administrationMenu =
       Menu("AdministrationHome", <i class="fa fa-gear"></i> ++ <span>Settings</span>) /
         "secure" / "administration" / "index" >> TestAccess ( ()
-            => userIsAllowed("/secure/index",AuthorizationType.Read("administration"), AuthorizationType.Read("technique")) ) submenus (
+            => userIsAllowed("/secure/index",AuthorizationType.Administration.Read, AuthorizationType.Technique.Read) ) submenus (
 
           Menu("policyServerManagement", <span>General</span>) /
             "secure" / "administration" / "policyServerManagement"
             >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Read("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read) )
 
         , Menu("pluginManagement", <span>Plugins</span>) /
             "secure" / "administration" / "pluginManagement"
             >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Read("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Administration.Read) )
 
         , Menu("databaseManagement", <span>Reports database</span>) /
             "secure" / "administration" / "databaseManagement"
             >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Read("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Administration.Read) )
 
         , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
             "secure" / "administration" / "techniqueLibraryManagement"
             >> LocGroup("administrationGroup")
-            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Read("technique") ) )
+            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Technique.Read ) )
         , Menu("apiManagement", <span>API accounts</span>) /
             "secure" / "administration" / "apiManagement"
             >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Write("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Administration.Write) )
       )
 
     def utilitiesMenu = {
@@ -311,7 +329,7 @@ class Boot extends Loggable {
       Menu("UtilitiesHome", <i class="fa fa-wrench"></i> ++ <span>Utilities</span>) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>
-          if ((workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Read("validator")) || CurrentUser.checkRights(AuthorizationType.Read("deployer")))) || CurrentUser.checkRights(AuthorizationType.Read("administration")) || CurrentUser.checkRights(AuthorizationType.Read("technique")))
+          if ((workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser.checkRights(AuthorizationType.Deployer.Read))) || CurrentUser.checkRights(AuthorizationType.Administration.Read) || CurrentUser.checkRights(AuthorizationType.Technique.Read))
             Empty
           else
              Full(RedirectWithState("/secure/index", redirection))
@@ -320,13 +338,13 @@ class Boot extends Loggable {
           Menu("archivesManagement", <span>Archives</span>) /
             "secure" / "utilities" / "archiveManagement"
             >> LocGroup("utilitiesGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/utilities/eventLogs",AuthorizationType.Write("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/utilities/eventLogs",AuthorizationType.Administration.Write) )
 
         , Menu("changeRequests", <span>Change requests</span>) /
             "secure" / "utilities" / "changeRequests"
             >> LocGroup("utilitiesGroup")
             >> TestAccess ( () =>
-              if (workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Read("validator")) || CurrentUser.checkRights(AuthorizationType.Read("deployer"))))
+              if (workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser.checkRights(AuthorizationType.Deployer.Read)))
                 Empty
               else
                 Full(RedirectWithState("/secure/utilities/eventLogs", redirection ) )
@@ -336,7 +354,7 @@ class Boot extends Loggable {
             "secure" / "utilities" / "changeRequest"
             >> Hidden
             >> TestAccess ( () =>
-              if (workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Read("validator")) || CurrentUser.checkRights(AuthorizationType.Read("deployer"))))
+              if (workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser.checkRights(AuthorizationType.Deployer.Read)))
                 Empty
               else
                 Full(RedirectWithState("/secure/utilities/eventLogs", redirection) )
@@ -345,12 +363,12 @@ class Boot extends Loggable {
         , Menu("eventLogViewer", <span>Event logs</span>) /
             "secure" / "utilities" / "eventLogs"
             >> LocGroup("utilitiesGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Read("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read) )
 
         , Menu("techniqueEditor", <span>Technique editor</span>) /
             "secure" / "utilities" / "techniqueEditor"
             >> LocGroup("utilitiesGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Read("technique")) )
+            >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Technique.Read) )
       )
     }
 
@@ -365,7 +383,7 @@ class Boot extends Loggable {
     ).map( _.toMenu )
 
     ////////// import and init modules //////////
-    val newSiteMap = initPlugins(rootMenu.map( _.toMenu ))
+    val newSiteMap = addPluginsMenuTo(plugins, rootMenu.map( _.toMenu ))
 
     //not sur why we are using that ?
     //SiteMap.enforceUniqueLinks = false
@@ -394,26 +412,23 @@ class Boot extends Loggable {
 
   }
 
-  private[this] def initPlugins(menus:List[Menu]) : List[Menu] = {
-
-    //LiftSpringApplicationContext.springContext.refresh
-    import scala.collection.JavaConverters._
-    val pluginDefs = LiftSpringApplicationContext.springContext.getBeansOfType(classOf[RudderPluginDef]).values.asScala
-
-    pluginDefs.foreach { plugin =>
-      initPlugin(plugin)
-    }
-
+  private[this] def addPluginsMenuTo(plugins: List[RudderPluginDef], menus:List[Menu]) : List[Menu] = {
     //return the updated siteMap
-    (menus /: pluginDefs){ case (prev, mutator) => mutator.updateSiteMap(prev) }
+    (menus /: plugins){ case (prev, mutator) => mutator.updateSiteMap(prev) }
   }
 
-  private[this] def initPlugin[T <: RudderPluginDef](plugin:T) : Unit = {
+  private[this] def initPlugins(): List[RudderPluginDef] = {
+    //LiftSpringApplicationContext.springContext.refresh
+    import scala.collection.JavaConverters._
+    val pluginDefs = LiftSpringApplicationContext.springContext.getBeansOfType(classOf[RudderPluginDef]).values.asScala.toList
 
-    ApplicationLogger.debug("TODO: manage one time initialization for plugin: " + plugin.id)
-    ApplicationLogger.info("Initializing plugin '%s' [%s]".format(plugin.name.value, plugin.id))
-    plugin.init
-    //add the plugin packages to Lift package to look for packages
-    LiftRules.addToPackages(plugin.basePackage)
+    pluginDefs.foreach { plugin =>
+      ApplicationLogger.info("Initializing plugin '%s' [%s]".format(plugin.name.value, plugin.id))
+      plugin.init
+      //add the plugin packages to Lift package to look for packages
+      LiftRules.addToPackages(plugin.basePackage)
+    }
+
+    pluginDefs
   }
 }

@@ -539,7 +539,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Javascript to initialize the user library tree
    */
   private[this] def buildUserLibraryJsTree : JsExp = JsRaw(
-    """buildActiveTechniqueTree('#%s', '%s', %s ,'%s')""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree, CurrentUser.checkRights(AuthorizationType.Write("technique")), S.contextPath)
+    """buildActiveTechniqueTree('#%s', '%s', %s ,'%s')""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree, CurrentUser.checkRights(AuthorizationType.Technique.Write), S.contextPath)
   )
 
   //ajax function that update the bottom of the page when a Technique is clicked

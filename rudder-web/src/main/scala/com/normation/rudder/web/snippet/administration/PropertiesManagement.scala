@@ -59,6 +59,7 @@ import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
+import com.normation.rudder.AuthorizationType
 
 /**
  * This class manage the displaying of user configured properties.
@@ -79,9 +80,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def disableInputs = {
-    import com.normation.rudder.AuthorizationType.Edit
     //If user does not have the Edit("administration") right, all inputs are disabled
-    val disable = !CurrentUser.checkRights(Edit("administration"))
+    val disable = !CurrentUser.checkRights(AuthorizationType.Administration.Edit)
     S.appendJs(JsRaw(s"""$$("input, select").attr("disabled",${disable})"""))
     NodeSeq.Empty
   }

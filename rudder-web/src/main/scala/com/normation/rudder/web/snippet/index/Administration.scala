@@ -50,10 +50,10 @@ import com.normation.rudder.AuthorizationType
 class Administration {
 
   def index(xhtml:NodeSeq) : NodeSeq = {
-    if ( CurrentUser.checkRights(AuthorizationType.Read("administration")) ) {
+    if ( CurrentUser.checkRights(AuthorizationType.Administration.Read) ) {
       S.redirectTo("policyServerManagement")
     } else {
-      if ( CurrentUser.checkRights(AuthorizationType.Read("technique")) ) {
+      if ( CurrentUser.checkRights(AuthorizationType.Technique.Read) ) {
         S.redirectTo("techniqueLibraryManagement")
       } else {
         S.redirectTo("/secure/index")

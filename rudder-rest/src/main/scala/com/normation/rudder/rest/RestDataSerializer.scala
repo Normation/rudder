@@ -50,14 +50,15 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.parameters._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.rest.node.NodeDetailLevel
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.rest.node.CustomDetailLevel
-import com.normation.rudder.rest.node.MinimalDetailLevel
 import com.normation.rudder.repository.FullActiveTechnique
 import scala.language.implicitConversions
+import com.normation.rudder.api.ApiAccount
+import net.liftweb.json.JsonDSL._
+import com.normation.rudder.web.components.DateFormaterService
+import com.normation.rudder.rest.data._
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest
@@ -94,7 +95,6 @@ case class RestDataSerializerImpl (
   , diffService   : DiffService
 ) extends RestDataSerializer with Loggable {
 
-  import net.liftweb.json.JsonDSL._
 
   private[this] def serializeMachineType(machine: Option[MachineType]): JValue = {
     machine match {
@@ -554,3 +554,22 @@ case class RestDataSerializerImpl (
   }
 
 }
+
+
+object ApiAccountSerialisation {
+
+  implicit class Json(account: ApiAccount) {
+
+    def toJson(): JObject = {
+      ("id" -> account.id.value) ~
+      ("name" -> account.name.value) ~
+      ("token" -> account.token.value) ~
+      ("tokenGenerationDate" -> DateFormaterService.getFormatedDate(account.tokenGenerationDate)) ~
+      ("description" -> account.description) ~
+      ("creationDate" -> DateFormaterService.getFormatedDate(account.creationDate)) ~
+      ("enabled" -> account.isEnabled)
+    }
+
+  }
+}
+

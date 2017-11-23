@@ -474,14 +474,21 @@ class ChangeRequestChangesSerialisationImpl(
 class APIAccountSerialisationImpl(xmlVersion:String) extends APIAccountSerialisation {
 
   def serialise(account:ApiAccount):  Elem = {
-    createTrimedElem(XML_TAG_API_ACCOUNT, xmlVersion) (
+    val exp = account.expirationDate.map(d => <expirationDate>{d.toString(ISODateTimeFormat.dateTime)}</expirationDate> ).getOrElse(NodeSeq.Empty)
+    val acl = <acl>{account.authorizations.acl.map { authz =>
+      <authz path={authz.path.value} action={authz.actions.map(_.name).mkString(",")} />
+    } }</acl>
+
+    createTrimedElem(XML_TAG_API_ACCOUNT, xmlVersion)( (
        <id>{account.id.value}</id>
        <name>{account.name.value}</name>
        <token>{account.token.value}</token>
        <description>{account.description}</description>
        <isEnabled>{account.isEnabled}</isEnabled>
        <creationDate>{account.creationDate.toString(ISODateTimeFormat.dateTime)}</creationDate>
+       <kind>{account.kind.name}</kind>
        <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
+     ) ++ exp ++ acl
     )
   }
 }

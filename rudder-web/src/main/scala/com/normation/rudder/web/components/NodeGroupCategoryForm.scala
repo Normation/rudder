@@ -133,11 +133,11 @@ class NodeGroupCategoryForm(
           & "directive-delete"        #> deleteButton
         ) else (
             "directive-save" #> (
-                if (CurrentUser.checkRights(AuthorizationType.Edit("group"))) SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default"))
+                if (CurrentUser.checkRights(AuthorizationType.Group.Edit)) SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default"))
                 else NodeSeq.Empty
             )
           & "directive-delete" #> (
-              if (CurrentUser.checkRights(AuthorizationType.Write("group"))) deleteButton
+              if (CurrentUser.checkRights(AuthorizationType.Group.Write)) deleteButton
                 else NodeSeq.Empty
             )
         ))

@@ -50,10 +50,10 @@ import bootstrap.liftweb.RudderConfig
 class Utilities {
 
   def index(xhtml:NodeSeq) : NodeSeq = {
-    if ( CurrentUser.checkRights(AuthorizationType.Read("administration")) ) {
+    if ( CurrentUser.checkRights(AuthorizationType.Administration.Read) ) {
       S.redirectTo("eventLogs")
     } else {
-      if ( CurrentUser.checkRights(AuthorizationType.Read("technique")) ) {
+      if ( CurrentUser.checkRights(AuthorizationType.Technique.Read) ) {
         S.redirectTo("techniqueEditor")
       } else {
         //if we are not able to read workflow, redirect to index
