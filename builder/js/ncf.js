@@ -1009,6 +1009,13 @@ $scope.groupMethodsByCategory = function () {
     // Update selected technique if it's still the same technique
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
+      var usedMethods = new Set();
+      ncfTechnique.method_calls.forEach(
+        function(m) { 
+          usedMethods.add($scope.generic_methods[m.method_name]);
+        }
+      )
+      $http.post("/rudder/secure/api/latest/ncf",{"technique": ncfTechnique,"methods":Object.values($scope.generic_methods)});
       // Transform back ncfTechnique to UITechnique, that will make it ok
       var savedTechnique = toTechUI(ncfTechnique);
 
