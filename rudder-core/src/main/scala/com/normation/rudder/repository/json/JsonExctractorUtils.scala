@@ -40,8 +40,7 @@ package com.normation.rudder.repository.json
 import net.liftweb.json._
 import net.liftweb.common._
 import com.normation.utils.Control._
-import scalaz.Monad
-import scalaz.std.option._
+import cats._, cats.data._, cats.effect._, cats.implicits._
 import com.normation.rudder.domain.policies.JsonTagExtractor
 import scala.language.higherKinds
 
@@ -55,7 +54,7 @@ trait JsonExctractorUtils[A[_]] {
   protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) : Box[A[T]] = {
     json \ key match {
       case value if validJson.isDefinedAt(value) =>
-        convertTo(validJson(value)).map(monad.point(_))
+        convertTo(validJson(value)).map(monad.pure(_))
       case JNothing => emptyValue ?~! s"parameter ${key} cannot be empty"
       case invalidJson => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
     }
@@ -104,7 +103,6 @@ trait JsonExctractorUtils[A[_]] {
         for {
           converted <- sequence(values) { convertTo(_) }
         } yield {
-          import scalaz.Scalaz.listInstance
           monad.sequence(converted.toList)
         }
       case JNothing   => emptyValue

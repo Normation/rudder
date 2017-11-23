@@ -46,8 +46,9 @@ import net.liftweb.common._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
 
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeConfigId
 import org.joda.time.DateTime
@@ -107,7 +108,7 @@ case class RoReportsExecutionRepositoryImpl (
 
         //the whole query
 
-        (for {
+        val query: ConnectionIO[Map[NodeId, Option[AgentRunWithNodeConfig]]] = for {
           // Here to make the query faster, we distinct only on the reportexecution to get the last run
           // but we need to get the matching last entry on nodeconfigurations.
           // I didn't find any better solution than doing a distinct on the table
@@ -136,7 +137,9 @@ case class RoReportsExecutionRepositoryImpl (
             (run.agentRunId.nodeId, AgentRunWithNodeConfig(run.agentRunId, config, run.isCompleted, run.insertionId))
           }).toMap
           nodeIds.map(id => (id, runsMap.get(id))).toMap
-        }).attempt.transact(xa).unsafePerformSync
+        }
+
+        query.attempt.transact(xa).unsafeRunSync
     }
   }
 }
@@ -178,9 +181,9 @@ case class WoReportsExecutionRepositoryImpl (
      )
 
       /*
-       * We return an \/[Option[AgentRun]], if None => no upsert done (no modification)
+       * We return an Either[Option[AgentRun]], if None => no upsert done (no modification)
        */
-      val action = for {
+      val action: ConnectionIO[Option[DB.AgentRun]] = for {
         select <- sql"""select nodeid, date, nodeconfigid, complete, insertionid
                         from reportsexecution
                         where nodeid=${dbar.nodeId} and date=${dbar.date}
@@ -189,16 +192,16 @@ case class WoReportsExecutionRepositoryImpl (
                       case None =>
                           (sql"""insert into reportsexecution (nodeid, date, nodeconfigid, complete, insertionid)
                                  values (${dbar.nodeId}, ${dbar.date}, ${dbar.nodeConfigId}, ${dbar.isCompleted}, ${dbar.insertionId})"""
-                                 .update.run.map(_ => some(dbar)) )
+                                 .update.run.map(_ => dbar.some ) )
                       case Some(existing) => // if it's exactly the same element, don't update it
                        val reverted = existing.isCompleted && !dbar.isCompleted
                        if( reverted || existing == dbar ) { // does nothing if equals or isCompleted reverted to false
-                         none[DB.AgentRun].point[ConnectionIO]
+                         none[DB.AgentRun].pure[ConnectionIO]
                        } else {
                          val version = dbar.nodeConfigId.orElse(existing.nodeConfigId)
                          val completed = dbar.isCompleted || existing.isCompleted
                          sql"""update reportsexecution set nodeconfigid=${version}, complete=${completed}, insertionid=${dbar.insertionId}
-                               where nodeid=${dbar.nodeId} and date=${dbar.date}""".update.run.map(_ => some(dbar))
+                               where nodeid=${dbar.nodeId} and date=${dbar.date}""".update.run.map(_ => dbar.some)
                         }
                     }
       } yield {
@@ -209,12 +212,12 @@ case class WoReportsExecutionRepositoryImpl (
     }
 
 
-    runs.toList.map(updateOne).sequence.run.flatMap(x => x match {
-      case -\/(ex)        =>
+    runs.toList.map(updateOne).sequence.unsafeRunSync.flatMap(x => x match {
+      case Left(ex)        =>
         Some(Failure(s"Error when updating last agent runs information: ${ex.getMessage()}"))
-      case \/-(Some(res)) =>
+      case Right(Some(res)) =>
         Some(Full(res.toAgentRun))
-      case \/-(None)      =>
+      case Right(None)      =>
         None
     })
   }

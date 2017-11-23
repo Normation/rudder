@@ -46,8 +46,8 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository.HistorizationRepository
 
-import doobie.imports._
-import scalaz._, Scalaz._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.domain.policies.ActiveTechnique
@@ -60,7 +60,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
   import db._
 
   def getAllOpenedNodes(): Seq[DB.SerializedNodes[Long]] = {
-    sql"select id, nodeid, nodename, nodedescription, starttime, endtime from nodes where endtime is null".query[DB.SerializedNodes[Long]].vector.transact(xa).unsafePerformSync
+    sql"select id, nodeid, nodename, nodedescription, starttime, endtime from nodes where endtime is null".query[DB.SerializedNodes[Long]].vector.transact(xa).unsafeRunSync
   }
 
 
@@ -87,7 +87,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                       ).updateMany(nodes.map(DB.Historize.fromNode).toList)
         } yield {
           ()
-        }).transact(xa).unsafePerformSync
+        }).transact(xa).unsafeRunSync
     }
   }
 
@@ -108,13 +108,13 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                              inner join tempgroupid on tempgroupid.id = groupsnodesjoin.grouppkeyid
                           """
                       ).query[DB.SerializedGroupsNodes].vector
-                    }(Monoid.liftMonoid)
+                    }(Applicative.monoid)
     } yield {
       val byIds = joinGroups.groupBy(_.groupPkeyId)
       groups.map(x => (x, byIds.getOrElse(x.id, Nil)))
     }
 
-    action.transact(xa).unsafePerformSync
+    action.transact(xa).unsafeRunSync
   }
 
 
@@ -129,7 +129,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                       ).updateMany(groups.map(DB.Historize.fromNodeGroup).toList)
         } yield {
           ()
-        }).transact(xa).unsafePerformSync
+        }).transact(xa).unsafeRunSync
       }
   }
 
@@ -137,7 +137,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     sql"""select id, directiveid, directivename, directivedescription, priority, techniquename,
                   techniquehumanname, techniquedescription, techniqueversion, starttime, endtime
           from directives
-          where endtime is null""".query[DB.SerializedDirectives[Long]].vector.transact(xa).unsafePerformSync
+          where endtime is null""".query[DB.SerializedDirectives[Long]].vector.transact(xa).unsafeRunSync
   }
 
   def updateDirectives(
@@ -155,7 +155,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                       """).updateMany(directives.map(DB.Historize.fromDirective).toList)
         } yield {
           ()
-        }).transact(xa).unsafePerformSync
+        }).transact(xa).unsafeRunSync
     }
   }
 
@@ -168,18 +168,18 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       rules      <- sql"""select rulepkeyid, ruleid, categoryid, name, shortdescription,
                                  longdescription, isenabled, starttime, endtime
                           from rules
-                          where endtime is null""".query[DB.SerializedRules[Long]].vector
-      ruleIds    =  rules.map( _.id).toNel
+                          where endtime is null""".query[DB.SerializedRules[Long]].list
+      ruleIds    =  NonEmptyList.fromList(rules.map( _.id))
       groups     <- ruleIds.foldMap { joinIds =>
                         (fr"""select rulepkeyid, targetserialisation
                               from rulesgroupjoin
                               where """ ++ joinIdsFrag(joinIds)).query[DB.SerializedRuleGroups].vector
-                    }(Monoid.liftMonoid)
+                    }(Applicative.monoid)
       directives <- ruleIds.foldMap { joinIds =>
                         (fr"""select rulepkeyid, directiveid
                               from rulesdirectivesjoin
                               where """ ++ joinIdsFrag(joinIds)).query[DB.SerializedRuleDirectives].vector
-                    }(Monoid.liftMonoid)
+                    }(Applicative.monoid)
     } yield {
         val dMap = directives.groupBy(_.rulePkeyId)
         val gMap = groups.groupBy(_.rulePkeyId)
@@ -188,7 +188,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
           , gMap.getOrElse(rule.id, Seq())
           , dMap.getOrElse(rule.id, Seq())
         ) )
-    }).transact(xa).unsafePerformSync
+    }).transact(xa).unsafeRunSync
   }
 
 
@@ -206,11 +206,11 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
         _  <- Update[DB.SerializedRuleDirectives]("""
                  insert into rulesdirectivesjoin (rulepkeyid, directiveid)
                  values (?, ?)
-               """).updateMany(r.directiveIds.map(d => DB.SerializedRuleDirectives(pk, d.value)))
+               """).updateMany(r.directiveIds.toList.map(d => DB.SerializedRuleDirectives(pk, d.value)))
         _  <- Update[DB.SerializedRuleGroups]("""
                  insert into rulesgroupjoin (rulepkeyid, targetserialisation)
                  values (?, ?)
-               """).updateMany(r.targets.map(t => DB.SerializedRuleGroups(pk, t.target)))
+               """).updateMany(r.targets.toList.map(t => DB.SerializedRuleGroups(pk, t.target)))
       } yield {
         pk
       })
@@ -226,12 +226,12 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
           inserted <- rules.map(r => insertRule(now)(r).transact(xa)).toList.sequence
         } yield {
           ()
-        }).unsafePerformSync
+        }).unsafeRunSync
     }
   }
 
   def getOpenedGlobalSchedule() : Option[DB.SerializedGlobalSchedule[Long]] = {
-    sql"select id, interval, splaytime, start_hour, start_minute, starttime, endtime from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa).unsafePerformSync
+    sql"select id, interval, splaytime, start_hour, start_minute, starttime, endtime from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa).unsafeRunSync
   }
 
   def updateGlobalSchedule(interval: Int, splaytime: Int, start_hour: Int, start_minute: Int  ) : Unit = {
@@ -241,7 +241,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                           values($interval, $splaytime, $start_hour, $start_minute, ${DateTime.now})""".update.run
       } yield {
         ()
-      }).transact(xa).unsafePerformSync
+      }).transact(xa).unsafeRunSync
   }
 
 }

@@ -49,9 +49,9 @@ import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAfterAll
 
-import doobie.imports. _
 import net.liftweb.common.Loggable
-import scalaz._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
 import com.normation.rudder.migration.MigrationTestLog
 import org.joda.time.DateTime
 
@@ -111,12 +111,12 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     if(sqlInit.trim.size > 0) {
       // Postgres'JDBC driver just accept multiple statement
       // in one query. No need to try to split ";" etc.
-      Update0(sqlInit, None).run.transact(doobie.xa).unsafePerformSync
+      Update0(sqlInit, None).run.transact(doobie.xa).unsafeRunSync
     }
   }
 
   def cleanDb() = {
-    if(sqlClean.trim.size > 0) Update0(sqlClean, None).run.transact(doobie.xa).unsafePerformSync
+    if(sqlClean.trim.size > 0) Update0(sqlClean, None).run.transact(doobie.xa).unsafeRunSync
 
     dataSource.close
   }
@@ -162,6 +162,6 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   sql"""
       insert into EventLog (creationDate, principal, eventType, severity, data, causeid)
       values (${log.timestamp}, ${log.principal}, ${log.eventType}, ${log.severity}, ${log.data}, ${log.cause})
-    """.update.withUniqueGeneratedKeys[Int]("id").transact(doobie.xa).unsafePerformSync
+    """.update.withUniqueGeneratedKeys[Int]("id").transact(doobie.xa).unsafeRunSync
 }
 }

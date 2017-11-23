@@ -42,8 +42,6 @@ import com.normation.rudder.db.DBCommon
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import scalaz.{Failure => _}
-
 
 /**
  * Test on database.
@@ -59,7 +57,7 @@ class ExpectedReportsTest extends DBCommon {
 //  //clean data base
 //  def cleanTables() = {
 //    val qs = sql"delete from expectedReports" :: sql"delete from expectedReportsNodes" :: Nil
-//    qs.traverse( _.update.run ).transact(xa).unsafePerformSync
+//    qs.traverse( _.update.run ).transact(xa).unsafeRunSync
 //  }
 //
 //  val pgIn = new PostgresqlInClause(2)
@@ -130,21 +128,21 @@ class ExpectedReportsTest extends DBCommon {
 //            }
 //          })
 //        }.values.groupBy(_._1).mapValues(_.map{case(_, NodeConfigVersions(id,v)) => (id,v)}.toMap)
-//      }).attempt.transact(xa).unsafePerformSync
+//      }).attempt.transact(xa).unsafeRunSync
 //    }
 
 //    step {
-//      DB.insertExpectedReportsNode(expectedReportsNodes).transact(xa).unsafePerformSync
+//      DB.insertExpectedReportsNode(expectedReportsNodes).transact(xa).unsafeRunSync
 //    }
 //
 //    "get back what was inserted" in {
-//      DB.getExpectedReportsNode().transact(xa).unsafePerformSync must contain(exactly(expectedReportsNodes:_*))
+//      DB.getExpectedReportsNode().transact(xa).unsafeRunSync must contain(exactly(expectedReportsNodes:_*))
 //    }
 
 //    "get in the same way" in {
 //      val i = 1
 //      //here, we get the Postgres string representation of ARRAYs
-//      val res = sql"""select nodeid, nodeconfigids from expectedreportsnodes where nodeJoinKey = ${i}""".query[(String, String)].vector.transact(xa).unsafePerformSync
+//      val res = sql"""select nodeid, nodeconfigids from expectedreportsnodes where nodeJoinKey = ${i}""".query[(String, String)].vector.transact(xa).unsafeRunSync
 //
 //      //the most recent must be in head of the array
 //      res must contain(exactly( ("n0", "{}"), ("n1", "{ghi,def,abc}")  ))
@@ -179,7 +177,7 @@ class ExpectedReportsTest extends DBCommon {
 //      //reset nodeJoinKey sequence to 100
 //      val qs = sql"alter sequence ruleversionid restart with 100" ::
 //               sql"alter sequence ruleserialid restart with 100" :: Nil
-//      qs.traverse( _.update.run ).transact(xa).unsafePerformSync
+//      qs.traverse( _.update.run ).transact(xa).unsafeRunSync
 //
 //    }
 //    val r1 = RuleId("r1")
@@ -199,8 +197,8 @@ class ExpectedReportsTest extends DBCommon {
 //      val genTime = DateTime.now
 //      val inserted = saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds, NodeConfigData.directives)
 
-//      val reports = DB.getExpectedReports().transact(xa).unsafePerformSync
-//      val nodes   = DB.getExpectedReportsNode().transact(xa).unsafePerformSync
+//      val reports = DB.getExpectedReports().transact(xa).unsafeRunSync
+//      val nodes   = DB.getExpectedReportsNode().transact(xa).unsafeRunSync
 //      val directiveOnNodes = List(DirectivesOnNodes(100, nodeConfigIds, directiveExpectedReports))
 
 //      compareER(inserted.openOrThrowException("Test failed"), OldRuleExpectedReports(r1, serial, directiveOnNodes, genTime, None)) and
@@ -216,8 +214,8 @@ class ExpectedReportsTest extends DBCommon {
 
 //      val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds, NodeConfigData.directives)
 
-//      val reports = DB.getExpectedReports().transact(xa).unsafePerformSync
-//      val nodes   = DB.getExpectedReportsNode().transact(xa).unsafePerformSync
+//      val reports = DB.getExpectedReports().transact(xa).unsafeRunSync
+//      val nodes   = DB.getExpectedReportsNode().transact(xa).unsafeRunSync
 //
 //      inserted.isInstanceOf[Failure] and
 //      reports.size === 1 and compareSlickER(reports(0), expected) and
@@ -238,7 +236,7 @@ class ExpectedReportsTest extends DBCommon {
 //      //reset nodeJoinKey sequence to 100
 //      val qs = sql"alter sequence ruleversionid restart with 100" ::
 //               sql"alter sequence ruleserialid restart with 100" :: Nil
-//      qs.traverse( _.update.run ).transact(xa).unsafePerformSync
+//      qs.traverse( _.update.run ).transact(xa).unsafeRunSync
 //
 //    }
 //
@@ -320,8 +318,8 @@ class ExpectedReportsTest extends DBCommon {
 //        , Map(n1.nodeId -> None, n2.nodeId -> None)
 //      )
 //
-//      val reports = DB.getExpectedReports().transact(xa).unsafePerformSync
-//      val nodes   = DB.getExpectedReportsNode().transact(xa).unsafePerformSync
+//      val reports = DB.getExpectedReports().transact(xa).unsafeRunSync
+//      val nodes   = DB.getExpectedReportsNode().transact(xa).unsafeRunSync
 //
 //      compareER(inserted.openOrThrowException("Test failed")(0), expectedRule) and
 //      reports.size === 2 and compareSlickER(reports(0), expected) and

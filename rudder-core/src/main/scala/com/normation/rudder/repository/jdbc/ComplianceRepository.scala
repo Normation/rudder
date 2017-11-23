@@ -43,8 +43,8 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
-import scalaz.{Failure => _, _}, Scalaz._
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
 import com.normation.rudder.services.reports._
 import com.normation.inventory.domain.NodeId
 import org.joda.time.DateTime
@@ -124,6 +124,6 @@ class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
     } yield {
       val saved = runCompliances.map(_.nodeId)
       reports.filter(r => saved.contains(r.nodeId))
-    }).attempt.transact(xa).unsafePerformSync  }
+    }).attempt.transact(xa).unsafeRunSync  }
 
 }

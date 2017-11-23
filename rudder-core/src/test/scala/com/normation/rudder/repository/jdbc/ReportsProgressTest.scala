@@ -46,8 +46,9 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import scalaz.{Failure => _}
-import doobie.imports._
+import doobie._, doobie.implicits._
+import cats._, cats.data._, cats.effect._, cats.implicits._
+
 
 /**
  *
@@ -59,7 +60,7 @@ class ReportsProgressTest extends DBCommon with BoxSpecMatcher {
 
   //clean data base
   def cleanTables() = {
-    sql"DELETE FROM ReportsExecution;".update.run.transact(doobie.xa).unsafePerformSync
+    sql"DELETE FROM ReportsExecution;".update.run.transact(doobie.xa).unsafeRunSync
   }
 
 
