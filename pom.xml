@@ -157,6 +157,8 @@ limitations under the License.
           <args>
             <!-- require java8, cf http://www.rudder-project.org/redmine/issues/9917 -->
             <arg>-target:jvm-1.8</arg>
+            <!-- needed for cats resolution of implicits -->
+            <arg>-Ypartial-unification</arg>
             <arg>-dependencyfile</arg>
             <arg>${basedir}/.scala_dependencies</arg>
           </args>
@@ -246,7 +248,7 @@ limitations under the License.
               <!-- let built-by be empty - we can't remove it -->
               <Built-By>${project.organization.name}</Built-By>
               <Build-Time>${maven.build.timestamp}</Build-Time>
-              <version>${version}</version>
+              <version>${project.version}</version>
             </manifestEntries>
           </archive>      
         </configuration>
@@ -263,7 +265,7 @@ limitations under the License.
               <Built-By>${project.organization.name}</Built-By>
               <!-- And yes, manifest file must start with upper case... -->
               <Build-Time>${maven.build.timestamp}</Build-Time>
-              <Version>${version}</Version>
+              <Version>${project.version}</Version>
             </manifestEntries>
           </archive>      
         </configuration>
@@ -327,7 +329,7 @@ limitations under the License.
     <!-- Libraries version that MUST be used in all children project -->
 
     <current-year>2017</current-year>
-    <rudder-major-version>4.2</rudder-major-version>
+    <rudder-major-version>4.3</rudder-major-version>
     <rudder-version>4.3.0~alpha1-SNAPSHOT</rudder-version>
     <spring-run-dep-version>4.3.0~alpha1-SNAPSHOT</spring-run-dep-version>
 
@@ -351,14 +353,14 @@ limitations under the License.
     <monix-version>2.2.4</monix-version>
     <!-- 
       These one must be updated to work together 
-      We declare scalaz in "test" here, because it adds ~12Mo of dep. 
-      and for now, it's not used at all in inventory-ldap app. 
+      We declare cats in "test" here, because it is not directly needed 
+      in any project before rudder. 
     -->
-    <specs2-version>3.8.6</specs2-version>
-    <scalaz-version>7.2.8</scalaz-version>
-    <scalaz-stream-version>0.8.6a</scalaz-stream-version>
-    <doobie-version>0.4.0</doobie-version>
-    <http4s-version>0.15.3a</http4s-version>
+    <cats-version>1.0.0-RC1</cats-version>    
+    <specs2-version>4.0.1</specs2-version>
+    <doobie-version>0.5.0-M9</doobie-version>
+    <fs2-version>0.10.0-M8</fs2-version>
+    <http4s-version>0.18.0-M5</http4s-version>
 
     <!-- 
       Hack to make scalac jvm parameters like RAM configurable.
@@ -391,34 +393,113 @@ limitations under the License.
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>org.ow2.asm</groupId>
-        <artifactId>asm</artifactId>
-        <version>${asm-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.scalaz</groupId>
-        <artifactId>scalaz-core_${scala-binary-version}</artifactId>
-        <version>${scalaz-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.scalaz</groupId>
-        <artifactId>scalaz-effect_${scala-binary-version}</artifactId>
-        <version>${scalaz-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.scalaz</groupId>
-        <artifactId>scalaz-concurrent_${scala-binary-version}</artifactId>
-        <version>${scalaz-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.scalaz.stream</groupId>
-        <artifactId>scalaz-stream_${scala-binary-version}</artifactId>
-        <version>${scalaz-stream-version}</version>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-library</artifactId>
+        <version>${scala-version}</version>
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>
         <artifactId>scala-reflect</artifactId>
         <version>${scala-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.typelevel</groupId>
+        <artifactId>cats-core_${scala-binary-version}</artifactId>
+        <version>${cats-version}</version>
+      </dependency>            
+      <dependency>
+        <groupId>co.fs2</groupId>
+        <artifactId>fs2-core_${scala-binary-version}</artifactId>
+        <version>${fs2-version}</version>
+      </dependency>     
+      <dependency>
+        <groupId>org.tpolecat</groupId>
+        <artifactId>doobie-core_${scala-binary-version}</artifactId>
+        <version>${doobie-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.monix</groupId>
+        <artifactId>monix-reactive_${scala-binary-version}</artifactId>
+        <version>${monix-version}</version>
+      </dependency>
+      <!-- 
+        lift-web
+      -->
+      <dependency>
+        <groupId>net.liftweb</groupId>
+        <artifactId>lift-common_${scala-binary-version}</artifactId>
+        <version>${lift-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+          <exclusion>
+            <artifactId>log4j</artifactId>
+            <groupId>log4j</groupId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>net.liftweb</groupId>
+        <artifactId>lift-json_${scala-binary-version}</artifactId>
+        <version>${lift-version}</version>
+      </dependency>      
+      <dependency>
+        <groupId>net.liftweb</groupId>
+        <artifactId>lift-util_${scala-binary-version}</artifactId>
+        <version>${lift-version}</version>
+      </dependency>      
+      <dependency>
+        <groupId>net.liftweb</groupId>
+        <artifactId>lift-webkit_${scala-binary-version}</artifactId>
+        <version>${lift-version}</version>
+      </dependency>      
+      <!-- joda time -->
+      <dependency>
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <version>${jodatime-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.joda</groupId>
+        <artifactId>joda-convert</artifactId>
+        <version>${jodaconvert-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${bcpkix-jdk15on-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>${bcpkix-jdk15on-version}</version>
+      </dependency>
+
+
+      <!-- commons -->
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${commons-io-version}</version>
+      </dependency>      
+      <dependency>
+        <groupId>commons-lang</groupId>
+        <artifactId>commons-lang</artifactId>
+        <version>${commons-lang-version}</version>
+      </dependency>      
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${commons-codec-version}</version>
+      </dependency>      
+
+      <!-- spring -->
+      <dependency>
+        <groupId>org.ow2.asm</groupId>
+        <artifactId>asm</artifactId>
+        <version>${asm-version}</version>
       </dependency>
       <dependency>
         <groupId>org.springframework</groupId>
@@ -442,18 +523,6 @@ limitations under the License.
           </exclusion>
         </exclusions>
       </dependency>
-      <!-- No httpclient / commons-logging for jgit -->
-      <dependency>
-        <groupId>org.eclipse.jgit</groupId>
-        <artifactId>org.eclipse.jgit</artifactId>
-        <version>${jgit-version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
       <!-- Needed to use spring configuration by annotation -->
       <dependency>
         <groupId>cglib</groupId>
@@ -466,7 +535,46 @@ limitations under the License.
           </exclusion>
         </exclusions>
       </dependency>  
+  
+      <!--  test -->
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.specs2</groupId>
+        <artifactId>specs2-core_${scala-binary-version}</artifactId>
+        <version>${specs2-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.specs2</groupId>
+        <artifactId>specs2-matcher-extra_${scala-binary-version}</artifactId>
+        <version>${specs2-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.specs2</groupId>
+        <artifactId>specs2-junit_${scala-binary-version}</artifactId>
+        <version>${specs2-version}</version>
+      </dependency>
+      <!-- No httpclient / commons-logging for jgit -->
+      <dependency>
+        <groupId>org.eclipse.jgit</groupId>
+        <artifactId>org.eclipse.jgit</artifactId>
+        <version>${jgit-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
       <!-- the slf4j commons-logging replacement -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j-version}</version>
+      </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>jcl-over-slf4j</artifactId>
@@ -483,90 +591,40 @@ limitations under the License.
         <artifactId>logback-classic</artifactId>
         <version>${logback-version}</version>
       </dependency>
-
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-library</artifactId>
-      <version>${scala-version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-      <version>${jodatime-version}</version>
-    </dependency>
-    <!--
-         The Scala compiler require to be able to find these symbol even if they are not used.
-         So we mark them as needed for compilation, but "provided" so that it does not go into
-         the final jars.
-     -->
-    <dependency>
-      <groupId>org.joda</groupId>
-      <artifactId>joda-convert</artifactId>
-      <version>${jodaconvert-version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>net.liftweb</groupId>
-      <artifactId>lift-common_${scala-binary-version}</artifactId>
-      <version>${lift-version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-log4j12</artifactId>
-        </exclusion>
-        <exclusion>
-          <artifactId>log4j</artifactId>
-          <groupId>log4j</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <!-- Utility to get all case object of a sealed trait -->
+    <!-- almost used in all projects -->
     <dependency>
       <groupId>ca.mrvisser</groupId>
       <artifactId>sealerate_${scala-binary-version}</artifactId>
       <version>0.0.5</version>
     </dependency>
-
-    <!--
-      We use SLF4J log facade with logback implementation
-    -->
+    <!-- joda-time is used in all projects -->
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${slf4j-version}</version>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
     </dependency>
-
     <!--  test -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>${junit-version}</version>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.specs2</groupId>
       <artifactId>specs2-core_${scala-binary-version}</artifactId>
-      <version>${specs2-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.specs2</groupId>
       <artifactId>specs2-matcher-extra_${scala-binary-version}</artifactId>
-      <version>${specs2-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.specs2</groupId>
       <artifactId>specs2-junit_${scala-binary-version}</artifactId>
-      <version>${specs2-version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -584,4 +642,5 @@ limitations under the License.
       <artifactId>logback-classic</artifactId>
     </dependency>
   </dependencies>
+   
 </project>
