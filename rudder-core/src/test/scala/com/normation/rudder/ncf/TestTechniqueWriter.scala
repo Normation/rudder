@@ -57,6 +57,7 @@ import org.joda.time.DateTime
 import org.specs2.matcher.ContentMatchers
 import java.io.File
 import net.liftweb.common.Loggable
+import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
 
 @RunWith(classOf[JUnitRunner])
 class TestTechniqueWriter extends Specification with ContentMatchers with Loggable {
@@ -75,8 +76,9 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     def registerCallback(callback:TechniquesLibraryUpdateNotification) : Unit = ()
   }
 
-  val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater, new RudderPrettyPrinter(Int.MaxValue, 2), basePath)
-  val dscWriter = new DSCTechniqueWriter(basePath)
+  val valueCompiler = new InterpolatedValueCompilerImpl
+  val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater,valueCompiler, new RudderPrettyPrinter(Int.MaxValue, 2), basePath)
+  val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler)
 
   val methods = ( GenericMethod(
       BundleName("package_install_version")
