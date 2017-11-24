@@ -35,38 +35,35 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.ncf
+package com.normation.rudder.rest.ncf
 
 import net.liftweb.common.Box
-import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.rest.RestExtractorService
 import net.liftweb.http.rest.RestHelper
-import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.rest.RestAPI
 import net.liftweb.common.Loggable
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.http.Req
 import net.liftweb.http.LiftResponse
 import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.authorization.Read
-import com.normation.rudder.authorization.Write
-import com.normation.rudder.authorization.Edit
 import net.liftweb.common.Full
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.web.rest.RestUtils
-import net.liftweb.common.Failure
-import net.liftweb.common.Empty
+import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.service.user.UserService
+import com.normation.rudder.AuthorizationType
 
 class NcfApi9(
-    techniqueWriter : TechniqueWriter
-  , restExtractor   : RestExtractorService
-  , uuidGen         : StringUuidGenerator
+                 techniqueWriter : TechniqueWriter
+  ,              restExtractor   : RestExtractorService
+  ,              uuidGen         : StringUuidGenerator
+  , implicit val userService     : UserService
 ) extends RestHelper with RestAPI with Loggable {
  val kind = "ncf"
 
   import com.normation.rudder.ncf.ResultHelper.resultToBox
-  import com.normation.rudder.web.rest.RestUtils._
+  import com.normation.rudder.rest.RestUtils._
   val dataName = "techniques"
 
   def resp ( function : Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
@@ -79,9 +76,9 @@ class NcfApi9(
 
   override def checkSecure : PartialFunction[Req, Boolean] = {
     case Get(_,_) =>
-      CurrentUser.checkRights(Read("technique"))
+      userService.getCurrentUser.checkRights(AuthorizationType.Read("technique"))
     case Post(_,_) | Put(_,_) | Delete(_,_) =>
-      CurrentUser.checkRights(Write("technique")) || CurrentUser.checkRights(Edit("technique"))
+      userService.getCurrentUser.checkRights(AuthorizationType.Write("technique")) || userService.getCurrentUser.checkRights(AuthorizationType.Edit("technique"))
     case _=> false
   }
 

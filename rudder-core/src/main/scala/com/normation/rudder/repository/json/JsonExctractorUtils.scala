@@ -91,8 +91,8 @@ trait JsonExctractorUtils[A[_]] {
           converted <- convertTo(strings.toList)
         } yield {
           converted
-        }).map(monad.point(_))
-      case JNothing   => convertTo(Nil).map(monad.point(_))
+        }).map(monad.pure(_))
+      case JNothing   => convertTo(Nil).map(monad.pure(_))
       case _              => Failure(s"Not a good value for parameter ${key}")
     }
   }
