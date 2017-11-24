@@ -561,7 +561,7 @@ case class NameValueComparator(ldapAttr: String) extends TStringComparator with 
   //the first arg is "name.value", not interesting here
   override def buildFilter(_x:String, comparator:CriterionComparator, value:String) : Filter = {
     val kv = splitInput(value)
-    val sub = SUB(ldapAttr, ("{"+formatKV(kv)).getBytes("UTF-8"s), null, null)
+    val sub = SUB(ldapAttr, ("{"+formatKV(kv)).getBytes("UTF-8"), null, null)
     comparator match {
       case Equals    => sub
       case NotEquals => NOT(sub)
