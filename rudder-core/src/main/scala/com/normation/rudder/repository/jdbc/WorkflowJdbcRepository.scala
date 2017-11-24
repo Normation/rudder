@@ -45,8 +45,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
 import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
-import doobie.postgres._, doobie.postgres.implicits._
+import cats.implicits._
 
 
 class RoWorkflowJdbcRepository(doobie: Doobie) extends RoWorkflowRepository with Loggable {

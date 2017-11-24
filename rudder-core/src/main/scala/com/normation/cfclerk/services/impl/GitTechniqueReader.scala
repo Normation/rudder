@@ -52,7 +52,7 @@ import org.eclipse.jgit.lib.ObjectId
 import scala.collection.mutable.{ Map => MutMap }
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.services._
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
@@ -198,7 +198,7 @@ class GitTechniqueReader(
       val diffFmt = new DiffFormatter(null)
       diffFmt.setRepository(repo.db)
       val diffPathEntries : Set[(TechniquePath, ChangeType)] =
-        diffFmt.scan(revisionProvider.currentRevTreeId, nextId).flatMap { diffEntry =>
+        diffFmt.scan(revisionProvider.currentRevTreeId, nextId).asScala.flatMap { diffEntry =>
           Seq( (toTechniquePath(diffEntry.getOldPath), diffEntry.getChangeType), (toTechniquePath(diffEntry.getNewPath), diffEntry.getChangeType))
         }.toSet
       diffFmt.close

@@ -59,7 +59,6 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.hooks.HookReturnCode.Interrupt
 import com.normation.rudder.hooks.HookReturnCode
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 
 /**
  * A service used to display details about a server

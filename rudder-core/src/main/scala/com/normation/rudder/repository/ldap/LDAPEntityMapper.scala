@@ -91,6 +91,7 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
+import scala.language.implicitConversions
 
 final object NodeStateEncoder {
   implicit def enc(state: NodeState): String = state.name

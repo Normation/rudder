@@ -45,8 +45,7 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
 import com.normation.rudder.db.DBCommon
-import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import doobie.implicits._
 
 import com.normation.BoxSpecMatcher
 
