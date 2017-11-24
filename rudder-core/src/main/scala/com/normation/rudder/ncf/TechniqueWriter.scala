@@ -62,6 +62,7 @@ import org.apache.commons.io.FileUtils
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import net.liftweb.common.Failure
 import net.liftweb.common.Empty
+import com.normation.rudder.services.policies.InterpolatedValueCompiler
 
 trait NcfError {
   def message : String
@@ -101,12 +102,13 @@ final case class MethodNotFound(message : String, exception : Option[Throwable])
 class TechniqueWriter (
     archiver         : TechniqueArchiver
   , techLibUpdate    : UpdateTechniqueLibrary
+  , translater       : InterpolatedValueCompiler
   , xmlPrettyPrinter : RudderPrettyPrinter
   , basePath         : String
 ) extends Loggable {
 
   import ResultHelper._
-  private[this] var agentSpecific = new ClassicTechniqueWriter :: new DSCTechniqueWriter(basePath) :: Nil
+  private[this] var agentSpecific = new ClassicTechniqueWriter :: new DSCTechniqueWriter(basePath, translater) :: Nil
 
   def techniqueMetadataContent(technique : Technique, methods: Map[BundleName, GenericMethod]) : Result[XmlNode] = {
 
@@ -240,7 +242,10 @@ class ClassicTechniqueWriter extends AgentSpecificTechniqueWriter {
 
 }
 
-class DSCTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWriter{
+class DSCTechniqueWriter(
+    basePath : String
+  , translater       : InterpolatedValueCompiler
+) extends AgentSpecificTechniqueWriter{
 
   import ResultHelper._
   val genericParams =
@@ -255,47 +260,74 @@ class DSCTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWriter
 
       def naReport(method : GenericMethod, expectedReportingValue : String) =
         s"""_rudder_common_report_na -componentName "${method.name}" -componentKey "${expectedReportingValue}" -message "Not applicable" ${genericParams}"""
+      for {
 
-      val methodParams =
-        ( for {
-          (id, arg) <- call.parameters
-        } yield {
-        s"""-${id.validDscName} "${arg.replaceAll("\"", "`\"")}""""
-        }).mkString(" ")
+        // First translate parameters to Dsc values
+        params    <- ( sequence(call.parameters.toSeq) {
+                        case (id, arg) =>
+                          translater.translateToAgent(arg, AgentType.Dsc) match {
+                            case Full(dscValue) => Right((id,dscValue))
+                            case eb : EmptyBox =>
+                              Left(IOError("",None))
+                          }
+                     }).map(_.toMap)
 
-      val effectiveCall =
-        s"""$$local_classes = Merge-ClassContext $$local_classes $$(${call.methodId.validDscName} ${methodParams} ${genericParams}).get_item("classes")"""
+        // Translate condition
+        condition <- translater.translateToAgent(call.condition, AgentType.Dsc) match {
+                       case Full(c) => Right(c)
+                       case eb : EmptyBox =>
+                         Left(IOError("",None))
+                     }
 
-      methods.get(call.methodId) match {
-        case Some(method) =>
-          call.parameters.get(method.classParameter).map(_.replaceAll("\"", "`\"")) match {
-            case Some(classParameter) =>
-              val dscCall =
-                if (method.agentSupport.contains(AgentType.Dsc)) {
-                  if (call.condition == "any" ) {
-                    s"  ${effectiveCall}"
-                  } else{
-                    s"""|  $$class = "${call.condition}"
-                        |  if (Evaluate-Class $$class $$local_classes $$system_classes) {
-                        |    ${effectiveCall}
-                        |  } else {
-                        |    ${naReport(method,classParameter)}
-                        |  }""".stripMargin('|')
+        methodParams =
+          ( for {
+            (id, arg) <- params
+          } yield {
+          s"""-${id.validDscName} "${arg.replaceAll("\"", "`\"")}""""
+          }).mkString(" ")
+
+        effectiveCall =
+          s"""$$local_classes = Merge-ClassContext $$local_classes $$(${call.methodId.validDscName} ${methodParams} ${genericParams}).get_item("classes")"""
+
+        // Check if method exists
+        method <- methods.get(call.methodId) match {
+                    case Some(method) =>
+                      Right(method)
+                    case None =>
+                      Left(MethodNotFound(s"Method '${call.methodId.value}' not found when writing dsc Technique '${technique.name}' methods calls", None))
                   }
-                } else {
-                  s"  ${naReport(method,classParameter)}"
-                }
-              Right(dscCall)
-            case None => Left(MethodNotFound(s"Parameter '${method.classParameter.value}' for method '${method.id.value}' not found when writing dsc Technique '${technique.name}' methods calls",None))
-          }
-        case None => Left(MethodNotFound(s"Method '${call.methodId.value}' not found when writing dsc Technique '${technique.name}' methods calls", None))
+        // Check if class parameter is correctly defined
+        classParameter <- params.get(method.classParameter).map(_.replaceAll("\"", "`\"")) match {
+                            case Some(classParameter) =>
+                              Right(classParameter)
+                            case None =>
+                              Left(MethodNotFound(s"Parameter '${method.classParameter.value}' for method '${method.id.value}' not found when writing dsc Technique '${technique.name}' methods calls",None))
+                          }
+
+      } yield {
+       if (method.agentSupport.contains(AgentType.Dsc)) {
+         if (condition == "any" ) {
+           s"  ${effectiveCall}"
+         } else{
+           s"""|  $$class = "${condition}"
+               |  if (Evaluate-Class $$class $$local_classes $$system_classes) {
+               |    ${effectiveCall}
+               |  } else {
+               |    ${naReport(method,classParameter)}
+               |  }""".stripMargin('|')
+         }
+       } else {
+         s"  ${naReport(method,classParameter)}"
+       }
       }
     }
 
     val filteredCalls = technique.methodCalls.filterNot(_.methodId.value.startsWith("_"))
+
     val techniquePath = computeTechniqueFilePath(technique)
 
     for {
+
       calls <- sequence(filteredCalls)(toDscFormat)
 
       content =
