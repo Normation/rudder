@@ -172,6 +172,10 @@ import org.springframework.context.annotation.Import
 import scala.util.Try
 import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
 import com.normation.rudder.api.RoApiAccountRepository
+import com.normation.rudder.web.rest.ncf.NcfApi9
+import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.ncf.TechniqueArchiver
+import com.normation.rudder.ncf.TechniqueArchiverImpl
 
 /**
  * Define a resource for configuration.
@@ -268,7 +272,6 @@ object RudderConfig extends Loggable {
 
   // set the file location that contains mime info
   System.setProperty("content.types.user.table", this.getClass.getClassLoader.getResource("content-types.properties").getPath)
-
 
   //
   // Public properties
@@ -367,7 +370,6 @@ object RudderConfig extends Loggable {
 
   //deprecated
   val BASE_URL = Try(config.getString("base.url")).getOrElse("")
-
 
   // properties from version.properties file,
   val (
@@ -854,6 +856,9 @@ object RudderConfig extends Loggable {
 
   val settingsApi8 = new SettingsAPI8(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
 
+  val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
+  val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, prettyPrinter, RUDDER_DIR_GITROOT)
+  val ncfAPI = new NcfApi9(ncfTechniqueWriter, restExtractorService, stringUuidGenerator)
   // First working version with support for rules, directives, nodes and global parameters
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   // Add change request support
@@ -869,13 +874,16 @@ object RudderConfig extends Loggable {
   // apiv8 add policy mode in node API and settings API
   val apiV8 = nodeApi8 :: settingsApi8 :: apiV7.filter( _ != nodeApi6)
 
+  val apiV9 = ncfAPI :: apiV8
+
   val apis = {
     Map (
         //Rudder 3.2
         ( ApiVersion(7,true) -> apiV7 )
-        //Rudder 4.0
+        //Rudder 4.0 - 4.1
       , ( ApiVersion(8,false) -> apiV8 )
-        //Rudder 4.1
+        //Rudder 4.2
+      , ( ApiVersion(9,false) -> apiV9 )
     )
   }
 
