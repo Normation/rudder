@@ -141,21 +141,17 @@ import com.normation.rudder.web.model._
 import com.normation.rudder.rest._
 import com.normation.rudder.rest.v1._
 import com.normation.rudder.rest.internal._
-import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.ncf._
 import com.normation.rudder.rest.changeRequest._
-import com.normation.rudder.rest.compliance.ComplianceAPI7
-import com.normation.rudder.rest.compliance.ComplianceAPIService
+import com.normation.rudder.rest.compliance._
 import com.normation.rudder.rest.directive._
 import com.normation.rudder.rest.group._
 import com.normation.rudder.rest.node._
-import com.normation.rudder.rest.node.NodeApiService2
 import com.normation.rudder.rest.parameter._
 import com.normation.rudder.rest.rule._
-import com.normation.rudder.rest.settings.SettingsAPI8
-import com.normation.rudder.rest.settings.SettingsAPI10
+import com.normation.rudder.rest.settings._
 import com.normation.rudder.rest.technique._
 import com.normation.rudder.web.services._
-import com.normation.rudder.web.services.UserPropertyService
 import com.normation.templates.FillTemplatesService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
@@ -173,7 +169,6 @@ import scala.util.Try
 import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
 import com.normation.rudder.api.RoApiAccountRepository
 import com.normation.rudder.service.user.UserService
-import com.normation.rudder.web.rest.ncf.NcfApi9
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueArchiver
 import com.normation.rudder.ncf.TechniqueArchiverImpl
@@ -861,7 +856,7 @@ object RudderConfig extends Loggable {
 
   val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
   val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, prettyPrinter, RUDDER_DIR_GITROOT)
-  val ncfAPI = new NcfApi9(ncfTechniqueWriter, restExtractorService, stringUuidGenerator)
+  val ncfAPI = new NcfApi9(ncfTechniqueWriter, restExtractorService, stringUuidGenerator, userService)
   // First working version with support for rules, directives, nodes and global parameters
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   // Add change request support
