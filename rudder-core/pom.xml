@@ -212,6 +212,10 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
           <artifactId>slf4j-log4j12</artifactId>
           <groupId>org.slf4j</groupId>
         </exclusion>
+        <exclusion>
+          <groupId>org.mozilla</groupId>
+          <artifactId>rhino</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
