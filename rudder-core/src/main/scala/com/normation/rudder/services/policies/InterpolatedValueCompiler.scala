@@ -41,6 +41,7 @@ import scala.util.parsing.combinator.RegexParsers
 import net.liftweb.common.{Failure => FailedBox, _}
 import com.normation.rudder.domain.parameters.ParameterName
 import net.liftweb.json.JsonAST.JValue
+import com.normation.inventory.domain.AgentType
 
 /**
  * A parser that handle parameterized value of
@@ -125,6 +126,15 @@ trait InterpolatedValueCompiler {
    */
   def compile(value: String): Box[InterpolationContext => Box[String]]
 
+  /**
+   *
+   * Parse a value to translate token to a valid value for the agent passed as parameter.
+   *
+   * Return a Box, where Full denotes a successful
+   * parsing of all values, and EmptyBox. an error.
+   */
+  def translateToAgent (value : String, agentType : AgentType) : Box[String]
+
 }
 
 object InterpolatedValueCompilerImpl {
@@ -134,7 +144,7 @@ object InterpolatedValueCompilerImpl {
    * A string to look for interpolation is a list of token.
    * A token can be a plain string with no variable, or something
    * to interpolate. For now, we can interpolate two kind of variables:
-   * - node information (thanks to a pointed path to the intersting property)
+   * - node information (thanks to a pointed path to the interesting property)
    * - rudder parameters (only globals for now)
    */
   sealed trait Token //could be Either[CharSeq, Interpolation]
@@ -180,8 +190,6 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
    */
   val maxEvaluationDepth = 5
 
-
-
   /*
    * In our parser, whitespace are relevant,
    * we are not parsing a language here.
@@ -199,6 +207,12 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
     }
   }
 
+  def translateToAgent(value: String, agent : AgentType): Box[String] = {
+    parseAll(all, value) match {
+      case NoSuccess(msg, remaining)  => FailedBox(s"""Error when parsing value "${value}", error message is: ${msg}""")
+      case Success(tokens, remaining) => Full(tokens.map(translate(agent, _) ).mkString(""))
+    }
+  }
 
   /*
    * The funny part that for each token add the interpretation of the token
@@ -245,6 +259,21 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
           } yield {
             getNodeProperty(context, path).openOr(default)
           }
+      }
+    }
+  }
+
+  // Transform a token to its correct value for the agent passed as parameter
+  def translate(agent: AgentType, token:Token): String = {
+    token match {
+      case CharSeq(s)          => s
+      case NodeAccessor(path)  => s"$${rudder.node.${path.mkString(".")}}"
+      case Param(name)         => s"$${rudder.param.${name}}"
+      case Property(path, opt) => agent match {
+        case AgentType.Dsc =>
+          s"$$($$node.properties[${path.mkString("][")}])"
+        case AgentType.CfeCommunity | AgentType.CfeEnterprise =>
+          s"$${node.properties[${path.mkString("][")}]}"
       }
     }
   }
@@ -387,5 +416,3 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
   def tqplainStr  : Parser[Token]          = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties|"""+"\"\"\""+ """)).)+""").r  ^^ { str => CharSeq(str) }
 
 }
-
-
