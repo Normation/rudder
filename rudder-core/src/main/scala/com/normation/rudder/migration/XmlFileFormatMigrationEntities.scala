@@ -43,8 +43,8 @@ import com.normation.rudder.db.DB
 import org.joda.time.DateTime
 import com.normation.rudder.db.Doobie
 
-import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect.IO, cats.implicits._
+import doobie.implicits._
+import cats.implicits._
 import com.normation.rudder.db.Doobie._
 
 class MigrationEventLogRepository(val db: Doobie) {

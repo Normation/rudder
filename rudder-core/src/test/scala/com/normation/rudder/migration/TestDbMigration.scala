@@ -50,8 +50,8 @@ import com.normation.rudder.db.DBCommon
 
 import com.normation.rudder.db.Doobie._
 
-import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import doobie.implicits._
+import cats._
 
 case class MigEx102(msg:String) extends Exception(msg)
 

@@ -51,7 +51,7 @@ import org.specs2.specification.BeforeAfterAll
 
 import net.liftweb.common.Loggable
 import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import cats.implicits._
 import com.normation.rudder.migration.MigrationTestLog
 import org.joda.time.DateTime
 
