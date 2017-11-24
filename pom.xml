@@ -600,6 +600,7 @@ limitations under the License.
       <groupId>ca.mrvisser</groupId>
       <artifactId>sealerate_${scala-binary-version}</artifactId>
       <version>0.0.5</version>
+      <scope>provided</scope>
     </dependency>
     <!-- joda-time is used in all projects -->
     <dependency>
