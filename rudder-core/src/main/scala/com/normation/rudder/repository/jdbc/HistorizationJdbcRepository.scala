@@ -47,7 +47,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository.HistorizationRepository
 
 import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import cats._, cats.data._, cats.implicits._
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.domain.policies.ActiveTechnique

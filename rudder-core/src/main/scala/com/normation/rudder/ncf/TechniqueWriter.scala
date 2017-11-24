@@ -49,20 +49,17 @@ import com.normation.cfclerk.services.GitRepositoryProvider
 import java.io.File
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.GitModificationRepository
-import com.normation.rudder.repository.xml.GitArchiverFullCommitUtils
 import com.normation.eventlog.ModificationId
-import org.eclipse.jgit.lib.PersonIdent
-import com.normation.rudder.repository.GitPath
 import net.liftweb.common.Full
 import com.normation.eventlog.EventActor
 import com.normation.rudder.services.user.PersonIdentService
 import scala.xml.{ Node => XmlNode }
 import net.liftweb.common.EmptyBox
-import org.apache.commons.io.FileUtils
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import net.liftweb.common.Failure
 import net.liftweb.common.Empty
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
+import scala.language.implicitConversions
 
 trait NcfError {
   def message : String

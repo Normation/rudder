@@ -47,7 +47,7 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
 
 import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import cats.implicits._
 
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeConfigId

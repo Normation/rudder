@@ -49,7 +49,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import scala.collection.JavaConversions.asScalaSet
+import scala.collection.JavaConverters._
 import scala.xml.Elem
 import org.apache.commons.io.FileUtils
 
@@ -163,7 +163,7 @@ trait GitArchiverUtils extends Loggable {
       gitRepo.git.add.addFilepattern(newGitPath).call
       gitRepo.git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
       val status = gitRepo.git.status.call
-      if(!status.getAdded.exists( path => path.startsWith(newGitPath) ) ) {
+      if(!status.getAdded.asScala.exists( path => path.startsWith(newGitPath) ) ) {
         logger.warn("Auto-archive git failure when moving directory (not found in added file): '%s'. You can safelly ignore that warning if the file was already existing in Git and was not modified by that archive.".format(newGitPath))
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call

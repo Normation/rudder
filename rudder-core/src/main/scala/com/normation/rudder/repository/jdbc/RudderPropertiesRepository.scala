@@ -38,7 +38,7 @@
 package com.normation.rudder.repository.jdbc
 
 import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import cats.implicits._
 
 import net.liftweb.common._
 import com.normation.rudder.repository.RudderPropertiesRepository

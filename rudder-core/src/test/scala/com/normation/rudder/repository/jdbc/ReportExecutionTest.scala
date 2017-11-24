@@ -52,8 +52,7 @@ import org.specs2.runner.JUnitRunner
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 
-import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import doobie.implicits._
 
 /**
  *

@@ -38,7 +38,7 @@
 package com.normation.rudder.reports.execution
 
 import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import cats.implicits._
 
 
 import com.normation.rudder.db.DB

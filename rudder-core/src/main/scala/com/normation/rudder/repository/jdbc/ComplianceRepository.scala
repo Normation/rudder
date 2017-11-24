@@ -44,7 +44,7 @@ import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
 import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import cats.implicits._
 import com.normation.rudder.services.reports._
 import com.normation.inventory.domain.NodeId
 import org.joda.time.DateTime

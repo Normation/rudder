@@ -40,7 +40,7 @@ package com.normation.rudder.repository.json
 import net.liftweb.json._
 import net.liftweb.common._
 import com.normation.utils.Control._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import cats._, cats.implicits._
 import com.normation.rudder.domain.policies.JsonTagExtractor
 import scala.language.higherKinds
 
