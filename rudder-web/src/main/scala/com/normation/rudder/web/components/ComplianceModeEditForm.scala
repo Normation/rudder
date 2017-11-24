@@ -51,7 +51,6 @@ import net.liftweb.json.JsonAST._
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.NodeComplianceMode
-import scala.reflect.runtime.universe._
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.web.ChooseTemplate
@@ -59,13 +58,87 @@ import com.normation.rudder.web.ChooseTemplate
 /**
  * Component to display and configure the compliance Mode (and it's heartbeat)
  */
+sealed trait ParseComplianceMode[T <: ComplianceMode] {
+  def isNodePage : Boolean
+  def parseOverride(jsonMode : JObject) : Box[Boolean] = {
+    jsonMode.values.get("overrides") match {
+      case Some(JBool(bool)) => Full(bool)
+      case Some(allow_override : Boolean) => Full(allow_override)
+      case Some(json : JValue) => Failure(s"'${compactRender(json)}' is not a valid value for compliance mode 'override' attribute")
+      // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
+      case Some(any) => Failure(s"'${any}' is not a valid value for compliance mode 'override' attribute")
+      case None => Failure("compliance mode 'overrides' parameter must not be empty ")
+    }
+  }
+
+  def parseMode(jsonMode: JObject) : Box[ComplianceModeName]= {
+    jsonMode.values.get("name") match {
+      case Some(JString(mode)) => ComplianceModeName.parse(mode)
+      case Some(mode : String) => ComplianceModeName.parse(mode)
+      case Some(json : JValue) => Failure(s"'${(json)}' is not a valid value for compliance mode 'name' attribute")
+      // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
+      case Some(any) => Failure(s"'${any}' is not a valid value for compliance mode 'name' attribute")
+      case None => Failure("compliance mode 'name' parameter must not be empty ")
+    }
+  }
+
+  def parseHeartbeat(jsonMode: JObject) : Box[Int]= {
+    jsonMode.values.get("heartbeatPeriod") match {
+      case Some(JInt(heartbeat)) => Full(heartbeat.toInt)
+      case Some(heartbeat : BigInt) => Full(heartbeat.toInt)
+      case Some(json : JValue) => Failure(s"'${(json)}' is not a valid value for compliance mode 'heartbeatPeriod' attribute")
+      // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
+      case Some(any) => Failure(s"'${any}' is not a valid value for compliance mode 'heartbeatPeriod' attribute")
+      case None => Failure("compliance mode 'heartbeatPeriod' parameter must not be empty ")
+    }
+  }
+
+  def parse(s: String): Box[JObject] = {
+    net.liftweb.json.parse(s) match {
+      case obj: JObject => Full(obj)
+      case _            => Failure(s"Could not parse ${s} as a valid compliance mode")
+    }
+  }
+
+  def parseJsonMode(s: String) : Box[T]
+}
+
+object ParseComplianceMode {
+
+  implicit final object Global extends ParseComplianceMode[GlobalComplianceMode] {
+    override def isNodePage = false
+    override def parseJsonMode(s: String):  Box[GlobalComplianceMode] = {
+      for {
+        obj       <- parse(s)
+        mode      <- parseMode(obj)
+        heartbeat <- parseHeartbeat(obj)
+      } yield {
+        GlobalComplianceMode(mode,heartbeat)
+      }
+    }
+  }
+
+  implicit final object Node extends ParseComplianceMode[NodeComplianceMode] {
+    override def isNodePage = true
+    override def parseJsonMode(s: String):  Box[NodeComplianceMode] = {
+      for {
+        obj       <- parse(s)
+        mode      <- parseMode(obj)
+        heartbeat <- parseHeartbeat(obj)
+        overrides <- parseOverride(obj)
+      } yield {
+        NodeComplianceMode(mode,heartbeat,overrides)
+      }
+    }
+  }
+}
 
 class ComplianceModeEditForm [T <: ComplianceMode] (
     getConfigureCallback : Box[T]
   , saveConfigureCallback: Function1[T,Box[Unit]]
   , startNewPolicyGeneration: () => Unit
   , getGlobalConfiguration : Box[GlobalComplianceMode]
-) (implicit tt : TypeTag[T]) extends DispatchSnippet with Loggable  {
+) (implicit p: ParseComplianceMode[T]) extends DispatchSnippet with Loggable  {
 
   // Html template
   def complianceModeTemplate = ChooseTemplate(
@@ -77,12 +150,11 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
     case "complianceMode" => (xml) => complianceModeConfiguration
   }
 
-  val isNodePage : Boolean = {
-    typeOf[T] match {
-      case t if t =:= typeOf[GlobalComplianceMode] => false
-      case t if t =:= typeOf[NodeComplianceMode] => true
-    }
-  }
+  val isNodePage : Boolean = p.isNodePage
+  /**
+   * Parse a json input into a valid complianceMode
+   */
+  def parseJsonMode(s: String) : Box[T] = p.parseJsonMode(s)
 
   def submit(jsonMode:String) = {
     parseJsonMode(jsonMode) match {
@@ -90,7 +162,7 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
         val e = eb ?~! s"Error when trying to parse user data: '${jsonMode}'"
         logger.error(e.messageChain)
         S.error("complianceModeMessage", e.messageChain)
-      case Full(complianceMode: T) =>
+      case Full(complianceMode) =>
         saveConfigureCallback(complianceMode)  match {
           case eb:EmptyBox =>
             val e = eb ?~! s"Error when trying to store in base new compliance mode: '${jsonMode}'"
@@ -104,69 +176,6 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
         }
       //necessary to avoid the non-exhaustive warning due to "type pattern T is unchecked since eliminated by erasure" pb above
       case x => S.error("complianceModeMessage", s"Compliance mode is not of the awaited type (dev error): please report that error")
-    }
-  }
-
-  /**
-   * Parse a json input into a valid complianceMode
-   */
-  def parseJsonMode(s: String) : Box[ComplianceMode] = {
-    import net.liftweb.json._
-    val json = parse(s)
-
-    def parseOverride(jsonMode : JObject) : Box[Boolean] = {
-      jsonMode.values.get("overrides") match {
-        case Some(JBool(bool)) => Full(bool)
-        case Some(allow_override : Boolean) => Full(allow_override)
-        case Some(json : JValue) => Failure(s"'${compactRender(json)}' is not a valid value for compliance mode 'override' attribute")
-        // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
-        case Some(any) => Failure(s"'${any}' is not a valid value for compliance mode 'override' attribute")
-        case None => Failure("compliance mode 'overrides' parameter must not be empty ")
-      }
-    }
-
-    def parseMode(jsonMode: JObject) : Box[ComplianceModeName]= {
-      jsonMode.values.get("name") match {
-        case Some(JString(mode)) => ComplianceModeName.parse(mode)
-        case Some(mode : String) => ComplianceModeName.parse(mode)
-        case Some(json : JValue) => Failure(s"'${(json)}' is not a valid value for compliance mode 'name' attribute")
-        // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
-        case Some(any) => Failure(s"'${any}' is not a valid value for compliance mode 'name' attribute")
-        case None => Failure("compliance mode 'name' parameter must not be empty ")
-      }
-    }
-
-    def parseHeartbeat(jsonMode: JObject) : Box[Int]= {
-      jsonMode.values.get("heartbeatPeriod") match {
-        case Some(JInt(heartbeat)) => Full(heartbeat.toInt)
-        case Some(heartbeat : BigInt) => Full(heartbeat.toInt)
-        case Some(json : JValue) => Failure(s"'${(json)}' is not a valid value for compliance mode 'heartbeatPeriod' attribute")
-        // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
-        case Some(any) => Failure(s"'${any}' is not a valid value for compliance mode 'heartbeatPeriod' attribute")
-        case None => Failure("compliance mode 'heartbeatPeriod' parameter must not be empty ")
-      }
-    }
-    json match {
-      case obj : JObject =>
-        for {
-          mode <- parseMode(obj)
-          heartbeat <- parseHeartbeat(obj)
-          complianceMode <-
-            typeOf[T] match {
-              case t if t =:= typeOf[GlobalComplianceMode] =>
-                Full(GlobalComplianceMode(mode,heartbeat))
-              case t if t =:= typeOf[NodeComplianceMode] =>
-                for {
-                  overrides <- parseOverride(obj)
-                } yield {
-                  NodeComplianceMode(mode,heartbeat,overrides)
-                }
-          }
-        } yield {
-          complianceMode
-        }
-      case _ =>
-        Failure(s"Could not parse ${s} as a valid compliance mode")
     }
   }
 
