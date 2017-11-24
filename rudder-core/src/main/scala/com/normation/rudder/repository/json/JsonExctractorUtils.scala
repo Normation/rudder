@@ -81,19 +81,19 @@ trait JsonExctractorUtils[A[_]] {
     extractJson(json, key, jsonValueFun, { case obj : JObject => obj } ).map(x => monad.map(x)(identity))
   }
 
-  def extractJsonListString[T] (json: JValue, key: String)( convertTo: List[String] => Box[T] ): Box[Option[T]] = {
+  def extractJsonListString[T] (json: JValue, key: String)( convertTo: List[String] => Box[T] ): Box[A[T]] = {
     json \ key match {
       case JArray(values) =>
-        for {
+        (for {
           strings <- sequence(values) { _ match {
                         case JString(s) => Full(s)
                         case x => Failure(s"Error extracting a string from json: '${x}'")
                       } }
           converted <- convertTo(strings.toList)
         } yield {
-          Some(converted)
-        }
-      case JNothing   => Full(None)
+          converted
+        }).map(monad.point(_))
+      case JNothing   => convertTo(Nil).map(monad.point(_))
       case _              => Failure(s"Not a good value for parameter ${key}")
     }
   }
