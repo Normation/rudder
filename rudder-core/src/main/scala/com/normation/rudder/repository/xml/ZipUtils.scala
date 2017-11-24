@@ -23,7 +23,7 @@ package com.normation.rudder.repository.xml
 import java.util.zip.ZipFile
 import java.io.File
 import net.liftweb.common._
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import org.apache.commons.io.FileUtils
 import java.io.InputStream
 import java.util.zip.ZipOutputStream
@@ -40,7 +40,7 @@ object ZipUtils {
   def unzip(zip: ZipFile, intoDir: File) : Box[Unit] = {
     if(intoDir.exists && intoDir.isDirectory && intoDir.canWrite) {
       try {
-        zip.entries.foreach { entry =>
+        zip.entries.asScala.foreach { entry =>
           val file = new File(intoDir, entry.getName)
           if(entry.isDirectory()) {
             file.mkdirs

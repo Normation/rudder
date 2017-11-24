@@ -47,7 +47,6 @@ import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
 import RudderLDAPConstants._
 import net.liftweb.common._
 import com.normation.utils.Control.sequence
-import com.normation.utils.Control.bestEffort
 import com.normation.eventlog.EventActor
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.TechniqueId
@@ -89,9 +88,6 @@ class RoLDAPDirectiveRepository(
       case _ => Failure("Error, the directory contains multiple occurrence of directive with id %s. DN: %s".format(id, piEntries.map( _.dn).mkString("; ")))
     }
   }
-
-
-  private[this] def policyFilter(includeSystem:Boolean = false) = if(includeSystem) IS(OC_DIRECTIVE) else AND(IS(OC_DIRECTIVE), EQ(A_IS_SYSTEM,false.toLDAPString))
 
 
   /**

@@ -57,7 +57,6 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.eventlog.EventActor
 import org.joda.time.DateTime
-import com.normation.rudder.web.model.LinkUtil
 import com.normation.rudder.domain.eventlog.AddChangeRequest
 import com.normation.rudder.domain.eventlog.ModifyChangeRequest
 import com.normation.rudder.domain.eventlog.DeleteChangeRequest

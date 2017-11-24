@@ -9,8 +9,8 @@ import com.normation.rudder.repository.GitModificationRepository
 import net.liftweb.common._
 import com.normation.rudder.db.Doobie
 
-import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import doobie.implicits._
+import cats.implicits._
 
 class GitModificationRepositoryImpl(
     db : Doobie

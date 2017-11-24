@@ -48,8 +48,8 @@ import org.specs2.runner.JUnitRunner
 
 import net.liftweb.common.Box
 
-import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import doobie.implicits._
+import cats.implicits._
 
 
 /**

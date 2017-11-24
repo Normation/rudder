@@ -50,8 +50,7 @@ import com.normation.rudder.repository.ReportsRepository
 import org.joda.time._
 import net.liftweb.common._
 import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
-import doobie.postgres._, doobie.postgres.implicits._
+import cats.implicits._
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
 

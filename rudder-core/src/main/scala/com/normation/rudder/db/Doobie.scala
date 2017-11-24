@@ -38,8 +38,7 @@
 package com.normation.rudder.db
 
 import javax.sql.DataSource
-import cats._, cats.data._, cats.implicits._, cats.effect.IO
-import doobie.imports._
+import cats.data._, cats.effect.IO
 import org.joda.time.DateTime
 import scala.xml.XML
 import java.sql.SQLXML
@@ -54,7 +53,8 @@ import org.slf4j.LoggerFactory
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
 import scala.language.implicitConversions
-import doobie.postgres._, doobie.postgres.implicits._
+import doobie.postgres.implicits._
+import doobie._
 
 /**
  *
@@ -64,7 +64,7 @@ import doobie.postgres._, doobie.postgres.implicits._
  */
 class Doobie(datasource: DataSource) {
 
-  val xa =Transactor.fromDataSource[IO](datasource)
+  val xa = Transactor.fromDataSource[IO](datasource)
 
 }
 

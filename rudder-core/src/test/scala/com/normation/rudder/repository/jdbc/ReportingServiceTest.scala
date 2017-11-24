@@ -65,8 +65,8 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
 
-import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
+import doobie.implicits._
+import cats.implicits._
 
 import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData

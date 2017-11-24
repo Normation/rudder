@@ -49,8 +49,8 @@ import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 
 import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect._, cats.implicits._
-import doobie.postgres._, doobie.postgres.implicits._
+import cats.implicits._
+import doobie.postgres.implicits._
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
 

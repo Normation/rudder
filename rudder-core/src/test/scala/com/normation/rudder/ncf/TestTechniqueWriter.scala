@@ -51,8 +51,6 @@ import com.normation.inventory.domain.Version
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.specs2.mutable.Specification
-import java.nio.file.Files
-import java.nio.file.Paths
 import org.joda.time.DateTime
 import org.specs2.matcher.ContentMatchers
 import java.io.File

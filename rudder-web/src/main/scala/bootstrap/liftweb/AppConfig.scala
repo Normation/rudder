@@ -170,7 +170,6 @@ import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
 import com.normation.rudder.api.RoApiAccountRepository
 import com.normation.rudder.service.user.UserService
 import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.ncf.TechniqueArchiver
 import com.normation.rudder.ncf.TechniqueArchiverImpl
 
 /**
@@ -1588,10 +1587,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val complianceRepositoryImpl = new ComplianceJdbcRepository(doobie)
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD, RUDDER_JDBC_MAX_POOL_SIZE)
   lazy val doobie = new Doobie(dataSourceProvider.datasource)
-  private[this] lazy val jdbcTemplate = {
-    val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
-    template
-  }
 
   private[this] lazy val parseRules : ParseRules = new GitParseRules(
       ruleUnserialisation
