@@ -472,6 +472,7 @@ bundle edit_line set_variable_values_ini(tab, sectionName)
       classes => results("bundle", "set_variable_values_ini_not_$(cindex[$(index)])"),
       ifvarclass => "edit_$(cindex[$(index)])";
 
+
   insert_lines:
       "[$(sectionName)]"
       location => start,

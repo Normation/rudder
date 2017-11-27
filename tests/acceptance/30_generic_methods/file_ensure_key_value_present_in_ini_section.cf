@@ -57,7 +57,7 @@ ${base_text_up}";
     "name_3"            string => "name";
     "value_3"           string => "value";
     "new_value_3"       string => "newvalue";
-    "reference_3"       string => "${base_text_up}
+    "reference_3"       string => "[${section_3}]
 ${name_3}=${new_value_3}";
 
   commands:
@@ -88,7 +88,6 @@ ${name_3}=${new_value_3}";
   "/bin/echo"
       args    => "\"${name_3}=${value_3}\" > \"${file_3}\"",
       contain => in_shell;
-
 }
 
 #######################################################
