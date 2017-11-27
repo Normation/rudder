@@ -292,7 +292,7 @@ class HomePage extends Loggable {
                       } }.groupBy(identity).mapValues(_.size).toList.sortBy(_._2).foldLeft((Nil : List[JsExp], Nil : List[JsExp]))
       { case ((labels,values),(label,value)) => (label :: labels, value :: values) }
       val machinesArray = JsObj("labels" -> JsArray(machines._1), "values" -> JsArray(machines._2))
-      val (osLabels,osValues) = nodeInfos.values.groupBy(_.osDetails.os.name).mapValues(_.size).toList.sortBy(_._2).foldLeft((Nil : List[JsExp], Nil : List[JsExp]))
+      val (osLabels,osValues) = nodeInfos.values.groupBy(_.osDetails.os.name).map{ case (os,value) => (S.?(s"os.name.${os}"), value.size) }.toList.sortBy(_._2).foldLeft((Nil : List[JsExp], Nil : List[JsExp]))
       { case ((labels,values),(label,value)) => (label :: labels, value :: values) }
 
       val osArray = JsObj("labels" -> JsArray(osLabels), "values" -> JsArray(osValues))
