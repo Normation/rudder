@@ -3,6 +3,8 @@
 # Test checking if a file can be generated from a local template
 #
 #######################################################
+# @agent_version >=3.7
+
 
 bundle common acc_path
 {
