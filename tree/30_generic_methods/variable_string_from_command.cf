@@ -53,7 +53,7 @@ bundle agent variable_string_from_command(variable_prefix, variable_name, comman
     pass1::
       "temp" string => execresult("OUTPUT=${const.dollar}(/bin/true; ${command}); printf \"%3d\" ${const.dollar}?; echo \"${const.dollar}OUTPUT\"", "useshell");
       "temp_length" int => string_length("${temp}");
-      "raw_output_length" string => eval("${temp_length} - 3");
+      "raw_output_length" string => eval("${temp_length} - 3", "math", "infix");
       "output_length" string => format("%d", "${raw_output_length}");
       "raw_code" string => string_head("${temp}", 3);
       "code" string => format("%d", "${raw_code}");
