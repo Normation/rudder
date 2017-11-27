@@ -308,6 +308,102 @@ body classes classes_generic(x)
       promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
 }
 
+body classes results(scope, class_prefix)
+# @brief Define classes prefixed with `class_prefix` and suffixed with
+# appropriate outcomes: _kept, _repaired, _not_kept, _error, _failed,
+# _denied, _timeout, _reached
+#
+# @param scope The scope in which the class should be defined (`bundle` or `namespace`)
+# @param class_prefix The prefix for the classes defined
+#
+# This body can be applied to any promise and sets global
+# (`namespace`) or local (`bundle`) classes based on its outcome. For
+# instance, with `class_prefix` set to `abc`:
+#
+# * if the promise is to change a file's owner to `nick` and the file
+# was already owned by `nick`, the classes `abc_reached` and
+# `abc_kept` will be set.
+#
+# * if the promise is to change a file's owner to `nick` and the file
+# was owned by `adam` and the change succeeded, the classes
+# `abc_reached` and `abc_repaired` will be set.
+#
+# This body is a simpler, more consistent version of the body
+# `scoped_classes_generic`, which see. The key difference is that
+# fewer classes are defined, and only for outcomes that we can know.
+# For example this body does not define "OK/not OK" outcome classes,
+# since a promise can be both kept and failed at the same time.
+#
+# It's important to understand that promises may do multiple things,
+# so a promise is not simply "OK" or "not OK." The best way to
+# understand what will happen when your specific promises get this
+# body is to test it in all the possible combinations.
+#
+# **Suffix Notes:**
+#
+# * `_reached` indicates the promise was tried. Any outcome will result
+#   in a class with this suffix being defined.
+#
+# * `_kept` indicates some aspect of the promise was kept
+#
+# * `_repaired` indicates some aspect of the promise was repaired
+#
+# * `_not_kept` indicates some aspect of the promise was not kept.
+#   error, failed, denied and timeout outcomes will result in a class
+#   with this suffix being defined
+#
+# * `_error` indicates the promise repair encountered an error
+#
+# * `_failed` indicates the promise failed
+#
+# * `_denied` indicates the promise repair was denied
+#
+# * `_timeout` indicates the promise timed out
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   commands:
+#     "/bin/true"
+#       classes => results("bundle", "my_class_prefix");
+#
+#   reports:
+#     my_class_prefix_kept::
+#       "My promise was kept";
+#
+#     my_class_prefix_repaired::
+#       "My promise was repaired";
+# }
+# ```
+#
+# **See also:** `scope`, `scoped_classes_generic`, `classes_generic`
+{
+  scope => "$(scope)";
+
+  promise_kept => { "$(class_prefix)_reached",
+                    "$(class_prefix)_kept" };
+
+  promise_repaired => { "$(class_prefix)_reached",
+                        "$(class_prefix)_repaired" };
+
+  repair_failed => { "$(class_prefix)_reached",
+                     "$(class_prefix)_error",
+                     "$(class_prefix)_not_kept",
+                     "$(class_prefix)_failed" };
+
+  repair_denied => { "$(class_prefix)_reached",
+                     "$(class_prefix)_error",
+                     "$(class_prefix)_not_kept",
+                     "$(class_prefix)_denied" };
+
+  repair_timeout => { "$(class_prefix)_reached",
+                      "$(class_prefix)_error",
+                      "$(class_prefix)_not_kept",
+                      "$(class_prefix)_timeout" };
+}
+
 body classes scoped_classes_generic(scope, x)
 # @brief Define `x` prefixed/suffixed with promise outcome
 # 
