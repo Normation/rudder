@@ -206,13 +206,21 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
   def ldapMapper     : LDAPEntityMapper
   def inventoryMapper: InventoryMapper
 
+
+  /*
+   * Compare if cache is up to date (based on internal state of the cache)
+   */
+  def isUpToDate(): Boolean = {
+    checkUpToDate(lastModificationTime)
+  }
+
   /**
    * Check is LDAP directory contains updated entries compare
    * to the date we pass in arguments.
    * Entries may be any entry relevant for our cache, in particular,
    * some attention must be provided to deleted entries.
    */
-  def isUpToDate(lastKnowModification: DateTime): Boolean
+  protected[this] def checkUpToDate(lastKnowModification: DateTime): Boolean
 
   /**
    * This method must return only and all entries under:
@@ -319,7 +327,7 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
 
     val t0 = System.currentTimeMillis
 
-    val boxInfo = (if(nodeCache.isEmpty || !isUpToDate(lastModificationTime)) {
+    val boxInfo = (if(nodeCache.isEmpty || !isUpToDate()) {
 
       getDataFromBackend(lastModificationTime) match {
         case Full((info, lastModif)) =>
@@ -485,7 +493,7 @@ class NaiveNodeInfoServiceCachedImpl(
   , override val inventoryMapper: InventoryMapper
 ) extends NodeInfoServiceCached with Loggable  {
 
-  override def isUpToDate(lastKnowModification: DateTime): Boolean = {
+  override def checkUpToDate(lastKnowModification: DateTime): Boolean = {
     false //yes naive
   }
 
@@ -553,7 +561,7 @@ class NodeInfoServiceCachedImpl(
    *   (with a vagrant VM on the same host (so, almost no network), it takes from client to server and
    *   back ~10ms on a dev machine.
    */
-  override def isUpToDate(lastKnowModification: DateTime): Boolean = {
+  override def checkUpToDate(lastKnowModification: DateTime): Boolean = {
     val n0 = System.currentTimeMillis
     val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub, DereferencePolicy.NEVER, 1, 0, false
         , AND(
