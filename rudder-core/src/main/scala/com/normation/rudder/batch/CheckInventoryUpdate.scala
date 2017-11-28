@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2012 Normation SAS
+* Copyright 2017 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,31 +35,44 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.logger
+package com.normation.rudder.batch
 
-import org.slf4j.LoggerFactory
-import net.liftweb.common.Logger
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
+import com.normation.utils.StringUuidGenerator
+import monix.execution.Scheduler.{ global => scheduler }
+import scala.concurrent.duration._
+import com.normation.rudder.domain.logger.ScheduledJobLogger
+
 
 /**
- * Applicative log of interest for Rudder ops.
+ * A naive scheduler which checks every N seconds if inventories are updated.
+ * If so, I will trigger a promise generation.
  */
-object ApplicationLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("application")
+class CheckInventoryUpdate(
+    nodeInfoCacheImpl   : NodeInfoServiceCachedImpl
+  , asyncDeploymentAgent: AsyncDeploymentAgent
+  , uuidGen             : StringUuidGenerator
+  , updateInterval      : FiniteDuration
+) {
+
+  val logger = ScheduledJobLogger
+
+  //start batch
+  if(updateInterval < 1.second) {
+    logger.info(s"Disable automatic check for node inventories main information updates (update interval less than 1s)")
+  } else {
+    logger.trace(s"***** starting check of node main inventories information update to trigger policy generation, every ${updateInterval.toString()} *****")
+  }
+
+  scheduler.scheduleWithFixedDelay(30.second , updateInterval) {
+    if(!nodeInfoCacheImpl.isUpToDate()) {
+      logger.info("Update in node inventories main information detected: triggering a policy generation")
+      asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor, "Main inventory information of at least one node were updated")
+    } else {
+      logger.trace("No update in node inventories main information detected")
+    }
+  }
 }
-
-/**
- * A logger dedicated to "plugin" information, especially boot info.
- */
-object PluginLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("application.plugin")
-}
-
-/**
- * A logger dedicated to scheduled jobs and batches
- */
-object ScheduledJobLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("scheduledJob")
-}
-
-
 
