@@ -126,6 +126,7 @@ import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.web.rest.settings.SettingsAPI8
 import com.normation.rudder.web.rest.sharedFiles.SharedFilesAPI
+import scala.concurrent.duration._
 
 /**
  * Define a resource for configuration.
@@ -385,6 +386,7 @@ object RudderConfig extends Loggable {
   val asyncDeploymentAgent: AsyncDeploymentAgent = asyncDeploymentAgentImpl
   val policyServerManagementService: PolicyServerManagementService = psMngtService
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
+  val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
   val databaseManager: DatabaseManager = databaseManagerImpl
   val automaticReportsCleaning: AutomaticReportsCleaning = dbCleaner
   val checkTechniqueLibrary: CheckTechniqueLibrary = techniqueLibraryUpdater
