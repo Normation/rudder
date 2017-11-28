@@ -86,7 +86,7 @@ ${name_3}=${new_value_3}";
       args    => "\"${base_text_up}\" > \"${file_3}\"",
       contain => in_shell;
   "/bin/echo"
-      args    => "\"${name_3}=${value_3}\" > \"${file_3}\"",
+      args    => "\"${name_3}=${value_3}\" >> \"${file_3}\"",
       contain => in_shell;
 }
 
