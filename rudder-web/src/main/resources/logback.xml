@@ -323,6 +323,17 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <appender-ref ref="STDOUT" />
   </logger>
 
+
+  <!--
+    Schechuled Jobs
+    ================
+    This logger is in charge of all scheduled jobs and batches 
+  -->
+  <logger name="scheduledJob" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger>
+
   <!--
     Migration of data format
     ========================
