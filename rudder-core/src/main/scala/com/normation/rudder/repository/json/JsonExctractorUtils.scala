@@ -78,7 +78,7 @@ trait JsonExctractorUtils[A[_]] {
   }
 
   def extractJsonObj[T](json : JValue, key : String, jsonValueFun : JObject => Box[T])  = {
-    extractJson(json, key, jsonValueFun, { case obj : JObject => obj } ).map(x => monad.map(x)(identity))
+    extractJson(json, key, jsonValueFun, { case obj : JObject => obj } )
   }
 
   def extractJsonListString[T] (json: JValue, key: String)( convertTo: List[String] => Box[T] ): Box[A[T]] = {
@@ -107,7 +107,7 @@ trait JsonExctractorUtils[A[_]] {
           import scalaz.Scalaz.listInstance
           monad.sequence(converted.toList)
         }
-      case JNothing   => emptyValue
+      case JNothing   => emptyValue ?~! s"Array is empty when extracting array"
       case _          => Failure(s"Invalid json to extract a json array, current value is: ${compactRender(json)}")
     }
   }

@@ -38,7 +38,6 @@
 package bootstrap.liftweb
 package checks
 
-
 import net.liftweb.common._
 import java.io.File
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
@@ -46,7 +45,6 @@ import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.eventlog.RudderEventActor
-
 
 /**
  * Check at webapp startup if Rudder Technique library has to be reloaded

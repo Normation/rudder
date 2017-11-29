@@ -996,7 +996,7 @@ case class RestExtractorService (
   }
 
   def extractGenericMethod (json : JValue) : Box[List[GenericMethod]] = {
-    CompleteJson.extractJsonArray(json \ "methods") { json =>
+    CompleteJson.extractJsonArray(json) { json =>
       for {
         bundleName     <- CompleteJson.extractJsonString(json, "bundle_name", s => Full(BundleName(s)))
         description    <- CompleteJson.extractJsonString(json, "description")
@@ -1008,7 +1008,6 @@ case class RestExtractorService (
                              case "cfengine-community" => Full(AgentType.CfeCommunity :: AgentType.CfeEnterprise ::Nil)
                              case _ => Failure("invalid agent")
                           })).map(_.flatten)
-
         parameters     <- CompleteJson.extractJsonArray(json \ "parameter")(extractNCFParameter)
       } yield {
         GenericMethod(bundleName, name, parameters, classParameter, classPrefix, agentSupport, description)
