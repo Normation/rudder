@@ -100,10 +100,11 @@ case object Node {
 sealed trait NodeState { def name: String }
 final object NodeState {
 
-  final case object Enabled          extends NodeState { val name = "enabled"          }
-  final case object Disabled         extends NodeState { val name = "disabled"         }
-  final case object Initializing     extends NodeState { val name = "initializing"     }
-  final case object Decommissionning extends NodeState { val name = "decommissionning" }
+  final case object Enabled          extends NodeState { val name = "enabled"       }
+  final case object Ignored          extends NodeState { val name = "ignored"       }
+  final case object EmptyPolicies    extends NodeState { val name = "empty-policies"}
+  final case object Initializing     extends NodeState { val name = "initializing"  }
+  final case object PreparingEOL     extends NodeState { val name = "preparing-eol" }
 
   def values = ca.mrvisser.sealerate.values[NodeState]
 }
