@@ -48,6 +48,7 @@ import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.ScheduledJobLogger
 
 //Message to send to the updater manager to start a new update of all dynamic groups
 case object ManualStartUpdate
@@ -79,9 +80,10 @@ class UpdateDynamicGroups(
   , asyncDeploymentAgent  : AsyncDeploymentAgent
   , uuidGen               : StringUuidGenerator
   , updateInterval        : Int // in minutes
-) extends Loggable {
+) {
 
   private val propertyName = "rudder.batch.dyngroup.updateInterval"
+  val logger = ScheduledJobLogger
 
   private val laUpdateDyngroupManager = new LAUpdateDyngroupManager
   //start batch
@@ -106,8 +108,10 @@ class UpdateDynamicGroups(
    * one that actually process update.
    */
 
-  private class LAUpdateDyngroupManager extends LiftActor with Loggable {
+  private class LAUpdateDyngroupManager extends LiftActor {
     updateManager =>
+
+    val logger = ScheduledJobLogger
 
     private var updateId = 0L
     private var currentState: DynamicGroupUpdaterStates = IdleGroupUpdater

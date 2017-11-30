@@ -57,6 +57,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.ModificationId
 import java.io.File
+import com.normation.rudder.domain.logger.PolicyLogger
 
 //ask for a new deployment - automatic deployment !
 //actor: the actor who asked for the deployment
@@ -101,11 +102,12 @@ final class AsyncDeploymentAgent(
     deploymentService: PromiseGenerationService
   , eventLogger:EventLogDeploymentService
   , deploymentStatusSerialisation : DeploymentStatusSerialisation
-) extends LiftActor with Loggable with ListenerManager {
+) extends LiftActor with ListenerManager {
 
   deploymentManager =>
 
   val timeFormat = "yyyy-MM-dd HH:mm:ss"
+  val logger = PolicyLogger
 
   //message from the deployment agent to the manager
   private[this] sealed case class DeploymentResult(
@@ -339,7 +341,9 @@ final class AsyncDeploymentAgent(
    * The internal agent that will actually do the deployment
    * Long time running process, I/O consuming.
    */
-  private[this] object DeployerAgent extends LiftActor with Loggable {
+  private[this] object DeployerAgent extends LiftActor {
+    val logger = PolicyLogger
+
     override protected def messageHandler = {
       //
       // Start a new deployment

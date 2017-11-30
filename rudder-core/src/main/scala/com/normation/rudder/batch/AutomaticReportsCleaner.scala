@@ -43,6 +43,7 @@ import net.liftweb.common._
 import org.joda.time._
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.logger.ScheduledJobLogger
 
 /**
  *  An helper object designed to help building automatic reports cleaning
@@ -268,8 +269,9 @@ case class AutomaticReportsCleaning(
   , deletettl      : Int // in days
   , archivettl     : Int // in days
   , freq : CleanFrequency
-) extends Loggable {
+) {
   val reportLogger = ReportLogger
+  val logger = ScheduledJobLogger
 
   // Check if automatic reports archiving has to be started
   val archiver:DatabaseCleanerActor = if(archivettl < 1) {
@@ -303,7 +305,7 @@ case class AutomaticReportsCleaning(
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
 
-  private case class LADatabaseCleaner(cleanaction:CleanReportAction,ttl:Int) extends DatabaseCleanerActor with Loggable {
+  private case class LADatabaseCleaner(cleanaction:CleanReportAction,ttl:Int) extends DatabaseCleanerActor {
     updateManager =>
 
     private[this] val reportLogger = ReportLogger
@@ -314,6 +316,7 @@ case class AutomaticReportsCleaning(
     def isIdle : Boolean = currentState == IdleCleaner
 
     private[this] def formatDate(date:DateTime) : String = date.toString("yyyy-MM-dd HH:mm")
+    val logger = ScheduledJobLogger
 
     private[this] def activeCleaning(date : DateTime, message : DatabaseCleanerMessage, kind:String) : Unit = {
       val formattedDate = formatDate(date)

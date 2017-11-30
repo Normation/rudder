@@ -42,6 +42,7 @@ import net.liftweb.actor.LAPinger
 import net.liftweb.common._
 import org.joda.time.DateTime
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.ScheduledJobLogger
 
 
 // -----------------------------------------------------
@@ -73,7 +74,7 @@ case class UpdateResult[T](id:Long, start: DateTime, end:DateTime, result: Box[T
  * Moreover, some initialisation logic is added so that the scheduling
  * interval may be configured externally with some guards.
  */
-trait AbstractScheduler extends Loggable {
+trait AbstractScheduler {
 
   type T
   val schedulerMinimumIntervalTime = 1
@@ -82,6 +83,8 @@ trait AbstractScheduler extends Loggable {
   val executeTask: Long => Box[T]
   def displayName : String
   def propertyName : String
+
+  val logger = ScheduledJobLogger
 
   // -----------------------------------------------------
   // Start batch

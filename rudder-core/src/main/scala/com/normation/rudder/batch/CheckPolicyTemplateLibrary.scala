@@ -40,12 +40,12 @@ package com.normation.rudder.batch
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.rudder.domain.Constants.TECHLIB_MINIMUM_UPDATE_INTERVAL
 import net.liftweb.actor.{LiftActor, LAPinger}
-import net.liftweb.common.Loggable
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.logger.ScheduledJobLogger
 
 case class StartLibUpdate(actor: EventActor)
 
@@ -62,9 +62,10 @@ class CheckTechniqueLibrary(
   , asyncDeploymentAgent: AsyncDeploymentAgent
   , uuidGen             : StringUuidGenerator
   , updateInterval      : Int // in minutes
-) extends Loggable {
+) {
 
   private val propertyName = "rudder.batch.techniqueLibrary.updateInterval"
+  val logger = ScheduledJobLogger
 
   //start batch
   if(updateInterval < 1) {
@@ -80,8 +81,10 @@ class CheckTechniqueLibrary(
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
 
-  private class LAUpdateTechLibManager extends LiftActor with Loggable {
+  private class LAUpdateTechLibManager extends LiftActor {
     updateManager =>
+
+    val logger = ScheduledJobLogger
 
     private[this] val isAutomatic = updateInterval > 0
     private[this] val realUpdateInterval = {
