@@ -24,6 +24,7 @@
 # @class_prefix service_check_running
 # @class_parameter service_name
 # @deprecated Use [service_check_running](#service_check_running) instead.
+# @rename service_check_running
 
 bundle agent _service_check_running_smf(service_name)
 {

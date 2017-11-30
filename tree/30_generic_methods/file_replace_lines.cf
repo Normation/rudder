@@ -17,6 +17,7 @@
 #####################################################################################
 
 # @name File replace lines
+# @action If the regex matches the replacement, then the line will be replaced every time
 # @description Ensure that a line in a file is replaced by another one
 # @documentation You can replace lines in a files, based on regular expression and captured pattern
 #
