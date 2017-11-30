@@ -18,7 +18,7 @@
 
 # @name File from a jinja2 template
 # @description Build a file from a jinja2 template
-# @agent_requirements "capabilities": [ "dumpdatastate" ]
+# @agent_version >= 3.9
 # @documentation See [file_from_template_type](#file_from_template_type) for general documentation about
 # templates usage.
 #
@@ -180,17 +180,16 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "args"              slist  => { "${source_template}", "${destination}" };
 
       "jinja2_script"     string => "${sys.workdir}/modules/templates/jinja2-templating.py";
+      "datastate_tpl"     string => "${sys.workdir}/modules/templates/datastate.json.tpl";
       "datastate_file"    string => "${source_template}.datastate.${this.promiser_pid}.json";
       "destination_canon" string => canonify("${destination}");
       "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";
-    state_dumped::
+    state_dumped_ok::
       # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
       # and can be used to check for errors.
       "errors" string => execresult("/usr/bin/python \"${jinja2_script}\" --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell");
 
   classes:
-      # This class may not be set when we cannot write the datastate file.
-      "state_dumped" expression => dumpdatastate("${datastate_file}");
       # If the stderr of the python templating command was empty, we consider that the templating succeeeded.
       "templating_ok" expression => strcmp("${errors}", "");
 
@@ -198,13 +197,22 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
+  files:
+    # We can't use the generic method here because we want to avoid file backups
+    "${datastate_file}"
+      template_method => "mustache",
+      create => "true",
+      edit_template => "${datastate_tpl}", 
+      edit_defaults => no_backup,
+      classes => classes_generic("state_dumped");
+
   methods:
     pass2.templating_ok::
       # Use a file copy to avoid any file size limitations of CFEngine variables.
       "copy file"    usebundle => file_copy_from_local_source("${destination_tmp}", "${destination}");
       "copy classes" usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
 
-    pass3.state_dumped::
+    pass3.state_dumped_ok::
       "clean data file"     usebundle => file_remove("${datastate_file}");
       "clean template file" usebundle => file_remove("${destination_tmp}");
 
@@ -220,7 +228,7 @@ bundle agent file_from_template_jinja2(source_template, destination)
 
    reports:
      # Display templating errors in case of failure.
-     "Templating error: ${errors}" ifvarclass => "state_dumped.!templating_ok";
+     "Templating error: ${errors}" ifvarclass => "state_dumped_ok.!templating_ok";
 
 }
 
