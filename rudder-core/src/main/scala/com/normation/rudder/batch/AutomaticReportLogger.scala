@@ -52,6 +52,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 
 import net.liftweb.actor._
 import net.liftweb.common._
+import com.normation.rudder.domain.logger.ScheduledJobLogger
 
 /**
  * This object will be used as message for the non compliant reports logger
@@ -71,9 +72,10 @@ class AutomaticReportLogger(
   , directiveRepository : RoDirectiveRepository
   , nodeInfoService     : NodeInfoService
   , reportLogInterval   : Int
-) extends Loggable {
+) {
 
   private val propertyName = "rudder.batch.reports.logInterval"
+  val logger = ScheduledJobLogger
 
   if (reportLogInterval < 1) {
     logger.info("Disable dynamic group updates sinces property %s is 0 or negative".format(propertyName))
@@ -85,7 +87,8 @@ class AutomaticReportLogger(
   /**
    * Actor for non compliant logging purpose
    */
-  private class LAAutomaticReportLogger extends LiftActor with Loggable {
+  private class LAAutomaticReportLogger extends LiftActor {
+    val logger = ScheduledJobLogger
 
     /*
      * List of all reports kind processed by the logger

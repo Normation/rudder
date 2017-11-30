@@ -38,11 +38,10 @@
 package com.normation.rudder.batch
 
 import net.liftweb.actor.LiftActor
-import net.liftweb.common.Loggable
 import net.liftweb.http.ListenerManager
 import com.normation.rudder.services.workflows.WorkflowUpdate
 
-class AsyncWorkflowInfo extends LiftActor with Loggable with ListenerManager {
+class AsyncWorkflowInfo extends LiftActor  with ListenerManager {
 
 
   def createUpdate = WorkflowUpdate
