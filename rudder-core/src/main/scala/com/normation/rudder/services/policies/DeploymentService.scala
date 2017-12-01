@@ -89,6 +89,7 @@ import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.domain.reports.ComponentExpectedReport
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.logger.PolicyLogger
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -150,7 +151,7 @@ trait PromiseGenerationService extends Loggable {
       fetch1Time           =  System.currentTimeMillis
       _                    =  logger.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
       allNodeInfos         <- getAllNodeInfos.map( _.filter { case(_,n) =>
-                                if(n.state == NodeState.Disabled) {
+                                if(n.state == NodeState.Ignored) {
                                   logger.debug(s"Skipping node '${n.id.value}' because the node is in state '${n.state.name}'")
                                   false
                                 } else true
@@ -730,6 +731,21 @@ object BuildNodeConfiguration extends Loggable {
 
           (for {
             parsedDrafts  <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithm error: cannot find back the configuration information for a node"
+            // if a node is in state "emtpy policies", we only keep system policies + log
+            filteredDrafts=  if(context.nodeInfo.state == NodeState.EmptyPolicies) {
+                                PolicyLogger.info(s"Node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value}) is in '${context.nodeInfo.state.name}' state, keeping only system policies for it")
+                                parsedDrafts.flatMap(d =>
+                                  if(d.isSystem) {
+                                    Some(d)
+                                  } else {
+                                    PolicyLogger.trace(s"Node '${context.nodeInfo.id.value}': skipping policy '${d.id.value}'")
+                                    None
+                                  }
+                                )
+                              } else {
+                                parsedDrafts
+                              }
+
             /*
              * Clearly, here, we are evaluating parameters, and we are not using that just after in the
              * variable expansion, which mean that we are doing the same work again and again and again.
@@ -747,7 +763,7 @@ object BuildNodeConfiguration extends Loggable {
                                  (name, p)
                                }
                              }
-            boundedDrafts <- bestEffort(parsedDrafts) { draft =>
+            boundedDrafts <- bestEffort(filteredDrafts) { draft =>
                                 (for {
                                   //bind variables with interpolated context
                                   expandedVariables <- draft.variables(context)
