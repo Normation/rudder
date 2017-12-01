@@ -18,6 +18,7 @@
 
 # @name Command execution
 # @description Execute a command
+# @action
 #
 # @parameter command_name  Command name
 # 

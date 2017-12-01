@@ -18,6 +18,7 @@
 
 # @name HTTP request check status with headers
 # @description Checks status of an HTTP URL
+# @action We don't know when HTTP methods cause side effect, this can be an action or not depending on your server behaviour
 # @documentation Perform a HTTP request on the URL, method and headers provided and check that the response has the expected status code (ie 200, 404, 503, etc)
 #
 # @parameter method Method to call the URL (GET, POST, PUT, DELETE)

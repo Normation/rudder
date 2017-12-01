@@ -18,6 +18,7 @@
 
 # @name Service action
 # @description Trigger an action on a service using the approriate tool
+# @action is-* commands are not actions, but all other commands are
 #
 # @documentation The `service_*` methods manage the services running on the system.
 #
