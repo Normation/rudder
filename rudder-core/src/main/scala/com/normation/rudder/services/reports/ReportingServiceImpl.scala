@@ -173,7 +173,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
       for {
         // disabled nodes are ignored
-        allNodeIds        <- nodeInfoService.getAll.map( _.filter { case(_,n) => n.state != NodeState.Disabled }.keySet )
+        allNodeIds        <- nodeInfoService.getAll.map( _.filter { case(_,n) => n.state != NodeState.Ignored }.keySet )
         //only try to update nodes that are accepted in Rudder
         nodeIds            =  nodeIdsToCheck.intersect(allNodeIds)
         /*
