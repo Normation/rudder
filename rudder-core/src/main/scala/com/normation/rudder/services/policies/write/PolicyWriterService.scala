@@ -296,16 +296,17 @@ class Cf3PromisesFileWriterServiceImpl(
 
       preparedPromises <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                             val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode)
-                          }
+                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode) ?~!
+                           s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
+                         }
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
-                            for {
+                            (for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
                               _ <- writeAllAgentSpecificFiles.write(prepared)
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
                               "OK"
-                            }
+                            }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
                           }
 
       //////////
