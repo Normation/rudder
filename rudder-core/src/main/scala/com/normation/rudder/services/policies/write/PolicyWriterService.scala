@@ -297,17 +297,18 @@ class PolicyWriterServiceImpl(
 
       preparedPromises <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                             val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime)
-                          }
+                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
+                            s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
+                         }
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
-                            for {
+                            (for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
                               // todo : for #10625: also write the new json files.
                               _ <- writeAllAgentSpecificFiles.write(prepared /*, newJsonD-by-DTechniques */) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
                               "OK"
-                            }
+                            }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
                           }
 
       //////////

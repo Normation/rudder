@@ -623,7 +623,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
           )
         }) match {
           case eb:EmptyBox =>
-            val e = eb ?~! s"Error while building target configuration node for node ${nodeId.value} which is one of the target of rules. Ignoring it for the rest of the process"
+            val e = eb ?~! s"Error while building target configuration node for node '${nodeId.value}' which is one of the target of rules. Ignoring it for the rest of the process"
             logger.error(e.messageChain)
             None
 
