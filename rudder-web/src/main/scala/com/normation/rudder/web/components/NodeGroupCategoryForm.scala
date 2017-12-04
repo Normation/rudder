@@ -217,7 +217,7 @@ class NodeGroupCategoryForm(
   private[this] val name = new WBTextField("Category name", _nodeGroupCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def validations =
-      valMinLen(3, "The name must have at least 3 characters") _ :: Nil
+      valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
   private[this] val description = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
