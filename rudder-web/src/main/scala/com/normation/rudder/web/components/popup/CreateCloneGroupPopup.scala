@@ -46,11 +46,11 @@ class CreateCloneGroupPopup(
   def popupContent() : NodeSeq = {
     S.appendJs(initJs)
     SHtml.ajaxForm( (
-      "item-itemname" #> piName.toForm_!
-    & "item-itemcontainer" #> piContainer.toForm_!
-    & "item-itemdescription" #> piDescription.toForm_!
-    & "item-grouptype" #> piStatic.toForm_!
-    & "item-itemreason" #> { piReasons.map { f =>
+      "item-itemname" #> groupName.toForm_!
+    & "item-itemcontainer" #> groupContainer.toForm_!
+    & "item-itemdescription" #> groupDescription.toForm_!
+    & "item-grouptype" #> isStatic.toForm_!
+    & "item-itemreason" #> { groupReasons.map { f =>
         <div>
           <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
           {f.toForm_!}
@@ -92,12 +92,12 @@ class CreateCloneGroupPopup(
         woNodeGroupRepository.addGroupCategorytoCategory(
             new NodeGroupCategory(
               NodeGroupCategoryId(uuidGen.newUuid),
-              piName.get,
-              piDescription.get,
+              groupName.get,
+              groupDescription.get,
               Nil,
               Nil
             )
-          , NodeGroupCategoryId(piContainer.get)
+          , NodeGroupCategoryId(groupContainer.get)
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.getActor
           , Some("Node Group category created by user from UI")
@@ -115,18 +115,18 @@ class CreateCloneGroupPopup(
       } else {
         // we are creating a group
         val query = nodeGroup.map(x => x.query).getOrElse(groupGenerator.flatMap(_.query))
-        val parentCategoryId = NodeGroupCategoryId(piContainer.get)
-        val isDynamic = piStatic.get match { case "dynamic" => true ; case _ => false }
+        val parentCategoryId = NodeGroupCategoryId(groupContainer.get)
+        val isDynamic = isStatic.get match { case "dynamic" => true ; case _ => false }
         val srvList =  nodeGroup.map(x => x.serverList).getOrElse(Set[NodeId]())
         val nodeId = NodeGroupId(uuidGen.newUuid)
-        val clone = NodeGroup(nodeId,piName.get,piDescription.get,query,isDynamic,srvList,true)
+        val clone = NodeGroup(nodeId,groupName.get,groupDescription.get,query,isDynamic,srvList,true)
 
         woNodeGroupRepository.create(
             clone
           , parentCategoryId
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.getActor
-          , piReasons.map(_.get)
+          , groupReasons.map(_.get)
         ) match {
           case Full(x) =>
             closePopup() &
@@ -164,7 +164,7 @@ class CreateCloneGroupPopup(
 
   ///////////// fields for category settings ///////////////////
 
-  private[this] val piReasons = {
+  private[this] val groupReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
@@ -189,18 +189,18 @@ class CreateCloneGroupPopup(
     }
   }
 
-  private[this] val piName = {
+  private[this] val groupName = {
       new WBTextField("Name",
         nodeGroup.map(x => "Copy of <%s>".format(x.name)).getOrElse("")) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def errorClassName = "col-lg-12 errors-container"
       override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","1")
       override def validations =
-        valMinLen(3, "The name must have at least 3 characters") _ :: Nil
+        valMinLen(1, "Name must not be empty") _ :: Nil
     }
   }
 
-  private[this] val piDescription = new WBTextAreaField("Description",
+  private[this] val groupDescription = new WBTextAreaField("Description",
       nodeGroup.map(x => x.description).getOrElse("") ) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex","3")
@@ -208,7 +208,7 @@ class CreateCloneGroupPopup(
     override def validations =  Nil
   }
 
-  private[this] val piStatic =
+  private[this] val isStatic =
     new WBRadioField("Group type", Seq("static", "dynamic"),
         ((nodeGroup.map(x => x.isDynamic).getOrElse(false)) ? "dynamic" | "static"), {
     case "static" =>
@@ -222,7 +222,7 @@ class CreateCloneGroupPopup(
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')")
   }
 
-  private[this] val piContainer = new WBSelectField("Parent category",
+  private[this] val groupContainer = new WBSelectField("Parent category",
       (categories.getOrElse(Seq()).map(x => (x.id.value -> x.name))),
       parentCategoryId) {
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
@@ -243,7 +243,7 @@ class CreateCloneGroupPopup(
   }
 
   private[this] val formTracker = {
-    new FormTracker(piName, piDescription, piContainer, piStatic)
+    new FormTracker(groupName, groupDescription, groupContainer, isStatic)
   }
 
   private[this] def updateFormClientSide() : JsCmd = {

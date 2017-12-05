@@ -142,7 +142,7 @@ class TechniqueCategoryEditForm(
   val categoryName = new WBTextField("Category name", currentCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def validations =
-      valMinLen(3, "The category name must have at least 3 characters") _ :: Nil
+      valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
   val categoryDescription = new WBTextAreaField("Category description", currentCategory.description.toString) {
