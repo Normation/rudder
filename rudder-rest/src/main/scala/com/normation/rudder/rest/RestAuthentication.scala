@@ -51,7 +51,7 @@ class RestAuthentication(
 
   serve {
 
-    case Get("authentication" :: Nil,  req) => {
+    case Get("api" :: "authentication" :: Nil | "authentication" :: Nil,  req) => {
       val session = LiftSession(req)
 
       val currentUser = userService.getCurrentUser

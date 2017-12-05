@@ -164,7 +164,6 @@ class AppConfigAuth extends ApplicationContextAware {
     appCtx = ctx
   }
 
-
   ///////////// FOR WEB INTERFACE /////////////
 
   /**
@@ -240,8 +239,6 @@ class AppConfigAuth extends ApplicationContextAware {
     provider
   }
 
-
-
   ///////////// FOR REST API /////////////
 
   @Bean def restAuthenticationFilter = new RestAuthenticationFilter(RudderConfig.roApiAccountRepository)
@@ -251,7 +248,6 @@ class AppConfigAuth extends ApplicationContextAware {
       response.sendError( HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized" )
     }
   }
-
 
   /**
    * Map an user from XML user config file
@@ -323,7 +319,6 @@ object LogFailedLogin {
   }
 }
 
-
 /**
  *  A trivial, immutable implementation of UserDetailsService for RudderUser
  */
@@ -332,10 +327,9 @@ class RudderInMemoryUserDetailsService(val passwordEncoder: PasswordEncoder, pri
 
   @throws(classOf[UsernameNotFoundException])
   override def loadUserByUsername(username:String) : RudderUserDetail = {
-    users.getOrElse(username, throw new UsernameNotFoundException(s"User with username '%{username}' was not found"))
+    users.getOrElse(username, throw new UsernameNotFoundException(s"User with username '${username}' was not found"))
   }
 }
-
 
 /**
  * For now, we don't use at all Spring Authority to implements
@@ -353,7 +347,7 @@ case object RoleUserAuthority extends GrantedAuthority {
 case object RoleApiAuthority extends GrantedAuthority {
   override val getAuthority = "ROLE_REMOTE"
 
-  val apiRudderRights = new Rights(AuthorizationType.AnyRights)
+  val apiRudderRights = new Rights(AuthzToRights.toAllAuthz(AuthzToRights.allKind):_*)
 }
 
 /**
@@ -382,7 +376,6 @@ class RestAuthenticationFilter(
 ) extends Filter with Loggable {
   def destroy(): Unit = {}
   def init(config: FilterConfig): Unit = {}
-
 
   private[this] val REST_USER_PREFIX = "REST Account: "
 
@@ -451,43 +444,52 @@ class RestAuthenticationFilter(
           case token =>
             //try to authenticate
 
-            apiTokenRepository.getByToken(ApiToken(token)) match {
-              case eb:EmptyBox =>
-                failsAuthentication(httpRequest, httpResponse, eb)
+            val apiToken = ApiToken(token)
+            val systemAccount = apiTokenRepository.getSystemAccount
+            if (systemAccount.token == apiToken) {
+              authenticate(RudderUserDetail(
+                  REST_USER_PREFIX + s""""${systemAccount.name.value}"""" + s" (${systemAccount.id.value})"
+                , systemAccount.token.value
+                , RoleApiAuthority.apiRudderRights
+                , Seq(RoleApiAuthority)
+              ))
 
-              case Full(None) =>
-                failsAuthentication(httpRequest, httpResponse, Failure(s"No registered token '${token}'"))
+              chain.doFilter(request, response)
+            } else {
+              apiTokenRepository.getByToken(apiToken) match {
+                case eb:EmptyBox =>
+                  failsAuthentication(httpRequest, httpResponse, eb)
 
-              case Full(Some(principal)) =>
-                if(principal.isEnabled) {
-                  val rest_principal = REST_USER_PREFIX + s""""${principal.name.value}"""" + s" (${principal.id.value})"
-                  //cool, build an authentication token from it
-                  authenticate(RudderUserDetail(
-                      rest_principal
-                    , principal.token.value
-                    , RoleApiAuthority.apiRudderRights
-                    , Seq(RoleApiAuthority)
-                  ))
+                case Full(None) =>
+                  failsAuthentication(httpRequest, httpResponse, Failure(s"No registered token '${token}'"))
 
-                  chain.doFilter(request, response)
+                case Full(Some(principal)) =>
+                  if(principal.isEnabled) {
+                    val rest_principal = REST_USER_PREFIX + s""""${principal.name.value}"""" + s" (${principal.id.value})"
+                    //cool, build an authentication token from it
+                    authenticate(RudderUserDetail(
+                        rest_principal
+                      , principal.token.value
+                      , RoleApiAuthority.apiRudderRights
+                      , Seq(RoleApiAuthority)
+                    ))
 
-                } else {
-                  failsAuthentication(httpRequest, httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
-                }
+                    chain.doFilter(request, response)
+
+                  } else {
+                    failsAuthentication(httpRequest, httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
+                  }
+              }
             }
         }
-
-
 
       case _ =>
         //can not do anything with that, chain filter.
         chain.doFilter(request, response)
     }
 
-
   }
 }
-
 
 case class AuthConfig(
   encoder: PasswordEncoder,
@@ -577,4 +579,3 @@ object AppConfigAuth extends Loggable {
     }
   }
 }
-
