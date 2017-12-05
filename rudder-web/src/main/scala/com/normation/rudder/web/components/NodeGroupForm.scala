@@ -200,7 +200,7 @@ class NodeGroupForm(
       override def subContainerClassName = ""
       override def inputField = super.inputField %("onkeydown" , "return processKey(event , '%s')".format(saveButtonId))
       override def validations =
-        valMinLen(3, "The name must have at least 3 characters") _ :: Nil
+        valMinLen(1, "Name must not be empty") _ :: Nil
     }
   }
 
