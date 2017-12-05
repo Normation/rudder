@@ -220,7 +220,7 @@ class ClassicTechniqueWriter extends AgentSpecificTechniqueWriter {
   def writeAgentFile( technique : Technique, methods : Map[BundleName, GenericMethod] )  : Result[Option[String]] = Right(None)
   def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] )  : Result[NodeSeq] = {
     // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true)
-    val needReportingBundle = technique.methodCalls.exists(m => m.condition != "any" || m.condition != "cfengine-community" )
+    val needReportingBundle = technique.methodCalls.exists(m => m.condition != "any" && m.condition != "cfengine-community" )
     val xml = <AGENT type="cfengine-community,cfengine-nova">
       <BUNDLES>
         <NAME>{technique.bundleName.value}</NAME>
