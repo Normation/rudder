@@ -158,6 +158,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>commons-io</artifactId>
     </dependency>
     
+    <!-- Doing HTTP requests -->
+    <dependency>
+      <groupId>org.scalaj</groupId>
+      <artifactId>scalaj-http_${scala-binary-version}</artifactId>
+      <version>2.3.0</version>
+    </dependency> 
+    
     <!-- Authentication -->
     <!-- spring dep needed so that the correct version is resolved -->
     <!-- Spring Framework Project libraries -->

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2017 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -34,49 +34,51 @@
 *
 *************************************************************************************
 */
-package com.normation.rudder.api
 
-import com.normation.utils.HashcodeCaching
-import org.joda.time.DateTime
+package bootstrap.liftweb.checks
 
-/**
- * ID of the Account
- */
-final case class ApiAccountId(value:String) extends HashcodeCaching
-
-/**
- * Name of the principal, used in event log to know
- * who did actions.
- */
-final case class ApiAccountName(value:String) extends HashcodeCaching
+import com.normation.rudder.api.ApiAccount
+import bootstrap.liftweb.BootstrapChecks
+import net.liftweb.util.ControlHelpers.tryo
+import java.nio.file.Paths
+import java.nio.file.Files
+import java.nio.charset.StandardCharsets
+import java.nio.file.attribute.PosixFilePermissions
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
 
 /**
- * The actual authentication token.
- * A token is defined with [0-9a-zA-Z]{n}, with n not small.
+ * Create at webapp startup an api token to use for intern use
  */
-final case class ApiToken(value: String) extends HashcodeCaching
+class CreateSystemToken(systemAccount : ApiAccount) extends BootstrapChecks {
 
-object ApiToken {
+  override val description = "Create system api token"
 
-  val tokenRegex = """[0-9a-zA-Z]{12,128}""".r
+  override def checks() : Unit = {
+    val tokenPath = "/var/rudder/run/api-token"
 
-  def buildCheckValue(value: String) : Option[ApiToken] = value.trim match {
-    case tokenRegex(v) => Some(ApiToken(v))
-    case _ => None
+    ( for {
+      path  <- tryo {
+                      Paths.get(tokenPath)
+                    } ?~! "An error occured while getting system api token path"
+
+      file  <- tryo { Files.deleteIfExists(path)
+                      Files.createFile(path)
+                      Files.write(path, systemAccount.token.value.getBytes(StandardCharsets.UTF_8))
+                    } ?~! "An error occured while creating system api token file"
+
+      perms <- tryo {
+                      Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
+                    } ?~! "An error occured while setting permissions on system api token file"
+    } yield { }
+    ) match {
+      case Full(_) =>
+        logger.info(s"System api token file created in ${tokenPath}")
+      case eb : EmptyBox =>
+        val fail = eb ?~! s"An error occured while creating system api token file in ${tokenPath}"
+        logger.error(fail.messageChain)
+    }
+
   }
-}
 
-/**
- * An API principal
- */
-final case class ApiAccount(
-    id                 : ApiAccountId
-    //Authentication token. It is a mandatory value, and can't be ""
-    //If a token should be revoked, use isEnabled = false.
-  , name               : ApiAccountName  //used in event log to know who did actions.
-  , token              : ApiToken
-  , description        : String
-  , isEnabled          : Boolean
-  , creationDate       : DateTime
-  , tokenGenerationDate: DateTime
-) extends HashcodeCaching
+}

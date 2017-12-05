@@ -33,7 +33,7 @@ class RestApiAccounts (
 
   serve {
     case Get("secure" :: "apiaccounts" :: Nil, req) =>
-      readApi.getAll() match {
+      readApi.getAll match {
         case Full(accountSeq) =>
           val accounts = ("accounts" -> JArray(accountSeq.toList.map(toJson(_))))
           toJsonResponse(None,accounts)("getAllAccounts",true)
@@ -127,7 +127,7 @@ class RestApiAccounts (
           val newToken = ApiToken(tokenGenerator.newToken(tokenSize))
           val generationDate = DateTime.now
           writeApi.save(
-              account.copy(token = newToken,tokenGenerationDate = generationDate)
+              account.copy(token = newToken, tokenGenerationDate = generationDate)
             , ModificationId(uuidGen.newUuid)
             , userService.getCurrentUser.actor) match {
             case Full(account) =>

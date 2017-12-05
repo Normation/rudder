@@ -88,7 +88,7 @@ class NcfApi9(
       val actor = RestUtils.getActor(req)
       val response = for {
         json      <- req.json ?~! "No JSON data sent"
-        methods   <- restExtractor.extractGenericMethod(json)
+        methods   <- restExtractor.extractGenericMethod(json \ "methods")
         methodMap = methods.map(m => (m.id,m)).toMap
         technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap)
         allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, actor )
@@ -106,7 +106,7 @@ class NcfApi9(
       val actor = RestUtils.getActor(req)
       val response = for {
         json      <- req.json ?~! "No JSON data sent"
-        methods   <- restExtractor.extractGenericMethod(json)
+        methods   <- restExtractor.extractGenericMethod(json \ "methods")
         methodMap = methods.map(m => (m.id,m)).toMap
         technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap)
         allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, actor)
