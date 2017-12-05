@@ -33,37 +33,7 @@
   }
 </style>
 <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/auditMode.js"></script>
-<script>
-  function checkError(input,error,find){
-    var input   = $(input);
-    var val     = input.val();
-    var warning = find ? input.parent().parent().find(error) : $(error);
-    if(checkIPaddress(val)){
-      warning.hide();
-      input.removeClass('error');
-    }else{
-      warning.show();
-      input.addClass('error');
-    }
-  }
-  function updateBtnStatus(input,btn){
-    var input    = $(input);
-    var val      = input.val();
-    var btn      = $(btn);
-    var disabled = !checkIPaddress(val);
-    if(input.hasClass('error') && !disabled){
-      input.removeClass('error');
-    }
-    btn.attr('disabled',disabled);
-  }
-  function initInputAddress(){
-    $('#addaNetworkfield').on('change',function(e){checkError(e.currentTarget,'#warningNetworkField')}).on('keyup',function(e){updateBtnStatus(e.currentTarget,'#addNetworkButton')});
-    $('#allowNetworkFields .networkField').on('keyup' ,function(e){updateBtnStatus(e.currentTarget,'#submitAllowedNetwork')}).on('change',function(e){checkError(e.currentTarget,'.warningNetworkField', true)});
-  }
-  $(document).ready(function(){
-    initInputAddress();
-  });
-</script>
+<script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/authorizedNetworks.js"></script>
 </head>
 <div class="portlet tw-bs">
     <div class="inner-portlet">
