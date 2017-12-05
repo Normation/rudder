@@ -84,7 +84,6 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   // we need to store that out of the form, so that the changes are persisted at redraw
   private[this] val allowedNetworksMap = scala.collection.mutable.Map[NodeId, Buffer[VH]]()
 
-
   def dispatch = {
     case "render" =>
       policyServers match {
@@ -96,7 +95,6 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
               sortedSeq.foldLeft(NodeSeq.Empty)((result, id) => result++renderForm(id).apply(xml)) }
       }
   }
-
 
   def errorMessage(htmlId: String, b:EmptyBox) = {
     val error = b ?~! "Error when processing allowed network"
@@ -184,18 +182,14 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     def delete(i:Long) : JsCmd = {
       allowedNetworks -= VH(i)
       allowedNetworksMap.put(policyServerId, allowedNetworks)
-      Replace(allowedNetworksFormId, outerXml.applyAgain) & JsRaw("""
-        initInputAddress();
-      """)
+      Replace(allowedNetworksFormId, outerXml.applyAgain)
     }
 
     def add() : JsCmd = {
       allowedNetworks.append(VH(net = addNetworkField))
       addNetworkField = ""
       allowedNetworksMap.put(policyServerId, allowedNetworks)
-      Replace(allowedNetworksFormId, outerXml.applyAgain) & JsRaw("""
-        initInputAddress();
-      """)
+      Replace(allowedNetworksFormId, outerXml.applyAgain)
     }
 
     //process the list of networks
@@ -204,13 +198,14 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       case _            =>
         "#allowedNetworksForm [id]" #> allowedNetworksFormId andThen
         "#policyServerDetails" #> <h3>{"Allowed networks for policy server "}{policyServerName} {s"(Rudder ID: ${policyServerId.value})"}</h3> &
+        "#allowNetworkFields [id]" #> s"allowNetworkFields${policyServerId.value}" &
         "#allowNetworkFields *" #> { (xml:NodeSeq) =>
           allowedNetworks.flatMap { case VH(i,net) =>
             val id = "network_"+ i
 
             (
               ".deleteNetwork" #> SHtml.ajaxButton(<span class="glyphicon glyphicon-minus"></span>, () => delete(i)) &
-              "#errorNetworkField" #> <div id="errorNetworkField"><span class={"lift:Msg?errorClass=bs-text-danger;id=errornetwork_"+i}>[error]</span></div> &
+              "#errorNetworkField" #> <div><span class={"lift:Msg?errorClass=bs-text-danger;id=errornetwork_"+i}>[error]</span></div> &
               ".networkField [name]" #> id andThen
               ".networkField" #> SHtml.text(net,  {x =>
                 allowedNetworks.find { case VH(y,_) => y==i }.foreach{ v => v.net = x }
@@ -218,14 +213,15 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
             )(xml)
           }
         }  &
-        "#addNetworkButton" #> SHtml.ajaxButton(<span class="glyphicon glyphicon-plus"></span>, add _) &
-        "#addaNetworkfield" #> SHtml.ajaxText(addNetworkField, addNetworkField = _) &
+        "#addNetworkButton" #> SHtml.ajaxButton(<span class="glyphicon glyphicon-plus"></span>, add _ , ("id", s"addNetworkButton${policyServerId.value}")) &
+        "#addaNetworkfield" #> SHtml.ajaxText(addNetworkField, addNetworkField = _, ("id", s"addaNetworkfield${policyServerId.value}")) &
         "#submitAllowedNetwork" #> {
-          SHtml.ajaxSubmit("Save changes", process _,("id","submitAllowedNetwork"), ("class","btn btn-default")) ++ Script(
+          SHtml.ajaxSubmit("Save changes", process _,("id",s"submitAllowedNetwork${policyServerId.value}"), ("class","btn btn-default")) ++ Script(
             OnLoad (
-              JsRaw("""
-                $(".networkField").keydown( function(event) {
-                  processKey(event , 'submitAllowedNetwork')
+              JsRaw(s"""
+                initInputAddress("${policyServerId.value}")
+                $$(".networkField").keydown( function(event) {
+                  processKey(event , 'submitAllowedNetwork${policyServerId.value}')
                 });
               """)
             )
@@ -233,7 +229,6 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         }
     }
   }
-
 
   ///////////// success pop-up ///////////////
   private[this] def successPopup : JsCmd = {
