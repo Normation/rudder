@@ -56,6 +56,8 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
+import org.joda.time.DateTime
+import com.normation.utils.StringUuidGenerator
 
 /**
  * A repository to retrieve API Accounts
@@ -65,12 +67,13 @@ trait RoApiAccountRepository {
   /**
    * Retrieve all API Account
    */
-  def getAll(): Box[Seq[ApiAccount]]
+  def getAll: Box[Seq[ApiAccount]]
 
   def getByToken(token: ApiToken): Box[Option[ApiAccount]]
 
   def getById(id : ApiAccountId) : Box[Option[ApiAccount]]
 
+  def getSystemAccount : ApiAccount
 }
 
 /**
@@ -95,67 +98,86 @@ trait WoApiAccountRepository {
     , actor     : EventActor) : Box[ApiAccountId]
 }
 
-
-
 final class RoLDAPApiAccountRepository(
     val rudderDit    : RudderDit
   , val ldapConnexion: LDAPConnectionProvider[RoLDAPConnection]
   , val mapper       : LDAPEntityMapper
+  , val uuidGen      : StringUuidGenerator
 ) extends RoApiAccountRepository with Loggable {
 
-  override def getAll(): Box[Seq[ApiAccount]] = {
+  val systemAPIAccount =
+    ApiAccount(
+        ApiAccountId("rudder-system-api-account")
+      , ApiAccountName("Rudder system account")
+      , ApiToken(uuidGen.newUuid + "-system")
+      , "For internal use"
+      , true
+      , DateTime.now
+      , DateTime.now
+    )
 
+  override def getSystemAccount: ApiAccount = systemAPIAccount
+
+  override def getAll: Box[Seq[ApiAccount]] = {
     for {
       ldap <- ldapConnexion
     } yield {
       val entries = ldap.searchOne(rudderDit.API_ACCOUNTS.dn, BuildFilter.IS(RudderLDAPConstants.OC_API_ACCOUNT))
       //map to ApiAccount in a "as much as possible" way
-      entries.flatMap ( e => mapper.entry2ApiAccount(e) match {
+      val accounts = entries.flatMap ( e => mapper.entry2ApiAccount(e) match {
           case eb:EmptyBox =>
             val error = eb ?~! s"Ignoring API Account with dn ${e.dn} due to mapping error"
             logger.debug(error.messageChain)
             None
           case Full(p) => Some(p)
       } )
+      accounts
     }
   }
 
   override def getByToken(token: ApiToken): Box[Option[ApiAccount]] = {
-    for {
-      ldap     <- ldapConnexion
-      //here, be careful to the semantic of get with a filter!
-      optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, token.value)) match {
-                  case f:Failure => f
-                  case Empty => Full(None)
-                  case Full(e) => Full(Some(e))
-                }
-      optRes   <- optEntry match {
-                    case None => Full(None)
-                    case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) )
-                  }
-    } yield {
-      optRes
-    }
-  }
-
-  override def getById(id:ApiAccountId) : Box[Option[ApiAccount]] = {
-    for {
-      ldap     <- ldapConnexion
-      optEntry <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)) match {
+    if (token == systemAPIAccount.token) {
+      Full(Some(systemAPIAccount))
+    } else {
+      for {
+        ldap     <- ldapConnexion
+        //here, be careful to the semantic of get with a filter!
+        optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, token.value)) match {
                     case f:Failure => f
                     case Empty => Full(None)
                     case Full(e) => Full(Some(e))
                   }
-      optRes   <- optEntry match {
-                    case None => Full(None)
-                    case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) )
-                  }
-    } yield {
-      optRes
+        optRes   <- optEntry match {
+                      case None => Full(None)
+                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) )
+                    }
+      } yield {
+        optRes
+      }
+    }
+  }
+
+  override def getById(id:ApiAccountId) : Box[Option[ApiAccount]] = {
+    if (id == systemAPIAccount.id) {
+      Full(Some(systemAPIAccount))
+    } else {
+      for {
+        ldap     <- ldapConnexion
+        optEntry <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)) match {
+                      case f:Failure => f
+                      case Empty => Full(None)
+                      case Full(e) => Full(Some(e))
+                    }
+        optRes   <- optEntry match {
+                      case None => Full(None)
+                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) )
+                    }
+      } yield {
+        optRes
+      }
     }
   }
 }
-
 
 final class WoLDAPApiAccountRepository(
     rudderDit          : RudderDit

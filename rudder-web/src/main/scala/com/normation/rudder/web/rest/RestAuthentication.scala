@@ -51,7 +51,7 @@ object RestAuthentication extends RestHelper with Loggable {
 
   serve {
 
-    case Get("authentication" :: Nil,  req) => {
+    case Get("api" :: "authentication" :: Nil | "authentication" :: Nil,  req) => {
       val session = LiftSession(req)
 
       //the result depends upon the "acl" param value, defaulted to "non read" (write).
