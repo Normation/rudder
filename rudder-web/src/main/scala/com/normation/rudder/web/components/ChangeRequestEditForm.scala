@@ -77,7 +77,7 @@ class ChangeRequestEditForm (
     override def labelClassName = "col-xs-12"
     override def subContainerClassName = "col-xs-12"
     override def validations =
-      valMinLen(3, "The name must have at least 3 characters") _ :: Nil
+      valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
   private[this] val changeRequestDescription= new WBTextAreaField("Description", info.description) {

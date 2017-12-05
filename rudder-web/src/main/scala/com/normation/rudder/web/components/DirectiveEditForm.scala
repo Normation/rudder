@@ -267,12 +267,12 @@ class DirectiveEditForm(
           { technique.name } version {technique.id.version}
         </a> &
       "#techniqueDescription *" #> technique.description &
-      "#nameField" #> {piName.toForm_!} &
+      "#nameField" #> {directiveName.toForm_!} &
       "#tagField *" #> tagsEditForm.tagsForm("directiveTags", "directiveEditTagsApp", updateTag, false) &
       "#rudderID *" #> {directive.id.value} &
-      "#shortDescriptionField" #> piShortDescription.toForm_! &
-      "#longDescriptionField" #> piLongDescription.toForm_! &
-      "#priority" #> piPriority.toForm_! &
+      "#shortDescriptionField" #> directiveShortDescription.toForm_! &
+      "#longDescriptionField" #> directiveLongDescription.toForm_! &
+      "#priority" #> directivePriority.toForm_! &
       "#policyModes" #> policyModes.toForm_! &
       "#version" #> versionSelect.toForm_! &
       "#version *+" #> migrateButton(directiveVersion.get,"Migrate") &
@@ -365,16 +365,16 @@ class DirectiveEditForm(
 
   ///////////// fields for Directive settings ///////////////////
 
-  private[this] val piName = new WBTextField("Name", directive.name) {
+  private[this] val directiveName = new WBTextField("Name", directive.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "form-control"
     override def labelClassName = "col-xs-12"
     override def subContainerClassName = "col-xs-12"
     override def validations =
-      valMinLen(3, "The name must have at least 3 characters") _ :: Nil
+      valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
-  private[this] val piShortDescription = {
+  private[this] val directiveShortDescription = {
     new WBTextField("Short description", directive.shortDescription) {
       override def className = "form-control"
       override def labelClassName = "col-xs-12"
@@ -385,7 +385,7 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] val piLongDescription = {
+  private[this] val directiveLongDescription = {
     new WBTextAreaField("Description", directive.longDescription.toString) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "form-control"
@@ -394,7 +394,7 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] val piPriority = {
+  private[this] val directivePriority = {
     val priorities = List(
         ( 0, "Highest")
       , ( 1, "+4")
@@ -516,7 +516,7 @@ class DirectiveEditForm(
     }
 
   private[this] val formTracker = {
-    val l = List(piName, piShortDescription, piLongDescription) //++ crReasons
+    val l = List(directiveName, directiveShortDescription, directiveLongDescription) //++ crReasons
     new FormTracker(l)
   }
 
@@ -561,10 +561,10 @@ class DirectiveEditForm(
 
         val newDirective = directive.copy(
             parameters       = parameterEditor.mapValueSeq
-          , name             = piName.get
-          , shortDescription = piShortDescription.get
-          , priority         = piPriority.get
-          , longDescription  = piLongDescription.get
+          , name             = directiveName.get
+          , shortDescription = directiveShortDescription.get
+          , priority         = directivePriority.get
+          , longDescription  = directiveLongDescription.get
           , _isEnabled       = directive.isEnabled
           , policyMode       = policyModes.get
           , tags             = newTags
@@ -582,10 +582,10 @@ class DirectiveEditForm(
 
         val updatedDirective = directive.copy(
             parameters       = parameterEditor.mapValueSeq
-          , name             = piName.get
-          , shortDescription = piShortDescription.get
-          , priority         = piPriority.get
-          , longDescription  = piLongDescription.get
+          , name             = directiveName.get
+          , shortDescription = directiveShortDescription.get
+          , priority         = directivePriority.get
+          , longDescription  = directiveLongDescription.get
           , policyMode       = policyModes.get
           , tags             = newTags
         )

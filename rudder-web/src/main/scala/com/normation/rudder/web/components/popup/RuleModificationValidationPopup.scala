@@ -232,7 +232,7 @@ class RuleModificationValidationPopup(
     override def errorClassName = "col-lg-12 errors-container"
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
     override def validations =
-      valMinLen(3, "The name must have at least 3 characters") _ :: Nil
+      valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
   // The formtracker needs to check everything only if there is workflow
