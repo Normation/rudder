@@ -949,6 +949,7 @@ object RudderConfig extends Loggable {
       rudderDitImpl
     , roLdap
     , ldapEntityMapper
+    , stringUuidGenerator
   )
 
   private[this] lazy val woLDAPApiAccountRepository = new WoLDAPApiAccountRepository(
@@ -1766,6 +1767,13 @@ object RudderConfig extends Loggable {
         , uuidGen
       )
     , new CheckCfengineSystemRuleTargets(rwLdap)
+    , new CheckNcfTechniqueUpdate(
+          restExtractorService
+        , ncfTechniqueWriter
+        , roLDAPApiAccountRepository.systemAPIAccount
+        , uuidGen
+      )
+    , new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount)
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////
