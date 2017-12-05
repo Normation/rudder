@@ -38,17 +38,23 @@ def check_auth(f):
 
 def check_authentication_from_rudder(auth_request):
   """Send an authentication request to Rudder"""
-  if request.method == "GET":
+  if auth_request.method == "GET":
     acl = "read"
   else:
     acl = "write"
   # An error may occured here and we need to catch the exception here or it will not be catched
   try:
     # We skip ssl certificate verification, since rudder and ncf-api are on the same domain and same virtualhost
-    auth_result = requests.get('https://localhost/rudder/authentication?acl=' + acl, cookies =  request.cookies, verify = False)
+    if "X-API-TOKEN" in auth_request.headers:
+        auth_result = requests.get('http://localhost/rudder/api/authentication?acl=' + acl, headers =  {"X-api-Token": auth_request.headers.get('X-API-TOKEN')} , verify = False)
+    else:
+      auth_result = requests.get('http://localhost/rudder/authentication?acl=' + acl, cookies =  auth_request.cookies, verify = False)
 
-    auth_response = jsonify( auth_result.json() )
-    auth_response.status_code = auth_result.status_code
+    if auth_result.status_code == 200 or auth_result.status_code == 401 or auth_result.status_code == 403:
+      auth_response = auth_result.json()
+    else:
+      auth_response = {"response": auth_result.text }
+    auth_response["status_code"] = auth_result.status_code
 
     return auth_response
   except Exception as e:
@@ -60,8 +66,8 @@ def check_authentication_from_rudder(auth_request):
 
 def no_authentication(auth_request):
   """Always accept authentication request"""
-  auth_response = auth_response = jsonify( {} )
-  auth_response.status_code = 200
+  auth_response = {"response" : "No authentication, access granted"}
+  auth_response["status_code"] = 200
 
   return auth_response
 
@@ -84,13 +90,16 @@ def get_authentication_modules():
 def get_auth():
   """ Check authentication, should look for available modules and pass authentication on them"""
   try:
+    result = []
     for authentication_module in get_authentication_modules():
       authentication_result = authentication_module(request)
-      if authentication_result.status_code == 200:
+      if authentication_result["status_code"] == 200:
         # Authentication success return it
-        return authentication_result
+        success = jsonify ( authentication_result )
+        return success
+      result.append(authentication_result)
     # all authentication have failed, return an error
-    error = jsonify ({ "error" : [{"message": "Could not authenticate with ncf API"}]})
+    error = jsonify ({ "error" : [{"message": "Could not authenticate with ncf API", "details": result }]})
     error.status_code = 401
     return error
   except Exception as e:

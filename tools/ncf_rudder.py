@@ -131,18 +131,9 @@ def write_technique_for_rudder(root_path, technique):
   generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
   include_rudder_reporting = not all(method_call['class_context'] == 'any' and 
                                      "cfengine-community" in generic_methods[method_call['method_name']]["agent_support"] for method_call in technique["method_calls"])
-  write_xml_metadata_file(path,technique,include_rudder_reporting)
   write_expected_reports_file(path,technique)
   if include_rudder_reporting:
     write_rudder_reporting_file(path,technique)
-
-
-def write_xml_metadata_file(path, technique, include_rudder_reporting = False):
-  """ write metadata.xml file from a technique, to a path """
-  file = codecs.open(os.path.realpath(os.path.join(path, "metadata.xml")), "w", encoding="utf-8")
-  content = get_technique_metadata_xml(technique, include_rudder_reporting)
-  file.write(content)
-  file.close()
 
 
 def write_expected_reports_file(path,technique):
@@ -159,115 +150,6 @@ def write_rudder_reporting_file(path,technique):
   content = generate_rudder_reporting(technique)
   file.write(content)
   file.close()
-
-
-def escape_entities( str ):
-    str = str.replace("&", "&amp;")
-    str = str.replace("<", "&lt;")
-    str = str.replace(">", "&gt;")
-    str = str.replace("\"", "&quot;")
-    str = str.replace("'", "&apos;")
-    return str
-
-def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = False):
-  """Get metadata xml for a technique as string"""
-
-  # Get all generic methods
-  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
-
-  content = []
-  content.append('<TECHNIQUE name="'+escape_entities(technique_metadata['name'])+'">')
-  content.append('  <DESCRIPTION>'+escape_entities(technique_metadata['description'])+'</DESCRIPTION>')
-  content.append('  <BUNDLES>')
-  content.append('    <NAME>'+ technique_metadata['bundle_name'] + '</NAME>')
-  if include_rudder_reporting:
-    content.append('    <NAME>'+ technique_metadata['bundle_name'] + '_rudder_reporting</NAME>')
-  content.append('  </BUNDLES>')
-
-  if include_rudder_reporting:
-    content.append('  <TMLS>')
-    content.append('    <TML name="rudder_reporting"/>')
-    content.append('  </TMLS>')
-
-  content.append('  <FILES>')
-  content.append('    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/'+technique_metadata['bundle_name']+'/'+technique_metadata['bundle_name']+'.cf">')
-  content.append('      <INCLUDED>true</INCLUDED>')
-  content.append('    </FILE>')
-  content.append('  </FILES>')
-
-  content.append('  <SECTIONS>')
-
-  method_calls = technique_metadata["method_calls"]  
-
-  # Get all method call, with no duplicate values
-  methods_name = set()
-  for method_call in method_calls:
-    # Expected reports for Rudder should not include any "meta" bundle calls (any beginning with _)
-    if method_call['method_name'].startswith("_"):
-      continue
-
-    method_name = methods_name.add(method_call['method_name'])
-
-  # For each method used, create a section containing all calls to that method
-  methods_name_ordered = list(methods_name)
-  methods_name_ordered.sort()
-  section_list = []
-  for method_name in methods_name_ordered:
-
-    try:
-      generic_method = generic_methods[method_name]
-    except Exception as e:
-      sys.stderr.write("Error: The method '" + method_name + "' does not exist. Aborting Technique creation..." + "\n")
-      sys.stderr.write(traceback.format_exc())
-      exit(1)
-
-    # Filter all method calls to get only those about that method
-    filter_method_calls = [x for x in method_calls if x["method_name"] == method_name]
-    # Generare xml for that section
-    section = generate_section_xml(filter_method_calls, generic_method)
-    section_list.extend(section)
-
-  content.extend(section_list)
-  content.append('  </SECTIONS>')
-  content.append('</TECHNIQUE>')
-
-  # Join all lines with \n to get a pretty xml
-  result =  '\n'.join(content)+"\n"
-
-  return result
-
-
-def generate_section_xml(method_calls, generic_method):
-  """ Generate xml section about a method used by that technique"""
-  content = []
-  content.append('    <SECTION component="true" multivalued="true" name="'+generic_method["name"]+'">')
-  content.append('      <REPORTKEYS>')
-
-  # For each method call, generate a value
-  values = []
-  for method_call in method_calls:
-    # Generate XML for that method call
-    value = generate_value_xml(method_call,generic_method)
-    values.append(value)
-
-  content.extend(values)
-  content.append('      </REPORTKEYS>') 
-  content.append('    </SECTION>')
-  
-  
-  return content 
-
-
-def generate_value_xml(method_call,generic_method):
-  """Generate xml containing value needed for reporting from a method call"""
-  try:
-    parameter = method_call["args"][generic_method["class_parameter_id"]-1]
-    value = parameter
-    
-    return "        <VALUE><![CDATA["+value+"]]></VALUE>"
-  except:
-    raise Exception("Method parameter \"" + generic_method['class_parameter_id'] + "\" is not defined")
-
 
 def get_technique_expected_reports(technique_metadata):
   """Generates technique expected reports from technique metadata"""

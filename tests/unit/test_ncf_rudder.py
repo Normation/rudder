@@ -47,10 +47,6 @@ class TestNcfRudder(unittest.TestCase):
     any_technique_method_calls = ncf.parse_technique_methods(self.test_any_technique)
     self.any_technique_metadata['method_calls'] = any_technique_method_calls
 
-    self.test_metadata_xml_file = os.path.realpath('test_metadata.xml')
-    with open(self.test_metadata_xml_file) as fd:
-      self.test_metadata_xml_content = fd.read()
-
     self.test_rudder_reporting_file = os.path.realpath('test_technique_rudder_reporting.cf')
     with open(self.test_rudder_reporting_file) as fd:
       self.test_rudder_reporting_content = fd.read()
@@ -65,18 +61,9 @@ class TestNcfRudder(unittest.TestCase):
     self.test_expected_reports_with_quote_csv_file = os.path.realpath('test_expected_reports_with_quote.csv')
     self.test_expected_reports_with_quote_csv_content = open(self.test_expected_reports_with_quote_csv_file).read()
 
-    self.test_metadata_with_quote_xml_file = os.path.realpath('test_metadata_with_quote.xml')
-    self.test_metadata_with_quote_xml_content = open(self.test_metadata_with_quote_xml_file).read()
-
   def test_expected_reports_from_technique(self):
     expected_reports_string = ncf_rudder.get_technique_expected_reports(self.technique_metadata)
     self.assertEqual(expected_reports_string, self.test_expected_reports_csv_content)
-
-  def test_metadata_xml_from_technique(self):
-    """The XML content generated from a ncf technique must match the XML content required by Rudder for it's metadata.xml file"""
-    metadata_xml_string = ncf_rudder.get_technique_metadata_xml(self.technique_metadata)
-    expected_metadata_pure_xml = self.test_metadata_xml_content
-    self.assertEqual(expected_metadata_pure_xml, metadata_xml_string)
 
   def test_rudder_reporting_from_technique(self):
     """The rudder-reporting.cf content generated from a ncf technique must match the reporting we expect for our technique"""
@@ -107,11 +94,6 @@ class TestNcfRudder(unittest.TestCase):
   def test_expected_reports_with_quote(self):
     expected_reports_string = ncf_rudder.get_technique_expected_reports(self.technique_with_quote_metadata)
     self.assertEquals(expected_reports_string, self.test_expected_reports_with_quote_csv_content)
-
-  def test_metadate_with_quote(self):
-    metadata_xml_string = ncf_rudder.get_technique_metadata_xml(self.technique_with_quote_metadata)
-    expected_metadata_pure_xml = self.test_metadata_with_quote_xml_content
-    self.assertEquals(expected_metadata_pure_xml, metadata_xml_string)
 
   def test_rudder_reporting_content(self):
 
