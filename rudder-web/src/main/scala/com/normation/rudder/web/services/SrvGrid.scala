@@ -249,6 +249,7 @@ case class NodeLine (
   val baseFields = {
    JsObj(
        ( "name" -> hostname )
+     , ( "state" -> node.state.name )
      , ( "id" -> node.id.value )
      , ( "machineType" -> (node.machine.map { _.machineType match {
                             case _: VirtualMachineType => "Virtual"

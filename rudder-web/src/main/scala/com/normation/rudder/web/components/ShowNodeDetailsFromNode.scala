@@ -65,6 +65,7 @@ import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.domain.nodes.NodeState
 
 object ShowNodeDetailsFromNode {
 
@@ -139,6 +140,25 @@ class ShowNodeDetailsFromNode(
      , () => Unit
      , () => Some(getGlobalSchedule)
    )
+
+  def nodeStateEditForm(nodeInfo: NodeInfo) = new NodeStateForm(
+      nodeInfo
+    , saveNodeState(nodeInfo.id)
+  )
+
+  def saveNodeState(nodeId: NodeId)(nodeState: NodeState): Box[NodeState] = {
+    val modId =  ModificationId(uuidGen.newUuid)
+    val user  =  CurrentUser.getActor
+
+    for {
+      oldNode <- nodeInfoService.getNode(nodeId)
+      newNode =  oldNode.copy(state = nodeState)
+      result  <- nodeRepo.updateNode(newNode, modId, user, None)
+    } yield {
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+      nodeState
+    }
+  }
 
   def getGlobalSchedule() : Box[AgentRunInterval] = {
     for {
@@ -257,8 +277,9 @@ class ShowNodeDetailsFromNode(
       "#nodeInventory *" #> DisplayNode.show(inventory, false) &
       "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
       "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
-      "#node_parameters -*" #>  agentPolicyModeEditForm.cfagentPolicyModeConfiguration &
-      "#node_parameters -*" #>  agentScheduleEditForm(node).cfagentScheduleConfiguration&
+      "#node_parameters -*" #> nodeStateEditForm(node).nodeStateConfiguration&
+      "#node_parameters -*" #> agentPolicyModeEditForm.cfagentPolicyModeConfiguration &
+      "#node_parameters -*" #> agentScheduleEditForm(node).cfagentScheduleConfiguration&
       "#node_parameters *+" #> complianceModeEditForm(node).complianceModeConfiguration &
       "#extraHeader" #> DisplayNode.showExtraHeader(inventory) &
       "#extraContent" #> DisplayNode.showExtraContent(Some(node), inventory) &
