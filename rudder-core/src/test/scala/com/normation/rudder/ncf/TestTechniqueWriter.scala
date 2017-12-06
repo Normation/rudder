@@ -190,4 +190,44 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
   }
 
+  val technique_any =
+    Technique(
+        BundleName("technique_any")
+      , "Test Technique created through Rudder API"
+      , MethodCall(
+            BundleName("package_install_version")
+          , Map((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
+          , "any"
+        ) :: Nil
+      , new Version("1.0")
+      , "This Technique exists only to see if Rudder creates Technique correctly."
+    )
+
+  val expectedMetadataPath_any = s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/metadata.xml"
+  val dscTechniquePath_any     = s"dsc/ncf/50_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/${technique_any.bundleName.value}.ps1"
+
+  s"Preparing files for technique ${technique.bundleName.value}" should {
+
+    "Should write metadata file without problem" in {
+      writer.writeMetadata(technique_any, methods, ModificationId("test"), EventActor("test")) must beRight( expectedMetadataPath_any )
+    }
+
+    "Should generate expected metadata content for our technique" in {
+      val expectedMetadataFile = new File(s"${expectedPath}/${expectedMetadataPath_any}")
+      val resultMetadataFile = new File(s"${basePath}/${expectedMetadataPath_any}")
+      resultMetadataFile must haveSameLinesAs (expectedMetadataFile)
+    }
+
+    "Should write dsc technique file without problem" in {
+      dscWriter.writeAgentFile(technique_any, methods) must beRight( beSome (dscTechniquePath_any ))
+    }
+
+    "Should generate expected dsc technique content for our technique" in {
+      val expectedDscFile = new File(s"${expectedPath}/${dscTechniquePath_any}")
+      val resultDscFile = new File(s"${basePath}/${dscTechniquePath_any}")
+      resultDscFile must haveSameLinesAs (expectedDscFile)
+    }
+
+  }
+
 }
