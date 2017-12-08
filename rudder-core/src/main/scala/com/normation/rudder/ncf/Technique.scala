@@ -40,20 +40,17 @@ package com.normation.rudder.ncf
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.AgentType
 
-object NcfId {
-  implicit class DscTechniqueEncoder(id : NcfId) {
-    val validDscName = {
-      id.value.split("_").map(_.capitalize).mkString("-")
-    }
-  }
-}
-
 sealed trait NcfId {
   def value : String
+  def validDscName : String
 }
-final case class BundleName (value : String) extends NcfId
+final case class BundleName (value : String) extends NcfId {
+  val validDscName : String = value.split("_").map(_.capitalize).mkString("-")
+}
 
-final case class ParameterId (value : String) extends NcfId
+final case class ParameterId (value : String) extends NcfId  {
+  val validDscName : String = value.split("_").map(_.capitalize).mkString("")
+}
 
 final case class Technique(
     bundleName  : BundleName
