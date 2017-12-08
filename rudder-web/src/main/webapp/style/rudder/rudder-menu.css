@@ -1058,10 +1058,10 @@ table.tablewidth{
   padding-left:0;
   padding-right:0;
 }
-table.dataTable td img.space-left{
+table.dataTable td i.node-details{
   visibility:hidden;
 }
-table.dataTable td:hover img.space-left{
+table.dataTable td:hover i.node-details{
   visibility:visible;
 }
 table > tbody > tr > td.action{
