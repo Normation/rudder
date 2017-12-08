@@ -18,7 +18,7 @@ limitations under the License.
 
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
-  <version>4.1.9-SNAPSHOT</version>
+  <version>4.1.9</version>
   <packaging>pom</packaging>
 
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
@@ -328,8 +328,8 @@ limitations under the License.
 
     <current-year>2017</current-year>
     <rudder-major-version>4.1</rudder-major-version>
-    <rudder-version>4.1.9-SNAPSHOT</rudder-version>
-    <spring-run-dep-version>4.1.9-SNAPSHOT</spring-run-dep-version>
+    <rudder-version>4.1.9</rudder-version>
+    <spring-run-dep-version>4.1.9</spring-run-dep-version>
 
     <scala-version>2.12.4</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
@@ -369,16 +369,16 @@ limitations under the License.
 
     <jvmArg-Xmx>1G</jvmArg-Xmx>
     <jvmArg-Xss>32m</jvmArg-Xss>
-    <jvmArg-arg0></jvmArg-arg0>
-    <jvmArg-arg1></jvmArg-arg1>
-    <jvmArg-arg2></jvmArg-arg2>
-    <jvmArg-arg3></jvmArg-arg3>
-    <jvmArg-arg4></jvmArg-arg4>
-    <jvmArg-arg5></jvmArg-arg5>
-    <jvmArg-arg6></jvmArg-arg6>
-    <jvmArg-arg7></jvmArg-arg7>
-    <jvmArg-arg8></jvmArg-arg8>
-    <jvmArg-arg9></jvmArg-arg9>
+    <jvmArg-arg0/>
+    <jvmArg-arg1/>
+    <jvmArg-arg2/>
+    <jvmArg-arg3/>
+    <jvmArg-arg4/>
+    <jvmArg-arg5/>
+    <jvmArg-arg6/>
+    <jvmArg-arg7/>
+    <jvmArg-arg8/>
+    <jvmArg-arg9/>
 
   </properties>
 
