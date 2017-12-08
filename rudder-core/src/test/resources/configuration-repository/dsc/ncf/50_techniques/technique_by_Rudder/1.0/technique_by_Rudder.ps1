@@ -10,7 +10,7 @@ function Technique-By-Rudder {
 
   $local_classes = New-ClassContext
 
-  $local_classes = Merge-ClassContext $local_classes $(Package-Install-Version -Package-Name "$($node.properties[apache_package_name])" -Package-Version "2.2.11" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
+  $local_classes = Merge-ClassContext $local_classes $(Package-Install-Version -PackageName "$($node.properties[apache_package_name])" -PackageVersion "2.2.11" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
 
   $class = "windows"
   if (Evaluate-Class $class $local_classes $system_classes) {
@@ -21,7 +21,7 @@ function Technique-By-Rudder {
 
   $class = "package_install_version_$($node.properties[apache_package_name])_repaired"
   if (Evaluate-Class $class $local_classes $system_classes) {
-    $local_classes = Merge-ClassContext $local_classes $(Service-Start -Service-Name "$($node.properties[apache_package_name])" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
+    $local_classes = Merge-ClassContext $local_classes $(Service-Start -ServiceName "$($node.properties[apache_package_name])" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
   } else {
     _rudder_common_report_na -componentName "Service start" -componentKey "$($node.properties[apache_package_name])" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
   }
