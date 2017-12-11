@@ -1389,6 +1389,11 @@ form .tooltip-content p {
   background-color: #9BC832;
 }
 
+.tw-bs .rudder-label.label-state{
+  cursor: default;
+  background-color: #fbff52;
+  color: #2e3436;
+}
 .tw-bs .rudder-label.label-enforce:before,.tw-bs .label-text.label-enforce:after{
   content: "Enforce";
 }

@@ -1063,7 +1063,11 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "sTitle": "Node name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, false)
-        var el = "<span>"+sData+"</span>";
+        var state = "";
+        if(oData.state != "enabled") {
+          state = '<span class="rudder-label label-state label-sm" style="margin-left: 5px;">'+oData.state+'</span>'
+        }
+        var el = '<span class="tw-bs">'+sData+state+'</span>';
         var nodeLink = $(el);
         link.append(nodeLink);
         var icon = $("<i>");

@@ -1,0 +1,51 @@
+<node-state>
+<div class="inner-portlet tw-bs" id="nodeState">
+  <div class="page-title">Node state</div>
+  <div class="portlet-content"  id="agentScheduleController">
+    <div class="col-xs-12 callout-fade callout-warning">
+      <div class="marker">
+        <span class="glyphicon glyphicon-info-sign"></span>
+      </div>
+      <div>
+        <p>A node can be assigned a state. State may be used to classify nodes (in search and groups). 
+           Some states have also an impact on what Rudder does for a node.</p>
+        <p>By default, a node is in state <b>Enabled</b>.</p>
+        <p>Available states are:</p>
+        <ol>
+          <li><b>Enabled</b>: this is the default state for a node. Rudder generate policies for that node based on Rules and Groups. 
+              The node is expected to report on these policies on each run, accordingly to its Policy Mode, Agen Run Schedule, and Compliance Mode.</li>
+          <li><b>Initializing</b>: this state is equivalent to <b>Enabled</b> state but may be used to create specific Rules and Groups for new nodes.</li>
+          <li><b>Preparing End Of Life</b>: this state is equivalent to <b>Enabled</b> state but may be used to create specific Rules and Groups for EOL nodes.</li>
+          <li><b>Ignored</b>: Rudder ignore node is this state. No policy are generated for them, and they are excluded from compliance reporting. The agent 
+              for a node on that state doesn't get new policies, but it continues to runs as before. This state is typically used for a temporaly shutdowned 
+              machine, or for a node for which the policy generation is broken for some reasons and get be fixed for now.</li>
+          <li><b>Empty policies</b>: When policies are generated, Rudder remove all non-system policies for nodes in this state. The agent continue to
+              run, but only with system policies. By consequences, the node is excluded from all non-system policy compliance calculation. This state 
+              is perfect for a node which should not be managed by Rudder for a time but with the possibility to get back to managed without direct 
+              connection to the node.</li>
+        </ol> 
+      </div>
+    </div>
+    
+    <div class="col-xs-4">
+      <form role="form" class="lift:form.ajax?class=form-horizontal%20rudder-form%20no-shadow">
+        <div class="globalConf col-xs-4">
+          <div class="form-group">
+            <select class="form-control input-sm" id="nodeStateSelect"></select>
+          </div>
+        </div>
+        <lift:authz role="administration_write">
+          <div class="form-group">
+            <div class="pull-left control-label">
+              <button type="submit" class="btn btn-default" id="nodeStateSubmit">Save changes</button>
+            </div>
+          </div>
+        </lift:authz>
+        <div id="nodeStateMessage" class="col-xs-4">
+          <span class="lift:Msg?nodeStateMessage">[messages]</span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</node-state>
