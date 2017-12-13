@@ -409,7 +409,7 @@ object DisplayNode extends Loggable {
          { nodePolicyMode match {
            case None => NodeSeq.Empty
            case Some((mode,explanation)) =>
-            <b>Agent policy mode :</b><span id="badge-apm" class="tw-bs"></span><br/>  ++
+            <b>Node policy mode :</b><span id="badge-apm" class="tw-bs"></span><br/>  ++
             Script(OnLoad(JsRaw(s"""
               $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));
               $$('.rudder-label').bsTooltip();
