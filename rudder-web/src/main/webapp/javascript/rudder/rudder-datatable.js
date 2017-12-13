@@ -1071,7 +1071,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         var nodeLink = $(el);
         link.append(nodeLink);
         var icon = $("<i>");
-        icon.addClass("fa fa-search space-left");
+        icon.addClass("fa fa-search space-left node-details");
         link.append(icon);
         $(nTd).empty();
         $(nTd).append(link);
