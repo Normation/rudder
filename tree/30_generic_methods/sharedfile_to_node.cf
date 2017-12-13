@@ -152,7 +152,7 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
     _stdlib_path_exists_curl::
       "/opt/rudder/bin/rudder-sign"
         args => "${file_path} 1.1",
-        classes => classes_generic("${canonified_path}_signed"),
+        classes => if_ok("${canonified_path}_signed"),
         ifvarclass => "!${canonified_path}_signed";
 
     _stdlib_path_exists_curl.pass2::
