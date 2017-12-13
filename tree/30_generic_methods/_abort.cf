@@ -40,6 +40,6 @@ bundle agent _abort(reason, message)
       # Calling the appropriate bundle(s)
       "wrapper for ${configuration.enabled_abort_handlers}"
         usebundle => ${configuration.enabled_abort_handlers}("${reason}", "${message}"),
-        action  => immediate,
+        action  => immediate_ignore_dry_run,
         comment   => "Call the ${method} bundle with arguments ${reason}, ${message}";
 }

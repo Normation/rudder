@@ -29,5 +29,5 @@ bundle agent _abort_default(reason, message)
 {
   reports:
       "${configuration.fatal} Aborting agent run because of ${reason}: ${message}"
-        action  => immediate;
+        action  => immediate_ignore_dry_run;
 }

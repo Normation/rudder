@@ -38,7 +38,7 @@ bundle agent set_dry_run_mode(mode)
   methods:
     !unset_mode::
       "abort" usebundle => _abort("unsupported_dryrun", "Dry-run mode is not compatible with this agent. Stopping immediately to prevent any unwanted change."),
-                action  => immediate;
+                action  => immediate_ignore_dry_run;
 
   reports:
     debug.unset_mode::
