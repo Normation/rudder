@@ -223,15 +223,15 @@ class ClassicTechniqueWriter extends AgentSpecificTechniqueWriter {
         <NAME>{technique.bundleName.value}</NAME>
         {if (needReportingBundle) <NAME>{technique.bundleName.value}_rudder_reporting</NAME>}
       </BUNDLES>
-      { if (needReportingBundle)
-        <TMLS>
-          <TML name="rudder_reporting"/>
-        </TMLS>
-      }
       <FILES>
         <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/${technique.bundleName.value}/${technique.bundleName.value}.cf"}>
           <INCLUDED>true</INCLUDED>
         </FILE>
+        { if (needReportingBundle)
+          <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"}>
+            <INCLUDED>true</INCLUDED>
+          </FILE>
+        }
       </FILES>
     </AGENT>
     Right(xml)
