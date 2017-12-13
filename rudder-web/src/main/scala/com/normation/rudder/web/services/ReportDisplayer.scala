@@ -245,7 +245,7 @@ class ReportDisplayer(
           )
           if(nbAttention > 0) {
             ( "bg-warning text-warning"
-            , <p>{nbAttention} reports below (out of {report.compliance.total} total reports) are not in Success, and may require attention."</p>
+            , <p>{nbAttention} reports below (out of {report.compliance.total} total reports) are not in Success, and may require attention.</p>
             )
           } else if(report.compliance.pc.pending > 0) {
             ("bg-info text-info", NodeSeq.Empty)
