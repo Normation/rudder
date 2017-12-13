@@ -447,7 +447,7 @@ case class MultivaluedSectionField(
   }
 
   private def content: NodeSeq = {
-    <td colspan="2">
+    <td colspan="3">
       <div class="directiveGroup">{
         (allSections.zipWithIndex.map {
           case (section, i) =>
