@@ -464,6 +464,13 @@ body action do_if_immediate {
    action_policy => "warn";
 }
 
+# Useful for immediate call to bundles with dry-run mode on,
+# as we do not want dry-run mode applied on it.
+body action immediate_ignore_dry_run
+{
+      ifelapsed => "0";
+}
+
 bundle edit_line ncf_insert_block(block) {
   insert_lines:
       "${block}"
