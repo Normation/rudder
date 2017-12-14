@@ -117,9 +117,9 @@ bundle agent push_dry_run_mode(mode)
 {
   vars:
     dry_run::
-      "last_mode" => "true";
+      "last_mode" string => "true";
     !dry_run::
-      "last_mode" => "false";
+      "last_mode" string => "false";
     # pass3 because this must be evaluated exactly only once
     pass3::
       # this value is used as a unique value in the set_dry_run_mode promiser
@@ -154,7 +154,7 @@ bundle agent pop_dry_run_mode()
       # compute stack length minus 1
       "stack_len" int => length("dry_run_unique.stack");
       "new_len_float" string => eval("${stack_len}-1", "math", "infix");
-      "new_len" sring => format("%d", "${new_len_float}");
+      "new_len" string => format("%d", "${new_len_float}");
       # remove first value
       "dry_run_unique.stack" slist => sublist("dry_run_unique.stack", "tail", "${new_len}");
 
