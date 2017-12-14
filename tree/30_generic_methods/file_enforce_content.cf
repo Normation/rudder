@@ -42,7 +42,7 @@ bundle agent file_enforce_content(file, lines, enforce)
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "sanitize" usebundle => _classes_sanitize("${_oldclass_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "report" usebundle => _log("Insert content ${lines} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
