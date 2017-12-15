@@ -153,7 +153,7 @@ def write_expected_reports_file(path,technique):
 
 def write_rudder_reporting_file(path,technique):
   """ write rudder_reporting.st file from a technique, to a path """
-  file = codecs.open(os.path.realpath(os.path.join(path, "rudder_reporting.st")), "w", encoding="utf-8")
+  file = codecs.open(os.path.realpath(os.path.join(path, "rudder_reporting.cf")), "w", encoding="utf-8")
   content = generate_rudder_reporting(technique)
   file.write(content)
   file.close()
@@ -182,15 +182,14 @@ def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = Fa
     content.append('    <NAME>'+ technique_metadata['bundle_name'] + '_rudder_reporting</NAME>')
   content.append('  </BUNDLES>')
 
-  if include_rudder_reporting:
-    content.append('  <TMLS>')
-    content.append('    <TML name="rudder_reporting"/>')
-    content.append('  </TMLS>')
-
   content.append('  <FILES>')
   content.append('    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/'+technique_metadata['bundle_name']+'/'+technique_metadata['bundle_name']+'.cf">')
   content.append('      <INCLUDED>true</INCLUDED>')
   content.append('    </FILE>')
+  if include_rudder_reporting:
+    content.append('    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/'+technique_metadata['bundle_name']+'/'+technique_metadata['version']+'rudder_reporting.cf">')
+    content.append('      <INCLUDED>true</INCLUDED>')
+    content.append('    </FILE>')
   content.append('  </FILES>')
 
   content.append('  <SECTIONS>')
