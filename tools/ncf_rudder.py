@@ -146,7 +146,7 @@ def write_expected_reports_file(path,technique):
 
 def write_rudder_reporting_file(path,technique):
   """ write rudder_reporting.st file from a technique, to a path """
-  file = codecs.open(os.path.realpath(os.path.join(path, "rudder_reporting.st")), "w", encoding="utf-8")
+  file = codecs.open(os.path.realpath(os.path.join(path, "rudder_reporting.cf")), "w", encoding="utf-8")
   content = generate_rudder_reporting(technique)
   file.write(content)
   file.close()
