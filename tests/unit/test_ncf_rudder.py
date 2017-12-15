@@ -80,13 +80,13 @@ class TestNcfRudder(unittest.TestCase):
   def test_rudder_reporting_file(self):
     root_path = '/tmp/ncf_rudder_tests_reporting'
     ncf_rudder.write_technique_for_rudder(root_path, self.reporting_metadata)
-    result = os.path.exists(os.path.realpath(os.path.join(root_path, 'bla', '0.1', "rudder_reporting.st")))
+    result = os.path.exists(os.path.realpath(os.path.join(root_path, 'bla', '0.1', "rudder_reporting.cf")))
     self.assertTrue(result)
 
   def test_any_technique_reporting_file(self):
     root_path = '/tmp/ncf_rudder_tests_any'
     ncf_rudder.write_technique_for_rudder(root_path, self.any_technique_metadata)
-    result = not os.path.exists(os.path.realpath(os.path.join(root_path, 'bla', '0.1', "rudder_reporting.st")))
+    result = not os.path.exists(os.path.realpath(os.path.join(root_path, 'bla', '0.1', "rudder_reporting.cf")))
     self.assertTrue(result)
 
 
