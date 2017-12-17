@@ -81,7 +81,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   val methods = ( GenericMethod(
       BundleName("package_install_version")
     , "Package install version"
-    , Parameter(ParameterId("package_name"),"") :: Parameter(ParameterId("package_version"),"") :: Nil
+    , MethodParameter(ParameterId("package_name"),"") :: MethodParameter(ParameterId("package_version"),"") :: Nil
     , ParameterId("package_name")
     , "package_install_version"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
@@ -90,7 +90,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("service_start")
     , "Service start"
-    , Parameter(ParameterId("service_name"),"") :: Nil
+    , MethodParameter(ParameterId("service_name"),"") :: Nil
     , ParameterId("service_name")
     , "service_start"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
@@ -99,7 +99,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("package_install")
     , "Package install"
-    , Parameter(ParameterId("package_name"),"") :: Nil
+    , MethodParameter(ParameterId("package_name"),"") :: Nil
     , ParameterId("package_name")
     , "package_install"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil
@@ -108,7 +108,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("command_execution")
     , "Command execution"
-    , Parameter(ParameterId("command"),"") :: Nil
+    , MethodParameter(ParameterId("command"),"") :: Nil
     , ParameterId("command")
     , "command_execution"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
@@ -117,7 +117,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("_logger")
     , "_logger"
-    , Parameter(ParameterId("command"),"") :: Parameter(ParameterId("command"),"") :: Nil
+    , MethodParameter(ParameterId("command"),"") :: MethodParameter(ParameterId("command"),"") :: Nil
     , ParameterId("command")
     , "_logger"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil
@@ -161,6 +161,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
         ) :: Nil
       , new Version("1.0")
       , "This Technique exists only to see if Rudder creates Technique correctly."
+      , Nil
     )
 
   val expectedMetadataPath = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
@@ -201,6 +202,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
         ) :: Nil
       , new Version("1.0")
       , "This Technique exists only to see if Rudder creates Technique correctly."
+      , Nil
     )
 
   val expectedMetadataPath_any = s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/metadata.xml"

@@ -52,11 +52,11 @@ class PrepareTemplateVariableTest extends Specification {
   def TID(s: String) = TechniqueId(TechniqueName(s), TechniqueVersion("1.0"))
 
   val bundles = Seq(
-      ("Global configuration for all nodes/20. Install jdk version 1.0"                   , Bundle(ReportId("not used"), BundleName("Install_jdk_rudder_reporting")))
-    , ("Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)", Bundle(ReportId("not used"), BundleName("check_zmd_settings")))
-    , ("""Nodes only/Name resolution version "3.0" and counting"""                        , Bundle(ReportId("not used"), BundleName("check_dns_configuration")))
-    , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle(ReportId("not used"), BundleName("check_apt_package_installation")))
-    , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle(ReportId("not used"), BundleName("check_apt_package_installation2")))
+      ("Global configuration for all nodes/20. Install jdk version 1.0"                   , Bundle(ReportId("not used"), BundleName("Install_jdk_rudder_reporting"), Seq()))
+    , ("Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)", Bundle(ReportId("not used"), BundleName("check_zmd_settings"), Seq()))
+    , ("""Nodes only/Name resolution version "3.0" and counting"""                        , Bundle(ReportId("not used"), BundleName("check_dns_configuration"), Seq()))
+    , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle(ReportId("not used"), BundleName("check_apt_package_installation"), Seq()))
+    , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle(ReportId("not used"), BundleName("check_apt_package_installation2"), Seq()))
   ).map { case(x,y) => TechniqueBundles(Directive(x), TID("not-used-here"), Nil, y::Nil, Nil, false, false, PolicyMode.Enforce) }
 
   // Ok, now I can test
