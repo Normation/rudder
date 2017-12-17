@@ -113,6 +113,7 @@ case class SectionSpec(
 
   def copyWithoutSystemVars: SectionSpec =
     filterChildren {
+      case _ : PredefinedValuesVariableSpec => false
       case variable: VariableSpec => !variable.isSystem
       case _ => true
     }

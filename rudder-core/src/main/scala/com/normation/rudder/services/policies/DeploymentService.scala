@@ -105,7 +105,6 @@ trait PromiseGenerationHooks {
   def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
 }
 
-
 /**
  * The main service which deploy modified rules and
  * their dependencies.
@@ -223,7 +222,6 @@ trait PromiseGenerationService extends Loggable {
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
 
-
       ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
       // WHY DO WE NEED TO FORGET OTHER NODES CACHE INFO HERE ?
@@ -238,7 +236,6 @@ trait PromiseGenerationService extends Loggable {
       savedExpectedReports  <- saveExpectedReports(expectedReports) ?~! "Error when saving expected reports"
       timeSaveExpected      =  (System.currentTimeMillis - saveExpectedTime)
       _                     =  logger.debug(s"Node expected reports saved in base in ${timeWriteNodeConfig} ms.")
-
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime         =  System.currentTimeMillis
@@ -276,7 +273,6 @@ trait PromiseGenerationService extends Loggable {
       logger.debug("Save expected reports     : %10s ms".format(timeSetExpectedReport))
       logger.debug("Run post generation hooks : %10s ms".format(timeRunPostGenHooks))
       logger.debug("Number of nodes updated   : %10s   ".format(updatedNodeIds.size))
-
 
       writtenNodeConfigs.map( _.nodeInfo.id )
     }
@@ -333,7 +329,6 @@ trait PromiseGenerationService extends Loggable {
       ) )
     }.toMap
   }
-
 
   def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId]
 
@@ -439,7 +434,6 @@ trait PromiseGenerationService extends Loggable {
   def saveExpectedReports(
       expectedReports  : List[NodeExpectedReports]
   ) : Box[Seq[NodeExpectedReports]]
-
 
   /**
    * After updates of everything, notify compliace cache
@@ -658,7 +652,6 @@ trait PromiseGeneration_buildRuleVals extends PromiseGenerationService {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService {
   override def buildNodeConfigurations(
@@ -929,7 +922,6 @@ object BuildNodeConfiguration extends Loggable {
             // and then we merge all other draft values.
             // we need to do it for expanded and original values and tracking key values
 
-
             // one more thing: we need to take care of unique variables.
             // unique variable values have the same size as if they were not unique,
             // but only ONE value is repeated.
@@ -969,12 +961,9 @@ object BuildNodeConfiguration extends Loggable {
       }
     }
 
-
-
     //
     // Actually do stuff !
     //
-
 
     /*
      * First: we must be sure that each BoundPolicyDraft has a unique id.
@@ -1022,7 +1011,7 @@ object BuildNodeConfiguration extends Loggable {
     val groupedDrafts = (GroupedDrafts(Map(),Map(),Set()) /: updatedTrackingKeyValues) { case(grouped, draft) =>
       if(draft.technique.isMultiInstance) {
         draft.technique.generationMode match {
-          case TechniqueGenerationMode.MultipleDirectives =>
+          case TechniqueGenerationMode.MultipleDirectives | TechniqueGenerationMode.MultipleDirectivesWithParameters =>
             grouped.copy( multiDirectives = grouped.multiDirectives + draft )
           case TechniqueGenerationMode.MergeDirectives =>
             //look is there is already directives for the technique
@@ -1134,7 +1123,6 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
   def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]] = nodeConfigurationService.getAll()
 
-
   /**
    * Look what are the node configuration updated compared to information in cache
    */
@@ -1210,7 +1198,6 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     //return update nodeId with their config
     nodeConfigIds
   }
-
 
   /**
    * Actually  write the new configuration for the list of given node.
@@ -1347,13 +1334,11 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
   ) : List[NodeExpectedReports] = {
     val filteredExpandedRuleVals = filterOverridenDirectives(expandedRuleVals, overrides)
 
-
     // transform to rule expected reports by node
     val directivesExpectedReports = filteredExpandedRuleVals.map { case ExpandedRuleVal(ruleId, configs) =>
       configs.toSeq.map { case (nodeConfigId, directives) =>
         // each directive is converted into Seq[DirectiveExpectedReports]
         val directiveExpected = directives.map { directive =>
-
 
                val seq = ComputeCardinalityOfUnboundBoundedPolicyDraft.getTrackingKeyLinearisation(directive)
 
@@ -1532,7 +1517,6 @@ object ComputeCardinalityOfUnboundBoundedPolicyDraft extends Loggable {
   }
 
 }
-
 
 trait PromiseGeneration_historization extends PromiseGenerationService {
   def historizationService : HistorizationService
