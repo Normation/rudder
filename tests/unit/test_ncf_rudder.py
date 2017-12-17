@@ -204,14 +204,14 @@ class TestNcfRudder(unittest.TestCase):
 
 
   def test_canonify(self):
-    result = ncf_rudder.canonify("ascii @&_ string")
+    result = ncf.canonify("ascii @&_ string")
     self.assertEquals(result, "ascii_____string")
 
     # python/ncf reads UTF-8 files and produces u'' strings in python2 and '' strings in python3
     # python2 tests
     if sys.version_info[0] == 2:
       # unicode in source file -> interpreted as unicode with u'' -> correct iso in python string (ncf builder use case)
-      result = ncf_rudder.canonify(u'héhé')
+      result = ncf.canonify(u'héhé')
       self.assertEquals(result, 'h__h__')
 
     # python3 tests

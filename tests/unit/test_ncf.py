@@ -24,15 +24,15 @@ class TestNcf(unittest.TestCase):
     method_calls = ncf.parse_technique_methods(self.test_technique_file)
     self.technique_metadata['method_calls'] = method_calls
 
-    self.technique_metadata_test = { 'name': 'ncf technique method argument escape test', 'description': "This is a bundle to test ncf's Python lib", 'version': '0.1', 'bundle_name': 'content_escaping_test', 'bundle_args': [],
+    self.technique_metadata_test = { 'name': 'ncf technique method argument escape test', 'description': "This is a bundle to test ncf's Python lib", 'version': '0.1', 'bundle_name': 'content_escaping_test', 'bundle_args': [], 'parameter': [],
         'method_calls': [
             { 'method_name': 'package_install_version', 'args': ['apache2', '2.2.11'], 'class_context': 'any' },
             { 'method_name': 'file_replace_lines', 'args': ['/etc/httpd/conf/httpd.conf', 'ErrorLog \"/var/log/httpd/error_log\"', 'ErrorLog "/projet/logs/httpd/error_log"'],  'class_context': 'redhat' },
           ]
         }
     self.technique_metadata_test_content = os.path.realpath('technique_metadata_test_content.cf')
-    all_tags = ncf.tags["generic_method"]+ncf.tags["common"]
-    self.methods_expected_tags = [ tag for tag in all_tags if not tag in ncf.optionnal_tags ]
+    all_tags = ncf.tags["generic_method"]
+    self.methods_expected_tags = [ tag for tag in all_tags if not tag in ncf.optionnal_tags["generic_method"] ]
 
     with open(self.technique_metadata_test_content) as fd:
       self.technique_test_expected_content = fd.read()
@@ -64,7 +64,7 @@ class TestNcf(unittest.TestCase):
   def test_parse_technique(self):
     """Parsing should return a dict with all defined technique tags"""
     metadata = ncf.parse_technique_metadata(self.technique_content)['result']
-    self.assertEqual(sorted(metadata.keys()), sorted(ncf.tags["technique"]+ncf.tags["common"]))
+    self.assertEqual(sorted(metadata.keys()), sorted(ncf.tags["technique"]))
 
   def test_parse_technique_data(self):
     """Parsing should return a dict with the data from the test technique"""

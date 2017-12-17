@@ -864,3 +864,6 @@ label.form-control .deprecated-icon{
   0%   {color: #222D32;}
   100% {color: #646464;}
 }
+.no-padding-right {
+  padding-right: 0px;
+}
