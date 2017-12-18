@@ -24,7 +24,7 @@
 # @parameter file File name to edit (absolute path on the target node)
 # @parameter key Key to define
 # @parameter value Value to define
-# @parameter separator Separator between key and value (for example "=" or " ")
+# @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
 # @parameter_constraint separator "allow_whitespace_string" : true
 #
 # @class_prefix file_ensure_key_value
