@@ -16,9 +16,7 @@
 #
 #####################################################################################
 
-# @name Permissions dirs recurse
-# @rename permissions_dir_recursive
-# @deprecated Use [permissions_dirs_recursive](#permissions_dirs_recursive) instead.
+# @name Permissions dirs recursive
 # @description Verify if a directory has the right permissions recursively
 #
 # @parameter path Path to the directory
@@ -29,7 +27,7 @@
 # @class_prefix permissions
 # @class_parameter path
 
-bundle agent permissions_dirs_recurse(path, mode, owner, group)
+bundle agent permissions_dirs_recursive(path, mode, owner, group)
 {
   vars:
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";

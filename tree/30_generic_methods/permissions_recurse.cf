@@ -16,7 +16,9 @@
 #
 #####################################################################################
 
-# @name Permissions (recursive)
+# @name Permissions (recurse)
+# @rename permissions_recursive
+# @deprecated Use [permissions_recursive](#permissions_recursive) instead.
 # @description Verify if a file or directory has the right permissions recursively
 #
 # @parameter path  Path to the file / directory

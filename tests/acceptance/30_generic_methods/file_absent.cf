@@ -1,6 +1,6 @@
 #######################################################
 #
-# Test checking that file_remove removes a file
+# Test checking that file_absent removes a file
 #
 #######################################################
 
@@ -39,8 +39,8 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_remove("${init.destination_file}");
-    "ph2" usebundle => file_remove("${init.not_a_file}");
+    "ph1" usebundle => file_absent("${init.destination_file}");
+    "ph2" usebundle => file_absent("${init.not_a_file}");
 }
 
 #######################################################
@@ -49,8 +49,8 @@ bundle agent check
 {
   classes:
     "file_exists"      expression => fileexists("${init.destination_file}");
-    "ok_1"             expression => "!file_exists.file_remove_${init.destination_file_canon}_repaired.!file_remove_${init.destination_file_canon}_error";
-    "ok_2"             expression => "file_remove_${init.not_a_file_canon}_kept.!file_remove_${init.not_a_file_canon}_repaired.!file_remove_${init.not_a_file_canon}_error";
+    "ok_1"             expression => "!file_exists.file_absent_${init.destination_file_canon}_repaired.!file_absent_${init.destination_file_canon}_error";
+    "ok_2"             expression => "file_absent_${init.not_a_file_canon}_kept.!file_absent_${init.not_a_file_canon}_repaired.!file_absent_${init.not_a_file_canon}_error";
     "ok"                      and => { "ok_1", "ok_2" };
 
   reports:
@@ -62,10 +62,10 @@ bundle agent check
     !ok_2:: "Second test failed (removing a non existant file, ${init.not_a_file_canon})";
 
     !ok_2:: #debug
-      "Second test debug: class file_remove_${init.not_a_file_canon}_reached defined" ifvarclass => "file_remove_${init.not_a_file_canon}_reached";
-      "Second test debug: class file_remove_${init.not_a_file_canon}_kept defined" ifvarclass => "file_remove_${init.not_a_file_canon}_kept";
-      "Second test debug: class file_remove_${init.not_a_file_canon}_repaired defined" ifvarclass => "file_remove_${init.not_a_file_canon}_repaired";
-      "Second test debug: class file_remove_${init.not_a_file_canon}_error defined" ifvarclass => "file_remove_${init.not_a_file_canon}_error";
+      "Second test debug: class file_absent_${init.not_a_file_canon}_reached defined" ifvarclass => "file_absent_${init.not_a_file_canon}_reached";
+      "Second test debug: class file_absent_${init.not_a_file_canon}_kept defined" ifvarclass => "file_absent_${init.not_a_file_canon}_kept";
+      "Second test debug: class file_absent_${init.not_a_file_canon}_repaired defined" ifvarclass => "file_absent_${init.not_a_file_canon}_repaired";
+      "Second test debug: class file_absent_${init.not_a_file_canon}_error defined" ifvarclass => "file_absent_${init.not_a_file_canon}_error";
 
     ok::
       "$(this.promise_filename) Pass";

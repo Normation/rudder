@@ -1,6 +1,6 @@
 #######################################################
 #
-# Test if cf-serverd is started and if no, start it
+# Disable cron at boot, also try with an unkown service to test error case
 #
 #######################################################
 
@@ -22,17 +22,8 @@ body common control
 bundle agent init
 {
   vars:
-    debian::
-      "service_name"  string => "ssh";
-    redhat::
-      "service_name"  string => "sshd";
-    any::
-      # here we don't use the full path to support multiple version of agent
-      # plus, the check on the path is not anchored, ensuring that it will
-      # find the right process
-      "service_path"  string => "/sbin/sshd";
-      "cservice_name" string => canonify("${service_name}");
-      "cservice_path" string => canonify("${service_path}");
+    "service_name"  string => "cron";
+    "unknown_service_name" string => "unknown";
 }
 
 #######################################################
@@ -40,7 +31,8 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => service_ensure_running_path("${init.service_name}", "${init.service_path}");
+    "ph1" usebundle => service_disabled("${init.service_name}");
+    "ph2" usebundle => service_disabled("${init.unknown_service_name}");
 }
 
 #######################################################
@@ -48,7 +40,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok" expression => "service_ensure_running_${init.cservice_name}_ok.!service_ensure_running_${init.cservice_name}_error";
+    "ok" expression => "service_disabled_${init.service_name}_ok.!service_disabled_${init.service_name}_error";
 
   reports:
     ok::

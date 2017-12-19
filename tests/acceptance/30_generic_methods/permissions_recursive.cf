@@ -34,11 +34,11 @@ bundle agent init
       create => "true",
       perms  => mog("000", "root", "0");
 
-    "${directory}/file1/."
+    "${directory}/file1"
       create => "true",
       perms  => mog("000", "root", "0");
 
-    "${directory}/file2/."
+    "${directory}/file2"
       create => "true",
       perms  => mog("000", "root", "0");
 
@@ -49,7 +49,7 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => permissions_dirs_recurse("${init.directory}", "${init.mode}", "${init.owner}", "${init.group}");
+    "ph1" usebundle => permissions_recursive("${init.directory}", "${init.mode}", "${init.owner}", "${init.group}");
 }
 
 #######################################################

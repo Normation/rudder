@@ -30,7 +30,7 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => service_ensure_stopped("${init.service_name}");
+    "ph1" usebundle => service_stopped("${init.service_name}");
 }
 
 #######################################################
@@ -38,7 +38,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok" expression => "service_ensure_stopped_${init.service_name}_ok.!service_ensure_stopped_${init.service_name}_error";
+    "ok" expression => "service_stopped_${init.service_name}_ok.!service_stopped_${init.service_name}_error";
 
   reports:
     ok::

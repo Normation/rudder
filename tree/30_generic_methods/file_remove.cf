@@ -18,6 +18,8 @@
 
 # @name File remove
 # @description Remove a file if it exists
+# @rename file_absent
+# @deprecated Use [file_absent](#file_absent) instead.
 #
 # @parameter target     File to remove (absolute path on the target node)
 #
@@ -27,23 +29,18 @@
 bundle agent file_remove(target)
 {
   vars:
+    "canonified_target"    string => canonify("${target}");
+
     "old_class_prefix" string => canonify("file_remove_${target}");
     "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"              slist => { "${target}" };
 
-  files:
-    "${target}"
-      delete        => tidy,
-      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
-
   methods:
-    "success_if_nothing" usebundle => _classes_success("${old_class_prefix}"),
-                         ifvarclass => "!${old_class_prefix}_reached";
-
-    "success_if_nothing" usebundle => _classes_success("${class_prefix}"),
-                         ifvarclass => "has_promiser_stack.!${class_prefix}_reached";
-
+    "action"             usebundle => directory_present("${target}");
+    "class copy"         usebundle => _classes_copy("file_absent_${canonified_target}", "${old_class_prefix}"),
+                         ifvarclass => "file_absent_${canonified_target}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
     "report"             usebundle => _log("Remove file ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
-
 }

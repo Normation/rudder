@@ -1,6 +1,6 @@
 #######################################################
 #
-# Test if cron is started and if no, start it
+# Test if cf-serverd is started and if no, start it
 #
 #######################################################
 
@@ -23,11 +23,16 @@ bundle agent init
 {
   vars:
     debian::
-      "service_name"  string => "cron";
+      "service_name"  string => "ssh";
     redhat::
-      "service_name"  string => "crond";
-    aix::
-      "service_name"  string => "syslogd";
+      "service_name"  string => "sshd";
+    any::
+      # here we don't use the full path to support multiple version of agent
+      # plus, the check on the path is not anchored, ensuring that it will
+      # find the right process
+      "service_path"  string => "/sbin/sshd";
+      "cservice_name" string => canonify("${service_name}");
+      "cservice_path" string => canonify("${service_path}");
 }
 
 #######################################################
@@ -35,7 +40,7 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => service_ensure_running("${init.service_name}");
+    "ph1" usebundle => service_started_path("${init.service_name}", "${init.service_path}");
 }
 
 #######################################################
@@ -43,7 +48,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok" expression => "service_ensure_running_${init.service_name}_ok.!service_ensure_running_${init.service_name}_error";
+    "ok" expression => "service_started_${init.cservice_name}_ok.!service_started_${init.cservice_name}_error";
 
   reports:
     ok::

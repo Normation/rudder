@@ -16,28 +16,26 @@
 #
 #####################################################################################
 
-# @name Permissions dirs recurse
-# @rename permissions_dir_recursive
-# @deprecated Use [permissions_dirs_recursive](#permissions_dirs_recursive) instead.
-# @description Verify if a directory has the right permissions recursively
+# @name Permissions (recursive)
+# @description Verify if a file or directory has the right permissions recursively
 #
-# @parameter path Path to the directory
-# @parameter mode Mode to enforce
+# @parameter path  Path to the file / directory
+# @parameter mode  Mode to enforce
 # @parameter owner Owner to enforce
 # @parameter group Group to enforce
 #
 # @class_prefix permissions
 # @class_parameter path
 
-bundle agent permissions_dirs_recurse(path, mode, owner, group)
+bundle agent permissions_recursive(path, mode, owner, group)
 {
   vars:
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"              slist => { "${path}", "${mode}", "${owner}", "${group}" };
+      "args"               slist => { "${path}", "${mode}", "${owner}", "${group}" };
 
   methods:
-      "permission with recursion"  usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "directories", "inf");
+      "permission with recursion"  usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "all", "inf");
       "new result classes"         usebundle => _classes_copy("${class_prefix}_permission_with_recursion", "${class_prefix}");
 
       "report"                     usebundle => _log("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "", "${class_prefix}", @{args});

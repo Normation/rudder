@@ -18,6 +18,8 @@
 
 # @name Service ensure running
 # @description Ensure that a service is running using the appropriate method
+# @rename service_started
+# @deprecated Use [service_started](#service_started) instead.
 #
 # @parameter service_name Service name (as recognized by systemd, init.d, etc...)
 # 
@@ -35,47 +37,12 @@ bundle agent service_ensure_running(service_name)
     "args"                          slist => { "${service_name}" };
 
   methods:
-    
-    !windows::
-      "check_running" usebundle  => service_check_running("${service_name}");
-
-    !windows.has_promiser_stack::
-      "start if not running"
-        usebundle  => service_start("${service_name}"),
-        ifvarclass => "!${class_prefix}_check_running_kept";
-
-      "class copy if not running"
-        usebundle  => _classes_copy("${class_prefix}_start_if_not_running", "${class_prefix}"),
-        ifvarclass => "!${class_prefix}_check_running_kept";
-
-      "class if running"
-        usebundle  => _classes_success("${class_prefix}"),
-        ifvarclass => "${class_prefix}_check_running_kept";
- 
-    !windows.!has_promiser_stack::
-      "start if not running"
-        usebundle  => service_start("${service_name}"),
-        ifvarclass => "!service_check_running_${canonified_service_name}_kept";
-
-      "class copy if not running"
-        usebundle  => _classes_copy("service_start_${canonified_service_name}", "${old_class_prefix}"),
-        ifvarclass => "!service_check_running_${canonified_service_name}_kept";
-
-      "class if running"
-        usebundle  => _classes_success("${old_class_prefix}"),
-        ifvarclass => "service_check_running_${canonified_service_name}_kept";
- 
-    windows::
-      "action"             usebundle => service_start("${service_name}");
-
-      "class copy"         usebundle => _classes_copy("service_start_${canonified_service_name}", "${old_class_prefix}"),
-                          ifvarclass => "service_start_${canonified_service_name}_reached";
-      "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                          ifvarclass => "${class_prefix}_action_reached";
-
-    any::
-      "report"
-        usebundle  => _log("Ensure that service ${service_name} is running", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
+    "action"             usebundle => service_started("${service_name}");
+    "class copy"         usebundle => _classes_copy("service_started_${canonified_service_name}", "${old_class_prefix}"),
+                         ifvarclass => "service_started_${canonified_service_name}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report"
+        usebundle  => _log("Ensure that service ${service_name} is running", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

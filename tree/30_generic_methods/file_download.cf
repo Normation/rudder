@@ -18,6 +18,8 @@
 
 # @name File download
 # @description Download a file if it does not exist, using curl with a fallback on wget
+# @rename file_from_http_server
+# @deprecated Use [file_from_http_server](#file_from_http_server) instead.
 # @documentation This method finds a HTTP command-line tool and downloads the given source
 # into the destination.
 # 
@@ -34,54 +36,21 @@ bundle agent file_download(source, destination)
 
   vars:
 
-    _stdlib_path_exists_curl::
-
-      "action_command"            string => "${paths.path[curl]} -s -L -o ${destination} ${source}";
-
-    !_stdlib_path_exists_curl._stdlib_path_exists_wget::
-
-      "action_command"            string => "${paths.path[wget]} -O ${destination} ${source}";
-
     any::
 
       "canonified_destination"    string => canonify("${destination}");
-      "canonified_action_command" string => canonify("${action_command}");
 
       "old_class_prefix"          string => "file_download_${canonified_destination}";
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"                       slist => { "${source}", "${destination}" };
 
-  classes:
-
-    "file_exists"    expression => fileexists("${destination}");
-
   methods:
-
-    (_stdlib_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
-
-      "action"                    usebundle => command_execution("${action_command}");
-
-      "class copy"                usebundle => _classes_copy("command_execution_${canonified_action_command}", "${old_class_prefix}");
-
-      "new result classes"        usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}");
-
-      "report"                    usebundle => _log("Download ${source} into ${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
-                                 ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
-
-    !_stdlib_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
-
-      "force_failure_class"       usebundle => _classes_failure("${old_class_prefix}");
-      "new result classes"        usebundle => _classes_failure("${class_prefix}");
-      "report"                    usebundle => _log("Unable to download ${source}: neither wget or curl are installed", "${old_class_prefix}", "${class_prefix}", @{args});
-
-    file_exists::
-
-      "force_success_class"       usebundle => _classes_success("${old_class_prefix}"),
-                                 ifvarclass => "!command_execution_${canonified_action_command}_repaired";
-      "new result classes"        usebundle => _classes_success("${class_prefix}"),
-                                 ifvarclass => "!${class_prefix}_action_repaired";
-      "report"                    usebundle => _log("File ${destination} already downloaded", "${old_class_prefix}", "${class_prefix}", @{args}),
-                                 ifvarclass => "(!has_promiser_stack.!command_execution_${canonified_action_command}_repaired)|(has_promiser_stack.!${class_prefix}_action_repaired)";
+    "action"             usebundle => file_from_http_server("${target}");
+    "class copy"         usebundle => _classes_copy("file_from_http_server_${canonified_destination}", "${old_class_prefix}"),
+                         ifvarclass => "file_from_http_server_${canonified_destination}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report"             usebundle => _log("Download ${source} into ${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }
