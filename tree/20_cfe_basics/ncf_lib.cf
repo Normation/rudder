@@ -154,7 +154,7 @@ SuSE::
  package_changes => "bulk";
  package_list_command => "/bin/rpm -qa --queryformat \"i | repos | %{name} | %{version}-%{release} | %{arch}\n\"";
  # set it to "0" to avoid caching of list during upgrade
- package_list_update_command => "/usr/bin/zypper refresh";
+ package_list_update_command => "/usr/bin/zypper --non-interactive refresh";
  package_list_update_ifelapsed => "240"; # 4 hours
  package_installed_regex => "i.*";
  package_list_name_regex    => "[^|]+\|[^|]+\|\s+([^\s]+).*";
@@ -293,7 +293,7 @@ body package_method ncf_generic_version
     package_changes => "bulk";
     package_list_command => "/bin/rpm -qa --queryformat \"i | repos | %{name} | %{version}-%{release} | %{arch}\n\"";
     # set it to "0" to avoid caching of list during upgrade
-    package_list_update_command => "/usr/bin/zypper refresh";
+    package_list_update_command => "/usr/bin/zypper --non-interactive refresh";
     package_list_update_ifelapsed => "240"; # 4 hours
     package_installed_regex => "i.*";
     package_list_name_regex    => "[^|]+\|[^|]+\|\s+([^\s]+).*";
