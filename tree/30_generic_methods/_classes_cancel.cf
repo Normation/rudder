@@ -1,0 +1,44 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Classes cancel
+# @description Cleans a class prefix by undefining all classes for it
+# @documentation This bundle will undefine ${prefix}_{kept, not_kept, repaired, not_repaired, ok, not_ok, error, failed, denied, timeout, reached}
+#
+# @parameter prefix      The prefix of the classes to cancel
+#
+# @class_prefix 
+# @class_parameter 
+
+bundle agent _classes_cancel(prefix)
+{
+  vars:
+    # this is a way to remove the class withouto side effect
+      "ignored_kept"         string => "", classes => if_ok_cancel("${prefix}_kept");
+      "ignored_not_kept"     string => "", classes => if_ok_cancel("${prefix}_not_kept");
+      "ignored_repaired"     string => "", classes => if_ok_cancel("${prefix}_repaired");
+      "ignored_not_repaired" string => "", classes => if_ok_cancel("${prefix}_not_repaired");
+      "ignored_ok"           string => "", classes => if_ok_cancel("${prefix}_ok");
+      "ignored_not_ok"       string => "", classes => if_ok_cancel("${prefix}_not_ok");
+      "ignored_error"        string => "", classes => if_ok_cancel("${prefix}_error");
+      "ignored_failed"       string => "", classes => if_ok_cancel("${prefix}_failed");
+      "ignored_denied"       string => "", classes => if_ok_cancel("${prefix}_denied");
+      "ignored_timeout"      string => "", classes => if_ok_cancel("${prefix}_timeout");
+      "ignored_reached"      string => "", classes => if_ok_cancel("${prefix}_reached");
+}
+
