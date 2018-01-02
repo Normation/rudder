@@ -550,6 +550,7 @@ def generate_technique_content(technique, methods):
   for method_call in technique["method_calls"]:
     method_name = method_call["method_name"]
     method_info = methods[method_name]
+    # regex to match quote characters not preceded by a backslash
     regex = re.compile(r'(?<!\\)"', flags=re.UNICODE )
     # Treat each argument of the method_call
     if 'args' in method_call:
@@ -575,7 +576,15 @@ def generate_technique_content(technique, methods):
     else:
       promiser = "method_call"
 
-    content.append('    "'+promiser+'" usebundle => '+method_call['method_name']+'('+arg_value+'),')
+    # Set bundle context, first escape paramters
+    class_parameter_id    = method_info["class_parameter_id"] - 1
+    class_parameter_name  = regex.sub(r'\\"', method_info["parameter"][class_parameter_id]["name"])
+    class_parameter_value = regex.sub(r'\\"', method_call["args"][class_parameter_id])
+    technique_name        = regex.sub(r'\\"', technique["name"])
+    content.append('    "'+promiser+'_context" usebundle => _current_technique_report_info("'+technique_name+'", "'+class_parameter_name+'", "'+class_parameter_value+'");')
+
+    # Append method call
+    content.append('    "'+promiser+'" usebundle => '+method_name+'('+arg_value+'),')
     content.append('      ifvarclass => concat("'+class_context+'");')
 
   content.append('}')

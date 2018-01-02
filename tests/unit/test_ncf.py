@@ -35,7 +35,7 @@ class TestNcf(unittest.TestCase):
     self.methods_expected_tags = [ tag for tag in all_tags if not tag in ncf.optionnal_tags["generic_method"] ]
 
     with open(self.technique_metadata_test_content) as fd:
-      self.technique_test_expected_content = fd.read()
+      self.technique_test_expected_content = fd.read().split("\n")
 
 
   def test_get_ncf_root_dir(self):
@@ -310,7 +310,7 @@ class TestNcf(unittest.TestCase):
 
   def test_generate_technique_content(self):
     """Check that generate_technique_content works correctly - including escaping " in arguments"""
-    content = ncf.generate_technique_content(self.technique_metadata_test, self.all_methods)
+    content = ncf.generate_technique_content(self.technique_metadata_test, self.all_methods).split("\n")
     self.assertEqual(self.technique_test_expected_content, content)
 
   def test_parse_technique_methods_unescape_double_quotes(self):
