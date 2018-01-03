@@ -54,6 +54,9 @@ import com.normation.inventory.domain.OsDetails
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.cfclerk.domain.TechniqueGenerationMode
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.services.policies.PolicyId
 
 /**
  * This file groups together everything related to building the bundle sequence and
@@ -112,10 +115,7 @@ object BuildBundleSequence {
 
   // a Bundle is a BundleName and a Rudder Id that will
   // be used to identify reports for that bundle
-  final case class Bundle(id: ReportId, name: BundleName, params: Seq[String])
-
-  // The rudder id is ruleid@@directiveid@@0
-  final case class ReportId(value: String)
+  final case class Bundle(id: Option[PolicyId], name: BundleName, params: Seq[String])
 
   /*
    * A to-be-written list of bundle related to a unique
@@ -145,7 +145,10 @@ object BuildBundleSequence {
     , providesExpectedReports: Boolean
     , policyMode             : PolicyMode
   ) {
-    def bundleSequence = pre ::: main ::: post
+    val contextBundle : List[Bundle]  = main.map(_.id).distinct.collect{ case Some(id) =>
+      Bundle(None, BundleName(s"""current_reporting_identifier"""), Seq(id.directiveId.value, id.ruleId.value) )
+    }
+    def bundleSequence : List[Bundle] = contextBundle ::: pre ::: main ::: post
   }
 }
 
@@ -268,7 +271,7 @@ class BuildBundleSequence(
                   Seq()
               }
 
-            List(Bundle(ReportId(policy.id.getReportId), bundleName, vars))
+            List(Bundle(Some(policy.id), bundleName, vars))
           } else {
             logger.warn(s"Technique '${policy.technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
             Nil
@@ -284,7 +287,6 @@ class BuildBundleSequence(
             case _ =>
               techniqueBundles
           }
-
           TechniqueBundles(name, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policy.technique.providesExpectedReports, policyMode)
         }
 
@@ -333,35 +335,11 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
 
     BundleSequenceVariables(
         formatBundleFileInputFiles(systemInputs.map(_.path))
-      , formatMethodsUsebundle(sytemBundles.addNcfReporting)
+      , formatMethodsUsebundle(sytemBundles)
       , formatBundleFileInputFiles(userInputs.map(_.path))
         //only user bundle may be set on PolicyMode = Verify
-      , formatMethodsUsebundle(userBundles.addNcfReporting.addDryRunManagement)
+      , formatMethodsUsebundle(userBundles.addDryRunManagement)
     )
-  }
-
-  /*
-   * The logic that is in charge to add ncf reporting information
-   * by calling the correct bundle when appropriate
-   */
-  implicit final class NcfReporting(bundles: List[TechniqueBundles]) {
-    //now, for each technique that provided reports (i.e: an ncf technique), we must add the
-    //NCF_REPORT_DEFINITION_BUNDLE_NAME just before the other bundle of the technique
-    def addNcfReporting: List[TechniqueBundles] = bundles.map { tb =>
-      //we assume that the bundle name to use as suffix of NCF_REPORT_DEFINITION_BUNDLE_NAME
-      // is the first of the provided bundle sequence for that technique
-      if(tb.providesExpectedReports) {
-        val newMain = tb.main match {
-          case Nil => Nil
-          // in that case, we are using the same ReportId for report and bundle
-          case firstBundle :: tail => (Bundle(firstBundle.id, BundleName(s"""current_technique_report_info("${firstBundle.name.value}")"""), Seq())
-                                       :: firstBundle :: tail)
-        }
-        tb.copy(main = newMain)
-      } else {
-        tb
-      }
-    }
   }
 
   /*
@@ -385,8 +363,8 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
     }
 
     //before each technique, set the correct mode
-    private[this] val audit   = Bundle(ReportId("internal"), BundleName("""set_dry_run_mode("true")"""), Seq())
-    private[this] val enforce = Bundle(ReportId("internal"), BundleName("""set_dry_run_mode("false")"""), Seq())
+    private[this] val audit   = Bundle(None, BundleName("""set_dry_run_mode("true")"""), Seq())
+    private[this] val enforce = Bundle(None, BundleName("""set_dry_run_mode("false")"""), Seq())
     val dryRun = TechniqueId(TechniqueName("remove_dry_run_mode"), TechniqueVersion("1.0"))
     private[this] val cleanup = TechniqueBundles(Directive(dryRun.name.value), dryRun, Nil, enforce :: Nil, Nil, false, false, PolicyMode.Enforce)
   }
