@@ -35,10 +35,11 @@ body file control {
 bundle agent rudder_directives {
 
   methods:
+      "50-rule-technique-ncf/Create a file"           usebundle => current_reporting_identifier("16d86a56-93ef-49aa-86b7-0d10102e4ea9","208716db-2675-43b9-ab57-bfbab84346aa");
       "50-rule-technique-ncf/Create a file"           usebundle => set_dry_run_mode("false");
-      "50-rule-technique-ncf/Create a file"           usebundle => current_technique_report_info("Create_file");
       "50-rule-technique-ncf/Create a file"           usebundle => Create_file;
       "50-rule-technique-ncf/Create a file"           usebundle => Create_file_rudder_reporting;
+      "60-rule-technique-std-lib/Package management." usebundle => current_reporting_identifier("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f","ff44fb97-b65e-43c4-b8c2-0df8d5e8549f");
       "60-rule-technique-std-lib/Package management." usebundle => set_dry_run_mode("false");
       "60-rule-technique-std-lib/Package management." usebundle => package_management;
       "remove_dry_run_mode"                           usebundle => set_dry_run_mode("false");

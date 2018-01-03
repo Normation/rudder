@@ -34,8 +34,10 @@ body file control {
 bundle agent rudder_directives {
 
   methods:
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => current_reporting_identifier("directive1","rule1");
       "10. Global configuration for all nodes/10. Clock Configuration" usebundle => set_dry_run_mode("false");
       "10. Global configuration for all nodes/10. Clock Configuration" usebundle => check_clock_configuration;
+      "50. Deploy PLOP STACK/20. Install PLOP STACK main rpm"          usebundle => current_reporting_identifier("directive2","rule2");
       "50. Deploy PLOP STACK/20. Install PLOP STACK main rpm"          usebundle => set_dry_run_mode("true");
       "50. Deploy PLOP STACK/20. Install PLOP STACK main rpm"          usebundle => check_rpm_package_installation;
       "remove_dry_run_mode"                                            usebundle => set_dry_run_mode("false");
