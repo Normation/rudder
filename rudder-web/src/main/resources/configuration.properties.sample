@@ -102,20 +102,6 @@ ldap.authdn=cn=manager,cn=rudder-configuration
 ldap.authpw=secret
 
 
-#
-# LDAP DIT configuration
-#
-# You should not have to modify the following properties, used to 
-# configure the internal structure of the LDAP Directory. 
-#
-ldap.node.base=cn=rudder-configuration
-ldap.rudder.base=ou=Rudder, cn=rudder-configuration
-ldap.inventories.software.basedn=ou=Inventories, cn=rudder-configuration
-ldap.inventories.accepted.basedn=ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration
-ldap.inventories.pending.basedn=ou=Pending Inventories, ou=Inventories, cn=rudder-configuration
-ldap.inventories.removed.basedn=ou=Removed Inventories, ou=Inventories, cn=rudder-configuration
-
-
 ###########################
 # SQL database properties ###########################################################
 ###########################
@@ -612,4 +598,17 @@ rudder.dir.uploaded.file.sharing=/var/rudder/files/
 #
 bin.emergency.stop=/opt/rudder/bin/cfe-red-button.sh
 
+#
+# LDAP DIT configuration
+#
+# You must not modify the following properties, used to 
+# configure the internal structure of the LDAP Directory.
+# DEPRECATED: Changing these values will result in a non-working Rudder server
+#
+ldap.node.base=cn=rudder-configuration
+ldap.rudder.base=ou=Rudder, cn=rudder-configuration
+ldap.inventories.software.basedn=ou=Inventories, cn=rudder-configuration
+ldap.inventories.accepted.basedn=ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration
+ldap.inventories.pending.basedn=ou=Pending Inventories, ou=Inventories, cn=rudder-configuration
+ldap.inventories.removed.basedn=ou=Removed Inventories, ou=Inventories, cn=rudder-configuration
 
