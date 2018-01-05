@@ -58,7 +58,6 @@ import com.normation.rudder.domain.parameters.Parameter
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 
-
 /*
  * This file contains all the specific data structures used during policy generation.
  * It introduce a set of new concepts:
@@ -74,7 +73,6 @@ import com.normation.inventory.domain.NodeId
  *   Policies have some intermediary representation with UnboundPolicyDraft & BoundPolicyDraft
  *   for different step in the process.
  */
-
 
 final case class BundleOrder(value: String)
 
@@ -115,7 +113,6 @@ object BundleOrder {
 
   }
 }
-
 
 /**
  * A class that hold all information that can be used to resolve
@@ -159,7 +156,6 @@ object InterpolationContext {
       , depth           : Int = 0
   ) = new InterpolationContext(nodeInfo, policyServerInfo, TreeMap(nodeContext.toSeq:_*), parameters, depth)
 }
-
 
 case class ParameterForConfiguration(
     name       : ParameterName
@@ -223,7 +219,6 @@ object ParameterEntry {
       }
   }
 }
-
 
 case class NodeConfiguration(
     nodeInfo    : NodeInfo
@@ -329,8 +324,11 @@ object Policy {
     val subPath = s"${p.technique.id.name.value}/${p.technique.id.version.toString}"
     path.replaceFirst(subPath, subPath+"_"+p.id.getRudderUniqueId)
   }
-}
 
+  def withParams(p:Policy) : String  = {
+    s"${p.technique.id.name.value}(${p.expandedVars.values.map(_.values.headOption.getOrElse(""))})"
+  }
+}
 
 /**
  * This class hold information for a directive:
@@ -447,7 +445,6 @@ case class RuleVal(
   , parsedPolicyDraft: Seq[ParsedPolicyDraft]
 ) extends HashcodeCaching
 
-
 /**
  * Used for expected reports
  */
@@ -466,6 +463,3 @@ case class ExpandedRuleVal(
     ruleId       : RuleId
   , configs      : Map[NodeAndConfigId, Seq[ExpandedUnboundBoundedPolicyDraft]] // A map of NodeId->DirectiveId, where all vars are expanded
 ) extends HashcodeCaching
-
-
-

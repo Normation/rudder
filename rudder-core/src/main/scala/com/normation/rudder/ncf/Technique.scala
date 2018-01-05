@@ -58,6 +58,7 @@ final case class Technique(
   , methodCalls : Seq[MethodCall]
   , version     : Version
   , description : String
+  , parameters  : Seq[TechniqueParameter]
 )
 
 final case class MethodCall(
@@ -69,14 +70,19 @@ final case class MethodCall(
 final case class GenericMethod(
     id             : BundleName
   , name           : String
-  , parameters     : Seq[Parameter]
+  , parameters     : Seq[MethodParameter]
   , classParameter : ParameterId
   , classPrefix    : String
   , agentSupport   : Seq[AgentType]
   , description    : String
 )
 
-final case class Parameter(
+final case class MethodParameter(
     id          : ParameterId
   , description : String
+)
+
+final case class TechniqueParameter (
+    id   : ParameterId
+  , name : ParameterId
 )

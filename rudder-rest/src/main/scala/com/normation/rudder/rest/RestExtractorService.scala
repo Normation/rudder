@@ -83,7 +83,8 @@ import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.GenericMethod
 import com.normation.rudder.ncf.MethodCall
 import com.normation.rudder.ncf.ParameterId
-import com.normation.rudder.ncf.Parameter
+import com.normation.rudder.ncf.MethodParameter
+import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.ncf.{ Technique => NcfTechnique }
 
 case class RestExtractorService (
@@ -964,8 +965,9 @@ case class RestExtractorService (
       description <- CompleteJson.extractJsonString(json, "description")
       name        <- CompleteJson.extractJsonString(json, "name")
       calls       <- CompleteJson.extractJsonArray(json \ "method_calls")(extractMethodCall(_, methods))
+      parameters  <- CompleteJson.extractJsonArray(json \ "parameter")(extractTechniqueParameter)
     } yield {
-      NcfTechnique(bundleName, name, calls, new Version(version), description)
+      NcfTechnique(bundleName, name, calls, new Version(version), description, parameters)
     }
   }
 
@@ -985,14 +987,22 @@ case class RestExtractorService (
     }
   }
 
-  def extractNCFParameter(json : JValue) : Box[Parameter] = {
+  def extractMethodParameter(json : JValue) : Box[MethodParameter] = {
     for {
       id          <- CompleteJson.extractJsonString(json, "name", a => Full(ParameterId(a)))
       description <- CompleteJson.extractJsonString(json, "description")
     } yield {
-      Parameter(id, description)
+      MethodParameter(id, description)
     }
+  }
 
+  def extractTechniqueParameter(json : JValue) : Box[TechniqueParameter] = {
+    for {
+      id   <- CompleteJson.extractJsonString(json, "id", a => Full(ParameterId(a)))
+      name <- CompleteJson.extractJsonString(json, "name", a => Full(ParameterId(a)))
+    } yield {
+      TechniqueParameter(id, name)
+    }
   }
 
   def extractGenericMethod (json : JValue) : Box[List[GenericMethod]] = {
@@ -1008,7 +1018,7 @@ case class RestExtractorService (
                              case "cfengine-community" => Full(AgentType.CfeCommunity :: AgentType.CfeEnterprise ::Nil)
                              case _ => Failure("invalid agent")
                           })).map(_.flatten)
-        parameters     <- CompleteJson.extractJsonArray(json \ "parameter")(extractNCFParameter)
+        parameters     <- CompleteJson.extractJsonArray(json \ "parameter")(extractMethodParameter)
       } yield {
         GenericMethod(bundleName, name, parameters, classParameter, classPrefix, agentSupport, description)
       }

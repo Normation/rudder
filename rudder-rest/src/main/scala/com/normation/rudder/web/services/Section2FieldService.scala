@@ -163,7 +163,6 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     }
   }
 
-
   private[this] def createVarField(varSpec: VariableSpec, valueOpt: Option[String]): (DirectiveField,  (String, () => String)) = {
     val fieldKey = varSpec.name
     val field = fieldFactory.forType(varSpec, fieldKey)

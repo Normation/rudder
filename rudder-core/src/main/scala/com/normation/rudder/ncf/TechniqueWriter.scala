@@ -127,6 +127,14 @@ class TechniqueWriter (
           }
       }
     }
+
+    def parameterSection(parameter : TechniqueParameter) : Seq[XmlNode] = {
+      <INPUT>
+        <NAME>{parameter.id.value.toUpperCase()}</NAME>
+        <DESCRIPTION>{parameter.name.value}</DESCRIPTION>
+        <LONGDESCRIPTION></LONGDESCRIPTION>
+      </INPUT>
+    }
     // Regroup method calls from which we expect a reporting
     // We filter those starting by _, which are internal methods
     val expectedReportingMethodsWithValues =
@@ -142,10 +150,22 @@ class TechniqueWriter (
       agentSpecificSection <- sequence(agentSpecific)(_.agentMetadata(technique, methods))
     } yield {
       <TECHNIQUE name={technique.name}>
+        { if (technique.parameters.nonEmpty) {
+            <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+            <MULTIINSTANCE>true</MULTIINSTANCE>
+          }
+        }
         <DESCRIPTION>{technique.description}</DESCRIPTION>
         {agentSpecificSection}
         <SECTIONS>
           {reportingSection}
+          { if (technique.parameters.nonEmpty) {
+              <SECTION name="Technique parameters">
+                { technique.parameters.map(parameterSection) }
+              </SECTION>
+            }
+
+          }
         </SECTIONS>
       </TECHNIQUE>
     }
