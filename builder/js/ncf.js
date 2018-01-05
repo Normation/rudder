@@ -765,6 +765,7 @@ $scope.groupMethodsByCategory = function () {
     , "version": "1.0"
     , "bundle_name": undefined
     , "bundle_args": []
+    , "parameter": []
   };
 
   $scope.newTechnique = function() {
@@ -994,6 +995,12 @@ $scope.groupMethodsByCategory = function () {
     $scope.saving = false;
   });
 
+  $scope.newParam = {}
+  
+  $scope.addParameter = function() {
+    $scope.selectedTechnique.parameter.push(angular.copy($scope.newParam))
+    $scope.newParam.name = ""
+  }
   // Save a technique
   $scope.saveTechnique = function() {
     $scope.$broadcast('saving');
@@ -1009,12 +1016,15 @@ $scope.groupMethodsByCategory = function () {
     // Update selected technique if it's still the same technique
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
+      // Technique may have been modified by ncf API
+      ncfTechnique = data.data.data.technique;
       var usedMethods = new Set();
       ncfTechnique.method_calls.forEach(
         function(m) { 
           usedMethods.add($scope.generic_methods[m.method_name]);
         }
       )
+      
       $http.post("/rudder/secure/api/latest/ncf",{"technique": ncfTechnique,"methods":Object.values($scope.generic_methods)});
       // Transform back ncfTechnique to UITechnique, that will make it ok
       var savedTechnique = toTechUI(ncfTechnique);

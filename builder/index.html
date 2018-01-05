@@ -251,6 +251,33 @@
                                 <div class="col-sm-8">{{selectedTechnique.version}}</div>
                             </div>
                         </accordion-group>
+                        <accordion-group>
+                          <accordion-heading>
+                            <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
+                            Parameters
+                          </accordion-heading>
+                          <div class="col-sm-12 no-padding-right">
+                            <div class="form-group col-sm-12 no-padding-right" ng-repeat="param in selectedTechnique.parameter track by $index">
+                              <div class="input-group col-sm-12">
+                                <input  type="text" class="form-control" ng-model="param.name" placeholder="Parameter name" required>
+                                <span class="input-group-addon">Use with:</span>
+                                <input readonly class="form-control" ng-model="'${'+getBundleName(param.name)+'}'" placeHolder="Value in methods">
+                                <span class="input-group-btn">
+                                  <button ng-click="selectedTechnique.parameter.splice($index,1)" class="btn btn-danger" >
+                                    <span class="glyphicon glyphicon-minus"></span>
+                                  </button>
+                                </span>
+                              </div>
+                            </div>
+                            <div class="form-group col-sm-12 text-center no-padding-right"> 
+                              <div ng-click="addParameter()" class="btn btn-success" >
+                                <span class="glyphicon glyphicon-plus"></span>
+                                Add parameter
+                              </div>
+                            </div>
+                          </div>
+                        </accordion-group>
+
                     </accordion>
                     <div style="position: relative"><div ng-if="selectedTechnique.method_calls.length === 0" class="btn btn-block btn-default text-center" id="no-methods" >
                       <div class="panel-heading" style="overflow:hidden">

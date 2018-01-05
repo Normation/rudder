@@ -17,6 +17,7 @@ import sys
 import os
 import codecs
 import ncf_constraints
+import uuid
 from pprint import pprint
 
 # Additionnal path to look for cf-promises
@@ -28,11 +29,15 @@ VERBOSE = 0
 dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_knowledge", "50_techniques", "60_services", "ncf-hooks.d" ]
 
 tags = {}
-tags["common"] = ["bundle_name", "bundle_args"]
-tags["generic_method"] = [ "name", "description", "documentation", "parameter", "class_prefix", "class_parameter", "class_parameter_id", "deprecated", "agent_version", "agent_requirements", "parameter_constraint", "action", "rename" ]
-tags["technique"] = [ "name", "description", "version" ]
-optionnal_tags = [ "deprecated", "documentation", "parameter_constraint", "agent_requirements", "action", "rename" ]
-multiline_tags = [ "description", "documentation", "deprecated" ]
+common_tags            = [ "name", "description", "parameter", "bundle_name", "bundle_args"]
+tags["generic_method"] = [ "documentation", "class_prefix", "class_parameter", "class_parameter_id", "deprecated", "agent_version", "agent_requirements", "parameter_constraint", "action", "rename" ]
+tags["technique"]      = [ "version" ]
+[ value.extend(common_tags) for (k,value) in tags.items() ]
+
+optionnal_tags = {}
+optionnal_tags["generic_method"] = [ "deprecated", "documentation", "parameter_constraint", "agent_requirements", "action", "rename" ]
+optionnal_tags["technique"]      = [ "parameter" ]
+multiline_tags                   = [ "description", "documentation", "deprecated" ]
 
 class NcfError(Exception):
   def __init__(self, message, details="", cause=None):
@@ -164,9 +169,13 @@ def parse_bundlefile_metadata(content, bundle_type):
       if tag in tags[bundle_type]:
         # tag "parameter" may be multi-valued
         if tag == "parameter":
-          param_name = match.group(3)
-          parameters.append({'name': param_name, 'description': match.group(4)})
-          param_names.add(param_name)
+          if bundle_type == "generic_method":
+            param_name = match.group(3)
+            parameters.append({'name': param_name, 'description': match.group(4)})
+            param_names.add(param_name)
+          else:
+            parameter = json.loads(match.group(2))
+            parameters.append(parameter)
         if tag == "parameter_constraint":
           constraint = json.loads("{" + match.group(4)+ "}")
           # extend default_constraint if it was not already defined)
@@ -235,7 +244,7 @@ def parse_bundlefile_metadata(content, bundle_type):
           raise NcfError("Value for constraint '" + key + "' of parameter '"+ param['name'] +"' is not valid, "+", ".join(check["errors"]))
       param["constraints"] = constraints
     
-    res['parameter'] = parameters
+  res['parameter'] = parameters
 
   if bundle_type == "generic_method" and not "agent_version" in res:
     res["agent_version"] = ">= 3.6"
@@ -245,8 +254,8 @@ def parse_bundlefile_metadata(content, bundle_type):
     if tag in res:
       res[tag] = res[tag].strip('\n\r')
 
-  all_tags = tags[bundle_type] + tags["common"]
-  expected_tags = [ tag for tag in all_tags if not tag in optionnal_tags]
+  all_tags = tags[bundle_type]
+  expected_tags = [ tag for tag in all_tags if not tag in optionnal_tags[bundle_type]]
   if not set(res.keys()).issuperset(set(expected_tags)):
     missing_keys = [mkey for mkey in expected_tags if mkey not in set(res.keys())]
     name = res['bundle_name'] if 'bundle_name' in res else "unknown"
@@ -460,6 +469,14 @@ def add_default_values_technique_method_call(method_call):
 
   return call
 
+def canonify(string):
+  # String should be unicode string (ie u'') which is the case if they are read from files opened with encoding="utf-8".
+  # To match cfengine behaviour we need to treat utf8 as if it was ascii (see #7195).
+  # Pure ASCII would provoke an error in python, but any 8 bits encoding that is compatible with ASCII will do
+  # since everything above 127 will be transformed to '_', so we choose arbitrarily "iso-8859-1"
+  string = string.encode("utf-8").decode("iso-8859-1")
+  regex = re.compile("[^a-zA-Z0-9_]")
+  return regex.sub("_", string)
 
 def add_default_values_technique_metadata(technique_metadata):
   """set default values on technique metadata if missing"""
@@ -513,9 +530,20 @@ def generate_technique_content(technique, methods):
     # Add commentary for each new line in the metadata
     metadata_value = technique[metadata_key].replace("\n", "\n# ")
     content.append('# @'+ metadata_key +" "+ metadata_value)
+
+  bundle_param = ""
+  if len(technique["parameter"]) > 0:
+    bundle_param = "("+", ".join([canonify(param["name"]) for param in technique["parameter"] ])+")"
+  for parameter in technique["parameter"]:
+    if not "id" in parameter:
+      parameter["id"] = str(uuid.uuid4())
+    content.append('# @parameter '+ json.dumps(parameter))
+
   content.append('')
-  content.append('bundle agent '+ technique['bundle_name'])
+  content.append('bundle agent '+ technique['bundle_name']+bundle_param)
   content.append('{')
+
+  
   content.append('  methods:')
 
   # Handle method calls
