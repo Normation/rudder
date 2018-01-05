@@ -41,7 +41,6 @@ import com.normation.utils.Utils._
 import com.normation.utils.HashcodeCaching
 import com.normation.inventory.domain.AgentType
 
-
 /**
  * A name, used as an identifier, for a policy.
  * The name must be unique among all policies!
@@ -77,7 +76,6 @@ final case class AgentConfig(
   , bundlesequence : Seq[BundleName]
 )
 
-
 /**
  * A type that tells if the Technique supports directive by directive
  * generation or not.
@@ -103,6 +101,14 @@ final object TechniqueGenerationMode {
    */
   final case object MultipleDirectives extends TechniqueGenerationMode {
     override val name = "separated"
+  }
+
+  /*
+   * The technique supports several independant directives (and so,
+   * several technique version or modes).
+   */
+  final case object MultipleDirectivesWithParameters extends TechniqueGenerationMode {
+    override val name = "separated-with-parameters"
   }
 
   def allValues = ca.mrvisser.sealerate.values[TechniqueGenerationMode]
@@ -154,7 +160,6 @@ case class Technique(
 
   val getAllVariableSpecs = this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
 }
-
 
 /**
  * The representation of a bundle name, used for the bundlesequence

@@ -177,7 +177,7 @@ trait DirectiveField extends BaseField with SectionChildField {
     }
   }
 
-  def display(value: NodeSeq) = {
+  def display(value: NodeSeq) : NodeSeq = {
     <tr>
       <td class="tw-bs" colspan="2">
       <span>{ if (optional) displayName else <b>{ displayName}</b> } {tooltipElem} {if (optional) <span class="tw-bs"> - <small class="greyscala">Optional</small></span>}</span>
@@ -443,7 +443,11 @@ case class MultivaluedSectionField(
    * @return
    */
   def toFormNodeSeq: NodeSeq = {
+    if (childFields.nonEmpty) {
     <tr id={ htmlId }>{ content }</tr>
+    } else {
+      NodeSeq.Empty
+    }
   }
 
   private def content: NodeSeq = {
@@ -524,11 +528,12 @@ case class MultivaluedSectionField(
   }
 
   override def toHtmlNodeSeq = {
+    if (childFields.nonEmpty) {
     <tr><td colspan="2">
           <div class="directiveGroup">{
             (allSections.map { sect =>
               <div class="groupFieldset">
-                <div class="section-title">{ "%s".format(name) }</div>
+                <div class="section-title">{ name }</div>
                 <table class="directiveGroupDisplay">
                   <tbody>
                     { sect.toHtmlNodeSeq }
@@ -538,6 +543,9 @@ case class MultivaluedSectionField(
             })
           }</div>
         </td></tr>
+    } else {
+      NodeSeq.Empty
+    }
   }
 }
 
@@ -591,7 +599,7 @@ case class DirectiveEditor(
   def toFormNodeSeq: NodeSeq = {
     <div class="variableDefinition">
       <table class="directiveVarDef">
-        { if (!providesExpectedReports) sectionField.childFields.flatMap(_.toFormNodeSeq) }
+        { sectionField.childFields.flatMap(_.toFormNodeSeq) }
       </table>
     </div>
   }
