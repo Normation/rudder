@@ -171,7 +171,6 @@ class ExecutionBatchTest extends Specification {
 
     val expectedComponent = new ComponentExpectedReport(
         "component"
-      , 2
       , List("foo", "bar")
       , List("foo", "bar")
     )
@@ -226,7 +225,6 @@ class ExecutionBatchTest extends Specification {
 
     val expectedComponent = new ComponentExpectedReport(
         "component"
-      , 2
       , List("None", "None")
       , List("None", "None")
     )
@@ -270,7 +268,7 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")
     )
 
-    val expectedComponent = new ComponentExpectedReport("component", 2
+    val expectedComponent = new ComponentExpectedReport("component"
       , List("${sys.bla}", "${sys.foo}")
       , List("${sys.bla}", "${sys.foo}")
     )
@@ -312,7 +310,7 @@ class ExecutionBatchTest extends Specification {
      * Here, we must be able to decide between node1 and node2 value for the repair, because we know at generation time
      * what is expected.
      */
-    val expectedComponent = new ComponentExpectedReport("component", 2
+    val expectedComponent = new ComponentExpectedReport("component"
       , List("node1", "node2", "bar")
       , List("${rudder.node.hostname}", "${rudder.node.hostname}", "bar")
     )
@@ -374,7 +372,7 @@ class ExecutionBatchTest extends Specification {
           case Success(x) => x
           case Repaired(x) => x
         }
-        new ComponentExpectedReport("component", 2, expectOnlySuccess.toList, expectOnlySuccess.toList)
+        new ComponentExpectedReport("component", expectOnlySuccess.toList, expectOnlySuccess.toList)
       }
 
       val resultReports : Seq[ResultReports] = reports.map( x => x match {
@@ -521,7 +519,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new ComponentExpectedReport("component", 1, List("value"), List() )) //here, we automatically must have "value" infered as unexpanded var
+                , List(new ComponentExpectedReport("component", List("value"), List() )) //here, we automatically must have "value" infered as unexpanded var
               )
             )
         )
@@ -555,7 +553,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new ComponentExpectedReport("component", 1, List("value"), List() ))
+                , List(new ComponentExpectedReport("component", List("value"), List() ))
               )
             )
         )
@@ -583,7 +581,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new ComponentExpectedReport("component", 1, List("value"), List() ))
+                , List(new ComponentExpectedReport("component", List("value"), List() ))
               )
             )
          )
@@ -613,7 +611,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new ComponentExpectedReport("component", 1, List("value"), List() ))
+                , List(new ComponentExpectedReport("component", List("value"), List() ))
               )
             )
         )
@@ -638,7 +636,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new ComponentExpectedReport("component", 1, List("value"), List() ))
+                , List(new ComponentExpectedReport("component", List("value"), List() ))
               )
             )
          )
@@ -665,23 +663,23 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                     new ComponentExpectedReport("component", 1, List("value"), List() )
-                   , new ComponentExpectedReport("component2", 1, List("value"), List() )
+                     new ComponentExpectedReport("component" , List("value"), List() )
+                   , new ComponentExpectedReport("component2", List("value"), List() )
                  ))
                , DirectiveExpectedReports("policy2", None, false, List(
-                     new ComponentExpectedReport("component", 1, List("value"), List() )
-                   , new ComponentExpectedReport("component2", 1, List("value"), List() )
+                     new ComponentExpectedReport("component" , List("value"), List() )
+                   , new ComponentExpectedReport("component2", List("value"), List() )
                  ))
             )
         )
       , Seq[Reports](
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component2", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component", "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy" , "one", 12, "component" , "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy" , "one", 12, "component2", "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component" , "value",DateTime.now(), "message"),
           new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component2", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component2", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component", "value",DateTime.now(), "message")
+          new ResultSuccessReport(DateTime.now(), "rule", "policy" , "two", 12, "component" , "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy" , "two", 12, "component2", "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component" , "value",DateTime.now(), "message")
         )
       , fullCompliance
     )
@@ -706,24 +704,24 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                     new ComponentExpectedReport("component", 1, List("value"), List() )
-                   , new ComponentExpectedReport("component2", 1, List("value"), List() )
+                     new ComponentExpectedReport("component" , List("value"), List() )
+                   , new ComponentExpectedReport("component2", List("value"), List() )
                  ))
                , DirectiveExpectedReports("policy2", None, false, List(
-                     new ComponentExpectedReport("component", 1, List("value"), List() )
-                   , new ComponentExpectedReport("component2", 1, List("value"), List() )
+                     new ComponentExpectedReport("component" , List("value"), List() )
+                   , new ComponentExpectedReport("component2", List("value"), List() )
                  ))
              )
         )
       , Seq[Reports](
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component2", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component2", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component2", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value",DateTime.now(), "message")
+          new ResultSuccessReport(DateTime.now(), "rule", "policy" , "one"  , 12, "component" , "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy" , "one"  , 12, "component2", "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one"  , 12, "component" , "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one"  , 12, "component2", "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy" , "two"  , 12, "component" , "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy" , "two"  , 12, "component2", "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two"  , 12, "component" , "value",DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy" , "three", 12, "component" , "value",DateTime.now(), "message")
         )
       , fullCompliance
     )
@@ -758,17 +756,17 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                   new ComponentExpectedReport("component", 1, List("value", "value2", "value3"), List() )
+                   new ComponentExpectedReport("component", List("value", "value2", "value3"), List() )
                ))
              )
         )
       , Seq[Reports](
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value2",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value3",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value2",DateTime.now(), "message"),
-          new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value",DateTime.now(), "message")
+          new ResultSuccessReport(DateTime.now(), "rule", "policy", "one"  , 12, "component", "value" , DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy", "one"  , 12, "component", "value2", DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy", "one"  , 12, "component", "value3", DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy", "two"  , 12, "component", "value" , DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy", "two"  , 12, "component", "value2", DateTime.now(), "message"),
+          new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value" , DateTime.now(), "message")
         )
       , fullCompliance
     )
@@ -803,7 +801,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                  new ComponentExpectedReport("component", 1, List("""some\"text"""), List("""some\text""") )
+                  new ComponentExpectedReport("component", List("""some\"text"""), List("""some\text""") )
               ))
             )
         )
@@ -831,7 +829,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                  new ComponentExpectedReport("component", 1, List("""${sys.workdir}/inputs/\"test"""), List() )
+                  new ComponentExpectedReport("component", List("""${sys.workdir}/inputs/\"test"""), List() )
               ))
             )
         )
@@ -858,7 +856,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                new ComponentExpectedReport("component", 1, List("""${sys.workdir}/inputs/"test"""), List("""${sys.workdir}/inputs/"test""") )
+                new ComponentExpectedReport("component", List("""${sys.workdir}/inputs/"test"""), List("""${sys.workdir}/inputs/"test""") )
               ))
             )
         )
@@ -887,7 +885,6 @@ class ExecutionBatchTest extends Specification {
 
     val expectedComponent = new ComponentExpectedReport(
         "component"
-      , 2
       , List("/var/cfengine", "bar")
       , List("/var/cfengine", "bar")
     )

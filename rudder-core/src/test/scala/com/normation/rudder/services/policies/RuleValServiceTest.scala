@@ -66,7 +66,6 @@ class RuleValServiceTest extends Specification {
    * Instanciate the services
    */
   val ruleValService = new RuleValServiceImpl(new InterpolatedValueCompilerImpl())
-  val computeCardinality = ComputeCardinalityOfUnboundBoundedPolicyDraft
 
   /**
    * Create the objects for tests
@@ -185,7 +184,7 @@ class RuleValServiceTest extends Specification {
         ruleVal.isDefined == true
       }
 
-      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").parsedPolicyDraft
+      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").parsedPolicyDrafts
 
       "the ruleval should have only one directiveVal" in {
         directivesVals.size == 1
@@ -219,31 +218,22 @@ class RuleValServiceTest extends Specification {
 
     "The cardinality computed " should {
       val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map())
-      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").parsedPolicyDraft
+      val draft = ruleVal.openOrThrowException("Should have been full for test").parsedPolicyDrafts.head
+      //false PolicyVars for that draft
+      val vars = PolicyVars(draft.id, draft.policyMode, draft.originalVariables, draft.originalVariables, draft.trackerVariable)
 
-      val cardinality = directivesVals.head.toExpandedUnboundBoundedPolicyDraft(null).map { x =>
-        computeCardinality.getTrackingKeyLinearisation(x)
-      }
+      val components = RuleExpectedReportBuilder.componentsFromVariables(draft.technique, draft.id.directiveId, vars)
 
       "return a seq of two components" in {
-        cardinality match {
-          case eb: EmptyBox => ko("error when parsing vars")
-          case Full(x) => x.size === 2
-        }
+        components.size === 2
       }
 
       "first component should have 3 values" in {
-        cardinality match {
-          case eb: EmptyBox => ko("error when parsing vars")
-          case Full(x) => x.head._2.size === 3 and x.head._3.size === 3
-        }
+        components.head.componentsValues.size === 3
       }
 
       "components component1 should have values variable_component1, variable_component1one, variable_component1two) " in {
-        cardinality match {
-          case eb: EmptyBox => ko("error when parsing vars")
-          case Full(y) => y.filter(x => x._1 == "component1").head._2 === Seq("variable_component1", "variable_component1one", "variable_component1two")
-        }
+        components.filter( _.componentName == "component1").head.componentsValues === List("variable_component1", "variable_component1one", "variable_component1two")
       }
     }
 
