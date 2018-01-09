@@ -45,7 +45,6 @@ import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Box
 import scala.collection.immutable.TreeMap
@@ -57,6 +56,8 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.parameters.Parameter
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
+import cats.data.NonEmptyList
+import com.normation.rudder.domain.logger.PolicyLogger
 
 /*
  * This file contains all the specific data structures used during policy generation.
@@ -253,6 +254,21 @@ case class PolicyId(ruleId: RuleId, directiveId: DirectiveId) extends HashcodeCa
   def getRudderUniqueId = directiveId.value.replaceAll("-","_")
 }
 
+
+
+/*
+ * A policy "vars" is all the var data for a policy (expandedVars, originalVars,
+ * trackingKey). They are grouped together in policy because some policy can
+ * be the result of merging several BoundPolicyDraft
+ */
+final case class PolicyVars(
+    policyId       : PolicyId
+  , policyMode     : Option[PolicyMode]
+  , expandedVars   : Map[String, Variable]
+  , originalVars   : Map[String, Variable] // variable with non-expanded ${node.prop etc} values
+  , trackerVariable: TrackerVariable
+)
+
 /*
  *
  * A policy is a technique bound to one or more directives in the context of a
@@ -287,9 +303,7 @@ final case class Policy(
     id                 : PolicyId
   , technique          : Technique
   , techniqueUpdateTime: DateTime
-  , expandedVars       : Map[String, Variable]
-  , originalVars       : Map[String, Variable] // variable with non-expanded ${node.prop etc} values
-  , trackerVariable    : TrackerVariable
+  , policyVars         : NonEmptyList[PolicyVars]
   , priority           : Int
   , isSystem           : Boolean
   , policyMode         : Option[PolicyMode]
@@ -299,16 +313,14 @@ final case class Policy(
   , overrides          : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
 ) extends Loggable {
 
-  def toUnboundBoundedPolicyDraft() = ExpandedUnboundBoundedPolicyDraft(
-    technique         = technique
-  , directiveId       = id.directiveId
-  , priority          = priority
-  , isSystem          = isSystem
-  , policyMode        = policyMode
-  , trackerVariable   = trackerVariable
-  , variables         = expandedVars
-  , originalVariables = originalVars
-  )
+  // here, it is extremely important to keep sorted order
+  // List[Map[id, List[Variable]]
+  // == map .values (keep order) ==> Iterator[List[Variable]]
+  // == .toList (keep order)     ==> List[List[Variable]]
+  // == flatten (keep order)     ==> List[Variable]
+  val expandedVars    = Policy.mergeVars(policyVars.map( _.expandedVars.values).toList.flatten)
+  val originalVars    = Policy.mergeVars(policyVars.map( _.originalVars.values).toList.flatten)
+  val trackerVariable = policyVars.head.trackerVariable.spec.cloneSetMultivalued.toVariable(policyVars.map(_.trackerVariable.values).toList.flatten)
 }
 
 object Policy {
@@ -327,6 +339,50 @@ object Policy {
 
   def withParams(p:Policy) : String  = {
     s"${p.technique.id.name.value}(${p.expandedVars.values.map(_.values.headOption.getOrElse(""))})"
+  }
+
+  /*
+   * merge an ordered seq of variables.
+   *
+   */
+  def mergeVars(vars: Seq[Variable]): Map[String, Variable] = {
+    val mergedVars = scala.collection.mutable.Map[String, Variable]()
+    for (variable <- vars) {
+      variable match {
+        case _     : TrackerVariable => // nothing, it's been dealt with already
+        case newVar: Variable        =>
+          // TODO: #10625 : checked is not used anymore
+          if ((!newVar.spec.checked) || (newVar.spec.isSystem)) {
+            // Only user defined variables should need to be agregated
+          } else {
+            val variable = mergedVars.get(newVar.spec.name) match {
+              case None =>
+                Variable.matchCopy(newVar, setMultivalued = true)
+              case Some(existingVariable) => // value is already there
+                // hope it is multivalued, otherwise BAD THINGS will happen
+                if (!existingVariable.spec.multivalued) {
+                  PolicyLogger.warn(s"Attempt to append value into a non multivalued variable '${existingVariable.spec.name}', please report the problem as a bug.")
+                }
+                // deals with unique values: in that case, only keep one value.
+                // merge is done in order, so if value is already set, does nothing
+                if(existingVariable.spec.isUniqueVariable) {
+                  if(existingVariable.values.isEmpty) {
+                    newVar.values.headOption match {
+                      case None    => existingVariable //ok, does nothing more
+                      case Some(v) => existingVariable.copyWithSavedValue(v)
+                    }
+                  } else { //just use already defined unique
+                    existingVariable
+                  }
+                } else { //actually merge variables
+                  existingVariable.copyWithAppendedValues(newVar.values)
+                }
+            }
+            mergedVars.put(newVar.spec.name, variable)
+          }
+      }
+    }
+    mergedVars.toMap
   }
 }
 
@@ -366,21 +422,6 @@ case class ParsedPolicyDraft(
     )
   }
 
-  def toExpandedUnboundBoundedPolicyDraft(context: InterpolationContext) = {
-    variables(context).map { vars =>
-
-      ExpandedUnboundBoundedPolicyDraft(
-          technique
-        , id.directiveId
-        , priority
-        , isSystem
-        , policyMode
-        , trackerVariable
-        , vars
-        , originalVariables
-      )
-    }
-  }
 }
 
 /**
@@ -425,9 +466,13 @@ case class BoundPolicyDraft(
         id
       , technique
       , acceptationDate
-      , expandedVars
-      , originalVars
-      , trackerVariable
+      , NonEmptyList.of(PolicyVars(
+            id
+          , policyMode
+          , expandedVars
+          , originalVars
+          , trackerVariable
+        ))
       , priority
       , isSystem
       , policyMode
@@ -440,26 +485,8 @@ case class BoundPolicyDraft(
 }
 
 case class RuleVal(
-    ruleId           : RuleId
-  , nodeIds          : Set[NodeId]
-  , parsedPolicyDraft: Seq[ParsedPolicyDraft]
+    ruleId            : RuleId
+  , nodeIds           : Set[NodeId]
+  , parsedPolicyDrafts: Seq[ParsedPolicyDraft]
 ) extends HashcodeCaching
 
-/**
- * Used for expected reports
- */
-case class ExpandedUnboundBoundedPolicyDraft(
-    technique        : Technique
-  , directiveId      : DirectiveId
-  , priority         : Int
-  , isSystem         : Boolean
-  , policyMode       : Option[PolicyMode]
-  , trackerVariable  : TrackerVariable
-  , variables        : Map[String, Variable]
-  , originalVariables: Map[String, Variable] // the original variable, unexpanded
-) extends HashcodeCaching
-
-case class ExpandedRuleVal(
-    ruleId       : RuleId
-  , configs      : Map[NodeAndConfigId, Seq[ExpandedUnboundBoundedPolicyDraft]] // A map of NodeId->DirectiveId, where all vars are expanded
-) extends HashcodeCaching

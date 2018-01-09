@@ -129,6 +129,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import org.apache.commons.io.FileUtils
 import com.normation.rudder.repository.FullNodeGroupCategory
+import cats.data.NonEmptyList
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -647,9 +648,13 @@ class TestNodeConfiguration() {
         id
       , technique
       , DateTime.now
-      , variableMap
-      , variableMap
-      , tracker
+      , NonEmptyList.of(PolicyVars(
+            id
+          , policyMode
+          , variableMap
+          , variableMap
+          , tracker
+        ))
       , 0
       , system
       , policyMode

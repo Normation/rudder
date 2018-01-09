@@ -42,9 +42,6 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.utils.HashcodeCaching
-
-
-
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
@@ -122,13 +119,13 @@ final case class DirectiveExpectedReports (
  */
 case class ComponentExpectedReport(
     componentName             : String
-  , cardinality               : Int
 
   //TODO: change that to have a Seq[(String, String).
   //or even better, un Seq[ExpectedValue] where expectedValue is the pair
   , componentsValues          : List[String]
   , unexpandedComponentsValues: List[String]
 ) extends HashcodeCaching {
+
   /**
    * Get a normalized list of pair of (value, unexpandedvalue).
    * We have three case to consider:
@@ -188,6 +185,7 @@ object ExpectedReportsSerialisation {
     , ruleExpectedReports: List[RuleExpectedReports]
   )
 
+
   def jsonNodeExpectedReports(n: JsonNodeExpectedReports): JValue = {
     (
         ( "modes" ->
@@ -224,7 +222,13 @@ object ExpectedReportsSerialisation {
             }
           } ) )
         )
-     ~  ("rules" -> (n.ruleExpectedReports.map { r =>
+     ~  ("rules" -> jsonRuleExpectedReports(n.ruleExpectedReports))
+    )
+  }
+
+  def jsonRuleExpectedReports(rules: List[RuleExpectedReports]): JValue = {
+    (
+        ("rules" -> (rules.map { r =>
            (
              ("ruleId"     -> r.ruleId.value)
            ~ ("directives" -> (r.directives.map { d =>
@@ -235,7 +239,7 @@ object ExpectedReportsSerialisation {
                ~ ("components"  -> (d.components.map { c =>
                    (
                      ("componentName" -> c.componentName)
-                   ~ ("cardinality"   -> c.cardinality)
+                   // ~ ("cardinality"   -> c.cardinality // #10625: ignore cardinality)
                    ~ ("values"        -> c.componentsValues)
                    ~ ("unexpanded"    -> c.unexpandedComponentsValues)
                    )
@@ -370,12 +374,12 @@ object ExpectedReportsSerialisation {
     def component(json: JValue): Box[ComponentExpectedReport] = {
       (
           (json \ "componentName" )
-        , (json \ "cardinality")
+        // , (json \ "cardinality") // #10625: ignore cardinality
         , (json \ "values").extractOpt[List[String]]
         , (json \ "unexpanded").extractOpt[List[String]]
      ) match {
-        case (JString(name), JInt(card), Some(values), Some(unexpandeds) ) =>
-          tryo(ComponentExpectedReport(name, card.toValidInt, values, unexpandeds))
+        case (JString(name), Some(values), Some(unexpanded) ) =>
+          tryo(ComponentExpectedReport(name, values, unexpanded))
         case _ =>
           Failure(s"Error when parsing component expected reports from json: '${compactRender(json)}'")
       }

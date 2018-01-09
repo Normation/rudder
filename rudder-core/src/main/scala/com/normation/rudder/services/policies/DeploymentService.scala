@@ -39,8 +39,6 @@ package com.normation.rudder.services.policies
 
 import scala.Option.option2Iterable
 import org.joda.time.DateTime
-import com.normation.cfclerk.domain.TrackerVariable
-import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -59,7 +57,6 @@ import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeInventory
 import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
@@ -90,6 +87,10 @@ import com.normation.rudder.domain.reports.ComponentExpectedReport
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.PolicyLogger
+import cats.data.NonEmptyList
+import cats.kernel.Order
+import com.normation.cfclerk.domain.Technique
+import cats.data.NonEmptyList
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -710,7 +711,7 @@ object BuildNodeConfiguration extends Loggable {
       val byNodeDrafts = scala.collection.mutable.Map.empty[NodeId, Vector[ParsedPolicyDraft]]
       ruleVals.foreach { rule =>
         rule.nodeIds.foreach { nodeId =>
-          byNodeDrafts.update(nodeId, byNodeDrafts.getOrElse(nodeId, Vector[ParsedPolicyDraft]()) ++ rule.parsedPolicyDraft)
+          byNodeDrafts.update(nodeId, byNodeDrafts.getOrElse(nodeId, Vector[ParsedPolicyDraft]()) ++ rule.parsedPolicyDrafts)
         }
       }
       byNodeDrafts.toMap
@@ -793,49 +794,6 @@ object BuildNodeConfiguration extends Loggable {
     }
   }
 
-  /*
-   * merge an ordered seq of variables.
-   *
-   */
-  def mergeVars(vars: Seq[Variable]): Map[String, Variable] = {
-    val mergedVars = scala.collection.mutable.Map[String, Variable]()
-    for (variable <- vars) {
-      variable match {
-        case _     : TrackerVariable => // nothing, it's been dealt with already
-        case newVar: Variable        =>
-          // TODO: #10625 : checked is not used anymore
-          if ((!newVar.spec.checked) || (newVar.spec.isSystem)) {
-            // Only user defined variables should need to be agregated
-          } else {
-            val variable = mergedVars.get(newVar.spec.name) match {
-              case None =>
-                Variable.matchCopy(newVar, setMultivalued = true) //asIntance is ok here, I believe
-              case Some(existingVariable) => // value is already there
-                // hope it is multivalued, otherwise BAD THINGS will happen
-                if (!existingVariable.spec.multivalued) {
-                  logger.warn("Attempt to append value into a non multivalued variable, bad things may happen")
-                }
-                // deals with unique values: in that case, only keep one value.
-                // merge is done in order, so if value is already set, does nothing
-                if(existingVariable.spec.isUniqueVariable) {
-                  if(existingVariable.values.isEmpty) {
-                    newVar.values.headOption match {
-                      case None    => existingVariable //ok, does nothing more
-                      case Some(v) => existingVariable.copyWithSavedValue(v)
-                    }
-                  } else { //just use already defined unique
-                    existingVariable
-                  }
-                } else { //actually merge variables
-                  existingVariable.copyWithAppendedValues(newVar.values)
-                }
-            }
-            mergedVars.put(newVar.spec.name, variable)
-          }
-      }
-    }
-    mergedVars.toMap
-  }
 
   /*
    * That methods takes all the policy draft of a node and does what need to be done
@@ -864,7 +822,7 @@ object BuildNodeConfiguration extends Loggable {
           Failure(s"Policy Generation is trying to merge a 0 directive set, which is a development bug. Please report")
         case draft :: Nil => //no merge actually needed
           Full(draft.toPolicy(agentType))
-        case _ => //merging needed
+        case d :: tail => //merging needed
           for {
              // check same technique (name and version), policy mode
             sameTechniqueName <- drafts.map( _.technique.id.name ).distinct match {
@@ -909,28 +867,30 @@ object BuildNodeConfiguration extends Loggable {
                                  }
           } yield {
             // actually merge. Before that, we need to sort drafts, first by priority, then by rule order, then by directive order.
-            val sorted = drafts.sortWith { case (d1, d2) =>
-              (d1.priority - d2.priority) match {
-                case 0 => //sort by bundle order
-                  // the bundle full order in the couple (rule name, directive name)
-                  BundleOrder.compareList(d1.ruleOrder :: d1.directiveOrder :: Nil, d2.ruleOrder :: d2.directiveOrder :: Nil) <= 0
-                case i => i < 0
-              }
-            }
+            val sorted = NonEmptyList(d, tail).sorted(new Order[BoundPolicyDraft]() {
+              def compare(d1: BoundPolicyDraft, d2: BoundPolicyDraft) = {
+                  (d1.priority - d2.priority) match {
+                    case 0 => //sort by bundle order
+                      // the bundle full order in the couple (rule name, directive name)
+                      BundleOrder.compareList(d1.ruleOrder :: d1.directiveOrder :: Nil, d2.ruleOrder :: d2.directiveOrder :: Nil)
+                    case i => i
+                  }
+                }
+            })
 
-            // now the first draft is the mode prioritary. We keep it as "main" draft
+            // now the first draft is the most prioritary. We keep it as "main" draft
             // and then we merge all other draft values.
             // we need to do it for expanded and original values and tracking key values
 
-            // one more thing: we need to take care of unique variables.
-            // unique variable values have the same size as if they were not unique,
-            // but only ONE value is repeated.
-            val base = sorted.head.toPolicy(agentType)
-            base.copy(
-                expandedVars   = mergeVars(sorted.flatMap(_.expandedVars.values))
-              , originalVars   = mergeVars(sorted.flatMap(_.originalVars.values))
-              , trackerVariable= base.trackerVariable.spec.cloneSetMultivalued.toVariable(sorted.flatMap(_.trackerVariable.values))
-            )
+            val vars = sorted.map { d => PolicyVars(
+                d.id
+              , d.policyMode
+              , d.expandedVars
+              , d.originalVars
+              , d.trackerVariable
+            )}
+
+            sorted.head.toPolicy(agentType).copy(policyVars = vars, policyMode = samePolicyMode)
           }
         }
     }
@@ -1242,26 +1202,6 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
   def complianceCache  : CachedFindRuleNodeStatusReports
   def confExpectedRepo : UpdateExpectedReportsRepository
 
-  private[this] def getExpandedRuleVal(
-      ruleVals   : Seq[RuleVal]
-    , nodeConfigs: Seq[NodeConfiguration]
-    , versions   : Map[NodeId, NodeConfigId]
-  ) : Seq[ExpandedRuleVal]= {
-    ruleVals map { rule =>
-
-      val directives = (nodeConfigs.flatMap { nodeConfig =>
-        val expectedUnboundBoundedPolicyDraftsForNode = nodeConfig.policies.filter( x => x.id.ruleId == rule.ruleId) match {
-            case drafts if drafts.size > 0 => Some(drafts.map { _.toUnboundBoundedPolicyDraft() })
-            case _                         => None
-        }
-
-        expectedUnboundBoundedPolicyDraftsForNode.map(d => NodeAndConfigId(nodeConfig.nodeInfo.id, versions(nodeConfig.nodeInfo.id)) -> d.toSeq)
-      })
-
-      ExpandedRuleVal(rule.ruleId, directives.toMap)
-    }
-  }
-
   /**
    * Container class to store that for a given
    * node, for a rule and directive, all values
@@ -1283,113 +1223,17 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
     , allNodeModes     : Map[NodeId, NodeModeConfig]
   ) : List[NodeExpectedReports] = {
 
-    val expandedRuleVal = getExpandedRuleVal(ruleVal, configs, updatedNodes)
-
-    //we also want to build the list of overriden directive based on unique techniques.
-    val overriden = configs.flatMap { nodeConfig =>
-      nodeConfig.policies.flatMap( x => x.overrides.map { case (ruleId, directiveId) =>
-        UniqueOverrides(nodeConfig.nodeInfo.id, ruleId, directiveId, x.id)
-      })
-    }.toSet
-
-    updateExpectedReports(expandedRuleVal, updatedNodes, generationTime, overriden, allNodeModes)
-  }
-
-  /**
-   * Utility method that filters overriden directive by node
-   * in expandedruleval
-   */
-  private[this] def filterOverridenDirectives(
-      expandedRuleVals  : Seq[ExpandedRuleVal]
-    , overrides         : Set[UniqueOverrides]
-  ): Seq[ExpandedRuleVal] = {
-    /*
-     * Start by filtering expandedRuleVals to remove overriden
-     * directives from them.
-     */
-    val byRulesOverride = overrides.groupBy { _.ruleId }
-    expandedRuleVals.map { case rule@ExpandedRuleVal(ruleId, configs) =>
-      byRulesOverride.get(ruleId) match {
-        case None => rule
-        case Some(overridenDirectives) =>
-          val byNodeOverride = overridenDirectives.groupBy { _.nodeId }
-          val filteredConfig = configs.map { case(i@NodeAndConfigId(nodeId, c), directives) =>
-            val toFilter = byNodeOverride.getOrElse(nodeId, Seq()).map( _.directiveId).toSet
-            (i, directives.filterNot { directive => toFilter.contains(directive.directiveId) })
-          }
-          ExpandedRuleVal(ruleId, filteredConfig)
-      }
-    }
-  }
-
-  /*
-   * Update the list of expected reports when we do a deployment
-   */
-  def updateExpectedReports(
-      expandedRuleVals  : Seq[ExpandedRuleVal]
-    , updatedNodeConfigs: Map[NodeId, NodeConfigId]
-    , generationTime    : DateTime
-    , overrides         : Set[UniqueOverrides]
-    , allNodeModes      : Map[NodeId, NodeModeConfig]
-  ) : List[NodeExpectedReports] = {
-    val filteredExpandedRuleVals = filterOverridenDirectives(expandedRuleVals, overrides)
-
-    // transform to rule expected reports by node
-    val directivesExpectedReports = filteredExpandedRuleVals.map { case ExpandedRuleVal(ruleId, configs) =>
-      configs.toSeq.map { case (nodeConfigId, directives) =>
-        // each directive is converted into Seq[DirectiveExpectedReports]
-        val directiveExpected = directives.map { directive =>
-
-               val seq = ComputeCardinalityOfUnboundBoundedPolicyDraft.getTrackingKeyLinearisation(directive)
-
-          // #10625: it seems that that can be kept in D-by-D.
-
-               seq.map { case(componentName, componentsValues, unexpandedCompValues) =>
-                          DirectiveExpectedReports(
-                              directive.directiveId
-                            , directive.policyMode
-                            , directive.isSystem
-                            , List(
-                                ComponentExpectedReport(
-                                    componentName
-          // <== #10625: that can be deleted because we are using ComponentValues.size in place of it
-                                  , componentsValues.size
-          // ==>
-                                  , componentsValues.toList
-                                  , unexpandedCompValues.toList
-                                )
-                              )
-                          )
-               }
-        }
-
-        (nodeConfigId, ruleId, directiveExpected.flatten)
-      }
-    }.flatten.toList
-
-    //now group back by nodeConfigId and transform to ruleExpectedReport
-    val ruleExepectedByNode = directivesExpectedReports.groupBy( _._1 ).mapValues { seq =>
-      // build ruleExpected
-      // we're grouping by (ruleId) even if we should have an homogeneous set here
-      seq.groupBy( t => t._2 ).map { case ( ruleId, directives ) =>
-        RuleExpectedReports(ruleId, directives.flatMap(_._3).toList)
-      }
-    }
-
-    // and finally add what is missing for NodeExpectedReports
-
-    ruleExepectedByNode.map { case (nodeAndConfigId, rules) =>
-      val nodeId = nodeAndConfigId.nodeId
+    configs.map { nodeConfig =>
+      val nodeId = nodeConfig.nodeInfo.id
       NodeExpectedReports(
           nodeId
-        , nodeAndConfigId.version
+        , updatedNodes(nodeId)
         , generationTime
         , None
         , allNodeModes(nodeId) //that shall not throw, because we have all nodes here
-        , rules.toList
+        , RuleExpectedReportBuilder(nodeConfig.policies)
       )
     }.toList
-
   }
 
   override def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit = {
@@ -1408,34 +1252,67 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
 }
 
   /*
-   * Utility object to calculate cardinality of components
-   * Component, ComponentValues(expanded), ComponentValues (unexpanded))
+   * Utility object that take a flat list of Variable and structure them back into a
+   * tree corresponding to Technique components hierarchy.
+   *
+   * We could avoid that method by directly saving user directives into a
+   * tree-like data structure (yes, JSON) in place of the flat PolicyVars
+   * format.
    */
-object ComputeCardinalityOfUnboundBoundedPolicyDraft extends Loggable {
+object RuleExpectedReportBuilder extends Loggable {
   import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 
-  def getTrackingKeyLinearisation(container : ExpandedUnboundBoundedPolicyDraft) : Seq[(String, Seq[String], Seq[String])] = {
+
+  // get Rules expected configs back from a list of Policies
+  def apply(policies: List[Policy]): List[RuleExpectedReports] = {
+    // before anything else, we need to "flatten" rule/directive by policy vars
+    // (i.e one for each PolicyVar, and we only have more than one of them in the
+    // case where several directives from the same technique where merged.
+
+    val flatten = policies.flatMap { p =>
+      p.policyVars.toList.map { v => p.copy(id = v.policyId, policyVars = NonEmptyList.one(v)) }
+    }
+
+    // now, group by rule id and map to expected reports
+    flatten.groupBy( _.id.ruleId ).map { case (ruleId, seq) =>
+      val directives = seq.map { policy =>
+        // from a policy, get one "directive expected reports" by directive.
+        // As we flattened previously, we only need/want "head"
+        val pvar = policy.policyVars.head
+        DirectiveExpectedReports(
+            pvar.policyId.directiveId
+          , pvar.policyMode
+          , policy.isSystem
+          , componentsFromVariables(policy.technique, policy.id.directiveId, pvar)
+        )
+      }
+
+      RuleExpectedReports(ruleId, directives)
+    }.toList
+  }
+
+  def componentsFromVariables(technique: Technique, directiveId: DirectiveId, vars: PolicyVars) : List[ComponentExpectedReport] = {
 
     // Computes the components values, and the unexpanded component values
     val getTrackingVariableCardinality : (Seq[String], Seq[String]) = {
-      val boundingVar = container.trackerVariable.spec.boundingVariable.getOrElse(container.trackerVariable.spec.name)
+      val boundingVar = vars.trackerVariable.spec.boundingVariable.getOrElse(vars.trackerVariable.spec.name)
       // now the cardinality is the length of the boundingVariable
-      (container.variables.get(boundingVar), container.originalVariables.get(boundingVar)) match {
+      (vars.expandedVars.get(boundingVar), vars.originalVars.get(boundingVar)) match {
         case (None, None) =>
           logger.debug("Could not find the bounded variable %s for %s in ParsedPolicyDraft %s".format(
-              boundingVar, container.trackerVariable.spec.name, container.directiveId.value))
+              boundingVar, vars.trackerVariable.spec.name, directiveId.value))
           (Seq(DEFAULT_COMPONENT_KEY),Seq()) // this is an autobounding policy
         case (Some(variable), Some(originalVariables)) if (variable.values.size==originalVariables.values.size) =>
           (variable.values, originalVariables.values)
         case (Some(variable), Some(originalVariables)) =>
           logger.warn("Expanded and unexpanded values for bounded variable %s for %s in ParsedPolicyDraft %s have not the same size : %s and %s".format(
-              boundingVar, container.trackerVariable.spec.name, container.directiveId.value,variable.values, originalVariables.values ))
+              boundingVar, vars.trackerVariable.spec.name, directiveId.value,variable.values, originalVariables.values ))
           (variable.values, originalVariables.values)
         case (None, Some(originalVariables)) =>
           (Seq(DEFAULT_COMPONENT_KEY),originalVariables.values) // this is an autobounding policy
         case (Some(variable), None) =>
           logger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in ParsedPolicyDraft %s appeared, but was not originally there".format(
-              boundingVar, container.trackerVariable.spec.name, container.directiveId.value))
+              boundingVar, vars.trackerVariable.spec.name, directiveId.value))
           (variable.values,Seq()) // this is an autobounding policy
 
       }
@@ -1446,57 +1323,57 @@ object ComputeCardinalityOfUnboundBoundedPolicyDraft extends Loggable {
      * - if the technique is standart, we keep the complex old path
      * - if it is a meta technique, we take the easy paths
      */
-    container.technique.providesExpectedReports match {
+    technique.providesExpectedReports match {
       case false =>
         // this is the old path
             /*
              * We can have several components, one by section.
              * If there is no component for that policy, the policy is autobounded to DEFAULT_COMPONENT_KEY
              */
-            val allComponents = container.technique.rootSection.getAllSections.flatMap { section =>
+            val allComponents = technique.rootSection.getAllSections.flatMap { section =>
               if(section.isComponent) {
                 section.componentKey match {
                   case None =>
                     //a section that is a component without componentKey variable: card=1, value="None"
-                    Some((section.name, Seq(DEFAULT_COMPONENT_KEY), Seq(DEFAULT_COMPONENT_KEY)))
+                    Some(ComponentExpectedReport(section.name, List(DEFAULT_COMPONENT_KEY), List(DEFAULT_COMPONENT_KEY)))
                   case Some(varName) =>
                     //a section with a componentKey variable: card=variable card
-                    val values = container.variables.get(varName).map( _.values).getOrElse(Seq())
-                    val unexpandedValues = container.originalVariables.get(varName).map( _.values).getOrElse(Seq())
+                    val values           = vars.expandedVars.get(varName).map( _.values.toList).getOrElse(Nil)
+                    val unexpandedValues = vars.originalVars.get(varName).map( _.values.toList).getOrElse(Nil)
                     if (values.size != unexpandedValues.size)
                       logger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
-                          section.componentKey, container.directiveId.value, values, unexpandedValues ))
-                    Some((section.name, values, unexpandedValues))
+                          section.componentKey, directiveId.value, values, unexpandedValues ))
+                    Some(ComponentExpectedReport(section.name, values, unexpandedValues))
                 }
               } else {
                 None
               }
-            }
+            }.toList
 
             if(allComponents.size < 1) {
               //that log is outputed one time for each directive for each node using a technique, it's far too
               //verbose on debug.
               logger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
-                container.technique.id, container.directiveId))
+                technique.id, directiveId))
 
               val trackingVarCard = getTrackingVariableCardinality
-              Seq((container.technique.id.name.value, trackingVarCard._1, trackingVarCard._2))
+              List(ComponentExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))
             } else {
               allComponents
             }
       case true =>
         // this is easy, everything is in the ParsedPolicyDraft; the components contains only one value, the
         // one that we want
-        val allComponents = container.technique.rootSection.getAllSections.flatMap { section =>
+        val allComponents = technique.rootSection.getAllSections.flatMap { section =>
           if (section.isComponent) {
             section.componentKey match {
               case None =>
                 logger.error(s"We don't have defined reports keys for section ${section.name} that should provide predefined values")
                 None
               case Some(name) =>
-                (container.variables.get(name), container.originalVariables.get(name)) match {
+                (vars.expandedVars.get(name), vars.originalVars.get(name)) match {
                   case (Some(expandedValues), Some(originalValues)) if expandedValues.values.size == originalValues.values.size =>
-                    Some((section.name, expandedValues.values, originalValues.values))
+                    Some(ComponentExpectedReport(section.name, expandedValues.values.toList, originalValues.values.toList))
 
                   case (Some(expandedValues), Some(originalValues)) if expandedValues.values.size != originalValues.values.size =>
                     logger.error(s"In section ${section.name}, the original values and the expanded values don't have the same size. Orignal values are ${originalValues.values}, expanded are ${expandedValues.values}")
@@ -1510,7 +1387,7 @@ object ComputeCardinalityOfUnboundBoundedPolicyDraft extends Loggable {
           } else {
             None
           }
-        }
+        }.toList
         allComponents
     }
 
