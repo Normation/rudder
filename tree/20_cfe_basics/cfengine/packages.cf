@@ -115,7 +115,9 @@ bundle common redhat_no_locking_knowledge {
 
 
   classes:
-    redhat::
+    # Use the class 'agent' as a guard, to prevent the command to be executed during cf-promises/cf-serverd
+    # Class agent is a hard class set by cf-agent
+    redhat.agent::
       "redhat_setopt_available" not => returnszero("LANG=C ${paths.path[yum]} --setopt=exit_on_lock=True 2>&1 | ${paths.path[grep]} -q -E '(Command line error: no such option: --setopt|Main config did not have a exit_on_lock attr. before setopt)'", "useshell");
 
 }
