@@ -87,7 +87,7 @@ import Utils._
 
 case class EmptyReportKeysValue(sectionName: String) extends Exception(s"In '${sectionName}', the element ${REPORT_KEYS} must have a non empty list of provided values: <${REPORT_KEYS}><${REPORT_KEYS_VALUE}>val foo</${REPORT_KEYS_VALUE}><${REPORT_KEYS_VALUE}>...")
 
-class VariableSpecParser {
+class VariableSpecParser extends Loggable {
 
 
   private[this] val reservedVariableName = DEFAULT_COMPONENT_KEY :: TRACKINGKEY :: Nil
@@ -130,7 +130,6 @@ class VariableSpecParser {
         , markerName = markerName
         , longDescription = ""
         , valueslabels = Nil
-        , isUniqueVariable = false
         , multivalued = true
         , checked = true
         , constraint = Constraint()
@@ -154,7 +153,13 @@ class VariableSpecParser {
 
             val items = parseItems(elt)
 
-            val isUniqueVariable = "true" == getUniqueNodeText(elt, VAR_IS_UNIQUE_VARIABLE, "false").toLowerCase
+            // we use to have a "uniqueVariable" field that is not supported anymore in Rudder 4.3
+            // => warn if it is used in the the technique.
+            if(getUniqueNode(elt, "UNIQUEVARIABLE").isDefined) {
+              logger.warn(s"Since Rudder 4.3, a variable can not be marked as 'UNIQUEVARIABLE' anymore and that attribute will be ignored. In place, " +
+                  "you should use a Rudder parameter to denote an unique value, or a Node Property for a value unique for a given node. To denote an " +
+                  "action unique to all directive derived from the same technique, you should use pre- or post-agent-run hooks")
+            }
 
             val multiValued = getUniqueNodeText(elt, VAR_IS_MULTIVALUED, "false").toLowerCase match {
               case "true" => true
@@ -176,7 +181,6 @@ class VariableSpecParser {
               markerName = markerName,
               longDescription = longDescription,
               valueslabels = items,
-              isUniqueVariable = isUniqueVariable,
               multivalued = multiValued,
               checked = checked,
               constraint = constraint,

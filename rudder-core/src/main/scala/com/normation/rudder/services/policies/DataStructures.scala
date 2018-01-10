@@ -363,20 +363,7 @@ object Policy {
                 if (!existingVariable.spec.multivalued) {
                   PolicyLogger.warn(s"Attempt to append value into a non multivalued variable '${existingVariable.spec.name}', please report the problem as a bug.")
                 }
-                // deals with unique values: in that case, only keep one value.
-                // merge is done in order, so if value is already set, does nothing
-                if(existingVariable.spec.isUniqueVariable) {
-                  if(existingVariable.values.isEmpty) {
-                    newVar.values.headOption match {
-                      case None    => existingVariable //ok, does nothing more
-                      case Some(v) => existingVariable.copyWithSavedValue(v)
-                    }
-                  } else { //just use already defined unique
-                    existingVariable
-                  }
-                } else { //actually merge variables
-                  existingVariable.copyWithAppendedValues(newVar.values)
-                }
+                existingVariable.copyWithAppendedValues(newVar.values)
             }
             mergedVars.put(newVar.spec.name, variable)
           }
