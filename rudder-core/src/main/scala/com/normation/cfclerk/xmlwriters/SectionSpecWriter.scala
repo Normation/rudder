@@ -81,7 +81,6 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
         val name            = createXmlTextNode(VAR_NAME,               variable.name)
         val description     = createXmlTextNode(VAR_DESCRIPTION,        variable.description)
         val longDescription = createXmlTextNode(VAR_LONG_DESCRIPTION,   variable.longDescription)
-        val isUnique        = createXmlTextNode(VAR_IS_UNIQUE_VARIABLE, variable.isUniqueVariable.toString)
         val isMultiValued   = createXmlTextNode(VAR_IS_MULTIVALUED,     variable.multivalued.toString)
         val checked         = createXmlTextNode(VAR_IS_CHECKED,         variable.checked.toString)
         val items           = (valueLabels.map(serializeItem(_))/:NodeSeq.Empty)((a,b) => a ++ b)
@@ -90,7 +89,6 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
         val children = (  name
                        ++ description
                        ++ longDescription
-                       ++ isUnique
                        ++ isMultiValued
                        ++ checked
                        ++ items

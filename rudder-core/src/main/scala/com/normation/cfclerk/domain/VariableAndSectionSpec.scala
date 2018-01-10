@@ -167,8 +167,6 @@ sealed trait VariableSpec {
   def description: String
   def longDescription: String
 
-  // a uniqueVariable has the same values over each policies
-  def isUniqueVariable: Boolean
   def multivalued: Boolean
 
   // if true, check that the value set match the type
@@ -205,8 +203,6 @@ case class SystemVariableSpec(
   val description: String,
   val longDescription: String = "",
   val valueslabels: Seq[ValueLabel] = Seq(),
-  // a uniqueVariable has the same values over each policies
-  val isUniqueVariable: Boolean = false,
   val multivalued: Boolean = false,
 
   // we expect that by default the variable will be checked
@@ -238,8 +234,6 @@ case class TrackerVariableSpec(
 
   override val name: String = TRACKINGKEY
   override val description: String = "Variable which kept information about the policy"
-
-  override  val isUniqueVariable: Boolean = false
 
   override val checked: Boolean = false
 
@@ -276,8 +270,6 @@ case class SelectVariableSpec(
   val description: String,
   val longDescription: String = "",
   val valueslabels: Seq[ValueLabel] = Seq(),
-  // a uniqueVariable has the same values over each policies
-  val isUniqueVariable: Boolean = false,
   val multivalued: Boolean = false,
 
   // we expect that by default the variable will be checked
@@ -301,8 +293,6 @@ case class SelectOneVariableSpec(
   val description: String,
   val longDescription: String = "",
   val valueslabels: Seq[ValueLabel] = Seq(),
-  // a uniqueVariable has the same values over each policies
-  val isUniqueVariable: Boolean = false,
   val multivalued: Boolean = false,
 
   // we expect that by default the variable will be checked
@@ -332,8 +322,6 @@ case class PredefinedValuesVariableSpec(
     //Values are ordered.
   , val providedValues: (String, Seq[String])
   , val longDescription: String = ""
-    // a uniqueVariable has the same values over each policies
-  , val isUniqueVariable: Boolean = true
   , val multivalued: Boolean = true
 
     // we expect that by default the variable will be checked
@@ -360,8 +348,6 @@ case class InputVariableSpec(
   override val name: String,
   val description: String,
   val longDescription: String = "",
-  // a uniqueVariable has the same values over each policies
-  val isUniqueVariable: Boolean = false,
   val multivalued: Boolean = false,
 
   // we expect that by default the variable will be checked
@@ -399,8 +385,6 @@ object SectionVariableSpec {
     markerName: String,
     longDescription: String = "",
     valueslabels: Seq[ValueLabel],
-    // a uniqueVariable has the same values over each policies
-    isUniqueVariable: Boolean = false,
     multivalued: Boolean = false,
     checked: Boolean = true,
     constraint: Constraint = Constraint(),
@@ -409,15 +393,15 @@ object SectionVariableSpec {
 
     markerName match {
       case INPUT => InputVariableSpec(varName, description, longDescription,
-        isUniqueVariable, multivalued, checked, constraint)
+        multivalued, checked, constraint)
       case SELECT => SelectVariableSpec(varName, description, longDescription,
-        valueslabels, isUniqueVariable, multivalued, checked, constraint)
+        valueslabels, multivalued, checked, constraint)
       case SELECT1 => SelectOneVariableSpec(varName, description, longDescription,
-        valueslabels, isUniqueVariable, multivalued, checked, constraint)
+        valueslabels, multivalued, checked, constraint)
       case REPORT_KEYS =>
         if(providedValues.isEmpty) throw EmptyReportKeysValue(varName)
         else PredefinedValuesVariableSpec(varName, description, (providedValues.head, providedValues.tail),
-            longDescription, isUniqueVariable, multivalued, checked, constraint)
+            longDescription, multivalued, checked, constraint)
 
       case x => throw new IllegalArgumentException("Unknown variable kind: " + x)
     }

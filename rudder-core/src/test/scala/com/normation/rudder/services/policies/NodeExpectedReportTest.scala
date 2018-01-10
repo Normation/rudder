@@ -264,7 +264,6 @@ class NodeExpectedReportTest extends Specification {
 
 
       val json = ExpectedReportsSerialisation.jsonRuleExpectedReports(RuleExpectedReportBuilder(p1 :: p2 :: Nil).sortBy( _.ruleId.value))
-      println(net.liftweb.json.prettyRender(json))
       val Diff(changed, added, deleted) = expected diff json
       // we don't want to deals with JNothing trailing leaf
       def clean(j: JValue): JValue = {
