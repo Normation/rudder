@@ -23,49 +23,6 @@ bundle agent init
 {
   vars:
     "tmp"            string => getenv("TEMP", 1024);
-    "source_file"    string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
-    # Report file, before expansion
-    "source_reports" string => "# This file contains one line per report expected by Rudder from this technique
-# Format: technique_name;;class_prefix_${key};;@@RUDDER_ID@@;;component name;;component key
-Test_logging_in_ncf;;command_execution_/bin/true;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Command execution;;/bin/true
-Test_logging_in_ncf;;command_execution_/bin/false;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Command execution;;/bin/false
-Test_logging_in_ncf;;directory_create_/tmp/bar;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Directory create;;/tmp/bar
-Test_logging_in_ncf;;directory_create_/tmp/foo;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Directory create;;/tmp/foo
-Test_logging_in_ncf;;file_create_/tmp/1;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/1
-Test_logging_in_ncf;;file_create_/tmp/2;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/2
-Test_logging_in_ncf;;file_create_/tmp/3;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/3
-Test_logging_in_ncf;;file_create_/tmp/4;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/4
-Test_logging_in_ncf;;file_create_/tmp/5;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/5";
-
-    "tmp_file"        string => "${sys.workdir}/state/rudder_expected_reports.*.tmp";
-    "res_file"        string => "${sys.workdir}/state/rudder_expected_reports.*.res";
-    "sorted_ref_res_file" string => "${tmp}/sorted_ref_file.res";
-    "sorted_res_file"     string => "${tmp}/sorted_file.res";
-
-    "reference_tmp_file"     string => "${tmp}/rudder_expected_reports.tmp";
-    "reference_tmp_reports"  string => "# This file contains one line per report expected by Rudder from this technique
-# Format: technique_name;;class_prefix_${key};;@@RUDDER_ID@@;;component name;;component key
-Test_logging_in_ncf;;command_execution_/bin/true;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Command execution;;/bin/true
-Test_logging_in_ncf;;command_execution_/bin/false;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Command execution;;/bin/false
-Test_logging_in_ncf;;directory_create_/tmp/bar;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Directory create;;/tmp/bar
-Test_logging_in_ncf;;directory_create_/tmp/foo;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Directory create;;/tmp/foo
-Test_logging_in_ncf;;file_create_/tmp/1;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/1
-Test_logging_in_ncf;;file_create_/tmp/2;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/2
-Test_logging_in_ncf;;file_create_/tmp/3;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/3
-Test_logging_in_ncf;;file_create_/tmp/4;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/4
-Test_logging_in_ncf;;file_create_/tmp/5;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/5";
-
-    "reference_res_file"     string => "${tmp}/rudder_expected_reports.res";
-    # With an agent that doesn't have the promiser stack, the res file contains unexpanded variables
-    "reference_res_reports"  string => "Test_logging_in_ncf;;command_execution__bin_true;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Command execution;;/bin/true;;${const.dollar}{reports[0][5]};;${const.dollar}{reports[0][6]}
-Test_logging_in_ncf;;command_execution__bin_false;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Command execution;;/bin/false;;${const.dollar}{reports[1][5]};;${const.dollar}{reports[1][6]}
-Test_logging_in_ncf;;directory_create__tmp_bar;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Directory create;;/tmp/bar;;${const.dollar}{reports[2][5]};;${const.dollar}{reports[2][6]}
-Test_logging_in_ncf;;directory_create__tmp_foo;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Directory create;;/tmp/foo;;${const.dollar}{reports[3][5]};;${const.dollar}{reports[3][6]}
-Test_logging_in_ncf;;file_create__tmp_1;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/1;;${const.dollar}{reports[4][5]};;${const.dollar}{reports[4][6]}
-Test_logging_in_ncf;;file_create__tmp_2;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/2;;${const.dollar}{reports[5][5]};;${const.dollar}{reports[5][6]}
-Test_logging_in_ncf;;file_create__tmp_3;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/3;;${const.dollar}{reports[6][5]};;${const.dollar}{reports[6][6]}
-Test_logging_in_ncf;;file_create__tmp_4;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/4;;${const.dollar}{reports[7][5]};;${const.dollar}{reports[7][6]}
-Test_logging_in_ncf;;file_create__tmp_5;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/5;;${const.dollar}{reports[8][5]};;${const.dollar}{reports[8][6]}";
 
     "message"         string => "is the expected report message";
     "class_prefix"    string => "file_create__tmp_1";
@@ -73,25 +30,8 @@ Test_logging_in_ncf;;file_create__tmp_5;;32377fd7-02fd-43d0-aab7-28460a91347b@@1
 
     "current_technique_report_info.technique_name" string => "Test_logging_in_ncf";
 
-    "expected_reporting" string => "R: @@Test_logging_in_ncf@@result_repaired@@32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10@@File create@@/tmp/1@@12-11-54##123456@#the expected report message was repaired";
+    "expected_reporting" string => "R: @@Test_logging_in_ncf@@result_repaired@@32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@0@@File create@@/tmp/1@@12-11-54##123456@#the expected report message was repaired";
     "escaped_expected"   string => escape("${expected_reporting}");
-
-  commands:
-    # Create the report file
-    "/bin/echo"
-      args    => "\"${source_reports}\" > \"${source_file}\"",
-      contain => in_shell;
-
-    # Create the tmp file to compare to
-    "/bin/echo"
-      args    => "\"${reference_tmp_reports}\" > \"${reference_tmp_file}\"",
-      contain => in_shell;
-
-    # Create the res file to compare to
-    "/bin/echo"
-      args    => "\'${reference_res_reports}\' > \"${reference_res_file}\"",
-      contain => in_shell;
-
 }
 
 #######################################################
@@ -111,32 +51,11 @@ bundle agent check
 
       "output" string => execresult("${reporting_output_cmd}", "noshell");
 
-      "generated_tmp_file_test" string => "/usr/bin/diff \"${init.reference_tmp_file}\" ${init.tmp_file}";
-
-      "sort_ref_res" string => execresult("/usr/bin/sort \"${init.reference_res_file}\" > ${init.sorted_ref_res_file}", "useshell");
-      # init.res_file is a regular expression: mustn't be quoted
-      "sort_res"     string => execresult("/usr/bin/sort ${init.res_file} > ${init.sorted_res_file}", "useshell");
-
-      # Res file is out of order, we need to sort it
-      "generated_res_file_test" string => "/usr/bin/diff \"${init.sorted_res_file}\" \"${init.sorted_ref_res_file}\"";
-
-
   classes:
     pass1::
       # Check if output contains the correct value
-      "contain_expected_reports" 
+      "ok" 
          expression => regcmp(".*${init.escaped_expected}.*", "${output}");
-
-      # Diffs between generated files and result
-      "tmp_file_correct"
-         expression => returnszero("${generated_tmp_file_test}", "useshell");
-
-      "res_file_correct"
-         expression => returnszero("${generated_res_file_test}", "useshell");
-
-      "ok"
-         expression => "contain_expected_reports.tmp_file_correct.res_file_correct";
-
 
     any::
       "pass2" expression => "pass1";
@@ -148,12 +67,5 @@ bundle agent check
       "$(this.promise_filename) Pass";
     pass2.!ok::
       "$(this.promise_filename) FAIL";
-    pass2.!tmp_file_correct::    
-      "$(this.promise_filename) Generated temp reports file doesn't match the expected temp file";
-
-    pass2.!res_file_correct::
-      "$(this.promise_filename) Generated resulting reports file doesn't match the expected result file ${generated_res_file_test}";
-
-   pass2.!contain_expected_reports::
-      "$(this.promise_filename) Expected reports was not generated (got ${output})";
+      "$(this.promise_filename) Expected reports was not generated (got '${output}' but expected '${init.escaped_expected}' )";
 }

@@ -28,8 +28,6 @@ bundle agent init
     "class_prefix"    string => "file_create__tmp_1";
     "class_condition" string => "${class_prefix}_repaired";
 
-    "current_technique_report_info.technique_name" string => "Test_logging_in_ncf";
-
     "g.uuid"          string => "123456";
     "g.execRun"       string => "12-11-54";
 }
@@ -42,6 +40,8 @@ bundle agent test
       "empty_slist" slist => { cf_null };
 
   methods:
+    "call_context" usebundle => current_reporting_identifier("15645b8f-4606-4549-9f62-1b99a7594d54", "32377fd7-02fd-43d0-aab7-28460a91347b");
+    "method_call_context" usebundle => _current_technique_report_info("Test_logging_in_ncf", "File create", "/tmp/1");
     "class" usebundle => _classes_repaired("${init.class_prefix}");
     "ph1"   usebundle => log_rudder("${init.message}", "${init.class_prefix}", "", @{empty_slist});
 }
