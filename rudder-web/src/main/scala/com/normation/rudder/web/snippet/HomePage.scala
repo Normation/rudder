@@ -296,7 +296,6 @@ class HomePage extends Loggable {
       { case ((labels,values),(label,value)) => (label :: labels, value :: values) }
 
       val osArray = JsObj("labels" -> JsArray(osLabels), "values" -> JsArray(osValues))
-
       Script(OnLoad(JsRaw(s"""
         homePageInventory(
             ${machinesArray.toJsCmd}
@@ -473,5 +472,7 @@ class HomePage extends Loggable {
       case Full(x) => x
     }).toString)
   }
+
+  def test = <div>test</div>
 
 }

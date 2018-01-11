@@ -2,30 +2,33 @@
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
-    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport"></meta>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>Rudder - Login</title>
-    <link data-lift="with-cached-resource" href="/style/bootstrap/tw-bs-bootstrap-3.3.7.css" rel="stylesheet" type="text/css">
-    <link data-lift="with-cached-resource" href="/style/font-awesome/font-awesome-4.6.3.min.css" rel="stylesheet" type="text/css">
-    <link data-lift="with-cached-resource" href="/style/ionicons-2.0.1/css/ionicons.min.css" rel="stylesheet" type="text/css">
-    <link data-lift="with-cached-resource" href="/style/login.css" rel="stylesheet" type="text/css">
-    <link href="/images/rudder-favicon.ico" data-lift="with-cached-resource" rel="icon" type="image/x-icon" />
+    <link data-lift="with-cached-resource" href="/style/bootstrap/tw-bs-bootstrap-3.3.7.css" rel="stylesheet" type="text/css"></link>
+    <link data-lift="with-cached-resource" href="/style/font-awesome/font-awesome-4.6.3.min.css" rel="stylesheet" type="text/css"></link>
+    <link data-lift="with-cached-resource" href="/style/ionicons-2.0.1/css/ionicons.min.css" rel="stylesheet" type="text/css"></link>
+    <link data-lift="with-cached-resource" href="/style/login.css" rel="stylesheet" type="text/css"></link>
+    <link data-lift="with-cached-resource" href="/style/login-custom.css" rel="stylesheet" type="text/css"></link>
+    <link href="/images/rudder-favicon.ico" data-lift="with-cached-resource" rel="icon" type="image/x-icon" ></link>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/jquery/jquery-3.1.0.min.js"></script>
 </head>
 <body id="login-page" class="tw-bs">
     <form class="rudder-form" name="contact" id="contact" method="post" action="/j_spring_security_check">
       <fieldset>
           <p class="legend col-xs-12">
-          <img src="/images/login/logo-rudder.svg" data-lift="with-cached-resource" alt="Rudder">
+          <img src="/images/login/logo-rudder.svg" data-lift="with-cached-resource" alt="Rudder"></img>
           <span>${rudder-major-version}</span>
           </p>
           <div class="col-xs-12">
-            <h4 class="welcome col-xs-12">Welcome, please sign in:</h4>
+          
+            <h4 class="welcome col-xs-12">Welcome, please sign in 
+            <div data-lift="HomePage.test"></div> :</h4>
             <div class="form-group group-user has-feedback col-xs-12">
               <label class="sr-only" for="username">Username</label>
               <div class="input-group">
                 <label class="input-group-addon" for="username"><span class="ion ion-android-person"></span></label>
-                <input type="text" class="form-control" id="username" name="j_username" placeholder="Username" size="30">
+                <input type="text" class="form-control" id="username" name="j_username" placeholder="Username" size="30"></input>
                 <span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true" aria-describedby="inputError2Status"></span>
               </div>
                 <span id="inputErrorStatus" class="sr-only">The field is required</span>
@@ -35,7 +38,7 @@
               <label class="sr-only" for="password">Password</label>
               <div class="input-group">
                 <label class="input-group-addon" for="password"><span class="ion ion-android-lock"></span></label>
-                <input type="password" class="form-control" id="password" name="j_password" placeholder="Password">
+                <input type="password" class="form-control" id="password" name="j_password" placeholder="Password"></input>
                 <span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true" aria-describedby="inputError2Status"></span>
               </div>
               <span id="inputError2Status" class="sr-only">The field is required</span>
