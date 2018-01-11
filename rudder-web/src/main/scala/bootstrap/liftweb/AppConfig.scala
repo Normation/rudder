@@ -172,6 +172,10 @@ import com.normation.rudder.service.user.UserService
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueArchiverImpl
 import scala.concurrent.duration._
+import com.normation.rudder.web.snippet.IndexExtension
+import org.springframework.context.ApplicationContextAware
+import org.springframework.beans.factory.InitializingBean
+import org.springframework.context.ApplicationContext
 
 /**
  * Define a resource for configuration.
@@ -876,7 +880,6 @@ object RudderConfig extends Loggable {
   val apiV9 = ncfAPI :: apiV8
   // apiv10 removes skipIdentify in the settings API
   val apiV10 = settingsApi10 :: apiV9.filter( _ != settingsApi8)
-
 
   val apis = {
     Map (
@@ -1883,6 +1886,7 @@ object RudderConfig extends Loggable {
   }
 
  val aggregateReportScheduler = new FindNewReportsExecution(executionService,RUDDER_REPORTS_EXECUTION_INTERVAL)
+
 }
 
 /**
