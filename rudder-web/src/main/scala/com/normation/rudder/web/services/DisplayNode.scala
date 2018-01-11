@@ -403,7 +403,7 @@ object DisplayNode extends Loggable {
         <div class="tablepadding">
          { nodeAndGlobalMode match {
            case Some((n, _)) => <b>Rudder node state: </b><span class="tw-bs">
-                                   <span class="rudder-label label-sm label-state">{n.state.name}</span></span><br/>
+                                   <span class="rudder-label label-sm label-state">{getNodeState(n.state)}</span></span><br/>
            case None         => NodeSeq.Empty
          } }
          { nodePolicyMode match {
@@ -939,5 +939,10 @@ object DisplayNode extends Loggable {
 
   private [this] def isRootNode(n: NodeId): Boolean = {
     return n.value.equals("root");
+  }
+
+  import com.normation.rudder.domain.nodes.NodeState
+  private[this] def getNodeState(nodeState: NodeState) : String = {
+    S.?(s"node.states.${nodeState.name}")
   }
 }
