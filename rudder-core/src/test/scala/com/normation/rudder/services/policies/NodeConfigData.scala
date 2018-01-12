@@ -342,7 +342,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val rootNodeConfig = NodeConfiguration(
       nodeInfo    = root
     , modesConfig = defaultModesConfig
-    , policies= List[Policy]()
+    , runHooks    = List()
+    , policies    = List[Policy]()
     , nodeContext = Map[String, Variable]()
     , parameters  = Set[ParameterForConfiguration]()
     , isRootServer= true
@@ -351,7 +352,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val node1NodeConfig = NodeConfiguration(
       nodeInfo    = node1
     , modesConfig = defaultModesConfig
-    , policies= List[Policy]()
+    , runHooks    = List()
+    , policies    = List[Policy]()
     , nodeContext = Map[String, Variable]()
     , parameters  = Set[ParameterForConfiguration]()
     , isRootServer= false
@@ -360,7 +362,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val node2NodeConfig = NodeConfiguration(
       nodeInfo    = node2
     , modesConfig = defaultModesConfig
-    , policies= List[Policy]()
+    , runHooks    = List()
+    , policies    = List[Policy]()
     , nodeContext = Map[String, Variable]()
     , parameters  = Set[ParameterForConfiguration]()
     , isRootServer= false
@@ -620,7 +623,11 @@ class TestNodeConfiguration() {
   //
   //root has 4 system directive, let give them some variables
   //
-  val commonTechnique = techniqueRepository.get(TechniqueId(TechniqueName("common"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  implicit class UnsafeGet(t: Option[Technique]) {
+    def unsafeGet = t.getOrElse(throw new RuntimeException("Bad init for test"))
+  }
+
+  val commonTechnique = techniqueRepository.get(TechniqueId(TechniqueName("common"), TechniqueVersion("1.0"))).unsafeGet
   def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -635,14 +642,14 @@ class TestNodeConfiguration() {
 
 
   def draft (
-      id : PolicyId
+      id          : PolicyId
     , technique   : Technique
     , variableMap : Map[String, Variable]
     , tracker     : TrackerVariable
     , rule        : BundleOrder
     , directive   : BundleOrder
     , system      : Boolean = true
-    , draftMode  : Option[PolicyMode] = None
+    , policyMode  : Option[PolicyMode] = None
   ) = {
     BoundPolicyDraft(
         id
@@ -653,7 +660,7 @@ class TestNodeConfiguration() {
       , tracker
       , 0
       , system
-      , draftMode
+      , policyMode
       , rule
       , directive
       , Set()
@@ -672,7 +679,7 @@ class TestNodeConfiguration() {
     )
   }
 
-  val rolesTechnique = techniqueRepository.get(TechniqueId(TechniqueName("server-roles"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  val rolesTechnique = techniqueRepository.get(TechniqueId(TechniqueName("server-roles"), TechniqueVersion("1.0"))).unsafeGet
   val rolesVariables = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -692,7 +699,7 @@ class TestNodeConfiguration() {
     )
   }
 
-  val distributeTechnique = techniqueRepository.get(TechniqueId(TechniqueName("distributePolicy"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  val distributeTechnique = techniqueRepository.get(TechniqueId(TechniqueName("distributePolicy"), TechniqueVersion("1.0"))).unsafeGet
   val distributeVariables = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -712,7 +719,7 @@ class TestNodeConfiguration() {
     )
   }
 
-  val inventoryTechnique = techniqueRepository.get(TechniqueId(TechniqueName("inventory"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  val inventoryTechnique = techniqueRepository.get(TechniqueId(TechniqueName("inventory"), TechniqueVersion("1.0"))).unsafeGet
   val inventoryVariables = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -734,7 +741,7 @@ class TestNodeConfiguration() {
   //
   // 4 user directives: clock management, rpm, package, a multi-policiy: fileTemplate, and a ncf one: Create_file
   //
-  lazy val clockTechnique = techniqueRepository.get(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersion("3.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  lazy val clockTechnique = techniqueRepository.get(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersion("3.0"))).unsafeGet
   lazy val clockVariables = {
      val spec = clockTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -765,7 +772,7 @@ class TestNodeConfiguration() {
    * that variable is unique, so it get the first draft value all along.
    */
 
-  lazy val rpmTechnique = techniqueRepository.get(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  lazy val rpmTechnique = techniqueRepository.get(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0"))).unsafeGet
   lazy val rpmVariables = {
      val spec = rpmTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -793,7 +800,7 @@ class TestNodeConfiguration() {
     )
   }
 
-  lazy val pkgTechnique = techniqueRepository.get(TechniqueId(TechniqueName("packageManagement"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  lazy val pkgTechnique = techniqueRepository.get(TechniqueId(TechniqueName("packageManagement"), TechniqueVersion("1.0"))).unsafeGet
   lazy val pkgVariables = {
      val spec = pkgTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -821,7 +828,7 @@ class TestNodeConfiguration() {
     )
   }
 
-  lazy val fileTemplateTechnique = techniqueRepository.get(TechniqueId(TechniqueName("fileTemplate"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  lazy val fileTemplateTechnique = techniqueRepository.get(TechniqueId(TechniqueName("fileTemplate"), TechniqueVersion("1.0"))).unsafeGet
   lazy val fileTemplateVariables1 = {
      val spec = fileTemplateTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -880,7 +887,7 @@ class TestNodeConfiguration() {
   }
 
 
-  val ncf1Technique = techniqueRepository.get(TechniqueId(TechniqueName("Create_file"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  val ncf1Technique = techniqueRepository.get(TechniqueId(TechniqueName("Create_file"), TechniqueVersion("1.0"))).unsafeGet
   val ncf1Variables = {
      val spec = ncf1Technique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(

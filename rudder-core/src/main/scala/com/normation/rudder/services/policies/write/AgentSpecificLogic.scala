@@ -49,6 +49,7 @@ import com.normation.inventory.domain.OsDetails
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.Bsd
 import java.nio.charset.StandardCharsets
+import com.normation.rudder.services.policies.NodeRunHook
 
 /*
  * This file contain agent-type specific logic used during the policy
@@ -70,6 +71,7 @@ trait AgentFormatBundleVariables {
     , sytemBundles: List[TechniqueBundles]
     , userInputs  : List[InputFile]
     , userBundles : List[TechniqueBundles]
+    , runHooks    : List[NodeRunHook]
   ) : BundleSequenceVariables
 }
 
@@ -127,12 +129,13 @@ class WriteAllAgentSpecificFiles extends WriteAgentSpecificFiles {
     , sytemBundles: List[TechniqueBundles]
     , userInputs  : List[InputFile]
     , userBundles : List[TechniqueBundles]
+    , runHooks    : List[NodeRunHook]
   ) : Box[BundleSequenceVariables] = {
     //we only choose the first matching agent for that
     pipeline.find(handler => handler.handle(agentType, osDetails)) match {
       case None    => Failure(s"We were unable to find how to create directive sequences for Agent type ${agentType.toString()} on '${osDetails.fullName}'. " +
                             "Perhaps you are missing the corresponding plugin. If not, please report a bug")
-      case Some(h) => Full(h.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles))
+      case Some(h) => Full(h.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles, runHooks))
     }
   }
 }
@@ -167,7 +170,8 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
     , sytemBundles: List[TechniqueBundles]
     , userInputs  : List[InputFile]
     , userBundles : List[TechniqueBundles]
-  ) : BundleSequenceVariables = CfengineBundleVariables.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles)
+    , runHooks    : List[NodeRunHook]
+  ) : BundleSequenceVariables = CfengineBundleVariables.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles, runHooks)
 
 
   private[this] def writeExpectedReportsCsv(paths: NodePromisesPaths, csv: ExpectedReportsCsv, csvFilename: String): Box[List[AgentSpecificFile]] = {

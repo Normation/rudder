@@ -85,8 +85,8 @@ import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
-import com.normation.cfclerk.domain.Technique
-import cats.data.NonEmptyList
+import scala.language.implicitConversions
+
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -773,9 +773,14 @@ object BuildNodeConfiguration extends Loggable {
             // from policy draft, check and build the ordered seq of policy
             policies   <- MergePolicyService.buildPolicy(context.nodeInfo, globalPolicyMode, boundedDrafts)
           } yield {
+            // we have the node mode
+            val nodeModes = allNodeModes(context.nodeInfo.id)
+
             NodeConfiguration(
                 nodeInfo     = context.nodeInfo
-              , modesConfig  = allNodeModes(context.nodeInfo.id)
+              , modesConfig  = nodeModes
+                //system technique should not have hooks, and at least it is not supported.
+              , runHooks     = MergePolicyService.mergeRunHooks(policies.filter( ! _.technique.isSystem), nodeModes.nodePolicyMode, nodeModes.globalPolicyMode)
               , policies     = policies
               , nodeContext  = context.nodeContext
               , parameters   = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
@@ -1018,7 +1023,7 @@ object RuleExpectedReportBuilder extends Loggable {
         DirectiveExpectedReports(
             pvar.policyId.directiveId
           , pvar.policyMode
-          , policy.isSystem
+          , policy.technique.isSystem
           , componentsFromVariables(policy.technique, policy.id.directiveId, pvar)
         )
       }
@@ -1027,7 +1032,7 @@ object RuleExpectedReportBuilder extends Loggable {
     }.toList
   }
 
-  def componentsFromVariables(technique: Technique, directiveId: DirectiveId, vars: PolicyVars) : List[ComponentExpectedReport] = {
+  def componentsFromVariables(technique: PolicyTechnique, directiveId: DirectiveId, vars: PolicyVars) : List[ComponentExpectedReport] = {
 
     // Computes the components values, and the unexpanded component values
     val getTrackingVariableCardinality : (Seq[String], Seq[String]) = {

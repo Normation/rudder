@@ -36,7 +36,6 @@
 */
 package com.normation.rudder.services.policies
 
-import com.normation.cfclerk.domain.Technique
 import org.junit.runner._
 import org.specs2.runner.JUnitRunner
 import org.specs2.mutable._
@@ -93,10 +92,9 @@ class NodeExpectedReportTest extends Specification {
   }
 
   def technique(x: String) = {
-    Technique(
+    PolicyTechnique(
         TechniqueId(TechniqueName("t"+x), TechniqueVersion("1.0"))
-      , "t"+x, "t"+x
-      , AgentConfig(AgentType.CfeCommunity, Nil, Nil, List(BundleName("t"+x))) :: Nil
+      , AgentConfig(AgentType.CfeCommunity, Nil, Nil, List(BundleName("t"+x)), Nil)
       , TrackerVariableSpec(Some(s"m_var_${x}_1"))
       , SectionSpec(name = "root", isMultivalued = false, isComponent = false, componentKey = None, children = List(
           SectionSpec(name = s"var_${x}_0", isMultivalued = false, isComponent = true, componentKey = Some(s"var_${x}_0"), children = List(
@@ -109,10 +107,7 @@ class NodeExpectedReportTest extends Specification {
             ))
           ))
         ))
-      , None
       , Set()
-      , None
-      , true
     )
   }
   val t1 = technique("1")
@@ -146,9 +141,7 @@ class NodeExpectedReportTest extends Specification {
           )
       )
     , priority       = 0
-    , isSystem       = false
     , policyMode     = None
-    , agentType      = AgentType.CfeCommunity
     , ruleOrder      = BundleOrder("1")
     , directiveOrder = BundleOrder("1")
     , overrides      = Set()
@@ -169,9 +162,7 @@ class NodeExpectedReportTest extends Specification {
           )
       )
     , priority       = 0
-    , isSystem       = false
     , policyMode     = None
-    , agentType      = AgentType.CfeCommunity
     , ruleOrder      = BundleOrder("1")
     , directiveOrder = BundleOrder("1")
     , overrides      = Set()

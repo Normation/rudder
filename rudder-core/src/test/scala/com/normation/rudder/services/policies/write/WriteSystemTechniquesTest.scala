@@ -48,6 +48,7 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.xml.LicenseRepositoryXML
+import com.normation.rudder.services.policies.BuildNodeConfiguration
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.NodeConfigData.root
 import com.normation.rudder.services.policies.NodeConfigData.rootNodeConfig
@@ -357,10 +358,12 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
     )
 
+    val p = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, pkg, ncf1))
     val cfeNC = cfeNodeConfig.copy(
         nodeInfo    = cfeNode
-      , policies    = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, pkg, ncf1))
+      , policies    = p
       , nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+      , runHooks    = MergePolicyService.mergeRunHooks(p.filter( ! _.technique.isSystem), None, globalPolicyMode)
     )
 
     "correctly get the expected policy files" in {

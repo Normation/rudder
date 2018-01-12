@@ -75,7 +75,7 @@ class PolicyAgregationTest extends Specification {
   val trackerVariableSpec = TrackerVariableSpec(Some("card"))
   val trackerVariable = TrackerVariable(trackerVariableSpec, Seq())
 
-  val cfe = AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil)
+  val cfe = AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil, Nil)
 
   //  a simple mutli-instance technique
   val technique1_1 = Technique(

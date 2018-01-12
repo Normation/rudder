@@ -130,6 +130,7 @@ class PrepareTemplateVariablesImpl(
                           , agentNodeConfig.config.nodeInfo.policyMode
                           , globalPolicyMode
                           , agentNodeConfig.config.policies
+                          , agentNodeConfig.config.runHooks
                         ).map { bundleVars => bundleVars.map(x => (x.spec.name, x)).toMap }
 
     for {
@@ -202,17 +203,15 @@ class PrepareTemplateVariablesImpl(
               templates
           }
         }
-        val files = (p.technique.agentConfigs.find( _.agentType == agentType).map( _.files) match {
-            case None    => Set.empty[TechniqueFile]
-            case Some(x) =>
-              val files = x.toSet[TechniqueFile]
-              p.technique.generationMode match {
-                case TechniqueGenerationMode.MultipleDirectives =>
-                  files.map( file => file.copy(outPath = Policy.makeUniqueDest(file.outPath, p)))
-                case _ =>
-                  files
-              }
-        })
+        val files = {
+          val files = p.technique.agentConfig.files.toSet[TechniqueFile]
+          p.technique.generationMode match {
+            case TechniqueGenerationMode.MultipleDirectives =>
+              files.map( file => file.copy(outPath = Policy.makeUniqueDest(file.outPath, p)))
+            case _ =>
+              files
+          }
+        }
 
         PreparedTechnique(techniqueTemplates, variables:+ rudderParametersVariable :+ generationVariable, files, reportId)
       }
@@ -252,7 +251,7 @@ class PrepareTemplateVariablesImpl(
                        }
                        case x : SectionVariableSpec =>
                          variables.get(x.name) match {
-                           case None     => Failure(s"[${nodeId.value}:${policy.technique.id}] Misssing value for standard variable: '${x.name}'")
+                           case None    => Failure(s"[${nodeId.value}:${policy.technique.id}] Misssing value for standard variable: '${x.name}'")
                            case Some(v) => Full(Some(x.toVariable(v.values)))
                          }
                      }
