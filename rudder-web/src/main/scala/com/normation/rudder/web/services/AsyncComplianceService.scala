@@ -53,6 +53,7 @@ import JsCmds._
 import JE._
 import net.liftweb.common._
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
+import net.liftweb.util.Helpers.TimeSpan
 
 class AsyncComplianceService (
   reportingService : ReportingService
@@ -195,7 +196,7 @@ class AsyncComplianceService (
             Alert(error.messageChain)
         }
       } else {
-        After(500,compliance(kind,tableId))
+        After(TimeSpan(500), compliance(kind,tableId))
       }
     } )
 

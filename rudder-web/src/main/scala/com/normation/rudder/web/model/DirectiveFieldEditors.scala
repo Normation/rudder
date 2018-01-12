@@ -330,17 +330,12 @@ class UploadedFileField(basePath: String)(val id: String) extends DirectiveField
   type ValueType = File
   private val root = new File(basePath)
   private var f: File = getDefaultValue
-  private var errors = List[FieldError]()
 
   def get = f
   def set(x: File) = {
-    errors = List[FieldError]()
     if (null == x) f = null
     else if (listFiles.exists(_._1 == x)) {
       f = x
-    } else {
-      errors = FieldError(this,
-        "The chosen file %s is not in the parent directory %s".format(f.getName, basePath)) :: Nil
     }
     f
   }

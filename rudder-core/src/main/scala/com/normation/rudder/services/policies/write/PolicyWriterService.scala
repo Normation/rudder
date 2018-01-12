@@ -72,7 +72,6 @@ import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 import scala.concurrent.Await
-import scala.io.Codec
 import scala.util.{ Failure => FailTry }
 import scala.util.Success
 import scala.util.Try
@@ -82,6 +81,7 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
+import java.nio.charset.StandardCharsets
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -133,7 +133,7 @@ class PolicyWriterServiceImpl(
     logger.trace(s"Create node properties file '${agentNodeConfig.paths.newFolder}/${path}/${fileName}'")
     Try {
       val propertyFile = new File ( new File (agentNodeConfig.paths.newFolder, path), fileName)
-      FileUtils.writeStringToFile(propertyFile,propertyContent)
+      FileUtils.writeStringToFile(propertyFile, propertyContent, StandardCharsets.UTF_8)
     } match {
       case FailTry(e) =>
         val message = s"could not write ${fileName} file, cause is: ${e.getMessage}"
@@ -156,7 +156,7 @@ class PolicyWriterServiceImpl(
     logger.trace(s"Create parameter file '${agentNodeConfig.paths.newFolder}/${fileName}'")
     Try {
       val parameterFile = new File ( new File (agentNodeConfig.paths.newFolder), fileName)
-      FileUtils.writeStringToFile(parameterFile,parameterContent)
+      FileUtils.writeStringToFile(parameterFile, parameterContent, StandardCharsets.UTF_8)
     } match {
       case FailTry(e) =>
         val message = s"could not write ${fileName} file, cause is: ${e.getMessage}"
@@ -463,7 +463,7 @@ class PolicyWriterServiceImpl(
             case Some(inputStream) =>
               logger.trace(s"Loading template: ${templateId}")
               //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-              val content = IOUtils.toString(inputStream, Codec.UTF8.charSet)
+              val content = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
               Full(TechniqueTemplateCopyInfo(templateId, templateOutPath, content))
           }
         }
@@ -503,7 +503,7 @@ class PolicyWriterServiceImpl(
   private[this] def writeSystemVarJson(paths: NodePromisesPaths, variables: Map[String, Variable]) =  {
     val path = new File(paths.newFolder, "rudder.json")
     for {
-        _ <- tryo { FileUtils.writeStringToFile(path, systemVariableToJson(variables) + "\n", Codec.UTF8.charSet) } ?~!
+        _ <- tryo { FileUtils.writeStringToFile(path, systemVariableToJson(variables) + "\n", StandardCharsets.UTF_8) } ?~!
                s"Can not write json parameter file at path '${path.getAbsolutePath}'"
     } yield {
       AgentSpecificFile(path.getAbsolutePath) :: Nil
@@ -681,7 +681,7 @@ class PolicyWriterServiceImpl(
                     case None => filled
                     case Some(id) => filled.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
                   }
-      _        <- tryo { FileUtils.writeStringToFile(new File(outPath, templateInfo.destination), replaced, Codec.UTF8.charSet) } ?~!
+      _        <- tryo { FileUtils.writeStringToFile(new File(outPath, templateInfo.destination), replaced, StandardCharsets.UTF_8) } ?~!
                     s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
     } yield {
       outPath

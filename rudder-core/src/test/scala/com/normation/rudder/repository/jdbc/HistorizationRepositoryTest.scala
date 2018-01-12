@@ -75,21 +75,21 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
       val op1 = repos.updateNodes(Seq(NodeConfigData.node1), Seq())
       val op2 = repos.getAllOpenedNodes
 
-      (op1 === ()) and (op2.size === 1) and (op2.head.nodeId === "node1")
+      (op1 === (())) and (op2.size === 1) and (op2.head.nodeId === "node1")
     }
 
     "be able to close and found new ones" in {
       val op1 = service.updateNodes(Set(NodeConfigData.node2)).openOrThrowException("that test should not throw")
       val op2 = repos.getAllOpenedNodes
 
-      (op1 === ()) and (op2.size === 1) and (op2.head.nodeId === "node2")
+      (op1 === (())) and (op2.size === 1) and (op2.head.nodeId === "node2")
     }
 
     "check that policy servers are ignored (not sure why)" in {
       val op1 = service.updateNodes(Set(NodeConfigData.root)).openOrThrowException("that test should not throw")
       val op2 = repos.getAllOpenedNodes
 
-      (op1 === ()) and (op2.size === 0)
+      (op1 === (())) and (op2.size === 0)
     }
 
   }
@@ -110,14 +110,14 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
       val op1 = repos.updateGroups(Seq(NodeConfigData.g1), Seq())
       val op2 = repos.getAllOpenedGroups()
 
-      (op1 === ()) and (op2.size === 1) and (op2.head._1.groupId === "1")
+      (op1 === (())) and (op2.size === 1) and (op2.head._1.groupId === "1")
     }
 
     "be able to close and found new ones" in {
       val op1 = service.updateGroups(buildCategory(NodeConfigData.g2.id :: NodeConfigData.g3.id :: Nil)).openOrThrowException("that test should not throw")
       val op2 = repos.getAllOpenedGroups()
 
-      (op1 === ()) and (op2.size === 2) and (op2.head._1.groupId === "2")
+      (op1 === (())) and (op2.size === 2) and (op2.head._1.groupId === "2")
     }
 
   }
@@ -132,14 +132,14 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
       val op1 = repos.updateDirectives(Seq((NodeConfigData.d1, NodeConfigData.fat1.toActiveTechnique, NodeConfigData.t1)), Seq())
       val op2 = repos.getAllOpenedDirectives()
 
-      (op1 === ()) and (op2.size === 1) and (op2.head.directiveId === "d1")
+      (op1 === (())) and (op2.size === 1) and (op2.head.directiveId === "d1")
     }
 
     "be able to close and found new ones" in {
       val op1 = service.updateDirectiveNames(NodeConfigData.directives).openOrThrowException("that test should not throw")
       val op2 = repos.getAllOpenedDirectives()
 
-      (op1 === ()) and (op2.size === 2) and (op2.sortBy(_.directiveId).last.directiveId === "d2")
+      (op1 === (())) and (op2.size === 2) and (op2.sortBy(_.directiveId).last.directiveId === "d2")
     }
 
   }
@@ -154,14 +154,14 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
       val op1 = repos.updateRules(Seq(NodeConfigData.r1), Seq())
       val op2 = repos.getAllOpenedRules()
 
-      (op1 === ()) and (op2.size === 1) and (op2.head.id.value === "r1")
+      (op1 === (())) and (op2.size === 1) and (op2.head.id.value === "r1")
     }
 
     "be able to close and found new ones" in {
       val op1 = service.updatesRuleNames(NodeConfigData.r2 :: Nil).openOrThrowException("that test should not throw")
       val op2 = repos.getAllOpenedRules()
 
-      (op1 === ()) and (op2.size === 1) and (op2.head.id.value === "r2")
+      (op1 === (())) and (op2.size === 1) and (op2.head.id.value === "r2")
     }
 
   }

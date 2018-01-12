@@ -37,20 +37,25 @@
 
 package com.normation.rudder.batch
 
-import net.liftweb.actor.LiftActor
 import net.liftweb.actor.LAPinger
 import net.liftweb.common._
 import org.joda.time.DateTime
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ScheduledJobLogger
+import net.liftweb.actor.SpecializedLiftActor
 
 
 // -----------------------------------------------------
 // Constants and private objects and classes
 // -----------------------------------------------------
 
-//Message to send to the updater manager to start a new update of all dynamic groups
-case object StartUpdate
+
+sealed trait AbstractActorUpdateMessage
+final object AbstractActorUpdateMessage {
+  final case object StartUpdate extends AbstractActorUpdateMessage
+  final case class  UpdateResult[T](id:Long, start: DateTime, end:DateTime, result: Box[T]) extends AbstractActorUpdateMessage
+}
+
 
 sealed trait UpdaterStates //states into wich the updater process can be
 //the process is idle
@@ -58,7 +63,6 @@ case object IdleUpdater extends UpdaterStates
 //an update is currently running for the given nodes
 case class StartProcessing(id:Long, started: DateTime) extends UpdaterStates
 //the process gave a result
-case class UpdateResult[T](id:Long, start: DateTime, end:DateTime, result: Box[T]) extends UpdaterStates
 
 /**
  * An abstract batch scheduler periodically executing some service.
@@ -91,7 +95,7 @@ trait AbstractScheduler {
   // -----------------------------------------------------
 
   logger.trace(s"***** starting [${displayName}] scheduler *****")
-  (new StatusManager) ! StartUpdate
+  (new StatusManager) ! AbstractActorUpdateMessage.StartUpdate
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////
@@ -105,7 +109,7 @@ trait AbstractScheduler {
    */
   // -----------------------------------------------------
 
-  private class StatusManager extends LiftActor {
+  private class StatusManager extends SpecializedLiftActor[AbstractActorUpdateMessage] {
     updateManager =>
 
     val logger = ApplicationLogger
@@ -133,7 +137,7 @@ trait AbstractScheduler {
       // --------------------------------------------
       // Ask for a new process
       // --------------------------------------------
-      case StartUpdate =>
+      case AbstractActorUpdateMessage.StartUpdate =>
 
         currentState match {
           case IdleUpdater =>
@@ -150,14 +154,14 @@ trait AbstractScheduler {
       // --------------------------------------------
       // Process a successful update response
       // --------------------------------------------
-      case UpdateResult(id,start,end,result) =>
+      case AbstractActorUpdateMessage.UpdateResult(id,start,end,result) =>
         logger.trace(s"Get result for [${displayName}] scheduler task's id '${id}'")
 
         currentState = IdleUpdater
         //if one update is pending, immediatly start one other
 
         //schedule next update, in minutes
-        LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000)
+        LAPinger.schedule(this, AbstractActorUpdateMessage.StartUpdate, realUpdateInterval*1000)
 
         //log some information
         val format = "yyyy/MM/dd HH:mm:ss"
@@ -181,7 +185,7 @@ trait AbstractScheduler {
     }
 
 
-    private[this] object TaskProcessor extends LiftActor {
+    private[this] object TaskProcessor extends SpecializedLiftActor[StartProcessing] {
 
       override protected def messageHandler = {
         // --------------------------------------------
@@ -193,7 +197,7 @@ trait AbstractScheduler {
             val result = executeTask(processId)
 
             if (updateManager!=null)
-              updateManager ! UpdateResult(processId, startTime, new DateTime, result)
+              updateManager ! AbstractActorUpdateMessage.UpdateResult(processId, startTime, new DateTime, result)
               else this !  StartProcessing(processId, startTime)
           } catch {
             case e:Throwable => e match {
@@ -205,11 +209,6 @@ trait AbstractScheduler {
             }
           }
         }
-
-        // --------------------------------------------
-        // Unexpected messages
-        // --------------------------------------------
-        case x => logger.debug(s"[${displayName}] Don't know how to process message: '${x}'")
       }
     }
   }

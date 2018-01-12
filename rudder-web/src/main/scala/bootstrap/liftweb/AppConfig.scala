@@ -160,6 +160,7 @@ import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueArchiverImpl
 import scala.concurrent.duration._
 import com.normation.rudder.api.ApiAcl
+import java.nio.charset.StandardCharsets
 
 /**
  * Define a resource for configuration.
@@ -994,7 +995,7 @@ object RudderConfig extends Loggable {
         |userManagement=User: <name> Login: <login>
         |# For userManagement version 2.0, prefer that pattern in new Directives:
         |userManagement/2.0: User 2.0 [LOGIN]
-        |""".stripMargin)
+        |""".stripMargin, StandardCharsets.UTF_8)
     }
 
     val relativePath = RUDDER_DIR_TECHNIQUES.substring(gitSlash.size, RUDDER_DIR_TECHNIQUES.size)

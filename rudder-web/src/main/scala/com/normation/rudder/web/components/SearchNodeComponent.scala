@@ -269,7 +269,7 @@ class SearchNodeComponent(
 
       ( "#typeQuery"   #> checkBox &
         "#composition" #> radio    &
-        "#submitSearch * " #> SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton btn btn-default"))    &
+        "#submitSearch * " #> SHtml.ajaxSubmit("Search", () => processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton btn btn-default"))    &
         "#query_lines *" #> criteria.zipWithIndex.flatMap { case (cl,i) => displayQueryLine(cl,i, criteria.size > 1)}
       ).apply(html
         /*}:NodeSeq} ++ { if(criteria.size > 0) {
@@ -473,15 +473,15 @@ object SearchNodeComponent {
   //expected "newObjectTypeValue,attributeSelectEltId,oldAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId,oldValue
   def ajaxAttr(lines: Buffer[CriterionLine], i:Int) = { SHtml.ajaxCall( //we we change the attribute, we want to reset the value, see issue #1199
       JE.JsRaw("this.value+',at_%s,'+%s+',ct_%s,'+ %s +',v_%s,'+%s".format(i, ValById("at_"+i).toJsCmd,i,ValById("ct_"+i).toJsCmd,i,Str("").toJsCmd)),
-      s => After(200, replaceAttributes(x => lines(i) = lines(i).copy(value=x))(s))) }
+      s => After(TimeSpan(200), replaceAttributes(x => lines(i) = lines(i).copy(value=x))(s))) }
   //expect "objectTypeValue,newAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId
   def ajaxComp(lines: Buffer[CriterionLine], i:Int)= { SHtml.ajaxCall( //we we change the attribute, we want to reset the value, see issue #1199
       JE.JsRaw("%s+','+this.value+',ct_%s,'+ %s +',v_%s,'+%s".format(ValById("ot_"+i).toJsCmd, i, ValById("ct_"+i).toJsCmd,i,Str("").toJsCmd)),
-      s => After(200, replaceComp(x => lines(i) = lines(i).copy(value=x))(s))) }
+      s => After(TimeSpan(200), replaceComp(x => lines(i) = lines(i).copy(value=x))(s))) }
   //expect "newCompValue,valueSelectEltId"
   def ajaxVal(lines: Buffer[CriterionLine], i:Int) = { SHtml.ajaxCall(
       JE.JsRaw("this.value+',v_%s'".format(i)),
-      s => After(200, replaceValue(s))) }
+      s => After(TimeSpan(200), replaceValue(s))) }
 
   ////////
   //////// Build require select box for a line

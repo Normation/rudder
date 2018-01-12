@@ -672,7 +672,7 @@ class DirectiveEditForm(
         , onSuccessCallback = successCallback
         , onFailureCallback = failureCallback
         , onCreateSuccessCallBack = ( result => onSuccessCallback(result) & successPopup(NodeSeq.Empty))
-        , onCreateFailureCallBack = onFailure
+        , onCreateFailureCallBack = onFailure _
         , parentFormTracker = formTracker
       )
     }

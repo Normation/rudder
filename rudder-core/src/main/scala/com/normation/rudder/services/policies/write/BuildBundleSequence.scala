@@ -54,8 +54,6 @@ import com.normation.inventory.domain.OsDetails
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.cfclerk.domain.TechniqueGenerationMode
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.services.policies.PolicyId
 
 /**

@@ -75,7 +75,7 @@ class EmergencyStop {
     orchestrator.status match {
       case ButtonReleased => //show the emergency stop
         (
-            "emergency-button" #> SHtml.submit("Confirm", stop)
+            "emergency-button" #> SHtml.submit("Confirm", () => stop)
           & "emergency-body"   #> <h2>This button can be used to force a shutdown of the whole Rudder infastructure. Please use with caution.</h2>
           & "emergency:img"    #> <img src={"/" + StaticResourceRewrite.prefix + "/images/btnAlert.jpg"}/>
           & "emergency-title"  #> Text("Emergency system shutdown")
@@ -83,7 +83,7 @@ class EmergencyStop {
 
       case ButtonActivated => //show the restart button
         (
-            "emergency-button" #> SHtml.submit("Start", start,
+            "emergency-button" #> SHtml.submit("Start", () => start,
                       ("id", "emergencyStartButton"),
                       ("class", "emergencyButton"),
                       ("title","Unlock and restart the orchestrator"))

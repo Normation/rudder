@@ -521,7 +521,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   val agentScheduleEditForm = new AgentScheduleEditForm(
-      getSchedule
+      () => getSchedule
     , saveSchedule
     , () => startNewPolicyGeneration
   )

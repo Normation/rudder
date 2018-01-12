@@ -138,7 +138,7 @@ trait WoRuleRepository {
    *   serial ID MUST be updated (+1)
    * - for all other imported CR, the serial MUST be set to 0
    */
-  def swapRules(newRules:Seq[Rule], includeSystem:Boolean = false) : Box[RuleArchiveId]
+  def swapRules(newRules:Seq[Rule]) : Box[RuleArchiveId]
 
   /**
    * Delete a set of saved rules.

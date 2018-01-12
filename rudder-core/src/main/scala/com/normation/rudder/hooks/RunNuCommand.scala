@@ -38,8 +38,8 @@
 package com.normation.rudder.hooks
 
 import java.nio.CharBuffer
-import java.nio.charset.Charset
 import java.nio.charset.CoderResult
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
 import scala.concurrent.Future
@@ -85,7 +85,7 @@ object RunNuCommand extends Loggable {
    * and signal it to its derived future.
    * Exit code, stdout and sdterr content are accumalated in CmdResult data structure.
    */
-  private[this] class CmdProcessHandler extends NuAbstractCharsetHandler(Charset.forName("UTF8")) {
+  private[this] class CmdProcessHandler extends NuAbstractCharsetHandler(StandardCharsets.UTF_8) {
     val promise = Promise[CmdResult]()
     val stderr, stdout = new StringBuilder()
 

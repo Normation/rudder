@@ -81,7 +81,7 @@ class LiftInitContextListener extends ContextLoaderListener {
 
   override def contextInitialized(sce:ServletContextEvent) : Unit = {
 
-    Logger.setup = Full(Logback.withFile(logbackFile))
+    Logger.setup = Full(() => Logback.withFile(logbackFile)())
     /// init all our non-spring services ///
 
     /*

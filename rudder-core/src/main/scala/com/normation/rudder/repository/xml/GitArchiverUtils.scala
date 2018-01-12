@@ -298,7 +298,6 @@ trait GitArchiverFullCommitUtils extends Loggable {
     import org.eclipse.jgit.errors.IncorrectObjectTypeException
     import org.eclipse.jgit.lib._
     import org.eclipse.jgit.revwalk._
-    import scala.collection.JavaConversions._
     import scala.collection.mutable.{ ArrayBuffer, Map => MutMap }
 
     var refList = MutMap[String,Ref]()
@@ -306,11 +305,12 @@ trait GitArchiverFullCommitUtils extends Loggable {
     val tags = ArrayBuffer[RevTag]()
 
     try {
-      refList = gitRepo.db.getRefDatabase().getRefs(Constants.R_TAGS)
-      refList.values().foreach { ref =>
+      refList = gitRepo.db.getRefDatabase().getRefs(Constants.R_TAGS).asScala
+
+      refList.values.foreach { ref =>
         try {
           val tag = revWalk.parseTag(ref.getObjectId())
-          tags.add(tag)
+          tags.append(tag)
         } catch {
           case e:IncorrectObjectTypeException =>
             logger.debug("Ignoring object due to JGit bug: " + ref.getName)

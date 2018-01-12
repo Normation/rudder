@@ -61,6 +61,7 @@ import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.services.AgentCompat
+import net.liftweb.util.Helpers.TimeSpan
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -79,7 +80,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary
   private[this] val getRules            = () => RudderConfig.roRuleRepository.getAll()
   private[this] val uuidGen             = RudderConfig.stringUuidGenerator
-  private[this] val treeUtilService     = RudderConfig.jsTreeUtilService
   private[this] val linkUtil      = RudderConfig.linkUtil
   private[this] val configService = RudderConfig.configService
 
@@ -485,7 +485,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     SetHtml(html_techniqueDetails, NodeSeq.Empty) &
     Replace(htmlId_policyConf, showDirectiveDetails) &
     JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({'directiveId':'${directiveId.value}'})""") &
-    After(0,JsRaw("""createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
+    After(TimeSpan(0),JsRaw("""createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
   }
 
   private[this] final case class MissingTechniqueException(directive: Directive) extends
@@ -559,7 +559,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case Left(dir) => // ok, we've received a directive, show it
         updateDirectiveLibrary(workflowEnabled) &
         updateDirectiveForm(workflowEnabled)(Left(dir),None) &
-        After(0,JsRaw("""applyFilter('directiveFilter');"""))
+        After(TimeSpan(0),JsRaw("""applyFilter('directiveFilter');"""))
 
       case Right(changeRequestId) => // oh, we have a change request, go to it
         linkUtil.redirectToChangeRequestLink(changeRequestId)

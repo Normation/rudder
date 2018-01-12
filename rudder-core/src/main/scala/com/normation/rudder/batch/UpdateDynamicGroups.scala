@@ -50,9 +50,15 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 
-//Message to send to the updater manager to start a new update of all dynamic groups
-case object ManualStartUpdate
-case object DelayedUpdate
+//Message to send to the updater manager to start a new update of all dynamic groups or get results
+sealed trait GroupUpdateMessage
+
+final object GroupUpdateMessage {
+  final case object StartUpdate       extends GroupUpdateMessage
+  final case object ManualStartUpdate extends GroupUpdateMessage
+  final case object DelayedUpdate     extends GroupUpdateMessage
+  final case class  DynamicUpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends GroupUpdateMessage
+}
 
 //a container to hold the list of dynamic group to update
 case class GroupsToUpdate(ids:Seq[NodeGroupId]) extends HashcodeCaching
@@ -62,8 +68,6 @@ sealed trait DynamicGroupUpdaterStates //states into wich the updater process ca
 case object IdleGroupUpdater extends DynamicGroupUpdaterStates
 //an update is currently running for the given nodes
 case class StartDynamicUpdate(id:Long, modId:ModificationId, started: DateTime, groupIds:GroupsToUpdate) extends DynamicGroupUpdaterStates with HashcodeCaching
-//the process gave a result
-case class DynamicUpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends DynamicGroupUpdaterStates with HashcodeCaching
 
 /**
  * A class that periodically update all dynamic groups to see if
@@ -91,11 +95,11 @@ class UpdateDynamicGroups(
     logger.info("Disable dynamic group updates since property %s is 0 or negative".format(propertyName))
   } else {
     logger.trace("***** starting Dynamic Group Update batch *****")
-    laUpdateDyngroupManager ! StartUpdate
+    laUpdateDyngroupManager ! GroupUpdateMessage.StartUpdate
   }
 
   def startManualUpdate : Unit = {
-    laUpdateDyngroupManager ! ManualStartUpdate
+    laUpdateDyngroupManager ! GroupUpdateMessage.ManualStartUpdate
   }
 
   ////////////////////////////////////////////////////////////////
@@ -108,7 +112,7 @@ class UpdateDynamicGroups(
    * one that actually process update.
    */
 
-  private class LAUpdateDyngroupManager extends LiftActor {
+  private class LAUpdateDyngroupManager extends SpecializedLiftActor[GroupUpdateMessage] {
     updateManager =>
 
     val logger = ScheduledJobLogger
@@ -161,26 +165,26 @@ class UpdateDynamicGroups(
       //
       //Ask for a new dynamic group update
       //
-      case StartUpdate =>
+      case GroupUpdateMessage.StartUpdate =>
         if (isAutomatic) {
           // schedule next update, in minutes
-          LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000L*60)
+          LAPinger.schedule(this, GroupUpdateMessage.StartUpdate, realUpdateInterval*1000L*60)
         } // no else part as there is nothing to do (would only be Unit)
         processUpdate
 
-      case ManualStartUpdate =>
+      case GroupUpdateMessage.ManualStartUpdate =>
         processUpdate
 
       // This case is launched when an update was pending, it only launch the process
       // and it does not schedule a new update.
-      case DelayedUpdate =>
+      case GroupUpdateMessage.DelayedUpdate =>
         onePending = false
         processUpdate
 
       //
       //Process a dynamic group update response
       //
-      case DynamicUpdateResult(id, modId, start, end, results) => //TODO: other log ?
+      case GroupUpdateMessage.DynamicUpdateResult(id, modId, start, end, results) => //TODO: other log ?
         logger.trace(s"***** Get result for process: ${id}")
 
         currentState = IdleGroupUpdater
@@ -193,7 +197,7 @@ class UpdateDynamicGroups(
         // Maybe should be done at the end, when we know it's ok to start deployment ...
         if(onePending) {
           logger.debug("Immediatly start another update process: pending request")
-          this ! DelayedUpdate
+          this ! GroupUpdateMessage.DelayedUpdate
         }
 
         //log some information
@@ -235,7 +239,7 @@ class UpdateDynamicGroups(
       case x => logger.debug(s"Dynamic group updater can't process this message: '${x}'")
     }
 
-    private[this] object LAUpdateDyngroup extends LiftActor {
+    private[this] object LAUpdateDyngroup extends SpecializedLiftActor[StartDynamicUpdate] {
 
       override protected def messageHandler = {
         //
@@ -250,17 +254,12 @@ class UpdateDynamicGroups(
             } yield {
               (dynGroupId, dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")))
             }
-            updateManager ! DynamicUpdateResult(processId, modId, startTime, DateTime.now, results.toMap)
+            updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, results.toMap)
           } catch {
-            case e:Exception => updateManager ! DynamicUpdateResult(processId, modId, startTime,DateTime.now,
+            case e:Exception => updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime,DateTime.now,
                   dynGroupIds.map(id => (id,Failure("Exception caught during update process.",Full(e), Empty))).toMap)
           }
         }
-
-        //
-        //Unexpected messages
-        //
-        case x => logger.debug(s"Don't know how to process message: '${x}'")
       }
     }
 

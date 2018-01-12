@@ -46,6 +46,7 @@ import net.liftweb.common._
 import net.liftweb.json._
 import scopt.OptionParser
 import org.apache.commons.io.IOUtils
+import java.nio.charset.StandardCharsets
 
 /**
  * The configuration object for our CLI.
@@ -217,11 +218,11 @@ object TemplateCli {
   def fill(variables: Seq[STVariable], outDir: File, inputExtension: String, outputExtension: String)(template: File): Box[String] = {
     for {
       ok      <- if(template.getName.endsWith(inputExtension)) { Full("ok") } else { Failure(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'") }
-      content <- Tryor(FileUtils.readFileToString(template), s"Error when reading variables from ${template.getAbsolutePath}")
+      content <- Tryor(FileUtils.readFileToString(template, StandardCharsets.UTF_8), s"Error when reading variables from ${template.getAbsolutePath}")
       filled  <- fillerService.fill(template.getAbsolutePath, content, variables)
       name     = template.getName
       out      = new File(outDir, name.substring(0, name.size-inputExtension.size)+outputExtension)
-      writed  <- Tryor(FileUtils.writeStringToFile(out, filled), s"Error when writting filled template into ${out.getAbsolutePath}")
+      writed  <- Tryor(FileUtils.writeStringToFile(out, filled, StandardCharsets.UTF_8), s"Error when writting filled template into ${out.getAbsolutePath}")
     } yield {
       out.getAbsolutePath
     }
@@ -233,7 +234,7 @@ object TemplateCli {
   def fillToStdout(variables: Seq[STVariable], inputExtension: String)(template: File): Box[String] = {
     for {
       ok      <- if(template.getName.endsWith(inputExtension)) { Full("ok") } else { Failure(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'") }
-      content <- Tryor(FileUtils.readFileToString(template), s"Error when reading variables from ${template.getAbsolutePath}")
+      content <- Tryor(FileUtils.readFileToString(template, StandardCharsets.UTF_8), s"Error when reading variables from ${template.getAbsolutePath}")
       writed  <- filledAndWriteToStdout(variables, content, template.getName)
     } yield {
       writed

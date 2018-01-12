@@ -43,6 +43,7 @@ import scala.concurrent.Future
 import com.normation.rudder.domain.logger.MigrationLogger
 import com.normation.rudder.migration._
 import net.liftweb.common._
+import scala.util.Success
 
 trait CheckMigrationXmlFileFormat extends BootstrapChecks {
 
@@ -54,15 +55,15 @@ trait CheckMigrationXmlFileFormat extends BootstrapChecks {
       controler.migrate()
     }
 
-    async.onSuccess {
-      case Full(_) => //ok, and logging should already be done
-      case eb:EmptyBox =>
-        handleFailure(Left(eb))
-    }
-
-    async.onFailure { case ex =>
-      handleFailure(Right(ex))
-    }
+    async.onComplete( res => res match {
+      case Success(x) => x match {
+          case Full(_) => //ok, and logging should already be done
+          case eb:EmptyBox =>
+            handleFailure(Left(eb))
+        }
+      case scala.util.Failure(ex) =>
+          handleFailure(Right(ex))
+    })
   }
 
   private[this] def handleFailure(error: Either[EmptyBox, Throwable]): Unit = {

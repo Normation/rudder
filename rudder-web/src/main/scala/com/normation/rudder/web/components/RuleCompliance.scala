@@ -137,7 +137,7 @@ class RuleCompliance (
       <div class="tw-bs"><h5>Changes during period <b id="selectedPeriod"> --- </b> (selected in graph above)</h5></div>
 
       <table id="changesGrid" cellspacing="0">  </table>  ++
-    Script(After(0,JsRaw(s"""
+    Script(After(TimeSpan(0), JsRaw(s"""
       function refresh() {${refresh().toJsCmd}};
       createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",[],refresh);
       createNodeComplianceTable("nodeReportsGrid",[],"${S.contextPath}", refresh);

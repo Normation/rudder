@@ -37,29 +37,29 @@
 
 package com.normation.rudder.rest.internal
 
+import com.normation.rudder.rest.RestExtractorService
+import java.io.File
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.attribute.PosixFilePermissions
 import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.http.JsonResponse
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.rest.RestExtractorService
-import net.liftweb.common.Full
-import net.liftweb.common.Failure
-import java.io.File
-import net.liftweb.json.JsonAST.JString
+import net.liftweb.http.StreamingResponse
+import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JArray
-import java.nio.file.attribute.PosixFilePermissions
-import java.nio.file.Files
-import java.nio.file.Paths
-import org.joda.time.DateTime
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject
-import net.liftweb.http.JsonResponse
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Loggable
-import java.nio.charset.StandardCharsets
-import net.liftweb.http.StreamingResponse
-import java.nio.file.Path
-import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST.JValue
+import org.joda.time.DateTime
 
 class SharedFilesAPI(
     restExtractor    : RestExtractorService
@@ -80,8 +80,8 @@ class SharedFilesAPI(
   }
 
   def serialize(file:File) : Box[JValue] = {
-    import net.liftweb.util.Helpers._
     import net.liftweb.json.JsonDSL._
+    import net.liftweb.util.Helpers._
     tryo{
       val date = new DateTime(file.lastModified())
       ( ("name"  -> file.getName)
@@ -141,9 +141,9 @@ class SharedFilesAPI(
   def fileContent(path : Path) : Box[LiftResponse] = {
     if (Files.exists(path)) {
       if (Files.isRegularFile(path)) {
-        import scala.collection.JavaConversions._
         import net.liftweb.json.JsonDSL._
-        val fileContent : Seq[String] = Files.readAllLines(path, StandardCharsets.UTF_8)
+        import scala.collection.JavaConverters._
+        val fileContent : Seq[String] = Files.readAllLines(path, StandardCharsets.UTF_8).asScala
         val result = JObject(List(JField("result",fileContent.mkString("\n"))))
         Full(JsonResponse(result,List(),List(), 200))
       } else {
