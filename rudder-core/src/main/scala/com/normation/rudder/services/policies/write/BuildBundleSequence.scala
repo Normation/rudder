@@ -55,6 +55,9 @@ import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.rudder.services.policies.PolicyId
+import com.normation.rudder.services.policies.NodeRunHook
+import com.normation.cfclerk.domain.RunHook
+import scala.collection.immutable.ListMap
 
 /**
  * This file groups together everything related to building the bundle sequence and
@@ -111,9 +114,18 @@ object BuildBundleSequence {
   // or in CFEngine name a "promiser"
   final case class Directive(value: String)
 
+  // A bundle paramer is just a String, but it can be quoted with simple or double quote
+  // (double quote is the default, and simple quote are used mostly for JSON)
+  sealed trait BundleParam { def quote: String }
+  final object BundleParam {
+
+    final case class SimpleQuote(value: String) extends BundleParam { def quote = "'"+value+"'" }
+    final case class DoubleQuote(value: String) extends BundleParam { def quote = "\""+value+"\"" }
+  }
+
   // a Bundle is a BundleName and a Rudder Id that will
   // be used to identify reports for that bundle
-  final case class Bundle(id: Option[PolicyId], name: BundleName, params: Seq[String])
+  final case class Bundle(id: Option[PolicyId], name: BundleName, params: List[BundleParam])
 
   /*
    * A to-be-written list of bundle related to a unique
@@ -144,7 +156,7 @@ object BuildBundleSequence {
     , policyMode             : PolicyMode
   ) {
     val contextBundle : List[Bundle]  = main.map(_.id).distinct.collect{ case Some(id) =>
-      Bundle(None, BundleName(s"""current_reporting_identifier"""), Seq(id.directiveId.value, id.ruleId.value) )
+      Bundle(None, BundleName(s"""current_reporting_identifier"""), List(id.directiveId.value, id.ruleId.value).map(BundleParam.DoubleQuote.apply) )
     }
     def bundleSequence : List[Bundle] = contextBundle ::: pre ::: main ::: post
   }
@@ -170,6 +182,7 @@ class BuildBundleSequence(
     , nodePolicyMode  : Option[PolicyMode]
     , globalPolicyMode: GlobalPolicyMode
     , policies        : List[Policy]
+    , runHooks        : List[NodeRunHook]
   ): Box[List[SystemVariable]] = {
 
     logger.trace(s"Preparing bundle list and input list for node : ${nodeId.value}")
@@ -183,18 +196,14 @@ class BuildBundleSequence(
     //   (returns the pair of (outpath, isSystem) )
 
     val inputs: List[InputFile] = sortedPolicies.flatMap { p =>
-      p.technique.agentConfigs.find( _.agentType == agentType) match {
-        case None      => Nil
-        case Some(cfg) =>
-          val inputs = cfg.templates.collect { case template if(template.included) => InputFile(template.outPath, p.technique.isSystem) } ++
-                       cfg.files.collect { case file if(file.included) => InputFile(file.outPath, p.technique.isSystem) }
-          //must replace RudderUniqueID in the paths
-          p.technique.generationMode match {
-            case TechniqueGenerationMode.MultipleDirectives =>
-              inputs.map(i => i.copy(path = Policy.makeUniqueDest(i.path, p)))
-            case _ =>
-              inputs
-          }
+      val inputs = p.technique.agentConfig.templates.collect { case template if(template.included) => InputFile(template.outPath, p.technique.isSystem) } ++
+                   p.technique.agentConfig.files.collect { case file if(file.included) => InputFile(file.outPath, p.technique.isSystem) }
+      //must replace RudderUniqueID in the paths
+      p.technique.generationMode match {
+        case TechniqueGenerationMode.MultipleDirectives =>
+          inputs.map(i => i.copy(path = Policy.makeUniqueDest(i.path, p)))
+        case _ =>
+          inputs
       }
     }.toList
 
@@ -207,7 +216,7 @@ class BuildBundleSequence(
       techniquesBundles          <- sequence(sortedPolicies)(buildTechniqueBundles(nodeId, agentType, globalPolicyMode, nodePolicyMode))
       //split system and user directive (technique)
       (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
-      bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentType, osDetails, systemInputFiles, systemBundle, userInputFiles, userBundle) ?~!
+      bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentType, osDetails, systemInputFiles, systemBundle, userInputFiles, userBundle, runHooks) ?~!
                                     s"Error for node '${nodeId.value}' bundle creation"
     } yield {
       // map to correct variables
@@ -253,43 +262,38 @@ class BuildBundleSequence(
     val name = Directive(policy.ruleOrder.value + "/" + policy.directiveOrder.value)
 
     // and for now, all bundle get the same reportKey
-    policy.technique.agentConfigs.find(_.agentType == agentType) match {
-      case Some(cfg) =>
-        val techniqueBundles = cfg.bundlesequence.map { bundleName =>
-          if(bundleName.value.trim.size > 0) {
-            val vars =
-              policy.technique.generationMode match {
-                case TechniqueGenerationMode.MultipleDirectivesWithParameters =>
-                  for {
-                    varName <- policy.technique.rootSection.copyWithoutSystemVars.getAllVariables.map(_.name)
-                  } yield {
-                    policy.expandedVars.get(varName).map(_.values.headOption.getOrElse("")).getOrElse("")
-                  }
-                case TechniqueGenerationMode.MergeDirectives | TechniqueGenerationMode.MultipleDirectives =>
-                  Seq()
+    val techniqueBundles = policy.technique.agentConfig.bundlesequence.map { bundleName =>
+      if(bundleName.value.trim.size > 0) {
+        val vars =
+          policy.technique.generationMode match {
+            case TechniqueGenerationMode.MultipleDirectivesWithParameters =>
+              for {
+                varName <- policy.technique.rootSection.copyWithoutSystemVars.getAllVariables.map(_.name)
+              } yield {
+                policy.expandedVars.get(varName).map(_.values.headOption.getOrElse("")).getOrElse("")
               }
-
-            List(Bundle(Some(policy.id), bundleName, vars))
-          } else {
-            logger.warn(s"Technique '${policy.technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
-            Nil
+            case TechniqueGenerationMode.MergeDirectives | TechniqueGenerationMode.MultipleDirectives =>
+              Nil
           }
-        }.flatten.toList
-        for {
-          policyMode <- PolicyMode.computeMode(globalPolicyMode, nodePolicyMode, policy.policyMode :: Nil)
-        } yield {
-          //we must update technique bundle in case policy generation is multi-instance
-          val bundles = policy.technique.generationMode match {
-            case TechniqueGenerationMode.MultipleDirectives =>
-              techniqueBundles.map(b => b.copy(name = BundleName(b.name.value.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, policy.id.getRudderUniqueId))))
-            case _ =>
-              techniqueBundles
-          }
-          TechniqueBundles(name, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policy.technique.providesExpectedReports, policyMode)
-        }
 
-      case None =>
-        Failure(s"Node with id '${nodeId.value}' is configured with agent type='${agentType.toString}' but technique '${policy.technique.id.toString}' applying via Directive '${name.value}' is not compatible with that agent type.")
+        List(Bundle(Some(policy.id), bundleName, vars.toList.map(BundleParam.DoubleQuote.apply)))
+      } else {
+        logger.warn(s"Technique '${policy.technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
+        Nil
+      }
+    }.flatten.toList
+
+    for {
+      policyMode <- PolicyMode.computeMode(globalPolicyMode, nodePolicyMode, policy.policyMode :: Nil)
+    } yield {
+      //we must update technique bundle in case policy generation is multi-instance
+      val bundles = policy.technique.generationMode match {
+        case TechniqueGenerationMode.MultipleDirectives =>
+          techniqueBundles.map(b => b.copy(name = BundleName(b.name.value.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, policy.id.getRudderUniqueId))))
+        case _ =>
+          techniqueBundles
+      }
+      TechniqueBundles(name, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policy.technique.providesExpectedReports, policyMode)
     }
   }
 
@@ -329,14 +333,15 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
     , sytemBundles: List[TechniqueBundles]
     , userInputs  : List[InputFile]
     , userBundles : List[TechniqueBundles]
+    , runHooks    : List[NodeRunHook]
   ) : BundleSequenceVariables = {
 
     BundleSequenceVariables(
         formatBundleFileInputFiles(systemInputs.map(_.path))
-      , formatMethodsUsebundle(sytemBundles)
+      , formatMethodsUsebundle(sytemBundles, Nil)
       , formatBundleFileInputFiles(userInputs.map(_.path))
         //only user bundle may be set on PolicyMode = Verify
-      , formatMethodsUsebundle(userBundles.addDryRunManagement)
+      , formatMethodsUsebundle(userBundles.addDryRunManagement, runHooks)
     )
   }
 
@@ -361,8 +366,8 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
     }
 
     //before each technique, set the correct mode
-    private[this] val audit   = Bundle(None, BundleName("""set_dry_run_mode("true")"""), Seq())
-    private[this] val enforce = Bundle(None, BundleName("""set_dry_run_mode("false")"""), Seq())
+    private[this] val audit   = Bundle(None, BundleName("""set_dry_run_mode("true")"""), Nil)
+    private[this] val enforce = Bundle(None, BundleName("""set_dry_run_mode("false")"""), Nil)
     val dryRun = TechniqueId(TechniqueName("remove_dry_run_mode"), TechniqueVersion("1.0"))
     private[this] val cleanup = TechniqueBundles(Directive(dryRun.name.value), dryRun, Nil, enforce :: Nil, Nil, false, false, PolicyMode.Enforce)
   }
@@ -377,22 +382,57 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
    *  "An other rule/its directive"                 usebundle => virtualMachines;
    * """
    */
-  def formatMethodsUsebundle(bundleSeq: Seq[TechniqueBundles]): List[String] = {
+  def formatMethodsUsebundle(bundleSeq: List[TechniqueBundles], runHooks: List[NodeRunHook]): List[String] = {
     //the promiser value (may) comes from user input, so we need to escape
     //also, get the list of bundle for each promiser.
     //and we don't need isSystem anymore
     val escapedSeq = bundleSeq.map(x => (ParameterEntry.escapeString(x.promiser.value, AgentType.CfeCommunity), x.bundleSequence) )
 
+    // create / add in the escapedSeq hooks
+    val preHooks  = runHooks.collect { case h if(h.kind == RunHook.Kind.Pre ) => getBundleForHook(h) }
+    val postHooks = runHooks.collect { case h if(h.kind == RunHook.Kind.Post) => getBundleForHook(h) }
+
+    val allBundles = preHooks ::: escapedSeq ::: postHooks
+
     //that's the length to correctly vertically align things. Most important
     //number in all Rudder !
     val alignWidth = if(escapedSeq.size <= 0) 0 else escapedSeq.map(_._1.size).max
 
-    (escapedSeq.flatMap { case (promiser, bundles) =>
+    (allBundles.flatMap { case (promiser, bundles) =>
       bundles.map { bundle =>
-        s""""${promiser}"${ " " * Math.max(0, alignWidth - promiser.size) } usebundle => ${bundle.name.value}${if (bundle.params.size > 0) bundle.params.mkString("(\"", "\",\"", "\")") else ""};"""
+        val params = if (bundle.params.size > 0) {
+          bundle.params.map( _.quote ).mkString("(", ",", ")")
+        } else {
+          ""
+        }
+        s""""${promiser}"${ " " * Math.max(0, alignWidth - promiser.size) } usebundle => ${bundle.name.value}${params};"""
       }
     }.mkString( "\n")) :: Nil
   }
+
+  /*
+   * A hook will look like:
+   * "pre-run-hook"  usebundle => do_run_hook("name", "condition", json)
+   * ....
+   * "post-run-hook" usebundle => do_run_hook("name", "condition", json)
+   *
+   * Where json is:
+   * {
+   *   "parameters": { "service": "systlog", ... }
+   * , "reports"   : [ { "id": "report id" , "mode": "audit" }, { "id": "report id" , "mode": "enforce" }, ... ]
+   * }
+   */
+  def getBundleForHook(hook: NodeRunHook): (String, List[Bundle]) = {
+    import JsonRunHookSer._
+    val promiser = hook.kind match {
+      case RunHook.Kind.Pre  => "pre-run-hook"
+      case RunHook.Kind.Post => "post-run-hook"
+    }
+    val condition = hook.condition.mkString("|")
+    import BundleParam._
+    (promiser, Bundle(None, BundleName("do_run_hook"), List(DoubleQuote(hook.name), DoubleQuote(condition), SimpleQuote(hook.jsonParam))) :: Nil)
+  }
+
 
   /*
    * utilitary method for formating an input list
@@ -410,6 +450,35 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
       List("") //we must have one empty parameter to have the awaited behavior with string template
     } else {
       List(inputs.mkString("\"", s"""",\n"""", s"""","""))
+    }
+  }
+}
+
+
+/*
+ * Serialization version of a node hook parameter:
+ * {
+ *   "parameters": { "service": "syslog", ... }
+ * , "reports"   : [ { "id": "report id" , "mode": "audit" }, { "id": "report id" , "mode": "enforce" }, ... ]
+ * }
+ * Must be top level to make Liftweb JSON lib happy
+ */
+final case class JsonRunHookReport(id: String, mode: String)
+final case class JsonRunHook(
+    parameters: ListMap[String, String] // to keep order
+  , reports   : List[JsonRunHookReport]
+)
+
+object JsonRunHookSer {
+  implicit class ToJson(h: NodeRunHook) {
+    import net.liftweb.json._
+    def jsonParam: String = {
+      val jh = JsonRunHook(
+          ListMap(h.parameters.map(p => (p.name, p.value)):_*)
+        , h.reports.map(r => JsonRunHookReport(r.id.getReportId, r.mode.name))
+      )
+      implicit val formats = Serialization.formats(NoTypeHints)
+      Serialization.write(jh)
     }
   }
 }

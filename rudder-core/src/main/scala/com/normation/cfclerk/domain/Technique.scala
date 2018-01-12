@@ -69,11 +69,44 @@ case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends O
   }
 }
 
+
+object RunHook {
+/*
+ * This data structure holds the agent specific
+ * run hooks.
+ * We can have pre- or post- hooks, but their
+ * composition is the same
+ */
+
+  // hooks parameters
+  final case class Parameter(name: String, value: String)
+
+  sealed trait Kind
+  final object Kind {
+    final case object Pre  extends Kind
+    final case object Post extends Kind
+  }
+
+}
+
+
+/*
+ * A run hook is an (agent specific) action that should
+ * be run only one time per node per run.
+ */
+final case class RunHook(
+    name      : String // name of the hook to execute. The actual, agent dependent bundle method name can be derived from it
+  , kind      : RunHook.Kind
+  , condition : String // a condition expression
+  , parameters: List[RunHook.Parameter]
+)
+
 final case class AgentConfig(
     agentType      : AgentType
-  , templates      : Seq[TechniqueTemplate]
-  , files          : Seq[TechniqueFile]
-  , bundlesequence : Seq[BundleName]
+  , templates      : List[TechniqueTemplate]
+  , files          : List[TechniqueFile]
+  , bundlesequence : List[BundleName]
+  , runHooks       : List[RunHook]
 )
 
 /**

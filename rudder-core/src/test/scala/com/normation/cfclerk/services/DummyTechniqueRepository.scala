@@ -45,7 +45,7 @@ import com.normation.inventory.domain.AgentType
 
 class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends TechniqueRepository {
 
-  def agentCfg(bundle: String) = AgentConfig(AgentType.CfeCommunity, Seq(), Seq(), Seq(BundleName(bundle))) :: Nil
+  def agentCfg(bundle: String) = AgentConfig(AgentType.CfeCommunity, Nil, Nil, List(BundleName(bundle)), Nil) :: Nil
 
   var returnedVariable = collection.mutable.Set[VariableSpec]()
   val policy1 = Technique(TechniqueId(TechniqueName("policy1"), TechniqueVersion("1.0")), "policy1", "", agentCfg("one"), TrackerVariableSpec(), SectionSpec(name="root", children=Seq(InputVariableSpec("$variable1", "a variable1"))), None)

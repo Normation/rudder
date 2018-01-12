@@ -94,11 +94,17 @@ class TechniqueParser(
                 {(xml \ PROMISE_TEMPLATES_ROOT)}
                 {(xml \ FILES)}
                 {(xml \ BUNDLES_ROOT)}
+                {(xml \ RUN_HOOKS)}
               </AGENT>
 
               parseAgentConfig(id, forCompatibilityAgent)
             }
           )
+
+          // System technique should not have run hooks, this is not supported:
+          if(isSystem && agentConfigs.exists( a => a.runHooks.nonEmpty ) ) {
+            logger.warn(s"System Technique with ID '${id.toString()}' has agent run hooks defined. This is not supported.")
+          }
 
           // 4.3: does the technique support generation without directive merge (i.e mutli directive)
           val generationMode = nonEmpty((xml \ TECHNIQUE_GENERATION_MODE).text).flatMap(TechniqueGenerationMode.parse).getOrElse(TechniqueGenerationMode.MergeDirectives)
@@ -173,7 +179,9 @@ class TechniqueParser(
       val files = (xml \ FILES \\ FILE).map(xml => parseFile(id, xml) )
       val bundlesequence = (xml \ BUNDLES_ROOT \\ BUNDLE_NAME).map(xml => BundleName(xml.text) )
 
-      agentTypes.map( agentType => AgentConfig(agentType, templates, files, bundlesequence))
+      val hooks = (xml \ RUN_HOOKS).flatMap(parseRunHooks(id, _))
+
+      agentTypes.map( agentType => AgentConfig(agentType, templates.toList, files.toList, bundlesequence.toList, hooks.toList))
     }
   }
 
@@ -287,7 +295,7 @@ class TechniqueParser(
    * A file is almost exactly like a Template, safe the include that we don't care of.
    */
   def parseFile(techniqueId: TechniqueId, xml: Node): TechniqueFile = {
-    if(xml.label != FILE) throw new ParsingException(s"Error: try to parse a <${FILE}> xml, but actually get: ${xml}")
+    if(xml.label != FILE) throw new ParsingException(s"Error: try to parse a <${FILE}> xml, but actually got: ${xml}")
     // Default value for FILE is false, so we should only check if the value is true and if it is empty it
     val included = (xml \ PROMISE_TEMPLATE_INCLUDED).text == "true"
     val (id, out) = parseResource(techniqueId, xml, false)
@@ -295,7 +303,7 @@ class TechniqueParser(
   }
 
   def parseTemplate(techniqueId: TechniqueId, xml: Node): TechniqueTemplate = {
-    if(xml.label != PROMISE_TEMPLATE) throw new ParsingException(s"Error: try to parse a <${PROMISE_TEMPLATE}> xml, but actually get: ${xml}")
+    if(xml.label != PROMISE_TEMPLATE) throw new ParsingException(s"Error: try to parse a <${PROMISE_TEMPLATE}> xml, but actually got: ${xml}")
     val included = !((xml \ PROMISE_TEMPLATE_INCLUDED).text == "false")
     val (id, out) = parseResource(techniqueId, xml, true)
     TechniqueTemplate(id, out, included)
@@ -312,13 +320,54 @@ class TechniqueParser(
    * @return A compatible variable corresponding to the entry xml
    */
   def parseCompatibleTag(xml: Node): Compatible = {
-    if(xml.label != COMPAT_TAG) throw new ParsingException("CompatibleParser was expecting a <%s> xml and get:\n%s".format(COMPAT_TAG, xml))
+    if(xml.label != COMPAT_TAG) throw new ParsingException("CompatibleParser was expecting a <%s> xml and got:\n%s".format(COMPAT_TAG, xml))
     val os = xml \ COMPAT_OS map (n =>
       OperatingSystem(n.text, (n \ "@version").text))
     val agents = xml \ COMPAT_AGENT map (n =>
       Agent(n.text, (n \ "@version").text))
     Compatible(os, agents)
   }
+
+  /* parse RUNHOOKS xml node, which look like that:
+    <RUNHOOKS>
+      <PRE name="package">
+        <PARAMETER name="package" value="vim"/>
+      </PRE>
+      <POST name="servive" if="debian">
+        <PARAMETER name="service" value="some value"/>
+        <PARAMETER name="a post command">/something/that/is/complicated "with" 'all sort of quote'</PARAMETER>
+      </POST>
+    </RUNHOOKS>
+  */
+  def parseRunHooks(id: TechniqueId, xml: Node): List[RunHook] = {
+    def parseOneHook(xml: Node, kind: RunHook.Kind): RunHook = {
+      def opt(s: String) = if(s == null || s == "") None else Some(s)
+
+      (xml \ "@name").text match {
+        case null | "" => throw new ParsingException(s"Error: in technique '${id.toString()}', tried to parse a run hooks, but attribute 'name' is missing in: ${xml}")
+        case name      =>
+          RunHook(name, kind, (xml \ "@condition").text, (xml \\ "PARAMETER").toList.flatMap(p =>
+            for {
+              pname  <- opt((p \ "@name" ).text)
+                        // for value, look first for <PARAMETER ... value="pvalue"/> and then <PARAMETER>pvalue</PARAMETER>
+              pvalue <- opt((p \ "@value").text) orElse opt(p.text)
+            } yield {
+              RunHook.Parameter(pname, pvalue)
+            }
+         ))
+      }
+    }
+
+    if(xml.label != RUN_HOOKS) throw new ParsingException(s"Error: in technique '${id.toString()}', tried to parse a <${RUN_HOOKS}> xml, but actually got: ${xml}")
+
+    // parse each direct children, but only proceed with PRE and POST. And the are parsed the same
+    xml.child.toList.flatMap( c => c.label match {
+      case "PRE"  => Some(parseOneHook(c, RunHook.Kind.Pre))
+      case "POST" => Some(parseOneHook(c, RunHook.Kind.Post))
+      case _      => None
+    } )
+  }
+
 }
 
 object TechniqueParser {
