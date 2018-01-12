@@ -56,7 +56,7 @@ import scala.collection.JavaConverters._
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
-import org.apache.commons.io.IOUtils
+import java.io.IOException
 
 /**
  *
@@ -517,7 +517,11 @@ class GitTechniqueReader(
               logger.error(s"Error when trying to load directive default name from '${directiveDefaultName}' No specific default naming rules will be available. ", ex)
               Map()
           } finally {
-            IOUtils.closeQuietly(is)
+            try {
+              if (is != null) { is.close() }
+            } catch {
+              case ioe: IOException => // ignore
+            }
           }
         }
       }

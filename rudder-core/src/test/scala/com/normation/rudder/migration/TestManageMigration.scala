@@ -99,21 +99,21 @@ class TestManageMigration_5_6 extends DBCommon with BoxSpecMatcher {
 
     "not be launched if fileFormat is already 6" in {
       val res = withFileFormatLine(6) {
-         migrationManagement.migrate
+         () => migrationManagement.migrate
       }
       res mustFullEq(MigrationVersionNotHandledHere)
     }
 
     "not be launched if fileFormat is higher than 6" in {
       val res = withFileFormatLine(42) {
-         migrationManagement.migrate
+         () => migrationManagement.migrate
       }
       res mustFullEq(MigrationVersionNotHandledHere)
     }
 
     "not be launched if fileformat is negative" in {
       val res = withFileFormatLine(-1) {
-         migrationManagement.migrate
+         () => migrationManagement.migrate
       }
       res mustFullEq(MigrationVersionNotSupported)
     }
@@ -121,7 +121,7 @@ class TestManageMigration_5_6 extends DBCommon with BoxSpecMatcher {
     for(i <- 0 to 4) {
       s"not be launched if fileformat is $i" in {
         val res = withFileFormatLine(i) {
-           migrationManagement.migrate
+           () => migrationManagement.migrate
         }
         res mustFullEq(MigrationVersionNotSupported)
       }
@@ -129,14 +129,14 @@ class TestManageMigration_5_6 extends DBCommon with BoxSpecMatcher {
 
     "be launched if fileformat is 5, event if marked finished" in {
       val res = withFileFormatLine(5, Some(now), Some(5)) {
-         migrationManagement.migrate
+         () => migrationManagement.migrate
       }
       res mustFullEq(MigrationSuccess(0))
     }
 
     "be launched if fileformat is 5" in {
       val res = withFileFormatLine(5) {
-         migrationManagement.migrate
+         () => migrationManagement.migrate
       }
       res mustFullEq(MigrationSuccess(0))
     }

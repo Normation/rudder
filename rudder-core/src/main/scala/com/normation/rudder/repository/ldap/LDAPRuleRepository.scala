@@ -241,7 +241,7 @@ class WoLDAPRuleRepository(
    *
    * If something goes wrong, try to restore.
    */
-  def swapRules(newCrs:Seq[Rule], includeSystem:Boolean = false) : Box[RuleArchiveId] = {
+  def swapRules(newCrs:Seq[Rule]) : Box[RuleArchiveId] = {
 
     //save rules, taking care of serial value
     def saveCR(con:RwLDAPConnection, rule:Rule) : Box[LDIFChangeRecord] = {
@@ -250,7 +250,7 @@ class WoLDAPRuleRepository(
     }
     //restore the archive in case of error
     //that method will be hard to achieve out of here due to serial
-    def restore(con:RwLDAPConnection, previousCRs:Seq[Rule], includeSystem:Boolean) = {
+    def restore(con:RwLDAPConnection, previousCRs:Seq[Rule]) = {
       for {
         deleteCR  <- con.delete(rudderDit.RULES.dn)
         savedBack <- sequence(previousCRs) { rule =>
@@ -266,7 +266,6 @@ class WoLDAPRuleRepository(
     val id = RuleArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
     val ou = rudderDit.ARCHIVES.ruleModel(id)
     //filter systemCr if they are not included, so that merge does not have to deal with that.
-    val crToImport = if(includeSystem) newCrs else newCrs.filter( rule => !rule.isSystem)
 
     repo.synchronized {
 
@@ -283,12 +282,8 @@ class WoLDAPRuleRepository(
                                         saveCR(con, rule)
                                      }
                          //if include system is false, copy back system rule
-                         copyBack    <- if(!includeSystem) {
-                                          sequence(existingCrs.filter( _.isSystem)) { syscr =>
-                                           saveCR(con, syscr)
-                                          }
-                                        } else {
-                                          Full("ok")
+                         copyBack    <- sequence(existingCrs.filter( _.isSystem)) { syscr =>
+                                          saveCR(con, syscr)
                                         }
                        } yield {
                          id
@@ -297,7 +292,7 @@ class WoLDAPRuleRepository(
                          case eb:EmptyBox => //ok, so there, we have a problem
                            val e = eb ?~! "Error when importing CRs, trying to restore old CR"
                            logger.error(e)
-                           restore(con, existingCrs, includeSystem) match {
+                           restore(con, existingCrs) match {
                              case _:Full[_] =>
                                logger.info("Rollback rules")
                                e ?~! "Rollbacked imported rules to previous state"

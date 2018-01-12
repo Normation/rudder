@@ -58,6 +58,7 @@ import org.specs2.specification.AfterAll
 
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+import java.nio.charset.StandardCharsets
 
 /**
  * Details of tests executed in each instances of
@@ -118,17 +119,17 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
   val templateId = TechniqueResourceIdByPath(Nil, "template")
   val templateContent = "this is some template content"
   template.getParentFile.mkdirs
-  FileUtils.writeStringToFile(template, templateContent)
+  FileUtils.writeStringToFile(template, templateContent, StandardCharsets.UTF_8)
   val template2 = new File(new File(gitRoot, "libdir"), "template2.st")
   val template2Id = TechniqueResourceIdByPath(List("libdir"), "template2")
   val template2Content = "this is template2 content"
   template2.getParentFile.mkdirs
-  FileUtils.writeStringToFile(template2, template2Content)
+  FileUtils.writeStringToFile(template2, template2Content, StandardCharsets.UTF_8)
 
   val f1 = new File(new File(gitRoot, "libdir"), "file1.txt")
   val f1Content = "this is the content of file 1"
   val file1 = TechniqueResourceIdByPath(List("libdir"), f1.getName)
-  FileUtils.writeStringToFile(f1, f1Content)
+  FileUtils.writeStringToFile(f1, f1Content, StandardCharsets.UTF_8)
 
   val file2 = TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersion("1.0")), "file2.txt")
 
@@ -156,7 +157,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
     val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
     reader.getResourceContent(id, ext) {
         case None => ko("Can not open an InputStream for " + id.toString)
-        case Some(is) => IOUtils.toString(is) === expectedContent
+        case Some(is) => IOUtils.toString(is, StandardCharsets.UTF_8) === expectedContent
       }
   }
 
@@ -242,7 +243,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       reader.readTechniques() //be sure there is no current modification
       val newPath = reader.canonizedRelativePath.map( _ + "/").getOrElse("") + "cat1/p1_1/2.0/newFile.st"
       val newFile = new File(gitRoot.getAbsoluteFile + "/" + newPath)
-      FileUtils.writeStringToFile(newFile, "Some content for the new file")
+      FileUtils.writeStringToFile(newFile, "Some content for the new file", StandardCharsets.UTF_8)
       val git = new Git(repo.db)
       git.add.addFilepattern(newPath).call
       git.commit.setMessage("Modify PT: cat1/p1_1/2.0").call
@@ -264,7 +265,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       val name = "libdir/file1.txt"  // no slash at the begining of git path
       reader.readTechniques()
       val newFile = new File(gitRoot.getAbsolutePath + "/" + name)
-      FileUtils.writeStringToFile(newFile, "Some more content for the new file arg arg arg")
+      FileUtils.writeStringToFile(newFile, "Some more content for the new file arg arg arg", StandardCharsets.UTF_8)
       val git = new Git(repo.db)
       git.add.addFilepattern(name).call
       git.commit.setMessage("Modify file /libdir/file1.txt in technique: cat1/p1_1/1.0").call

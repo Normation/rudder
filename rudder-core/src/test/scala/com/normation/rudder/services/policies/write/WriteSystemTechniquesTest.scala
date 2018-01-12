@@ -66,7 +66,7 @@ import org.specs2.specification.AfterAll
 import org.specs2.text.LinesContent
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 
 /**
  * Details of tests executed in each instances of
@@ -219,7 +219,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
     val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
     reader.getResourceContent(id, ext) {
         case None     => ko("Can not open an InputStream for " + id.toString)
-        case Some(is) => IOUtils.toString(is, Charset.forName("UTF-8")) === expectedContent
+        case Some(is) => IOUtils.toString(is, StandardCharsets.UTF_8) === expectedContent
       }
   }
 

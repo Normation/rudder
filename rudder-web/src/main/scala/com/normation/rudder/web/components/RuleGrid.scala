@@ -411,7 +411,7 @@ class RuleGrid(
             Alert(error.messageChain)
         }
       } else {
-        After(500,ajaxChanges(future))
+        After(TimeSpan(500),ajaxChanges(future))
       }
     } )
 

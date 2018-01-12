@@ -136,27 +136,27 @@ class HomePage extends Loggable {
   private[this] val roRuleRepo       = RudderConfig.roRuleRepository
 
   def pendingNodes(html : NodeSeq) : NodeSeq = {
-    displayCount(countPendingNodes, "pending nodes")
+    displayCount(() => countPendingNodes, "pending nodes")
   }
 
   def acceptedNodes(html : NodeSeq) : NodeSeq = {
-    displayCount(countAcceptedNodes, "accepted nodes")
+    displayCount(() => countAcceptedNodes, "accepted nodes")
   }
 
   def rules(html : NodeSeq) : NodeSeq = {
-    displayCount(countAllRules, "rules")
+    displayCount(() => countAllRules, "rules")
   }
 
   def directives(html : NodeSeq) : NodeSeq = {
-    displayCount(countAllDirectives,"directives")
+    displayCount(() => countAllDirectives,"directives")
   }
 
   def groups(html : NodeSeq) : NodeSeq = {
-    displayCount(countAllGroups,"groups")
+    displayCount(() => countAllGroups,"groups")
   }
 
   def techniques(html : NodeSeq) : NodeSeq = {
-    displayCount(countAllTechniques,"techniques")
+    displayCount(() => countAllTechniques,"techniques")
   }
 
   def getAllCompliance = {

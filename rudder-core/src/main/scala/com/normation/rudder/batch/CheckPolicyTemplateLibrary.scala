@@ -39,15 +39,16 @@ package com.normation.rudder.batch
 
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.rudder.domain.Constants.TECHLIB_MINIMUM_UPDATE_INTERVAL
-import net.liftweb.actor.{LiftActor, LAPinger}
+import net.liftweb.actor.LAPinger
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.ScheduledJobLogger
+import net.liftweb.actor.SpecializedLiftActor
 
-case class StartLibUpdate(actor: EventActor)
+final case class StartLibUpdate(actor: EventActor)
 
 /**
  * A class that periodically check if the Technique Library was updated.
@@ -81,7 +82,7 @@ class CheckTechniqueLibrary(
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
 
-  private class LAUpdateTechLibManager extends LiftActor {
+  private class LAUpdateTechLibManager extends SpecializedLiftActor[StartLibUpdate] {
     updateManager =>
 
     val logger = ScheduledJobLogger
@@ -109,8 +110,6 @@ class CheckTechniqueLibrary(
         logger.trace("***** Start a new update")
         policyPackageUpdater.update(ModificationId(uuidGen.newUuid), actor, Some(s"Automatic batch update at ${DateTime.now}"))
 
-      case msg =>
-        logger.error(s"Automatic Technique library updater can't handle that message: ${msg}")
     }
   }
 }

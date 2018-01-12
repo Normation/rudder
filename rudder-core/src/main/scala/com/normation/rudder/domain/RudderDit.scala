@@ -53,7 +53,6 @@ import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.api.ApiAccountId
-import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.rule.category.RuleCategoryId

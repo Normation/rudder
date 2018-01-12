@@ -146,18 +146,18 @@ final object AclPath {
   // we don't accept empty string and ignore empty subpart,
   // and "**" must be the last segment.
   def parse(path: String): Either[String, AclPath] = {
-    def doubleWildcardMustBeLast(l: List[AclPathSegment]): Either[String, Unit] = {
+    def doubleWildcardCanOnlyBeLast(l: List[AclPathSegment]): Either[String, Unit] = {
       l match {
         case Nil                                  => Right(())
         case AclPathSegment.DoubleWildcard :: Nil => Right(())
         case AclPathSegment.DoubleWildcard :: t   => Left("Error: you can only use '**' as the last segment of an ACL path")
-        case h                             :: t   => doubleWildcardMustBeLast(t)
+        case h                             :: t   => doubleWildcardCanOnlyBeLast(t)
       }
     }
 
     for {
       parts  <- path.trim.split("/").filter( _.size > 0).toList.traverse(AclPathSegment.parse)
-      _      <- doubleWildcardMustBeLast(parts)
+      _      <- doubleWildcardCanOnlyBeLast(parts)
       parsed <- parts match {
                   case Nil    =>
                     Left("The given path is empty, it can't be a Rudder ACL path")

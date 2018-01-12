@@ -191,7 +191,7 @@ class RuleCategoryTree(
       categoryNode(root).toXml}
   </ul> ++
     Script(
-      After(50,
+      After(TimeSpan(50),
         JsRaw(s"""
           ${treeFun}('#${htmlId_RuleCategoryTree}','${getSelected.value}','${S.contextPath}');
           $$('#${htmlId_RuleCategoryTree}').bind("move_node.jstree", function (e,data) {

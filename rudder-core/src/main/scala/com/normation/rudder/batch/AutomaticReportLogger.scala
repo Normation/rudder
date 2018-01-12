@@ -87,7 +87,7 @@ class AutomaticReportLogger(
   /**
    * Actor for non compliant logging purpose
    */
-  private class LAAutomaticReportLogger extends LiftActor {
+  private class LAAutomaticReportLogger extends SpecializedLiftActor[StartAutomaticReporting.type] {
     val logger = ScheduledJobLogger
 
     /*

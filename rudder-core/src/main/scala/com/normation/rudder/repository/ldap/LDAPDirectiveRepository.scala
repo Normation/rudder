@@ -89,7 +89,7 @@ class RoLDAPDirectiveRepository(
     }
   }
 
-  private[this] def policyFilter(includeSystem:Boolean = false) = if(includeSystem) IS(OC_DIRECTIVE) else AND(IS(OC_DIRECTIVE), EQ(A_IS_SYSTEM,false.toLDAPString))
+  private[this] def policyFilter(includeSystem: Boolean) = if(includeSystem) IS(OC_DIRECTIVE) else AND(IS(OC_DIRECTIVE), EQ(A_IS_SYSTEM,false.toLDAPString))
 
   /**
    * Try to find the directive with the given ID.
@@ -691,7 +691,6 @@ class WoLDAPDirectiveRepository(
                            } yield archived
                          } else Full("ok")
     } yield {
-      val t1 = System.currentTimeMillis
       diff
     }
   }

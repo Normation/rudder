@@ -37,13 +37,14 @@
 
 package com.normation.rudder.batch
 
-import net.liftweb.actor.{LiftActor, LAPinger}
+import net.liftweb.actor.LAPinger
 import com.normation.rudder.services.system.DatabaseManager
 import net.liftweb.common._
 import org.joda.time._
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.logger.ScheduledJobLogger
+import net.liftweb.actor.SpecializedLiftActor
 
 /**
  *  An helper object designed to help building automatic reports cleaning
@@ -253,7 +254,7 @@ case object CheckLaunch extends DatabaseCleanerMessage
 
 case class ManualLaunch(date:DateTime) extends DatabaseCleanerMessage
 
-trait DatabaseCleanerActor extends LiftActor {
+trait DatabaseCleanerActor extends SpecializedLiftActor[DatabaseCleanerMessage] {
   def isIdle : Boolean
 }
 /**

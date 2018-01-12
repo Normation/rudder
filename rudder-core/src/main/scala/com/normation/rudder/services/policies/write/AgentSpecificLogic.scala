@@ -38,7 +38,6 @@
 package com.normation.rudder.services.policies.write
 
 import org.apache.commons.io.FileUtils
-import scala.io.Codec
 import java.io.File
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.tryo
@@ -49,6 +48,7 @@ import net.liftweb.common.Failure
 import com.normation.inventory.domain.OsDetails
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.Bsd
+import java.nio.charset.StandardCharsets
 
 /*
  * This file contain agent-type specific logic used during the policy
@@ -173,7 +173,7 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
   private[this] def writeExpectedReportsCsv(paths: NodePromisesPaths, csv: ExpectedReportsCsv, csvFilename: String): Box[List[AgentSpecificFile]] = {
     val path = new File(paths.newFolder, csvFilename)
     for {
-        _ <- tryo { FileUtils.writeStringToFile(path, csv.lines.mkString("\n"), Codec.UTF8.charSet) } ?~!
+        _ <- tryo { FileUtils.writeStringToFile(path, csv.lines.mkString("\n"), StandardCharsets.UTF_8) } ?~!
                s"Can not write the expected reports CSV file at path '${path.getAbsolutePath}'"
     } yield {
       AgentSpecificFile(path.getAbsolutePath) :: Nil

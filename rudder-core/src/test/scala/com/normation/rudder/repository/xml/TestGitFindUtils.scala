@@ -50,6 +50,7 @@ import org.specs2.specification.AfterAll
 
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+import java.nio.charset.StandardCharsets
 
 @RunWith(classOf[JUnitRunner])
 class TestGitFindUtils extends Specification with Loggable with AfterAll {
@@ -71,7 +72,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll {
   def mkfile(relativePath:String, name:String) = {
     val d = new File(gitRoot, relativePath)
     d.mkdirs
-    FileUtils.writeStringToFile(new File(d,name), name)
+    FileUtils.writeStringToFile(new File(d,name), name, StandardCharsets.UTF_8)
   }
 
 

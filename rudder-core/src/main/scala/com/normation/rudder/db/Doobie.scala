@@ -136,7 +136,7 @@ object Doobie {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   implicit val DateTimeMeta: Meta[DateTime] =
-    Meta[java.sql.Timestamp].nxmap(
+    Meta[java.sql.Timestamp].xmap(
         ts => new DateTime(ts.getTime())
       , dt => new java.sql.Timestamp(dt.getMillis)
   )

@@ -42,21 +42,17 @@ import net.liftweb.common._
 import java.io.File
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.ncf.TechniqueWriter
 import scalaj.http.Http
-import com.normation.rudder.api.ApiToken
 import monix.execution.Scheduler.{ global => scheduler }
 import scala.concurrent.duration._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.ncf.ResultHelper.Result
 import com.normation.rudder.ncf.ResultHelper._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JArray
 import bootstrap.liftweb.BootstrapChecks
-import scala.reflect.runtime.universe._
 
 sealed trait NcfTechniqueUpgradeError {
   def msg : String
