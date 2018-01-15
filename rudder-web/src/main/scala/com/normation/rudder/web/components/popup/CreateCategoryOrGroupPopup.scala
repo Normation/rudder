@@ -308,7 +308,7 @@ class CreateCategoryOrGroupPopup(
       override def inputField = super.inputField  %
         ("style" -> "height:5em;") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
       override def errorClassName = "col-lg-12 errors-container"
-      override def validations() = {
+      override def validations = {
         if(mandatory){
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
         } else {
