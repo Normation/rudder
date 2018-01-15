@@ -129,7 +129,7 @@ class AppConfigAuth extends ApplicationContextAware {
   // we define the System ApiAcl as one that is all mighty and can manage everything
   val SYSTEM_API_ACL = ApiAcl.allAuthz
 
-  def setApplicationContext(applicationContext: ApplicationContext) {
+  def setApplicationContext(applicationContext: ApplicationContext): Unit = {
     //prepare specific properties for new context
     import scala.collection.JavaConverters._
     RudderProperties.authenticationMethods.foreach { x =>
