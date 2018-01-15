@@ -89,7 +89,7 @@ class TextField(
   def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
 
-  def toForm() = display(TextField.textInput("text") )
+  def toForm = display(TextField.textInput("text") )
 
   def display( xml: String => NodeSeq) = {
     val formId = Helpers.nextFuncName
@@ -145,7 +145,7 @@ class ReadOnlyTextField(val id:String) extends DirectiveField {
 
   def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
-  def toForm() = {
+  def toForm = {
     val attrs = if(isReadOnly) Seq(("readonly" -> "readonly")) else Seq()
     Full(SHtml.text(toClient, { x => parseClient(x) }, attrs:_*))
   }
@@ -175,7 +175,7 @@ class TextareaField(
 ) extends TextField(id,scriptSwitch) {
   self =>
 
-  override def toForm() = display(TextField.textInput("textarea") )
+  override def toForm = display(TextField.textInput("textarea") )
 
 }
 
@@ -186,7 +186,7 @@ class InputSizeField(
 ) extends TextField(id,scriptSwitch) {
   val units = ValueLabel("b", "B") :: ValueLabel("kb", "KB") :: ValueLabel("mb", "MB") :: ValueLabel("gb", "GB") :: ValueLabel("tb", "TB") :: Nil
 
-  override def toForm() = Full(<div>{ inputToForm ++ unitsToForm }</div>)
+  override def toForm = Full(<div>{ inputToForm ++ unitsToForm }</div>)
 
   private def inputToForm = SHtml.text(_x, { x => updateValue(x) })
   private def unitsToForm = SHtml.select(units.map(_.tuple), Full(expectedUnit), { selected => selectedUnit = selected; computeValue() })
@@ -231,7 +231,7 @@ class SelectField(val id: String, items: Seq[ValueLabel]) extends DirectiveField
   def get = values
   def set(x: ValueType) = { values = x; values }
 
-  def toForm() = {
+  def toForm = {
     val valuesByLabel = items.map(_.reverse.tuple).toMap
     val labelsByValue = items.map(_.tuple).toMap
 
@@ -271,7 +271,7 @@ class SelectOneField(val id: String, valueslabels: Seq[ValueLabel]) extends Dire
 
   def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
-  def toForm() = {
+  def toForm = {
     if (valueslabels.size <= 3)
       radios
     else
@@ -339,7 +339,7 @@ class UploadedFileField(basePath: String)(val id: String) extends DirectiveField
     }
     f
   }
-  def toForm() = {
+  def toForm = {
     val xml = SHtml.selectObj(
       listFiles,
       { if (null == f) Empty else Full(f) },
@@ -397,7 +397,7 @@ class DateField(format: DateTimeFormatter)(val id: String) extends DirectiveFiel
   }
   def toClient: String = if (null == _x) "" else _x.toString(format)
 
-  def toForm() = {
+  def toForm = {
     val xml = (SHtml.text(toClient, { x => parseClient(x) }) % ("id" -> this.id)) ++
       Script(OnLoad(JsRaw("var init%s = $.datepicker.regional['%s']; init%s['showOn'] = 'both';jQuery('#%s').datepicker(init%s)".
         format(id, format.getLocale.getLanguage, id, id, id))))
@@ -435,7 +435,7 @@ class TimeField(format: DateTimeFormatter)(val id: String) extends DirectiveFiel
   }
   def toClient: String = if (null == _x) "" else _x.toString(format)
 
-  def toForm() = {
+  def toForm = {
     val xml = (SHtml.text(toClient, { x => parseClient(x) }) % ("id" -> this.id)) ++
       Script(OnLoad(JsRaw("var init%s = $.datepicker.regional['%s']; init%s['showOn'] = 'both';jQuery('#%s').datepicker(init%s)".
         format(id, format.getLocale.getLanguage, id, id, id))))
@@ -481,7 +481,7 @@ class PeriodField(
   }
   def toClient: String = if (null == _x) "0" else _x.getMillis.toString
 
-  def toForm() = {
+  def toForm = {
       def intOpts(until: Int, by: Int = 1): Seq[(Int, String)] =
         new Range(0, until, by).map(x => (x, x.toString))
 
@@ -535,7 +535,7 @@ class FilePermsField(val id: String) extends DirectiveField {
   }
   def toClient: String = if (null == _x) "" else _x.octal
 
-  def toForm() = {
+  def toForm = {
     val xml = <table>
                 <tr><th></th><th>Read</th><th>Write</th><th>Exec</th></tr>
                 <tr><td>User</td><td><span id="check-ur"/></td><td><span id="check-uw"/></td><td><span id="check-ux"/></td></tr>
@@ -585,7 +585,7 @@ class CheckboxField(val id: String) extends DirectiveField {
   def toClient: String = if (null == _x) "false" else _x
 
   override def displayHtml = { if ((null == _x) || ("false" == _x)) Text("No") else Text("Yes") }
-  def toForm() = Full(SHtml.checkbox(toClient.equalsIgnoreCase("true"), { x => parseClient(x.toString) }))
+  def toForm = Full(SHtml.checkbox(toClient.equalsIgnoreCase("true"), { x => parseClient(x.toString) }))
 
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None
 
@@ -918,7 +918,7 @@ class FileField(
   def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
 
-  def toForm() = display(FileField.fileInput("shared"))
+  def toForm = display(FileField.fileInput("shared"))
 
   def display( xml: String => NodeSeq) = {
     val formId = Helpers.nextFuncName

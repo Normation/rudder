@@ -271,7 +271,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       new WBTextAreaField("Change audit message", "") {
         override def setFilter = notNull _ :: trim _ :: Nil
         override def inputField = super.inputField  %  ("style" -> "height:8em;") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
-        override def validations() = {
+        override def validations = {
           if(mandatory){
             valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
           } else {
