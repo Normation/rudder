@@ -186,7 +186,7 @@ class RuleModificationValidationPopup(
           </div>
         }
       } &
-      "#saveStartWorkflow" #> (SHtml.ajaxSubmit(buttonName, () => onSubmit(), ("class" -> classForButton)) % ("id", "createDirectiveSaveButton") % ("tabindex","3")) andThen
+      "#saveStartWorkflow" #> (SHtml.ajaxSubmit(buttonName, () => onSubmit(), ("class" -> classForButton)) % ("id" -> "createDirectiveSaveButton") % ("tabindex" -> "3")) andThen
        ".notifications *" #> updateAndDisplayNotifications()
 
     )(html)
@@ -230,7 +230,7 @@ class RuleModificationValidationPopup(
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
-    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
+    override def inputField = super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "1")
     override def validations =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }

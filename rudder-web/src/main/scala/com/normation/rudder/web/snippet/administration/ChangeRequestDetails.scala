@@ -265,7 +265,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       SHtml.selectObj(
           nextSteps.map(v => (v,v._1.value)), Full(nextChosen)
         , {t:(WorkflowNodeId,stepChangeFunction) => nextChosen = t}
-      ) % ("class", "form-control space-bottom")
+      ) % ("class" -> "form-control space-bottom")
 
     def buildReasonField(mandatory:Boolean, containerClass:String) = {
       new WBTextAreaField("Change audit message", "") {

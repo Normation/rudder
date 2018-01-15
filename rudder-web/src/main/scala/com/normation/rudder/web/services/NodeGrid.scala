@@ -252,7 +252,7 @@ class NodeGrid(
         nodeInfoService.getNodeInfo(nodeId) match {
           case Full(Some(node)) =>
             configService.rudder_global_policy_mode() match {
-              case Full(mode)    => Full(Some(node,mode))
+              case Full(mode)    => Full(Some((node,mode)))
               case eb : EmptyBox =>
                 val fail = eb ?~! s" Could not get global policy mode when getting node '${nodeId}' details"
                 fail

@@ -278,7 +278,7 @@ class DirectiveEditForm(
       "#version *+" #> migrateButton(directiveVersion.get,"Migrate") &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
-      "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class","btn btn-success") } &
+      "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications *" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> SHtml.a(() => JsRaw("$('#technicalDetails').show(400);") & showDetailsStatus(true), Text("Show technical details"), ("class","listopen")) &
       "#isSingle *" #> showIsSingle &
@@ -666,7 +666,7 @@ class DirectiveEditForm(
       }
 
       new ModificationValidationPopup(
-          Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal, baseRules, updatedRules)
+          Left((technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal, baseRules, updatedRules))
         , action
         , workflowEnabled
         , onSuccessCallback = successCallback

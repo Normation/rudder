@@ -235,7 +235,7 @@ class NodeGroupCategoryForm(
       new WBSelectField("Parent category: ",
         Seq(_nodeGroupCategory.id.value -> _nodeGroupCategory.name),
         _nodeGroupCategory.id .value,
-        Seq("disabled"->"true")
+        Seq("disabled" -> "true")
       ) {
         override def className = "rudderBaseFieldSelectClassName"
         override def validations =

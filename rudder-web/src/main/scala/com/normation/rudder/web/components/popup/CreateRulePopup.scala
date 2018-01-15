@@ -111,8 +111,8 @@ class CreateOrCloneRulePopup(
         else
           NodeSeq.Empty
       }
-    & "item-cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","5") % ("class","btn btn-default"))
-    & "item-save" #> (SHtml.ajaxSubmit(if(clonedRule.isDefined) "Clone" else "Create", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","4") % ("class","btn btn-success"))
+    & "item-cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex" -> "5") % ("class" -> "btn btn-default"))
+    & "item-save" #> (SHtml.ajaxSubmit(if(clonedRule.isDefined) "Clone" else "Create", onSubmit _) % ("id" -> "createCRSaveButton") % ("tabindex" -> "4") % ("class" -> "btn btn-success"))
     andThen
       "item-notifications" #> updateAndDisplayNotifications()
     )(popupTemplate) )
@@ -147,14 +147,14 @@ class CreateOrCloneRulePopup(
   private[this] val ruleName = new WBTextField("Name", clonedRule.map(r => "Copy of <%s>".format(r.name)).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
-    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')") % ("tabindex","1")
+    override def inputField = super.inputField % ("onkeydown" -> "return processKey(event , 'createCRSaveButton')") % ("tabindex" -> "1")
     override def validations =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
   private[this] val ruleShortDescription = new WBTextAreaField("Description", clonedRule.map( _.shortDescription).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
+    override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex" -> "2")
     override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
 

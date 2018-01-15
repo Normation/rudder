@@ -360,7 +360,7 @@ class ModificationValidationPopup(
           case _ => Full(NodeSeq.Empty)
         }
       } &
-      "#saveStartWorkflow" #> (SHtml.ajaxSubmit(buttonName, () => onSubmitStartWorkflow(), ("class" -> classForButton)) % ("id", "createDirectiveSaveButton") % ("tabindex","3")) andThen
+      "#saveStartWorkflow" #> (SHtml.ajaxSubmit(buttonName, () => onSubmitStartWorkflow(), ("class" -> classForButton)) % ("id" -> "createDirectiveSaveButton") % ("tabindex" -> "3")) andThen
        ".notifications *" #> updateAndDisplayNotifications()
 
     )(html)
@@ -403,14 +403,14 @@ class ModificationValidationPopup(
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
-    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
+    override def inputField = super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "1")
     override def validations =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
   private[this] val changeRequestDescription = new WBTextAreaField("Description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2") % ("class" -> "nodisplay")
+    override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex" -> "2") % ("class" -> "nodisplay")
     override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
 

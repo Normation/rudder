@@ -382,7 +382,7 @@ class RuleEditForm(
    */
   private[this] def saveButton : NodeSeq = {
     // add an hidden field to hold the list of selected directives
-    val save = SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save) % ("class","btn btn-success")
+    val save = SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success")
     // update onclick to get the list of directives and groups in the hidden
     // fields before submitting
 

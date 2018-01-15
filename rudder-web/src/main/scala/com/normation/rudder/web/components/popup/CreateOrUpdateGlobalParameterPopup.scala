@@ -187,7 +187,7 @@ class CreateOrUpdateGlobalParameterPopup(
     override def inputField = (parameter match {
       case Some(entry) => super.inputField % ("disabled" -> "true")
       case None => super.inputField
-    }) % ("onkeydown" , "return processKey(event , 'createParameterSaveButton')")  % ("tabindex","1")
+    }) % ("onkeydown" -> "return processKey(event , 'createParameterSaveButton')")  % ("tabindex" -> "1")
     override def validations =
       valMinLen(1, "The name must not be empty") _ ::
       valRegex(patternName, "The name can contain only letters, digits and underscore") _ :: Nil
@@ -199,7 +199,7 @@ class CreateOrUpdateGlobalParameterPopup(
     override def inputField = ( action match {
       case "delete" => super.inputField % ("disabled" -> "true")
       case _ => super.inputField
-    }) % ("style" -> "height:4em")  % ("tabindex","2")
+    }) % ("style" -> "height:4em")  % ("tabindex" -> "2")
     override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
   }
@@ -209,7 +209,7 @@ class CreateOrUpdateGlobalParameterPopup(
     override def inputField =( action match {
       case "delete" => super.inputField % ("disabled" -> "true")
       case _ => super.inputField
-    })  % ("tabindex","3")
+    })  % ("tabindex" -> "3")
     override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
   }
@@ -230,7 +230,7 @@ class CreateOrUpdateGlobalParameterPopup(
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
-    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","4")
+    override def inputField = super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "4")
     override def validations =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
@@ -250,7 +250,7 @@ class CreateOrUpdateGlobalParameterPopup(
     new WBTextAreaField("Change audit message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  %
-        ("style" -> "height:5em;")  % ("tabindex","5") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
+        ("style" -> "height:5em;")  % ("tabindex" -> "5") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
       override def errorClassName = "col-lg-12 errors-container"
       override def validations() = {
         if(mandatory){
@@ -310,8 +310,8 @@ class CreateOrUpdateGlobalParameterPopup(
         </div>
       } } &
 
-      "#cancel"  #> (SHtml.ajaxButton("Cancel", { () => closePopup() })  % ("tabindex","6") % ("class","btn btn-default") ) &
-      "#save" #> (SHtml.ajaxSubmit( buttonName, onSubmit _) % ("id","createParameterSaveButton")  % ("tabindex","5") % ("class", s"btn ${classForButton}")) andThen
+      "#cancel"  #> (SHtml.ajaxButton("Cancel", { () => closePopup() })  % ("tabindex" -> "6") % ("class" -> "btn btn-default") ) &
+      "#save" #> (SHtml.ajaxSubmit( buttonName, onSubmit _) % ("id" -> "createParameterSaveButton")  % ("tabindex" -> "5") % ("class" -> s"btn ${classForButton}")) andThen
       ".notifications *"  #> { updateAndDisplayNotifications(formTracker) }
     ).apply(formXml())
 
