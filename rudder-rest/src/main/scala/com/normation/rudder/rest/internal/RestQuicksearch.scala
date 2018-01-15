@@ -139,7 +139,7 @@ class RestQuicksearch (
       //on take the nth first, sorted by name
       val returned = unique.take(maxByKind)
 
-      val summary = ResultTypeSummary(tpe.name, unique.size, returned.size)
+      val summary = RestQuicksearch.ResultTypeSummary(tpe.name, unique.size, returned.size)
 
       (tpe, (summary, returned))
     }
@@ -153,7 +153,7 @@ class RestQuicksearch (
     // - rules
     import com.normation.rudder.services.quicksearch.QSObject.sortQSObject
     val jsonList = QSObject.all.toList.sortWith(sortQSObject).flatMap { tpe =>
-      val (summary, res) = map.getOrElse(tpe, (ResultTypeSummary(tpe.name, 0,0), Seq()) )
+      val (summary, res) = map.getOrElse(tpe, (RestQuicksearch.ResultTypeSummary(tpe.name, 0,0), Seq()) )
       if(res.isEmpty) {
         None
       } else {
@@ -166,13 +166,7 @@ class RestQuicksearch (
     JArray(jsonList)
   }
 
-  private[this] final case class ResultTypeSummary(
-      tpe            : String
-    , originalNumber : Int
-    , returnedNumber : Int
-  )
-
-  private[this] implicit class JsonResultTypeSummary(t: ResultTypeSummary) {
+  private[this] implicit class JsonResultTypeSummary(t: RestQuicksearch.ResultTypeSummary) {
 
     val desc = if(t.originalNumber <= t.returnedNumber) {
        s"${t.originalNumber} found"
@@ -228,5 +222,12 @@ class RestQuicksearch (
       )
     }
   }
+}
 
+object RestQuicksearch {
+  private final case class ResultTypeSummary(
+      tpe            : String
+    , originalNumber : Int
+    , returnedNumber : Int
+  )
 }
