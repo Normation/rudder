@@ -152,7 +152,7 @@ class TechniqueEditForm(
           case Full(activeTechnique) =>
     (
           "#deleteActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-          "#dialogDeleteButton" #> { deleteButton(activeTechnique.id) % ("id", "deleteButton") } &
+          "#dialogDeleteButton" #> { deleteButton(activeTechnique.id) % ("id" -> "deleteButton") } &
           "#deleteItemDependencies *" #> dialogDeleteTree("deleteItemDependencies", activeTechnique)&
           ".reasonsFieldset" #> { crReasonsDisablePopup.map { f =>
             "#explanationMessage" #> <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4> &
@@ -169,7 +169,7 @@ class TechniqueEditForm(
           case Full(activeTechnique) =>
     (
           "#disableActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-          "#dialogDisableButton" #> { disableButton(activeTechnique) % ("id", "disableButton") } &
+          "#dialogDisableButton" #> { disableButton(activeTechnique) % ("id" -> "disableButton") } &
           "#dialogDisableTitle" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
           "#dialogDisableLabel" #> { if(activeTechnique.isEnabled) "disable" else "enable" } &
           "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique) &

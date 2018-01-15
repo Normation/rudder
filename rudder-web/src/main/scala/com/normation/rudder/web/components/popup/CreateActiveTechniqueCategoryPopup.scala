@@ -78,8 +78,8 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
           "item-itemname" #> categoryName.toForm_!
         & "item-itemcontainer" #> categoryContainer.toForm_!
         & "item-itemdescription" #> categoryDescription.toForm_!
-        & "item-cancel" #> ( SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4") % ("class","btn btn-default") )
-        & "item-save" #> ( SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createATCSaveButton") % ("tabindex","3") % ("class","btn btn-success") )
+        & "item-cancel" #> ( SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex" -> "4") % ("class" -> "btn btn-default") )
+        & "item-save" #> ( SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> "createATCSaveButton") % ("tabindex" -> "3") % ("class" -> "btn btn-success") )
         andThen
           "item-notifications" #> updateAndDisplayNotifications()
       )(popupTemplate)
@@ -90,14 +90,14 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
   private[this] val categoryName = new WBTextField("Name", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
-    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createATCSaveButton')") % ("tabindex","1")
+    override def inputField = super.inputField % ("onkeydown" -> "return processKey(event , 'createATCSaveButton')") % ("tabindex" -> "1")
     override def validations =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
   private[this] val categoryDescription = new WBTextAreaField("Description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("class" , "form-control col-lg-12 col-sm-12 col-xs-12") % ("tabindex","2")
+    override def inputField = super.inputField  % ("class" -> "form-control col-lg-12 col-sm-12 col-xs-12") % ("tabindex" -> "2")
     override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
 

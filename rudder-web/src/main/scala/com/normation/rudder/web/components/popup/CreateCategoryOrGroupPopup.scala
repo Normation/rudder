@@ -135,8 +135,8 @@ class CreateCategoryOrGroupPopup(
             {f.toForm_!}
           </div>
           } }
-      & "item-cancel" #> ( SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","6") % ("class","btn btn-default") )
-      & "item-save" #> ( SHtml.ajaxSubmit("Create", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","5") % ("class","btn btn-success") )
+      & "item-cancel" #> ( SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex" -> "6") % ("class" -> "btn btn-default") )
+      & "item-save" #> ( SHtml.ajaxSubmit("Create", onSubmit _) % ("id" -> "createCOGSaveButton") % ("tabindex" -> "5") % ("class" -> "btn btn-success") )
       andThen
         // Updating notification should be done at the end because it empties the form tracker
         // and thus if done at the same time of other css selectors it will emtpy the field errors
@@ -149,14 +149,14 @@ class CreateCategoryOrGroupPopup(
   private[this] val piName = new WBTextField("Name", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
-    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
+    override def inputField = super.inputField %("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "2")
     override def validations =
       valMinLen(1, "Name must not be empty.") _ :: Nil
   }
 
   private[this] val piDescription = new WBTextAreaField("Description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex","4")
+    override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex" -> "4")
     override def errorClassName = "col-lg-12 errors-container"
     override def validations =  Nil
 
@@ -174,7 +174,7 @@ class CreateCategoryOrGroupPopup(
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "align-radio-generate-input"
     override def errorClassName = "col-lg-12 errors-container"
-    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')")
+    override def inputField = super.inputField %("onkeydown" -> "return processKey(event , 'createCOGSaveButton')")
     override def validations =
       valMinLen(1, "Please choose a group type.") _ :: Nil
   }
@@ -192,7 +192,7 @@ class CreateCategoryOrGroupPopup(
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "align-radio-generate-input"
       override def errorClassName = "col-lg-12 errors-container"
-      override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')")
+      override def inputField = super.inputField %("onkeydown" -> "return processKey(event , 'createCOGSaveButton')")
       override def validations =
       valMinLen(1, "Please choose between group or category.") _ :: Nil
     }
@@ -205,8 +205,7 @@ class CreateCategoryOrGroupPopup(
     override def errorClassName = "col-lg-12 errors-container"
     override def className = "col-lg-12 col-sm-12 col-xs-12 form-control"
     override def inputField =
-      super.inputField % ("onkeydown" , "return processKey(event , 'createCOGSaveButton')") %
-      ("tabindex","3")
+      super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "3")
     override def validations =
       valMinLen(1, "Please select a category") _ :: Nil
   }

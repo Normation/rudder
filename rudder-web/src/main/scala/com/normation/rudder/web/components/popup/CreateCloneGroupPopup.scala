@@ -56,8 +56,8 @@ class CreateCloneGroupPopup(
           {f.toForm_!}
         </div>
       } }
-    & "item-cancel" #> (SHtml.ajaxButton( "Cancel", { () => closePopup() } ) % ( "tabindex", "6" )% ( "class", "btn btn-default" ) )
-    & "item-save" #> (SHtml.ajaxSubmit( "Clone", onSubmit _ ) % ( "id", "createCOGSaveButton" ) % ( "tabindex", "5" )% ( "class", "btn btn-success" ) )
+    & "item-cancel" #> (SHtml.ajaxButton( "Cancel", { () => closePopup() } ) % ( "tabindex" -> "6" )% ( "class" -> "btn btn-default" ) )
+    & "item-save" #> (SHtml.ajaxSubmit( "Clone", onSubmit _ ) % ( "id" -> "createCOGSaveButton" ) % ( "tabindex" ->  "5" )% ( "class" -> "btn btn-success" ) )
     andThen
       "item-notifications" #> updateAndDisplayNotifications(formTracker)
     )(popupTemplate) )
@@ -194,7 +194,7 @@ class CreateCloneGroupPopup(
         nodeGroup.map(x => "Copy of <%s>".format(x.name)).getOrElse("")) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def errorClassName = "col-lg-12 errors-container"
-      override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","1")
+      override def inputField = super.inputField %("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "1")
       override def validations =
         valMinLen(1, "Name must not be empty") _ :: Nil
     }
@@ -203,7 +203,7 @@ class CreateCloneGroupPopup(
   private[this] val groupDescription = new WBTextAreaField("Description",
       nodeGroup.map(x => x.description).getOrElse("") ) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex","3")
+    override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex" -> "3")
     override def errorClassName = "col-lg-12 errors-container"
     override def validations =  Nil
   }
@@ -219,13 +219,13 @@ class CreateCloneGroupPopup(
     override def className = "col-lg-12 col-sm-12 col-xs-12"
     override def errorClassName = "col-lg-12 errors-container"
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')")
+    override def inputField = super.inputField %("onkeydown" -> "return processKey(event , 'createCOGSaveButton')")
   }
 
   private[this] val groupContainer = new WBSelectField("Parent category",
       (categories.getOrElse(Seq()).map(x => (x.id.value -> x.name))),
       parentCategoryId) {
-    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
+    override def inputField = super.inputField %("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "2")
     override def className = "col-lg-12 col-sm-12 col-xs-12  form-control"
     override def validations =
       valMinLen(1, "Please select a category") _ :: Nil

@@ -106,7 +106,7 @@ class TechniqueCategoryEditForm(
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                {SHtml.ajaxButton(<span>Delete</span>, deleteCategory _) % ("class","btn btn-danger")}
+                {SHtml.ajaxButton(<span>Delete</span>, deleteCategory _) % ("class" -> "btn btn-danger")}
             </div>
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->

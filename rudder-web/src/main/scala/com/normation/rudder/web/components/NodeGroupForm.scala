@@ -177,16 +177,16 @@ class NodeGroupForm(
                        case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
       })
       & "group-clone" #> { if (CurrentUser.checkRights(AuthorizationType.Group.Write))
-                     SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % ("id", "groupCloneButtonId") % ("class"," btn btn-default")
+                     SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % ("id" -> "groupCloneButtonId") % ("class" -> " btn btn-default")
                    else NodeSeq.Empty
                  }
       & "group-save" #> { if (CurrentUser.checkRights(AuthorizationType.Group.Edit))
                     <div  tooltipid="saveButtonToolTip" class="tooltipable" title=""> {
-                      SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId) % ("class"," btn btn-success")
+                      SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id" -> saveButtonId) % ("class" -> " btn btn-success")
                     } </div>
                    else NodeSeq.Empty
                 }
-      & "group-delete" #> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class"," btn btn-danger"))
+      & "group-delete" #> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class" -> " btn btn-danger"))
       & "group-notifications" #> updateAndDisplayNotifications()
     )(html)
    }
@@ -198,7 +198,7 @@ class NodeGroupForm(
       override def className = "form-control"
       override def labelClassName = ""
       override def subContainerClassName = ""
-      override def inputField = super.inputField %("onkeydown" , "return processKey(event , '%s')".format(saveButtonId))
+      override def inputField = super.inputField %("onkeydown" -> "return processKey(event , '%s')".format(saveButtonId))
       override def validations =
         valMinLen(1, "Name must not be empty") _ :: Nil
     }
@@ -323,7 +323,7 @@ class NodeGroupForm(
       }
 
       new ModificationValidationPopup(
-          Right(newGroup, newCategory, optOriginal)
+          Right((newGroup, newCategory, optOriginal))
         , action
         , workflowEnabled
         , crId => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & successCallback(crId)
@@ -388,7 +388,7 @@ class NodeGroupForm(
 
   private[this] def showGroupSection(group: NodeGroup, parentCategoryId: NodeGroupCategoryId) : JsCmd = {
     //update UI
-    onSuccessCallback(Left(group, parentCategoryId))&
+    onSuccessCallback(Left((group, parentCategoryId)))&
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'groupId':'%s'})""".format(group.id.value))
   }
 

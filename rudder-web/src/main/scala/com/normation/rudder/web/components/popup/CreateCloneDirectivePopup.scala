@@ -111,8 +111,8 @@ class CreateCloneDirectivePopup(
           {f.toForm_!}
         </div>
       } }
-    & "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4") % ("class","btn btn-default"))
-    & "#save" #> (SHtml.ajaxSubmit("Clone", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3") % ("class","btn"))
+    & "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex" -> "4") % ("class" -> "btn btn-default"))
+    & "#save" #> (SHtml.ajaxSubmit("Clone", onSubmit _) % ("id" -> "createDirectiveSaveButton") % ("tabindex" -> "3") % ("class" -> "btn"))
     andThen
       "#notifications" #> updateAndDisplayNotifications()
     ) (html)
@@ -148,7 +148,7 @@ class CreateCloneDirectivePopup(
   private[this] val directiveName = new WBTextField("Name", "Copy of <%s>".format(directive.name)) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
-    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
+    override def inputField = super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "1")
     override def validations =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
@@ -156,7 +156,7 @@ class CreateCloneDirectivePopup(
   private[this] val directiveShortDescription =
     new WBTextAreaField("Short description", directive.shortDescription) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
+    override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex" -> "2")
     override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
   }
