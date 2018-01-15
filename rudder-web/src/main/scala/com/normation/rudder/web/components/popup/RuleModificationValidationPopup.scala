@@ -208,7 +208,7 @@ class RuleModificationValidationPopup(
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  %  ("style" -> "height:8em;") % ("tabindex" -> "2") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
       //override def subContainerClassName = containerClass
-      override def validations() = {
+      override def validations = {
         if(mandatory){
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
         } else {
