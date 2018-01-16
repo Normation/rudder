@@ -137,7 +137,7 @@ class WoLDAPParameterRepository(
         autoArchive     <- if(autoExportOnModify) { //only persists if modification are present
                              for {
                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                               archive  <- gitParameterArchiver.archiveParameter(parameter, Some(modId,commiter, reason))
+                               archive  <- gitParameterArchiver.archiveParameter(parameter,Some((modId, commiter, reason)))
                              } yield {
                                archive
                              }
@@ -174,7 +174,7 @@ class WoLDAPParameterRepository(
         autoArchive     <- if(autoExportOnModify  && optDiff.isDefined) {//only persists if modification are present
                              for {
                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                               archive  <- gitParameterArchiver.archiveParameter(parameter, Some(modId,commiter, reason))
+                               archive  <- gitParameterArchiver.archiveParameter(parameter,Some((modId, commiter, reason)))
                              } yield {
                                archive
                              }
@@ -197,7 +197,7 @@ class WoLDAPParameterRepository(
       autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archive  <- gitParameterArchiver.deleteParameter(parameterName, Some(modId,commiter, reason))
+                          archive  <- gitParameterArchiver.deleteParameter(parameterName,Some((modId, commiter, reason)))
                         } yield {
                           archive
                         }

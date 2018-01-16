@@ -149,7 +149,7 @@ class WoLDAPRuleRepository(
       autoArchive  <- if(autoExportOnModify && deleted.size > 0  && !oldCr.isSystem) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archive  <- gitCrArchiver.deleteRule(id, Some(modId,commiter, reason))
+                          archive  <- gitCrArchiver.deleteRule(id, Some((modId, commiter, reason)))
                         } yield {
                           archive
                         }
@@ -178,7 +178,7 @@ class WoLDAPRuleRepository(
       autoArchive     <- if(autoExportOnModify && !rule.isSystem) {
                            for {
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitCrArchiver.archiveRule(rule, Some(modId,commiter, reason))
+                             archive  <- gitCrArchiver.archiveRule(rule, Some((modId, commiter, reason)))
                            } yield {
                              archive
                            }
@@ -211,7 +211,7 @@ class WoLDAPRuleRepository(
       autoArchive     <- if(autoExportOnModify && optDiff.isDefined  && !rule.isSystem) {
                            for {
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitCrArchiver.archiveRule(rule, Some(modId,commiter, reason))
+                             archive  <- gitCrArchiver.archiveRule(rule, Some((modId, commiter, reason)))
                            } yield {
                              archive
                            }

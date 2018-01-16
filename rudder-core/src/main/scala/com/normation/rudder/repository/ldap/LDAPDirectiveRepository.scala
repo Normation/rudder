@@ -627,7 +627,7 @@ class WoLDAPDirectiveRepository(
                        for {
                          parents  <- activeTechniqueBreadCrump(activeTechnique.id)
                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                         archived <- gitPiArchiver.archiveDirective(directive, technique.id.name, parents.map( _.id), technique.rootSection, Some((modId,commiter, reason)))
+                         archived <- gitPiArchiver.archiveDirective(directive, technique.id.name, parents.map( _.id), technique.rootSection, Some((modId, commiter, reason)))
                        } yield archived
                      } else Full("ok")
     } yield {
@@ -687,7 +687,7 @@ class WoLDAPDirectiveRepository(
                            for {
                              parents  <- activeTechniqueBreadCrump(activeTechnique.id)
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some(modId,commiter, reason))
+                             archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some((modId, commiter, reason)))
                            } yield archived
                          } else Full("ok")
     } yield {
@@ -735,7 +735,7 @@ class WoLDAPDirectiveRepository(
                                for {
                                  parents  <- getParentsForActiveTechniqueCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitCatArchiver.archiveActiveTechniqueCategory(that,parents.map( _.id), Some(modId,commiter, reason))
+                                 archive  <- gitCatArchiver.archiveActiveTechniqueCategory(that,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield archive
                              } else Full("ok")
       parentEntry         <- getCategoryEntry(con, into) ?~! "Entry with ID '%s' was not found".format(into)
@@ -765,7 +765,7 @@ class WoLDAPDirectiveRepository(
                             for {
                               parents  <- getParentsForActiveTechniqueCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              archive  <- gitCatArchiver.archiveActiveTechniqueCategory(updated,parents.map( _.id), Some(modId,commiter, reason))
+                              archive  <- gitCatArchiver.archiveActiveTechniqueCategory(updated,parents.map( _.id), Some((modId, commiter, reason)))
                             } yield archive
                           } else Full("ok")
     } yield {
@@ -795,7 +795,7 @@ class WoLDAPDirectiveRepository(
               autoArchive <- (if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitCatArchiver.deleteActiveTechniqueCategory(id,parents.map( _.id), Some(modId,commiter, reason))
+                                 archive  <- gitCatArchiver.deleteActiveTechniqueCategory(id,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield {
                                  archive
                                }
@@ -844,7 +844,7 @@ class WoLDAPDirectiveRepository(
                               newCat   <- getActiveTechniqueCategory(categoryId)
                               parents  <- getParentsForActiveTechniqueCategory(categoryId)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              moved    <- gitCatArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
+                              moved    <- gitCatArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
                             } yield {
                               moved
                             }
@@ -887,7 +887,7 @@ class WoLDAPDirectiveRepository(
                               for {
                                 parents  <- activeTechniqueBreadCrump(newActiveTechnique.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                archive  <- gitATArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
+                                archive  <- gitATArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some((modId, commiter, reason)))
                               } yield archive
                             } else Full("ok")
     } yield {
@@ -916,7 +916,7 @@ class WoLDAPDirectiveRepository(
                                 for {
                                   parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
                                   commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                  moved    <- gitATArchiver.moveActiveTechnique(movedActiveTechnique, oldParents.map( _.id), parents.map( _.id), Some(modId, commiter, reason))
+                                  moved    <- gitATArchiver.moveActiveTechnique(movedActiveTechnique, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
                                 } yield {
                                   moved
                                 }
@@ -950,7 +950,7 @@ class WoLDAPDirectiveRepository(
                            for {
                              parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitATArchiver.archiveActiveTechnique(newactiveTechnique, parents.map( _.id), Some(modId, commiter, reason))
+                             archive  <- gitATArchiver.archiveActiveTechnique(newactiveTechnique, parents.map( _.id), Some((modId, commiter, reason)))
                            } yield archive
                          } else Full("ok")
     } yield {
@@ -973,7 +973,7 @@ class WoLDAPDirectiveRepository(
                                for {
                                  parents <- activeTechniqueBreadCrump(uactiveTechniqueId)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive <- gitATArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
+                                 archive <- gitATArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some((modId, commiter, reason)))
                                } yield archive
                              } else Full("ok")
     } yield {
@@ -1002,7 +1002,7 @@ class WoLDAPDirectiveRepository(
                                for {
                                  ptName   <- Box(activeTechnique(A_TECHNIQUE_UUID)) ?~! "Missing required reference technique name"
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 res      <- gitATArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some(modId,commiter, reason))
+                                 res      <- gitATArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some((modId, commiter, reason)))
                                } yield res
                               } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
     } yield {

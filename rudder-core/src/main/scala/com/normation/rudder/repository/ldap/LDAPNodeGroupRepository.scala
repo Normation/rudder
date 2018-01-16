@@ -617,7 +617,7 @@ class WoLDAPNodeGroupRepository(
                                for {
                                  parents  <- getParents_NodeGroupCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.archiveNodeGroupCategory(that,parents.map( _.id), Some(modId,commiter, reason))
+                                 archive  <- gitArchiver.archiveNodeGroupCategory(that,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield archive
                              } else Full("ok")
       newCategory         <- getGroupCategory(that.id) ?~! "The newly created category '%s' was not found".format(that.id.value)
@@ -644,7 +644,7 @@ class WoLDAPNodeGroupRepository(
                              for {
                               parents  <- getParents_NodeGroupCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              archive  <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id), Some(modId,commiter, reason))
+                              archive  <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id), Some((modId, commiter, reason)))
                             } yield archive
                           } else Full("ok")
     } yield {
@@ -678,7 +678,7 @@ class WoLDAPNodeGroupRepository(
                               (for {
                                 parents  <- getParents_NodeGroupCategory(updated.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                moved    <- gitArchiver.moveNodeGroupCategory(updated, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
+                                moved    <- gitArchiver.moveNodeGroupCategory(updated, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
                               } yield {
                                 moved
                               }) ?~! "Error when trying to archive automatically the category move"
@@ -720,7 +720,7 @@ class WoLDAPNodeGroupRepository(
               autoArchive <- (if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.deleteNodeGroupCategory(id,parents.map( _.id), Some(modId, commiter, reason))
+                                 archive  <- gitArchiver.deleteNodeGroupCategory(id,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield {
                                  archive
                                }
@@ -767,7 +767,7 @@ class WoLDAPNodeGroupRepository(
                          for {
                            parents  <- getParents_NodeGroupCategory(into)
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)), Some(modId, commiter, reason))
+                           archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)), Some((modId, commiter, reason)))
                          } yield archived
                        } else Full("ok")
     } yield {
@@ -822,7 +822,7 @@ class WoLDAPNodeGroupRepository(
                           parent   <- getParentGroupCategory(nodeGroup.id)
                           parents  <- getParents_NodeGroupCategory(parent.id)
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some(modId, commiter, reason))
+                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some((modId, commiter, reason)))
                         } yield archived
                       } else Full("ok")
     } yield {
@@ -874,7 +874,7 @@ class WoLDAPNodeGroupRepository(
                            (ng,cId) <- getNodeGroup(nodeGroupId)
                            parents  <- getParents_NodeGroupCategory(cId)
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           moved    <- gitArchiver.moveNodeGroup(ng, oldParents, cId :: parents.map( _.id ), Some(modId, commiter, reason))
+                           moved    <- gitArchiver.moveNodeGroup(ng, oldParents, cId :: parents.map( _.id ), Some((modId, commiter, reason)))
                          } yield {
                            moved
                          }
@@ -921,7 +921,7 @@ class WoLDAPNodeGroupRepository(
       autoArchive  <- if(autoExportOnModify && !oldGroup.isSystem) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archive  <- gitArchiver.deleteNodeGroup(id, parents, Some(modId, commiter, reason))
+                          archive  <- gitArchiver.deleteNodeGroup(id, parents, Some((modId, commiter, reason)))
                         } yield {
                           archive
                         }

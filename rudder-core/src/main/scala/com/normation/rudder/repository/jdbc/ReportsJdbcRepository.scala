@@ -337,7 +337,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                             |  ) as C
                             |on T.nodeid = C.nodeid and T.executiontimestamp = C.executiontimestamp""".stripMargin
 
-        Query[(Long, Long, Long, Long), AgentRun](getRunsQuery, None).toQuery0(fromId, toId, fromId, toId).vector
+        Query[(Long, Long, Long, Long), AgentRun](getRunsQuery, None).toQuery0((fromId, toId, fromId, toId)).vector
       }
     }
 

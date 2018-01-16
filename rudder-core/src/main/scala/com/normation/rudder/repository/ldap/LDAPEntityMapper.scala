@@ -146,8 +146,8 @@ class LDAPEntityMapper(
       case Some(heatbeatConfiguration) =>
         val json = {
           import net.liftweb.json.JsonDSL._
-          ( "overrides"  , heatbeatConfiguration.overrides ) ~
-          ( "heartbeatPeriod" , heatbeatConfiguration.heartbeatPeriod)
+          ( "overrides"       -> heatbeatConfiguration.overrides ) ~
+          ( "heartbeatPeriod" -> heatbeatConfiguration.heartbeatPeriod)
         }
         entry +=! (A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, compactRender(json))
       case _ => // Save nothing if missing
@@ -161,11 +161,11 @@ class LDAPEntityMapper(
   }
 
   def serializeAgentRunInterval(agentInterval: AgentRunInterval) : JObject = {
-    ( "overrides"  , agentInterval.overrides ) ~
-    ( "interval"   , agentInterval.interval ) ~
-    ( "startMinute", agentInterval.startMinute ) ~
-    ( "startHour"  , agentInterval.startHour ) ~
-    ( "splaytime"  , agentInterval.splaytime )
+    ( "overrides"  -> agentInterval.overrides ) ~
+    ( "interval"   -> agentInterval.interval ) ~
+    ( "startMinute"-> agentInterval.startMinute ) ~
+    ( "startHour"  -> agentInterval.startHour ) ~
+    ( "splaytime"  -> agentInterval.splaytime )
   }
 
   def unserializeAgentRunInterval(value:String): AgentRunInterval = {

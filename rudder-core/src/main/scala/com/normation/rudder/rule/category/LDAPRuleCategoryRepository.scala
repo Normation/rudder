@@ -234,7 +234,7 @@ class WoLDAPRuleCategoryRepository(
                                for {
                                  parents  <- getParents(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.archiveRuleCategory(that,parents.map( _.id), Some(modId,commiter, reason))
+                                 archive  <- gitArchiver.archiveRuleCategory(that,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield {
                                  archive
                                }
@@ -281,7 +281,7 @@ class WoLDAPRuleCategoryRepository(
                               (for {
                                 parents  <- getParents(updated.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                moved    <- gitArchiver.moveRuleCategory(updated, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
+                                moved    <- gitArchiver.moveRuleCategory(updated, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
                               } yield {
                                 moved
                               }) ?~! "Error when trying to  automaticallyarchive the category move or update"
@@ -333,7 +333,7 @@ class WoLDAPRuleCategoryRepository(
               autoArchive <- (if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.deleteRuleCategory(that,parents.map( _.id), Some(modId, commiter, reason))
+                                 archive  <- gitArchiver.deleteRuleCategory(that,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield {
                                  archive
                                }

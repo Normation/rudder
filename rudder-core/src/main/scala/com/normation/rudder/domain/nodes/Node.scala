@@ -299,9 +299,9 @@ object JsonSerialisation {
 
   implicit class JsonNodeProperty(x: NodeProperty) {
     def toJson(): JObject = (
-        ( "name"     , x.name  )
-      ~ ( "value"    , x.value )
-      ~ ( "provider" , x.provider.map(_.value) )
+        ( "name"     -> x.name  )
+      ~ ( "value"    -> x.value )
+      ~ ( "provider" -> x.provider.map(_.value) )
     )
   }
 
@@ -323,8 +323,8 @@ object JsonSerialisation {
 
   implicit class JsonParameter(x: ParameterEntry) {
     def toJson(): JObject = (
-        ( "name"     , x.parameterName  )
-      ~ ( "value"    , x.parameterValue )
+        ( "name"     -> x.parameterName  )
+      ~ ( "value"    -> x.parameterValue )
     )
   }
 
