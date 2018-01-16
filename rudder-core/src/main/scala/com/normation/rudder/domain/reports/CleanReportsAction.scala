@@ -37,7 +37,7 @@ final case class ArchiveAction(dbManager:DatabaseManager,dbCleaner : AutomaticRe
   val past = "archived"
   val continue = "archiving"
   def act(date:DateTime) = dbManager.archiveEntries(date)
-  val actor = dbCleaner.archiver
+  lazy val actor = dbCleaner.archiver
 }
 
 final case class DeleteAction(dbManager:DatabaseManager,dbCleaner : AutomaticReportsCleaning) extends CleanReportAction {
@@ -45,5 +45,5 @@ final case class DeleteAction(dbManager:DatabaseManager,dbCleaner : AutomaticRep
   val past = "deleted"
   val continue = "deleting"
   def act(date:DateTime) = dbManager.deleteEntries(date)
-  val actor = dbCleaner.deleter
+  lazy val actor = dbCleaner.deleter
 }
