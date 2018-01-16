@@ -1266,7 +1266,7 @@ object RudderConfig extends Loggable {
     , roLDAPParameterRepository
     , woLDAPParameterRepository
     , gitRepo
-    , gitRevisionProvider
+    , gitRevisionProviderImpl
     , gitRuleArchiver
     , gitRuleCategoryArchiver
     , gitActiveTechniqueCategoryArchiver
@@ -1647,8 +1647,8 @@ object RudderConfig extends Loggable {
   import java.util.Locale
   import org.joda.time.format.DateTimeFormat
 
-  val frenchDateFormatter = DateTimeFormat.forPattern("dd/MM/yyyy").withLocale(Locale.FRANCE)
-  val frenchTimeFormatter = DateTimeFormat.forPattern("kk:mm:ss").withLocale(Locale.FRANCE)
+  lazy val frenchDateFormatter = DateTimeFormat.forPattern("dd/MM/yyyy").withLocale(Locale.FRANCE)
+  lazy val frenchTimeFormatter = DateTimeFormat.forPattern("kk:mm:ss").withLocale(Locale.FRANCE)
 
   object FieldFactoryImpl extends DirectiveFieldFactory {
     //only one field

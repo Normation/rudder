@@ -265,11 +265,11 @@ trait DatabaseCleanerActor extends SpecializedLiftActor[DatabaseCleanerMessage] 
  *  A negative or zero TTL means to not run the relative reports cleaner.
  *  Archive action doesn't run if its TTL is more than Delete TTL.
  */
-case class AutomaticReportsCleaning(
-    dbManager      : DatabaseManager
-  , deletettl      : Int // in days
-  , archivettl     : Int // in days
-  , freq : CleanFrequency
+class AutomaticReportsCleaning(
+        dbManager : DatabaseManager
+  , val deletettl : Int // in days
+  , val archivettl: Int // in days
+  , val freq      : CleanFrequency
 ) {
   val reportLogger = ReportLogger
   val logger = ScheduledJobLogger
@@ -306,7 +306,7 @@ case class AutomaticReportsCleaning(
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
 
-  private case class LADatabaseCleaner(cleanaction:CleanReportAction,ttl:Int) extends DatabaseCleanerActor {
+  private class LADatabaseCleaner(cleanaction:CleanReportAction,ttl:Int) extends DatabaseCleanerActor {
     updateManager =>
 
     private[this] val reportLogger = ReportLogger
