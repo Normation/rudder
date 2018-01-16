@@ -313,7 +313,7 @@ object FilePerms {
   }
   def unapply(ugo:(String,String,String)) : Option[(Perm,Perm,Perm)] = {
     ugo match {
-      case (Perm(x),Perm(y),Perm(z)) => Some(x,y,z)
+      case (Perm(x),Perm(y),Perm(z)) => Some((x,y,z))
       case _ => None
     }
   }
