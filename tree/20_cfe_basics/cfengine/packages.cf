@@ -257,6 +257,22 @@ bundle common rpm_knowledge
       "rpm3_arch_regex" string => "\S+\s+(\S+).*";
 }
 
+bundle common redhat_no_locking_knowledge {
+  vars:
+    redhat_setopt_available::
+      "no_locking_option" string => "--setopt=exit_on_lock=True";
+    !redhat_setopt_available::
+      "no_locking_option" string => "";
+
+
+  classes:
+    # Use the class 'agent' as a guard, to prevent the command to be executed during cf-promises/cf-serverd
+    # Class agent is a hard class set by cf-agent
+    redhat.agent::
+      "redhat_setopt_available" not => returnszero("LANG=C ${paths.path[yum]} --setopt=exit_on_lock=True 2>&1 | ${paths.path[grep]} -q -E '(Command line error: no such option: --setopt|Main config did not have a exit_on_lock attr. before setopt)'", "useshell");
+
+}
+
 bundle common redhat_knowledge
 # @depends paths
 # @brief common Red Hat knowledge bundle
@@ -271,9 +287,9 @@ bundle common redhat_knowledge
       "call_yum" string => "$(paths.path[yum])";
       "call_rpmvercmp" string => "$(sys.bindir)/rpmvercmp";
 
-      # on RHEL 4, Yum doesn't know how to be --quiet
-      "yum_options" string => ifelse("centos_4|redhat_4", "",
-                                     "--quiet");
+      # on RHEL 3/4, Yum doesn't know how to be --quiet
+      "yum_options" string => ifelse("centos_4|redhat_4|centos_3|redhat_3", "",
+                                     "--quiet ${redhat_no_locking_knowledge.no_locking_option}");
       "yum_offline_options" string => "$(yum_options) -C";
 
       "rpm_compare_equal" string => "$(call_rpmvercmp) '$(v1)' eq '$(v2)'";
@@ -307,6 +323,7 @@ bundle common redhat_knowledge
             bbegin;            # Jump back to begin.
         };
         p;                     # Print current buffer.'";
+
 }
 
 bundle common suse_knowledge
