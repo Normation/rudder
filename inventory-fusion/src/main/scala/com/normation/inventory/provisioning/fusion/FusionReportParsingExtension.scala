@@ -37,7 +37,7 @@
 
 package com.normation.inventory.provisioning.fusion
 
-import scala.xml.{Node,NodeSeq}
+import scala.xml.Node
 import com.normation.inventory.domain.InventoryReport
 
 /**

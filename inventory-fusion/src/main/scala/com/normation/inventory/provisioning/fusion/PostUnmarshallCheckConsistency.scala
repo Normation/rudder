@@ -38,10 +38,9 @@
 package com.normation.inventory.provisioning
 package fusion
 
-import com.normation.inventory.domain.InventoryReport
 import net.liftweb.common._
 import scala.xml.NodeSeq
-import com.normation.utils.Control.{pipeline, bestEffort}
+import com.normation.utils.Control.pipeline
 import com.normation.inventory.services.provisioning._
 import scala.xml.Elem
 

@@ -39,21 +39,15 @@ package com.normation.inventory.provisioning
 package fusion
 
 import com.normation.inventory.domain._
-import com.normation.inventory.provisioning.fusion._
-import java.io.InputStream
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import java.util.Locale
 import com.normation.utils.StringUuidGenerator
-import com.normation.utils.Utils._
 import java.net.InetAddress
 import scala.xml._
-import org.xml.sax.SAXParseException
 import net.liftweb.common._
-import com.normation.inventory.domain.InventoryConstants._
 import com.normation.inventory.services.provisioning._
 import org.joda.time.format.DateTimeFormatter
-import com.normation.utils.Control.sequence
 import com.normation.inventory.domain.NodeTimezone
 
 class FusionReportUnmarshaller(
@@ -87,7 +81,6 @@ class FusionReportUnmarshaller(
 
   //same as above, but handle conversion to int
   private[this] def optInt   (n:NodeSeq, tag: String): Option[Int]    = convert(optText(n \ tag), tag, "Int"   , java.lang.Integer.parseInt)
-  private[this] def optLong  (n:NodeSeq, tag: String): Option[Long]   = convert(optText(n \ tag), tag, "Long"  , java.lang.Long.parseLong)
   private[this] def optFloat (n:NodeSeq, tag: String): Option[Float]  = convert(optText(n \ tag), tag, "Float" , java.lang.Float.parseFloat)
   private[this] def optDouble(n:NodeSeq, tag: String): Option[Double] = convert(optText(n \ tag), tag, "Double", java.lang.Double.parseDouble)
 
@@ -159,7 +152,7 @@ class FusionReportUnmarshaller(
       )
     }
 
-     /**
+     /*
       * Insert bios, manufacturer and system serial in the inventory
       * If Manufacturer or System Serial Number is already defined, skip them and write
       * a warn log
@@ -426,6 +419,40 @@ class FusionReportUnmarshaller(
     report.copy(node = report.node.copy(networks = nets))
   }
 
+  /*
+   * Try to normalize ARCH. We want to provide to the user something common: i686, x86_64, ppc64, etc.
+   * We are going to use https://stackoverflow.com/questions/15036909/clang-how-to-list-supported-target-architectures
+   * as reference names.
+   * Fusion provides // we change to:
+   * - amd64 => x86_64
+   * - if OS == AIX => ppc64
+   * - PowerPC => ppc (AIX already taken care of, and AFAIK we don't have any mean to be more precise, even with CPU info)
+   * - PowerPC (other cases) => ppc
+   * - 32-bit / 64-bit (windows) => x86 / x86_64
+   * - things with x86_64 / x86 / i*86 in their name => x86_64 / x86 / i*86
+   * - IA-64, i[3-9]86, x86, x86_64, arm.*, other => identical [lower case]
+   */
+  private[this] def normalizeArch(os: OsDetails)(s: String): String = {
+    val ix86   = """.*(i[3-9]86).*""".r
+    val x86    = """.*(x86|32-bit).*""".r
+    val x86_64 = """.*(x86_64|amd64|64-bit).*""".r
+    val aix    = """.*(aix).*""".r
+
+    if(os.os == AixOS) {
+       "ppc64"
+    } else {
+      s.toLowerCase() match {
+        case "powerpc" => "ppc"
+        // x64_64 must be check before x86 regex
+        case x86_64(_) => "x86_64"
+        case x86(_)    => "x86"
+        case ix86(x)   => x
+        case aix(_)    => "ppc64"
+        case x         => x
+      }
+    }
+  }
+
   // ******************************************** //
   // parsing implementation details for each tags //
   // ******************************************** //
@@ -435,7 +462,7 @@ class FusionReportUnmarshaller(
        *
        * *** Operating System infos ***
        * ARCHNAME : architecture type.
-       *      Ex: "x86_64-linux-gnu-thread-multi"
+       *      We want i686, x86_64, armv7l, etc
        * VMSYSTEM : The virtualization technologie used if the machine is a virtual machine.
        *      Can be: Physical (default), Xen, VirtualBox, Virtual Machine, VMware, QEMU, SolarisZone, Aix LPAR, Hyper-V
        *
@@ -525,7 +552,8 @@ class FusionReportUnmarshaller(
       , name = optText(xml\\"NAME")
       , ram = optText(xml\\"MEMORY").map(m => MemorySize(m + ramUnit))
       , swap = optText(xml\\"SWAP").map(m=> MemorySize(m + swapUnit))
-      , archDescription = optText(xml\\"ARCHNAME")
+        // update arch ONLY if it is not yet defined
+      , archDescription = report.node.archDescription.orElse(optText(xml\\"ARCHNAME").map(normalizeArch(report.node.main.osDetails)))
       , lastLoggedUser = optText(xml\\"LASTLOGGEDUSER")
       , lastLoggedUserTime = try {
           optText(xml\\"DATELASTLOGGEDUSER").map(date => userLoginDateTimeFormat.parseDateTime(date) )
@@ -540,6 +568,8 @@ class FusionReportUnmarshaller(
 
   def processOsDetails(xml:NodeSeq, report:InventoryReport, contentNode:NodeSeq) : InventoryReport = {
       /*
+       * ARCH           : operating system arch (i686, x86_64...)
+       *
        * FULL_NAME      : full os description string
        *                  SUSE Linux Enterprise Server 11 (x86_64)
        * KERNEL_NAME    : the type of OS
@@ -689,7 +719,10 @@ class FusionReportUnmarshaller(
       case _                            => None
     }
 
-    report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail) ).copy(timezone = timezone) )
+    // for arch, we want to keep the value only in the case where OPERATINGSYSTEM/ARCH is missing
+    val arch = optText(xml\\"ARCH").map(normalizeArch(report.node.main.osDetails)).orElse(report.node.archDescription)
+
+    report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail) ).copy(timezone = timezone, archDescription = arch ) )
 
   }
 
