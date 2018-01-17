@@ -488,7 +488,7 @@ class PolicyWriterServiceImpl(
                                writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
                files     <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
-                              copyResourceFile(file, paths.newFolder)
+                              copyResourceFile(file, paths.newFolder, preparedTechnique.reportIdToReplace)
                             }
              } yield {
                "OK"
@@ -638,8 +638,18 @@ class PolicyWriterServiceImpl(
   /**
    * Copy a resource file from a technique to the node promises directory
    */
-  private[this] def copyResourceFile(file: TechniqueFile, rulePath: String): Box[String] = {
-    val destination = new File(rulePath+"/"+file.outPath)
+  private[this] def copyResourceFile(
+      file             : TechniqueFile
+    , rulePath         : String
+    , reportIdToReplace: Option[PolicyId]
+  ): Box[String] = {
+    val destination = {
+      val out = reportIdToReplace match {
+        case None     => file.outPath
+        case Some(id) => file.outPath.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
+      }
+      new File(rulePath+"/"+out)
+    }
 
     techniqueRepository.getFileContent(file.id) { optStream =>
       optStream match {
