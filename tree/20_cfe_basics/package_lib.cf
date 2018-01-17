@@ -75,6 +75,8 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
 
       # Select the right package manager
       # The default one has already been selected if needed using mackage_module_knowledge
+      # use both apt to be compatible with generic method and apt_get for compatibility with knowledge
+      "use_apt_provider" expression => strcmp("apt_get", "${provider}");
       "use_apt_provider" expression => strcmp("apt", "${provider}");
       "use_yum_provider" expression => strcmp("yum", "${provider}");
       "use_zypper_provider" expression => strcmp("zypper", "${provider}");
