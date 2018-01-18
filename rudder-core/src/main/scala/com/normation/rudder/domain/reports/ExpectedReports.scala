@@ -226,28 +226,28 @@ object ExpectedReportsSerialisation {
     )
   }
 
-  def jsonRuleExpectedReports(rules: List[RuleExpectedReports]): JValue = {
+  def jsonRuleExpectedReports(rules: List[RuleExpectedReports]): JArray = {
     (
-        ("rules" -> (rules.map { r =>
-           (
-             ("ruleId"     -> r.ruleId.value)
-           ~ ("directives" -> (r.directives.map { d =>
-               (
-                 ("directiveId" -> d.directiveId.value)
-               ~ ("policyMode"  -> d.policyMode.map( _.name))
-               ~ ("isSystem"    -> d.isSystem )
-               ~ ("components"  -> (d.components.map { c =>
-                   (
-                     ("componentName" -> c.componentName)
-                   // ~ ("cardinality"   -> c.cardinality // #10625: ignore cardinality)
-                   ~ ("values"        -> c.componentsValues)
-                   ~ ("unexpanded"    -> c.unexpandedComponentsValues)
-                   )
-                 }))
-               )
-             }))
-           )
-        }))
+      rules.map { r =>
+         (
+           ("ruleId"     -> r.ruleId.value)
+         ~ ("directives" -> (r.directives.map { d =>
+             (
+               ("directiveId" -> d.directiveId.value)
+             ~ ("policyMode"  -> d.policyMode.map( _.name))
+             ~ ("isSystem"    -> d.isSystem )
+             ~ ("components"  -> (d.components.map { c =>
+                 (
+                   ("componentName" -> c.componentName)
+                 // ~ ("cardinality"   -> c.cardinality // #10625: ignore cardinality)
+                 ~ ("values"        -> c.componentsValues)
+                 ~ ("unexpanded"    -> c.unexpandedComponentsValues)
+                 )
+               }))
+             )
+           }))
+         )
+      }
     )
   }
 
