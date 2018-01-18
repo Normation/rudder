@@ -493,6 +493,7 @@ object SearchNodeComponent {
     def add(s:String, pre:String="") = opts += ((s,pre + S.?("ldap.object."+s)))
 
     add(OC_NODE)
+    add("group",         " ├─ ")
     add(OC_NET_IF,       " ├─ ")
     add(OC_FS,           " ├─ ")
     add(A_PROCESS,       " ├─ ")

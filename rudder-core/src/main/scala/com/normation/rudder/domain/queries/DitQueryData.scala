@@ -46,7 +46,8 @@ import scala.collection.SortedMap
 import com.normation.rudder.services.queries.SpecialFilter
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
+import com.normation.rudder.domain.RudderLDAPConstants.{ A_NODE_PROPERTY , OC_RUDDER_NODE_GROUP, A_NODE_GROUP_UUID }
+import com.normation.rudder.domain.RudderDit
 
 /*
  * Here we define all data needed logic by the to create the search
@@ -88,9 +89,9 @@ case object QuerySoftwareDn extends DnType
  * - used for the join
  */
 sealed  abstract class LDAPJoinElement(val selectAttribute:String)
-final case class AttributeJoin(override val selectAttribute:String) extends LDAPJoinElement(selectAttribute) with HashcodeCaching
 final case object DNJoin extends LDAPJoinElement("1.1") with HashcodeCaching
 final case object ParentDNJoin extends LDAPJoinElement("1.1") with HashcodeCaching
+final case object NodeDnJoin extends LDAPJoinElement(A_NODE_UUID) with HashcodeCaching
 //  case class QueryJoin(query:Query) extends LDAPJoinElement
 
 //that class represent the base filter for an object type.
@@ -98,7 +99,7 @@ final case object ParentDNJoin extends LDAPJoinElement("1.1") with HashcodeCachi
 //request for that object type.
 final case class LDAPObjectTypeFilter(value: Filter)
 
-class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
+class DitQueryData(dit:InventoryDit, nodeDit: NodeDit, rudderDit : RudderDit) {
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
 // Criterion(A_MACHINE_UUID, StringComparator),
 // Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
@@ -183,29 +184,24 @@ class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
       Criterion(A_MEMORY_CAPACITY, MemoryComparator)
     )),
     ObjectCriterion(OC_NODE, Seq(
-      Criterion("OS",OstypeComparator),
-      Criterion(A_OS_NAME,OsNameComparator),
-      Criterion(A_OS_FULL_NAME, OrderedStringComparator),
-      Criterion(A_OS_VERSION, OrderedStringComparator),
-      Criterion(A_OS_SERVICE_PACK, OrderedStringComparator),
-      Criterion(A_OS_KERNEL_VERSION , OrderedStringComparator),
-      Criterion(A_ARCH, StringComparator),
-      Criterion(A_NODE_UUID, StringComparator),
-      Criterion(A_HOSTNAME, StringComparator),
-      Criterion(A_SERVER_ROLE, StringComparator),
-      //Criterion(A_DESCRIPTION, StringComparator),
-      Criterion(A_OS_RAM, MemoryComparator),
-      Criterion(A_OS_SWAP, MemoryComparator),
-      Criterion(A_AGENTS_NAME, AgentComparator),
-      Criterion(A_ACCOUNT, StringComparator),
-      Criterion(A_LIST_OF_IP, StringComparator),
-      Criterion(A_ROOT_USER, StringComparator),
-      Criterion(A_INVENTORY_DATE, DateComparator),
-      Criterion(A_POLICY_SERVER_UUID, StringComparator)
-// Criterion(A_PKEYS, StringComparator)
-// Criterion(A_SOFTWARE_DN, StringComparator),
-// Criterion(A_CONTAINER_DN, StringComparator),
-// Criterion(A_HOSTED_VM_DN, StringComparator)
+        Criterion("OS",OstypeComparator)
+      , Criterion(A_NODE_UUID, StringComparator)
+      , Criterion(A_HOSTNAME, StringComparator)
+      , Criterion(A_OS_NAME,OsNameComparator)
+      , Criterion(A_OS_FULL_NAME, OrderedStringComparator)
+      , Criterion(A_OS_VERSION, OrderedStringComparator)
+      , Criterion(A_OS_SERVICE_PACK, OrderedStringComparator)
+      , Criterion(A_OS_KERNEL_VERSION , OrderedStringComparator)
+      , Criterion(A_ARCH, StringComparator)
+      , Criterion(A_SERVER_ROLE, StringComparator)
+      , Criterion(A_OS_RAM, MemoryComparator)
+      , Criterion(A_OS_SWAP, MemoryComparator)
+      , Criterion(A_AGENTS_NAME, AgentComparator)
+      , Criterion(A_ACCOUNT, StringComparator)
+      , Criterion(A_LIST_OF_IP, StringComparator)
+      , Criterion(A_ROOT_USER, StringComparator)
+      , Criterion(A_INVENTORY_DATE, DateComparator)
+      , Criterion(A_POLICY_SERVER_UUID, StringComparator)
     )),
     ObjectCriterion(OC_SOFTWARE, Seq(
       Criterion(A_NAME, StringComparator),
@@ -258,6 +254,9 @@ class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
   , ObjectCriterion(A_NODE_PROPERTY, Seq(
       Criterion("name.value", NodePropertyComparator(A_NODE_PROPERTY) )
     ))
+  , ObjectCriterion("group", Seq(
+      Criterion(A_NODE_GROUP_UUID, ExactStringComparator)
+    ))
   )
 
   val criteriaMap : SortedMap[String,ObjectCriterion] = SortedMap[String,ObjectCriterion]() ++ (criteriaSet map { crit => (crit.objectType,crit) })
@@ -278,82 +277,88 @@ case class LDAPObjectType(
 ) extends HashcodeCaching
 
   //template query for each object type
-  def objectTypes = Map(
-    "software" -> LDAPObjectType(dit.SOFTWARE.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
-    "node" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
-    "nodeAndPolicyServer" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
-    "serializedNodeProperty" -> LDAPObjectType(nodeDit.NODES.dn, One, LDAPObjectTypeFilter(ALL),None,  DNJoin),
-    "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, LDAPObjectTypeFilter(IS(OC_NET_IF)), None, ParentDNJoin),
-    "process" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
-    "virtualMachineLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, LDAPObjectTypeFilter(IS(OC_VM_INFO)), None, ParentDNJoin),
-    "environmentVariable" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL),None,  DNJoin),
-    "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, LDAPObjectTypeFilter(IS(OC_NET_IF)), None, ParentDNJoin),
-    "fileSystemLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, LDAPObjectTypeFilter(IS(OC_FS)), None, ParentDNJoin),
-    "machine" -> LDAPObjectType(dit.MACHINES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
-    "processorPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_PROCESSOR)), None, ParentDNJoin),
-    "memoryPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_MEMORY)), None, ParentDNJoin),
-    "storagePhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_STORAGE)), None, ParentDNJoin),
-    "biosPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_BIOS)), None, ParentDNJoin),
-    "controllerPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_CONTROLLER)), None, ParentDNJoin),
-    "portPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_PORT)), None, ParentDNJoin),
-    "slotPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_SLOT)), None, ParentDNJoin),
-    "soundCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_SOUND)), None, ParentDNJoin),
-    "videoCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_VIDEO)), None, ParentDNJoin)
-    //,"groupOfDns" -> LDAPObjectType(dit.GROUPS.dn, Sub, EQ(A_OC,OC_GROUP_OF_DNS), A_DN)
+
+  def objectTypes = {
+    def LAOT = LDAPObjectType
+    def LAOTF = LDAPObjectTypeFilter
+    Map(
+      "software"                       -> LAOT(dit.SOFTWARE.dn, One, LAOTF(ALL), None, DNJoin)
+    , "node"                           -> LAOT(dit.NODES.dn, One, LAOTF(ALL), None, DNJoin)
+    , "nodeAndPolicyServer"            -> LAOT(dit.NODES.dn, One, LAOTF(ALL), None, DNJoin)
+    , "serializedNodeProperty"         -> LAOT(nodeDit.NODES.dn, One, LAOTF(ALL),None,  DNJoin)
+    , "networkInterfaceLogicalElement" -> LAOT(dit.NODES.dn, Sub, LAOTF(IS(OC_NET_IF)), None, ParentDNJoin)
+    , "process"                        -> LAOT(dit.NODES.dn, One, LAOTF(ALL), None, DNJoin)
+    , "virtualMachineLogicalElement"   -> LAOT(dit.NODES.dn, Sub, LAOTF(IS(OC_VM_INFO)), None, ParentDNJoin)
+    , "environmentVariable"            -> LAOT(dit.NODES.dn, One, LAOTF(ALL),None,  DNJoin)
+    , "networkInterfaceLogicalElement" -> LAOT(dit.NODES.dn, Sub, LAOTF(IS(OC_NET_IF)), None, ParentDNJoin)
+    , "fileSystemLogicalElement"       -> LAOT(dit.NODES.dn, Sub, LAOTF(IS(OC_FS)), None, ParentDNJoin)
+    , "machine"                        -> LAOT(dit.MACHINES.dn, One, LAOTF(ALL), None, DNJoin)
+    , "processorPhysicalElement"       -> LAOT(dit.MACHINES.dn, Sub, LAOTF(IS(OC_PROCESSOR)), None, ParentDNJoin)
+    , "memoryPhysicalElement"          -> LAOT(dit.MACHINES.dn, Sub, LAOTF(IS(OC_MEMORY)), None, ParentDNJoin)
+    , "storagePhysicalElement"         -> LAOT(dit.MACHINES.dn, Sub, LAOTF(IS(OC_STORAGE)), None, ParentDNJoin)
+    , "biosPhysicalElement"            -> LAOT(dit.MACHINES.dn, Sub, LAOTF(IS(OC_BIOS)), None, ParentDNJoin)
+    , "controllerPhysicalElement"      -> LAOT(dit.MACHINES.dn, Sub, LAOTF(IS(OC_CONTROLLER)), None, ParentDNJoin)
+    , "portPhysicalElement"            -> LAOT(dit.MACHINES.dn, Sub, LAOTF(IS(OC_PORT)), None, ParentDNJoin)
+    , "slotPhysicalElement"            -> LAOT(dit.MACHINES.dn, Sub, LAOTF(IS(OC_SLOT)), None, ParentDNJoin)
+    , "soundCardPhysicalElement"       -> LAOT(dit.MACHINES.dn, Sub, LAOTF(IS(OC_SOUND)), None, ParentDNJoin)
+    , "videoCardPhysicalElement"       -> LAOT(dit.MACHINES.dn, Sub, LAOTF(IS(OC_VIDEO)), None, ParentDNJoin)
+    , "group"                          -> LAOT(rudderDit.GROUP.dn, Sub, LAOTF(IS(OC_RUDDER_NODE_GROUP)), None, NodeDnJoin)
   )
+  }
 
   //We only know how to query NODES for now: special word for it.
   val nodeObjectTypes = objectTypes("node")
 
   //"kind" of each object type
-  val objectDnTypes  : Map[String,DnType] = Map(
-    "software" -> QuerySoftwareDn,
-    "node" -> QueryNodeDn,
-    "nodeAndPolicyServer" -> QueryNodeDn,
-    "serializedNodeProperty" -> QueryNodeDn,
-    "networkInterfaceLogicalElement" -> QueryNodeDn,
-    "fileSystemLogicalElement" -> QueryNodeDn,
-    "process" -> QueryNodeDn,
-    "virtualMachineLogicalElement" -> QueryNodeDn,
-    "environmentVariable" -> QueryNodeDn,
-    "machine" -> QueryMachineDn,
-    "processorPhysicalElement" -> QueryMachineDn,
-    "memoryPhysicalElement" -> QueryMachineDn,
-    "storagePhysicalElement" -> QueryMachineDn,
-    "biosPhysicalElement" -> QueryMachineDn,
-    "controllerPhysicalElement" -> QueryMachineDn,
-    "portPhysicalElement" -> QueryMachineDn,
-    "slotPhysicalElement" -> QueryMachineDn,
-    "soundCardPhysicalElement" -> QueryMachineDn,
-    "videoCardPhysicalElement" -> QueryMachineDn
-    //,"groupOfDns" -> QueryNodeDn
-  )
+  val objectDnTypes  : Map[String,DnType] =
+    Map (
+        "software"                       -> QuerySoftwareDn
+      , "node"                           -> QueryNodeDn
+      , "nodeAndPolicyServer"            -> QueryNodeDn
+      , "serializedNodeProperty"         -> QueryNodeDn
+      , "networkInterfaceLogicalElement" -> QueryNodeDn
+      , "fileSystemLogicalElement"       -> QueryNodeDn
+      , "process"                        -> QueryNodeDn
+      , "virtualMachineLogicalElement"   -> QueryNodeDn
+      , "environmentVariable"            -> QueryNodeDn
+      , "machine"                        -> QueryMachineDn
+      , "processorPhysicalElement"       -> QueryMachineDn
+      , "memoryPhysicalElement"          -> QueryMachineDn
+      , "storagePhysicalElement"         -> QueryMachineDn
+      , "biosPhysicalElement"            -> QueryMachineDn
+      , "controllerPhysicalElement"      -> QueryMachineDn
+      , "portPhysicalElement"            -> QueryMachineDn
+      , "slotPhysicalElement"            -> QueryMachineDn
+      , "soundCardPhysicalElement"       -> QueryMachineDn
+      , "videoCardPhysicalElement"       -> QueryMachineDn
+      , "group"                          -> QueryNodeDn
+    )
 
   //Join attribute between Kind
   //special attribute: dn ( rdn, parentdn ?)
   //Entries MUST NOT HAVE attributes named with a special name (dn...)
   //Join attribute MUST BE DNs
   val joinAttributes = Map(
-    "software" -> DNJoin,
-    "node" -> DNJoin,
-    "nodeAndPolicyServer" -> DNJoin,
-    "serializedNodeProperty" -> DNJoin,
-    "networkInterfaceLogicalElement" -> ParentDNJoin,
-    "fileSystemLogicalElement" -> ParentDNJoin,
-    "process" -> DNJoin,
-    "virtualMachineLogicalElement" -> ParentDNJoin,
-    "environmentVariable" -> DNJoin,
-    "machine" -> DNJoin,
-    "processorPhysicalElement" -> ParentDNJoin,
-    "memoryPhysicalElement" -> ParentDNJoin,
-    "storagePhysicalElement" -> ParentDNJoin,
-    "biosPhysicalElement" -> ParentDNJoin,
-    "controllerPhysicalElement" -> ParentDNJoin,
-    "portPhysicalElement" -> ParentDNJoin,
-    "slotPhysicalElement" -> ParentDNJoin,
-    "soundCardPhysicalElement" -> ParentDNJoin,
-    "videoCardPhysicalElement" -> ParentDNJoin
-    //,"groupOfDns" -> A_MEMBER
+      "software"                       -> DNJoin
+    , "node"                           -> DNJoin
+    , "nodeAndPolicyServer"            -> DNJoin
+    , "serializedNodeProperty"         -> DNJoin
+    , "networkInterfaceLogicalElement" -> ParentDNJoin
+    , "fileSystemLogicalElement"       -> ParentDNJoin
+    , "process"                        -> DNJoin
+    , "virtualMachineLogicalElement"   -> ParentDNJoin
+    , "environmentVariable"            -> DNJoin
+    , "machine"                        -> DNJoin
+    , "processorPhysicalElement"       -> ParentDNJoin
+    , "memoryPhysicalElement"          -> ParentDNJoin
+    , "storagePhysicalElement"         -> ParentDNJoin
+    , "biosPhysicalElement"            -> ParentDNJoin
+    , "controllerPhysicalElement"      -> ParentDNJoin
+    , "portPhysicalElement"            -> ParentDNJoin
+    , "slotPhysicalElement"            -> ParentDNJoin
+    , "soundCardPhysicalElement"       -> ParentDNJoin
+    , "videoCardPhysicalElement"       -> ParentDNJoin
+    , "group"                          -> NodeDnJoin
   )
 
   //how do you create a filter from a DN,
@@ -366,7 +371,6 @@ case class LDAPObjectType(
 
   //that must always hold
   require(objectTypes.keySet == objectDnTypes.keySet, "Opbject type definition inconsistent between objectTypes and objectDnTypes")
-  require(objectTypes.keySet == joinAttributes.keySet, "Opbject type definition inconsistent between objectTypes and joinAttributes")
   require(objectTypes.keySet == joinAttributes.keySet, "Opbject type definition inconsistent between objectTypes and joinAttributes")
 
 }
