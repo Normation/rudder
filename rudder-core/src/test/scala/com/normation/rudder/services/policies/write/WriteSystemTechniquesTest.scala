@@ -67,6 +67,8 @@ import org.specs2.text.LinesContent
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
+import com.normation.rudder.services.policies.MergePolicyService
+import com.normation.rudder.services.policies.BoundPolicyDraft
 
 /**
  * Details of tests executed in each instances of
@@ -164,12 +166,17 @@ object TestSystemData {
                      ).openOrThrowException("I should get system variable in tests")
   }
 
+  def policies(nodeInfo: NodeInfo, drafts: List[BoundPolicyDraft]): List[Policy] = {
+    MergePolicyService.buildPolicy(nodeInfo, globalPolicyMode, drafts).getOrElse(throw new RuntimeException("We must be able to build policies from draft in tests!"))
+  }
+
   /// For root, we are using the same system variable and base root node config
   // the root node configuration
+  val baseRootDrafts = List(common(root.id, allNodesInfo_rootOnly), serverRole, distributePolicy, inventoryAll)
   val baseRootNodeConfig = rootNodeConfig.copy(
-      policies = List(common(root.id, allNodesInfo_rootOnly), serverRole, distributePolicy, inventoryAll)
-    , nodeContext  = getSystemVars(root, allNodesInfo_rootOnly, groupLib)
-    , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+      policies    = policies(rootNodeConfig.nodeInfo, baseRootDrafts)
+    , nodeContext = getSystemVars(root, allNodesInfo_rootOnly, groupLib)
+    , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
   )
 
   val cfeNodeConfig = NodeConfigData.node1NodeConfig.copy(
@@ -255,9 +262,9 @@ class WriteSystemTechniquesTest extends TechniquesTest{
   }
 
   "A root node, with no node connected" should {
-    def writeNodeConfigWithUserDirectives(promiseWritter: PolicyWriterService, userDrafts: Policy*) = {
+    def writeNodeConfigWithUserDirectives(promiseWritter: PolicyWriterService, userDrafts: BoundPolicyDraft*) = {
       val rnc = baseRootNodeConfig.copy(
-          policies = baseRootNodeConfig.policies ++ userDrafts
+          policies = policies(baseRootNodeConfig.nodeInfo, baseRootDrafts ++ userDrafts)
       )
 
       // Actually write the promise files for the root node
@@ -302,9 +309,9 @@ class WriteSystemTechniquesTest extends TechniquesTest{
 
       // the root node configuration
       rootNodeConfig.copy(
-          policies = List(common(root.id, allNodesInfo_rootOnly), serverRole, distributePolicy, inventoryAll)
-        , nodeContext  = systemVariables
-        , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+          policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_rootOnly), serverRole, distributePolicy, inventoryAll))
+        , nodeContext = systemVariables
+        , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
       )
 
     }
@@ -345,15 +352,15 @@ class WriteSystemTechniquesTest extends TechniquesTest{
   "A CFEngine node, with two directives" should {
 
     val rnc = rootNodeConfig.copy(
-        policies = List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll)
-      , nodeContext  = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
-      , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+        policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll))
+      , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
+      , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
     )
 
     val cfeNC = cfeNodeConfig.copy(
-        nodeInfo     = cfeNode
-      , policies = List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, pkg, ncf1)
-      , nodeContext  = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+        nodeInfo    = cfeNode
+      , policies    = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, pkg, ncf1))
+      , nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
     )
 
     "correctly get the expected policy files" in {
@@ -373,6 +380,36 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         :: """.*add:default:==:.*"""                               //rpm reports
         :: Nil
       )
+    }
+  }
+
+  "We must ensure the override semantic of generic-variable-definition" should {
+
+    val rnc = rootNodeConfig.copy(
+        policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll))
+      , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
+      , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+    )
+
+    val cfeNC = cfeNodeConfig.copy(
+        nodeInfo    = cfeNode
+      , policies    = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2))
+      , nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+    )
+
+    "correctly get the expected policy files" in {
+      val (rootPath, writter) = getPromiseWritter("cfe-node-gen-var-def")
+      // Actually write the promise files for the root node
+      val writen = writter.writeTemplate(
+            root.id
+          , Set(root.id, cfeNode.id)
+          , Map(root.id -> rnc, cfeNode.id -> cfeNC)
+          , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
+          , Map(), globalPolicyMode, DateTime.now
+      )
+
+      (writen mustFull) and
+      compareWith(rootPath.getParentFile/cfeNode.id.value, "node-gen-var-def-override", Nil)
     }
   }
 }
