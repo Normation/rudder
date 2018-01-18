@@ -130,11 +130,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <!-- BE CAREFUL CAN'T UPDATE VERSION DUE TO
-           https://github.com/tminglei/slick-pg/issues/220
-           which seems to impact also other drivers
-      -->
-      <version>9.4-1201-jdbc41</version>
+      <version>9.4.1212</version>
       <!-- scope must be compile, some object are used by Doobie -->
     </dependency>
 
