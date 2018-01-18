@@ -171,7 +171,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     Uncomment and set to "debug" or "trace" to have precise logs about
     LDAP queries done by the node search engine
   -->
-  <logger name="com.normation.rudder.services.queries" level="off" />
+  <logger name="com.normation.rudder.services.queries" level="info" />
 
   <!--
     Dump Node Configurations
