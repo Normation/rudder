@@ -48,10 +48,6 @@ import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import net.liftweb.common._
 
-
-
-
-
 /**
  * A service used to manage dynamic groups : find
  * dynGroup to which belongs nodes, updates them,
@@ -75,7 +71,6 @@ trait DynGroupService {
 
 }
 
-
 class DynGroupServiceImpl(
   rudderDit: RudderDit,
   ldap:LDAPConnectionProvider[RoLDAPConnection],
@@ -93,25 +88,26 @@ class DynGroupServiceImpl(
       , HAS(A_QUERY_NODE_GROUP)
     )
 
-
   /**
    * don't get back
    * the list of members (we don't need them)
    */
   private[this] def dynGroupAttrs = (LDAPConstants.OC(OC_RUDDER_NODE_GROUP).attributes - LDAPConstants.A_NODE_UUID).toSeq
 
-
   override def getAllDynGroups() : Box[Seq[NodeGroupId]] = {
     for {
       con <- ldap
-      dyngroupIds <- sequence(con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, "1.1")) { entry =>
-        rudderDit.GROUP.getGroupId(entry.dn) ?~! "Can not map entry DN to a node group ID: %s".format(entry.dn)
+      dyngroupIds <- sequence(con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs:_*)) { entry =>
+         mapper.entry2NodeGroup(entry) ?~! "Can not map entry to a node group: %s".format(entry)
       }
     } yield {
-      dyngroupIds.map(id => NodeGroupId(id))
+      // The idea is to sort group to update groups with a query based on other groups content (objecttype group) at the end so their base group is already updated
+      // This does not treat all cases (what happens when you have a group depending on a group which also depends on another group content)
+      // We will sort by number of group queries we have in our group (the more group we depend on, the more we want to update it last)
+      def numberOfQuery(group : NodeGroup) = group.query.map( _.criteria.filter(_.objectType.objectType == "group").size).getOrElse(0)
+      dyngroupIds.sortBy(numberOfQuery).map(_.id)
     }
   }
-
 
   /**
    * Default algorithm, not expected to be performant:
@@ -149,7 +145,6 @@ class DynGroupServiceImpl(
     }
   }
 
-
   /**
    * Transform the map of (groupid => seq(nodeids) into a map of
    * (nodeid => seq(groupids)
@@ -165,5 +160,3 @@ class DynGroupServiceImpl(
     dest.toMap
   }
 }
-
-

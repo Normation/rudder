@@ -713,7 +713,6 @@ object RudderConfig extends Loggable {
       , restDataSerializer
     )
 
-
   private[this] val complianceAPIService = new ComplianceAPIService(
           roRuleRepository
         , nodeInfoService
@@ -732,7 +731,6 @@ object RudderConfig extends Loggable {
     ApiVersion(9  , false) ::
     ApiVersion(10 , false) ::
     Nil
-
 
   // new api dispatcher
   val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
@@ -899,7 +897,7 @@ object RudderConfig extends Loggable {
    * For now, we don't want to query server other
    * than the accepted ones.
    */
-  private[this] lazy val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit)
+  private[this] lazy val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit)
   private[this] lazy val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
     override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
   }
@@ -1034,12 +1032,12 @@ object RudderConfig extends Loggable {
   private[this] lazy val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
     nodeDitImpl,
     acceptedNodesDitImpl,
-    new InternalLDAPQueryProcessor(roLdap, acceptedNodesDitImpl, ditQueryDataImpl, ldapEntityMapper),
+    new InternalLDAPQueryProcessor(roLdap, acceptedNodesDitImpl, nodeDit, ditQueryDataImpl, ldapEntityMapper),
     nodeInfoServiceImpl
   )
 
   //we need a roLdap query checker for nodes in pending
-  private[this] lazy val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(roLdap, pendingNodesDitImpl, new DitQueryData(pendingNodesDitImpl, nodeDit), ldapEntityMapper))
+  private[this] lazy val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(roLdap, pendingNodesDitImpl, nodeDit, new DitQueryData(pendingNodesDitImpl, nodeDit, rudderDit), ldapEntityMapper))
   private[this] lazy val dynGroupServiceImpl = new DynGroupServiceImpl(rudderDitImpl, roLdap, ldapEntityMapper, inventoryQueryChecker)
 
   private[this] lazy val ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, rwLdap)
