@@ -1,0 +1,61 @@
+<!--
+Copyright 2011 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, Version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<TECHNIQUE name="Variable (string)">
+  <DESCRIPTION>Defines a variable. Its value can be used in other Directive parameters with the following syntax: ${generic_variable_definition.variablename}</DESCRIPTION>
+  <COMPATIBLE>
+    <OS>Every OS</OS>
+    <AGENT version=">= 3.1.5">cfengine-community</AGENT>
+  </COMPATIBLE>
+
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+
+  <BUNDLES>
+    <NAME>generic_variable_def_report</NAME>
+  </BUNDLES>
+
+  <TMLS>
+    <TML name="genericVariableDefinition"/>
+  </TMLS>
+
+  <TRACKINGVARIABLE>
+    <SAMESIZEAS>GENERIC_VARIABLE_NAME</SAMESIZEAS>
+  </TRACKINGVARIABLE>
+
+  <SECTIONS>
+    <!-- general Section -->
+    <SECTION name="Variable definition" component="true" multivalued="true" componentKey="GENERIC_VARIABLE_NAME">
+      <INPUT>
+        <NAME>GENERIC_VARIABLE_NAME</NAME>
+        <DESCRIPTION>Variable name</DESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>string</TYPE>
+          <REGEX error="Please enter a valid variable name"><![CDATA[ [a-zA-Z][a-zA-Z0-9_]* ]]></REGEX>
+        </CONSTRAINT>
+      </INPUT>
+      <INPUT>
+        <NAME>GENERIC_VARIABLE_CONTENT</NAME>
+        <DESCRIPTION>Variable content</DESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+          <MAYBEEMPTY>true</MAYBEEMPTY>
+        </CONSTRAINT>
+      </INPUT>
+    </SECTION>
+
+  </SECTIONS>
+
+</TECHNIQUE>

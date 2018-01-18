@@ -1,0 +1,41 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# This file is the main entry points for the bundle sequence for 
+# Rudder user directives. It is actually a list of method calls, and not
+# a bundle sequence, which allows to add the technique or directives 
+# names as promiser. 
+
+body file control {
+
+  inputs => {
+    "genericVariableDefinition/2.0/genericVariableDefinition.cf",
+  };
+
+}
+
+
+bundle agent rudder_directives {
+
+  methods:
+      "10. Global configuration for all nodes/00. Generic Variable Def #2" usebundle => set_dry_run_mode("false");
+      "10. Global configuration for all nodes/00. Generic Variable Def #2" usebundle => generic_variable_def_report;
+      "remove_dry_run_mode"                                                usebundle => set_dry_run_mode("false");
+
+}
+
