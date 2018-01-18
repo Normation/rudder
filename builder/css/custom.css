@@ -614,6 +614,7 @@ span.text-fit {
 .btn-group-alert > .btn:first-child {
   margin-right: 8px;
 }
+
 .ng-toast.ng-toast--right .ng-toast__message {
   text-align: left;
 }
@@ -791,6 +792,20 @@ label.form-control .deprecated-icon{
   left: -4px;
   top: -8px;
 }
+
+input.form-control,textarea.form-control,div.parameter{
+  white-space: pre-wrap;
+  word-break: normal;
+  font-family: monospace, Menlo, Monaco, Consolas, "Courier New";
+}
+.pull-left.method-param{
+    width: 100%;
+}
+div.parameter{
+  max-height: 80px;
+  overflow: auto;
+}
+
 @-webkit-keyframes saving {
   0% {
     -ms-transform: rotate(0deg);
