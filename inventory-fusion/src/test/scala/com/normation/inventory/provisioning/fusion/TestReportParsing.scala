@@ -42,7 +42,6 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.utils.StringUuidGeneratorImpl
 import net.liftweb.common._
-import scala.xml.XML
 import java.io.File
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.AgentType._
@@ -58,7 +57,6 @@ class TestReportParsing extends Specification with Loggable {
 
   private[this] implicit class TestParser(parser: FusionReportUnmarshaller) {
     def parse(reportRelativePath: String): InventoryReport = {
-      import java.net.URL
       val url = this.getClass.getClassLoader.getResource(reportRelativePath)
       if(null == url) throw new NullPointerException(s"Resource with relative path '${reportRelativePath}' is null (missing resource? Spelling? Permissions?)")
       val is = url.openStream()
@@ -127,6 +125,29 @@ class TestReportParsing extends Specification with Loggable {
 
     "correctly parse the timezone" in {
       report.node.timezone must beEqualTo(Some(NodeTimezone("CEST", "+0200")))
+    }
+  }
+
+  "Arch in Inventory" should {
+
+    "be defined for windows 2012" in {
+      val arch = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.archDescription
+      arch must beEqualTo(Some("x86_64"))
+    }
+
+    "correctly get the arch when OPERATINGSYSTEM/ARCH is defined" in {
+      val arch = parser.parse("fusion-report/signed_inventory.ocs").node.archDescription
+      arch must beEqualTo(Some("x86_64"))
+    }
+
+    "correctly get the arch even if OPERATINGSYSTEM/ARCH is missing" in {
+      val arch = parser.parse("fusion-report/sles-10-64-sp3-2011-08-23-16-06-17.ocs").node.archDescription
+      arch must beEqualTo(Some("x86_64"))
+    }
+
+    "be 'ppc64' on AIX" in {
+      val arch = parser.parse("fusion-report/sovma136-2014-02-10-07-13-43.ocs").node.archDescription
+      arch must beEqualTo(Some("ppc64"))
     }
   }
 
