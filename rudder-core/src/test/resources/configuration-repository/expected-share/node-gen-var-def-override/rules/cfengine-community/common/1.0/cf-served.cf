@@ -1,0 +1,146 @@
+#####################################################################################
+# Copyright 2011 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+#######################################################
+#
+# Server specific configuration
+#
+#######################################################
+
+bundle server access_rules
+{
+  # Access rules are only defined on a policy server. Standard nodes should not share any files.
+  access:
+
+    policy_server|role_rudder_relay_promises_only::
+      "${def.dir_masterfiles}"
+        handle  => "grant_access_policy",
+        comment => "Grant access to the policy updates",
+        maproot => {  @{def.acl}  },
+        admit   => {  @{def.acl}  };
+
+      "${g.rudder_tools}"
+        maproot => {  @{def.acl}  },
+        admit   => {  @{def.acl}  };
+
+    # Allow server to remotely run the agent
+    # Using ${sys.cf_agent} fails, as cf-serverd cannot canonize its path
+    windows::
+      "${sys.workdir}\bin\cf-agent.exe"
+        admit   => { host2ip("${server_info.cfserved}"), string_downcase(escape("${server_info.cfserved}")) };
+
+    !windows::
+      "${g.rudder_command}" comment => "Grant access to rudder agent command for cfruncommand",
+        admit => { host2ip("${server_info.cfserved}"), string_downcase(escape("${server_info.cfserved}")) };
+
+  roles:
+      # Allow user root to set any class
+      ".*"  authorize => { "root" };
+}
+
+bundle common def
+{
+  vars:
+      "policy_server_file"
+        string  => translatepath("${sys.workdir}/policy_server.dat"),
+        comment => "Path to file containing address to policy server";
+
+      # Use "rudder" as default policy_server if no policy_server.dat exists
+      "policy_server"
+        string  => ifelse(fileexists("${policy_server_file}"),
+                          readfile("${policy_server_file}", 2048),
+                          "rudder"),
+        comment => "IP address or hostname to locate your policy host.";
+
+    !windows::
+      "cf_runagent_shell" 
+        string  => "/bin/sh",
+        comment => "Define path to shell used by cf-runagent";
+
+    any::
+
+      "dir_masterfiles" string => translatepath("${sys.workdir}/masterfiles");
+
+   # List here the IP masks that we grant access to on the server
+
+    policy_server::
+      "acl" slist => {
+      "127.0.0.0/8" , "::1",
+      host2ip("${def.policy_server}"), # the policy server can connect to a relay
+      "192.168.49.0/24",
+    };
+
+    !policy_server::
+      "acl" slist => {
+      "${def.policy_server}", host2ip("${def.policy_server}")
+      };
+
+}
+
+
+body server control
+{
+        trustkeysfrom     => {
+          @{def.acl} ,
+
+        }; #trustkey allows the exchange of keys
+
+        allowconnects     => {
+          @{def.acl} ,
+
+        };
+
+
+        allowallconnects  => {
+          @{def.acl} ,
+
+        };
+
+        maxconnections    => "1000";
+        logallconnections => "true";
+
+        allowlegacyconnects => {
+            host2ip("${def.policy_server}"), # the policy server can connect
+            "192.168.49.0/24",
+
+        };
+
+      windows::
+        cfruncommand => "${sys.cf_agent} -I -D cfruncommand -f \"failsafe.cf\"  &
+                        ${sys.cf_agent} -I -D cfruncommand";
+
+      !windows::
+        # last single quote in cfruncommand is left open, so that
+        # arguments (like -K and --remote-bundles) are properly appended.
+        cfruncommand => "${g.rudder_command} agent run -uR";
+
+        allowusers        => {
+          "root",
+        };
+
+        denybadclocks => "true";
+
+    community_edition.!debug_port::
+        port => "5309";
+    community_edition.debug_port::
+        port => "5310";
+
+}
+
+#######################################################
+
