@@ -568,7 +568,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def onRemoveSuccessCallBack(workflowEnabled: Boolean): JsCmd = {
-    updateDirectiveLibrary(workflowEnabled)
+    updateDirectiveLibrary(workflowEnabled)&
+        After(0,JsRaw("""applyFilter('directiveFilter');"""))
   }
 
   private[this] def updateDirectiveLibrary(workflowEnabled : Boolean) : JsCmd = {
