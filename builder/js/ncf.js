@@ -616,7 +616,8 @@ $scope.groupMethodsByCategory = function () {
   }
 
   $scope.checkMethodCallAgentSupport = function(methodName, agent){
-    var method = $scope.generic_methods[Object.keys($scope.generic_methods).find(function(method){return $scope.generic_methods[method].bundle_name === methodName })];
+    var gKey = Object.keys($scope.generic_methods).find(function(method){return $scope.generic_methods[method].bundle_name === methodName});
+    var method = $scope.generic_methods[gKey];
     return $scope.checkAgentSupport(method,agent);
   }
   $scope.checkAgentSupport = function(method, agentSupport){
@@ -1014,8 +1015,11 @@ $scope.groupMethodsByCategory = function () {
         function(m) { 
           usedMethods.add($scope.generic_methods[m.method_name]);
         }
-      )
-      $http.post("/rudder/secure/api/latest/ncf",{"technique": ncfTechnique,"methods":Object.values($scope.generic_methods)});
+      );
+      var methodKeys = Object.keys($scope.generic_methods).map(function(e) {
+        return $scope.generic_methods[e]
+      });
+      $http.post("/rudder/secure/api/latest/ncf",{"technique": ncfTechnique,"methods":methodKeys});
       // Transform back ncfTechnique to UITechnique, that will make it ok
       var savedTechnique = toTechUI(ncfTechnique);
 
