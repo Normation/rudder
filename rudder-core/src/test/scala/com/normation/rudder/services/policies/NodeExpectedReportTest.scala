@@ -183,7 +183,7 @@ class NodeExpectedReportTest extends Specification {
     "return a Full(RuleVal)" in {
 
       val expected = parse("""
-        { "rules": [
+        [
            {
              "ruleId": "rule_1"
            , "directives": [
@@ -258,8 +258,7 @@ class NodeExpectedReportTest extends Specification {
                }
              ]
            }
-         ]
-      }""")
+         ]""")
 
 
 
@@ -269,11 +268,11 @@ class NodeExpectedReportTest extends Specification {
       def clean(j: JValue): JValue = {
         j match {
           case JObject(fs) =>
-            fs.map { case JField(n, v) => JField(n, clean(v)) }.filter( _.value == JNothing) match {
+            fs.map { case JField(n, v) => JField(n, clean(v)) }.filter( _.value != JNothing) match {
               case Nil => JNothing
               case l   => JObject(l)
             }
-          case JArray(ll) => ll.map(clean).filter( _ == JNothing) match {
+          case JArray(ll) => ll.map(clean).filter( _ != JNothing) match {
             case Nil => JNothing
             case l   => JArray(l)
           }
