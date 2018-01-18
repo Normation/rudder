@@ -205,7 +205,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , ""
     , NodeState.Enabled
     , false
-    , true //is policy server
+    , true //is draft server
     , DateTime.now
     , emptyNodeReportingConfiguration
     , Seq()
@@ -271,7 +271,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , ""
     , NodeState.Enabled
     , false
-    , true //is policy server
+    , true //is draft server
     , DateTime.now
     , emptyNodeReportingConfiguration
     , Seq()
@@ -494,13 +494,13 @@ class TestNodeConfiguration() {
 
   val variableSpecParser = new VariableSpecParser
   val systemVariableServiceSpec = new SystemVariableSpecServiceImpl()
-  val policyParser: TechniqueParser = new TechniqueParser(
+  val draftParser: TechniqueParser = new TechniqueParser(
       variableSpecParser
     , new SectionSpecParser(variableSpecParser)
     , systemVariableServiceSpec
   )
   val reader = new GitTechniqueReader(
-                policyParser
+                draftParser
               , new SimpleGitRevisionProvider("refs/heads/master", repo)
               , repo
               , "metadata.xml"
@@ -512,13 +512,13 @@ class TestNodeConfiguration() {
 
   val techniqueRepository = new TechniqueRepositoryImpl(reader, Seq(), new StringUuidGeneratorImpl())
 
-  val policyServerManagement = new PolicyServerManagementService() {
+  val draftServerManagement = new PolicyServerManagementService() {
     override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) = ???
     override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = Full(List("192.168.49.0/24"))
   }
   val systemVariableService = new SystemVariableServiceImpl(
       systemVariableServiceSpec
-    , policyServerManagement
+    , draftServerManagement
     , toolsFolder              = "tools_folder"
     , cmdbEndPoint             = "http://localhost:8080/endpoint/upload/"
     , communityPort            = 5309
@@ -634,7 +634,7 @@ class TestNodeConfiguration() {
   }
 
 
-  def policy (
+  def draft (
       id : PolicyId
     , technique   : Technique
     , variableMap : Map[String, Variable]
@@ -642,23 +642,18 @@ class TestNodeConfiguration() {
     , rule        : BundleOrder
     , directive   : BundleOrder
     , system      : Boolean = true
-    , policyMode  : Option[PolicyMode] = None
+    , draftMode  : Option[PolicyMode] = None
   ) = {
-    Policy(
+    BoundPolicyDraft(
         id
       , technique
       , DateTime.now
-      , NonEmptyList.of(PolicyVars(
-            id
-          , policyMode
-          , variableMap
-          , variableMap
-          , tracker
-        ))
+      , variableMap
+      , variableMap
+      , tracker
       , 0
       , system
-      , policyMode
-      , AgentType.CfeCommunity
+      , draftMode
       , rule
       , directive
       , Set()
@@ -667,7 +662,7 @@ class TestNodeConfiguration() {
 
   def common(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
     val id = PolicyId(RuleId("hasPolicyServer-root"), DirectiveId("common-root"))
-    policy(
+    draft(
         id
       , commonTechnique
       , commonVariables(nodeId, allNodeInfos)
@@ -687,7 +682,7 @@ class TestNodeConfiguration() {
 
   val serverRole = {
     val id = PolicyId(RuleId("server-roles"), DirectiveId("server-roles-directive"))
-    policy(
+    draft(
         id
       , rolesTechnique
       , rolesVariables
@@ -707,7 +702,7 @@ class TestNodeConfiguration() {
 
   val distributePolicy = {
     val id = PolicyId(RuleId("root-DP"), DirectiveId("root-distributePolicy"))
-    policy(
+    draft(
         id
       , distributeTechnique
       , distributeVariables
@@ -726,7 +721,7 @@ class TestNodeConfiguration() {
   }
   val inventoryAll = {
     val id = PolicyId(RuleId("inventory-all"), DirectiveId("inventory-all"))
-      policy(
+      draft(
         id
       , inventoryTechnique
       , inventoryVariables
@@ -752,7 +747,7 @@ class TestNodeConfiguration() {
   }
   lazy val clock = {
     val id = PolicyId(RuleId("rule1"), DirectiveId("directive1"))
-    policy(
+    draft(
         id
       , clockTechnique
       , clockVariables
@@ -767,7 +762,7 @@ class TestNodeConfiguration() {
    * A RPM Policy, which comes from 2 directives.
    * The second one contributes two packages.
    * It had a different value for the CHECK_INTERVAL, but
-   * that variable is unique, so it get the first policy value all along.
+   * that variable is unique, so it get the first draft value all along.
    */
 
   lazy val rpmTechnique = techniqueRepository.get(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -786,7 +781,7 @@ class TestNodeConfiguration() {
   }
   lazy val rpm = {
     val id = PolicyId(RuleId("rule2"), DirectiveId("directive2"))
-    policy(
+    draft(
         id
       , rpmTechnique
       , rpmVariables
@@ -814,7 +809,7 @@ class TestNodeConfiguration() {
   }
   lazy val pkg = {
     val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f"))
-    policy(
+    draft(
         id
       , pkgTechnique
       , pkgVariables
@@ -844,7 +839,7 @@ class TestNodeConfiguration() {
   }
   lazy val fileTemplate1 = {
     val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("e9a1a909-2490-4fc9-95c3-9d0aa01717c9"))
-    policy(
+    draft(
         id
       , fileTemplateTechnique
       , fileTemplateVariables1
@@ -872,7 +867,7 @@ class TestNodeConfiguration() {
   }
   lazy val fileTemplate2 = {
     val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("99f4ef91-537b-4e03-97bc-e65b447514cc"))
-    policy(
+    draft(
         id
       , fileTemplateTechnique
       , fileTemplateVariables2
@@ -895,7 +890,7 @@ class TestNodeConfiguration() {
   }
   val ncf1 = {
     val id = PolicyId(RuleId("208716db-2675-43b9-ab57-bfbab84346aa"), DirectiveId("16d86a56-93ef-49aa-86b7-0d10102e4ea9"))
-    policy(
+    draft(
         id
       , ncf1Technique
       , ncf1Variables
@@ -907,4 +902,63 @@ class TestNodeConfiguration() {
     )
   }
 
-}
+  /*
+   * Test override order of generic-variable-definition.
+   * We want to have to directive, directive1 and directive2.
+   * directive1 is the default value and must be overriden by value in directive 2, which means that directive2 value must be
+   * define after directive 1 value in generated "genericVariableDefinition.cf".
+   * The semantic to achieve that is to use Priority: directive 1 has a higher (ie smaller int number) priority than directive 2.
+   *
+   * To be sure that we don't use rule/directive name order, we will make directive 2 sort name come before directive 1 sort name.
+   *
+   * BUT added subtilities: the final bundle name order that will be used is the most prioritary one, so that we keep the
+   * global sorting logic between rules / directives.
+   *
+   * In summary: sorting directives that are merged into one is a different problem than sorting directives for the bundle sequence.
+   */
+  lazy val gvdTechnique  = techniqueRepository.get(TechniqueId(TechniqueName("genericVariableDefinition"), TechniqueVersion("2.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  lazy val gvdVariables1 = {
+     val spec = gvdTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+     Seq(
+         spec("GENERIC_VARIABLE_NAME").toVariable(Seq("var1"))
+       , spec("GENERIC_VARIABLE_CONTENT").toVariable(Seq("value from gvd #1 should be first")) // the one to override
+     ).map(v => (v.spec.name, v)).toMap
+  }
+  lazy val gvd1 = {
+    val id = PolicyId(RuleId("rule1"), DirectiveId("directive1"))
+    draft(
+      id
+      , gvdTechnique
+      , gvdVariables1
+      , gvdTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
+      , BundleOrder("10. Global configuration for all nodes")
+      , BundleOrder("99. Generic Variable Def #1") // the sort name tell that it comes after directive 2
+      , false
+      , Some(PolicyMode.Enforce)
+    ).copy(
+        priority = 0 // we want to make sure this one will be merged in first position
+    )
+  }
+  lazy val gvdVariables2 = {
+     val spec = gvdTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+     Seq(
+         spec("GENERIC_VARIABLE_NAME").toVariable(Seq("var1"))
+       , spec("GENERIC_VARIABLE_CONTENT").toVariable(Seq("value from gvd #2 should be last")) // the one to use for override
+     ).map(v => (v.spec.name, v)).toMap
+  }
+  lazy val gvd2 = {
+    val id = PolicyId(RuleId("rule1"), DirectiveId("directive2"))
+    draft(
+        id
+      , gvdTechnique
+      , gvdVariables2
+      , gvdTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
+      , BundleOrder("10. Global configuration for all nodes")
+      , BundleOrder("00. Generic Variable Def #2") // sort name comes before sort name of directive 1
+      , false
+      , Some(PolicyMode.Enforce)
+    ).copy (
+        priority = 10 // we want to make sure this one will be merged in last position
+    )
+  }
+ }
