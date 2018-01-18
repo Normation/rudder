@@ -1,0 +1,14 @@
+ -- Nicolas CHARLES <nicolas.charles@normation.com> Tue, 24 Jan 2012 18:38:00 +0100
+  * Version 1.1
+   ** Changing the PT to make it multi-instance
+   ** Adding reporting to match this behaviour
+ -- Olivier Mauras <olivier@linuxconsulting.ch> Fri, 14 Feb 2014 12:40:00 +0100
+  * Version 1.2
+   ** Accept empty variables
+   ** Variables are now overridable
+-- Olivier Mauras <olivier@mauras.ch> Wed, 01 Oct 2014
+  * Version 1.2
+   ** Do not forbid & character
+ -- Benoît Peccatte <benoit.peccatte@normation.com> Fri Oct 17 14:10:43 CEST 2014
+  * Version 2.0
+  ** Use rudder_common_report instead of reports:

@@ -426,7 +426,7 @@ object TestSystemData {
   )
 
   //
-  // Three user directives: clock management, rpm, package and a ncf one: Create_file
+  // 4 user directives: generic var definition (x2), clock management, rpm, package and a ncf one: Create_file
   //
   lazy val clockTechnique = techniqueRepository.get(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersion("3.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
   lazy val clockVariables = {
@@ -515,7 +515,6 @@ object TestSystemData {
     , isSystem        = false
   )
 
-
   val ncf1Technique = techniqueRepository.get(TechniqueId(TechniqueName("Create_file"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
   val ncf1Variables = {
      val spec = ncf1Technique.getAllVariableSpecs.map(s => (s.name, s)).toMap
@@ -540,6 +539,65 @@ object TestSystemData {
     , isSystem        = false
   )
 
+  /*
+   * Test override order of generic-variable-definition.
+   * We want to have to directive, directive1 and directive2.
+   * directive1 is the default value and must be overriden by value in directive 2, which means that directive2 value must be
+   * define after directive 1 value in generated "genericVariableDefinition.cf".
+   * The semantic to achieve that is to use Priority: directive 1 has a higher (ie smaller int number) priority than directive 2.
+   *
+   * To be sure that we don't use rule/directive name order, we will make directive 2 sort name come before directive 1 sort name.
+   *
+   * BUT added subtilities: the final bundle name order that will be used is the most prioritary one, so that we keep the
+   * global sorting logic between rules / directives.
+   *
+   * In summary: sorting directives that are merged into one is a different problem than sorting directives for the bundle sequence.
+   */
+  lazy val gvdTechnique  = techniqueRepository.get(TechniqueId(TechniqueName("genericVariableDefinition"), TechniqueVersion("2.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  lazy val gvdVariables1 = {
+     val spec = gvdTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+     Seq(
+         spec("GENERIC_VARIABLE_NAME").toVariable(Seq("var1"))
+       , spec("GENERIC_VARIABLE_CONTENT").toVariable(Seq("value from gvd #1 should be first")) // the one to override
+     ).map(v => (v.spec.name, v)).toMap
+  }
+  lazy val gvd1 = Cf3PolicyDraft(
+      id              = Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive1"))
+    , technique       = gvdTechnique
+    , techniqueUpdateTime = DateTime.now
+    , variableMap     = gvdVariables1
+    , trackerVariable = gvdTechnique.trackerVariableSpec.toVariable(Seq())
+    , priority        = 0 // we want to make sure this one will be merged in first position
+    , serial          = 2
+    , modificationDate= DateTime.now
+    , ruleOrder       = BundleOrder("10. Global configuration for all nodes")
+    , directiveOrder  = BundleOrder("99. Generic Variable Def #1") // the sort name tell that it comes after directive 2
+    , overrides       = Set()
+    , policyMode      = Some(PolicyMode.Enforce)
+    , isSystem        = false
+  )
+  lazy val gvdVariables2 = {
+     val spec = gvdTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+     Seq(
+         spec("GENERIC_VARIABLE_NAME").toVariable(Seq("var1"))
+       , spec("GENERIC_VARIABLE_CONTENT").toVariable(Seq("value from gvd #2 should be last")) // the one to use for override
+     ).map(v => (v.spec.name, v)).toMap
+  }
+  lazy val gvd2 = Cf3PolicyDraft(
+      id              = Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive2"))
+    , technique       = gvdTechnique
+    , techniqueUpdateTime = DateTime.now
+    , variableMap     = gvdVariables2
+    , trackerVariable = gvdTechnique.trackerVariableSpec.toVariable(Seq())
+    , priority        = 10 // we want to make sure this one will be merged in last position
+    , serial          = 2
+    , modificationDate= DateTime.now
+    , ruleOrder       = BundleOrder("10. Global configuration for all nodes")
+    , directiveOrder  = BundleOrder("00. Generic Variable Def #2") // sort name comes before sort name of directive 1
+    , overrides       = Set()
+    , policyMode      = Some(PolicyMode.Enforce)
+    , isSystem        = false
+  )
   //////////////
 
 
@@ -585,7 +643,7 @@ object TestSystemData {
 }
 
 trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll {
-  
+
   import TestSystemData._
    /*
    * put regex for line you don't want to be compared for difference
@@ -612,7 +670,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
         case Some(is) => IOUtils.toString(is) === expectedContent
       }
   }
-  
+
   def compareWith(path: File, expectedPath: String, ignoreRegex: List[String] = Nil) = {
     /*
      * And compare them with expected, modulo the configId and the name
@@ -627,7 +685,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
         :: ignoreRegex
       ))
   }
-  
+
 }
 
 @RunWith(classOf[JUnitRunner])
@@ -701,8 +759,36 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         :: Nil
       )
     }
+  }
 
+  "We must ensure the override semantic of generic-variable-definition" should {
 
+    val rnc = rootNodeConfig.copy(
+        policyDrafts = Set(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll)
+      , nodeContext  = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
+      , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+    )
+
+    val cfeNC = cfeNodeConfig.copy(
+        nodeInfo     = cfeNode
+      , policyDrafts = Set(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2)
+      , nodeContext  = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+    )
+
+    "correctly get the expected policy files" in {
+      val (rootPath, writter) = getPromiseWritter("cfe-node-gen-var-def")
+      // Actually write the promise files for the root node
+      val writen = writter.writeTemplate(
+            root.id
+          , Set(root.id, cfeNode.id)
+          , Map(root.id -> rnc, cfeNode.id -> cfeNC)
+          , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
+          , Map(), globalPolicyMode, DateTime.now
+      )
+
+      (writen mustFull) and
+      compareWith(rootPath.getParentFile/cfeNode.id.value, "node-gen-var-def-override", Nil)
+    }
   }
 
   "rudder-group.st template" should {
