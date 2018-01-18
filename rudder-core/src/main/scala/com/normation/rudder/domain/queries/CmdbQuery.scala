@@ -198,6 +198,15 @@ case object StringComparator extends TStringComparator {
   }
 }
 
+case object ExactStringComparator extends TStringComparator {
+  override val comparators = Equals :: Nil
+
+  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
+    // whatever the comparator it should be treated like Equals
+    case _ => escapedFilter(attributeName,value)
+  }
+}
+
 case object OrderedStringComparator extends TStringComparator {
   override val comparators = OrderedComparators.comparators
 
@@ -513,7 +522,6 @@ case class JsonFixedKeyComparator(ldapAttr:String, jsonKey: String, quoteValue: 
   }
 }
 
-
 /*
  * This JSON comparator is defined for the subcase where a "k=v" business property is
  * serialized using JSON towards:
@@ -572,7 +580,6 @@ case class NameValueComparator(ldapAttr: String) extends TStringComparator with 
     }
   }
 }
-
 
 /*
  * This comparator is used for "node properties"-like attribute, i.e:
@@ -653,7 +660,6 @@ case class NodePropertyComparator(ldapAttr: String) extends TStringComparator wi
     }
   }
 }
-
 
 case class Criterion(val name:String, val cType:CriterionType) extends HashcodeCaching {
   require(name != null && name.length > 0, "Criterion name must be defined")

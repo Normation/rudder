@@ -30,7 +30,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-
 *
 *************************************************************************************
 */
@@ -129,6 +128,7 @@ class AccepetedNodesLDAPQueryProcessor(
       nodeEntry     : LDAPEntry
     , inventoryEntry: LDAPEntry
     , machineInfo   : Option[LDAPEntry]
+
   ) extends HashcodeCaching
 
   /**
@@ -223,11 +223,12 @@ class PendingNodesLDAPQueryChecker(
  * accepted nodes and pending nodes)
  */
 class InternalLDAPQueryProcessor(
-  val ldap:LDAPConnectionProvider[RoLDAPConnection],
-  val dit:InventoryDit,
-  val ditQueryData:DitQueryData,
-  val ldapMapper:LDAPEntityMapper, //for LDAP attribute for nodes
-  val limits:RequestLimits = DefaultRequestLimits
+    ldap           : LDAPConnectionProvider[RoLDAPConnection]
+  , dit            : InventoryDit
+  , nodeDit        : NodeDit
+  , ditQueryData   : DitQueryData
+  , val ldapMapper : LDAPEntityMapper //for LDAP attribute for nodes
+  , limits         : RequestLimits = DefaultRequestLimits
 ) extends Loggable {
 
   import ditQueryData._
@@ -455,7 +456,6 @@ class InternalLDAPQueryProcessor(
   private[this] def executeQuery(base: DN, scope: SearchScope, objectFilter: LDAPObjectTypeFilter, filter: Option[Filter], specialFilters: Set[SpecialFilter], attributes:Set[String], composition: CriterionComposition, debugId: Long) : Box[Seq[LDAPEntry]] = {
 
     def buildSearchRequest(addedSpecialFilters:Set[SpecialFilter]) : Box[SearchRequest] = {
-
       //special filter can modify the filter and the attributes to get
       val params = ( (filter,attributes) /: addedSpecialFilters) {
             case ( (f, currentAttributes), r:GeneralRegexFilter) =>
@@ -477,7 +477,7 @@ class InternalLDAPQueryProcessor(
         * Optimization : we limit query time/size. That means that perhaps we won't have all response.
         * That DOES not change the validity of each final answer, just we may don't find ALL valid answers.
         * (in the case of a and, a missing result here can lead to an empty set at the end)
-        * TODO : this behaviour should be removable
+        * TODO : this behavior should be removable
         */
       Full(new SearchRequest(
            base.toString
@@ -496,10 +496,11 @@ class InternalLDAPQueryProcessor(
 
       for {
         sr      <- buildSearchRequest(addedSpecialFilters)
-        _       <- { logger.debug("[%s] |--- %s".format(debugId, sr)) ; Full({}) }
+        _       =  logger.debug(s"[${debugId}] |--- ${sr}")
         entries <- Full(con.search(sr))
-        _       <- { logger.debug("[%s] |---- %s result(s)".format(debugId, entries.size)) ; Full({}) }
+        _       =  logger.debug(s"[${debugId}] |---- after ldap search request ${entries.size} result(s)")
         post    <- postProcessQueryResults(entries, addedSpecialFilters.map( (composition,_) ), debugId)
+        _       =  logger.debug(s"[${debugId}] |---- after post-processing: ${post.size} result(s)")
       } yield {
         post
       }
@@ -557,6 +558,8 @@ class InternalLDAPQueryProcessor(
                        case And => andQuery(con)
                      }
     } yield {
+      logger.debug(s"[${debugId}] |--- results are:")
+      results.foreach(r => logger.debug(s"[${debugId}] |--- ${r}"))
       results
     }
   }
@@ -569,11 +572,11 @@ class InternalLDAPQueryProcessor(
     for {
       results <- executeQuery(base, scope, objectFilter, ldapFilters, specialFilters.map( _._2), Set(joinType.selectAttribute), composition, debugId)
     } yield {
-      val res = (results flatMap { e:LDAPEntry =>
+      val res : Set[DN] = (results flatMap { e:LDAPEntry =>
         joinType match {
           case DNJoin => Some(e.dn)
           case ParentDNJoin => Some(e.dn.getParent)
-          case AttributeJoin(attr) => e(attr) map {a:String => new DN(a) }  //that's why Join Attribute must be a DN
+          case NodeDnJoin => e.valuesFor("nodeId").map(nodeDit.NODES.NODE.dn )
         }
       }).toSet
       logger.debug("[%s] |-- %s sub-results (merged)".format(debugId, res.size))
@@ -710,7 +713,6 @@ class InternalLDAPQueryProcessor(
         case NodePropertyNotRegexFilter(attr, regexText) =>
           //here, we need to put the value in expected {"name":"k","value":v} minified format (and only name & value field)
           regexMatch(attr, regexText, entries,normalizeJsonNodeProperty)
-
 
         case x => Failure("Don't know how to post process query results for filter '%s'".format(x))
       }

@@ -97,11 +97,11 @@ class TestQueryProcessor extends Loggable {
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
   val rudderDit = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
 
-  val ditQueryData = new DitQueryData(DIT, nodeDit)
+  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit)
 
   val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
   val ldapMapper = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null, inventoryMapper)
-  val internalLDAPQueryProcessor = new InternalLDAPQueryProcessor(ldap,DIT,ditQueryData,ldapMapper)
+  val internalLDAPQueryProcessor = new InternalLDAPQueryProcessor(ldap,DIT,nodeDit,ditQueryData,ldapMapper)
 
   val nodeInfoService = new NaiveNodeInfoServiceCachedImpl(ldap, nodeDit, DIT, removedDIT, pendingDIT, ldapMapper, inventoryMapper)
 
@@ -597,7 +597,6 @@ class TestQueryProcessor extends Loggable {
       ] }
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
-
 
     val q3 = TestQuery(
       "q3",
