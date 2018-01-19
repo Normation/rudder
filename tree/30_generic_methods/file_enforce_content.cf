@@ -39,7 +39,7 @@ bundle agent file_enforce_content(file, lines, enforce)
       "args"              slist => { "${file}", "${lines}", "${enforce}" };
 
   methods:
-    "action"             usebundle => file_content("${target}");
+    "action"             usebundle => file_content("${file}", "${lines}", "${enforce}");
     "class copy"         usebundle => _classes_copy("file_content_${canonified_file}", "${old_class_prefix}"),
                          ifvarclass => "file_content_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
