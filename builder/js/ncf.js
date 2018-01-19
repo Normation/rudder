@@ -1029,7 +1029,8 @@ $scope.groupMethodsByCategory = function () {
       var methodKeys = Object.keys($scope.generic_methods).map(function(e) {
         return $scope.generic_methods[e]
       });
-      $http.post("/rudder/secure/api/ncf",{"technique": ncfTechnique,"methods":methodKeys});
+      var reason = "Updating Technique " + technique.name + " using the Technique editor";
+      $http.post("/rudder/secure/api/ncf", { "technique": ncfTechnique, "methods":methodKeys, "reason":reason });
       // Transform back ncfTechnique to UITechnique, that will make it ok
       var savedTechnique = toTechUI(ncfTechnique);
 
