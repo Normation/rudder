@@ -232,9 +232,9 @@ class PolicyWriterServiceImpl(
     , generationTime  : DateTime
   ) : Box[Seq[NodeConfiguration]] = {
 
-    val nodeConfigsToWrite = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
+    val nodeConfigsToWrite     = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
     val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
-    val techniqueIds = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
+    val techniqueIds           = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
 
     //debug - but don't fails for debugging !
     logNodeConfig.log(nodeConfigsToWrite.values.toSeq) match {
@@ -303,8 +303,7 @@ class PolicyWriterServiceImpl(
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             (for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
-                              // todo : for #10625: also write the new json files.
-                              _ <- writeAllAgentSpecificFiles.write(prepared /*, newJsonD-by-DTechniques */) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
+                              _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
                               "OK"

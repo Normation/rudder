@@ -37,8 +37,7 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TechniqueGenerationMode
+import com.normation.cfclerk.domain.{RunHook, TechniqueGenerationMode, TechniqueName}
 import com.normation.inventory.domain.AgentType
 import cats.kernel.Order
 import cats.data._
@@ -110,17 +109,27 @@ final object MergePolicyService {
    * NodeInfo is only used for reporting, that method should be contextualized in an other fashion to avoid that.
    */
   def buildPolicy(nodeInfo: NodeInfo, mode: GlobalPolicyMode, boundedPolicyDrafts: Seq[BoundPolicyDraft]): Box[List[Policy]] = {
+    // Either[String, T] => Box[T] with the obvious semantic
+    implicit def eitherToBox[A](res: Either[String, A]): Box[A] = res match {
+      case Left(s)  => Failure(s, Empty, Empty)
+      case Right(a) => Full(a)
+    }
+
 
     // now manage merge of mutli-instance mono-policy techniques
     // each merge can fails because of a consistency error, so we are grouping merge and checks
     // for a technique in a failable function.
     // must give at least one element in parameter
     def merge(nodeInfo: NodeInfo, agentType: AgentType, globalPolicyMode: GlobalPolicyMode, drafts: List[BoundPolicyDraft]): Box[Policy] = {
-      drafts match  {
+
+      //
+      // ACTUALY check and merge if needed
+      //
+      drafts match {
         case Nil =>
           Failure(s"Policy Generation is trying to merge a 0 directive set, which is a development bug. Please report")
         case draft :: Nil => //no merge actually needed
-          Full(draft.toPolicy(agentType))
+          draft.toPolicy(agentType)
         case d :: tail => //merging needed
           for {
              // check same technique (name and version), policy mode
@@ -138,7 +147,8 @@ final object MergePolicyService {
                                    Failure(s"Policy Generation is trying to merge several directives with some being systems and other not for " +
                                      s"node ${nodeInfo.hostname} '${nodeInfo.id.value}'. This is likely a bug, please report it. "+
                                      s"Techniques: ${drafts.map(_.technique.id.toString).mkString(", ")}" //not sure if we want techniques or directives or rules here.
-                                   )                             }
+                                   )
+                                 }
             // check that all drafts are bound to
             sameVersion       <- drafts.map( _.technique.id.version ).distinct match {
                                    case v :: Nil => Full(v)
@@ -164,37 +174,35 @@ final object MergePolicyService {
                                                           s"'${sameTechniqueName}/${sameVersion}' does not support multi-policy generation. Problematic rules/directives: " +
                                                           drafts.map(d => d.id.ruleId.value + " / " + d.id.directiveId.value).mkString(" ; "))
                                  }
-          } yield {
             // actually merge.
             // Be carefull, there is TWO merge to consider:
             // 1. the order on which the vars are merged. It must follow existing semantic, i.e:
             //    first by priority, then by rule order, then by directive order.
+            sortedVars     =  NonEmptyList(d, tail).sorted(priorityThenBundleOrder).map { d =>
+                                PolicyVars(
+                                  d.id
+                                  , d.policyMode
+                                  , d.expandedVars
+                                  , d.originalVars
+                                  , d.trackerVariable
+                                )
+                              }
             // 2. what is the rule / directive (and corresponding bundle order) to use. Here,
             //    we need to keep the most prioritary based on BundleOrder to ensure that variables
             //    are correctly initialized before there use in the bundle sequence.
-
-            val sortedVars = NonEmptyList(d, tail).sorted(priorityThenBundleOrder).map { d => PolicyVars(
-                d.id
-              , d.policyMode
-              , d.expandedVars
-              , d.originalVars
-              , d.trackerVariable
-            )}
-
-            // now the main draft is the most prioritary only considering bundle order.
-            val mainDraft = NonEmptyList(d, tail).sorted(onlyBundleOrder).head
-
+            mainDraft      <- NonEmptyList(d, tail).sorted(onlyBundleOrder).head.toPolicy(agentType)
+          } yield {
             // and then we merge all draft values into main draft.
-            mainDraft.toPolicy(agentType).copy(policyVars = sortedVars, policyMode = samePolicyMode)
+            mainDraft.copy(policyVars = sortedVars, policyMode = samePolicyMode)
           }
-        }
+      }
     }
 
     /*
      * We need to split draft in 3 categories:
      * - draft from non-multi instance techniques: we must choose which one to take
      * - draft from multi-instance, non multi-directive-gen technique: we need to
-     *   merge directive and check specific consistancy
+     *   merge directive and check specific consistency
      * - draft from multi-instance, multi-directive-gen technique (nothing special for them)
      */
     final case class GroupedDrafts(
@@ -298,7 +306,7 @@ final object MergePolicyService {
 
       val keep = samePriority.head
 
-      //only one log for all discared draft
+      //only one log for all discard draft
       if(samePriority.size > 1) {
         PolicyLogger.warn(s"Unicity check: NON STABLE POLICY ON NODE '${nodeInfo.hostname}' for mono-instance (unique) technique "+
             s"'${keep.technique.id}'. Several directives with same priority '${keep.priority}' are applied. "+
@@ -325,16 +333,8 @@ final object MergePolicyService {
                 }
       }
       //now change remaining BoundPolicyDraft to Policy, managing tracking variable values
-      drafts =  merged ++ (keptUniqueDraft ++ groupedDrafts.multiDirectives).map { d =>
-                  d.toPolicy(agent.agentType)
-                }
-      // check that agent is supported by all techniques
-      _      <- sequence(drafts) { d =>
-                  if(d.technique.agentConfigs.exists( _.agentType == agent.agentType)) {
-                    Full("ok")
-                  } else {
-                    Failure(s"Technique '${d.technique.id}' does not support agent '${agent.agentType}' which is needed for node '${nodeInfo.hostname}' (${nodeInfo.id.value}).")
-                  }
+      others <- { import cats.implicits._
+                  (keptUniqueDraft ++ groupedDrafts.multiDirectives).toList.traverse( _.toPolicy(agent.agentType) )
                 }
     } yield {
       // we are sorting several things in that method, and I'm not sure we want to sort them in the same way (and so
@@ -343,9 +343,71 @@ final object MergePolicyService {
       // - in a multi-instance, mono-policy case, we sort directives in the same fashion (but does priority make sense here?)
       // - and finally, here we sort all drafts (in that case, only by bundle order)
 
-      drafts.sortWith { case(d1, d2) =>
+      (merged++others).sortWith { case (d1, d2) =>
         BundleOrder.compareList(List(d1.ruleOrder, d1.directiveOrder), List(d2.ruleOrder, d2.directiveOrder)) <= 0
       }.toList
     }
+  }
+
+  /*
+    * This method take all the hooks with the corresponding reportId / mode, and
+    * merge what should be merged.
+    * Order is not kept
+    */
+  def mergeRunHooks(policies: List[Policy], nodePolicyMode: Option[PolicyMode], globalPolicyMode: GlobalPolicyMode): List[NodeRunHook] = {
+    /*
+     * Hooks are merge:
+     *  - for the same kind, name and parameter (exactly the same, "parameters" order is critical)
+     * Then:
+     *  - append all condition (they will be "or", but the syntax is agent specific)
+     *  - append pair of (reportId, PolicyMode)
+     *
+     * If at least one of kind, name, parameter is not the same between two hooks, the are considered different.
+     *
+     * The merge must keep both the List[Policy] order AND in a Policy, the List[RunHook] order. So we
+     * avoid groupBy
+     */
+    // utility class to store reportId + RunHook
+    case class BoundHook(id: PolicyId, mode: PolicyMode, hook: RunHook)
+
+    def recMerge(currentHook: BoundHook, remaining: List[BoundHook]): List[NodeRunHook] = {
+      // partition between mergeable hooks and non-mergeable one
+      val (toMerge, other) = remaining.partition(h =>
+        h.hook.kind == currentHook.hook.kind &&
+          h.hook.name == currentHook.hook.name &&
+          h.hook.parameters == currentHook.hook.parameters
+      )
+      //now, build the "NodeRunHook" from the currentHook ++ toMerge
+      val mergeable = currentHook :: toMerge
+      val nodeRunHook = NodeRunHook(
+        currentHook.hook.name
+        , currentHook.hook.kind
+        , mergeable.map(_.hook.condition)
+        , currentHook.hook.parameters
+        , mergeable.map(h => NodeRunHook.ReportOn(h.id, h.mode))
+      )
+      // Recurse on "other" hooks, getting the one in head position as new current.
+      // And keep the order, so "nodeRunHook" is on head!
+      nodeRunHook :: (other match {
+        case Nil => Nil
+        case h :: tail => recMerge(h, tail)
+      })
+    }
+
+    // OK, so the sort order is: for each policy, for each policyVar (i.e each directive if merged),
+    // for each hook, in the node policy order.
+    val sortedBoundHooks = for {
+      p <- policies
+      v <- p.policyVars.toList
+      h <- p.technique.agentConfig.runHooks
+    } yield {
+      BoundHook(v.policyId, PolicyMode.directivePolicyMode(globalPolicyMode, nodePolicyMode, v.policyMode, p.technique.isSystem), h)
+    }
+
+    sortedBoundHooks match {
+      case Nil => Nil
+      case h :: tail => recMerge(h, tail)
+    }
+
   }
 }

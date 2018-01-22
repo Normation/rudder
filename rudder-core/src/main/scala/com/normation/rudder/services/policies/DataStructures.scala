@@ -58,6 +58,13 @@ import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import cats.data.NonEmptyList
 import com.normation.rudder.domain.logger.PolicyLogger
+import com.normation.cfclerk.domain.RunHook
+import com.normation.cfclerk.domain.SystemVariableSpec
+import com.normation.cfclerk.domain.TrackerVariableSpec
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.cfclerk.domain.AgentConfig
+import com.normation.cfclerk.domain.TechniqueGenerationMode
 
 /*
  * This file contains all the specific data structures used during policy generation.
@@ -158,12 +165,12 @@ object InterpolationContext {
   ) = new InterpolationContext(nodeInfo, policyServerInfo, TreeMap(nodeContext.toSeq:_*), parameters, depth)
 }
 
-case class ParameterForConfiguration(
+final case class ParameterForConfiguration(
     name       : ParameterName
   , value      : String
 ) extends HashcodeCaching
 
-case object ParameterForConfiguration {
+final case object ParameterForConfiguration {
   def fromParameter(param: Parameter) : ParameterForConfiguration = {
     ParameterForConfiguration(param.name, param.value)
   }
@@ -174,7 +181,7 @@ case object ParameterForConfiguration {
  * We need the get methods for StringTemplate, since it needs
  * get methods, and @Bean doesn't seem to do the trick
  */
-case class ParameterEntry(
+final case class ParameterEntry(
     parameterName : String
   , parameterValue: String
   , agentType     : AgentType
@@ -196,7 +203,7 @@ case class ParameterEntry(
   }
 }
 
-object ParameterEntry {
+final object ParameterEntry {
   def escapeString(x: String, agentType: AgentType) : String = {
     // The parameter may be null (for legacy reason), and it should be checked
     if (x == null)
@@ -221,11 +228,36 @@ object ParameterEntry {
   }
 }
 
-case class NodeConfiguration(
+final object NodeRunHook {
+
+  // a report id with the corresponding mode to
+  // use to make reports.
+  final case class ReportOn(id: PolicyId, mode: PolicyMode)
+
+}
+
+
+/*
+ * A node run hook is an (agent specific) action that should
+ * be run only one time per node per run.
+ * This one is the merged version, for a given node.
+ */
+final case class NodeRunHook(
+    name      : String // the kind of hook. The bundle method to call can be derived from that
+  , kind      : RunHook.Kind
+  , condition : List[String] // a condition expression, that will "or" of each element (agent syntax dependand)
+  , parameters: List[RunHook.Parameter]
+  , reports   : List[NodeRunHook.ReportOn]
+)
+
+
+final case class NodeConfiguration(
     nodeInfo    : NodeInfo
   , modesConfig : NodeModeConfig
     // sorted list of policies for the node.
   , policies    : List[Policy]
+    // the merged pre-/post-run hooks
+  , runHooks    : List[NodeRunHook]
     //environment variable for that server
   , nodeContext : Map[String, Variable]
   , parameters  : Set[ParameterForConfiguration]
@@ -241,7 +273,7 @@ case class NodeConfiguration(
  * Unique identifier for a CFClerk policy instance
  *
  */
-case class PolicyId(ruleId: RuleId, directiveId: DirectiveId) extends HashcodeCaching {
+final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId) extends HashcodeCaching {
 
   val value = s"${ruleId.value}@@${directiveId.value}"
 
@@ -268,6 +300,45 @@ final case class PolicyVars(
   , originalVars   : Map[String, Variable] // variable with non-expanded ${node.prop etc} values
   , trackerVariable: TrackerVariable
 )
+
+/*
+ * The technique bounded to a policy. It is specific to exactly one agent
+ */
+final case class PolicyTechnique(
+    id                     : TechniqueId
+  , agentConfig            : AgentConfig
+  , trackerVariableSpec    : TrackerVariableSpec
+  , rootSection            : SectionSpec //be careful to not split it from the TechniqueId, else you will not have the good spec for the version
+  , systemVariableSpecs    : Set[SystemVariableSpec]
+  , isMultiInstance        : Boolean = false // true if we can have several instance of this policy
+  , isSystem               : Boolean = false
+  , providesExpectedReports: Boolean = false //does that Technique comes with a template file (csv) of expected reports ?
+  , generationMode         : TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives
+) extends HashcodeCaching {
+
+  val templatesIds: Set[TechniqueResourceId] = agentConfig.templates.map(_.id).toSet
+
+  val getAllVariableSpecs = this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
+}
+
+final object PolicyTechnique {
+  def forAgent(technique: Technique, agentType: AgentType): Either[String, PolicyTechnique] = {
+    technique.agentConfigs.find( _.agentType == agentType) match {
+      case None    => Left(s"Error: Technique '${technique.name}' (${technique.id.toString()}) does not support agent type '${agentType.displayName}'")
+      case Some(x) => Right(PolicyTechnique(
+          id                     = technique.id
+        , agentConfig            = x
+        , trackerVariableSpec    = technique.trackerVariableSpec
+        , rootSection            = technique.rootSection
+        , systemVariableSpecs    = technique.systemVariableSpecs
+        , isMultiInstance        = technique.isMultiInstance
+        , isSystem               = technique.isSystem
+        , providesExpectedReports= technique.providesExpectedReports
+        , generationMode         = technique.generationMode
+      ))
+    }
+  }
+}
 
 /*
  *
@@ -301,13 +372,11 @@ final case class PolicyVars(
  */
 final case class Policy(
     id                 : PolicyId
-  , technique          : Technique
+  , technique          : PolicyTechnique
   , techniqueUpdateTime: DateTime
   , policyVars         : NonEmptyList[PolicyVars]
   , priority           : Int
-  , isSystem           : Boolean
   , policyMode         : Option[PolicyMode]
-  , agentType          : AgentType
   , ruleOrder          : BundleOrder
   , directiveOrder     : BundleOrder
   , overrides          : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
@@ -323,7 +392,7 @@ final case class Policy(
   val trackerVariable = policyVars.head.trackerVariable.spec.cloneSetMultivalued.toVariable(policyVars.map(_.trackerVariable.values).toList.flatten)
 }
 
-object Policy {
+final object Policy {
 
   val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
   val TAG_OF_RUDDER_MULTI_POLICY = "RudderUniqueID"
@@ -378,7 +447,7 @@ object Policy {
  * - after that Variable were parsed to look for Rudder parameters
  * - before these parameters are contextualize
  */
-case class ParsedPolicyDraft(
+final case class ParsedPolicyDraft(
     id               : PolicyId
   , technique        : Technique
   , acceptationDate  : DateTime
@@ -416,7 +485,7 @@ case class ParsedPolicyDraft(
  * it may not be unique in a node coniguration (i.e: this pre-sorting,
  * pre-merge, pre-filtering Techniques).
  */
-case class BoundPolicyDraft(
+final case class BoundPolicyDraft(
     id             : PolicyId
   , technique      : Technique
   , acceptationDate: DateTime
@@ -448,30 +517,30 @@ case class BoundPolicyDraft(
       }
   }
 
-  def toPolicy(agent: AgentType) = {
-    Policy(
-        id
-      , technique
-      , acceptationDate
-      , NonEmptyList.of(PolicyVars(
-            id
-          , policyMode
-          , expandedVars
-          , originalVars
-          , trackerVariable
-        ))
-      , priority
-      , isSystem
-      , policyMode
-      , agent
-      , ruleOrder
-      , directiveOrder
-      , overrides
-    )
+  def toPolicy(agent: AgentType): Either[String, Policy] = {
+    PolicyTechnique.forAgent(technique, agent).map { pt =>
+      Policy(
+          id
+        , pt
+        , acceptationDate
+        , NonEmptyList.of(PolicyVars(
+              id
+            , policyMode
+            , expandedVars
+            , originalVars
+            , trackerVariable
+          ))
+        , priority
+        , policyMode
+        , ruleOrder
+        , directiveOrder
+        , overrides
+      )
+    }
   }
 }
 
-case class RuleVal(
+final case class RuleVal(
     ruleId            : RuleId
   , nodeIds           : Set[NodeId]
   , parsedPolicyDrafts: Seq[ParsedPolicyDraft]

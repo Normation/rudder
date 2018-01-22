@@ -54,6 +54,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.inventory.domain.AgentType
 
 /**
  * Test how RuleVal and ParsedPolicyDraft are constructed, and if they
@@ -114,7 +115,7 @@ class RuleValServiceTest extends Specification {
         id
       , "meta" + id
       , ""
-      , Nil
+      , AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil, Nil) :: Nil
       , TrackerVariableSpec(None)
       , makeRootSectionSpec
       , None
@@ -222,7 +223,8 @@ class RuleValServiceTest extends Specification {
       //false PolicyVars for that draft
       val vars = PolicyVars(draft.id, draft.policyMode, draft.originalVariables, draft.originalVariables, draft.trackerVariable)
 
-      val components = RuleExpectedReportBuilder.componentsFromVariables(draft.technique, draft.id.directiveId, vars)
+      val pt = PolicyTechnique.forAgent(draft.technique, AgentType.CfeCommunity).getOrElse(throw new RuntimeException("Test must not throws"))
+      val components = RuleExpectedReportBuilder.componentsFromVariables(pt, draft.id.directiveId, vars)
 
       "return a seq of two components" in {
         components.size === 2

@@ -392,7 +392,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   }
 
   override def countChangeReports(startTime: DateTime, intervalInHour: Int): Box[Map[RuleId, Map[Interval, Int]]] = {
-    //special mapper to retrieve correct interval. It is dependante of starttime / intervalInHour
+    //special mapper to retrieve correct interval. It is dependant of starttime / intervalInHour
     implicit val intervalMeta: Meta[Interval] = Meta[Int].xmap(
         //the query will return interval number in the "interval" column. So interval=0 mean
         //interval from startTime to startTime + intervalInHour hours, etc.

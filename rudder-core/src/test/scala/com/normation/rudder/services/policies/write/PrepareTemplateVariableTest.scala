@@ -45,32 +45,37 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.services.policies.NodeRunHook
+import com.normation.cfclerk.domain.RunHook
+import com.normation.rudder.services.policies.PolicyId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.DirectiveId
 
 @RunWith(classOf[JUnitRunner])
 class PrepareTemplateVariableTest extends Specification {
 
   def TID(s: String) = TechniqueId(TechniqueName(s), TechniqueVersion("1.0"))
 
-  val bundles = Seq(
-      ("Global configuration for all nodes/20. Install jdk version 1.0"                   , Bundle(None, BundleName("Install_jdk_rudder_reporting"), Seq()))
-    , ("Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)", Bundle(None, BundleName("check_zmd_settings"), Seq()))
-    , ("""Nodes only/Name resolution version "3.0" and counting"""                        , Bundle(None, BundleName("check_dns_configuration"), Seq()))
-    , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle(None, BundleName("check_apt_package_installation"), Seq()))
-    , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle(None, BundleName("check_apt_package_installation2"), Seq()))
+  val bundles = List(
+      ("Global configuration for all nodes/20. Install jdk version 1.0"                   , Bundle(None, BundleName("Install_jdk_rudder_reporting"), Nil))
+    , ("Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)", Bundle(None, BundleName("check_zmd_settings"), Nil))
+    , ("""Nodes only/Name resolution version "3.0" and counting"""                        , Bundle(None, BundleName("check_dns_configuration"), Nil))
+    , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle(None, BundleName("check_apt_package_installation"), Nil))
+    , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle(None, BundleName("check_apt_package_installation2"), Nil))
   ).map { case(x,y) => TechniqueBundles(Directive(x), TID("not-used-here"), Nil, y::Nil, Nil, false, false, PolicyMode.Enforce) }
 
   // Ok, now I can test
   "Preparing the string for writting usebundle of directives" should {
 
     "correctly write nothing at all when the list of bundle is emtpy" in {
-      CfengineBundleVariables.formatMethodsUsebundle(Seq()) === List("")
+      CfengineBundleVariables.formatMethodsUsebundle(Nil, Nil) === List("")
     }
 
     "write exactly - including escaped quotes" in {
 
       //spaces inserted at the begining of promises in rudder_directives.cf are due to string template, not the formated string - strange
 
-      CfengineBundleVariables.formatMethodsUsebundle(bundles) ===
+      CfengineBundleVariables.formatMethodsUsebundle(bundles, Nil) ===
 List(raw""""Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
      |"Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => check_zmd_settings;
      |"Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => check_dns_configuration;
@@ -78,5 +83,35 @@ List(raw""""Global configuration for all nodes/20. Install jdk version 1.0"     
      |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => check_apt_package_installation2;""".stripMargin)
     }
 
+    "write exactly - including escaped quotes and hooks" in {
+      val hooks =
+        NodeRunHook(
+            "package-install"
+          , RunHook.Kind.Pre
+          , "cond1" :: "cond2" :: Nil
+          , RunHook.Parameter("package", "vim") :: RunHook.Parameter("action", "update-only") :: Nil
+          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce) ::
+            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce) :: Nil
+        ) ::
+        NodeRunHook(
+            "service-restart"
+          , RunHook.Kind.Post
+          , "cond3" :: "cond4" :: Nil
+          , RunHook.Parameter("service", "syslog") :: Nil
+          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce) ::
+            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce) :: Nil
+        ) :: Nil
+
+      //spaces inserted at the begining of promises in rudder_directives.cf are due to string template, not the formated string - strange
+
+      CfengineBundleVariables.formatMethodsUsebundle(bundles, hooks) ===
+List(raw""""pre-run-hook"                                                                      usebundle => do_run_hook("package-install","cond1|cond2","{"parameters":{"package":"vim","action":"update-only"},"reports":[{"id":"r1@@d1@@0","mode":"enforce"},{"id":"r1@@d1@@0","mode":"enforce"}]}");
+     |"Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
+     |"Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => check_zmd_settings;
+     |"Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => check_dns_configuration;
+     |"Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => check_apt_package_installation;
+     |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => check_apt_package_installation2;
+     |"post-run-hook"                                                                     usebundle => do_run_hook("service-restart","cond3|cond4","{"parameters":{"service":"syslog"},"reports":[{"id":"r1@@d1@@0","mode":"enforce"},{"id":"r1@@d1@@0","mode":"enforce"}]}");""".stripMargin)
+    }
   }
 }
