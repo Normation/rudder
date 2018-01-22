@@ -348,7 +348,7 @@ limitations under the License.
     <cglib-version>3.2.5</cglib-version>
     <asm-version>5.2</asm-version>
     <bcpkix-jdk15on-version>1.58</bcpkix-jdk15on-version>
-    <monix-version>2.2.4</monix-version>
+    <monix-version>2.3.3</monix-version>
     <!-- 
       These one must be updated to work together 
       We declare scalaz in "test" here, because it adds ~12Mo of dep. 
