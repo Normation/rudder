@@ -94,7 +94,7 @@ class DefaultReportSaver(
     results = {
       for {
         con <- ldapConnectionProvider
-        res <- con.saveTree(mapper.treeFromMachine(report.machine))
+        res <- con.saveTree(mapper.treeFromMachine(report.machine), deleteRemoved = true)
       } yield { res }
     } :: results
 
@@ -104,9 +104,10 @@ class DefaultReportSaver(
     results = {
       for {
         con <- ldapConnectionProvider
-        res <- con.saveTree(mapper.treeFromNode(report.node))
+        res <- con.saveTree(mapper.treeFromNode(report.node), deleteRemoved = true)
       } yield {
-        res }
+        res
+      }
     } :: results
 
     val t3 = System.currentTimeMillis
@@ -116,7 +117,7 @@ class DefaultReportSaver(
     report.vms foreach { x =>
        results = { for {
           con <- ldapConnectionProvider
-          res <- con.saveTree(mapper.treeFromMachine(x))
+          res <- con.saveTree(mapper.treeFromMachine(x), deleteRemoved = true)
         } yield { res }
       } :: results
     }
