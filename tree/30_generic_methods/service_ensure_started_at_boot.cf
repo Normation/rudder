@@ -41,7 +41,7 @@ bundle agent service_ensure_started_at_boot(service_name)
       "args"                     slist => { "${service_name}" };
 
   methods:
-    "action"             usebundle => service_stopped("${service_name}");
+    "action"             usebundle => service_enabled("${service_name}");
     "class copy"         usebundle => _classes_copy("service_enabled_${canonified_service_name}", "${old_class_prefix}"),
                          ifvarclass => "service_enabled_${canonified_service_name}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
