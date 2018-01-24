@@ -578,7 +578,7 @@ def generate_technique_content(technique, methods):
 
     # Set bundle context, first escape paramters
     class_parameter_id    = method_info["class_parameter_id"] - 1
-    class_parameter_name  = regex.sub(r'\\"', method_info["parameter"][class_parameter_id]["name"])
+    class_parameter_name  = regex.sub(r'\\"', method_info["name"])
     class_parameter_value = regex.sub(r'\\"', method_call["args"][class_parameter_id])
     technique_name        = regex.sub(r'\\"', technique["name"])
     content.append('    "'+promiser+'_context" usebundle => _current_technique_report_info("'+technique_name+'", "'+class_parameter_name+'", "'+class_parameter_value+'");')
