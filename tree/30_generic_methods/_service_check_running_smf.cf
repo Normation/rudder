@@ -37,7 +37,12 @@ bundle agent _service_check_running_smf(service_name)
       "args"                 slist => { "${service_name}" };
 
   methods:
+
+      "disable_reporting"     usebundle => disable_reporting;
+
       "check_if_service_is_running" usebundle => service_check_running("${service_name}");
+
+      "enable_reporting" usebundle => enable_reporting;
 
       "report"
         usebundle  => _log("Check if the service ${service_name} is started using SMF", "${old_class_prefix}", "${class_prefix}", @{args});

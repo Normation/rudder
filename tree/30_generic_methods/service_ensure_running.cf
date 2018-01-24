@@ -37,12 +37,13 @@ bundle agent service_ensure_running(service_name)
     "args"                          slist => { "${service_name}" };
 
   methods:
-    "action"             usebundle => service_started("${service_name}");
-    "class copy"         usebundle => _classes_copy("service_started_${canonified_service_name}", "${old_class_prefix}"),
-                         ifvarclass => "service_started_${canonified_service_name}_reached";
-    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                         ifvarclass => "${class_prefix}_action_reached";
-    "report"
-        usebundle  => _log("Ensure that service ${service_name} is running", "${old_class_prefix}", "${class_prefix}", @{args});
+    "disable_reporting"       usebundle => disable_reporting;
+    "action"      usebundle => service_started("${service_name}");
+    "class copy"  usebundle => _classes_copy("service_started_${canonified_service_name}", "${old_class_prefix}"),
+                  if => "service_started_${canonified_service_name}_reached";
+    "new classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                  if => "${class_prefix}_action_reached";
+    "enable_reporting"   usebundle => enable_reporting;
+    "report"      usebundle  => _log("Ensure that service ${service_name} is running", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

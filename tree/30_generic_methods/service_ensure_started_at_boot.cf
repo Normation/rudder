@@ -41,11 +41,13 @@ bundle agent service_ensure_started_at_boot(service_name)
       "args"                     slist => { "${service_name}" };
 
   methods:
+    "disable_reporting"     usebundle => disable_reporting;
     "action"             usebundle => service_enabled("${service_name}");
     "class copy"         usebundle => _classes_copy("service_enabled_${canonified_service_name}", "${old_class_prefix}"),
                          ifvarclass => "service_enabled_${canonified_service_name}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
+    "enable_reporting"     usebundle => enable_reporting;
     "report"
         usebundle => _log("Ensure service ${service_name} is started at boot", "${old_class_prefix}", "${class_prefix}", @{args});
 

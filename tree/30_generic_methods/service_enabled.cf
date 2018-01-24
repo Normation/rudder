@@ -39,6 +39,7 @@ bundle agent service_enabled(service_name)
       "args"                     slist => { "${service_name}" };
 
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
     !windows::
       "check_at_boot"
         usebundle => service_check_started_at_boot("${service_name}");
@@ -72,6 +73,7 @@ bundle agent service_enabled(service_name)
                           ifvarclass => "${class_prefix}_action_reached";
 
    any::
+      "enable_reporting"     usebundle => enable_reporting;
       "report"
         usebundle => _log("Ensure service ${service_name} is started at boot", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";

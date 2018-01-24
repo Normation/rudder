@@ -99,6 +99,10 @@ bundle agent _rudder_common_report(technique_name, status, identifier, component
 #
 bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)
 {
+
+  class:
+      "report" expression => "${report_data.should_report}";
+
   methods:
 
       # This case should NEVER happen. If it ever happens, it is a bug in CFEngine or ncf that lead to changing something in dry-run mode.
@@ -107,7 +111,25 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
                 action  => immediate_ignore_dry_run,
              ifvarclass => "(dry_run|global_dry_run).${class_prefix}_repaired";
 
-    !(dry_run|global_dry_run)::
+    !report::
+      "na"
+        usebundle  => _rudder_common_report("${technique_name}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
+        ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+
+      "success"
+        usebundle  => _rudder_common_report("${technique_name}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
+        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+
+      "repaired"
+        usebundle  => _rudder_common_report("${technique_name}", "log_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
+        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
+
+      "error"
+        usebundle  => _rudder_common_report("${technique_name}", "log_warn", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
+        ifvarclass => "${class_prefix}_error";
+
+
+    report.!(dry_run|global_dry_run)::
       "na"
         usebundle  => _rudder_common_report("${technique_name}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
@@ -124,7 +146,7 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
         usebundle  => _rudder_common_report("${technique_name}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
         ifvarclass => "${class_prefix}_error";
 
-    dry_run|global_dry_run::
+    report.(dry_run|global_dry_run)::
       "na"
         usebundle  => _rudder_common_report("${technique_name}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
@@ -201,4 +223,19 @@ bundle agent clean_reporting_context {
     "report_data.directive_id"   string => "";
     "report_data.rule_id"        string => "";
     "report_data.identifier"     string => "";
+}
+
+bundle agent report_data {
+  vars:
+    "should_report" string => "true";
+}
+
+bundle agent disable_reporting {
+  vars:
+    "report_data.should_report" string => "false";
+}
+
+bundle agent enable_reporting {
+  vars:
+    "report_data.should_report" string => "true";
 }

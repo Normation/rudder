@@ -41,11 +41,13 @@ bundle agent service_ensure_running_path(service_name, service_path)
     "args"                          slist => { "${service_name}", "${service_path}" };
 
   methods:
+    "disable_reporting"     usebundle => disable_reporting;
     "action"             usebundle => service_started_path("${service_name}", "${service_path}");
     "class copy"         usebundle => _classes_copy("service_started_${canonified_service_name}", "${old_class_prefix}"),
                          ifvarclass => "service_started_${canonified_service_name}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
+    "enable_reporting"     usebundle => enable_reporting;
     "report"
         usebundle  => _log("Ensure that service ${service_name} is running", "${old_class_prefix}", "${class_prefix}", @{args});
 

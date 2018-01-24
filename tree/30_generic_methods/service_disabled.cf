@@ -39,6 +39,7 @@ bundle agent service_disabled(service_name)
       "args"                     slist => { "${service_name}" };
 
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
 
     !windows::
       "disable_at_boot"
@@ -73,6 +74,7 @@ bundle agent service_disabled(service_name)
                           ifvarclass => "${class_prefix}_action_reached";
 
    any::
+      "enable_reporting"     usebundle => enable_reporting;
       "report"
         usebundle => _log("Ensure service ${service_name} is disabled at boot", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
