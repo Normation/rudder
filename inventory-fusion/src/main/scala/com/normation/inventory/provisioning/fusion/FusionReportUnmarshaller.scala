@@ -296,8 +296,31 @@ class FusionReportUnmarshaller(
       }
     }
 
+    //the whole content of the attribute should be valid JONS Array
+    def processCustomProperties(xml:NodeSeq) : List[CustomProperty] = {
+      import net.liftweb.json._
+
+      parseOpt(xml.text) match {
+        case None       => Nil
+        case Some(json) => json match { // only Json Array is OK
+          case JArray(values) =>
+            // each values must be an object, with each key a property name (and values... it depends :)
+            values.flatMap {
+              case JObject(fields) => fields.map(f => CustomProperty(f.name, f.value))
+              case _               => Nil
+            }
+          case x              => Nil
+        }
+      }
+    }
+
     (xml \\ "RUDDER").headOption match {
       case Some(rudder) =>
+
+        // Node Custom properties from agent hooks
+        val customProperties =  processCustomProperties(rudder \ "CUSTOM_PROPERTIES")
+
+
         // Fetch all the agents configuration
         val agents = (rudder \\ "AGENT").flatMap { agentXML =>
           val agent = for {
@@ -338,25 +361,25 @@ class FusionReportUnmarshaller(
         }
 
         ( for {
-            agentOK  <- if(agents.size < 1) {
-                          Failure(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag")
-                        } else {
-                          Full("ok")
-                        }
-            uuid     <- boxFromOption(optText(rudder \ "UUID"), "could not parse uuid (tag UUID) from rudder specific inventory")
-            rootUser <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
-
+            agentOK        <- if(agents.size < 1) {
+                               Failure(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag")
+                             } else {
+                               Full("ok")
+                             }
+            uuid           <- boxFromOption(optText(rudder \ "UUID"), "could not parse uuid (tag UUID) from rudder specific inventory")
+            rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
             policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
           } yield {
 
             report.copy (
               node = report.node.copy (
-                  main = report.node.main.copy (
-                      rootUser = rootUser
-                    , policyServerId = NodeId(policyServerId)
-                    , id = NodeId(uuid)
-                  )
-                , agents = agents.map(_._1)
+                  main             = report.node.main.copy (
+                                         rootUser       = rootUser
+                                       , policyServerId = NodeId(policyServerId)
+                                       , id             = NodeId(uuid)
+                                     )
+                , agents           = agents.map(_._1)
+                , customProperties = customProperties
               )
             )
         } ) match {

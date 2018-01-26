@@ -5415,6 +5415,19 @@ FQFnylTVlI4wb+AmpDulMk5yf0Md6B+4DWYCuQMOUcjFSYlGsHaEhpHVZ2kj7LDO
 p731kBe0z0EcnBdYckGHXXnLGwM10R964wIBIw==
 -----END RSA PUBLIC KEY-----</CFENGINE_KEY>
 </AGENT>
+<CUSTOM_PROPERTIES>[
+{
+    "hook1_k1": 42
+  , "hook1_k2": true
+  , "hook1_k3": "a string"
+} ,
+{ "hook2":
+  { "some": "more"
+  , "json": [1, 2, 3]
+  , "deep": { "and": "deeper"}
+  }
+}
+]</CUSTOM_PROPERTIES>
 </RUDDER>
   </CONTENT>
   <DEVICEID>sles-10-64-sp3-2011-08-23-16-06-17</DEVICEID>
