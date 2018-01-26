@@ -79,7 +79,7 @@ class Util {
 
     var filter = S.param(reqvarName).getOrElse("")
 
-    def processFilter (): Unit = {
+    def processFilter () {
       if(filter == "") S.redirectTo(redirectRoot)
       else S.redirectTo(redirectRoot+ "/" + filter)
     }
