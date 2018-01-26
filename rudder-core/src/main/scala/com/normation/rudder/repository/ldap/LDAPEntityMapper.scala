@@ -47,7 +47,7 @@ import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk._
 import com.normation.cfclerk.domain._
 import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.domain.{NodeDit,RudderDit}
+import com.normation.rudder.domain.{NodeDit, RudderDit}
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.JsonSerialisation._
 import com.normation.rudder.domain.policies._
@@ -81,7 +81,7 @@ import com.normation.rudder.services.queries._
 import com.normation.utils.Control._
 import com.unboundid.ldap.sdk.DN
 import net.liftweb.common._
-import net.liftweb.common.Box.{ tryo => _, _ }
+import net.liftweb.common.Box.{tryo => _, _}
 import net.liftweb.json._
 import com.normation.rudder.reports._
 import com.normation.inventory.ldap.core.InventoryMapper
@@ -91,6 +91,7 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
+
 import scala.language.implicitConversions
 import com.normation.rudder.api.ApiAcl
 import com.normation.rudder.api.ApiAuthz
@@ -283,23 +284,23 @@ class LDAPEntityMapper(
                           case x :: Nil => Full(x)
                           case _ => Failure(s"Too many policy servers for a Node '${node.id.value}'. Entry details: ${inventoryEntry}")
                         }
-      keys =  inventoryEntry.valuesFor(A_PKEYS).map(Some(_))
+      keys           =  inventoryEntry.valuesFor(A_PKEYS).map(Some(_))
 
-      agentsName  <- {
-        val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
-        sequence(agents.zipAll(keys,None,None)) {
-          case (Some(agent),key) => AgentInfoSerialisation.parseCompatNonJson(agent,key)
-          case (None,key) =>
-              Failure(s"There was a public key defined for Node ${node.id.value}, without a releated agent defined, it should not happen")
-        }
-      }
-      osDetails   <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry)
-      keyStatus   <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
-      serverRoles =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
-      timezone    =  (inventoryEntry(A_TIMEZONE_NAME), inventoryEntry(A_TIMEZONE_OFFSET)) match {
-                       case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
-                       case _                          => None
-                     }
+      agentsName     <- {
+                         val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
+                         sequence(agents.zipAll(keys,None,None)) {
+                           case (Some(agent),key) => AgentInfoSerialisation.parseCompatNonJson(agent,key)
+                           case (None,key)        => Failure(s"There was a public key defined for Node ${node.id.value},"+
+                                                             " without a releated agent defined, it should not happen")
+                         }
+                       }
+      osDetails     <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry)
+      keyStatus     <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
+      serverRoles   =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
+      timezone      =  (inventoryEntry(A_TIMEZONE_NAME), inventoryEntry(A_TIMEZONE_OFFSET)) match {
+                         case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
+                         case _                          => None
+                       }
     } yield {
       val machineInfo = machineEntry.flatMap { e =>
         for {
@@ -314,11 +315,22 @@ class LDAPEntityMapper(
           )
         }
       }
+      // custom properties mapped as NodeProperties
+      val customProperties = inventoryEntry.valuesFor(A_CUSTOM_PROPERTY).flatMap { json =>
+        import inventoryMapper.CustomPropertiesSerialization._
+        json.toCustomProperty match {
+          case Left(ex)  =>
+            logger.error(s"Error when trying to deserialize Node Custom Property, it will be ignored: ${ex.getMessage}", ex)
+            None
+          case Right(cs) =>
+            Some(NodeProperty(cs.name, cs.value, Some(NodeProperty.customPropertyProvider)))
+        }
+      }
 
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map(_.dateTime) getOrElse(DateTime.now)
       NodeInfo(
-          node
+          node.copy(properties = overrideProperties(node.id, node.properties, customProperties))
         , inventoryEntry(A_HOSTNAME).getOrElse("")
         , machineInfo
         , osDetails
@@ -335,6 +347,37 @@ class LDAPEntityMapper(
       )
     }
   }
+
+ /**
+  * Override logic between existing properties and inventory ones.
+  * We only override Rudder properties with default provider with
+  * inventory ones. Other providers (like datasources) are more
+  * prioritary.
+  * In all case, a user shoud just avoid these cases, so we log.
+  */
+  def overrideProperties(nodeId: NodeId, existing: Seq[NodeProperty], inventory: Seq[NodeProperty]): Seq[NodeProperty] = {
+    val customProperties = inventory.map(x => (x.name, x) ).toMap
+    val overriden = existing.map { current =>
+      customProperties.get(current.name) match {
+        case None         => current
+        case Some(custom) =>
+          current.provider match {
+            case None | Some(NodeProperty.rudderNodePropertyProvider) => //override and log
+              logger.info(s"On node [${nodeId.value}]: overriding existing node property '${current.name}' with custom node inventory property with same name.")
+              custom
+            case other => // keep existing prop from other provider but log
+              logger.info(s"On node [${nodeId.value}]: ignoring custom node inventory property with name '${current.name}' (an other provider already set that property).")
+              current
+          }
+      }
+    }
+
+    // now, filter remaining inventory properties (ie the one not already processed)
+    val alreadyDone = overriden.map( _.name ).toSet
+
+    overriden ++ inventory.filter(x => !alreadyDone.contains(x.name))
+  }
+
 
   /**
    * Build the ActiveTechniqueCategoryId from the given DN
@@ -783,8 +826,8 @@ class LDAPEntityMapper(
     if(e.isA(OC_API_ACCOUNT)) {
       //OK, translate
       for {
-        id <- e(A_API_UUID).map( ApiAccountId(_) ) ?~! s"Missing required id (attribute name ${A_API_UUID}) in entry ${e}"
-        name <- e(A_NAME).map( ApiAccountName(_) ) ?~! s"Missing required name (attribute name ${A_NAME}) in entry ${e}"
+        id    <- e(A_API_UUID).map( ApiAccountId(_) ) ?~! s"Missing required id (attribute name ${A_API_UUID}) in entry ${e}"
+        name  <- e(A_NAME).map( ApiAccountName(_) ) ?~! s"Missing required name (attribute name ${A_NAME}) in entry ${e}"
         token <- e(A_API_TOKEN).map( ApiToken(_) ) ?~! s"Missing required token (attribute name ${A_API_TOKEN}) in entry ${e}"
         creationDatetime <- e.getAsGTime(A_CREATION_DATETIME) ?~! s"Missing required creation timestamp (attribute name ${A_CREATION_DATETIME}) in entry ${e}"
         tokenCreationDatetime <- e.getAsGTime(A_API_TOKEN_CREATION_DATETIME) ?~! s"Missing required token creation timestamp (attribute name ${A_API_TOKEN_CREATION_DATETIME}) in entry ${e}"

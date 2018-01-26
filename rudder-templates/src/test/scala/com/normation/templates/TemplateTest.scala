@@ -53,14 +53,14 @@ import com.normation.stringtemplate.language.formatter._
 class TemplateTest {
 
   @Test
-  def helloWorldTest(): Unit = {
+  def helloWorldTest() {
     val hello = new StringTemplate("Hello, &name&", classOf[NormationAmpersandTemplateLexer]);
     hello.setAttribute("name", "World");
     assertEquals("Hello, World", hello.toString)
   }
 
   @Test
-  def arrayTest(): Unit = {
+  def arrayTest() {
     val hello = new StringTemplate("&list1,list2:{ n,p |&n&:&p&}&", classOf[NormationAmpersandTemplateLexer]);
     hello.setAttribute("list1", "chi");
     hello.setAttribute("list1", "fou");
@@ -75,7 +75,7 @@ class TemplateTest {
   }
 
   @Test
-  def templateLoadingTest(): Unit = {
+  def templateLoadingTest() {
     val group =  new StringTemplateGroup("myGroup", classOf[NormationAmpersandTemplateLexer]);
     val templatetest = group.getInstanceOf("template");
 
@@ -84,7 +84,7 @@ class TemplateTest {
   }
 
   @Test
-  def multiTemplatesLoadingTest(): Unit = {
+  def multiTemplatesLoadingTest() {
     val group =  new StringTemplateGroup("myGroup", classOf[NormationAmpersandTemplateLexer]);
     val templatetest = group.getInstanceOf("templates1/templatetest");
 
@@ -99,7 +99,7 @@ class TemplateTest {
   }
 
   @Test
-  def templatesWithVarsTest(): Unit = {
+  def templatesWithVarsTest() {
     val group =  new StringTemplateGroup("myGroup", classOf[NormationAmpersandTemplateLexer]);
     val templatetest = group.getInstanceOf("templates1/vartest");
 
@@ -110,14 +110,14 @@ class TemplateTest {
 
 
   @Test ( expected = classOf[ IllegalArgumentException ] )
-  def notExistingTemplateTest(): Unit = {
+  def notExistingTemplateTest() {
     val group =  new StringTemplateGroup("myGroup", classOf[NormationAmpersandTemplateLexer]);
     group.getInstanceOf("templates1/azertyui");
 
   }
 
   @Test
-  def dateRenderingTest(): Unit = {
+  def dateRenderingTest() {
     val vared = new StringTemplate("&date;format=\"cfengine_datetime\"&", classOf[NormationAmpersandTemplateLexer]);
     val date =ISODateTimeFormat.dateTimeParser.parseDateTime("2010-01-24T21:28:32.309+01:00")
 
@@ -128,7 +128,7 @@ class TemplateTest {
   }
 
   @Test
-  def conditionTest(): Unit = {
+  def conditionTest() {
     val hello = new StringTemplate("&if(CLIENTSLIST)&hello&endif&", classOf[NormationAmpersandTemplateLexer]);
     hello.setAttribute("CLIENTSLIST", true);
 
