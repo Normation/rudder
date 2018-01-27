@@ -71,7 +71,7 @@ object ActionType {
 }
 
 sealed trait Configuration  extends AuthorizationType { def authzKind = "configuration"  }
-sealed trait Rule           extends AuthorizationType { def authzKind = "rules"          }
+sealed trait Rule           extends AuthorizationType { def authzKind = "rule"           }
 sealed trait Directive      extends AuthorizationType { def authzKind = "directive"      }
 sealed trait Technique      extends AuthorizationType { def authzKind = "technique"      }
 sealed trait Node           extends AuthorizationType { def authzKind = "node"           }
