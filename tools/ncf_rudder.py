@@ -184,8 +184,12 @@ def generate_rudder_reporting(technique):
   # Get all generic methods
   generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
 
+  bundle_param = ""
+  if len(technique["parameter"]) > 0:
+    bundle_param = "("+", ".join([ncf.canonify(param["name"]) for param in technique["parameter"] ])+")"
+
   content = []
-  content.append('bundle agent '+ technique['bundle_name']+'_rudder_reporting')
+  content.append('bundle agent '+ technique['bundle_name']+'_rudder_reporting'+ bundle_param)
   content.append('{')
   content.append('  vars:')
   content.append('    "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";')
