@@ -156,10 +156,13 @@ object BuildBundleSequence {
     , policyMode             : PolicyMode
   ) {
     val contextBundle : List[Bundle]  = main.map(_.id).distinct.collect{ case Some(id) =>
-      Bundle(None, BundleName(s"""current_reporting_identifier"""), List(id.directiveId.value, id.ruleId.value).map(BundleParam.DoubleQuote.apply) )
+      Bundle(None, BundleName(s"""rudder_reporting_context"""), List(id.directiveId.value, id.ruleId.value, techniqueId.name.value).map(BundleParam.DoubleQuote.apply) )
     }
-    def bundleSequence : List[Bundle] = contextBundle ::: pre ::: main ::: post
+
+    def bundleSequence : List[Bundle] = contextBundle ::: pre ::: main ::: post ::: (cleanReportingBundle  :: Nil)
   }
+
+  val cleanReportingBundle : Bundle = Bundle(None, BundleName(s"""clean_reporting_context"""), Nil )
 }
 
 class BuildBundleSequence(
@@ -433,7 +436,6 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
     (promiser, Bundle(None, BundleName("do_run_hook"), List(DoubleQuote(hook.name), DoubleQuote(condition), SimpleQuote(hook.jsonParam))) :: Nil)
   }
 
-
   /*
    * utilitary method for formating an input list
    * For the CFengine agent, we are waiting ONE string of the fully
@@ -453,7 +455,6 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
     }
   }
 }
-
 
 /*
  * Serialization version of a node hook parameter:

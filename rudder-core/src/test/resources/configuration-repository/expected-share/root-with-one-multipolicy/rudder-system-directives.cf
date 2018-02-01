@@ -67,17 +67,20 @@ body file control {
 bundle agent rudder_system_directives {
   # fully generated in bundle common va for iinitial promises
   methods:
-      "distributePolicy/Distribute Policy"              usebundle => current_reporting_identifier("root-distributePolicy","root-DP");
+      "distributePolicy/Distribute Policy"              usebundle => rudder_reporting_context("root-distributePolicy","root-DP","distributePolicy");
       "distributePolicy/Distribute Policy"              usebundle => install_rsyslogd;
       "distributePolicy/Distribute Policy"              usebundle => propagatePromises;
       "distributePolicy/Distribute Policy"              usebundle => sendInventoryToCmdb;
-      "Rudder system policy: daily inventory/Inventory" usebundle => current_reporting_identifier("inventory-all","inventory-all");
+      "distributePolicy/Distribute Policy"              usebundle => clean_reporting_context;
+      "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context("inventory-all","inventory-all","inventory");
       "Rudder system policy: daily inventory/Inventory" usebundle => fetchFusionTools;
       "Rudder system policy: daily inventory/Inventory" usebundle => virtualMachines;
       "Rudder system policy: daily inventory/Inventory" usebundle => doInventory;
-      "Rudder system policy: Server roles/Server Roles" usebundle => current_reporting_identifier("server-roles-directive","server-roles");
+      "Rudder system policy: daily inventory/Inventory" usebundle => clean_reporting_context;
+      "Rudder system policy: Server roles/Server Roles" usebundle => rudder_reporting_context("server-roles-directive","server-roles","server-roles");
       "Rudder system policy: Server roles/Server Roles" usebundle => root_component_check;
       "Rudder system policy: Server roles/Server Roles" usebundle => metrics_reporting;
+      "Rudder system policy: Server roles/Server Roles" usebundle => clean_reporting_context;
 
 }
 
