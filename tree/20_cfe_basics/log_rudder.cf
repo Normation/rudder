@@ -179,16 +179,26 @@ body classes _rudder_always_classes_persist(always, persist)
 #
 # Define the current Technique we are doing report on
 # Must be called before the reporting
-bundle agent _current_technique_report_info(t_name, c_name, c_key) {
+bundle agent _method_reporting_context(c_name, c_key) {
   vars:
-    "report_data.technique_name" string => "${t_name}";
     "report_data.component_name" string => "${c_name}";
     "report_data.component_key"  string => "${c_key}" ;
 }
 
-bundle agent current_reporting_identifier(d_id, r_id) {
+bundle agent rudder_reporting_context(d_id, r_id, t_name) {
   vars:
+    "report_data.technique_name" string => "${t_name}";
     "report_data.directive_id"   string => "${d_id}";
     "report_data.rule_id"        string => "${r_id}";
     "report_data.identifier"     string => "${r_id}@@${d_id}@@0";
+}
+
+bundle agent clean_reporting_context {
+  vars:
+    "report_data.component_name" string => "";
+    "report_data.component_key"  string => "";
+    "report_data.technique_name" string => "";
+    "report_data.directive_id"   string => "";
+    "report_data.rule_id"        string => "";
+    "report_data.identifier"     string => "";
 }

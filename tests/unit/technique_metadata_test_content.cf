@@ -5,10 +5,10 @@
 bundle agent content_escaping_test
 {
   methods:
-    "method_call_context" usebundle => _current_technique_report_info("ncf technique method argument escape test", "Package install version", "apache2");
+    "method_call_context" usebundle => _method_reporting_context("Package install version", "apache2");
     "method_call" usebundle => package_install_version("apache2", "2.2.11"),
       ifvarclass => concat("any");
-    "method_call_context" usebundle => _current_technique_report_info("ncf technique method argument escape test", "File replace lines", "/etc/httpd/conf/httpd.conf");
+    "method_call_context" usebundle => _method_reporting_context("File replace lines", "/etc/httpd/conf/httpd.conf");
     "method_call" usebundle => file_replace_lines("/etc/httpd/conf/httpd.conf", "ErrorLog \"/var/log/httpd/error_log\"", "ErrorLog \"/projet/logs/httpd/error_log\""),
       ifvarclass => concat("redhat");
 }
