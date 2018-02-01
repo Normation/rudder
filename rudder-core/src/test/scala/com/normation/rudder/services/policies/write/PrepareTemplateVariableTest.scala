@@ -77,10 +77,15 @@ class PrepareTemplateVariableTest extends Specification {
 
       CfengineBundleVariables.formatMethodsUsebundle(bundles, Nil) ===
 List(raw""""Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
+     |"Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => clean_reporting_context;
      |"Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => check_zmd_settings;
+     |"Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => clean_reporting_context;
      |"Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => check_dns_configuration;
+     |"Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => clean_reporting_context;
      |"Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => check_apt_package_installation;
-     |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => check_apt_package_installation2;""".stripMargin)
+     |"Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => clean_reporting_context;
+     |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => check_apt_package_installation2;
+     |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => clean_reporting_context;""".stripMargin)
     }
 
     "write exactly - including escaped quotes and hooks" in {
@@ -107,10 +112,15 @@ List(raw""""Global configuration for all nodes/20. Install jdk version 1.0"     
       CfengineBundleVariables.formatMethodsUsebundle(bundles, hooks) ===
 List(raw""""pre-run-hook"                                                                      usebundle => do_run_hook("package-install","cond1|cond2",'{"parameters":{"package":"vim","action":"update-only"},"reports":[{"id":"r1@@d1@@0","mode":"enforce"},{"id":"r1@@d1@@0","mode":"enforce"}]}');
      |"Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
+     |"Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => clean_reporting_context;
      |"Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => check_zmd_settings;
+     |"Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => clean_reporting_context;
      |"Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => check_dns_configuration;
+     |"Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => clean_reporting_context;
      |"Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => check_apt_package_installation;
+     |"Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => clean_reporting_context;
      |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => check_apt_package_installation2;
+     |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => clean_reporting_context;
      |"post-run-hook"                                                                     usebundle => do_run_hook("service-restart","cond3|cond4",'{"parameters":{"service":"syslog"},"reports":[{"id":"r1@@d1@@0","mode":"enforce"},{"id":"r1@@d1@@0","mode":"enforce"}]}');""".stripMargin)
     }
   }
