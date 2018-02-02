@@ -120,7 +120,7 @@ bundle agent _create_current_expected_reports_file {
 
     logger_rudder_temp_resfile_repaired::
       # 2/ If the temporary file has been created, read temp file to get all values in an array, and canonify the first entry
-      "dim" int => readstringarrayidx("reports", "${log_rudder.expected_reports_temp}", "\s*#[^\n]*", ";;", 9999, 999999);
+      "dim" int => readstringarrayidx("reports", "${log_rudder.expected_reports_temp}", "^\s*#[^\n]*", ";;", 9999, 999999);
       "keys" slist => getindices("reports");
 
       "reports[${keys}][canon]" string => canonify("${reports[${keys}][1]}");
