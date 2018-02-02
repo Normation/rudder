@@ -335,8 +335,8 @@ def generate_rudder_reporting(technique):
     # string should be unicode string (ie u'') which is the case if they are read from files opened with encoding="utf-8"
     key_value = key_value.encode("utf-8").decode("iso-8859-1") 
 
-    # this regex allows to canonify everything except variables
-    regex = re.compile("[^\$\{\}a-zA-Z0-9_](?![^{}]+})|\$(?!{)")
+    # this regex allows to canonify everything except variables (same as builder/js/ncf.js:getClassKind)
+    regex = re.compile(r'(\w+|\$\{(?:[\w\.\[\]]|\$\{[\w\.\[\]]+?\})+?\})?[^\$\w]')
     key_value_canonified = regex.sub("_", key_value)
 
     # escape double quote
