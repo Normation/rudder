@@ -82,6 +82,8 @@ import com.normation.rudder.ncf.{Technique => NcfTechnique}
 import org.joda.time.format.ISODateTimeFormat
 import net.liftweb.util.Helpers
 import org.joda.time.DateTime
+import com.normation.rudder.api.ApiAuthorizationKind
+import com.normation.rudder.web.components.DateFormaterService
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -723,7 +725,7 @@ case class RestExtractorService (
       category         <- extractJsonString(json, "category", toRuleCategoryId)
       shortDescription <- extractJsonString(json, "shortDescription")
       longDescription  <- extractJsonString(json, "longDescription")
-      directives       <- extractJsonListString(json, "directives")(convertListToDirectiveId)
+      directives       <- extractJsonListString(json, "directives", convertListToDirectiveId)
       target           <- toRuleTarget(json, "targets")
       enabled          <- extractJsonBoolean(json,"enabled")
       tags             <- extractTags(json \ "tags") ?~! "Error when extracting Rule tags"
@@ -809,23 +811,30 @@ case class RestExtractorService (
   }
 
   def extractApiAccountFromJSON (json : JValue) : Box[RestApiAccount] = {
+    import com.normation.rudder.utils.Utils.eitherToBox
     for {
       id          <- extractJsonString(json, "id", toApiAccountId)
       name        <- extractJsonString(json, "name", toApiAccountName)
       description <- extractJsonString(json, "description")
       enabled     <- extractJsonBoolean(json, "enabled")
       oldId       <- extractJsonString(json, "oldId", toApiAccountId)
-      // TODO what is the serialization we want to show for Option[DataTime] of
-      // expiration token ?
-      expriration <- extractJsonString(json, "expiration", toDateTime)
-      // TODO parse ApiAcl
+      expiration  <- extractJsonString(json, "expirationDate", DateFormaterService.parseDate)
+      authType    <- extractJsonString(json, "authorizationType", ApiAuthorizationKind.parse)
+      aclList     <- extractJsonListString(json, "aclList")
     } yield {
-      RestApiAccount(id, name, description, enabled, oldId, expriration.map(Some(_)), Some(ApiAuthz.None))
+      val auth = authType match {
+        case None => None
+        case Some(ApiAuthorizationKind.None) => Some(ApiAuthz.None)
+        case Some(ApiAuthorizationKind.RO) => Some(ApiAuthz.RO)
+        case Some(ApiAuthorizationKind.RW) => Some(ApiAuthz.RW)
+        case Some(ApiAuthorizationKind.ACL) => Some(ApiAuthz.ACL(Nil))
+      }
+      RestApiAccount(id, name, description, enabled, oldId, expiration.map(Some(_)), auth)
     }
   }
 
   def extractNodeIdsFromJson (json : JValue) : Box[Option[List[NodeId]]] = {
-    extractJsonListString(json, "nodeId")(convertListToNodeId)
+    extractJsonListString(json, "nodeId", convertListToNodeId)
   }
 
   def extractNodeStatusFromJson (json : JValue) : Box[NodeStatusAction] = {
@@ -1059,7 +1068,7 @@ case class RestExtractorService (
         name           <- CompleteJson.extractJsonString(json, "name")
         classPrefix    <- CompleteJson.extractJsonString(json, "class_prefix")
         classParameter <- CompleteJson.extractJsonString(json, "class_parameter", a => Full(ParameterId(a)))
-        agentSupport   <- (CompleteJson.extractJsonListString(json, "agent_support") ( sequence(_) {
+        agentSupport   <- (CompleteJson.extractJsonListString(json, "agent_support", sequence(_) {
                              case "dsc" => Full(AgentType.Dsc :: Nil)
                              case "cfengine-community" => Full(AgentType.CfeCommunity :: AgentType.CfeEnterprise ::Nil)
                              case _ => Failure("invalid agent")

@@ -60,6 +60,7 @@ import com.unboundid.ldap.sdk.ModificationType.{ADD, DELETE, REPLACE}
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
 import com.normation.rudder.repository.json.DataExtractor
+import com.normation.rudder.api.ApiAccountKind.PublicApi
 
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper
@@ -388,10 +389,10 @@ class LDAPDiffMapper(
           for {
             param <- mapper.entry2ApiAccount(e)
           } yield AddApiAccountDiff(param)
-        case _ => Failure("Bad change record type for requested action 'Add Global Parameter': %s".format(change))
+        case _ => Failure(s"Bad change record type for requested action 'Add Api Account': ${change}")
       }
     } else {
-      Failure("The following change record does not belong to Parameter entry '%s': %s".format(parameterDN,change))
+      Failure(s"The following change record does not belong to Parameter entry '${parameterDN}': ${change}")
     }
   }
 
@@ -421,6 +422,13 @@ class LDAPDiffMapper(
                 case A_API_TOKEN_CREATION_DATETIME =>
                   val diffDate = GeneralizedTime.parse(mod.getAttribute().getValue()).map(_.dateTime)
                   tryo(diff.copy(modTokenGenerationDate = Some(SimpleDiff(oldAccount.tokenGenerationDate, diffDate.get))))
+                case A_API_EXPIRATION_DATETIME =>
+                  val expirationDate = oldAccount.kind match {
+                    case PublicApi(_,date) => date
+                    case _ => None
+                  }
+                  val diffDate = GeneralizedTime.parse(mod.getAttribute().getValue()).map(_.dateTime)
+                  tryo(diff.copy(modExpirationDate = Some(SimpleDiff(expirationDate, Some(diffDate.get)))))
                 case x => Failure("Unknown diff attribute: " + x)
               }
             }
