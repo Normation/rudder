@@ -1753,6 +1753,7 @@ object RudderConfig extends Loggable {
   }
 
  val aggregateReportScheduler = new FindNewReportsExecution(executionService,RUDDER_REPORTS_EXECUTION_INTERVAL)
+
 }
 
 /**
