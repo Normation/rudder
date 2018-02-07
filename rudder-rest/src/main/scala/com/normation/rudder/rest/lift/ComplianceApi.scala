@@ -88,6 +88,7 @@ class ComplianceApi(
         case API.GetRulesComplianceId => GetRuleId
         case API.GetNodesCompliance   => GetNodes
         case API.GetNodeComplianceId  => GetNodeId
+        case API.GetGlobalCompliance  => GetGlobal
     }).toList
   }
 
@@ -195,6 +196,28 @@ class ComplianceApi(
 
         case eb: EmptyBox =>
           val message = (eb ?~ (s"Could not get compliance for node '${nodeId}'")).messageChain
+          toJsonError(None, JString(message))
+      }
+    }
+  }
+
+  object GetGlobal extends LiftApiModule0 {
+    val schema = API.GetGlobalCompliance
+    val restExtractor = restExtractorService
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val action = schema.name
+      implicit val prettify = params.prettify
+
+      (for {
+        optCompliance <- complianceService.getGlobalCompliance()
+      } yield {
+        optCompliance.toJson
+      }) match {
+        case Full(json) =>
+          toJsonResponse(None, json)
+
+        case eb: EmptyBox =>
+          val message = (eb ?~ (s"Could not get global compliance (for non system rules)")).messageChain
           toJsonError(None, JString(message))
       }
     }
@@ -411,6 +434,10 @@ class ComplianceAPIService(
 
   def getNodesCompliance(): Box[Seq[ByNodeNodeCompliance]] = {
     this.getByNodesCompliance(None)
+  }
+
+  def getGlobalCompliance(): Box[Option[(ComplianceLevel, Long)]] = {
+    this.reportingService.getGlobalUserCompliance()
   }
 }
 

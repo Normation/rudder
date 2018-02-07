@@ -70,17 +70,18 @@ object ActionType {
   trait Edit  extends ActionType { def action = "edit"  }
 }
 
+sealed trait Administration extends AuthorizationType { def authzKind = "administration" }
+sealed trait Compliance     extends AuthorizationType { def authzKind = "compliance"     }
 sealed trait Configuration  extends AuthorizationType { def authzKind = "configuration"  }
-sealed trait Rule           extends AuthorizationType { def authzKind = "rule"           }
-sealed trait Directive      extends AuthorizationType { def authzKind = "directive"      }
-sealed trait Technique      extends AuthorizationType { def authzKind = "technique"      }
-sealed trait Node           extends AuthorizationType { def authzKind = "node"           }
-sealed trait Group          extends AuthorizationType { def authzKind = "group"          }
-sealed trait Validator      extends AuthorizationType { def authzKind = "validator"      }
 sealed trait Deployer       extends AuthorizationType { def authzKind = "deployer"       }
 sealed trait Deployment     extends AuthorizationType { def authzKind = "deployment"     }
-sealed trait Administration extends AuthorizationType { def authzKind = "administration" }
+sealed trait Directive      extends AuthorizationType { def authzKind = "directive"      }
+sealed trait Group          extends AuthorizationType { def authzKind = "group"          }
+sealed trait Node           extends AuthorizationType { def authzKind = "node"           }
+sealed trait Rule           extends AuthorizationType { def authzKind = "rule"           }
+sealed trait Technique      extends AuthorizationType { def authzKind = "technique"      }
 sealed trait UserAccount    extends AuthorizationType { def authzKind = "userAccount"    }
+sealed trait Validator      extends AuthorizationType { def authzKind = "validator"      }
 
 final object AuthorizationType {
 
@@ -88,33 +89,22 @@ final object AuthorizationType {
   final case object NoRights  extends AuthorizationType { val authzKind = "no"  ; val action = "rights" }
   final case object AnyRights extends AuthorizationType { val authzKind = "any" ; val action = "rights" }
 
-  final case object Deployer {
-    final case object Read  extends Deployer with ActionType.Read  with AuthorizationType
-    final case object Edit  extends Deployer with ActionType.Edit  with AuthorizationType
-    final case object Write extends Deployer with ActionType.Write with AuthorizationType
-
     // can't use sealerate here: "knownDirectSubclasses of observed before subclass ... registered"
     // I'm not sure exactly how/why it bugs. It's only for object where ".values" is used
     // in Role.
-    def values = Set(Read, Edit, Write)
-  }
-
-  final case object Validator {
-    final case object Read  extends Validator with ActionType.Read  with AuthorizationType
-    final case object Edit  extends Validator with ActionType.Edit  with AuthorizationType
-    final case object Write extends Validator with ActionType.Write with AuthorizationType
-
-    def values = Set(Read, Edit, Write)
-  }
 
   final case object Administration {
     final case object Read  extends Administration with ActionType.Read  with AuthorizationType
     final case object Edit  extends Administration with ActionType.Edit  with AuthorizationType
     final case object Write extends Administration with ActionType.Write with AuthorizationType
-
     def values = Set(Read, Edit, Write)
   }
-
+  final case object Compliance {
+    final case object Read  extends Compliance with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Compliance with ActionType.Edit  with AuthorizationType
+    final case object Write extends Compliance with ActionType.Write with AuthorizationType
+    def values = Set(Read, Edit, Write)
+  }
   final case object Configuration {
     final case object Read  extends Configuration with ActionType.Read  with AuthorizationType
     final case object Edit  extends Configuration with ActionType.Edit  with AuthorizationType
@@ -122,67 +112,65 @@ final object AuthorizationType {
 
     def values = Set(Read, Edit, Write)
   }
-
+  final case object Deployer {
+    final case object Read  extends Deployer with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Deployer with ActionType.Edit  with AuthorizationType
+    final case object Write extends Deployer with ActionType.Write with AuthorizationType
+    def values = Set(Read, Edit, Write)
+  }
   final case object Deployment {
     final case object Read  extends Deployment with ActionType.Read  with AuthorizationType
     final case object Edit  extends Deployment with ActionType.Edit  with AuthorizationType
     final case object Write extends Deployment with ActionType.Write with AuthorizationType
-
     def values = Set(Read, Edit, Write)
   }
-
   final case object Directive {
     final case object Read  extends Directive with ActionType.Read  with AuthorizationType
     final case object Edit  extends Directive with ActionType.Edit  with AuthorizationType
     final case object Write extends Directive with ActionType.Write with AuthorizationType
-
     def values = Set(Read, Edit, Write)
   }
-
   final case object Group {
     final case object Read  extends Group with ActionType.Read  with AuthorizationType
     final case object Edit  extends Group with ActionType.Edit  with AuthorizationType
     final case object Write extends Group with ActionType.Write with AuthorizationType
-
     def values = Set(Read, Edit, Write)
   }
-
   final case object Node {
     final case object Read  extends Node with ActionType.Read  with AuthorizationType
     final case object Edit  extends Node with ActionType.Edit  with AuthorizationType
     final case object Write extends Node with ActionType.Write with AuthorizationType
-
     def values = Set(Read, Edit, Write)
   }
-
   final case object Rule {
     final case object Read  extends Rule with ActionType.Read  with AuthorizationType
     final case object Edit  extends Rule with ActionType.Edit  with AuthorizationType
     final case object Write extends Rule with ActionType.Write with AuthorizationType
-
     def values = Set(Read, Edit, Write)
   }
-
   final case object Technique {
     final case object Read  extends Technique with ActionType.Read  with AuthorizationType
     final case object Edit  extends Technique with ActionType.Edit  with AuthorizationType
     final case object Write extends Technique with ActionType.Write with AuthorizationType
-
     def values = Set(Read, Edit, Write)
   }
-
   final case object UserAccount {
     final case object Read  extends UserAccount with ActionType.Read  with AuthorizationType
     final case object Edit  extends UserAccount with ActionType.Edit  with AuthorizationType
     final case object Write extends UserAccount with ActionType.Write with AuthorizationType
-
+    def values = Set(Read, Edit, Write)
+  }
+  final case object Validator {
+    final case object Read  extends Validator with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Validator with ActionType.Edit  with AuthorizationType
+    final case object Write extends Validator with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
 
   def configurationKind: Set[AuthorizationType] = Configuration.values ++ Rule.values ++ Directive.values ++ Technique.values
   def nodeKind: Set[AuthorizationType] = Node.values ++ Group.values
   def workflowKind: Set[AuthorizationType] = Validator.values ++ Deployer.values
-  def complianceKind: Set[AuthorizationType] = (nodeKind ++ configurationKind).collect { case x: ActionType.Read  => x }
+  def complianceKind: Set[AuthorizationType] = Compliance.values ++ (nodeKind ++ configurationKind).collect { case x: ActionType.Read  => x }
   def allKind: Set[AuthorizationType] = ca.mrvisser.sealerate.collect[AuthorizationType] - NoRights
 }
 

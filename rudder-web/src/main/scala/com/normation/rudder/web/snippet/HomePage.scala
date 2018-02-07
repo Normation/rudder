@@ -173,7 +173,7 @@ class HomePage extends Loggable {
       n3 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Get rules: ${n3 - n2}ms")
       reports   <- reportingService.findRuleNodeStatusReports(nodeInfos.keySet, userRules)
-
+      global    <- reportingService.getGlobalUserCompliance()
       n4 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Compute Rule Node status reports for all nodes: ${n4 - n3}ms")
       _ = TimingDebugLogger.debug(s"Compute compliance: ${n4 - n2}ms")
@@ -240,8 +240,8 @@ class HomePage extends Loggable {
           JsObj (
             "pending" ->
               JsObj (
-                  "nodes" -> pending
-                , "percent"  -> (pending * 100.0  / numberOfNodes).round
+                  "nodes"   -> pending
+                , "percent" -> (pending * 100.0  / numberOfNodes).round
               )
           , "active"  -> (numberOfNodes - pending)
         )
@@ -255,12 +255,13 @@ class HomePage extends Loggable {
       val diagramColor = JsObj(sorted.map(_.jsColor):_*)
 
       // Data used for compliance bar, compliance without pending
-      val compliance = ComplianceLevel.sum(reports.flatMap( _._2.report.reports.toSeq.map( _.compliance))).copy(pending = 0)
-
-      import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
-      val complianceBar = compliance.toJsArray
-
-      val globalCompliance = compliance.complianceWithoutPending.round
+      val (complianceBar, globalCompliance) = global match {
+        case Some((bar, value)) =>
+          import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
+          (bar.copy(pending = 0).toJsArray, value)
+        case None =>
+          (JsArray(Nil), -1L)
+      }
 
       val n4 = System.currentTimeMillis
       TimingDebugLogger.debug(s"Compute compliance for HomePage: ${n4 - n2}ms")
