@@ -40,7 +40,7 @@ package com.normation.rudder.services.reports
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import org.joda.time._
-import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.{GlobalPolicyMode, RuleId}
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.repository._
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
@@ -50,12 +50,12 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.services.nodes.NodeInfoService
+
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.ReportsDisabled
-import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.nodes.NodeState
 
 /**
@@ -63,12 +63,12 @@ import com.normation.rudder.domain.nodes.NodeState
  * Just the composition of the two defaults implementation.
  */
 class ReportingServiceImpl(
-    val confExpectedRepo    : FindExpectedReportRepository
-  , val reportsRepository   : ReportsRepository
-  , val agentRunRepository  : RoReportsExecutionRepository
-  , val runIntervalService  : AgentRunIntervalService
-  , val nodeInfoService     : NodeInfoService
-  , val directivesRepo      : RoDirectiveRepository
+    val confExpectedRepo        : FindExpectedReportRepository
+  , val reportsRepository       : ReportsRepository
+  , val agentRunRepository      : RoReportsExecutionRepository
+  , val runIntervalService      : AgentRunIntervalService
+  , val nodeInfoService         : NodeInfoService
+  , val directivesRepo          : RoDirectiveRepository
   , val getGlobalComplianceMode : () => Box[GlobalComplianceMode]
   , val getGlobalPolicyMode     : () => Box[GlobalPolicyMode]
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with DefaultFindRuleNodeStatusReports
@@ -78,6 +78,7 @@ class CachedReportingServiceImpl(
   , val nodeInfoService                 : NodeInfoService
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with CachedFindRuleNodeStatusReports {
   val confExpectedRepo = defaultFindRuleNodeStatusReports.confExpectedRepo
+  val directivesRepo   = defaultFindRuleNodeStatusReports.directivesRepo
 }
 
 /**
@@ -88,6 +89,8 @@ class CachedReportingServiceImpl(
 trait RuleOrNodeReportingServiceImpl extends ReportingService {
 
   def confExpectedRepo: FindExpectedReportRepository
+  def directivesRepo  : RoDirectiveRepository
+  def nodeInfoService : NodeInfoService
 
   override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = {
     //here, the logic is ONLY to get the node for which that rule applies and then step back
@@ -113,6 +116,50 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     }
   }
 
+  def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = {
+
+    for {
+      systemDirectiveIds <- directivesRepo.getFullDirectiveLibrary().map( _.allDirectives.values.collect{ case(at, d) if(at.isSystem) => d.id }.toSet)
+      nodeIds            <- nodeInfoService.getAll().map( _.keySet )
+      reports            <- findRuleNodeStatusReports(nodeIds, Set())
+    } yield {
+
+      //filter anything marked as system
+      val globalReports = reports.values.toList.flatMap { r =>
+
+        val filtered = r.report.reports.flatMap(x => x.withFilteredElements(
+            (d: DirectiveStatusReport) => !systemDirectiveIds.contains( d.directiveId )
+          , _ => true // components are not filtered
+          , _ => true // values are not filtered
+        ))
+
+        if(filtered.isEmpty) {
+          None
+        } else {
+          Some(
+            NodeStatusReport.applyByNode(
+                r.nodeId
+              , r.runInfo
+              , r.statusInfo
+              , filtered
+            )
+          )
+        }
+      }
+
+
+      // if we don't have any report that is not a system one, the user-rule global compliance is undefined
+      if(globalReports.isEmpty) {
+        None
+      } else { // aggregate values
+        val complianceLevel = ComplianceLevel.sum(reports.flatMap( _._2.report.reports.toSeq.map( _.compliance)))
+        Some((
+            complianceLevel
+          , complianceLevel.complianceWithoutPending.round
+        ))
+      }
+    }
+  }
 }
 
 trait CachedFindRuleNodeStatusReports extends ReportingService with CachedRepository with Loggable {

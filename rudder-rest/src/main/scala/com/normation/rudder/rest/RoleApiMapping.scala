@@ -86,82 +86,76 @@ object RoleApiMapping {
   }
 
   def mapAuthorization(authz: AuthorizationType): List[ApiAuthz] = {
+    import AuthorizationType._
+
     authz match {
-      case AuthorizationType.NoRights  => Nil
-      case AuthorizationType.AnyRights => ApiAcl.allAuthz.acl
+      case NoRights             => Nil
+      case AnyRights            => ApiAcl.allAuthz.acl
       // Administration is Rudder setting
-      case AuthorizationType.Administration.Read  =>
-        SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: Nil
-      case AuthorizationType.Administration.Write =>
-        SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: Nil
-      case AuthorizationType.Administration.Edit  =>
-        SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: Nil
+
+      case Administration.Read  => SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: Nil
+      case Administration.Write => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: Nil
+      case Administration.Edit  => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: Nil
+
+      case Compliance.Read      => ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x ::
+                                   ComplianceApi.GetRulesComplianceId.x :: ComplianceApi.GetNodesCompliance.x ::
+                                   ComplianceApi.GetNodeComplianceId.x :: Nil
+      case Compliance.Write     => Nil
+      case Compliance.Edit      => Nil
+
       // Configuration doesn't give API rights.
       // But as nothing manage parameter API, I think it's the correct place
       // to add it.
-      case AuthorizationType.Configuration.Read   =>
-        ParameterApi.ListParameters.x :: ParameterApi.ParameterDetails.x :: Nil
-      case AuthorizationType.Configuration.Write  =>
-        ParameterApi.CreateParameter.x :: ParameterApi.DeleteParameter.x :: Nil
-      case AuthorizationType.Configuration.Edit   =>
-        ParameterApi.UpdateParameter.x :: Nil
-      case AuthorizationType.Node.Read   =>
-        NodeApi.ListAcceptedNodes.x :: NodeApi.ListPendingNodes.x :: NodeApi.NodeDetails.x ::
-        // node read also allows to read some settings
-        AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode") :: Nil ) ::
-        AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode_overridable") :: Nil ) ::
-        Nil
-      case AuthorizationType.Node.Write  =>
-        NodeApi.DeleteNode.x :: NodeApi.ChangePendingNodeStatus.x :: NodeApi.ChangePendingNodeStatus2.x ::
-        NodeApi.ApplyPocicyAllNodes.x :: NodeApi.ApplyPolicy.x :: Nil
-      case AuthorizationType.Node.Edit   =>
-        NodeApi.UpdateNode.x :: Nil
-      case AuthorizationType.Directive.Read   =>
-        DirectiveApi.ListDirectives.x :: DirectiveApi.DirectiveDetails.x :: Nil
-      case AuthorizationType.Directive.Write  =>
-        DirectiveApi.CreateDirective.x :: DirectiveApi.DeleteDirective.x :: DirectiveApi.CheckDirective.x :: Nil
-      case AuthorizationType.Directive.Edit   =>
-        DirectiveApi.UpdateDirective.x :: Nil
-      case AuthorizationType.Technique.Read   =>
-        TechniqueApi.ListTechniques.x :: TechniqueApi.ListTechniquesDirectives.x :: TechniqueApi.ListTechniqueDirectives.x :: Nil
-      case AuthorizationType.Technique.Write  =>
-        Nil
-      case AuthorizationType.Technique.Edit   =>
-        Nil
-      case AuthorizationType.Group.Read   =>
-        GroupApi.ListGroups.x :: GroupApi.GroupDetails.x :: GroupApi.GetGroupTree.x :: GroupApi.GetGroupCategoryDetails.x :: Nil
-      case AuthorizationType.Group.Write  =>
-        GroupApi.CreateGroup.x :: GroupApi.DeleteGroup.x :: GroupApi.ReloadGroup.x ::
-        GroupApi.DeleteGroupCategory.x :: GroupApi.CreateGroupCategory.x :: Nil
-      case AuthorizationType.Group.Edit   =>
-        GroupApi.UpdateGroup.x :: GroupApi.UpdateGroupCategory.x :: Nil
-      case AuthorizationType.Validator.Read   =>
-        ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
-      case AuthorizationType.Validator.Write  =>
-        ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
-      case AuthorizationType.Validator.Edit   =>
-        ChangeRequestApi.UpdateRequestsDetails.x :: Nil
-      case AuthorizationType.Deployer.Read   =>
-        ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
-      case AuthorizationType.Deployer.Write  =>
-        ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
-      case AuthorizationType.Deployer.Edit   =>
-        ChangeRequestApi.UpdateRequestsDetails.x :: Nil
-      case AuthorizationType.Deployment.Read   => Nil
-      case AuthorizationType.Deployment.Write  => Nil
-      case AuthorizationType.Deployment.Edit   => Nil
-      case AuthorizationType.Rule.Read   =>
-        RuleApi.ListRules.x :: RuleApi.RuleDetails.x :: RuleApi.GetRuleTree.x :: RuleApi.GetRuleCategoryDetails.x :: Nil
-      case AuthorizationType.Rule.Write  =>
-        RuleApi.CreateRule.x :: RuleApi.DeleteRule.x :: RuleApi.CreateRuleCategory.x :: RuleApi.DeleteRuleCategory.x :: Nil
-      case AuthorizationType.Rule.Edit   =>
-        RuleApi.UpdateRule.x :: RuleApi.UpdateRuleCategory.x :: Nil
-      case AuthorizationType.UserAccount.Read =>
-        UserApi.GetApiToken.x :: Nil
-      case AuthorizationType.UserAccount.Write =>
-        Nil
-      case AuthorizationType.UserAccount.Edit =>
-        UserApi.CreateApiToken.x :: UserApi.DeleteApiToken.x :: Nil
+      case Configuration.Read   => ParameterApi.ListParameters.x :: ParameterApi.ParameterDetails.x :: Nil
+      case Configuration.Write  => ParameterApi.CreateParameter.x :: ParameterApi.DeleteParameter.x :: Nil
+      case Configuration.Edit   => ParameterApi.UpdateParameter.x :: Nil
+
+      case Deployment.Read      => Nil
+      case Deployment.Write     => Nil
+      case Deployment.Edit      => Nil
+
+      case Deployer.Read        => ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
+      case Deployer.Write       => ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
+      case Deployer.Edit        => ChangeRequestApi.UpdateRequestsDetails.x :: Nil
+
+      case Directive.Read       => DirectiveApi.ListDirectives.x :: DirectiveApi.DirectiveDetails.x :: Nil
+      case Directive.Write      => DirectiveApi.CreateDirective.x :: DirectiveApi.DeleteDirective.x ::
+                                   DirectiveApi.CheckDirective.x :: Nil
+      case Directive.Edit       => DirectiveApi.UpdateDirective.x :: Nil
+
+      case Group.Read           => GroupApi.ListGroups.x :: GroupApi.GroupDetails.x :: GroupApi.GetGroupTree.x ::
+                                   GroupApi.GetGroupCategoryDetails.x :: Nil
+      case Group.Write          => GroupApi.CreateGroup.x :: GroupApi.DeleteGroup.x :: GroupApi.ReloadGroup.x ::
+                                   GroupApi.DeleteGroupCategory.x :: GroupApi.CreateGroupCategory.x :: Nil
+      case Group.Edit           => GroupApi.UpdateGroup.x :: GroupApi.UpdateGroupCategory.x :: Nil
+
+      case Node.Read            => NodeApi.ListAcceptedNodes.x :: NodeApi.ListPendingNodes.x :: NodeApi.NodeDetails.x ::
+                                   // node read also allows to read some settings
+                                   AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode") :: Nil ) ::
+                                   AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode_overridable") :: Nil ) ::
+                                   Nil
+      case Node.Write           => NodeApi.DeleteNode.x :: NodeApi.ChangePendingNodeStatus.x :: NodeApi.ChangePendingNodeStatus2.x ::
+                                   NodeApi.ApplyPocicyAllNodes.x :: NodeApi.ApplyPolicy.x :: Nil
+      case Node.Edit            => NodeApi.UpdateNode.x :: Nil
+
+      case Rule.Read            => RuleApi.ListRules.x :: RuleApi.RuleDetails.x :: RuleApi.GetRuleTree.x ::
+                                   RuleApi.GetRuleCategoryDetails.x :: Nil
+      case Rule.Write           => RuleApi.CreateRule.x :: RuleApi.DeleteRule.x :: RuleApi.CreateRuleCategory.x ::
+                                   RuleApi.DeleteRuleCategory.x :: Nil
+      case Rule.Edit            => RuleApi.UpdateRule.x :: RuleApi.UpdateRuleCategory.x :: Nil
+
+      case Technique.Read       => TechniqueApi.ListTechniques.x :: TechniqueApi.ListTechniquesDirectives.x ::
+                                   TechniqueApi.ListTechniqueDirectives.x :: Nil
+      case Technique.Write      => Nil
+      case Technique.Edit       => Nil
+
+      case UserAccount.Read     => UserApi.GetApiToken.x :: Nil
+      case UserAccount.Write    => Nil
+      case UserAccount.Edit     => UserApi.CreateApiToken.x :: UserApi.DeleteApiToken.x :: Nil
+
+      case Validator.Read       => ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
+      case Validator.Write      => ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
+      case Validator.Edit       => ChangeRequestApi.UpdateRequestsDetails.x :: Nil
     }
   }
 }

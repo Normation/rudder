@@ -77,9 +77,6 @@ class CheckApiTokenAcl(
     mapper.serApiAcl(ApiAcl(authzs.toList))
   }
 
-  println("default acl: " + defaultAcl)
-
-
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
     import com.normation.inventory.ldap.core.LDAPConstants.A_NAME

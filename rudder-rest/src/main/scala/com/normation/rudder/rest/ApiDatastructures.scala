@@ -623,7 +623,7 @@ trait BuildHandler[REQ, RESP, T, P] {
                 // when the response is created.
 
                 val start = System.currentTimeMillis()
-                logger.trace("Executing handler for '${info.action.name} ${info.path.value}'")
+                logger.trace(s"Executing handler for '${info.action.name} ${info.path.value}'")
                 val exec = api.handler(endpoint.version, info.path, resources, req, params, token)
                 logger.debug(s"Handler for '${info.action.name} ${info.path.value}' executed in ${System.currentTimeMillis() - start} ms")
                 exec

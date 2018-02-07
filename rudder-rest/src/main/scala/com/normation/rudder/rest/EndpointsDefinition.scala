@@ -82,6 +82,10 @@ object ComplianceApi {
     val description = "Get compliance information for the given node"
     val (action, path)  = GET / "compliance" / "nodes" / "{id}"
   }
+  final case object GetGlobalCompliance extends ComplianceApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
+    val description = "Get the global compliance (alike what one has on Rudder main dashboard)"
+    val (action, path)  = GET / "compliance"
+  }
 
   def endpoints = ca.mrvisser.sealerate.values[ComplianceApi].toList.sortBy( _.z )
 }
