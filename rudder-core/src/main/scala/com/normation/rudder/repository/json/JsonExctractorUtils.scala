@@ -80,7 +80,7 @@ trait JsonExctractorUtils[A[_]] {
     extractJson(json, key, jsonValueFun, { case obj : JObject => obj } )
   }
 
-  def extractJsonListString[T] (json: JValue, key: String)( convertTo: List[String] => Box[T] ): Box[A[T]] = {
+  def extractJsonListString[T] (json: JValue, key: String, convertTo: List[String] => Box[T] = boxedIdentity[List[String]]): Box[A[T]] = {
     json \ key match {
       case JArray(values) =>
         (for {

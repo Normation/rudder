@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2018 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -30,33 +30,21 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-
 *
 *************************************************************************************
 */
-package com.normation.rudder.api
 
-import com.normation.utils.HashcodeCaching
-import com.normation.rudder.domain.policies.SimpleDiff
-import org.joda.time.DateTime
+package com.normation.rudder.utils
 
-/**
- * That file define "diff" object between ApiAccounts.
- */
+import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 
-sealed trait ApiAccountDiff
-
-final case class AddApiAccountDiff(apiAccount:ApiAccount) extends ApiAccountDiff with HashcodeCaching
-
-final case class DeleteApiAccountDiff(apiAccount:ApiAccount) extends ApiAccountDiff with HashcodeCaching
-
-final case class ModifyApiAccountDiff(
-    id                     : ApiAccountId
-  , modName                : Option[SimpleDiff[String]]   = None
-  , modToken               : Option[SimpleDiff[String]]   = None
-  , modDescription         : Option[SimpleDiff[String]]   = None
-  , modIsEnabled           : Option[SimpleDiff[Boolean]]  = None
-  , modTokenGenerationDate : Option[SimpleDiff[DateTime]] = None
-  , modExpirationDate      : Option[SimpleDiff[Option[DateTime]]] = None
-  , modAccountKind         : Option[SimpleDiff[ApiAccountKind]] = None
-) extends ApiAccountDiff with HashcodeCaching
+object Utils {
+      // Either[String, T] => Box[T] with the obvious semantic
+    implicit def eitherToBox[A](res: Either[String, A]): Box[A] = res match {
+      case Left(s)  => Failure(s, Empty, Empty)
+      case Right(a) => Full(a)
+    }
+}

@@ -16,12 +16,6 @@
       padding: 0;
       list-style-type: none;
     }
-    #accountGrid td {
-      border  : 1px solid #B4B3A8;
-    }
-    #accountGrid > tbody > tr > td:nth-child(3) {
-      color: #fff;
-    }
     #accounts li{
       display: inline;
       float:left;
@@ -37,11 +31,17 @@
     .btn.space-top{
       margin-top:10px;
     }
+    .btn.delete-button{
+      margin-left:10px;
+    }
+    #newAccount-expiration {
+      width:100%
+    }
   </style>
   <script data-lift="with-cached-resource" src="/javascript/rudder/angular/apiAccount.js" ></script>
 </head>
-<div class="portlet" ng-app="accountManagement" id="accountManagement">
-  <div class="portlet-content">
+<div class="portlet tw-bs" ng-app="accountManagement" id="accountManagement">
+  <div class="portlet-content" ng-cloak>
     <div class="inner-portlet">
       <div class="page-title">Configure allowed accounts</div>
       <div class="portlet-content">
@@ -57,7 +57,7 @@
             </p>
           </div>
         </div>
-        <div ng-controller="AccountCtrl">
+        <div ng-controller="AccountCtrl" class="tw-bs">
           <div ng-show="errorTable" style="width:100%; text-align:center; color:red" ng-cloak> {{errorTable.errorDetails}} </div>
           <lift:authz role="administration_write">
             <span class="tw-bs">
@@ -66,17 +66,38 @@
               </button>
             </span>
           </lift:authz>
-          <table datatables="overrideOptions" ao-column-defs="columnDefs" aa-data="accounts" id="accountGrid" refresh="getAccounts">
+          <table datatable="ng" dt-options="options" class="table-striped table-hover table-bordered table" id="accountGrid" >
             <thead>
               <tr class="head tablewidth">
-                <th style="width:100px">Account Name</th>
-                <th style="width:250px">Token</th>
-                <th style="width:50px">Status</th>
-                <th style="border-right:none; width:20px;">Actions</th>
-                <th style="border-left:none; border-right:none; width:20px;"></th>
-                <th style="border-left:none; width:20px;"></th>
+                <th >Account Name</th>
+                <th >Token</th>
+                <th >Expiration date</th>
+                <th >Actions</th>
               </tr>
             </thead>
+            <tbody>
+              <tr ng-repeat="account in accounts track by $index">
+                <td >
+                <span >
+                  {{account.name}} <span ng-if="account.description" data-toggle="tooltip" data-placement="top" data-html="true" title={{account.description}} class="bsTooltip fa fa-question-circle info-icon"></span>
+                </span> 
+                </td>
+                <td>
+                  <button class="btn btn-default reload-token" ng-click="popupDeletion(account,regenerateAccount,'Regenerate token of')">
+                    <span class="fa fa-repeat"></span>
+                  </button>
+                  {{account.token}}
+                </td>
+                <td>
+                  {{account.expirationDate !== undefined ? account.expirationDate : "Never"}}
+                </td>
+                <td>
+                  <button class='btn btn-default' ng-click="popupCreation(account, $index)"><span class="fa fa-pencil"></span></button>
+                  <toggle on="Enabled" off="Disabled" ng-model="account.enabled" onstyle="btn-success" offstyle="btn-grey" ng-change="saveAccount(account,false)" ></toggle>
+                  <button class='btn btn-danger delete-button' ng-click="popupDeletion(account,deleteAccount,'Delete');"><span class="fa fa-times-circle"></span></button>
+                </td>
+              </tr>
+            </tbody>
           </table>
           <div class="accountGrid_pagination, paginatescala" >
             <div id="accountGrid_paginate_area"></div>
@@ -100,18 +121,32 @@
                   <div class="modal-body">
                     <form name="newAccount">
                         <div class="form-group" class="" ng-class="{'has-error': newAccount.$invalid && !newAccount.$pristine}">
-                            <label class="control-label col-lg-3 col-sm-12 col-xs-12 valign"><b>Name</b></label>
-                            <input type="text" class="form-control col-lg-9 col-sm-12 col-xs-12 float-inherit"  valid-empty="valid-empty" ng-model="myNewAccount.name" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()">
+                            <label for="newAccount-name"><b>Name</b></label>
+                            <input id="newAccount-name" type="text" class="form-control float-inherit" valid-empty="valid-empty" ng-model="myNewAccount.name" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()">
                             <div ng-show="errorPopup" class="text-danger">{{errorPopup.errorDetails}}</div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-lg-3 col-sm-12 col-xs-12 valign">Description</label>
-                            <textarea class="form-control vresize col-lg-9 col-sm-12 col-xs-12 float-inherit"></textarea>
+                            <label for="newAccount-description">Description</label>
+                            <textarea id="newAccount-description" class="form-control vresize float-inherit" ng-model="myNewAccount.description"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="newAccount-expiration">Expiration date</label>
+                            <input id="newAccount-expiration" type="text" ng-model="myNewAccount.expirationDate" class="form-control vresize float-inherit"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="newAccount-access">Access level</label>
+                            <select id="newAccount-access" class="form-control vresize float-inherit" ng-model="myNewAccount.authorizationType">
+                              <option value="none">No Access</option>
+                              <option value="ro">Read only</option>
+                              <option value="rw">Full access</option>
+                              <option ng-disabled="true" value="acl"> Custom ACL</option>
+                            </select>
                         </div>
                     </form>
                   </div>
                   <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="newAccount.$setPristine();">Close</button>
                     <input type="submit" class="btn btn-success" ng-disabled="newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" value="{{defineActionName(formTitle(myNewAccount))}}">
                   </div>
                 </div>
@@ -146,7 +181,7 @@
                   </div>
                   <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <button id="dialogRemoveButton" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index);myOldAccount=undefined;" class="btn" ng-class="{'btn btn-danger':myOldAccount.actionName=='Delete' , 'btn btn-primary':myOldAccount.actionName!='Delete'}">{{defineActionName(myOldAccount.actionName)}}</button>
+                    <button id="dialogRemoveButton" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index)" class="btn" ng-class="{'btn btn-danger':myOldAccount.actionName=='Delete' , 'btn btn-primary':myOldAccount.actionName!='Delete'}">{{myOldAccount.actionName.split(' ')[0]}}</button>
                   </div>
                 </div>
               </div>
