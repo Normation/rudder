@@ -239,8 +239,6 @@ trait GitArchiverFullCommitUtils extends Loggable {
    */
   def getTags() : Box[Map[DateTime, GitArchiveId]] = {
     tryo {
-//      TODO: use that when JGit version > 1.2
-//      gitRepo.git.tagList.call.flatMap { revTag =>
       listTagWorkaround.flatMap { revTag =>
           val name = revTag.getTagName
           if(name.startsWith(tagPrefix)) {
@@ -267,10 +265,9 @@ trait GitArchiverFullCommitUtils extends Loggable {
    * They used a workaround here:
    * http://git.eclipse.org/c/orion/org.eclipse.orion.server.git/commit/?id=5fca49ced7f0c220472c724678884ee84d13e09d
    *
-   * For now, we will just ignore tag which are no real tags
-   *
-   * When the upgrade is done to JGit > 1.2, replace the call to
-   * listTagWorkaround in getTags by "gitRepo.git.tagList.call"
+   * But the correction with `gitRepo.git.tagList.call` does not provide a
+   * much easier access, since it returns a REF that need to be parsed..
+   * So just keep the working workaround.
    */
   private[this] def listTagWorkaround = {
     import java.io.IOException
