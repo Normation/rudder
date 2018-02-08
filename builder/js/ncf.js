@@ -871,7 +871,10 @@ $scope.groupMethodsByCategory = function () {
       param=""
     }
     // do not canonify what is between ${ }
-    param = param.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/[^\${}\w](?![^{}]+})|\$(?!{)/g,"_");
+    // regex description: replace every valid sequence followed by and invalid char with the sequence followed by _
+    //                    a valid sequence is either a word or a ${} expression
+    //                    a ${} expression can contain a word, dots, []'s, or a variable replacement (recursion is not managed)
+    param = param.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/(\w+|\$\{(?:[\w\.\[\]]|\$\{[\w\.\[\]]+?\})+?\})?[^\$\w]/g,"$1_");
     return  $scope.getClassPrefix(method_call)+"_"+param +"_"+kind
   }
 
