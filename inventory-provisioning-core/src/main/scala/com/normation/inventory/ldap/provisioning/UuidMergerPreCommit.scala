@@ -63,12 +63,12 @@ object UuidMergerPreCommit {
  *
  */
 class UuidMergerPreCommit(
-    uuidGen:StringUuidGenerator,
-    DIT:InventoryDit,
-    serverIdFinder:NodeInventoryDNFinderAction,
-    machineIdFinder:MachineDNFinderAction,
-    vmIdFinder:MachineDNFinderAction,
-    softwareIdFinder:SoftwareDNFinderAction
+    uuidGen         : StringUuidGenerator
+  , DIT             : InventoryDit
+  , serverIdFinder  : NodeInventoryDNFinderAction
+  , machineIdFinder : MachineDNFinderAction
+  , vmIdFinder      : MachineDNFinderAction
+  , softwareIdFinder: SoftwareDNFinderAction
 ) extends PreCommit {
 
   override val name = "pre_commit_inventory:merge_uuid"
@@ -151,7 +151,7 @@ class UuidMergerPreCommit(
       case Full(x) => x
     } }
 
-    val (finalNode : NodeInventory,finalMachine : MachineInventory) = (mergeNode(node),mergeMachine(report.machine)) match {
+    val (finalNode : NodeInventory, finalMachine : MachineInventory) = (mergeNode(node),mergeMachine(report.machine)) match {
       case (fn : Failure,_) =>
         // Error on node inventory
         logger.error(s"Error when merging node inventory. Reported message: ${fn.messageChain}. Remove machine for saving")
@@ -171,7 +171,7 @@ class UuidMergerPreCommit(
         // Existing node, with machine inventory
         if (node.main.status == machine.status) {
           // All Ok, keep info like this
-          (node,machine)
+          (node.copy(machineId = Some((machine.id, machine.status))), machine)
         } else {
           // Machine and node don't have the same status, update status of the machine by creating a new inventory
           // This will not remove the previous machine inventory with bad info
