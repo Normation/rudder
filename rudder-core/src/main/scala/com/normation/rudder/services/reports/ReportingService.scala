@@ -39,8 +39,7 @@ package com.normation.rudder.services.reports
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.NodeStatusReport
-import com.normation.rudder.domain.reports.RuleStatusReport
+import com.normation.rudder.domain.reports.{ComplianceLevel, NodeStatusReport, RuleStatusReport}
 import net.liftweb.common.Box
 
 /**
@@ -66,4 +65,13 @@ trait ReportingService {
    */
   def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport]
 
+
+ /**
+  * Get the global compliance, restricted to user defined rules/directives.
+  * Also get an unique number which describe the global compliance value (without
+  * taking into account pending reports).
+  * It's what is displayed on Rudder home page.
+  * If all rules/directies are system one, returns none.
+  */
+  def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]]
 }

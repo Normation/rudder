@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -35,6 +35,11 @@
 *************************************************************************************
 */
 
+/**
+ * By convention, if the globalGauge value is <0, then we consider that the
+ * compliance information should not be displayed because there is no user-defined rules.
+ * In that case, we just display placehoder texts.
+ */
 function homePage (
     globalCompliance
   , globalGauge
@@ -42,61 +47,76 @@ function homePage (
   , nodeComplianceColors
   , nodeCount
 ) {
-  $("#globalCompliance").append(buildComplianceBar(globalCompliance,8));
-  createTooltip();
+  if(globalGauge < 0) { //put placeholder texte
+    $("#globalCompliance").html("") //let blank
+    $("#globalComplianceStats").html(
+      "<span>You only have system rules. They are ignored in global compliance. "+
+      "Please go to <a href='/rudder/secure/configurationManager/ruleManagement'>rule management</a> to define your rules.</span>"
+    )
+
+    var complianceGauge = document.getElementById('complianceGauge');
+    complianceGauge.getContext('2d').clearRect(0, 0, complianceGauge.width, complianceGauge.height);
+    $("#gauge-value").text("") // let blank
+    var nodeCompliance = document.getElementById('nodeCompliance');
+    nodeCompliance.getContext('2d').clearRect(0, 0, nodeCompliance.width, nodeCompliance.height);
+
+  } else {
+
+    $("#globalCompliance").append(buildComplianceBar(globalCompliance,8));
+    createTooltip();
 
 
-  var allNodes = nodeCount.active;
-  var activeNodes ="<span class='highlight'>" + nodeCount.active + "</span> Nodes."
-  if (nodeCount.active === 1) {
-    activeNodes = "<span class='highlight'>" + nodeCount.active + "</span> Node."
-  }
-  var stats = "Compliance based on "+ activeNodes
-  if (nodeCount.pending !== null) {
-    allNodes += nodeCount.pending.nodes;
-    var pendingNodes = nodeCount.pending.nodes + " Nodes"
-    var verb = "are"
+    var allNodes = nodeCount.active;
+    var activeNodes ="<span class='highlight'>" + nodeCount.active + "</span> Nodes."
     if (nodeCount.active === 1) {
-      pendingNodes = nodeCount.pending.nodes + " Node"
-      verb = "is"
+      activeNodes = "<span class='highlight'>" + nodeCount.active + "</span> Node."
     }
-    stats += " There "+ verb +" also " + pendingNodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
+    var stats = "Compliance based on "+ activeNodes
+    if (nodeCount.pending !== null) {
+      allNodes += nodeCount.pending.nodes;
+      var pendingNodes = nodeCount.pending.nodes + " Nodes"
+      var verb = "are"
+      if (nodeCount.active === 1) {
+        pendingNodes = nodeCount.pending.nodes + " Node"
+        verb = "is"
+      }
+      stats += " There "+ verb +" also " + pendingNodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
+    }
+    $("#globalComplianceStats").html(stats);
+
+    var opts = {
+        lines: 12, // The number of lines to draw
+        angle: 0, // The length of each line
+        lineWidth: 0.44, // The line thickness
+        pointer: {
+          length: 0.9, // The radius of the inner circle
+          strokeWidth: 0.035, // The rotation offset
+          color: '#000000' // Fill color
+        },
+        limitMax: 'false',   // If true, the pointer will not go past the end of the gauge
+        colorStart: '#6FADCF',   // Colors
+        colorStop: '#8FC0DA',    // just experiment with them
+        strokeColor: '#E0E0E0',   // to see which ones work best for you
+        percentColors : [[0.0, "#c9302c" ], [0.30, "#f0ad4e"], [0.50, "#5bc0de"], [1.0, "#9bc832"]],
+        generateGradient: true
+      };
+      var target = document.getElementById('complianceGauge'); // your canvas element
+      var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
+      gauge.maxValue = 100; // set max gauge value
+      gauge.animationSpeed = 25; // set animation speed (32 is default value)
+      // set actual value - there is a bug for value = 0, so let's pretend it's 0.1
+      gauge.set(function() {
+        if(globalGauge == 0) return 0.1;
+        else return globalGauge;
+      }());
+      $("#gauge-value").text(globalGauge+"%");
+
+
+    doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors);
   }
-  $("#globalComplianceStats").html(stats);
-  
-  var opts = {
-      lines: 12, // The number of lines to draw
-      angle: 0, // The length of each line
-      lineWidth: 0.44, // The line thickness
-      pointer: {
-        length: 0.9, // The radius of the inner circle
-        strokeWidth: 0.035, // The rotation offset
-        color: '#000000' // Fill color
-      },
-      limitMax: 'false',   // If true, the pointer will not go past the end of the gauge
-      colorStart: '#6FADCF',   // Colors
-      colorStop: '#8FC0DA',    // just experiment with them
-      strokeColor: '#E0E0E0',   // to see which ones work best for you
-      percentColors : [[0.0, "#c9302c" ], [0.30, "#f0ad4e"], [0.50, "#5bc0de"], [1.0, "#9bc832"]],
-      generateGradient: true
-    };
-    var target = document.getElementById('complianceGauge'); // your canvas element
-    var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
-    gauge.maxValue = 100; // set max gauge value
-    gauge.animationSpeed = 25; // set animation speed (32 is default value)
-    // set actual value - there is a bug for value = 0, so let's pretend it's 0.1
-    gauge.set(function() {
-      if(globalGauge == 0) return 0.1;
-      else return globalGauge;
-    }()); 
-    $("#gauge-value").text(globalGauge+"%");
-
-
-  doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors);
-    
 }
 
-var inventoryColors = 
+var inventoryColors =
   [ 'rgb(54 , 148, 209)'
   , 'rgb(23 , 190, 207)'
   , 'rgb(255, 113, 37 )'
@@ -113,7 +133,7 @@ var inventoryColors =
   ];
 
 function doughnutChart (id,data,count, colors) {
-  
+
   var context = $("#"+id)
 
   var chartData = {
@@ -135,7 +155,7 @@ function doughnutChart (id,data,count, colors) {
       , legendCallback: function(chart) {
         var text = [];
 
-        
+
         text.push('<ul>');
         for (var i=0; i<chart.data.datasets[0].data.length; i++) {
           var removeHighlight = ' onmouseout="closeTooltip(event, \'' + chart.legend.legendItems[i].index + '\', \'' + id + '\')"';
@@ -175,7 +195,7 @@ function doughnutChart (id,data,count, colors) {
         }
       }
   }
-  
+
   var chart = new Chart(context, chartOptions);
   window[id] = chart;
   context.after(chart.generateLegend());
@@ -198,28 +218,28 @@ function doughnutChart (id,data,count, colors) {
 function openTooltip(event ,index, name){
   // Get chart
   var chart = event.view[name];
-  
+
   // Check if the element is already in the 'active' elements of the chart
   if(chart.tooltip._active == undefined)
      chart.tooltip._active = []
   var activeElements = chart.tooltip._active;
-  
+
   // Get our element
   var requestedElem = chart.getDatasetMeta(0).data[index];
-  
+
   // If already in active elements, skip
   for(var i = 0; i < activeElements.length; i++) {
-      if(requestedElem._index == activeElements[i]._index)  
+      if(requestedElem._index == activeElements[i]._index)
          return;
   }
   // Add element
   activeElements.push(requestedElem);
   chart.tooltip._active = activeElements;
-  
+
   // Highlight element
   requestedElem.custom = requestedElem.custom || {};
   requestedElem.custom.backgroundColor = Chart.helpers.getHoverColor(requestedElem._view.backgroundColor)
-  
+
   chart.tooltip.update(true);
   chart.update(0);
   chart.draw();
@@ -229,16 +249,16 @@ function openTooltip(event ,index, name){
 function closeTooltip(e ,index, name){
   // Get chart
   var chart = e.view[name];
-  
+
   // Get active elements
   var activeElements = chart.tooltip._active;
   if(activeElements == undefined || activeElements.length == 0)
     // No elements, nothing to do
     return;
-  
+
   // our element
   var requestedElem = chart.getDatasetMeta(0).data[index];
-  
+
   // Remove our element from active ones
   for(var i = 0; i < activeElements.length; i++) {
       if(requestedElem._index == activeElements[i]._index)  {
@@ -248,10 +268,10 @@ function closeTooltip(e ,index, name){
   }
   chart.tooltip._active = activeElements;
   chart.tooltip.update(true);
-  
+
   // Remove highlight by unsetting custom attributes
   requestedElem.custom =  {};
-  
+
   chart.update(0);
   chart.draw();
 }

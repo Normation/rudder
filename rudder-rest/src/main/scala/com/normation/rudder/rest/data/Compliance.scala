@@ -160,6 +160,26 @@ object ByNodeDirectiveCompliance {
 
 object JsonCompliance {
 
+  //global compliance
+
+  implicit class JsonGlobalCompliance(optCompliance: Option[(ComplianceLevel, Long)]) {
+    def toJson: JValue = {
+      optCompliance match {
+        case Some((details, value)) =>
+          ( "globalCompliance" -> (
+              ("compliance"        -> value)
+            ~ ("complianceDetails" -> percents(details) )
+          ))
+
+        case None =>
+          ( "globalCompliance" -> (
+            ("compliance" -> -1)
+          ))
+      }
+    }
+  }
+
+
   implicit class JsonbyRuleCompliance(rule: ByRuleRuleCompliance) {
     def toJsonV6 = (
         ("id" -> rule.id.value)
