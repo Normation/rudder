@@ -37,10 +37,10 @@
 # For which we gave 6 names:
 # - stateless:     2miss->0job & 2run->2job
 # - no_dups:       2miss->0job & 2run->1job
-# - at_least_once: 2miss->1job & 2run->2job
+# - at_least_once: 2miss->1job & 2run->2job (seems useless)
 # - catch_up:      2miss->1job & 2run->1job
-# - no_miss:       2miss->2job & 2run->2job
-# - exact_count:   2miss->2job & 2run->1job
+# - no_miss:       2miss->2job & 2run->2job (hard to implement)
+# - exact_count:   2miss->2job & 2run->1job (hard to implement)
 
 
 # Stores now(), you can change now()'s result if you want to run tests by calling this bundle with a parameter
