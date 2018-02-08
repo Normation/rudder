@@ -208,7 +208,7 @@ class FusionReportUnmarshaller(
         case "SOUNDS"      => processSound(elt).foreach { x => report = report.copy( machine = report.machine.copy( sounds = x +: report.machine.sounds ) ) }
         case "STORAGES"    => processStorage(elt).foreach { x => report = report.copy( machine = report.machine.copy( storages = x +: report.machine.storages ) ) }
         case "USBDEVICES"  => //TODO only digits for them, not sure we want to keep that as it is.
-        case "USERS"       => //TODO Not sure what is it (only one login ? a logged user ?)
+        case "LOCAL_USERS" => processLocalAccount(elt).foreach { x => report = report.copy(node = report.node.copy( accounts = (x +: report.node.accounts).distinct)) }
         case "VIDEOS"      => processVideo(elt).foreach { x => report = report.copy( machine = report.machine.copy( videos = x +: report.machine.videos ) ) }
         case "VIRTUALMACHINES" => processVms(elt).foreach { x =>  report = report.copy(node  = report.node.copy( vms = x +: report.node.vms) ) }
      // done previously :    case "VERSIONCLIENT" => report = report.copy( version = processVersion(elt))
@@ -503,10 +503,8 @@ class FusionReportUnmarshaller(
        * TYPE :
        * DESCRIPTION : ???
        *      Ex: x86_64/00-00-00 00:47:51
-       * UUID : mother board UUID (system id) - DO NOT EVER USE THAT ! Not reliable !
-       *      Ex: "4454C4C-4D00-104B-8047-C2C04F30354A"
-       *      We don't use that as it is not reliable, and rely on a our MACHINEID extension
-       *      to get the mother board UUID. See RudderMachineIdParsing class.
+       * UUID : mother board UUID (system id) - in 4.1, start to use it again, since it become more reliable
+       *        than our MACHINEID tag.
        *
        * *** Windows only ***
        * ==> processed by OsDetails
@@ -539,7 +537,7 @@ class FusionReportUnmarshaller(
        */
 
     //update machine VM type
-    val newMachine = optText(xml\\"VMSYSTEM") match {
+    val newMachine = (optText(xml\\"VMSYSTEM") match {
       case None => report.machine
       case Some(x) => x.toLowerCase match {
         case "physical" => report.machine.copy(machineType = PhysicalMachineType)
@@ -554,7 +552,7 @@ class FusionReportUnmarshaller(
         case "bsdjail" => report.machine.copy(machineType = VirtualMachineType(BSDJail) )
         case _ => report.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
       }
-    }
+    }).copy(mbUuid = optText(xml \\"UUID").map(MotherBoardUuid.apply(_)).orElse(report.machine.mbUuid))
 
      //    s.name((h\"NAME") text) // what to do with that ?
     val newNode = report.node.copy(
@@ -734,6 +732,13 @@ class FusionReportUnmarshaller(
 
     report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail) ).copy(timezone = timezone, archDescription = arch ) )
 
+  }
+
+  /**
+   * We only keep name in local user account
+   */
+  def processLocalAccount(d: Node) : Option[String] = {
+    optText(d\"LOGIN")
   }
 
   /**
