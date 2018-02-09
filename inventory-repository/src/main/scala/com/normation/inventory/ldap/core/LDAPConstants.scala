@@ -82,6 +82,7 @@ object LDAPConstants {
   val A_KEY_STATUS = "keyStatus"
   val A_TIMEZONE_NAME = "timezoneName"
   val A_TIMEZONE_OFFSET = "timezoneOffset"
+  val A_CUSTOM_PROPERTY = "customProperty"
 
   val A_LIST_OF_IP = "ipHostNumber"
   val A_ARCH = "osArchitectureType"
@@ -338,13 +339,14 @@ object LDAPConstants {
           A_LICENSE_PRODUCT_KEY) )
 
   /**
-   * Operating system types
+   * Node type (with OS)
    */
   OC +=(OC_NODE, sup = OC(OC_TOP),
       must = Set(A_NODE_UUID, A_OS_NAME, A_OS_FULL_NAME, A_OS_VERSION, A_OS_KERNEL_VERSION),
       may = Set(A_NAME,A_DESCRIPTION,A_PKEYS,A_AGENTS_NAME,
           A_CONTAINER_DN,A_SOFTWARE_DN,A_ACCOUNT,A_EV , A_PROCESS ,A_ROOT_USER,A_ARCH, A_LAST_LOGGED_USER, A_LAST_LOGGED_USER_TIME,
-          A_HOSTNAME,A_OS_RAM,A_OS_SWAP, A_LIST_OF_IP, A_OS_SERVICE_PACK, A_SERVER_ROLE, A_KEY_STATUS, A_TIMEZONE_NAME, A_TIMEZONE_OFFSET) )
+          A_HOSTNAME,A_OS_RAM,A_OS_SWAP, A_LIST_OF_IP, A_OS_SERVICE_PACK, A_SERVER_ROLE, A_KEY_STATUS,
+          A_TIMEZONE_NAME, A_TIMEZONE_OFFSET, A_CUSTOM_PROPERTY) )
 
   OC +=(OC_WINDOWS_NODE, sup = OC(OC_NODE),
       may = Set(A_WIN_USER_DOMAIN,A_WIN_COMPANY,A_WIN_KEY,A_WIN_ID) )

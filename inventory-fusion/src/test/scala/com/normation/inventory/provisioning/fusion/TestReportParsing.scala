@@ -43,8 +43,10 @@ import org.specs2.runner._
 import com.normation.utils.StringUuidGeneratorImpl
 import net.liftweb.common._
 import java.io.File
+
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.AgentType._
+import net.liftweb.json.JsonAST.{JBool, JInt, JString}
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -125,6 +127,28 @@ class TestReportParsing extends Specification with Loggable {
 
     "correctly parse the timezone" in {
       report.node.timezone must beEqualTo(Some(NodeTimezone("CEST", "+0200")))
+    }
+  }
+
+  "Custom properties" should {
+    "correctly be parsed" in {
+      import net.liftweb.json.parse
+
+      val expected = List(
+          CustomProperty("hook1_k1", JInt(42))
+        , CustomProperty("hook1_k2", JBool(true))
+        , CustomProperty("hook1_k3", JString("a string"))
+        , CustomProperty("hook2"   , parse("""
+            { "some": "more"
+            , "json": [1, 2, 3]
+            , "deep": { "and": "deeper"}
+            }"""
+          )
+        )
+      )
+
+      val report = parser.parse("fusion-report/sles-10-64-sp3-2011-08-23-16-06-17.ocs")
+      report.node.customProperties must beEqualTo(expected)
     }
   }
 
