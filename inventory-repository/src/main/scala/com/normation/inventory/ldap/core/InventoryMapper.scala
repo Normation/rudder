@@ -65,10 +65,10 @@ class DateTimeSerializer extends Serializer[DateTime] {
   }
 }
 class InventoryMapper(
-    ditService:InventoryDitService
-  , pendingDit:InventoryDit
+    ditService :InventoryDitService
+  , pendingDit :InventoryDit
   , acceptedDit:InventoryDit
-  , removedDit:InventoryDit
+  , removedDit :InventoryDit
 ) extends Loggable {
 
   implicit val formats = Serialization.formats(NoTypeHints) + new DateTimeSerializer
@@ -626,6 +626,34 @@ class InventoryMapper(
     }
   }
 
+  ////////////////// Node Custom Properties /////////////////////////
+  final object CustomPropertiesSerialization {
+
+    import net.liftweb.json._
+
+    /*
+     * CustomProperty serialization must follow NodeProperties one:
+     * {"name":"propkey","value": JVALUE}
+     * with JVALUE either a simple type (string, int, etc) or a valid JSON
+     */
+    implicit class Serialise(cs: CustomProperty) {
+      def toJson: String = {
+        Serialization.write(cs)(DefaultFormats)
+      }
+    }
+
+    implicit class Unserialize(json: String) {
+      def toCustomProperty: Either[Throwable, CustomProperty] = {
+        implicit val formats = DefaultFormats
+        try {
+          Right(Serialization.read[CustomProperty](json))
+        } catch {
+          case ex: Exception => Left(ex)
+        }
+      }
+    }
+  }
+
   //////////////////Node/ NodeInventory /////////////////////////
 
   // User defined properties : the regexp that the data should abide by
@@ -678,12 +706,12 @@ class InventoryMapper(
       case Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId) =>
         val win = dit.NODES.NODE.windowsModel(server.main.id)
         os match {
-          case WindowsXP => win += (A_OS_NAME, A_OS_WIN_XP)
-          case WindowsVista => win += (A_OS_NAME, A_OS_WIN_VISTA)
-          case WindowsSeven => win += (A_OS_NAME, A_OS_WIN_SEVEN)
-          case Windows2000 => win += (A_OS_NAME, A_OS_WIN_2000)
-          case Windows2003 => win += (A_OS_NAME, A_OS_WIN_2003)
-          case Windows2008 => win += (A_OS_NAME, A_OS_WIN_2008)
+          case WindowsXP     => win += (A_OS_NAME, A_OS_WIN_XP)
+          case WindowsVista  => win += (A_OS_NAME, A_OS_WIN_VISTA)
+          case WindowsSeven  => win += (A_OS_NAME, A_OS_WIN_SEVEN)
+          case Windows2000   => win += (A_OS_NAME, A_OS_WIN_2000)
+          case Windows2003   => win += (A_OS_NAME, A_OS_WIN_2003)
+          case Windows2008   => win += (A_OS_NAME, A_OS_WIN_2008)
           case Windows2008R2 => win += (A_OS_NAME, A_OS_WIN_2008_R2)
           case Windows2012   => win += (A_OS_NAME, A_OS_WIN_2012)
           case Windows2012R2 => win += (A_OS_NAME, A_OS_WIN_2012_R2)
@@ -697,35 +725,39 @@ class InventoryMapper(
         win.setOpt(productId, A_WIN_ID, { x: String => x })
         win
     }
-    root +=! (A_OS_FULL_NAME, server.main.osDetails.fullName)
-    root +=! (A_OS_VERSION, server.main.osDetails.version.value)
+    root +=! (A_OS_FULL_NAME      , server.main.osDetails.fullName)
+    root +=! (A_OS_VERSION        , server.main.osDetails.version.value)
     root.setOpt(server.main.osDetails.servicePack, A_OS_SERVICE_PACK, { x:String => x })
-    root +=! (A_OS_KERNEL_VERSION, server.main.osDetails.kernelVersion.value)
-    root +=! (A_ROOT_USER, server.main.rootUser)
-    root +=! (A_HOSTNAME, server.main.hostname)
-    root +=! (A_KEY_STATUS, server.main.keyStatus.value)
+    root +=! (A_OS_KERNEL_VERSION , server.main.osDetails.kernelVersion.value)
+    root +=! (A_ROOT_USER         , server.main.rootUser)
+    root +=! (A_HOSTNAME          , server.main.hostname)
+    root +=! (A_KEY_STATUS        , server.main.keyStatus.value)
     root +=! (A_POLICY_SERVER_UUID, server.main.policyServerId.value)
-    root.setOpt(server.ram, A_OS_RAM, { m: MemorySize => m.size.toString })
-    root.setOpt(server.swap, A_OS_SWAP, { m: MemorySize => m.size.toString })
-    root.setOpt(server.archDescription, A_ARCH, { x: String => x })
-    root.setOpt(server.lastLoggedUser, A_LAST_LOGGED_USER, { x: String => x })
+    root.setOpt(server.ram               , A_OS_RAM, { m: MemorySize => m.size.toString })
+    root.setOpt(server.swap              , A_OS_SWAP, { m: MemorySize => m.size.toString })
+    root.setOpt(server.archDescription   , A_ARCH, { x: String => x })
+    root.setOpt(server.lastLoggedUser    , A_LAST_LOGGED_USER, { x: String => x })
     root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, { x: DateTime => GeneralizedTime(x).toString })
-    root.setOpt(server.inventoryDate, A_INVENTORY_DATE, { x: DateTime => GeneralizedTime(x).toString })
-    root.setOpt(server.receiveDate, A_RECEIVE_DATE, { x: DateTime => GeneralizedTime(x).toString })
-    root +=! (A_AGENTS_NAME, server.agents.map(x => x.toJsonString):_*)
-    root +=! (A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString):_*)
-    root +=! (A_EV, server.environmentVariables.map(x => Serialization.write(x)):_*)
-    root +=! (A_PROCESS, server.processes.map(x => Serialization.write(x)):_*)
-    root +=! (A_LIST_OF_IP, server.serverIps.distinct:_*)
+    root.setOpt(server.inventoryDate     , A_INVENTORY_DATE, { x: DateTime => GeneralizedTime(x).toString })
+    root.setOpt(server.receiveDate       , A_RECEIVE_DATE, { x: DateTime => GeneralizedTime(x).toString })
+    root +=! (A_AGENTS_NAME       , server.agents.map(x => x.toJsonString):_*)
+    root +=! (A_SOFTWARE_DN       , server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString):_*)
+    root +=! (A_EV                , server.environmentVariables.map(x => Serialization.write(x)):_*)
+    root +=! (A_PROCESS           , server.processes.map(x => Serialization.write(x)):_*)
+    root +=! (A_LIST_OF_IP        , server.serverIps.distinct:_*)
     //we don't know their dit...
-    root +=! (A_CONTAINER_DN, server.machineId.map { case (id, status) =>
+    root +=! (A_CONTAINER_DN      , server.machineId.map { case (id, status) =>
       ditService.getDit(status).MACHINES.MACHINE.dn(id).toString
     }.toSeq:_*)
-    root +=! (A_ACCOUNT, server.accounts:_*)
-    root +=! (A_SERVER_ROLE, server.serverRoles.toSeq.map(_.value):_*)
+    root +=! (A_ACCOUNT           , server.accounts:_*)
+    root +=! (A_SERVER_ROLE       , server.serverRoles.toSeq.map(_.value):_*)
     server.timezone.foreach { timezone =>
-      root +=! (A_TIMEZONE_NAME, timezone.name)
-      root +=! (A_TIMEZONE_OFFSET, timezone.offset)
+      root +=! (A_TIMEZONE_NAME   , timezone.name)
+      root +=! (A_TIMEZONE_OFFSET , timezone.offset)
+    }
+    server.customProperties.foreach { cp =>
+      import CustomPropertiesSerialization.Serialise
+      root +=! (A_CUSTOM_PROPERTY, cp.toJson)
     }
 
     val tree = LDAPTree(root)
@@ -773,10 +805,10 @@ class InventoryMapper(
   def mapSeqStringToMachineIdAndStatus(set:Set[String]) : Seq[(MachineUuid,InventoryStatus)] = {
     set.toSeq.flatMap { x =>
       (for {
-        dn <- try { Full(new DN(x)) } catch { case e:LDAPException => Failure("Can not parse DN %s".format(x), Full(e),Empty) }
-        dit <- ditService.getDit(dn) ?~! "Can not find DIT from DN %s".format(x)
+        dn   <- try { Full(new DN(x)) } catch { case e:LDAPException => Failure("Can not parse DN %s".format(x), Full(e),Empty) }
+        dit  <- ditService.getDit(dn) ?~! "Can not find DIT from DN %s".format(x)
         uuid <- dit.MACHINES.MACHINE.idFromDN(dn) ?~! "Can not map DN to machine ID"
-        st = ditService.getInventoryStatus(dit)
+        st   =  ditService.getInventoryStatus(dit)
       } yield (uuid,st) ) match {
         case Full(st) => List(st)
         case e:EmptyBox =>
@@ -796,37 +828,37 @@ class InventoryMapper(
       osServicePack =  entry(A_OS_SERVICE_PACK)
       osDetails     <- if(entry.isA(OC_WINDOWS_NODE)) {
                           val os = osName match {
-                            case A_OS_WIN_XP => WindowsXP
-                            case A_OS_WIN_VISTA => WindowsVista
-                            case A_OS_WIN_SEVEN => WindowsSeven
-                            case A_OS_WIN_2000 => Windows2000
-                            case A_OS_WIN_2003 => Windows2003
-                            case A_OS_WIN_2008 => Windows2008
+                            case A_OS_WIN_XP      => WindowsXP
+                            case A_OS_WIN_VISTA   => WindowsVista
+                            case A_OS_WIN_SEVEN   => WindowsSeven
+                            case A_OS_WIN_2000    => Windows2000
+                            case A_OS_WIN_2003    => Windows2003
+                            case A_OS_WIN_2008    => Windows2008
                             case A_OS_WIN_2008_R2 => Windows2008R2
-                            case A_OS_WIN_2012 => Windows2012
+                            case A_OS_WIN_2012    => Windows2012
                             case A_OS_WIN_2012_R2 => Windows2012R2
-                            case A_OS_WIN_2016 => Windows2016
+                            case A_OS_WIN_2016    => Windows2016
                             case A_OS_WIN_2016_R2 => Windows2016R2
-                            case _ => UnknownWindowsType
+                            case _                => UnknownWindowsType
                           }
-                          val userDomain = entry(A_WIN_USER_DOMAIN)
+                          val userDomain          = entry(A_WIN_USER_DOMAIN)
                           val registrationCompany = entry(A_WIN_COMPANY)
-                          val productKey = entry(A_WIN_KEY)
-                          val productId = entry(A_WIN_ID)
+                          val productKey          = entry(A_WIN_KEY)
+                          val productId           = entry(A_WIN_ID)
                           Full(Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId))
 
                         } else if(entry.isA(OC_LINUX_NODE)) {
                           val os = osName match {
-                            case A_OS_DEBIAN  => Debian
-                            case A_OS_UBUNTU  => Ubuntu
-                            case A_OS_REDHAT  => Redhat
-                            case A_OS_CENTOS  => Centos
-                            case A_OS_FEDORA  => Fedora
-                            case A_OS_SUZE    => Suse
-                            case A_OS_ORACLE  => Oracle
+                            case A_OS_DEBIAN     => Debian
+                            case A_OS_UBUNTU     => Ubuntu
+                            case A_OS_REDHAT     => Redhat
+                            case A_OS_CENTOS     => Centos
+                            case A_OS_FEDORA     => Fedora
+                            case A_OS_SUZE       => Suse
+                            case A_OS_ORACLE     => Oracle
                             case A_OS_SCIENTIFIC => Scientific
-                            case A_OS_ANDROID => Android
-                            case _            => UnknownLinuxType
+                            case A_OS_ANDROID    => Android
+                            case _               => UnknownLinuxType
                           }
                           Full(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))
 
@@ -837,7 +869,7 @@ class InventoryMapper(
                         } else if(entry.isA(OC_BSD_NODE)) {
                           val os = osName match {
                             case A_OS_FREEBSD => FreeBSD
-                            case _ => UnknownBsdType
+                            case _            => UnknownBsdType
                           }
                           Full(Bsd(os,osFullName,osVersion,osServicePack,kernelVersion))
                         } else if(entry.isA(OC_NODE)) {
@@ -854,70 +886,79 @@ class InventoryMapper(
     def requiredAttr(attr:String) = entry(attr) ?~! missingAttr(attr)
 
     for {
-      dit <- ditService.getDit(entry.dn)
-      //server.main info: id, status, rootUser, hostname, osDetails: all mandatories
-      inventoryStatus = ditService.getInventoryStatus(dit)
-      id <- dit.NODES.NODE.idFromDN(entry.dn) ?~! missingAttr("for server id")
-      keyStatus <- entry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
-      hostname <- requiredAttr(A_HOSTNAME)
-      rootUser <- requiredAttr(A_ROOT_USER)
-      policyServerId <- requiredAttr(A_POLICY_SERVER_UUID)
-      publicKeys = entry.valuesFor(A_PKEYS).map(Some(_))
-      agentNames <- {
-          val agents = entry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
-          val agentWithKeys = agents.zipAll(publicKeys, None,None).filter(_._1.isDefined)
-          sequence(agentWithKeys) {
-            case (Some(agent),key) =>
-              AgentInfoSerialisation.parseCompatNonJson(agent,key)
-            case _ =>
-              Failure("Should not happen")
-          }
-        }
+      dit                <- ditService.getDit(entry.dn)
+      inventoryStatus    =  ditService.getInventoryStatus(dit)
+      id                 <- dit.NODES.NODE.idFromDN(entry.dn) ?~! missingAttr("for server id")
+      keyStatus          <- entry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
+      hostname           <- requiredAttr(A_HOSTNAME)
+      rootUser           <- requiredAttr(A_ROOT_USER)
+      policyServerId     <- requiredAttr(A_POLICY_SERVER_UUID)
+      publicKeys         =  entry.valuesFor(A_PKEYS).map(Some(_))
+      agentNames         <- {
+                              val agents = entry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
+                              val agentWithKeys = agents.zipAll(publicKeys, None,None).filter(_._1.isDefined)
+                              sequence(agentWithKeys) {
+                                case (Some(agent),key) =>
+                                  AgentInfoSerialisation.parseCompatNonJson(agent,key)
+                                case _                 =>
+                                  Failure("Should not happen")
+                              }
+                            }
       //now, look for the OS type
-      osDetails <- mapOsDetailsFromEntry(entry)
-      //now, optionnal things
-      name = entry(A_NAME)
-      description = entry(A_DESCRIPTION)
-      ram = entry(A_OS_RAM).map { x => MemorySize(x) }
-      swap = entry(A_OS_SWAP).map { x => MemorySize(x) }
-      arch = entry(A_ARCH)
+      osDetails          <- mapOsDetailsFromEntry(entry)
+      // optionnal information
+      name               =  entry(A_NAME)
+      description        =  entry(A_DESCRIPTION)
+      ram                =  entry(A_OS_RAM).map  { x => MemorySize(x) }
+      swap               =  entry(A_OS_SWAP).map { x => MemorySize(x) }
+      arch               =  entry(A_ARCH)
 
-      lastLoggedUser = entry(A_LAST_LOGGED_USER)
-      lastLoggedUserTime = entry.getAsGTime(A_LAST_LOGGED_USER_TIME).map { _.dateTime }
-      publicKeys = entry.valuesFor(A_PKEYS).map(k => PublicKey(k))
-      ev = entry.valuesFor(A_EV).toSeq.map{Serialization.read[EnvironmentVariable](_)}
-      process = entry.valuesFor(A_PROCESS).toSeq.map(Serialization.read[Process](_))
-      softwareIds = entry.valuesFor(A_SOFTWARE_DN).toSeq.flatMap(x => dit.SOFTWARE.SOFT.idFromDN(new DN(x)))
-      machineId = mapSeqStringToMachineIdAndStatus(entry.valuesFor(A_CONTAINER_DN)).toList match {
-        case Nil => None
-        case m :: Nil => Some(m)
-        case l@( m1 :: m2 :: _) =>
-          logger.error("Several machine were registered for a node. That is not supported. " +
-              "The first in the following list will be choosen, but you may encouter strange " +
-              "results in the future: %s".
-                format(l.map{ case (id,status) => "%s [%s]".format(id.value, status.name)}.mkString(" ; "))
-              )
-          Some(m1)
-      }
-      inventoryDate = entry.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
-      receiveDate = entry.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
-      accounts = entry.valuesFor(A_ACCOUNT).toSeq
-      serverIps = entry.valuesFor(A_LIST_OF_IP).toSeq
-      serverRoles = entry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
-      timezone = (entry(A_TIMEZONE_NAME), entry(A_TIMEZONE_OFFSET)) match {
-                   case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
-                   case _                          => None
-                 }
-      main =
-        NodeSummary (
-            id
-          , inventoryStatus
-          , rootUser
-          , hostname
-          , osDetails
-          , NodeId(policyServerId)
-          , keyStatus
-        )
+      lastLoggedUser     =  entry(A_LAST_LOGGED_USER)
+      lastLoggedUserTime =  entry.getAsGTime(A_LAST_LOGGED_USER_TIME).map { _.dateTime }
+      publicKeys         =  entry.valuesFor(A_PKEYS).map(k => PublicKey(k))
+      ev                 =  entry.valuesFor(A_EV).toSeq.map{Serialization.read[EnvironmentVariable](_)}
+      process            =  entry.valuesFor(A_PROCESS).toSeq.map(Serialization.read[Process](_))
+      softwareIds        =  entry.valuesFor(A_SOFTWARE_DN).toSeq.flatMap(x => dit.SOFTWARE.SOFT.idFromDN(new DN(x)))
+      machineId          =  mapSeqStringToMachineIdAndStatus(entry.valuesFor(A_CONTAINER_DN)).toList match {
+                              case Nil => None
+                              case m :: Nil => Some(m)
+                              case l@( m1 :: m2 :: _) =>
+                                logger.error("Several machine were registered for a node. That is not supported. " +
+                                    "The first in the following list will be choosen, but you may encouter strange " +
+                                    "results in the future: %s".
+                                      format(l.map{ case (id,status) => "%s [%s]".format(id.value, status.name)}.mkString(" ; "))
+                                    )
+                                Some(m1)
+                            }
+      inventoryDate      =  entry.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
+      receiveDate        =  entry.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
+      accounts           =  entry.valuesFor(A_ACCOUNT).toSeq
+      serverIps          =  entry.valuesFor(A_LIST_OF_IP).toSeq
+      serverRoles        =  entry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
+      timezone           =  (entry(A_TIMEZONE_NAME), entry(A_TIMEZONE_OFFSET)) match {
+                              case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
+                              case _                          => None
+                            }
+      customProperties   =  { import CustomPropertiesSerialization.Unserialize
+                              entry.valuesFor(A_CUSTOM_PROPERTY).toList.flatMap(a =>
+                                a.toCustomProperty match {
+                                  case Left(ex)  =>
+                                    logger.warn(s"Error when deserializing node inventory custom property (ignoring that property): ${ex.getMessage}", ex)
+                                    None
+                                  case Right(cs) =>
+                                    Some(cs)
+                                }
+                              )
+                            }
+      main               =  NodeSummary (
+                                id
+                              , inventoryStatus
+                              , rootUser
+                              , hostname
+                              , osDetails
+                              , NodeId(policyServerId)
+                              , keyStatus
+                            )
     } yield {
       NodeInventory(
            main

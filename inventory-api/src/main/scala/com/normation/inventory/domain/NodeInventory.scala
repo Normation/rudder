@@ -39,6 +39,7 @@ package com.normation.inventory.domain
 
 import java.net.InetAddress
 import java.net.UnknownHostException
+
 import InetAddressUtils._
 import org.joda.time.DateTime
 import com.normation.inventory.domain._
@@ -46,6 +47,7 @@ import com.normation.utils.HashcodeCaching
 import org.joda.time.DateTime
 import org.joda.time.DateTime
 import net.liftweb.common._
+import net.liftweb.json.JsonAST.JValue
 
 sealed trait NodeElement {
   def description : Option[String]
@@ -152,17 +154,17 @@ object WindowsType {
   )
 }
 
-case object UnknownWindowsType extends WindowsType                 { val name = "Windows" }
-case object WindowsXP    extends WindowsType with HashcodeCaching  { val name = "WindowsXP" }
-case object WindowsVista extends WindowsType with HashcodeCaching  { val name = "WindowsVista" }
-case object WindowsSeven extends WindowsType with HashcodeCaching  { val name = "WindowsSeven" }
-case object Windows2000 extends WindowsType with HashcodeCaching   { val name = "Windows2000" }
-case object Windows2003 extends WindowsType with HashcodeCaching   { val name = "Windows2003" }
-case object Windows2008 extends WindowsType with HashcodeCaching   { val name = "Windows2008" }
+case object UnknownWindowsType extends WindowsType                 { val name = "Windows"       }
+case object WindowsXP     extends WindowsType with HashcodeCaching { val name = "WindowsXP"     }
+case object WindowsVista  extends WindowsType with HashcodeCaching { val name = "WindowsVista"  }
+case object WindowsSeven  extends WindowsType with HashcodeCaching { val name = "WindowsSeven"  }
+case object Windows2000   extends WindowsType with HashcodeCaching { val name = "Windows2000"   }
+case object Windows2003   extends WindowsType with HashcodeCaching { val name = "Windows2003"   }
+case object Windows2008   extends WindowsType with HashcodeCaching { val name = "Windows2008"   }
 case object Windows2008R2 extends WindowsType with HashcodeCaching { val name = "Windows2008R2" }
-case object Windows2012 extends WindowsType with HashcodeCaching { val name = "Windows2012" }
+case object Windows2012   extends WindowsType with HashcodeCaching { val name = "Windows2012"   }
 case object Windows2012R2 extends WindowsType with HashcodeCaching { val name = "Windows2012R2" }
-case object Windows2016 extends WindowsType with HashcodeCaching { val name = "Windows2016" }
+case object Windows2016   extends WindowsType with HashcodeCaching { val name = "Windows2016"   }
 case object Windows2016R2 extends WindowsType with HashcodeCaching { val name = "Windows2016R2" }
 
 /**
@@ -188,15 +190,15 @@ object LinuxType {
 }
 
 case object UnknownLinuxType extends LinuxType with HashcodeCaching { val name = "UnknownLinux" }
-case object Debian  extends LinuxType with HashcodeCaching          { val name = "Debian"  }
-case object Ubuntu  extends LinuxType with HashcodeCaching          { val name = "Ubuntu"  }
-case object Redhat  extends LinuxType with HashcodeCaching          { val name = "Redhat"  }
-case object Centos  extends LinuxType with HashcodeCaching          { val name = "Centos"  }
-case object Fedora  extends LinuxType with HashcodeCaching          { val name = "Fedora"  }
-case object Suse    extends LinuxType with HashcodeCaching          { val name = "Suse"    }
-case object Android extends LinuxType with HashcodeCaching          { val name = "Android" }
-case object Oracle extends LinuxType with HashcodeCaching           { val name = "Oracle" }
-case object Scientific extends LinuxType with HashcodeCaching       { val name = "Scientific" }
+case object Debian           extends LinuxType with HashcodeCaching { val name = "Debian"       }
+case object Ubuntu           extends LinuxType with HashcodeCaching { val name = "Ubuntu"       }
+case object Redhat           extends LinuxType with HashcodeCaching { val name = "Redhat"       }
+case object Centos           extends LinuxType with HashcodeCaching { val name = "Centos"       }
+case object Fedora           extends LinuxType with HashcodeCaching { val name = "Fedora"       }
+case object Suse             extends LinuxType with HashcodeCaching { val name = "Suse"         }
+case object Android          extends LinuxType with HashcodeCaching { val name = "Android"      }
+case object Oracle           extends LinuxType with HashcodeCaching { val name = "Oracle"       }
+case object Scientific       extends LinuxType with HashcodeCaching { val name = "Scientific"   }
 
 //solaris has only one flavour for now
 //to be updated in the future with OSS verison
@@ -321,6 +323,11 @@ final case class NodeTimezone(
   , offset: String
 )
 
+final case class CustomProperty(
+     name : String
+   , value: JValue
+)
+
 object KeyStatus {
   def apply(value : String) : Box[KeyStatus] = {
     value match {
@@ -368,6 +375,7 @@ case class NodeInventory(
      */
   , serverRoles          : Set[ServerRole]          = Set()
   , timezone             : Option[NodeTimezone]     = None
+  , customProperties     : List[CustomProperty]     = Nil
 ) extends HashcodeCaching {
 
   /**A copy of the node with the updated main.

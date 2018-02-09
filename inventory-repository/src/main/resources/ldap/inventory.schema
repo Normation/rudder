@@ -323,15 +323,15 @@ attributetype ( InventoryAttributes:300.16
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
-  
-  
+
+
 attributetype ( InventoryAttributes:300.17
   NAME 'keyStatus'
   DESC 'Status of security key of the Node'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-  
+
 attributetype ( InventoryAttributes:300.18
   NAME 'timezoneName'
   DESC 'Timezone name of the Node (potentially in local lang)'
@@ -346,6 +346,15 @@ attributetype ( InventoryAttributes:300.19
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 
+# A custom inventory property from a inventory hook.
+# It has the exact same serialisaton than a Rudder
+# Node Property in serializedNodeProperty (in rudder.schema)
+attributetype ( InventoryAttributes:300.20
+  NAME 'customProperty'
+  DESC 'A custom property from and agent intentory hook'
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 
 #
 # A node can have some complex "logical" elements:
@@ -974,7 +983,7 @@ objectclass ( InventoryObjectClasses:14
         inventoryDate $ receiveDate $ ipHostNumber $ osFullName $
         osArchitectureType $ lastLoggedUser $ lastLoggedUserTime $
         environmentVariable $ process $ rudderServerRole $ keyStatus $
-        timezoneName $ timezoneOffset ) )
+        timezoneName $ timezoneOffset $ customProperty) )
 
 objectclass ( InventoryObjectClasses:15
   NAME 'windowsNode'
