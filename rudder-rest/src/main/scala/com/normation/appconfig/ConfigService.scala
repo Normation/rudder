@@ -62,8 +62,10 @@ import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 import com.normation.rudder.reports._
 import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
+
 import scala.language.implicitConversions
 import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -172,6 +174,14 @@ trait ReadConfigService {
    * Should we activate the script engine bar ?
    */
   def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch]
+
+  /**
+   * Default value for node properties after acceptation:
+   * - policy mode
+   * - node lifecycle state
+   */
+  def rudder_node_onaccept_default_policy_mode(): Box[Option[PolicyMode]]
+  def rudder_node_onaccept_default_state(): Box[NodeState]
 }
 
 /**
@@ -276,12 +286,20 @@ trait UpdateConfigService {
   def set_rudder_policy_mode_name(name : PolicyMode, actor : EventActor, reason: Option[String]) : Box[Unit]
 
   def set_rudder_policy_overridable(overridable : Boolean, actor: EventActor, reason: Option[String]) : Box[Unit]
+
+  /**
+   * Default value for node properties after acceptation:
+   * - policy mode
+   * - node lifecycle state
+   */
+  def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): Box[Unit]
+  def set_rudder_node_onaccept_default_state(nodeState: NodeState): Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
 
   /**
-   * Create a cache for already values that should never fail
+   * Create a cache for values that should never fail
    */
 
   val defaultConfig =
@@ -309,6 +327,8 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.policy.mode.name=${Enforce.name}
        rudder.policy.mode.overridable=true
        rudder.featureSwitch.directiveScriptEngine=enabled
+       rudder.node.onaccept.default.state=enabled
+       rudder.node.onaccept.default.policyMode=default
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -334,20 +354,31 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     }
   }
 
-  private[this] def save[T](name: String, value: T, modifyGlobalPropertyInfo : Option[ModifyGlobalPropertyInfo] = None): Box[RudderWebProperty] = {
-    val p = RudderWebProperty(RudderWebPropertyName(name), value.toString, "")
+  private[this] def save[T](name: String, value: T, modifyGlobalPropertyInfo : Option[ModifyGlobalPropertyInfo] = None)(implicit ser: T => String): Box[RudderWebProperty] = {
+    val p = RudderWebProperty(RudderWebPropertyName(name), ser(value), "")
     repos.saveConfigParameter(p,modifyGlobalPropertyInfo)
   }
+
+  private[this] implicit def serInt(x: Int): String = x.toString
+  private[this] implicit def serPolicyMode(x: PolicyMode): String = x.name
+  private[this] implicit def serFeatureSwitch(x: FeatureSwitch): String = x.name
+
 
   private[this] implicit def toBoolean(p: RudderWebProperty): Boolean = p.value.toLowerCase match {
     case "true" | "1" => true
     case _ => false
   }
+  private[this] implicit def serBoolean(x: Boolean): String = if(x) "true" else "false"
 
   private[this] implicit def toOptionBoolean(p: RudderWebProperty): Option[Boolean] = p.value.toLowerCase match {
     case "true" | "1" => Some(true)
     case "none" => None
     case _ => Some(false)
+  }
+  private[this] implicit def serOptionBoolean(x: Option[Boolean]): String = x match {
+    case None        => "none"
+    case Some(true)  => "true"
+    case Some(false) => "false"
   }
 
   private[this] implicit def toSyslogProtocol(p: RudderWebProperty): SyslogProtocol = p.value match {
@@ -355,6 +386,23 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
       SyslogTCP
     case _ => SyslogUDP
   }
+
+  private[this] implicit def serSyslogProtocol(x: SyslogProtocol): String = x.value
+
+  private[this] implicit def toOptionPolicyMode(p: RudderWebProperty): Option[PolicyMode] = {
+    PolicyMode.allModes.find( _.name == p.value.toLowerCase())
+  }
+
+  private[this] implicit def serOptionPolicyMode(x: Option[PolicyMode]): String = x match {
+    case None    => "default"
+    case Some(p) => p.name
+  }
+
+  private[this] implicit def toNodeState(p: RudderWebProperty): NodeState = {
+    NodeState.values.find( _.name == p.value.toLowerCase()).getOrElse(NodeState.Enabled) //default value is "enabled"
+  }
+  private[this] implicit def serState(x: NodeState): String = x.name
+
   private[this] implicit def toString(p: RudderWebProperty): String = p.value
 
   private[this] implicit def toUnit(p: Box[RudderWebProperty]) : Box[Unit] = p.map( _ => ())
@@ -509,4 +557,15 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    */
   def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch] = get("rudder_featureSwitch_directiveScriptEngine")
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_directiveScriptEngine", status)
+
+  /**
+   * Default value for node properties after acceptation:
+   * - policy mode
+   * - node lifecycle state
+   */
+  def rudder_node_onaccept_default_policy_mode(): Box[Option[PolicyMode]] =get("rudder_node_onaccept_default_state")
+  def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): Box[Unit] = save("rudder_node_onaccept_default_state", policyMode)
+  def rudder_node_onaccept_default_state(): Box[NodeState] = get("rudder_node_onaccept_default_policyMode")
+  def set_rudder_node_onaccept_default_state(nodeState: NodeState): Box[Unit] = save("rudder_node_onaccept_default_policyMode", nodeState)
+
 }

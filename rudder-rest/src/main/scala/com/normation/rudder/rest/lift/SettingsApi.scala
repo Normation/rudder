@@ -65,6 +65,7 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.json.JsonAST._
 import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.appconfig.UpdateConfigService
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import net.liftweb.json.JsonDSL._
@@ -101,6 +102,8 @@ class SettingsApi(
       RestChangesGraphs ::
       RestJSEngine ::
       RestSendMetrics ::
+      RestOnAcceptNodeState ::
+      RestOnAcceptPolicyMode ::
       Nil
 
   val allSettings_v8 = RestUseReverseDNS :: allSettings_v10
@@ -535,7 +538,38 @@ class SettingsApi(
     def set = (value : FeatureSwitch, _, _) => configService.set_rudder_featureSwitch_directiveScriptEngine(value)
   }
 
-
+  case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
+    val startPolicyGeneration = false
+    def parseParam(value: String): Box[Option[PolicyMode]] = {
+      Full(PolicyMode.allModes.find( _.name == value))
+    }
+    def toJson(value: Option[PolicyMode]) : JValue = JString(value.map( _.name ).getOrElse("default"))
+    def parseJson(json: JValue) = {
+      json match {
+        case JString(value) => parseParam(value)
+        case x              => Failure("Invalid value "+x)
+      }
+    }
+    val key = "node_onaccept_default_policyMode"
+    def get = configService.rudder_node_onaccept_default_policy_mode()
+    def set = (value : Option[PolicyMode], _, _) => configService.set_rudder_node_onaccept_default_policy_mode(value)
+  }
+  case object RestOnAcceptNodeState extends RestSetting[NodeState] {
+    val startPolicyGeneration = false
+    def parseParam(value: String): Box[NodeState] = {
+      Full(NodeState.values.find( _.name == value).getOrElse(NodeState.Enabled))
+    }
+    def toJson(value: NodeState) : JValue = value.name
+    def parseJson(json: JValue) = {
+      json match {
+        case JString(value) => parseParam(value)
+        case x              => Failure("Invalid value "+x)
+      }
+    }
+    val key = "node_onaccept_default_state"
+    def get = configService.rudder_node_onaccept_default_state()
+    def set = (value : NodeState, _, _) => configService.set_rudder_node_onaccept_default_state(value)
+  }
 
   def startNewPolicyGeneration(actor : EventActor) = {
     val modId = ModificationId(uuidGen.newUuid)

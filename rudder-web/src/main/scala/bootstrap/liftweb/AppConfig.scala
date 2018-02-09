@@ -1050,11 +1050,14 @@ object RudderConfig extends Loggable {
     acceptedNodesDitImpl,
     ldapFullInventoryRepository)
   private[this] lazy val acceptNodeAndMachineInNodeOu: UnitAcceptInventory with UnitRefuseInventory = new AcceptFullInventoryInNodeOu(
-    "accept_new_server:ou=node",
-    nodeDitImpl,
-    rwLdap,
-    ldapEntityMapper,
-    PendingInventory)
+      "accept_new_server:ou=node"
+    , nodeDitImpl
+    , rwLdap
+    , ldapEntityMapper
+    , PendingInventory
+    , configService.rudder_node_onaccept_default_policy_mode
+    , configService.rudder_node_onaccept_default_state
+  )
 
   private[this] lazy val acceptHostnameAndIp: UnitAcceptInventory = new AcceptHostnameAndIp(
       "accept_new_server:check_hostname_unicity"
