@@ -132,7 +132,7 @@ class FusionReportEndpoint(
     // get the current size, the remaining of the answer is based on that
     val current = queueSize.get
     //must be coherent with can do, current = 49 < max = 50 => not saturated
-    val saturated = current >= maxQueueSize 
+    val saturated = current >= maxQueueSize
     val code = if(saturated) HttpStatus.TOO_MANY_REQUESTS else HttpStatus.OK
     val json = s"""{"queueMaxSize":$maxQueueSize, "queueFillCount":$current, "queueSaturated":$saturated}"""
     val headers = new HttpHeaders()
@@ -166,7 +166,7 @@ class FusionReportEndpoint(
      * avoid the case where we are telling the use "everything is fine"
      * but just fail after.
      */
-    def save(reportName: String, report: InventoryReport) = {
+    def save(report: InventoryReport) = {
       checkLdapAlive match {
         case Full(ok) =>
 
@@ -190,7 +190,7 @@ class FusionReportEndpoint(
           }
 
         case eb: EmptyBox =>
-          val e = (eb ?~! s"There is an error with the LDAP backend preventing acceptation of inventory '${reportName}'")
+          val e = (eb ?~! s"There is an error with the LDAP backend preventing acceptation of inventory '${report.name}'")
           logger.error(e.messageChain)
           new ResponseEntity(e.messageChain, HttpStatus.INTERNAL_SERVER_ERROR)
       }
@@ -210,18 +210,21 @@ class FusionReportEndpoint(
     }
 
     def parseInventory(inventoryFile : MultipartFile, signatureFile : Option[MultipartFile]): ResponseEntity[String]= {
-      val inventory = inventoryFile.getOriginalFilename()
+      val inventoryFileName = inventoryFile.getOriginalFilename()
       //copy the session file somewhere where it won't be deleted on that method return
-      logger.info(s"New input inventory: '${inventory}'")
-      logger.trace(s"Start post parsing inventory '${inventory}'")
+      logger.info(s"New input inventory: '${inventoryFileName}'")
+      logger.trace(s"Start post parsing inventory '${inventoryFileName}'")
       try {
         val in = inventoryFile.getInputStream
         val start = System.currentTimeMillis
 
         (unmarshaller.fromXml(inventoryFile.getName,in) ?~! "Can't parse the input inventory, aborting") match {
-          case Full(report) =>
+          case Full(r) =>
+            // set inventory file name to original one, because "file" is not very telling
+            val report = r.copy(name = inventoryFileName)
+
             val afterParsing = System.currentTimeMillis
-            logger.info(s"Inventory '${inventory}' parsed in ${printer.print(new Duration(start, afterParsing).toPeriod)} ms, now checking signature")
+            logger.info(s"Inventory '${report.name}' parsed in ${printer.print(new Duration(start, afterParsing).toPeriod)} ms, now checking signature")
             // Do we have a signature ?
             signatureFile match {
               // Signature here, check it
@@ -235,15 +238,15 @@ class FusionReportEndpoint(
                   } yield {
                     if (checked) {
                       // Signature is valid, send it to save engine
-                      logger.info(s"Inventory '${inventory}' signature checked in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
+                      logger.info(s"Inventory '${report.name}' signature checked in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
                       // Set the keyStatus to Certified
                       // For now we set the status to certified since we want pending inventories to have their inventory signed
                       // When we will have a 'pending' status for keys we should set that value instead of certified
                       val certifiedReport = report.copy(node = report.node.copyWithMain(main => main.copy(keyStatus = CertifiedKey)))
-                      save(inventory, certifiedReport)
+                      save(certifiedReport)
                     } else {
                       // Signature is not valid, reject inventory
-                      val msg = s"Rejecting Inventory '${inventory}' for Node '${report.node.main.id.value}' because signature is not valid, you can update the inventory key by running the following command '/opt/rudder/bin/rudder-keys change-key ${report.node.main.id.value} <your new public key>'"
+                      val msg = s"Rejecting Inventory '${report.name}' for Node '${report.node.main.id.value}' because signature is not valid, you can update the inventory key by running the following command '/opt/rudder/bin/rudder-keys change-key ${report.node.main.id.value} <your new public key>'"
                       logger.error(msg)
                       new ResponseEntity(msg, HttpStatus.UNAUTHORIZED)
                     }
@@ -270,11 +273,11 @@ class FusionReportEndpoint(
                 digestService.getKey(report) match {
                   // Status is undefined => We accept unsigned inventory
                   case Full((_,UndefinedKey)) => {
-                    save(inventory, report)
+                    save(report)
                   }
                   // We are in certified state, refuse inventory with no signature
                   case Full((_,CertifiedKey))  =>
-                    val msg = s"Reject inventory '${inventory}' for Node '${report.node.main.id.value}' because signature is missing, you can go back to unsigned state by running the following command '/opt/rudder/bin/rudder-keys reset-status ${report.node.main.id.value}'"
+                    val msg = s"Reject inventory '${report.name}' for Node '${report.node.main.id.value}' because signature is missing, you can go back to unsigned state by running the following command '/opt/rudder/bin/rudder-keys reset-status ${report.node.main.id.value}'"
                     logger.error(msg)
                     new ResponseEntity(msg, HttpStatus.UNAUTHORIZED)
                   // An error occurred while checking inventory key status
@@ -297,7 +300,7 @@ class FusionReportEndpoint(
         }
       } catch {
         case NonFatal(ex) =>
-          val msg = s"Error when trying to parse inventory '${inventory}': ${ex.getMessage}"
+          val msg = s"Error when trying to parse inventory '${inventoryFileName}': ${ex.getMessage}"
           logger.error(msg, ex)
           new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
       }
@@ -391,7 +394,8 @@ class FusionReportEndpoint(
         case Full(report) =>
           logger.debug("Report saved.")
       }
-      logger.info("Report %s processed in %s ms".format(report.name, printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
+      logger.info(s"Report '${report.name}' for node '${report.node.main.hostname}' [${report.node.main.id.value}] (signature:${report.node.main.keyStatus.value}) "+
+                  s"processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } catch {
       case e:Exception =>
         logger.error("Exception when processing report %s".format(report.name))
