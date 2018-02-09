@@ -66,7 +66,6 @@ class UuidMergerPreCommit(
     uuidGen         : StringUuidGenerator
   , DIT             : InventoryDit
   , serverIdFinder  : NodeInventoryDNFinderAction
-  , machineIdFinder : MachineDNFinderAction
   , vmIdFinder      : MachineDNFinderAction
   , softwareIdFinder: SoftwareDNFinderAction
 ) extends PreCommit {
@@ -88,20 +87,8 @@ class UuidMergerPreCommit(
    *
    * @return The actually saved InventoryReport, or a failure if one happened
    */
-  override def apply(report:InventoryReport) : Box[InventoryReport] = {
+  override def apply(report: InventoryReport) : Box[InventoryReport] = {
 
-    /*
-     * Machines are difficult to handle. For each one, we have to decide if it's a
-     * virtual PhysicalMachine or real PhysicalMachine. If we found that's one or the other, we have
-     * to specifically look in the matching repository to try to find if it already
-     * contains that element (and if so, get back its id).
-     * If we are not able to say if it's a real or virtual PhysicalMachine, we have to test
-     * both repositories.
-     * At the end, if we hadn't found an id, we have to generate one.
-     * But we may be in a case where we don't know if the machine is a real or virtual
-     * PhysicalMachine, and so we must have an "unspecified land", waiting for human input.
-     * And so, we have to test that unspecified land to for an id.
-     */
 
     ///////
     ////// we don't want to add anything about a report if any of the merging part fails /////
@@ -151,32 +138,34 @@ class UuidMergerPreCommit(
       case Full(x) => x
     } }
 
-    val (finalNode : NodeInventory, finalMachine : MachineInventory) = (mergeNode(node),mergeMachine(report.machine)) match {
-      case (fn : Failure,_) =>
-        // Error on node inventory
-        logger.error(s"Error when merging node inventory. Reported message: ${fn.messageChain}. Remove machine for saving")
-        return fn
-      case (_, fm: Failure) =>
-        // Error on machine inventory
-        logger.error(s"Error when merging machine inventory. Reported message: ${fm.messageChain}. Remove machine for saving")
-        return fm
-      case( Empty,_) =>
-        // New node, save machine and node in reporting
-        val pendingInventory = node.copyWithMain { m => m.copy(status = PendingInventory) }
-        harmonizeNodeAndMachine(pendingInventory,report.machine)
-      case (Full(node), Empty) =>
-        // Existing Node, save the machine with a new id in the same status than node
-        harmonizeNodeAndMachine(node,report.machine)
-      case (Full(node),Full(machine)) =>
-        // Existing node, with machine inventory
-        if (node.main.status == machine.status) {
-          // All Ok, keep info like this
-          (node.copy(machineId = Some((machine.id, machine.status))), machine)
-        } else {
-          // Machine and node don't have the same status, update status of the machine by creating a new inventory
-          // This will not remove the previous machine inventory with bad info
-          harmonizeNodeAndMachine(node,machine)
-        }
+
+
+    /*
+     * We always want the node and machine to have the same status.
+     * Also, we ALWAYS derive machine ID from nodeId. So we only check
+     * if the nodeId is present to find the correct status.
+     */
+
+    val (finalNode : NodeInventory, finalMachine : MachineInventory) = {
+      val nodeWithStatus = mergeNode(node) match {
+        case fn: Failure =>
+          // Error on node inventory
+          logger.error(s"Error when merging node inventory. Reported message: ${fn.messageChain}. Remove machine for saving")
+          return fn
+        case Empty =>
+          // New node, save machine and node in reporting
+          node.copyWithMain { m => m.copy(status = PendingInventory) }
+        case Full(n) =>
+          // Existing Node, save the machine with a new id in the same status than node
+          n
+      }
+
+      // now, set the correct machineId and status for machine
+      val newMachineId = MachineUuid(IdGenerator.md5Hash(nodeWithStatus.main.id.value))
+      val newMachine   = report.machine.copy(id = newMachineId, status = nodeWithStatus.main.status)
+      val newNode      = nodeWithStatus.copy(machineId = Some((newMachineId, nodeWithStatus.main.status)))
+
+      (newNode, newMachine)
     }
 
     //ok, build the merged report
@@ -193,36 +182,6 @@ class UuidMergerPreCommit(
     ))
   }
 
-  /**
-   * Harmonize Node and Machine inventory
-   * Generate a new id for the Machine, based on the node id
-   * Use the same status for both inventory
-   */
-  private[this] def harmonizeNodeAndMachine(node : NodeInventory, machine : MachineInventory) = {
-    val newMachineId = {
-      val md5 = MessageDigest.getInstance("MD5").digest(node.main.id.value.getBytes)
-      val id = (md5.map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}).toLowerCase
-
-      MachineUuid(s"${id.substring(0,8)}-${id.substring(8,12)}-${id.substring(12,16)}-${id.substring(16,20)}-${id.substring(20)}")
-    }
-    val newMachine = machine.copy(id = newMachineId, status = node.main.status)
-    val newNode = node.copy(machineId = Some((newMachineId,node.main.status)))
-    (newNode,newMachine)
-  }
-
-  protected def mergeMachine(machine:MachineInventory) : Box[MachineInventory] = {
-    for {
-      (uuid,status) <- machineIdFinder.tryWith(machine)
-    } yield {
-      machine.copy(id = uuid, status = status)
-    }
-  }
-
-
-  /*
-   * for now, vm merging is almost the same of machine merging.
-   * We should think about having specif uuid finders for VMs.
-   */
   protected def mergeVm(machine:MachineInventory) : Box[MachineInventory] = {
     for {
       (uuid,status) <- vmIdFinder.tryWith(machine)
