@@ -44,6 +44,7 @@ import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import com.normation.eventlog.ModificationId
+
 import scala.xml.NodeSeq
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
@@ -60,6 +61,8 @@ import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.policies.PolicyMode
 
 /**
  * This class manage the displaying of user configured properties.
@@ -101,6 +104,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "displayRuleColumnConfiguration" => displayRuleColumnConfiguration
     case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
     case "onloadScript" => _ => disableInputs
+    case "nodeOnAcceptDefaults" => nodeOnAcceptDefaultsConfiguration
   }
 
   def changeMessageConfiguration = { xml : NodeSeq =>
@@ -899,5 +903,85 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           <div class="error">{fail.messageChain}</div>
         } )
     } ) apply xml
+  }
+
+  def nodeOnAcceptDefaultsConfiguration = { xml : NodeSeq =>
+
+    val modes = SelectableOption[Option[PolicyMode]](None, "Use global value") :: PolicyMode.allModes.map { x =>
+      SelectableOption[Option[PolicyMode]](Some(x), x.name.capitalize)
+    }.toList
+    // node states, sorted [init, enable, other]
+    val states = NodeState.values.toList.map { x => x match {
+      case NodeState.Initializing  => (0, x, S.?("node.states.initializing"))
+      case NodeState.Enabled       => (1, x, S.?("node.states.enabled"))
+      case NodeState.EmptyPolicies => (2, x, S.?("node.states.empty-policies"))
+      case NodeState.Ignored       => (3, x, S.?("node.states.ignored"))
+      case NodeState.PreparingEOL  => (4, x, S.?("node.states.preparing-eol"))
+    } }.sortBy( _._1 ).map{ case (_, x, label) =>
+      SelectableOption[NodeState](x, label)
+    }
+
+    val process = (for {
+      initialPolicyMode <- configService.rudder_node_onaccept_default_policy_mode()
+      initialNodeState  <- configService.rudder_node_onaccept_default_state()
+    } yield {
+
+      // initialise values for the form (last time it was saved and current user input)
+      var initPolicyMode = initialPolicyMode
+      var initNodeState = initialNodeState
+
+      var policyMode = initialPolicyMode
+      var state = initialNodeState
+
+      def noModif() = initPolicyMode == policyMode && initNodeState == state
+      def check() = {
+        S.notice("nodeOnAcceptDefaultsMsg","")
+        Run(s"""$$("#nodeOnAcceptDefaultsSubmit").attr("disabled",${noModif()});""")
+      }
+
+      def submit() = {
+        val save =
+          for {
+            _ <- configService.set_rudder_node_onaccept_default_state(state)
+            _ <- configService.set_rudder_node_onaccept_default_policy_mode(policyMode)
+          } yield {
+            ()
+          }
+
+
+        S.notice("nodeOnAcceptDefaultsMsg", save match {
+          case Full(_)  =>
+            initNodeState = state
+            initPolicyMode = policyMode
+
+            "Node default configuration post-acceptation correctly saved. Next accepted node will get these default configuration."
+          case eb: EmptyBox =>
+            "There was an error when updating node default proerties"
+        } )
+        check()
+      }
+
+      "#nodeOnAcceptState" #> SHtml.ajaxSelectObj(states, Full(initNodeState), { (x:NodeState) => state = x; check}, ("id","nodeOnAcceptState")) &
+      "#nodeOnAcceptPolicyMode" #> SHtml.ajaxSelectObj(modes, Full(initPolicyMode), { (x: Option[PolicyMode]) => policyMode = x; check}, ("id","nodeOnAcceptPolicyMode")) &
+      "#nodeOnAcceptDefaultsSubmit" #> {
+        SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+      } &
+        "#nodeOnAcceptDefaultsSubmit *+" #> {
+        Script(check())
+      }
+
+    }) match {
+      case eb: EmptyBox =>
+        val fail = eb ?~ "there was an error while fetching value of property: 'node on accept parameters'"
+        logger.error(fail.messageChain)
+
+        (xml: NodeSeq) => <div class="error">{fail.messageChain}</div>
+
+      case Full(process) =>
+        process
+    }
+
+    ("#nodeOnAcceptDefaults" #> process).apply(xml)
+
   }
 }
