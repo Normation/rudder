@@ -39,7 +39,6 @@ package com.normation.rudder.services.servers
 
 import java.lang.IllegalArgumentException
 
-
 import org.joda.time.DateTime
 import net.liftweb.common.Loggable
 import net.liftweb.common.EmptyBox
@@ -47,7 +46,6 @@ import net.liftweb.common.Full
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Empty
-
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -95,6 +93,7 @@ import com.normation.rudder.domain.eventlog.InventoryLogDetails
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.policies.PolicyMode
 
 
 /**
@@ -743,14 +742,15 @@ class AcceptInventory(
 
 /**
  * Accept FullInventory at ou=node level: just add it
- * TODO: use NodeRepository
  */
 class AcceptFullInventoryInNodeOu(
-  override val name:String,
-  nodeDit:NodeDit,
-  ldap:LDAPConnectionProvider[RwLDAPConnection],
-  ldapEntityMapper: LDAPEntityMapper,
-  inventoryStatus:InventoryStatus //expected inventory status of nodes for that processor
+    override val name             : String
+  ,              nodeDit          : NodeDit
+  ,              ldap             : LDAPConnectionProvider[RwLDAPConnection]
+  ,              ldapEntityMapper : LDAPEntityMapper
+  ,              inventoryStatus  : InventoryStatus //expected inventory status of nodes for that processor
+  ,              defaultPolicyMode: () => Box[Option[PolicyMode]]
+  ,              defaultNodeState : () => Box[NodeState]
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
 
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
@@ -768,7 +768,7 @@ class AcceptFullInventoryInNodeOu(
     val name = sm.node.name.getOrElse(sm.node.main.id.value)
     val description = sm.node.description.getOrElse("")
 
-    //naive test to find is the node is the master policy server.
+    //naive test to find if the node is the master policy server.
     //TODO: that can not handle relay server
     val isPolicyServer = sm.node.main.id == sm.node.main.policyServerId
 
@@ -776,13 +776,13 @@ class AcceptFullInventoryInNodeOu(
         sm.node.main.id
       , name
       , description
-      , NodeState.Enabled
+      , defaultNodeState().openOr(NodeState.Enabled)
       , false
       , isPolicyServer
       , DateTime.now // won't be used on save - dummy value
       , ReportingConfiguration(None,None) // use global schedule
       , Seq() //no user properties for now
-      , None // Default policy mode
+      , defaultPolicyMode().openOr(None)
     )
 
     val entry = ldapEntityMapper.nodeToEntry(node)
