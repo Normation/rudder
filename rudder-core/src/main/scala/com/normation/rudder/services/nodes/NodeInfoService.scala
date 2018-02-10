@@ -180,11 +180,13 @@ object NodeInfoService {
     //, osDetails
     //, agentsName, policyServerId, localAdministratorAccountName
     //, serverRoles, archDescription, ram, timezone
+    //, customProperties
     , A_NODE_UUID, A_HOSTNAME, A_LIST_OF_IP, A_INVENTORY_DATE, A_PKEYS
     , A_OS_NAME, A_OS_FULL_NAME, A_OS_VERSION, A_OS_KERNEL_VERSION, A_OS_SERVICE_PACK, A_WIN_USER_DOMAIN, A_WIN_COMPANY, A_WIN_KEY, A_WIN_ID
     , A_AGENTS_NAME, A_POLICY_SERVER_UUID, A_ROOT_USER
     , A_SERVER_ROLE, A_ARCH
     , A_CONTAINER_DN, A_OS_RAM, A_KEY_STATUS, A_TIMEZONE_NAME, A_TIMEZONE_OFFSET
+    , A_CUSTOM_PROPERTY
   )).toSeq
 
   val A_MOD_TIMESTAMP = "modifyTimestamp"
@@ -299,22 +301,22 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
 
         val res = nodes.flatMap { case (id, nodeEntry) =>
           for {
-            nodeInv   <- nodeInventories.get(id)
-            machineInv = for {
-                           containerDn  <- nodeInv(A_CONTAINER_DN)
-                           machineEntry <- machineInventories.get(containerDn)
-                         } yield {
-                           machineEntry
-                         }
-            ldapNode  = LDAPNodeInfo(nodeEntry, nodeInv, machineInv)
-            nodeInfo <- ldapMapper.convertEntriesToNodeInfos(ldapNode.nodeEntry, ldapNode.nodeInventoryEntry, ldapNode.machineEntry) match {
-                          case Full(nodeInfo) => Some(nodeInfo)
-                          case eb : EmptyBox =>
-                            val fail = eb ?~! "An error occured while updating node cache"
-                            logger.error(fail.messageChain)
-                            // for now we only log the error message, and keep a None so Node data are not updated
-                            None
-                        }
+            nodeInv    <- nodeInventories.get(id)
+            machineInv =  for {
+                            containerDn  <- nodeInv(A_CONTAINER_DN)
+                            machineEntry <- machineInventories.get(containerDn)
+                          } yield {
+                            machineEntry
+                          }
+            ldapNode   =  LDAPNodeInfo(nodeEntry, nodeInv, machineInv)
+            nodeInfo   <- ldapMapper.convertEntriesToNodeInfos(ldapNode.nodeEntry, ldapNode.nodeInventoryEntry, ldapNode.machineEntry) match {
+                            case Full(nodeInfo) => Some(nodeInfo)
+                            case eb : EmptyBox =>
+                              val fail = eb ?~! "An error occured while updating node cache"
+                              logger.error(fail.messageChain)
+                              // for now we only log the error message, and keep a None so Node data are not updated
+                              None
+                          }
           } yield {
             (nodeInfo.id, (ldapNode,nodeInfo))
           }
@@ -331,7 +333,8 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
 
       getDataFromBackend(lastModificationTime) match {
         case Full((info, lastModif)) =>
-          logger.debug(s"NodeInfo cache is not up to date, last modification time: '${lastModif}', last cache update: '${lastModificationTime}' => reseting cache with ${info.size} entries")
+          logger.debug(s"NodeInfo cache is not up to date, last modification time: '${lastModif}', last cache update:"+
+                       " '${lastModificationTime}' => reseting cache with ${info.size} entries")
           logger.trace(s"NodeInfo cache updated entries: [${info.keySet.map{ _.value }.mkString(", ")}]")
           nodeCache = Some(info)
           lastModificationTime = lastModif

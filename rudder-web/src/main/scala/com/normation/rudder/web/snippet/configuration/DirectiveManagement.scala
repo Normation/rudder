@@ -378,7 +378,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             <strong>Error message was:</strong>
             <p>{m}</p>{
             ex match {
-              case Full(DirectiveManagement.MissingTechniqueException(directive)) =>
+              case Full(MissingTechniqueException(directive)) =>
                 // in that case, we bypass workflow because we don't have the information to create a valid one (technique is missing)
                 val deleteButton = SHtml.ajaxButton("Delete", () => {
                     RudderConfig.woDirectiveRepository.delete(
@@ -488,6 +488,9 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     After(TimeSpan(0),JsRaw("""createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
   }
 
+  private[this] final case class MissingTechniqueException(directive: Directive) extends
+    Exception(s"Directive ${directive.name} (${directive.id.value}) is bound to a Technique without any valid version available")
+
   private[this] def updateDirectiveSettingForm(
       activeTechnique     : FullActiveTechnique
     , directive           : Directive
@@ -539,7 +542,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             // no version ! propose deletion to the directive along with an error message.
             val msg = s"Can not display directive edit form: missing information about technique with name='${activeTechnique.techniqueName}' and version='${directive.techniqueVersion}'"
             logger.warn(msg)
-            currentDirectiveSettingForm.set(Failure(msg, Full(DirectiveManagement.MissingTechniqueException(directive)), Empty))
+            currentDirectiveSettingForm.set(Failure(msg, Full(MissingTechniqueException(directive)), Empty))
         }
     }
   }
@@ -601,10 +604,4 @@ object DirectiveManagement {
   val htmlId_currentActiveTechniqueActions = "currentActiveTechniqueActions"
   val html_addPiInActiveTechnique = "addNewDirective"
   val html_techniqueDetails = "techniqueDetails"
-
-  // must be out of DirectiveManagement class to avoid "can not reference
-  private final case class MissingTechniqueException(directive: Directive) extends
-      Exception(s"Directive ${directive.name} (${directive.id.value}) is bound to a Technique without any valid version available")
-
-
 }
