@@ -163,6 +163,7 @@ object QSDirectiveBackend extends Loggable {
         case IpAddresses       => None
         case PolicyServerId    => None
         case Properties        => None
+        case CustomProperties  => None
         case RudderRoles       => None
         case GroupId           => None
         case IsDynamic         => None
@@ -264,6 +265,7 @@ object QSLdapBackend {
       , IpAddresses       -> A_LIST_OF_IP
       , PolicyServerId    -> A_POLICY_SERVER_UUID
       , Properties        -> A_NODE_PROPERTY
+      , CustomProperties  -> A_CUSTOM_PROPERTY
       , RudderRoles       -> A_SERVER_ROLE
       , GroupId           -> A_NODE_GROUP_UUID
       , IsDynamic         -> A_IS_DYNAMIC
@@ -375,6 +377,7 @@ object QSLdapBackend {
         case IpAddresses       => Some(EQ(a.ldapName, token)) //ipHostNumber doesn't have substring match :/
         case PolicyServerId    => sub(a, token)
         case Properties        => sub(a, token)
+        case CustomProperties  => sub(a, token)
         case RudderRoles       => sub(a, token)
         case GroupId           => sub(a, token)
         case IsEnabled         => bool(MatchEnable, a, token)

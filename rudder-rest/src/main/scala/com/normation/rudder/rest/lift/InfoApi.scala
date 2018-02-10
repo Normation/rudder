@@ -51,16 +51,6 @@ import scala.language.implicitConversions
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.rest.ApiKind
 
-
-// local utility class to group information about an endpoint before formating them
-final case class EndpointInfo(
-    name    : String
-  , action  : HttpAction
-  , versions: Set[ApiVersion]
-  , desc    : String
-  , path    : ApiPath
- )
-
 /*
  * Information about the API
  */
@@ -80,6 +70,15 @@ class InfoApi(
         case API.ApiInformations        => ApiInformations
     }).toList
   }
+
+
+  final case class EndpointInfo(
+      name    : String
+    , action  : HttpAction
+    , versions: Set[ApiVersion]
+    , desc    : String
+    , path    : ApiPath
+   )
 
   private def list(startWith: Option[String]): JValue = {
     implicit def apiVersionToJValue(version: ApiVersion): JValue = {
@@ -179,4 +178,7 @@ class InfoApi(
       RestUtils.toJsonResponse(None, json)(schema.name, params.prettify)
     }
   }
+
+
+
 }

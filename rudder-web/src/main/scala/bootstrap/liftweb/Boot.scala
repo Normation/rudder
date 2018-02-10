@@ -104,7 +104,7 @@ object StaticResourceRewrite extends RestHelper {
           val conn = url.openConnection //will be local, so ~ efficient
           val size = conn.getContentLength
           val in = conn.getInputStream
-          StreamingResponse(in, () => in.close, size = size.toLong, headers(contentType),  cookies = Nil, code=200)
+          StreamingResponse(in, () => in.close, size = size, headers(contentType),  cookies = Nil, code=200)
         }
       }
   }
@@ -118,7 +118,7 @@ class Boot extends Loggable {
 
   import Boot._
 
-  def boot(): Unit = {
+  def boot() {
 
     // Set locale to English to prevent having localized message in some exception message (like SAXParserException in AppConfigAuth).
     // For now we don't manage locale in Rudder so setting it to English is harmless.
