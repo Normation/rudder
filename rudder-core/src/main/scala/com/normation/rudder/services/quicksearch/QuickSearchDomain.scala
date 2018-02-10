@@ -129,8 +129,9 @@ object QSAttribute {
     override val display = "Policy server"
   }
 
-  final case object Properties      extends QSAttribute { override val name = "properties" }
-  final case object RudderRoles     extends QSAttribute { override val name = "rudder_roles"}
+  final case object Properties       extends QSAttribute { override val name = "properties" }
+  final case object CustomProperties extends QSAttribute { override val name = "properties" }
+  final case object RudderRoles      extends QSAttribute { override val name = "rudder_roles"}
 
   //Groups
   final case object GroupId   extends QSAttribute {
@@ -213,7 +214,7 @@ object QSObject {
   final case object Node      extends QSObject { override val name = "node"
                                                  override val attributes : Set[QSAttribute] = Common.attributes ++ Set(NodeId, Fqdn, OsType, OsName
                                                    , OsVersion, OsFullName, OsKernelVersion, OsServicePack, Arch, Ram
-                                                   , IpAddresses, PolicyServerId, Properties, RudderRoles)
+                                                   , IpAddresses, PolicyServerId, Properties, CustomProperties, RudderRoles)
   }
   final case object Group     extends QSObject { override val name = "group"
                                                  override val attributes : Set[QSAttribute] = Common.attributes ++ Set(GroupId, IsDynamic)
@@ -290,6 +291,7 @@ final object QSMapping {
       case IpAddresses       => (a, Set(IpAddresses.name, "ip", "ips", "networkips") )
       case PolicyServerId    => (a, Set(PolicyServerId.name, "policyserver") )
       case Properties        => (a, Set(Properties.name, "node.props", "nodeprops", "node_properties", "nodeproperties") )
+      case CustomProperties  => (a, Set(CustomProperties.name, "node.props", "nodeprops", "node_properties", "nodeproperties") )
       case RudderRoles       => (a, Set(RudderRoles.name, "serverrole", "serverroles", "role", "roles") )
       case GroupId           => (a, Set(GroupId.name, "groupid", "group_id") )
       case IsDynamic         => (a, Set(IsDynamic.name) )

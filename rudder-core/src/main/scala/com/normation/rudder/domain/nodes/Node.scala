@@ -140,6 +140,10 @@ object NodeProperty {
 
   val rudderNodePropertyProvider = NodePropertyProvider("default")
 
+  // the provider that manages inventory custom properties
+  val customPropertyProvider = NodePropertyProvider("inventory")
+
+
   import net.liftweb.json.parse
   import net.liftweb.json.JsonAST.{JNothing, JString}
 
