@@ -316,7 +316,7 @@ class LDAPEntityMapper(
         }
       }
       // custom properties mapped as NodeProperties
-      val customProperties = inventoryEntry.valuesFor(A_CUSTOM_PROPERTY).flatMap { json =>
+      val customProperties = inventoryEntry.valuesFor(A_CUSTOM_PROPERTY).toList.flatMap { json =>
         import inventoryMapper.CustomPropertiesSerialization._
         json.toCustomProperty match {
           case Left(ex)  =>
