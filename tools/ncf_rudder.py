@@ -337,7 +337,7 @@ def generate_rudder_reporting(technique):
 
     # this regex allows to canonify everything except variables (same as builder/js/ncf.js:getClassKind)
     regex = re.compile(r'((?:\w+|\$\{(?:[\w\.\[\]]|\$\{[\w\.\[\]]+?\})+?\})?)[^\$\w]')
-    key_value_canonified = regex.sub(r'\1_' key_value)
+    key_value_canonified = regex.sub(r'\1_', key_value)
 
     # escape double quote
     regex_quote = re.compile(r'(?<!\\)"', flags=re.UNICODE )
