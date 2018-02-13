@@ -873,8 +873,15 @@ $scope.groupMethodsByCategory = function () {
     // do not canonify what is between ${ }
     // regex description: replace every valid sequence followed by and invalid char with the sequence followed by _
     //                    a valid sequence is either a word or a ${} expression
-    //                    a ${} expression can contain a word, dots, []'s, or a variable replacement (recursion is not managed)
-    param = param.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/(\w+|\$\{(?:[\w\.\[\]]|\$\{[\w\.\[\]]+?\})+?\})?[^\$\w]/g,"$1_");
+    //                    a ${} expression can contain a word, dots, []'s, or a variable replacement (recursion is not managed, only first level)
+    //                    ! do not replace by _ if we match the end of line
+    param = param.replace(/\\'/g, "'")
+                 .replace(/\\"/g, '"')
+                 .replace(/((?:\w+|\$\{(?:[\w\.\[\]]|\$\{[\w\.\[\]]+?\})+?\})?)([^\$\w]|$)/g,
+                          function(all,g1,g2) {
+                            if (g2 == "" || g2 == "\n") { return g1; }
+                            return g1+"_";
+                          });
     return  $scope.getClassPrefix(method_call)+"_"+param +"_"+kind
   }
 

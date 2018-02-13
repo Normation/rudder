@@ -486,8 +486,13 @@ def get_key_value(method_call, generic_method):
 
 def get_class_prefix(key_value, generic_method):
   # this regex allows to canonify everything except variables (same as builder/js/ncf.js:getClassKind)
-  regex = re.compile(r'((?:\w+|\$\{(?:[\w\.\[\]]|\$\{[\w\.\[\]]+?\})+?\})?)[^\$\w]')
-  key_value_canonified = regex.sub(r'\1_', key_value)
+  regex = re.compile(r'((?:\w+|\$\{(?:[\w\.\[\]]|\$\{[\w\.\[\]]+?\})+?\})?)([^\$\w]|$)')
+  def repl(m):
+    if m.group(2) == "" or m.group(2) == "\n":
+      return m.group(1)
+    else:
+      return m.group(1) + "_"
+  key_value_canonified = regex.sub(repl, key_value)
   return generic_method["class_prefix"]+"_"+key_value_canonified
 
 def get_logger_call(message, class_prefix):
