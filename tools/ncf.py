@@ -725,4 +725,3 @@ def delete_technique(technique_name, alt_path=""):
     message = "Could not write technique "+technique_name+" from path "+path+", cause is: "+ e.message
     raise NcfError(message, e.details)
 
-
