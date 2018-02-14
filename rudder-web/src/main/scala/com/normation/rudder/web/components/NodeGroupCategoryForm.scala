@@ -116,7 +116,7 @@ class NodeGroupCategoryForm(
        </div>
         <hr class="spacer"/>
         <lift:authz role="node_write">
-        <div class="margins tw-bs" align="right"><directive-save></directive-save> <directive-delete></directive-delete></div>
+        <div class="margins tw-bs space-top"><directive-save></directive-save> <directive-delete></directive-delete></div>
         </lift:authz>
       </div>
    )
@@ -129,7 +129,7 @@ class NodeGroupCategoryForm(
       & (if (_nodeGroupCategory.isSystem) (
             "input [disabled]"        #> "true"
           & "textarea [disabled]"     #> "true"
-          & "directive-save"          #> SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default"))
+          & "directive-save"          #> SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-success pull-right"))
           & "directive-delete"        #> deleteButton
         ) else (
             "directive-save" #> (
