@@ -1,0 +1,46 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File ensure block present
+# @rename file_block_present
+# @deprecated Use [file_block_present](#file_block_present) instead.
+# @description Ensure that a text block is present in a specific location
+#
+# @parameter file File name to edit (absolute path on the target node)
+# @parameter block Block(s) to add in the file
+#
+# @class_prefix file_ensure_block_present
+# @class_parameter file
+
+bundle agent file_ensure_block_present(file, block)
+{
+  vars:
+      "old_class_prefix" string => canonify("file_ensure_block_present_${file}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist => { "${file}", "${block}" };
+      "canonified_file"    string => canonify("${file}");
+
+  methods:
+    "action"             usebundle => file_block_present("${file}", "${block}");
+    "class copy"         usebundle => _classes_copy("file_block_present_${canonified_file}", "${old_class_prefix}"),
+                         ifvarclass => "file_block_present_${canonified_file}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report" usebundle => _log("Insert text block ${block} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

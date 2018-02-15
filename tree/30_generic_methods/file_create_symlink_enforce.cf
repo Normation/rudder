@@ -1,0 +1,47 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Create symlink (optional overwriting)
+# @rename file_symlink_present_option
+# @deprecated Use [file_symlink_present_option](#file_symlink_present_option) instead.
+# @description Create a symlink at a destination path and pointing to a source target. This is also possible to enforce its creation
+#
+# @parameter source      Source file (absolute path on the target node)
+# @parameter destination Destination file (absolute path on the target node)
+# @parameter enforce     Force symlink if file already exist (true or false)
+# 
+# @class_prefix file_create_symlink
+# @class_parameter destination
+
+bundle agent file_create_symlink_enforce(source, destination, enforce)
+{
+  vars:
+      "old_class_prefix" string => canonify("file_create_symlink_${destination}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist => { "${source}", "${destination}", "${enforce}" };
+      "canonified_file"    string => canonify("${destination}");
+
+  methods:
+    "action"             usebundle => file_symlink_present_option("${source}", "${destination}", "${enforce}");
+    "class copy"         usebundle => _classes_copy("file_symlink_present_${canonified_file}", "${old_class_prefix}"),
+                         ifvarclass => "file_symlink_present_${canonified_file}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report" usebundle => _log("Symlink ${destination} targeting ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

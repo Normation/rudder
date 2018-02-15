@@ -1,0 +1,46 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File ensure lines absent
+# @rename file_lines_absent
+# @deprecated Use [file_lines_absent](#file_lines_absent) instead.
+# @description Ensure that a line is absent in a specific location
+#
+# @parameter file File name to edit (absolute path on the target node)
+# @parameter lines Line(s) to remove in the file
+#
+# @class_prefix file_ensure_lines_absent
+# @class_parameter file
+
+bundle agent file_ensure_lines_absent(file, lines)
+{
+  vars:
+      "old_class_prefix" string => canonify("file_ensure_lines_absent_${file}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist => { "${file}", "${lines}" };
+      "canonified_file"    string => canonify("${file}");
+
+  methods:
+    "action"             usebundle => file_lines_absent("${file}", "${lines}");
+    "class copy"         usebundle => _classes_copy("file_lines_absent_${canonified_file}", "${old_class_prefix}"),
+                         ifvarclass => "file_lines_absent_${canonified_file}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report"   usebundle => _log("Ensure line(s) '${lines}' absent from ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

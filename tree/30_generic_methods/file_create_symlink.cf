@@ -1,0 +1,42 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Create symlink
+# @rename file_symlink_present
+# @deprecated Use [file_symlink_present](#file_symlink_present) instead.
+# @description Create a symlink at a destination path and pointing to a source target except if a file or directory already exists.
+#
+# @parameter source      Source file (absolute path on the target node)
+# @parameter destination Destination file (absolute path on the target node)
+# 
+# @class_prefix file_create_symlink
+# @class_parameter destination
+
+bundle agent file_create_symlink(source, destination)
+{
+  vars:
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist => { "${source}", "${destination}" };
+
+  methods:
+      "create without enforce" usebundle => file_create_symlink_enforce("${source}", "${destination}", "false");
+      "new result classes"     usebundle => _classes_copy("${class_prefix}_create_without_enforce", "${class_prefix}");
+
+      "report"                 usebundle => _log("Symlink ${destination} targeting ${source}", "", "${class_prefix}", @{args});
+}

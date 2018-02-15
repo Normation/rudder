@@ -1,0 +1,42 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File copy from local source
+# @rename file_from_local_source
+# @deprecated Use [file_from_local_source](#file_from_local_source) instead.
+# @description Ensure that a file or directory is copied from a local source
+#
+# @parameter source      Source file (absolute path on the target node)
+# @parameter destination Destination file (absolute path on the target node)
+# 
+# @class_prefix file_copy_from_local_source
+# @class_parameter destination
+
+bundle agent file_copy_from_local_source(source, destination)
+{
+  vars:
+     "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+     "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"             slist => { "${source}", "${destination}" };
+
+  methods:
+      "copy without recursion" usebundle => file_copy_from_local_source_recursion("${source}", "${destination}", "0");
+      "new result classes"     usebundle => _classes_copy("${class_prefix}_copy_without_recursion", "${class_prefix}");
+
+      "report"                 usebundle => _log("Copying ${destination} from ${source}", "", "${class_prefix}", @{args});
+}

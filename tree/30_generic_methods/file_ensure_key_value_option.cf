@@ -1,0 +1,53 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File ensure key -> value present with option
+# @rename file_key_value_present_option
+# @deprecated Use [file_key_value_present_option](#file_key_value_present_option) instead.
+# @description Ensure that the file contains a pair of "key separator value", with options on the spacing around the separator
+# @documentation Edit (or create) the file, and ensure it contains an entry key -> value with arbitrary separator between the key and its value.
+# If the key is already present, the method will change the value associated with this key.
+#
+# @parameter file File name to edit (absolute path on the target node)
+# @parameter key Key to define
+# @parameter value Value to define
+# @parameter option Option for the spacing around the separator: strict, which prevent spacings (space or tabs) around separators, or lax which accepts any number of spaces around separators
+# @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
+# @parameter_constraint separator "allow_whitespace_string" : true
+# @parameter_constraint option "select" : [ "strict", "lax" ]
+#
+# @class_prefix file_ensure_key_value
+# @class_parameter file
+
+bundle agent file_ensure_key_value_option(file, key, value, separator, option)
+{
+  vars:
+      "old_class_prefix" string => canonify("file_ensure_key_value_${file}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist => { "${file}", "${key}", "${value}","${separator}", "${option}" };
+      "canonified_file"    string => canonify("${target}");
+
+  methods:
+    "action"             usebundle => file_key_value_present_option("${file}", "${key}", "${value}","${separator}", "${option}");
+    "class copy"         usebundle => _classes_copy("file_key_value_present_${canonified_file}", "${old_class_prefix}"),
+                         ifvarclass => "file_present_${canonified_file}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report"   usebundle => _log("Ensure line in format key${separator}value in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

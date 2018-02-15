@@ -1,0 +1,47 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File copy from local source recurse
+# @rename file_from_local_source_recursion
+# @deprecated Use [file_from_local_source_recursion](#file_from_local_source_recursion) instead.
+# @description Ensure that a file or directory is copied from a local source
+#
+# @parameter source      Source file (absolute path on the target node)
+# @parameter destination Destination file (absolute path on the target node)
+# @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
+# 
+# @class_prefix file_copy_from_local_source
+# @class_parameter destination
+
+bundle agent file_copy_from_local_source_recursion(source, destination, recursion)
+{
+  vars:
+      "old_class_prefix" string => canonify("file_copy_from_local_source_${destination}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist => { "${source}", "${destination}", "${recursion}" };
+      "canonified_file"    string => canonify("${destination}");
+
+  methods:
+    "action"             usebundle => file_from_local_source_recursion("${source}", "${destination}", "${recursion}");
+    "class copy"         usebundle => _classes_copy("file_from_local_source_${canonified_file}", "${old_class_prefix}"),
+                         ifvarclass => "file_from_local_source_${canonified_file}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report"             usebundle  => _log("Copying ${destination} from ${source}, recursion level ${recursion}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

@@ -1,0 +1,47 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File ensure line in INI section
+# @rename file_line_present_in_ini_section
+# @deprecated Use [file_line_present_in_ini_section](#file_line_present_in_ini_section) instead.
+# @description Ensure that a line is present in a section in a specific location. The objective of this method is to handle INI-style files.
+#
+# @parameter file File name to edit (absolute path on the target node)
+# @parameter section Name of the INI-style section under which lines should be added (not including the [] brackets)
+# @parameter line Line to ensure is present inside the section
+#
+# @class_prefix file_ensure_line_present_in_ini_section
+# @class_parameter file
+
+bundle agent file_ensure_line_present_in_ini_section(file, section, line)
+{
+  vars:
+      "old_class_prefix"       string => canonify("file_ensure_line_present_in_ini_section_${file}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"                    slist => { "${file}", "${section}", "${line}" };
+      "canonified_file"    string => canonify("${file}");
+
+  methods:
+    "action"             usebundle => file_line_present_in_ini_section("${file}", "${tag}", "${line}");
+    "class copy"         usebundle => _classes_copy("file_line_present_in_ini_section_${canonified_file}", "${old_class_prefix}"),
+                         ifvarclass => "file_line_present_in_ini_section_${canonified_file}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report"   usebundle => _log("Insert line(s) ${line} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
