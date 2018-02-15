@@ -16,19 +16,19 @@
 #
 #####################################################################################
 
-# @name File ensure lines absent
+# @name File lines absent
 # @description Ensure that a line is absent in a specific location
 #
 # @parameter file File name to edit (absolute path on the target node)
 # @parameter lines Line(s) to remove in the file
 #
-# @class_prefix file_ensure_lines_absent
+# @class_prefix file_lines_absent
 # @class_parameter file
 
-bundle agent file_ensure_lines_absent(file, lines)
+bundle agent file_lines_absent(file, lines)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_lines_absent_${file}");
+      "old_class_prefix" string => canonify("file_lines_absent_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${lines}" };

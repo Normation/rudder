@@ -16,20 +16,20 @@
 #
 #####################################################################################
 
-# @name File ensure line in XML section
+# @name File line in XML section
 # @description Ensure that a line is present in a tag in a specific location. The objective of this method is to handle XML-style files. Note that if the tag is not present in the file, it won't be added, and the edition will fail.
 #
 # @parameter file File name to edit (absolute path on the target node)
 # @parameter tag Name of the XML tag under which lines should be added (not including the <> brackets)
 # @parameter line Line to ensure is present inside the section
 #
-# @class_prefix file_ensure_line_present_in_xml_tag
+# @class_prefix file_line_present_in_xml_tag
 # @class_parameter file
 
-bundle agent file_ensure_line_present_in_xml_tag(file, tag, line)
+bundle agent file_line_present_in_xml_tag(file, tag, line)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_line_present_in_xml_tag_${file}");
+      "old_class_prefix" string => canonify("file_line_present_in_xml_tag_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${tag}", "${line}" };

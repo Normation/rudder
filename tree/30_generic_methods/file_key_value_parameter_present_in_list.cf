@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name File ensure key value parameter in list
+# @name File key-value parameter in list
 # @description Ensure that one parameter exists in a list of parameters, on one single line, in the right hand side of a key->values line
 # @documentation Edit the file, and ensure it contains the defined parameter in the list of values on the right hand side of a key->values line.
 # If the parameter is not there, it will be added at the end, separated by parameter_separator.
@@ -49,13 +49,13 @@
 # @parameter_constraint leading_char_separator "allow_empty_string" : true
 # @parameter_constraint closing_char_separator "allow_empty_string" : true
 #
-# @class_prefix file_ensure_key_value_parameter_in_list
+# @class_prefix file_key_value_parameter_present_in_list
 # @class_parameter file
 
-bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separator, parameter, parameter_separator, leading_char_separator, closing_char_separator)
+bundle agent file_key_value_parameter_present_in_list(file, key, key_value_separator, parameter, parameter_separator, leading_char_separator, closing_char_separator)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_key_value_parameter_in_list_${file}");
+      "old_class_prefix" string => canonify("file_key_value_parameter_present_in_list_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${key}", "${key_value_separator}", "${parameter}", "${parameter_separator}", "${leading_char_separator}", "${closing_char_separator}" };

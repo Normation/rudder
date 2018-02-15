@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name File copy from remote source recurse
+# @name File from remote source recursion
 # @description Ensure that a file or directory is copied from a policy server
 # @documentation This method requires that the policy server is configured to accept
 # copy of the source file or directory from the agents it will be applied to.
@@ -35,13 +35,13 @@
 # @parameter destination Destination file (absolute path on the target node)
 # @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
 # 
-# @class_prefix file_copy_from_remote_source
+# @class_prefix file_from_remote_source
 # @class_parameter destination
 
-bundle agent file_copy_from_remote_source_recursion(source, destination, recursion)
+bundle agent file_from_remote_source_recursion(source, destination, recursion)
 {
   vars:
-      "old_class_prefix" string => canonify("file_copy_from_remote_source_${destination}");
+      "old_class_prefix" string => canonify("file_from_remote_source_${destination}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${source}", "${destination}", "${recursion}" };

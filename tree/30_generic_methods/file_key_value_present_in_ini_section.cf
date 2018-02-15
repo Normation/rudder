@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name File ensure key-value in INI section
+# @name File key-value in INI section
 # @description Ensure that a key-value pair is present in a section in a specific location. The objective of this method is to handle INI-style files.
 #
 # @parameter file File name to edit (absolute path on the target node)
@@ -24,13 +24,13 @@
 # @parameter name Name of the key to add or edit
 # @parameter value Value of the key to add or edit
 #
-# @class_prefix file_ensure_key_value_present_in_ini_section
+# @class_prefix file_key_value_present_in_ini_section
 # @class_parameter file
 
-bundle agent file_ensure_key_value_present_in_ini_section(file, section, name, value)
+bundle agent file_key_value_present_in_ini_section(file, section, name, value)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_key_value_present_in_ini_section_${file}");
+      "old_class_prefix" string => canonify("file_key_value_present_in_ini_section_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${section}", "${name}", "${value}" };
@@ -40,7 +40,7 @@ bundle agent file_ensure_key_value_present_in_ini_section(file, section, name, v
   files:
       "${file}"
         create        => "true",
-        edit_line     => set_variable_values_ini("file_ensure_key_value_present_in_ini_section.content", "${section}"),
+        edit_line     => set_variable_values_ini("file_key_value_present_in_ini_section.content", "${section}"),
         edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
         comment       => "Editing file ${file} to set ${name} = ${value} in section ${section}";

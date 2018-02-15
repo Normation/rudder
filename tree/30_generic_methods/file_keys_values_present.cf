@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name File ensure keys -> values present
+# @name File keys-values present
 # @description Ensure that the file contains all pairs of "key separator value", with arbitrary separator between each key and its value
 # @documentation This method ensures key-value pairs are present in a file.
 # 
@@ -76,13 +76,13 @@
 # @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
 # @parameter_constraint separator "allow_whitespace_string" : true 
 #
-# @class_prefix file_ensure_keys_values
+# @class_prefix file_keys_values_present
 # @class_parameter file
 
-bundle agent file_ensure_keys_values(file, keys, separator)
+bundle agent file_keys_values_present(file, keys, separator)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_keys_values_${file}");
+      "old_class_prefix" string => canonify("file_keys_values_present_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${keys}", "${separator}" };

@@ -16,19 +16,19 @@
 #
 #####################################################################################
 
-# @name File ensure block present
+# @name File block present
 # @description Ensure that a text block is present in a specific location
 #
 # @parameter file File name to edit (absolute path on the target node)
 # @parameter block Block(s) to add in the file
 #
-# @class_prefix file_ensure_block_present
+# @class_prefix file_block_present
 # @class_parameter file
 
-bundle agent file_ensure_block_present(file, block)
+bundle agent file_block_present(file, block)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_block_present_${file}");
+      "old_class_prefix" string => canonify("file_block_present_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${block}" };

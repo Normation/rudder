@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name File ensure block in section
+# @name File block in section
 # @description Ensure that a section contains exactly a text block
 #
 # @parameter file File name to edit (absolute path on the target node)
@@ -24,13 +24,13 @@
 # @parameter section_end End of the section
 # @parameter block Block representing the content of the section
 #
-# @class_prefix file_ensure_block_in_section
+# @class_prefix file_block_present_in_section
 # @class_parameter file
 
-bundle agent file_ensure_block_in_section(file, section_start, section_end, block)
+bundle agent file_block_present_in_section(file, section_start, section_end, block)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_block_in_section_${file}");
+      "old_class_prefix" string => canonify("file_block_present_in_section_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${section_start}", "${section_end}", "${block}" };

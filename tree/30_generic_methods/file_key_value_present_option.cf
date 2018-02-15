@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name File ensure key -> value present with option
+# @name File key-value present with option
 # @description Ensure that the file contains a pair of "key separator value", with options on the spacing around the separator
 # @documentation Edit (or create) the file, and ensure it contains an entry key -> value with arbitrary separator between the key and its value.
 # If the key is already present, the method will change the value associated with this key.
@@ -29,13 +29,13 @@
 # @parameter_constraint separator "allow_whitespace_string" : true
 # @parameter_constraint option "select" : [ "strict", "lax" ]
 #
-# @class_prefix file_ensure_key_value
+# @class_prefix file_key_value_present
 # @class_parameter file
 
-bundle agent file_ensure_key_value_option(file, key, value, separator, option)
+bundle agent file_key_value_present_option(file, key, value, separator, option)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_key_value_${file}");
+      "old_class_prefix" string => canonify("file_key_value_present_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${key}", "${value}","${separator}", "${option}" };
@@ -57,7 +57,7 @@ bundle agent file_ensure_key_value_option(file, key, value, separator, option)
   files:
       "${file}"
         create        => "true",
-        edit_line     => ncf_maintain_keys_values_option("file_ensure_key_value_option.keys", "${separator}", "${option}"),
+        edit_line     => ncf_maintain_keys_values_option("file_key_value_present_option.keys", "${separator}", "${option}"),
         edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
         # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
