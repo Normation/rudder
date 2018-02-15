@@ -112,3 +112,19 @@ class PolicyServerManagementServiceImpl(
     }
   }
 }
+
+sealed trait RelaySynchronizationMethod {
+  def value : String
+}
+
+object ClassicSynchronization extends RelaySynchronizationMethod {
+  val value = "classic"
+}
+
+object RsyncSynchronization extends RelaySynchronizationMethod {
+  val value = "rsync"
+}
+
+object DisabledSynchronization extends RelaySynchronizationMethod {
+  val value = "disable"
+}
