@@ -23,7 +23,7 @@ bundle agent init
 {
   vars:
     "tmp"                    string => getenv("TEMP", 1024);
-    "destination_file"       string => "${tmp}/create_test";
+    "destination_file"       string => "${tmp}/present_test";
     "destination_file_canon" string => canonify("${destination_file}");
 
   files:
@@ -47,7 +47,7 @@ bundle agent check
   classes:
     "file_exists"          expression => fileexists("${init.destination_file}");
 
-    "ok"                   expression => "file_exists.file_create_${init.destination_file_canon}_repaired.!file_create_${init.destination_file_canon}_error";
+    "ok"                   expression => "file_exists.file_present_${init.destination_file_canon}_repaired.!file_present_${init.destination_file_canon}_error";
 
   reports:
     ok::

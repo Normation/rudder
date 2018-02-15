@@ -22,23 +22,20 @@ bundle agent init
 {
   vars:
     "tmp"             string => getenv("TEMP", 1024);
-    "file_1"            string => "${tmp}/test1.ini";
-    "reference_file_1"  string => "${tmp}/ref1.ini";
+    "file_1"            string => "${tmp}/test1";
+    "reference_file_1"  string => "${tmp}/ref1";
     "file_1_canon"      string => canonify("${file_1}");
 
 # Ensure that double edition within a section succeed
-    "section_1"         string => "section_test1";
-    "name_1"            string => "name";
+    "key_1"            string => "name";
     "value_1"           string => "value";
-    "name_2"            string => "key";
+    "key_2"            string => "key";
     "value_2"           string => "value";
+    "separator"        string => "=";
 
-    "base_text_up"      string => "[section_test1]";
-    "base_text_down"    string => "[section_test2]";
-    "reference_1"       string => "${base_text_up}
-${name_1}=${value_1}
-${name_2}=${value_2}
-${base_text_down}";
+    "reference_1"       string => "file
+${key_1}${separator}${value_1}
+${key_2}${separator}${value_2}";
 
 
   commands:
@@ -47,10 +44,7 @@ ${base_text_down}";
       args    => "\"${reference_1}\" > \"${reference_file_1}\"",
       contain => in_shell;
    "/bin/echo"
-      args    => "\"${base_text_up}\" > \"${file_1}\"",
-      contain => in_shell;
-   "/bin/echo"
-      args    => "\"${base_text_down}\" >> \"${file_1}\"",
+      args    => "\"file\" > \"${file_1}\"",
       contain => in_shell;
 }
 
@@ -59,8 +53,8 @@ ${base_text_down}";
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_ensure_key_value_present_in_ini_section("${init.file_1}", "${init.section_1}", "${init.name_1}", "${init.value_1}");
-    "ph2" usebundle => file_ensure_key_value_present_in_ini_section("${init.file_1}", "${init.section_1}", "${init.name_2}", "${init.value_2}");
+    "ph1" usebundle => file_key_value_present("${init.file_1}", "${init.key_1}", "${init.value_1}", "${init.separator}");
+    "ph2" usebundle => file_key_value_present("${init.file_1}", "${init.key_2}", "${init.value_2}", "${init.separator}");
 }
 
 #######################################################
@@ -68,15 +62,13 @@ bundle agent test
 bundle agent check
 {
   vars:
-    # Commands to check that reference files (expected result) are the same
-    # than the modified files by the generic_method 'file_ensure_key_value_present_in_ini_section'
     "file_correct_test" string => "/usr/bin/diff \"${init.reference_file_1}\" \"${init.file_1}\"";
 
   classes:
     "file_correct"
        expression => returnszero("${file_correct_test}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_present_in_ini_section_${init.file_1}_reached");
-    "ok"    expression => "file_correct.file_ensure_key_value_present_in_ini_section_${init.file_1_canon}_ok.!file_1_ensure_line_present_in_ini_section_${init.file_1_canon}_error";
+       ifvarclass => canonify("file_key_value_present_${init.file_1}_reached");
+    "ok"    expression => "file_correct.file_key_value_present_${init.file_1_canon}_ok.!file_key_value_present_${init.file_1_canon}_error";
 
   reports:
     ok::
