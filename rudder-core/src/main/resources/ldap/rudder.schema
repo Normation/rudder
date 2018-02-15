@@ -27,7 +27,7 @@
 #######################################################
 ####################### WARNING #######################
 #######################################################
-# This OID is necessary for OpenLDAP -> OpenDS schema tool, 
+# This OID is necessary for OpenLDAP -> OpenDS schema tool,
 # but makes OpenLDAP crashes with a non-meaningfull error message
 # if cmdb.schema (where it is already declared) is included
 
@@ -60,7 +60,7 @@ attributetype ( RudderAttributes:102
   NAME 'directiveId'
   DESC 'Unique identifier for a directive'
   SUP uuid )
-  
+
 attributetype ( RudderAttributes:103
   NAME 'targetDirectiveId'
   DESC 'Unique identifier for a directive'
@@ -70,12 +70,12 @@ attributetype ( RudderAttributes:104
   NAME 'groupCategoryId'
   DESC 'Unique identifier for a group category'
   SUP uuid )
-    
+
 attributetype ( RudderAttributes:105
   NAME 'techniqueCategoryId'
   DESC 'Unique identifier for a rudder category'
   SUP uuid )
-  
+
 attributetype ( RudderAttributes:106
   NAME 'techniqueId'
   DESC 'Unique identifier for a technique from Reference technique library'
@@ -100,14 +100,14 @@ attributetype ( RudderAttributes:110
   NAME 'apiAccountId'
   DESC 'Unique identifier for an API Account'
   SUP uuid )
-  
+
 attributetype ( RudderAttributes:111
   NAME 'ruleCategoryId'
   DESC 'Unique identifier for a Rule category'
   SUP uuid )
-  
+
 #######################################################################
-  
+
 attributetype ( RudderAttributes:201
   NAME 'techniqueLibraryVersion'
   DESC 'The version'
@@ -128,7 +128,7 @@ attributetype ( RudderAttributes:203
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
   EQUALITY generalizedTimeMatch
   ORDERING generalizedTimeOrderingMatch )
-  
+
 attributetype ( RudderAttributes:204
   NAME 'jsonNodeGroupQuery'
   DESC 'JSON structure that represent a query for a group of nodes'
@@ -196,13 +196,13 @@ attributetype ( RudderAttributes:211
   DESC 'Define if the server is modified and should be processed as such or if it is up to date. Default to false if not specified'
   EQUALITY booleanMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
-  
+
 attributetype ( RudderAttributes:212
   NAME 'isEnabled'
   DESC 'Define if the object is currently activated or not (and so should be ignore)'
   EQUALITY booleanMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
-  
+
 attributetype ( RudderAttributes:213
   NAME 'isDynamic'
   DESC 'Define if the group is dynamic'
@@ -233,7 +233,7 @@ attributetype ( RudderAttributes:217
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   EQUALITY integerMatch
   ORDERING integerOrderingMatch )
-  
+
 attributetype ( RudderAttributes:218
   NAME 'longDescription'
   DESC 'A long field for text (HTLM expected)'
@@ -253,7 +253,7 @@ attributetype ( RudderAttributes:220
   DESC 'The current system variables of a node'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseIgnoreMatch
-  SUBSTR caseIgnoreSubstringsMatch ) 
+  SUBSTR caseIgnoreSubstringsMatch )
 
 attributetype ( RudderAttributes:221
   NAME 'targetSystemVariable'
@@ -288,7 +288,7 @@ attributetype ( RudderAttributes:225
   DESC 'The local administrator account name (login) on the node'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} ) 
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
 attributetype ( RudderAttributes:226
   NAME 'creationTimestamp'
@@ -302,7 +302,7 @@ attributetype ( RudderAttributes:227
   DESC 'The current parameters applied to a node'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseExactMatch
-  SUBSTR caseIgnoreSubstringsMatch ) 
+  SUBSTR caseIgnoreSubstringsMatch )
 
 attributetype ( RudderAttributes:228
   NAME 'targetParameter'
@@ -310,7 +310,7 @@ attributetype ( RudderAttributes:228
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch )
-  
+
 attributetype ( RudderAttributes:229
   NAME 'tag'
   DESC 'ID of tag'
@@ -323,7 +323,7 @@ attributetype ( RudderAttributes:230
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{4096} )
-  
+
 ### Policy mode, common for Nodes/Directive at first, Surely Rules and groups later
 attributetype ( RudderAttributes:231
   NAME 'policyMode'
@@ -340,7 +340,7 @@ attributetype ( RudderAttributes:235
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 
-### API principal and tokens 
+### API principal and tokens
 
 attributetype ( RudderAttributes:250
   NAME 'apiToken'
@@ -376,7 +376,14 @@ attributetype ( RudderAttributes:254
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
-  
+
+attributetype ( RudderAttributes:255
+  NAME 'apiAuthorizationKind'
+  DESC 'Kind of API account (public API, user-bounded, system)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
 attributetype ( RudderAttributes:301
   NAME 'parameterName'
   DESC 'Name of parameter that matches [a-zA-Z0-9_]+'
@@ -442,28 +449,28 @@ attributetype ( RudderAttributes:353
 #
 # Rudder mains objects:
 # * nodes and policy server
-# * node group categories 
-# * node groups 
+# * node group categories
+# * node groups
 # * library of active technique categories
 # * activeTechnique
 # * directive
 # * rules
-# 
+#
 
 
 ### nodes (simple and policy server) for Rudder ###
 
 objectclass ( RudderObjectClasses:1
-  NAME 'rudderNode' 
+  NAME 'rudderNode'
   DESC 'The Node itself'
   SUP top
   STRUCTURAL
   MUST ( nodeId $ cn $ isSystem )
   MAY ( description $ serializedNodeProperty $ serializedAgentRunInterval $
         serializedHeartbeatRunConfiguration $ policyMode $ state $ isBroken) )
-  
+
 objectclass ( RudderObjectClasses:2
-  NAME 'rudderPolicyServer' 
+  NAME 'rudderPolicyServer'
   DESC 'The Node representation of a policy server'
   SUP rudderNode
   STRUCTURAL )
@@ -485,7 +492,7 @@ objectclass ( RudderObjectClasses:11
   STRUCTURAL
   MUST ( nodeGroupId $
    cn $ isDynamic )
-  MAY ( nodeId $ description $ jsonNodeGroupQuery $ 
+  MAY ( nodeId $ description $ jsonNodeGroupQuery $
         isEnabled $ isSystem  ) )
 
 objectclass ( RudderObjectClasses:12
@@ -494,7 +501,7 @@ objectclass ( RudderObjectClasses:12
   SUP top
   STRUCTURAL
   MUST ( ruleTarget $ cn )
-  MAY (  description $ isEnabled $ isSystem ) )  
+  MAY (  description $ isEnabled $ isSystem ) )
 
 ### active technique library ###
 
@@ -512,7 +519,7 @@ objectclass ( RudderObjectClasses:21
   STRUCTURAL
   MUST ( techniqueCategoryId $ cn )
   MAY ( description $ isSystem ) )
-  
+
 objectclass ( RudderObjectClasses:22
   NAME 'activeTechnique'
   DESC 'The Rudder category'
@@ -531,16 +538,16 @@ objectclass ( RudderObjectClasses:23
         directivePriority $ directiveVariable $ policyMode $ serializedTags) )
 
 ### rules ###
-  
+
 objectclass ( RudderObjectClasses:30
   NAME 'rule'
   DESC 'A rule'
   SUP top
   STRUCTURAL
   MUST ( ruleId )
-  MAY ( cn $ description $ longDescription $ 
-        isEnabled $ isSystem $ 
-        ruleTarget $ serial $ 
+  MAY ( cn $ description $ longDescription $
+        isEnabled $ isSystem $
+        ruleTarget $ serial $
         directiveId $ tag $ serializedTags ) )
 
 objectclass ( RudderObjectClasses:31
@@ -559,23 +566,23 @@ objectclass ( RudderObjectClasses:31
 #
 
 objectclass ( RudderObjectClasses:101
-  NAME 'nodeConfiguration' 
+  NAME 'nodeConfiguration'
   DESC 'The mapping of the node configuration, a container for promises'
   SUP top
   STRUCTURAL
   MUST ( nodeId $ isPolicyServer )
-  MAY ( cn $ description $ isModified $ 
+  MAY ( cn $ description $ isModified $
         lastUpdateTimestamp $ writtenTimestamp $
-        targetName $ 
+        targetName $
         localAdministratorAccountName $ targetLocalAdministratorAccountName $
-        nodeHostname $ targetNodeHostname $ 
-        policyServerId $ targetPolicyServerId $ 
+        nodeHostname $ targetNodeHostname $
+        policyServerId $ targetPolicyServerId $
         agentName $ targetAgentName $
         systemVariable $ targetSystemVariable $
         parameter $ targetParameter  ) )
 
 objectclass ( RudderObjectClasses:102
-  NAME 'rootPolicyServerNodeConfiguration' 
+  NAME 'rootPolicyServerNodeConfiguration'
   SUP  nodeConfiguration
   DESC 'The ROOT policy server of an Rudder Domain' )
 
@@ -587,7 +594,7 @@ objectClass ( RudderObjectClasses:103
   SUP top
   ABSTRACT
   MUST ( techniqueId )
-  MAY ( lastUpdateTimestamp $ 
+  MAY ( lastUpdateTimestamp $
         description $ ruleTarget $ directiveVariable $
         isEnabled $ isSystem $ serial $ directivePriority $
         techniqueId $ techniqueVersion $
@@ -609,7 +616,7 @@ objectclass ( RudderObjectClasses:105
 
 # all node configurations things are supersided by that:
 objectclass ( RudderObjectClasses:110
-  NAME 'nodeConfigurations' 
+  NAME 'nodeConfigurations'
   DESC 'Store node configurations'
   SUP top
   STRUCTURAL
@@ -617,7 +624,7 @@ objectclass ( RudderObjectClasses:110
   MAY ( description $ nodeConfig  ) )
 
 
-# 
+#
 # API Accounts
 #
 
@@ -627,11 +634,11 @@ objectclass ( RudderObjectClasses:106
   SUP top
   STRUCTURAL
   MUST ( apiAccountId $ cn $ creationTimestamp $
-         apiToken $ apiTokenCreationTimestamp) 
+         apiToken $ apiTokenCreationTimestamp)
   MAY ( description  $ isEnabled $ apiAccountKind $
-        apiAcl $ expirationTimestamp ) )
+        apiAuthorizationKind $ apiAcl $ expirationTimestamp ) )
 
-# 
+#
 # Parameters
 #
 

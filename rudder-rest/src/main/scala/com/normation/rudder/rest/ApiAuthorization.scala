@@ -39,9 +39,9 @@ package com.normation.rudder.rest
 
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.AclPathSegment
-import com.normation.rudder.api.ApiAcl
 import com.normation.rudder.api.HttpAction
-import com.normation.rudder.api.ApiAuthz
+import com.normation.rudder.api.ApiAclElement
+import com.normation.rudder.api.{ ApiAuthorization => ApiAuthz }
 import com.normation.rudder.service.user.UserService
 import com.normation.eventlog.EventActor
 import cats.implicits._
@@ -71,23 +71,68 @@ final case class AuthzToken(actor: EventActor)
 
 
 /*
- * Default implementation for Authorisation in Rudder: we match ACL!
+ * This service allows to know if the ACL module is set
  */
-class AclApiAuthorization(
-  userService: UserService
-)extends ApiAuthorization[AuthzToken] {
+trait ApiAuthorizationLevelService {
+  def aclEnabled: Boolean
+  def name: String
+}
+
+// and default implementation is: no
+class DefaultApiAuthorizationLevel(logger: Log) extends ApiAuthorizationLevelService {
+  private[this] var level: Option[ApiAuthorizationLevelService] = None
+  def overrideLevel(l: ApiAuthorizationLevelService): Unit = {
+    logger.info(s"Update API authorization level to '${l.name}'")
+    level = Some(l)
+  }
+  override def aclEnabled: Boolean = level.map( _.aclEnabled ).getOrElse(false)
+
+  override def name: String = "Default implementation (RO/RW authorization)"
+}
+
+
+/*
+ * Default authenticatio scheme. It will check for ACL enabled by the plugin.
+ * In that implementation, we match ACL for token which are of "acl" kind.
+ */
+class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () => Boolean) extends ApiAuthorization[AuthzToken] {
 
   def checkAuthz(endpoint: Endpoint, requestPath: ApiPath): Either[ApiError, AuthzToken] = {
+    def checkRO(action: HttpAction): Option[String] = {
+      if(action == HttpAction.GET || action == HttpAction.HEAD) Some("ok")
+      else None
+    }
+
     val user = userService.getCurrentUser
     for {
       // we want to compare the exact path asked by the user to take care of cases where he only has
       // access to a limited subset of named resourced for the endpoint.
       path <- requestPath.drop(endpoint.prefix).leftMap(msg => ApiError.BadRequest(msg, endpoint.schema.name))
-      ok   <- if(AclCheck(user.getApiAcl, path, endpoint.schema.action)) {
-                Right(AuthzToken(EventActor(user.actor.name)))
-              } else {
+      ok   <- (user.getApiAutz match {
+                case ApiAuthz.None     =>
+                  logger.debug(s"User '${user.actor.name}' does not have any authorizations.")
+                  None
+                case ApiAuthz.RW       =>
+                  logger.debug(s"User '${user.actor.name}' has RW authorizations.")
+                  Some("ok")
+                // if ACL are not enable, we fall back to RO
+                case ApiAuthz.RO       =>
+                  logger.debug(s"User '${user.actor.name}' has RO authorization.")
+                  checkRO(endpoint.schema.action)
+
+                case ApiAuthz.ACL(_) if(!aclEnabled()) =>
+                  logger.debug(s"User '${user.actor.name}' has ACL authorization but no plugin allows to interpret them. Revert to RO rights.")
+                  checkRO(endpoint.schema.action)
+                case ApiAuthz.ACL(acl) =>
+                  logger.debug(s"User '${user.actor.name}' has ACL authorization and a plugin allows to interpret them.")
+                  if(AclCheck(acl, path, endpoint.schema.action)) {
+                    Some("ok")
+                  } else {
+                    None
+                  }
+              }).map(_ => Right(AuthzToken(EventActor(user.actor.name)))).getOrElse(
                 Left(ApiError.Authz(s"User '${user.actor.name}' is not allowed to access ${endpoint.schema.action.name.toUpperCase()} ${endpoint.prefix.value + "/" + endpoint.schema.path.value}", endpoint.schema.name))
-              }
+              )
     } yield {
       ok
     }
@@ -101,15 +146,15 @@ class AclApiAuthorization(
  */
 object AuthzForApi {
 
-  def apply(api: EndpointSchema): ApiAuthz = {
+  def apply(api: EndpointSchema): ApiAclElement = {
     val aclPathSegments = api.path.parts.map { p => p match {
       case ApiPathSegment.Resource(v) => AclPathSegment.Wildcard
       case ApiPathSegment.Segment (v) => AclPathSegment.Segment(v)
     } }
-    ApiAuthz(AclPath.FullPath(aclPathSegments), Set(api.action))
+    ApiAclElement(AclPath.FullPath(aclPathSegments), Set(api.action))
   }
 
-  def withValues(api: EndpointSchema, values: List[AclPathSegment]): ApiAuthz = {
+  def withValues(api: EndpointSchema, values: List[AclPathSegment]): ApiAclElement = {
     def recReplace(api: List[ApiPathSegment], values: List[AclPathSegment]): List[AclPathSegment] = {
       api match {
         case Nil => Nil
@@ -122,7 +167,7 @@ object AuthzForApi {
       }
     }
     // fromListUnsafe is ok as we had a non empty list as source
-    ApiAuthz(AclPath.FullPath(NonEmptyList.fromListUnsafe(recReplace(api.path.parts.toList, values))), Set(api.action))
+    ApiAclElement(AclPath.FullPath(NonEmptyList.fromListUnsafe(recReplace(api.path.parts.toList, values))), Set(api.action))
   }
 }
 
@@ -155,11 +200,11 @@ object AclCheck {
    * => AclCheck(acl, "a/b", GET) => true
    * => AclCheck(acl, "a/b", PUT) => true
    */
-  def apply(acl: ApiAcl, path: ApiPath, action: HttpAction): Boolean = {
+  def apply(acl: List[ApiAclElement], path: ApiPath, action: HttpAction): Boolean = {
     // we look for the FIRS ACL whose path matches
-    acl.acl.find(x => matches( x.path, path ) ) match {
-      case None                       => false
-      case Some(ApiAuthz(_, actions)) => actions.contains(action)
+    acl.find(x => matches( x.path, path ) ) match {
+      case None                            => false
+      case Some(ApiAclElement(_, actions)) => actions.contains(action)
     }
   }
 

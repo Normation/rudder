@@ -41,15 +41,10 @@ package checks
 import com.normation.rudder.domain.RudderDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import javax.servlet.UnavailableException
+
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.ldap.sdk.BuildFilter
-import com.normation.rudder.rest.AllApi
-import com.normation.rudder.api.ApiAuthz
-import com.normation.rudder.api.ApiAcl
-import com.normation.rudder.api.AclPathSegment
-import com.normation.rudder.api.AclPath
-import com.normation.rudder.rest.ApiPathSegment
+import com.normation.rudder.api.ApiAuthorizationKind
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
 
@@ -58,48 +53,37 @@ import net.liftweb.common.EmptyBox
  * which don't have them.
  * It uses the current list of defined endpoint to create the list.
  */
-class CheckApiTokenAcl(
+class CheckApiTokenAutorizationKind(
     rudderDit    : RudderDit
   , ldapConnexion: LDAPConnectionProvider[RwLDAPConnection]
-  , mapper       : LDAPEntityMapper
 ) extends BootstrapChecks {
 
-  override val description = "Define default API ACL"
+  val DEFAULT_AUTHZ = ApiAuthorizationKind.RW
 
-  val defaultAcl = {
-    val authzs = AllApi.api.groupBy( _.path ).mapValues( _.map( _.action ) ).map { case (path, actions) =>
-      val p = AclPath.FullPath(path.parts.map {
-        case ApiPathSegment.Segment(v)  => AclPathSegment.Segment(v)
-        case ApiPathSegment.Resource(_) => AclPathSegment.Wildcard
-      })
-      ApiAuthz(p, actions.toSet)
-    }
-    mapper.serApiAcl(ApiAcl(authzs.toList))
-  }
+  override val description = "Update existing API token to 'RW' autorization level."
 
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
     import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
-    import com.normation.rudder.domain.RudderLDAPConstants.{ OC_API_ACCOUNT, A_API_ACL, A_API_UUID }
+    import com.normation.rudder.domain.RudderLDAPConstants.{ OC_API_ACCOUNT, A_API_AUTHZ_KIND, A_API_UUID }
 
     for {
       ldap       <- ldapConnexion
     } yield {
-      ldap.searchOne(rudderDit.API_ACCOUNTS.dn, BuildFilter.IS(OC_API_ACCOUNT), A_API_ACL, A_NAME).foreach { e =>
+      ldap.searchOne(rudderDit.API_ACCOUNTS.dn, BuildFilter.IS(OC_API_ACCOUNT), A_API_AUTHZ_KIND, A_NAME).foreach { e =>
         // we are looking for entries where A_API_ACL is not defined
-        if(!e.hasAttribute(A_API_ACL)) {
-          e += (A_API_ACL, defaultAcl)
+        if(!e.hasAttribute(A_API_AUTHZ_KIND)) {
+          e += (A_API_AUTHZ_KIND, DEFAULT_AUTHZ.name)
           val name = e(A_NAME).orElse(e(A_API_UUID)).getOrElse("")
           ldap.save(e) match {
             case Full(_) =>
-              logger.info(s"[migration] Adding default ACL to API token '${name}'")
+              logger.info(s"[migration] Adding default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token '${name}'")
             case eb: EmptyBox =>
-              val e = (eb ?~! s"Error when trying to add default ACL to API token ${name}")
+              val e = (eb ?~! s"Error when trying to add default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token ${name}")
               logger.error(e.messageChain)
           }
         }
       }
     }
   }
-
 }

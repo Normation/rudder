@@ -39,14 +39,15 @@ package bootstrap.liftweb
 
 import java.io.File
 import java.util.Collection
+
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.ImportResource
 import org.springframework.context.support.ClassPathXmlApplicationContext
-import org.springframework.core.io.{ ClassPathResource => CPResource }
-import org.springframework.core.io.{ FileSystemResource => FSResource }
+import org.springframework.core.io.{ClassPathResource => CPResource}
+import org.springframework.core.io.{FileSystemResource => FSResource}
 import org.springframework.core.io.Resource
 import org.springframework.ldap.core.DirContextAdapter
 import org.springframework.ldap.core.DirContextOperations
@@ -68,8 +69,7 @@ import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.xml.sax.SAXParseException
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.api.ApiToken
-import com.normation.rudder.api.RoApiAccountRepository
+import com.normation.rudder.api._
 import com.normation.rudder.RoleToRights
 import com.normation.rudder.Rights
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -83,6 +83,7 @@ import javax.servlet.ServletRequest
 import javax.servlet.ServletResponse
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
+
 import net.liftweb.common._
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
 import org.springframework.context.support.AbstractApplicationContext
@@ -90,16 +91,17 @@ import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.ldap.core.DirContextAdapter
 import org.springframework.ldap.core.DirContextOperations
 import java.util.Collection
+
 import org.xml.sax.SAXParseException
 import com.normation.rudder.web.services.UserSessionLogEvent
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.authentication.BadCredentialsException
-import com.normation.rudder.api.ApiAcl
 import com.normation.rudder.rest.RoleApiMapping
 import org.joda.time.DateTime
 import com.normation.rudder.Role
-import com.normation.rudder.api.ApiAccountKind
+
+import scala.collection.JavaConverters.asJavaCollectionConverter
 
 /**
  * Spring configuration for user authentication.
@@ -127,7 +129,7 @@ class AppConfigAuth extends ApplicationContextAware {
   val logger = ApplicationLogger
 
   // we define the System ApiAcl as one that is all mighty and can manage everything
-  val SYSTEM_API_ACL = ApiAcl.allAuthz
+  val SYSTEM_API_ACL = ApiAuthorization.allAuthz
 
   def setApplicationContext(applicationContext: ApplicationContext) {
     //prepare specific properties for new context
@@ -193,7 +195,7 @@ class AppConfigAuth extends ApplicationContextAware {
       parseUsers(resource) match {
         case Some(config) =>
           new RudderInMemoryUserDetailsService(config.encoder, config.users.map { case (login,pass,roles) =>
-            RudderUserDetail(login, pass, roles.toSet, RoleApiMapping.getApiAclFromRoles(roles))
+            RudderUserDetail(login, pass, roles.toSet, ApiAuthorization.ACL(RoleApiMapping.getApiAclFromRoles(roles)), RudderAuthType.User)
           }.toSet)
         case None =>
           ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
@@ -229,6 +231,7 @@ class AppConfigAuth extends ApplicationContextAware {
         , config.getString("rudder.auth.admin.password")
         , RoleToRights.parseRole(Seq("administrator")).toSet
         , SYSTEM_API_ACL
+        , RudderAuthType.User
       )
       if(admin.login.isEmpty || admin.password.isEmpty) {
         Set.empty[RudderUserDetail]
@@ -348,34 +351,51 @@ class RudderInMemoryUserDetailsService(val passwordEncoder: PasswordEncoder, pri
  * from Spring more easily
  *
  * So we have only one Authority type known by Spring Security: ROLE_USER
+ * And one other for API: ROLE_REMOTE
  */
-case object RoleUserAuthority extends GrantedAuthority {
-  override val getAuthority = "ROLE_USER"
+sealed trait RudderAuthType {
+  def grantedAuthorities: Collection[GrantedAuthority]
 }
 
-case object RoleApiAuthority extends GrantedAuthority {
-  override val getAuthority = "ROLE_REMOTE"
+final object RudderAuthType {
+  // build a GrantedAuthority from the string
+  private def buildAuthority(s: String): Collection[GrantedAuthority] = {
+    Seq(new GrantedAuthority { override def getAuthority: String = s }).asJavaCollection
+  }
 
-  val apiRudderRights = new Rights(AuthorizationType.NoRights)
-  val apiRudderRole: Set[Role] = Set(Role.NoRights)
+  final case object User extends RudderAuthType {
+    override val grantedAuthorities = buildAuthority("ROLE_USER")
+  }
+  final case object Api extends RudderAuthType {
+    override val grantedAuthorities = buildAuthority("ROLE_REMOTE")
+
+    val apiRudderRights = new Rights(AuthorizationType.NoRights)
+    val apiRudderRole: Set[Role] = Set(Role.NoRights)
+  }
 }
+
 
 /**
  * Our simple model for for user authentication and authorizations.
  * Note that authorizations are not managed by spring, but by the
  * 'authz' token of RudderUserDetail.
  */
-case class RudderUserDetail(login:String, password:String, roles: Set[Role], apiAuthz: ApiAcl, grantedAuthorities: Seq[GrantedAuthority] = Seq(RoleUserAuthority)) extends UserDetails with HashcodeCaching {
-  import scala.collection.JavaConverters.asJavaCollectionConverter
+case class RudderUserDetail(
+    login   : String
+  , password: String
+  , roles   : Set[Role]
+  , apiAuthz: ApiAuthorization
+  , userType: RudderAuthType
+) extends UserDetails with HashcodeCaching {
   // merge roles rights
   val authz = new Rights(roles.flatMap(_.rights.authorizationTypes).toSeq:_*)
-  override val getAuthorities:java.util.Collection[GrantedAuthority] = grantedAuthorities.asJavaCollection
-  override val getPassword = password
-  override val getUsername = login
-  override val isAccountNonExpired = true
-  override val isAccountNonLocked = true
+  override val getAuthorities          = userType.grantedAuthorities
+  override val getPassword             = password
+  override val getUsername             = login
+  override val isAccountNonExpired     = true
+  override val isAccountNonLocked      = true
   override val isCredentialsNonExpired = true
-  override val isEnabled = true
+  override val isEnabled               = true
 }
 
 /**
@@ -387,8 +407,8 @@ case class RudderUserDetail(login:String, password:String, roles: Set[Role], api
 class RestAuthenticationFilter(
     apiTokenRepository: RoApiAccountRepository
   , userDetailsService: RudderInMemoryUserDetailsService
-  , systemApiAcl      : ApiAcl
-  , headerName        : String = "X-API-Token"
+  , systemApiAcl      : ApiAuthorization
+  , apiTokenHeaderName: String = "X-API-Token"
 ) extends Filter with Loggable {
   def destroy(): Unit = {}
   def init(config: FilterConfig): Unit = {}
@@ -440,7 +460,7 @@ class RestAuthenticationFilter(
 
       case (httpRequest:HttpServletRequest, httpResponse:HttpServletResponse) =>
 
-        httpRequest.getHeader(headerName) match {
+        httpRequest.getHeader(apiTokenHeaderName) match {
 
           case null | "" =>
 
@@ -449,13 +469,13 @@ class RestAuthenticationFilter(
               authenticate(RudderUserDetail(
                   "UnknownRestUser"
                  , ""
-                 , RoleApiAuthority.apiRudderRole
-                 , ApiAcl.noAuthz // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
-                 , Seq(RoleApiAuthority)
+                 , RudderAuthType.Api.apiRudderRole
+                 , ApiAuthorization.None // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
+                 , RudderAuthType.Api
               ))
               chain.doFilter(request, response)
             } else {
-              failsAuthentication(httpRequest, httpResponse, Failure(s"Missing or empty HTTP header ${headerName}"))
+              failsAuthentication(httpRequest, httpResponse, Failure(s"Missing or empty HTTP header '${apiTokenHeaderName}'"))
             }
 
           case token =>
@@ -463,17 +483,17 @@ class RestAuthenticationFilter(
 
             val apiToken = ApiToken(token)
             val systemAccount = apiTokenRepository.getSystemAccount
-            if (systemAccount.token == apiToken) {
+            if (systemAccount.token == apiToken) { // system token with super authz
               authenticate(RudderUserDetail(
                   REST_USER_PREFIX + s""""${systemAccount.name.value}"""" + s" (${systemAccount.id.value})"
                 , systemAccount.token.value
-                , RoleApiAuthority.apiRudderRole
+                , RudderAuthType.Api.apiRudderRole
                 , systemApiAcl
-                , Seq(RoleApiAuthority)
+                , RudderAuthType.Api
               ))
 
               chain.doFilter(request, response)
-            } else {
+            } else { // standard token, try to find it in DB
               apiTokenRepository.getByToken(apiToken) match {
                 case eb:EmptyBox =>
                   failsAuthentication(httpRequest, httpResponse, eb)
@@ -482,40 +502,49 @@ class RestAuthenticationFilter(
                   failsAuthentication(httpRequest, httpResponse, Failure(s"No registered token '${token}'"))
 
                 case Full(Some(principal)) =>
+                  val rest_principal = REST_USER_PREFIX + s""""${principal.name.value}"""" + s" (${principal.id.value})"
+
                   if(principal.isEnabled) {
-                    principal.expirationDate match {
-                      case Some(date) if(DateTime.now().isAfter(date)) =>
-                        failsAuthentication(httpRequest, httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
-                      case _ => // no expiration date or expiration date not reached
+                    principal.kind match {
+                      case ApiAccountKind.System => // we don't want to allow system account kind from DB
+                        failsAuthentication(httpRequest, httpResponse, Failure(s"A saved API account can not have the kind 'System': '${principal.name}'"))
+                      case ApiAccountKind.PublicApi(authz, expirationDate) =>
+                        expirationDate match {
+                          case Some(date) if(DateTime.now().isAfter(date)) =>
+                            failsAuthentication(httpRequest, httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
+                          case _ => // no expiration date or expiration date not reached
 
-                        val rest_principal = REST_USER_PREFIX + s""""${principal.name.value}"""" + s" (${principal.id.value})"
-                        val user = RudderUserDetail(
-                            rest_principal
-                          , principal.token.value
-                          , RoleApiAuthority.apiRudderRole
-                          , principal.authorizations
-                          , Seq(RoleApiAuthority)
-                        )
+                            val user = RudderUserDetail(
+                                rest_principal
+                              , principal.token.value
+                              , RudderAuthType.Api.apiRudderRole
+                              , authz
+                              , RudderAuthType.Api
+                            )
+                            //cool, build an authentication token from it
+                            authenticate(user)
+                            chain.doFilter(request, response)
+                        }
+                      case ApiAccountKind.User =>
+                        // User account need an update for their ACL.
+                        (try {
+                          Right(userDetailsService.loadUserByUsername(principal.id.value))
+                        } catch {
+                          case ex: UsernameNotFoundException => Left(s"User with id '${principal.id.value}' was not found on the system. The API token linked to that user can not be used anymore.")
+                          case ex: Exception                 => Left(s"Error when trying to get user information linked to user '${principal.id.value}' API token.")
+                        }) match {
+                          case Right(u) => //update acl
+                            authenticate(RudderUserDetail(
+                                rest_principal
+                              , principal.token.value
+                              , RudderAuthType.Api.apiRudderRole
+                              , u.apiAuthz
+                              , RudderAuthType.Api
+                            ))
+                            chain.doFilter(request, response)
 
-                        // check API account type: User account need an update for their ACL.
-                        if(principal.kind == ApiAccountKind.User) {
-                          (try {
-                            Right(userDetailsService.loadUserByUsername(principal.id.value))
-                          } catch {
-                            case ex: UsernameNotFoundException => Left(s"User with id '${principal.id.value}' was not found on the system. The API token linked to that user can not be used anymore.")
-                            case ex: Exception                 => Left(s"Error when trying to get user information linked to user '${principal.id.value}' API token.")
-                          }) match {
-                            case Right(u) => //update acl
-                              authenticate(user.copy(apiAuthz = u.apiAuthz))
-                              chain.doFilter(request, response)
-
-                            case Left(er) =>
-                              failsAuthentication(httpRequest, httpResponse, Failure(er))
-                          }
-                        } else {
-                          //cool, build an authentication token from it
-                          authenticate(user)
-                          chain.doFilter(request, response)
+                          case Left(er) =>
+                            failsAuthentication(httpRequest, httpResponse, Failure(er))
                         }
                     }
                   } else {
@@ -540,13 +569,15 @@ case class AuthConfig(
 
 class RudderXmlUserDetailsContextMapper(authConfig: AuthConfig) extends UserDetailsContextMapper {
 
-  val users = authConfig.users.map { case(login,pass,roles) => (login, RudderUserDetail(login,pass,roles.toSet,RoleApiMapping.getApiAclFromRoles(roles))) }.toMap
+  val users = authConfig.users.map { case(login,pass,roles) =>
+    (login, RudderUserDetail(login, pass, roles.toSet, ApiAuthorization.ACL(RoleApiMapping.getApiAclFromRoles(roles)), RudderAuthType.User))
+  }.toMap
 
   //we are not able to try to save user in the XML file
   def mapUserToContext(user: UserDetails, ctx: DirContextAdapter) : Unit = ()
 
   def mapUserFromContext(ctx: DirContextOperations, username: String, authorities: Collection[_ <:GrantedAuthority]): UserDetails = {
-    users.getOrElse(username, RudderUserDetail(username, "", Set(Role.NoRights), ApiAcl.noAuthz))
+    users.getOrElse(username, RudderUserDetail(username, "", Set(Role.NoRights), ApiAuthorization.None, RudderAuthType.User))
   }
 
 }
