@@ -59,7 +59,7 @@ import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
-
+import com.normation.rudder.services.servers.{RelaySynchronizationMethod,ClassicSynchronization, RsyncSynchronization, DisabledSynchronization}
 /**
  * This class manage the displaying of user configured properties.
  *
@@ -90,6 +90,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "changeMessage" => changeMessageConfiguration
     case "workflow"      => workflowConfiguration
     case "denyBadClocks" => cfserverNetworkConfiguration
+    case "relaySynchronizationMethod" => relaySynchronizationMethodManagement
     case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration
     case "agentPolicyMode" => (xml) => agentPolicyModeConfiguration
     case "complianceMode" => (xml) => complianceModeConfiguration
@@ -489,6 +490,130 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       }
     ) apply (xml ++ Script(check()))
   }
+
+  def relaySynchronizationMethodManagement = { xml : NodeSeq =>
+    //  initial values, updated on successfull submit
+    var initRelaySyncMethod = configService.relay_server_sync_method
+    // Be careful, we store negative value
+    var initRelaySyncPromises = configService.relay_server_syncpromises
+    var initRelaySyncSharedFiles = configService.relay_server_syncsharedfiles
+
+    // form values
+    var relaySyncMethod = initRelaySyncMethod.getOrElse(ClassicSynchronization)
+    var relaySyncPromises = initRelaySyncPromises.getOrElse(false)
+    var relaySyncSharedFiles = initRelaySyncSharedFiles.getOrElse(false)
+
+    def noModif = (
+         initRelaySyncMethod.map(_ == relaySyncMethod).getOrElse(false)
+      && initRelaySyncPromises.map(_ == relaySyncPromises).getOrElse(false)
+      && initRelaySyncSharedFiles.map(_ == relaySyncSharedFiles).getOrElse(false)
+    )
+
+    def check() = {
+      if(!noModif){
+        S.notice("updateRelaySynchronization","")
+      }
+      Run(s"""$$("#relaySynchronizationSubmit").prop('disabled', ${noModif});""")
+    }
+
+    def submit = {
+      configService.set_relay_server_sync_method(relaySyncMethod).foreach(updateOk => initRelaySyncMethod = Full(relaySyncMethod))
+      configService.set_relay_server_syncpromises(relaySyncPromises).foreach(updateOk => initRelaySyncPromises = Full(relaySyncPromises))
+      configService.set_relay_server_syncsharedfiles(relaySyncSharedFiles).foreach(updateOk => initRelaySyncSharedFiles = Full(relaySyncSharedFiles))
+
+      // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
+      startNewPolicyGeneration
+      S.notice("updateRelaySynchronization","Relay servers synchronization methods correctly updated")
+      check()
+    }
+
+    def setRelaySyncMethodJs(t:String) : JsCmd = {
+      t.toLowerCase() match {
+        case ClassicSynchronization.value => relaySyncMethod = ClassicSynchronization ; JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """)
+        case RsyncSynchronization.value =>   relaySyncMethod = RsyncSynchronization   ; JsRaw(""" $('#relayRsyncSynchronizeFiles').show(); """)
+        case DisabledSynchronization.value =>relaySyncMethod = DisabledSynchronization; JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """)
+      }
+    }
+    (
+       "#relaySyncMethod" #> {
+         initRelaySyncMethod match {
+            case Full(value) =>
+              SHtml.ajaxRadio(
+                Seq(ClassicSynchronization.value, RsyncSynchronization.value, DisabledSynchronization.value).map(_.capitalize)
+              , initRelaySyncMethod.map(_.value.capitalize)
+              , (t:String) => setRelaySyncMethodJs(t)
+              , ("id","relaySyncMethod")
+              ).toForm ++ Script(OnLoad(setRelaySyncMethodJs(value.value)))
+
+            case eb: EmptyBox =>
+              val fail = eb ?~ "there was an error while fetching value of property: 'Synchronize Policies using rsync' "
+              <div class="error">{fail.msg}</div>
+          }
+       } &
+       "#relaySyncPromises" #> {
+          initRelaySyncPromises match {
+            case Full(value) =>
+              SHtml.ajaxCheckbox(
+                value
+              , (b : Boolean) => { relaySyncPromises = b; check() }
+              , ("id","relaySyncPromises")
+              )
+            case eb: EmptyBox =>
+              val fail = eb ?~ "there was an error while fetching value of property: 'Synchronize Policies using rsync' "
+              <div class="error">{fail.msg}</div>
+          }
+        } &
+        "#relaySyncPromisesTooltip *" #> {
+
+        initRelaySyncPromises match {
+          case Full(_) =>
+            val tooltipid = Helpers.nextFuncName
+            <span class="tooltipable" tooltipid={tooltipid} title="">
+              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+            </span>
+            <div class="tooltipContent" id={tooltipid}>
+              If this is checked, when rsync synchronization method is used, folder /var/rudder/share will be synchronized using rsync.
+              If this is not checked, you'll have to synchronize yourself this folder
+            </div>
+
+          case _ => NodeSeq.Empty
+        }
+      } &
+       "#relaySyncSharedFiles" #> {
+          initRelaySyncSharedFiles match {
+            case Full(value) =>
+              SHtml.ajaxCheckbox(
+                value
+              , (b : Boolean) => { relaySyncSharedFiles = b; check() }
+              , ("id","relaySyncSharedFiles")
+              )
+            case eb: EmptyBox =>
+              val fail = eb ?~ "there was an error while fetching value of property: 'Synchronize Shared Files using rsync' "
+              <div class="error">{fail.msg}</div>
+          }
+        } &
+        "#relaySyncSharedFilesTooltip *" #> {
+
+        initRelaySyncSharedFiles match {
+          case Full(_) =>
+            val tooltipid = Helpers.nextFuncName
+            <span class="tooltipable" tooltipid={tooltipid} title="">
+              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+            </span>
+            <div class="tooltipContent" id={tooltipid}>
+              If this is checked, when rsync synchronization method is used, folder /var/rudder/configuration-repository/shared-files will be synchronized using rsync.
+              If this is not checked, you'll have to synchronize yourself this folder
+            </div>
+
+          case _ => NodeSeq.Empty
+        }
+      } &
+        "#relaySynchronizationSubmit " #> {
+          SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+        }
+    ) apply (xml ++ Script(check()))
+  }
+
 
   def networkProtocolSection = { xml : NodeSeq =>
     //  initial values, updated on successfull submit

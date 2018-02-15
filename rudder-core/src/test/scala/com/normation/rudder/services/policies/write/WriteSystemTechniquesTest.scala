@@ -101,6 +101,11 @@ import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.services.policies.NodeConfigData.{root, node1, rootNodeConfig}
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.Variable
+import com.normation.cfclerk.domain.TrackerVariable
+import com.normation.inventory.domain.AgentType
+import com.normation.rudder.services.servers.ClassicSynchronization
 
 /**
  * Details of tests executed in each instances of
@@ -188,6 +193,10 @@ object TestSystemData {
     //denybadclocks and skipIdentify are runtime properties
     , getDenyBadClocks         = () => Full(true)
     , getSkipIdentify          = () => Full(false)
+      // relay synchronisation method
+    , getSyncMethod            = () => Full(ClassicSynchronization)
+    , getSyncPromises          = () => Full(false)
+    , getSyncSharedFiles       = () => Full(false)
     // TTLs are runtime properties too
     , getModifiedFilesTtl             = () => Full(30)
     , getCfengineOutputsTtl           = () => Full(7)
