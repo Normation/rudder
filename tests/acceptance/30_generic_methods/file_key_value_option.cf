@@ -198,13 +198,13 @@ JAVA_OPTS=\\\"-Djava.awt.headless=true -Xmx1024m\\\"";
 bundle agent test
 {
   methods:
-    "modified key" usebundle => file_ensure_key_value_option("${init.file1}", "${init.key1}", "${init.value1}", "${init.separator1}", "${init.option1}");
-    "added key"    usebundle => file_ensure_key_value_option("${init.file2}", "${init.key2}", "${init.value2}", "${init.separator2}", "${init.option2}");
-    "success key"  usebundle => file_ensure_key_value_option("${init.file3}", "${init.key3}", "${init.value3}", "${init.separator3}", "${init.option3}");
-    "success key"  usebundle => file_ensure_key_value_option("${init.file4}", "${init.key4}", "${init.value4}", "${init.separator4}", "${init.option4}");
-    "repaired key" usebundle => file_ensure_key_value_option("${init.file5}", "${init.key5}", "${init.value5}", "${init.separator5}", "${init.option5}");
-    "repaired key" usebundle => file_ensure_key_value_option("${init.file6}", "${init.key6}", "${init.value6}", "${init.separator6}", "${init.option6}");
-    "repaired key" usebundle => file_ensure_key_value_option("${init.file7}", "${init.key7}", "${init.value7}", "${init.separator7}", "${init.option7}");
+    "modified key" usebundle => file_key_value_present_option("${init.file1}", "${init.key1}", "${init.value1}", "${init.separator1}", "${init.option1}");
+    "added key"    usebundle => file_key_value_present_option("${init.file2}", "${init.key2}", "${init.value2}", "${init.separator2}", "${init.option2}");
+    "success key"  usebundle => file_key_value_present_option("${init.file3}", "${init.key3}", "${init.value3}", "${init.separator3}", "${init.option3}");
+    "success key"  usebundle => file_key_value_present_option("${init.file4}", "${init.key4}", "${init.value4}", "${init.separator4}", "${init.option4}");
+    "repaired key" usebundle => file_key_value_present_option("${init.file5}", "${init.key5}", "${init.value5}", "${init.separator5}", "${init.option5}");
+    "repaired key" usebundle => file_key_value_present_option("${init.file6}", "${init.key6}", "${init.value6}", "${init.separator6}", "${init.option6}");
+    "repaired key" usebundle => file_key_value_present_option("${init.file7}", "${init.key7}", "${init.value7}", "${init.separator7}", "${init.option7}");
 }
 
 #######################################################
@@ -223,33 +223,33 @@ bundle agent check
   classes:
     "file1_correct" 
        expression => returnszero("${file_diff_test1}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_${init.file_canon1}_reached");
+       ifvarclass => canonify("file_key_value_present_${init.file_canon1}_reached");
     "file2_correct"
        expression => returnszero("${file_diff_test2}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_${init.file_canon2}_reached");
+       ifvarclass => canonify("file_key_value_present_${init.file_canon2}_reached");
     "file3_correct"
        expression => returnszero("${file_diff_test3}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_${init.file_canon3}_reached");
+       ifvarclass => canonify("file_key_value_present_${init.file_canon3}_reached");
     "file4_correct"
        expression => returnszero("${file_diff_test4}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_${init.file_canon4}_reached");
+       ifvarclass => canonify("file_key_value_present_${init.file_canon4}_reached");
     "file5_correct"
        expression => returnszero("${file_diff_test4}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_${init.file_canon4}_reached");
+       ifvarclass => canonify("file_key_value_present_${init.file_canon4}_reached");
     "file6_correct"
        expression => returnszero("${file_diff_test4}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_${init.file_canon4}_reached");
+       ifvarclass => canonify("file_key_value_present_${init.file_canon4}_reached");
     "file7_correct"
        expression => returnszero("${file_diff_test4}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_${init.file_canon4}_reached");
+       ifvarclass => canonify("file_key_value_present_${init.file_canon4}_reached");
 
-    "ok_test1"     expression => "file1_correct.file_ensure_key_value_${init.file_canon1}_repaired.!file_ensure_key_value_${init.file_canon1}_not_ok";
-    "ok_test2"     expression => "file2_correct.file_ensure_key_value_${init.file_canon2}_repaired.!file_ensure_key_value_${init.file_canon2}_not_ok";
-    "ok_test3"     expression => "file3_correct.file_ensure_key_value_${init.file_canon3}_kept.!file_ensure_key_value_${init.file_canon3}_not_ok.!file_ensure_key_value_${init.file_canon3}_repaired";
-    "ok_test4"     expression => "file4_correct.file_ensure_key_value_${init.file_canon4}_kept.!file_ensure_key_value_${init.file_canon4}_not_ok.!file_ensure_key_value_${init.file_canon4}_repaired";
-    "ok_test5"     expression => "file5_correct.file_ensure_key_value_${init.file_canon5}_repaired.!file_ensure_key_value_${init.file_canon5}_not_ok";
-    "ok_test6"     expression => "file6_correct.file_ensure_key_value_${init.file_canon6}_repaired.!file_ensure_key_value_${init.file_canon6}_not_ok";
-    "ok_test7"     expression => "file7_correct.file_ensure_key_value_${init.file_canon7}_repaired.!file_ensure_key_value_${init.file_canon7}_not_ok";
+    "ok_test1"     expression => "file1_correct.file_key_value_present_${init.file_canon1}_repaired.!file_key_value_present_${init.file_canon1}_not_ok";
+    "ok_test2"     expression => "file2_correct.file_key_value_present_${init.file_canon2}_repaired.!file_key_value_present_${init.file_canon2}_not_ok";
+    "ok_test3"     expression => "file3_correct.file_key_value_present_${init.file_canon3}_kept.!file_key_value_present_${init.file_canon3}_not_ok.!file_key_value_present_${init.file_canon3}_repaired";
+    "ok_test4"     expression => "file4_correct.file_key_value_present_${init.file_canon4}_kept.!file_key_value_present_${init.file_canon4}_not_ok.!file_key_value_present_${init.file_canon4}_repaired";
+    "ok_test5"     expression => "file5_correct.file_key_value_present_${init.file_canon5}_repaired.!file_key_value_present_${init.file_canon5}_not_ok";
+    "ok_test6"     expression => "file6_correct.file_key_value_present_${init.file_canon6}_repaired.!file_key_value_present_${init.file_canon6}_not_ok";
+    "ok_test7"     expression => "file7_correct.file_key_value_present_${init.file_canon7}_repaired.!file_key_value_present_${init.file_canon7}_not_ok";
     "ok"          and => {"ok_test1","ok_test2","ok_test3", "ok_test4", "ok_test5", "ok_test6", "ok_test7"};
 
 

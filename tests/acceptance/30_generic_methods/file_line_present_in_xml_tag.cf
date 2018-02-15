@@ -62,8 +62,8 @@ ${line}
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_ensure_line_present_in_xml_tag("${init.file}", "${init.tag}", "${init.line}");
-    "ph2" usebundle => file_ensure_line_present_in_xml_tag("${init.invalid_file}", "${init.invalid_tag}", "${init.invalid_content}");
+    "ph1" usebundle => file_line_present_in_xml_tag("${init.file}", "${init.tag}", "${init.line}");
+    "ph2" usebundle => file_line_present_in_xml_tag("${init.invalid_file}", "${init.invalid_tag}", "${init.invalid_content}");
 
 }
 
@@ -78,14 +78,14 @@ bundle agent check
   classes:
     "line_exists"
        expression => returnszero("${line_exists_test}", "noshell"),
-       ifvarclass => canonify("file_ensure_line_present_in_xml_tag_${init.file}_reached");
+       ifvarclass => canonify("file_line_present_in_xml_tag_${init.file}_reached");
 
     "no_change" 
        expression => returnszero("${no_change_test}", "noshell"),
-       ifvarclass => canonify("file_ensure_line_present_in_xml_tag_${init.invalid_file}_reached");
+       ifvarclass => canonify("file_line_present_in_xml_tag_${init.invalid_file}_reached");
 
-    "valid_tag_change"   expression => "file_ensure_line_present_in_xml_tag_${init.file_canon}_ok.!file_ensure_line_present_in_xml_tag_${init.file_canon}_not_ok";
-    "invalid_tag_change" expression => "file_ensure_line_present_in_xml_tag_${init.invalid_file_canon}_not_ok";
+    "valid_tag_change"   expression => "file_line_present_in_xml_tag_${init.file_canon}_ok.!file_line_present_in_xml_tag_${init.file_canon}_not_ok";
+    "invalid_tag_change" expression => "file_line_present_in_xml_tag_${init.invalid_file_canon}_not_ok";
 
     "ok"          expression => "line_exists.no_change.valid_tag_change.invalid_tag_change";
 

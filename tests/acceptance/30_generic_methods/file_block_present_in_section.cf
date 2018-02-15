@@ -47,7 +47,7 @@ ${section_end}";
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_ensure_block_in_section("${init.file}", "${init.section_start}", "${init.section_end}", "${init.block_to_add}");
+    "ph1" usebundle => file_block_present_in_section("${init.file}", "${init.section_start}", "${init.section_end}", "${init.block_to_add}");
 }
 
 #######################################################
@@ -58,13 +58,13 @@ bundle agent check
     "line_exists_test" string => "/usr/bin/diff \"${init.reference_file}\" \"${init.file}\"";
 
   classes:
-    # By default, file_ensure_block_in_section should create the file if it doesn't exist
+    # By default, file_block_in_section should create the file if it doesn't exist
     "file_exists"  expression => fileexists("${init.file}");
     "block_exists"
       expression => returnszero("${line_exists_test}", "noshell"),
-      ifvarclass => canonify("file_ensure_block_in_section_${init.file}_reached");
+      ifvarclass => canonify("file_block_present_in_section_${init.file}_reached");
 
-    "ok"           expression => "file_exists.block_exists.file_ensure_block_in_section_${init.file_canon}_ok.!file_ensure_block_in_section_${init.file_canon}_error";
+    "ok"           expression => "file_exists.block_exists.file_block_present_in_section_${init.file_canon}_ok.!file_block_present_in_section_${init.file_canon}_error";
 
   reports:
     ok::
