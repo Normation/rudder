@@ -92,7 +92,75 @@
         </div>
       </div>
     </div>
-    <div class="inner-portlet">
+
+
+        <hr class="spacer" />
+        <div class="deca">
+          <h3>Relay synchronization method</h3>
+          <div class="tw-bs">
+            <div class="col-lg-12 callout-fade callout-warning">
+              <div class="marker">
+                <span class="glyphicon glyphicon-info-sign"></span>
+              </div>
+              <p>
+                Configure the method used to synchronize files between Relay servers and the Rudder server.
+              </p>
+              <p>
+                The <b>classic</b> method doesn't require any setup and use the standard protocol. However, it does not scale beyond 1000 nodes per relay.
+              </p>
+              <p>
+                The <b>rsync</b> method triggers <i>rsync</i> synchronization between each Relay and the Rudder server, for the selected resources (policies and/or shared files). It is more efficient, but you need to manually set up rsync on the Relay servers, and proceed with the SSH key exchange. Note that ressources not selected below won't be synchronized.
+              </p>
+              <p>
+                Finally, the <b>manual</b> method disable all synchronization of policies and shared files between the Relay servers and the Rudder server; you will need to manually set up a transfer method.
+              </p>
+
+            </div>
+          </div>
+
+
+          <div class="lift:administration.PropertiesManagement.relaySynchronizationMethod" id="relaySynchronizationMethodForm">
+            <form class="lift:form.ajax">
+              <div class="tw-bs">
+                <label class="" style="font-weight:bold;width: 50%;">
+                  <span>Synchronization method from Relay servers: </span>
+                </label>
+              </div>
+              <div class="radio">
+                <input id="relaySyncMethod" type="text"/>
+              </div>
+              <div id="relayRsyncSynchronizeFiles">
+                <div class="wbBaseField">
+                  <label class="threeCol textright" style="font-weight:bold;width: 50%;">
+                    <span style="float:left">Synchronize policies using rsync: </span>
+                    <span id="relaySyncPromisesTooltip"></span>
+                  </label>
+                  <input id="relaySyncPromises" type="text"/>
+                </div>
+                <div class="wbBaseField">
+                  <label class="threeCol textright" style="font-weight:bold;width: 50%;">
+                    <span style="float:left">Synchronize shared files using rsync: </span>
+                    <span id="relaySyncSharedFilesTooltip"></span>
+                  </label>
+                  <input id="relaySyncSharedFiles" type="text"/>
+                </div>
+              </div>
+              <hr class="spacer"/>
+              <lift:authz role="administration_write">
+                <span class="tw-bs">
+                  <input type="submit" value="[save]" id="relaySynchronizationSubmit"/>
+                </span>
+                <span class="lift:Msg?id=updateRelaySynchronization">[messages]</span>
+              </lift:authz>
+            </form>
+          </div>
+        </div>
+
+
+        <hr class="spacer" />
+        <div class="deca">
+
+      <div class="inner-portlet">
       <h3 class="page-title">Security</h3>
       <div class="lift:administration.PropertiesManagement.denyBadClocks" id="denyBadClocksForm">
         <form class="lift:form.ajax">
