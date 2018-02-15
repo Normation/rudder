@@ -41,6 +41,7 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.policies.SectionVal
 import net.liftweb.common._
+
 import scala.xml.NodeSeq
 import scala.xml._
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -49,7 +50,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechnique
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.rudder.batch.{CurrentDeploymentStatus,SuccessStatus,ErrorStatus}
+import com.normation.rudder.batch.{CurrentDeploymentStatus, ErrorStatus, SuccessStatus}
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
 import com.normation.rudder.domain.Constants._
@@ -84,12 +85,13 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
 import net.liftweb.common._
 import org.joda.time.format.ISODateTimeFormat
-import scala.xml.{ Node => XNode, _ }
+
+import scala.xml.{Node => XNode, _}
 import scala.xml.NodeSeq
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.rudder.domain.appconfig.RudderWebProperty
-import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.{ApiAccount, ApiAccountKind, ApiAuthorization, ApiAuthorizationKind}
 import com.normation.cfclerk.domain.TechniqueId
 
 //serialize / deserialize tags
@@ -474,10 +476,23 @@ class ChangeRequestChangesSerialisationImpl(
 class APIAccountSerialisationImpl(xmlVersion:String) extends APIAccountSerialisation {
 
   def serialise(account:ApiAccount):  Elem = {
-    val exp = account.expirationDate.map(d => <expirationDate>{d.toString(ISODateTimeFormat.dateTime)}</expirationDate> ).getOrElse(NodeSeq.Empty)
-    val acl = <acl>{account.authorizations.acl.map { authz =>
-      <authz path={authz.path.value} action={authz.actions.map(_.name).mkString(",")} />
-    } }</acl>
+    val kind = account.kind match {
+      case ApiAccountKind.User | ApiAccountKind.System =>
+        <kind>{account.kind.kind.name}</kind>
+      case ApiAccountKind.PublicApi(authz, exp) =>
+        NodeSeq.fromSeq(Seq(
+            <kind>{account.kind.kind.name}</kind>
+          , <authorization>{authz match {
+              case ApiAuthorization.None     => Text("none")
+              case ApiAuthorization.RO       => Text("ro")
+              case ApiAuthorization.RW       => Text("rw")
+              case ApiAuthorization.ACL(acl) =>
+                <acl>{acl.map { authz =>
+                  <authz path={authz.path.value} action={authz.actions.map(_.name).mkString(",")} />
+                } }</acl>
+            }}</authorization>
+        )) ++ exp.map(d => <expirationDate>{d.toString(ISODateTimeFormat.dateTime)}</expirationDate> ).getOrElse(NodeSeq.Empty)
+    }
 
     createTrimedElem(XML_TAG_API_ACCOUNT, xmlVersion)( (
        <id>{account.id.value}</id>
@@ -486,9 +501,8 @@ class APIAccountSerialisationImpl(xmlVersion:String) extends APIAccountSerialisa
        <description>{account.description}</description>
        <isEnabled>{account.isEnabled}</isEnabled>
        <creationDate>{account.creationDate.toString(ISODateTimeFormat.dateTime)}</creationDate>
-       <kind>{account.kind.name}</kind>
        <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
-     ) ++ exp ++ acl
+     ) ++ kind
     )
   }
 }

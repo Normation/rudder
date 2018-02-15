@@ -38,9 +38,9 @@
 package com.normation.rudder.rest
 
 import com.normation.rudder.Rights
-import com.normation.rudder.api.ApiAcl
+import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.api.ApiAuthz
+import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.Role
 import com.normation.rudder.api.AclPathSegment
 
@@ -55,12 +55,12 @@ object RoleApiMapping {
 
   // get the access control list from the user rights.
   // Always succeeds,
-  def getApiAclFromRights(rights: Rights): ApiAcl = {
-    // we have to shortbreaker, no rights and all rigts
+  def getApiAclFromRights(rights: Rights): List[ApiAclElement] = {
+    // we have two shortbreakers, no rights and all rigts
     if(rights.authorizationTypes.contains(AuthorizationType.NoRights)) {
-      ApiAcl.noAuthz
+      Nil
     } else if(rights.authorizationTypes.contains(AuthorizationType.AnyRights)) {
-      ApiAcl.allAuthz
+      ApiAuthz.allAuthz.acl
     } else {
       import cats.implicits._
       // problem: here, rights.authorizationTypes is a set, so not ordered. Acl ARE
@@ -69,28 +69,28 @@ object RoleApiMapping {
     }
   }
 
-  def getApiAclFromRoles(roles: Seq[Role]): ApiAcl = {
+  def getApiAclFromRoles(roles: Seq[Role]): List[ApiAclElement] = {
     getApiAclFromRights(new Rights(roles.flatMap( _.rights.authorizationTypes):_*))
   }
 
   // a merge fonction that group action for identical path
-  def mergeToAcl(authz: List[ApiAuthz]): ApiAcl = {
-    ApiAcl(authz.groupBy( _.path ).map { case (path, seq) =>
-      ApiAuthz(path, seq.flatMap( _.actions ).toSet )
-    }.toList)
+  def mergeToAcl(authz: List[ApiAclElement]): List[ApiAclElement] = {
+    authz.groupBy( _.path ).map { case (path, seq) =>
+      ApiAclElement(path, seq.flatMap( _.actions ).toSet )
+    }.toList
   }
 
   // shorthand to get authz for a given api
   private implicit class ToAuthz(api: EndpointSchema) {
-    def x: ApiAuthz = AuthzForApi(api)
+    def x: ApiAclElement = AuthzForApi(api)
   }
 
-  def mapAuthorization(authz: AuthorizationType): List[ApiAuthz] = {
+  def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = {
     import AuthorizationType._
 
     authz match {
       case NoRights             => Nil
-      case AnyRights            => ApiAcl.allAuthz.acl
+      case AnyRights            => ApiAuthz.allAuthz.acl
       // Administration is Rudder setting
 
       case Administration.Read  => SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: Nil
