@@ -148,6 +148,22 @@ class Boot extends Loggable {
     })
 
     ////////// CACHE INVALIDATION FOR RESOURCES //////////
+    // fails on invalid JSON body because it's unsufferable
+    LiftRules.statelessDispatch.append {
+      case req: Req if(   req.json_?
+                       && req.requestType != GetRequest
+                       && req.requestType != HeadRequest
+                       && req.requestType != OptionsRequest
+                       && req.json != null
+                       && req.json.isEmpty
+        ) =>
+        () => Full(
+          JsonResponse(net.liftweb.json.parse(
+            """{"result": "error"
+              |, "errorDetails": "The request has a JSON content type but the body is not valid JSON"}""".stripMargin
+          ), 412)
+        )
+    }
     // Resolve resources prefixed with the cache resource prefix
     LiftRules.statelessDispatch.append(StaticResourceRewrite)
     // and tell lift to happen rudder version when "with-resource-id" is used
