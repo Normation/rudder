@@ -40,7 +40,7 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_ensure_lines_present("${init.file}", "${init.line_to_add}");
+    "ph1" usebundle => file_lines_present("${init.file}", "${init.line_to_add}");
 }
 
 #######################################################
@@ -51,13 +51,13 @@ bundle agent check
     "line_exists_test" string => "/usr/bin/test `/bin/grep \"^${init.line_to_add}$\" \"${init.file}\" | wc -l` = '1'";
 
   classes:
-    # By default, file_ensure_lines_present should create the file if it doesn't exist
+    # By default, file_lines_present should create the file if it doesn't exist
     "file_exists" expression => fileexists("${init.file}");
     
     "line_exists" expression => returnszero("${line_exists_test}", "useshell"),
-                  ifvarclass => canonify("file_ensure_lines_present_${init.file}_reached");
+                  ifvarclass => canonify("file_lines_present_${init.file}_reached");
 
-    "ok"          expression => "file_exists.line_exists.file_ensure_lines_present_${init.file_canon}_ok.!file_ensure_lines_present_${init.file_canon}_error.file_ensure_lines_present_${init.file_canon}_kept.!file_ensure_lines_present_${init.file_canon}_repaired";
+    "ok"          expression => "file_exists.line_exists.file_lines_present_${init.file_canon}_ok.!file_lines_present_${init.file_canon}_error.file_lines_present_${init.file_canon}_kept.!file_lines_present_${init.file_canon}_repaired";
 
   reports:
     ok::
@@ -70,8 +70,8 @@ bundle agent check
       "grep command doesn't return 1 for command: ${line_exists_test}, meaning there is not exactly one line";
     cfengine::
       "the line was already there, but the kept class is not defined"
-        ifvarclass => "!file_ensure_lines_present_${init.file_canon}_kept";
+        ifvarclass => "!file_lines_present_${init.file_canon}_kept";
 
       "the line was already there, but the repaired class is defined"
-        ifvarclass => "file_ensure_lines_present_${init.file_canon}_repaired";
+        ifvarclass => "file_lines_present_${init.file_canon}_repaired";
 }

@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name File copy from remote source
+# @name File from remote source
 # @description Ensure that a file or directory is copied from a policy server
 # @documentation *Note*: This method uses CFEngine file copy protocol, and can only download files from
 # the policy server. To download a file from an external source, you can use
@@ -39,10 +39,10 @@
 # @parameter source      Source file (absolute path on the policy server)
 # @parameter destination Destination file (absolute path on the target node)
 # 
-# @class_prefix file_copy_from_remote_source
+# @class_prefix file_from_remote_source
 # @class_parameter destination
 
-bundle agent file_copy_from_remote_source(source, destination)
+bundle agent file_from_remote_source(source, destination)
 {
   vars:
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
@@ -50,7 +50,7 @@ bundle agent file_copy_from_remote_source(source, destination)
       "args"              slist => { "${source}", "${destination}" };
 
   methods:
-      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("${source}", "${destination}", "0");
+      "copy without recursion" usebundle => file_from_remote_source_recursion("${source}", "${destination}", "0");
       "new result classes"     usebundle => _classes_copy("${class_prefix}_copy_without_recursion", "${class_prefix}");
 
       "report"                 usebundle => _log("Copying ${destination} from ${source}", "", "${class_prefix}", @{args});

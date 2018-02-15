@@ -39,7 +39,7 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_ensure_lines_absent("${init.file}", "${init.line_to_test}");
+    "ph1" usebundle => file_lines_absent("${init.file}", "${init.line_to_test}");
 }
 
 #######################################################
@@ -53,9 +53,9 @@ bundle agent check
     "file_exists" expression => fileexists("${init.file}");
     "line_absent"
        not        => returnszero("${line_exists_test}", "noshell"),
-       ifvarclass => canonify("file_ensure_lines_absent_${init.file}_reached");
+       ifvarclass => canonify("file_lines_absent_${init.file}_reached");
 
-    "ok"          expression => "file_exists.line_absent.file_ensure_lines_absent_${init.file_canon}_ok.!file_ensure_lines_absent_${init.file_canon}_error.!file_ensure_lines_absent_${init.file_canon}_repaired";
+    "ok"          expression => "file_exists.line_absent.file_lines_absent_${init.file_canon}_ok.!file_lines_absent_${init.file_canon}_error.!file_lines_absent_${init.file_canon}_repaired";
 
   reports:
     ok::
@@ -69,5 +69,5 @@ bundle agent check
 
     cfengine::
       "The file add to be repaired, but it was created empty"
-        ifvarclass => "file_ensure_lines_absent_${init.file_canon}_repaired";
+        ifvarclass => "file_lines_absent_${init.file_canon}_repaired";
 }
