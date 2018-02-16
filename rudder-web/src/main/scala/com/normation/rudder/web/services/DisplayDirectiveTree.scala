@@ -63,12 +63,57 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import net.liftweb.http.js.JsObj
+import com.normation.inventory.domain.AgentType
 
 /**
  *
  * A service that is able to render the node group tree.
  *
  */
+
+sealed trait AgentCompat {
+    def icon : NodeSeq
+    def techniqueText : NodeSeq
+    def directiveText : NodeSeq
+}
+
+object AgentCompat {
+  case object Dsc     extends AgentCompat {
+    def icon : NodeSeq = dscIcon
+    def techniqueText : NodeSeq = <p>This Technique is only compatible with <b class="dsc">DSC</b> agent.</p>
+    def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with <b class="dsc">DSC agent</b>.</p>
+  }
+  case object Classic extends AgentCompat {
+    def icon : NodeSeq = classicIcon
+    def techniqueText : NodeSeq = <p>This Technique is only compatible with <b>Classic</b> agent.</p>
+    def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with <b>Classic agent</b>.</p>
+  }
+  case object All     extends AgentCompat {
+    def icon : NodeSeq = classicIcon ++ dscIcon
+    def techniqueText : NodeSeq = <p>This Technique has at least a version compatible with both <b>Classic</b> and <b class="dsc">DSC</b> agents.</p>
+    def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with both <b>Classic</b> and <b class="dsc">DSC</b> agents.</p>
+  }
+  case object NoAgent extends AgentCompat {
+    def icon : NodeSeq = NodeSeq.Empty
+    def techniqueText : NodeSeq = NodeSeq.Empty
+    def directiveText : NodeSeq = NodeSeq.Empty
+  }
+
+  def apply (agentTypes: Traversable[AgentType]) : AgentCompat = {
+    (agentTypes :\ (NoAgent : AgentCompat)) {
+      case (_, All) => All
+      case (AgentType.Dsc, NoAgent) => Dsc
+      case (_, NoAgent) => Classic
+      case (AgentType.Dsc, Classic) => All
+      case (_, Dsc) => All
+      case (_, x) => x
+    }
+  }
+
+  val dscIcon = <i class="dsc-icon tree-icon"></i>
+  val classicIcon = <i class="fa fa-gear tree-icon"></i>
+}
+
 object DisplayDirectiveTree extends Loggable {
 
   /**
@@ -155,6 +200,9 @@ object DisplayDirectiveTree extends Loggable {
         activeTechnique.techniques.values.forall { t => t.deprecrationInfo.isDefined }
       }
 
+      val agentTypes = activeTechnique.techniques.values.flatMap(_.agentConfigs).map(_.agentType).toSet
+      val agentCompat =  AgentCompat(agentTypes)
+
       override val attrs = (
         ("data-jstree" -> s"""{ "type" : "template" , "state" : { "disabled" : ${ !activeTechnique.isEnabled} } }""") :: ("class" -> "techniqueNode" ) :: Nil
       )
@@ -181,6 +229,7 @@ object DisplayDirectiveTree extends Loggable {
               <h4>${technique.name}</h4>
               <div class="tooltip-content">
                 <p>${technique.description}</p>
+                ${agentCompat.techniqueText}
                 ${if(!activeTechnique.isEnabled){<div>This Technique is currently disabled.</div>}else{NodeSeq.Empty}}
               </div>
             """
@@ -190,7 +239,7 @@ object DisplayDirectiveTree extends Loggable {
               val deprecatedClass = if(isDeprecated){"isDeprecated"}else{""}
               s"${defaultClass} ${disabledClass} ${deprecatedClass}"
             }
-            <span class={className} data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{technique.name}</span>
+            <span class={className} data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{agentCompat.icon}{technique.name}</span>
           case None =>
             <span class="error">The technique with id ''{activeTechnique.techniqueName}'' is missing from repository</span>
         }
@@ -212,6 +261,9 @@ object DisplayDirectiveTree extends Loggable {
 
       val isAssignedTo = usedDirectiveIds.find{ case(id,_) => id == directive.id }.map(_._2).getOrElse(0)
 
+      val agentTypes = technique.toList.flatMap(_.agentConfigs.map(_.agentType) )
+      val agentCompat = AgentCompat(agentTypes)
+
       override def children = Nil
 
       val classes = {
@@ -223,10 +275,10 @@ object DisplayDirectiveTree extends Loggable {
       val htmlId = s"jsTree-${directive.id.value}"
       val directiveTags = JsObj(directive.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList:_*)
       override val attrs = (
-                  ("data-jstree" -> s"""{"type":"directive", "tags":${directiveTags}}""") ::
-                  ( "id" -> htmlId) ::
-                  ("class" -> classes ) ::
-                  Nil
+        ("data-jstree" -> s"""{"type":"directive", "tags":${directiveTags}}""") ::
+        ( "id" -> htmlId) ::
+        ("class" -> classes ) ::
+        Nil
       )
 
       override def body = {
@@ -293,7 +345,13 @@ object DisplayDirectiveTree extends Loggable {
                 ${directive.techniqueVersion.toString}${deprecatedIcon}
                 ${deprecationInfo}
               </div>
-              ${if(isAssignedTo==0){<span class="fa fa-warning text-warning-rudder min-size-icon"></span>}else{NodeSeq.Empty}}<span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
+              ${if(isAssignedTo==0){
+                <span class="fa fa-warning text-warning-rudder min-size-icon"></span>
+              }else{
+                NodeSeq.Empty
+              }}
+              <span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
+              ${agentCompat.directiveText}
               ${ if(!directive.isEnabled) <div>This Directive is currently disabled.</div> else NodeSeq.Empty }
             </div>
           """

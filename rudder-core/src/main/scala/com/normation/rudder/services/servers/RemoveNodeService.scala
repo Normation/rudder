@@ -122,7 +122,7 @@ class RemoveNodeServiceImpl(
             ("RUDDER_NODE_ID"              , nodeId.value)
           , ("RUDDER_NODE_HOSTNAME"        , nodeInfo.hostname)
           , ("RUDDER_NODE_POLICY_SERVER_ID", nodeInfo.policyServerId.value)
-          , ("RUDDER_AGENT_TYPE"           , nodeInfo.agentsName.headOption.map( _.name.tagValue).getOrElse(""))
+          , ("RUDDER_AGENT_TYPE"           , nodeInfo.agentsName.headOption.map( _.agentType.id).getOrElse(""))
           , ("RUDDER_NODE_ROLES"           , nodeInfo.serverRoles.map(_.value).mkString(","))
           , ("RUDDER_POLICIES_DIRECTORY_CURRENT" , optNodePaths.map(_.baseFolder).getOrElse(""))
           , ("RUDDER_POLICIES_DIRECTORY_NEW"     , optNodePaths.map(_.newFolder).getOrElse(""))
@@ -154,7 +154,7 @@ class RemoveNodeServiceImpl(
             postHooks     <- RunHooks.getHooks(HOOKS_D + "/node-post-deletion", HOOKS_IGNORE_SUFFIXES)
             runPostHook   = RunHooks.syncRun(postHooks, hookEnv, systemEnv)
             timePostHooks =  (System.currentTimeMillis - postHooksTime)
-            _             = logger.debug(s"Node-post-deletion scripts hooks ran in ${timePreHooks} ms")
+            _             = logger.debug(s"Node-post-deletion scripts hooks ran in ${timePostHooks} ms")
           } yield {
             runPostHook match {
               case stop : HookReturnCode.Error => PostHookFailed(stop)

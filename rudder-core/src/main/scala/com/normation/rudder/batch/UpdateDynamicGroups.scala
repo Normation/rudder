@@ -201,8 +201,11 @@ class UpdateDynamicGroups(
         } {
           boxRes match {
             case e:EmptyBox =>
-              val error = (e ?~! s"Error when updating dynamic group ${id.value}")
+              val error = (e ?~! s"Error when updating dynamic group '${id.value}'")
               logger.error(error.messageChain)
+              error.rootExceptionCause.foreach(ex =>
+                logger.error("Exception was:", ex)
+              )
             case Full(diff) =>
               val addedNodes = displayNodechange(diff.added)
               val removedNodes = displayNodechange(diff.removed)

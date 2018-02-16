@@ -13,7 +13,12 @@
   "DENYBADCLOCKS":"true",
   "MODIFIED_FILES_TTL":"30",
   "NODEROLE":"  classes: \n    \"policy_server\" expression => \"any\";",
-  "RUDDER_DIRECTIVES_INPUTS":"\"genericVariableDefinition/2.0/genericVariableDefinition.cf\",",
+  "RELAY_SYNC_METHOD":"classic",
+  "RELAY_SYNC_PROMISES":"false",
+  "RELAY_SYNC_SHAREDFILES":"false",
+  "RUDDER_DIRECTIVES_INPUTS":[
+    "\"genericVariableDefinition/2.0/genericVariableDefinition.cf\","
+  ],
   "RUDDER_DIRECTIVES_SEQUENCE":"\"10. Global configuration for all nodes/00. Generic Variable Def #2\" usebundle => set_dry_run_mode(\"false\");\n\"10. Global configuration for all nodes/00. Generic Variable Def #2\" usebundle => generic_variable_def_report;\n\"remove_dry_run_mode\"                                                usebundle => set_dry_run_mode(\"false\");",
   "RUDDER_HEARTBEAT_INTERVAL":"4",
   "RUDDER_NODE_CONFIG_ID":"cfe-node-cfg-id",

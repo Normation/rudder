@@ -213,7 +213,7 @@ object NodeDetailLevel {
      ( inv : NodeInfo ) =>
        val agents : List[JValue] = inv.agentsName.map{
          agent =>
-           ( "name"    -> agent.name.fullname ) ~
+           ( "name"    -> agent.agentType.displayName ) ~
            ( "version" -> agent.version.map(_.value) )
        }.toList
        JArray(agents)
@@ -302,7 +302,7 @@ object NodeDetailLevel {
 
     val managementDetails = {
       ( inv : FullInventory ) =>
-        val keys = inv.node.publicKeys.map{cfKey =>  JString(cfKey.key)}
+        val keys = inv.node.agents.map{ag =>  JString(ag.securityToken.key)}
         ( "cfengineKeys" -> JArray(keys.toList) ) ~
         ( "cfengineUser" -> inv.node.main.rootUser )
     }

@@ -57,7 +57,6 @@ import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.RemovedInventory
-import bootstrap.liftweb.StaticResourceRewrite
 
 object PendingHistoryGrid extends Loggable {
 

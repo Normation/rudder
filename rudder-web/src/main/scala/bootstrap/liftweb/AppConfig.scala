@@ -96,36 +96,86 @@ import com.normation.rudder.web.rest.directive._
 import com.normation.rudder.web.rest.group._
 import com.normation.rudder.web.rest.node._
 import com.normation.rudder.api.RoLDAPApiAccountRepository
-import com.normation.rudder.api.WoApiAccountRepository
-import com.normation.rudder.api.RoApiAccountRepository
-import com.normation.rudder.api.WoLDAPApiAccountRepository
 import com.normation.rudder.api.TokenGeneratorImpl
+import com.normation.rudder.api.WoApiAccountRepository
+import com.normation.rudder.api.WoLDAPApiAccountRepository
+import com.normation.rudder.appconfig._
+import com.normation.rudder.batch._
+import com.normation.rudder.db.Doobie
+import com.normation.rudder.domain._
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.queries._
 import com.normation.rudder.migration._
-import com.normation.rudder.web.rest.parameter._
-import com.normation.rudder.web.rest.changeRequest._
+import com.normation.rudder.migration.DefaultXmlEventLogMigration
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.reports.AgentRunIntervalServiceImpl
+import com.normation.rudder.reports.ComplianceModeService
+import com.normation.rudder.reports.ComplianceModeServiceImpl
 import com.normation.rudder.reports.execution._
 import com.normation.rudder.appconfig._
 import com.normation.rudder.rule.category._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
+import com.normation.rudder.services.eventlog._
+import com.normation.rudder.services.eventlog.EventLogFactoryImpl
+import com.normation.rudder.services.eventlog.HistorizationServiceImpl
+import com.normation.rudder.services.marshalling._
+import com.normation.rudder.services.modification.DiffService
+import com.normation.rudder.services.modification.DiffServiceImpl
+import com.normation.rudder.services.modification.ModificationService
+import com.normation.rudder.services.nodes._
+import com.normation.rudder.services.policies._
+import com.normation.rudder.services.policies.DeployOnTechniqueCallback
 import com.normation.rudder.services.policies.nodeconfig._
-import com.normation.rudder.reports.ComplianceModeService
-import com.normation.rudder.reports.ComplianceModeServiceImpl
-import com.normation.rudder.reports.AgentRunIntervalService
-import com.normation.rudder.reports.AgentRunIntervalServiceImpl
-import com.normation.rudder.web.rest.compliance.ComplianceAPI7
-import com.normation.rudder.web.rest.compliance.ComplianceAPIService
+import com.normation.rudder.services.policies.write.BuildBundleSequence
 import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterServiceImpl
 import com.normation.rudder.services.policies.write.PathComputerImpl
 import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
-import com.typesafe.config.ConfigException
-import org.apache.commons.io.FileUtils
-import com.normation.templates.FillTemplatesService
-
-import com.normation.rudder.web.rest.technique._
+import com.normation.rudder.services.queries._
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
-import com.normation.rudder.db.Doobie
+import com.normation.rudder.services.reports._
+import com.normation.rudder.services.servers._
+import com.normation.rudder.services.system._
+import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.services.user.TrivialPersonIdentService
+import com.normation.rudder.services.workflows._
+import com.normation.rudder.web.model._
+import com.normation.rudder.web.rest._
+import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.web.rest.changeRequest._
+import com.normation.rudder.web.rest.compliance.ComplianceAPI7
+import com.normation.rudder.web.rest.compliance.ComplianceAPIService
+import com.normation.rudder.web.rest.directive._
+import com.normation.rudder.web.rest.group._
+import com.normation.rudder.web.rest.node._
+import com.normation.rudder.web.rest.node.NodeApiService2
+import com.normation.rudder.web.rest.parameter._
+import com.normation.rudder.web.rest.rule._
 import com.normation.rudder.web.rest.settings.SettingsAPI8
 import com.normation.rudder.web.rest.sharedFiles.SharedFilesAPI
+import com.normation.rudder.web.rest.technique._
+import com.normation.rudder.web.services._
+import com.normation.rudder.web.services.UserPropertyService
+import com.normation.templates.FillTemplatesService
+import com.normation.utils.ScalaLock
+import com.normation.utils.StringUuidGenerator
+import com.normation.utils.StringUuidGeneratorImpl
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigException
+import com.typesafe.config.ConfigFactory
+import java.io.File
+import net.liftweb.common._
+import net.liftweb.common.Loggable
+import org.apache.commons.io.FileUtils
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Import
+import scala.util.Try
+import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
+import com.normation.rudder.api.RoApiAccountRepository
+import com.normation.rudder.web.rest.ncf.NcfApi9
+import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.ncf.TechniqueArchiver
+import com.normation.rudder.ncf.TechniqueArchiverImpl
 import scala.concurrent.duration._
 
 /**
@@ -223,7 +273,6 @@ object RudderConfig extends Loggable {
 
   // set the file location that contains mime info
   System.setProperty("content.types.user.table", this.getClass.getClassLoader.getResource("content-types.properties").getPath)
-
 
   //
   // Public properties
@@ -323,7 +372,6 @@ object RudderConfig extends Loggable {
   //deprecated
   val BASE_URL = Try(config.getString("base.url")).getOrElse("")
 
-
   // properties from version.properties file,
   val (
       rudderMajorVersion
@@ -418,6 +466,9 @@ object RudderConfig extends Loggable {
 
   lazy val roAgentRunsRepository : RoReportsExecutionRepository = cachedAgentRunRepository
   lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
+
+  //used in plugins, so init may be needed in strange time to avoid NPE
+  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
 
   //all cache that need to be cleared are stored here
   lazy val clearableCache: Seq[CachedRepository] = Seq(
@@ -807,6 +858,9 @@ object RudderConfig extends Loggable {
 
   val settingsApi8 = new SettingsAPI8(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
 
+  val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
+  val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, prettyPrinter, RUDDER_DIR_GITROOT)
+  val ncfAPI = new NcfApi9(ncfTechniqueWriter, restExtractorService, stringUuidGenerator)
   // First working version with support for rules, directives, nodes and global parameters
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   // Add change request support
@@ -822,17 +876,16 @@ object RudderConfig extends Loggable {
   // apiv8 add policy mode in node API and settings API
   val apiV8 = nodeApi8 :: settingsApi8 :: apiV7.filter( _ != nodeApi6)
 
+  val apiV9 = ncfAPI :: apiV8
+
   val apis = {
     Map (
-        //Rudder 3.0
-        ( ApiVersion(5,true) -> apiV5 )
-        //Rudder 3.1
-      , ( ApiVersion(6,true) -> apiV6 )
         //Rudder 3.2
-      , ( ApiVersion(7,false) -> apiV7 )
-        //Rudder 4.0
+        ( ApiVersion(7,true) -> apiV7 )
+        //Rudder 4.0 - 4.1
       , ( ApiVersion(8,false) -> apiV8 )
-        //Rudder 4.1
+        //Rudder 4.2
+      , ( ApiVersion(9,false) -> apiV9 )
     )
   }
 
@@ -896,6 +949,7 @@ object RudderConfig extends Loggable {
       rudderDitImpl
     , roLdap
     , ldapEntityMapper
+    , stringUuidGenerator
   )
 
   private[this] lazy val woLDAPApiAccountRepository = new WoLDAPApiAccountRepository(
@@ -1095,7 +1149,7 @@ object RudderConfig extends Loggable {
       authDn = LDAP_AUTHDN,
       authPw = LDAP_AUTHPW,
       poolSize = 2)
-  private[this] lazy val rwLdap =
+  lazy val rwLdap =
     new RWPooledSimpleAuthConnectionProvider(
       host = LDAP_HOST,
       port = LDAP_PORT,
@@ -1393,6 +1447,9 @@ object RudderConfig extends Loggable {
     , RUDDER_SERVER_ROLES
     , configService.cfengine_server_denybadclocks _
     , configService.cfengine_server_skipidentify _
+    , configService.relay_server_sync_method
+    , configService.relay_server_syncpromises
+    , configService.relay_server_syncsharedfiles
     , configService.cfengine_modified_files_ttl _
     , configService.cfengine_outputs_ttl _
     , configService.rudder_store_all_centralized_logs_in_file _
@@ -1403,8 +1460,9 @@ object RudderConfig extends Loggable {
       techniqueRepositoryImpl
     , pathComputer
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
-    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService)
+    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService, new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles))
     , new FillTemplatesService()
+    , writeAllAgentSpecificFiles
     , HOOKS_D
     , HOOKS_IGNORE_SUFFIXES
   )
@@ -1514,10 +1572,9 @@ object RudderConfig extends Loggable {
   }
 
   private[this] lazy val nodeConfigurationServiceImpl: NodeConfigurationService = new NodeConfigurationServiceImpl(
-      rudderCf3PromisesFileWriterService
-    , new LdapNodeConfigurationHashRepository(rudderDit, rwLdap)
+      new LdapNodeConfigurationHashRepository(rudderDit, rwLdap)
   )
-//  private[this] lazy val licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
+//  private[this] lazy val licenseService: CfeEnterpriseLicenseService = new CfeEnterpriseLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
   private[this] lazy val reportingServiceImpl = new CachedReportingServiceImpl(
       new ReportingServiceImpl(
           findExpectedRepo
@@ -1708,28 +1765,27 @@ object RudderConfig extends Loggable {
         , asyncDeploymentAgent
         , uuidGen
       )
-    , new CheckSystemGroups (
-          rudderDitImpl
-        , roLdap
-        , ldapEntityMapper
-        , groupLibReadWriteMutex
-        , woNodeGroupRepository
-        , uuidGen
-      )
     , new ResumePolicyUpdateRunning(
           asyncDeploymentAgent
         , uuidGen
       )
+    , new CheckCfengineSystemRuleTargets(rwLdap)
+    , new CheckNcfTechniqueUpdate(
+          restExtractorService
+        , ncfTechniqueWriter
+        , roLDAPApiAccountRepository.systemAPIAccount
+        , uuidGen
+      )
+    , new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount)
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////// Directive Editor and web fields //////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
 
-  import com.normation.rudder.web.model._
-  import org.joda.time.format.DateTimeFormat
-  import java.util.Locale
   import com.normation.cfclerk.domain._
+  import java.util.Locale
+  import org.joda.time.format.DateTimeFormat
 
   val frenchDateFormatter = DateTimeFormat.forPattern("dd/MM/yyyy").withLocale(Locale.FRANCE)
   val frenchTimeFormatter = DateTimeFormat.forPattern("kk:mm:ss").withLocale(Locale.FRANCE)

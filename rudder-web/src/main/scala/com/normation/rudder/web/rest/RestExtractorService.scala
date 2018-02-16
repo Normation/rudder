@@ -76,8 +76,17 @@ import net.liftweb.http.Req
 import net.liftweb.json._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.nodes.NodePropertyProvider
 import com.normation.rudder.web.rest.parameter.RestParameter
+import com.normation.rudder.ncf.BundleName
+import com.normation.rudder.ncf.GenericMethod
+import com.normation.rudder.ncf.MethodCall
+import com.normation.rudder.ncf.ParameterId
+import com.normation.rudder.ncf.Parameter
+import com.normation.rudder.ncf.{ Technique => NcfTechnique }
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -876,48 +885,6 @@ case class RestExtractorService (
     }
   }
 
-  def extractInt[T](key : String) (req : Req)(fun : BigInt => Box[T]) : Box[Option[T]]  = {
-    req.json match {
-      case Full(json) => json \ key match {
-        case JInt(value) => fun(value).map(Some(_))
-        case JNothing => Full(None)
-        case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
-      }
-      case _ =>
-        req.params.get(key) match {
-          case None => Full(None)
-          case Some(head :: Nil) => try {
-            fun(head.toLong).map(Some(_))
-          } catch {
-            case e : Throwable =>
-              Failure(s"Parsing request parameter '${key}' as an integer failed, current value is '${head}'. Error message is: '${e.getMessage}'.")
-          }
-          case Some(list) => Failure(s"${list.size} values defined for 'id' parameter, only one needs to be defined")
-        }
-    }
-  }
-
-    def extractBoolean[T](key : String) (req : Req)(fun : Boolean => T) : Box[Option[T]]  = {
-    req.json match {
-      case Full(json) => json \ key match {
-        case JBool(value) => Full(Some(fun(value)))
-        case JNothing => Full(None)
-        case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
-      }
-      case _ =>
-        req.params.get(key) match {
-          case None => Full(None)
-          case Some(head :: Nil) => try {
-            Full(Some(fun(head.toBoolean)))
-          } catch {
-            case e : Throwable =>
-              Failure(s"Parsing request parameter '${key}' as a boolean failed, current value is '${head}'. Error message is: '${e.getMessage}'.")
-          }
-          case Some(list) => Failure(s"${list.size} values defined for 'id' parameter, only one needs to be defined")
-        }
-    }
-  }
-
   def extractMap[T,U](key : String)(req : Req)
     ( keyFun : String => T
     , jsonValueFun : JValue => U
@@ -990,4 +957,62 @@ case class RestExtractorService (
 
   def extractId[T] (req : Req)(fun : String => Full[T])  = extractString("id")(req)(fun)
 
+  def extractNcfTechnique (json : JValue, methods: Map[BundleName, GenericMethod]) : Box[NcfTechnique] = {
+    for {
+      bundleName  <- CompleteJson.extractJsonString(json, "bundle_name", s => Full(BundleName(s)))
+      version     <- CompleteJson.extractJsonString(json, "version")
+      description <- CompleteJson.extractJsonString(json, "description")
+      name        <- CompleteJson.extractJsonString(json, "name")
+      calls       <- CompleteJson.extractJsonArray(json \ "method_calls")(extractMethodCall(_, methods))
+    } yield {
+      NcfTechnique(bundleName, name, calls, new Version(version), description)
+    }
+  }
+
+  def extractMethodCall (json : JValue, methods: Map[BundleName, GenericMethod]) : Box[MethodCall] = {
+
+    for {
+      methodId        <- CompleteJson.extractJsonString(json, "method_name", s => Full(BundleName(s)))
+      condition       <- CompleteJson.extractJsonString(json, "class_context")
+      parameterValues <- CompleteJson.extractJsonArray(json \ "args"){
+                           case JString(value) => Full(value)
+                           case s => Failure(s"Invalid format of method call when extracting from json, expecting and array but got : ${s}")
+                         }
+
+      parameters = methods.get(methodId).toList.flatMap(_.parameters.map(_.id)).zip(parameterValues).toMap
+    } yield {
+      MethodCall(methodId, parameters, condition)
+    }
+  }
+
+  def extractNCFParameter(json : JValue) : Box[Parameter] = {
+    for {
+      id          <- CompleteJson.extractJsonString(json, "name", a => Full(ParameterId(a)))
+      description <- CompleteJson.extractJsonString(json, "description")
+    } yield {
+      Parameter(id, description)
+    }
+
+  }
+
+  def extractGenericMethod (json : JValue) : Box[List[GenericMethod]] = {
+    CompleteJson.extractJsonArray(json) { json =>
+      for {
+        bundleName     <- CompleteJson.extractJsonString(json, "bundle_name", s => Full(BundleName(s)))
+        description    <- CompleteJson.extractJsonString(json, "description")
+        name           <- CompleteJson.extractJsonString(json, "name")
+        classPrefix    <- CompleteJson.extractJsonString(json, "class_prefix")
+        classParameter <- CompleteJson.extractJsonString(json, "class_parameter", a => Full(ParameterId(a)))
+        agentSupport   <- (CompleteJson.extractJsonListString(json, "agent_support") ( sequence(_) {
+                             case "dsc" => Full(AgentType.Dsc :: Nil)
+                             case "cfengine-community" => Full(AgentType.CfeCommunity :: AgentType.CfeEnterprise ::Nil)
+                             case _ => Failure("invalid agent")
+                          })).map(_.flatten)
+        parameters     <- CompleteJson.extractJsonArray(json \ "parameter")(extractNCFParameter)
+      } yield {
+        GenericMethod(bundleName, name, parameters, classParameter, classPrefix, agentSupport, description)
+      }
+    }
+
+  }
 }

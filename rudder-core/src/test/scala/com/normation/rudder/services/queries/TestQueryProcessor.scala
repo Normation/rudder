@@ -136,7 +136,7 @@ class TestQueryProcessor extends Loggable {
       con.search("cn=rudder-configuration", Sub, BuildFilter.ALL).size
     }).openOrThrowException("For tests")
 
-    val expected = 41+30  //bootstrap + inventory-sample
+    val expected = 42+30  //bootstrap + inventory-sample
     assert(expected == s, s"Not found the expected number of entries in test LDAP directory [expected: ${expected}, found: ${s}], perhaps the demo entries where not correctly loaded")
   }
 
@@ -478,6 +478,55 @@ class TestQueryProcessor extends Loggable {
     testQueries( q0 :: q1 :: Nil)
   }
 
+  @Test def agentTypeQueries {
+
+    val allCfengine = TestQuery(
+      "allCfengine",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "where":[
+        { "objectType":"node" , "attribute":"agentName"  , "comparator":"eq", "value":"cfengine" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr(0) :: sr(1) :: sr(2) :: sr(3) :: sr(4) :: sr(5) :: sr(7)  :: sr(8) :: Nil)
+
+    val community = TestQuery(
+      "community",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
+        { "objectType":"node"   , "attribute":"agentName"  , "comparator":"eq", "value":"community" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr(0) :: sr(2) :: sr(4) :: sr(5) :: sr(7) :: sr(8) :: Nil)
+
+    val nova = TestQuery(
+      "nova",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
+        { "objectType":"node" , "attribute":"agentName"  , "comparator":"eq", "value":"nova" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr(1) :: sr(3) :: Nil)
+
+    val dsc = TestQuery(
+      "dsc",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
+        { "objectType":"node", "attribute":"agentName"  , "comparator":"eq", "value":"dsc" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr(6) :: Nil)
+
+    val notCfengine = TestQuery(
+      "notCfengine",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
+        { "objectType":"node", "attribute":"agentName"  , "comparator":"notEq", "value":"cfengine" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr(6) :: Nil)
+
+    testQueries( allCfengine :: community :: nova :: dsc :: notCfengine :: Nil)
+  }
   /**
    * Test environment variable
    */
@@ -662,9 +711,7 @@ class TestQueryProcessor extends Loggable {
 
   private def testQueryResultProcessor(name:String,query:Query, nodes:Seq[NodeId]) = {
       val ids = nodes.sortBy( _.value )
-      val found = queryProcessor.process(query).openOrThrowException("For tests").map { nodeInfo =>
-        nodeInfo.id
-      }.sortBy( _.value )
+      val found = queryProcessor.process(query).openOrThrowException("For tests").map { _.id }.sortBy( _.value )
       //also test with requiring only the expected node to check consistancy
       //(that should not change anything)
 

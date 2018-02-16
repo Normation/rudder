@@ -625,7 +625,7 @@ class GitTechniqueReader(
 
   private[this] val dummyTechnique = Technique(
       TechniqueId(TechniqueName("dummy"),TechniqueVersion("1.0"))
-    , "dummy", "dummy", Seq(), Seq(), Seq(), TrackerVariableSpec()
+    , "dummy", "dummy", Nil, TrackerVariableSpec()
     , SectionSpec("ROOT"), None
  )
 
@@ -792,8 +792,8 @@ class GitTechniqueReader(
     //also add template "by path"
     val techniques = techniqueInfos.techniques.flatMap { case(_, set) => set.map { case(_, t) => t } }
     techniques.foreach { t =>
-      val byPath = t.templates.collect { case TechniqueTemplate(id@TechniqueResourceIdByPath(_,_),_,_) => id } ++
-                   t.files.collect { case TechniqueFile(id@TechniqueResourceIdByPath(_,_),_,_) => id }
+      val byPath = t.agentConfigs.flatMap(cfg => cfg.templates.collect { case TechniqueTemplate(id@TechniqueResourceIdByPath(_,_),_,_) => id }) ++
+                   t.agentConfigs.flatMap(cfg => cfg.files.collect { case TechniqueFile(id@TechniqueResourceIdByPath(_,_),_,_) => id })
       byPath.foreach { resource =>
         //here, "/" is needed at the begining because diffEntry have one, so if we don't
         //add it, we won't find is back in modifiedTechnique and diffPathEntries

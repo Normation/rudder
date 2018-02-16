@@ -10,6 +10,7 @@
   .inner-portlet{
     float:left;
     width:100%;
+    margin-bottom: 15px;
   }
   .page-title, .inner-portlet h3.page-title{
     color:#333;
@@ -21,374 +22,485 @@
     padding: 2px;
     width: 100px;
   }
-
   select.twoCol {
     width:auto
   }
-
   select {
     min-width:50px
   }
-
   .defaultButton span.ui-button-text {
     padding: 0;
-}
-
+  }
 </style>
 <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/auditMode.js"></script>
+<script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/authorizedNetworks.js"></script>
 </head>
-<div class="portlet">
-  <div class="portlet-content">
+<div class="portlet tw-bs">
     <div class="inner-portlet">
-      <div class="page-title">Client-server communication</div>
+      <h3 class="page-title">Client-server communication</h3>
       <div class="portlet-content">
-        <div class="tw-bs">
+        <div class="col-xs-12 callout-fade callout-warning">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
+          </div>
+          <p>
+            Configure the networks from which nodes are allowed
+            to connect to the Rudder policy servers to get their updated
+            configuration policy.
+          </p>
+          <p>
+            You can add as many networks as you want, the expected
+            format is: <b>NetworkIP/mask</b>, for example
+            "42.42.0.0/16".
+          </p>
+        </div>
+        <div class="lift:administration.EditPolicyServerAllowedNetwork.render">
+          <div id="allowedNetworksForm" class="allowedNetworksContainer">
+            <div id="policyServerDetails"></div>
+            <div id="policyServerText"></div>
+            <form class="lift:form.ajax">
+              <label class="col-xs-12">Allowed networks</label>
+              <div id="allowNetworkFields">
+                <div class="network-group col-lg-4 col-sm-6 col-xs-12">
+                  <div class="input-group">
+                    <input name="network" class="networkField form-control input-sm"/>
+                    <span class="input-group-btn">
+                      <lift:authz role="administration_write">
+                        <button class="deleteNetwork btn btn-danger btn-sm" type="submit" title="Remove this network"></button>
+                      </lift:authz>
+                    </span>
+                  </div>
+                  <div id="errorNetworkField"></div>
+                  <div class="warningNetworkField" style="display:none;">Invalid IP address.</div>
+                </div>
+              </div>
+              <lift:authz role="administration_write">
+                <div class="col-xs-12">
+                  <label>Add a network</label>
+                  <div class="input-group" id="addNetwork">
+                    <input class="form-control input-sm" id="addaNetworkfield"/>
+                    <span class="input-group-btn">
+                      <button class="btn btn-success btn-sm" id="addNetworkButton" disabled type="submit" title="Add a network"></button>
+                    </span>
+                  </div>
+                  <div id="warningNetworkField" class="warningNetworkField" style="display:none;">Invalid IP address.</div>
+                  <input id="submitAllowedNetwork" type="submit" value="Submit"/>
+                </div>
+              </lift:authz>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+        <hr class="spacer" />
+        <div class="deca">
+          <h3>Relay synchronization method</h3>
+          <div class="tw-bs">
             <div class="col-lg-12 callout-fade callout-warning">
               <div class="marker">
                 <span class="glyphicon glyphicon-info-sign"></span>
               </div>
-              <p>Configure the networks from which nodes are allowed
-                to connect to the Rudder policy servers to get their updated
-                configuration policy.</p>
               <p>
-                You can add as many networks as you want, the expected
-                format is: <b>NetworkIP/mask</b>, for example
-                "42.42.0.0/16".
+                Configure the method used to synchronize files between Relay servers and the Rudder server.
               </p>
+              <p>
+                The <b>classic</b> method doesn't require any setup and use the standard protocol. However, it does not scale beyond 1000 nodes per relay.
+              </p>
+              <p>
+                The <b>rsync</b> method triggers <i>rsync</i> synchronization between each Relay and the Rudder server, for the selected resources (policies and/or shared files). It is more efficient, but you need to manually set up rsync on the Relay servers, and proceed with the SSH key exchange. Note that ressources not selected below won't be synchronized.
+              </p>
+              <p>
+                Finally, the <b>manual</b> method disable all synchronization of policies and shared files between the Relay servers and the Rudder server; you will need to manually set up a transfer method.
+              </p>
+
             </div>
-        </div>
+          </div>
 
-        <hr class="spacer" />
 
-        <div>
-          <div class="lift:administration.EditPolicyServerAllowedNetwork.render">
-            <div id="allowedNetworksForm"  class="deca">
-              <div id="policyServerDetails"></div>
-              <div id="policyServerText"></div>
-              <form class="lift:form.ajax">
-             <table>
-                <thead>
-                  <tr>
-                    <th width="20px">Delete</th>
-                    <th width="200px">Allowed network</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="allowNetworkFields">
-                  <tr>
-                    <td class="delete">
-                      <lift:authz role="administration_write">
-                        <span class="tw-bs">
-                          <input class="deleteNetwork btn btn-danger" type="submit" value="delete"/>
-                        </span>
-                      </lift:authz>
-                    </td>
-                    <td><input name="network"
-                      class="networkField" /></td>
-                    <td id="errorNetworkField"></td>
-                  </tr>
-                </tbody>
-              </table>
+          <div class="lift:administration.PropertiesManagement.relaySynchronizationMethod" id="relaySynchronizationMethodForm">
+            <form class="lift:form.ajax">
+              <div class="tw-bs">
+                <label class="" style="font-weight:bold;width: 50%;">
+                  <span>Synchronization method from Relay servers: </span>
+                </label>
+              </div>
+              <div class="radio">
+                <input id="relaySyncMethod" type="text"/>
+              </div>
+              <div id="relayRsyncSynchronizeFiles">
+                <div class="wbBaseField">
+                  <label class="threeCol textright" style="font-weight:bold;width: 50%;">
+                    <span style="float:left">Synchronize policies using rsync: </span>
+                    <span id="relaySyncPromisesTooltip"></span>
+                  </label>
+                  <input id="relaySyncPromises" type="text"/>
+                </div>
+                <div class="wbBaseField">
+                  <label class="threeCol textright" style="font-weight:bold;width: 50%;">
+                    <span style="float:left">Synchronize shared files using rsync: </span>
+                    <span id="relaySyncSharedFilesTooltip"></span>
+                  </label>
+                  <input id="relaySyncSharedFiles" type="text"/>
+                </div>
+              </div>
+              <hr class="spacer"/>
               <lift:authz role="administration_write">
                 <span class="tw-bs">
-                  <input id="addNetworkButton" type="submit" value="Add a network" class="btn btn-default"/>
-                  <input id="submitAllowedNetwork" type="submit" value="Submit"/>
+                  <input type="submit" value="[save]" id="relaySynchronizationSubmit"/>
                 </span>
+                <span class="lift:Msg?id=updateRelaySynchronization">[messages]</span>
               </lift:authz>
             </form>
-            </div>
-            <hr class="spacer" />
           </div>
         </div>
+
 
         <hr class="spacer" />
         <div class="deca">
-          <h3>Security</h3>
-          <div class="lift:administration.PropertiesManagement.denyBadClocks" id="denyBadClocksForm">
-            <form class="lift:form.ajax">
-              <div class="wbBaseField">
-                    <label class="threeCol textight" style="font-weight:bold;width: 50%;">
-                      <span style="float:left">Require time synchronization between nodes and policy server: </span>
-                      <span id="denyBadClocksTooltip"></span>
-                    </label>
-                    <input id="denyBadClocks" type="text"/>
-              </div>
-              <hr class="spacer"/>
-              <div class="wbBaseField">
-                    <label class="threeCol textright" style="font-weight:bold;width: 50%;">
-                      <span style="float:left">Use reverse DNS lookups on nodes to reinforce authentication to policy server: </span>
-                      <span id="skipIdentifyTooltip"></span>
-                    </label>
-                    <input id="skipIdentify" type="text"/>
-              </div>
-              <hr class="spacer"/>
-              <lift:authz role="administration_write">
-                <span class="tw-bs">
-                  <input type="submit" value="[save]" id="cfserverNetworkSubmit"/>
-                </span>
-                <span class="lift:Msg?id=updateCfserverNetwork">[messages]</span>
-              </lift:authz>
-            </form>
-          </div>
-        </div>
-        <hr class="spacer" />
-        <div class="deca">
-          <h3>Protocol</h3>
-          <div class="lift:administration.PropertiesManagement.networkProtocolSection" id="networkProtocolForm">
-            <form class="lift:form.ajax">
-              <div class="wbBaseField">
-                    <label for="reportProtocol" class="threeCol textight" style="font-weight:bold;width: 50%;">
-                      <span >Use UDP (default) in place of TCP for syslog communication between node and servers:
-                        <span class="tw-bs tooltipable" tooltipid="reportProtocolTooltip" title=""><span class="glyphicon glyphicon-info-sign info"></span></span>
-                      </span>
-                     <div class="tooltipContent" id="reportProtocolTooltip">
-                     Rudder uses syslog to transfer report messages from nodes to relay and servers.
-                     <ul>
-                       <li><b>UDP (default):</b> the syslog never stalls an a non responsive connection, which could also stale other services on the node which use the same syslog.</li>
-                       <li><b>TCP:</b> Using TCP allows to minimize the loss in reports and the resulting compliance errors.</li>
-                     </ul>
-                     This settings is ignored on clients that don't support TCP (AIX, sysklogd, ...)
-                     </div>
-                    </label>
-                    <input id="reportProtocol" type="text"/>
-              </div>
-              <hr class="spacer"/>
-              <lift:authz role="administration_write">
-                <span class="tw-bs">
-                  <input type="submit" value="[save]" id="networkProtocolSubmit"/>
-                </span>
-                <span class="lift:Msg?id=updateNetworkProtocol">[messages]</span>
-              </lift:authz>
-            </form>
-          </div>
-        </div>
-        <hr class="spacer" />
 
-
+      <div class="inner-portlet">
+      <h3 class="page-title">Security</h3>
+      <div class="lift:administration.PropertiesManagement.denyBadClocks" id="denyBadClocksForm">
+        <form class="lift:form.ajax">
+          <ul>
+            <li class="rudder-form">
+              <div class="input-group">
+                <label class="input-group-addon" for="denyBadClocks">
+                  <input id="denyBadClocks" type="checkbox">
+                  <label for="denyBadClocks" class="label-radio">
+                    <span class="ion ion-checkmark-round"></span>
+                  </label>
+                  <span class="ion ion-checkmark-round check-icon"></span>
+                </label>
+                <label class="form-control" for="denyBadClocks">
+                  Require time synchronization between nodes and policy server
+                  <span id="denyBadClocksTooltip"></span>
+                </label>
+              </div>
+            </li>
+            <li class="rudder-form">
+              <div class="input-group">
+                <label class="input-group-addon" for="skipIdentify">
+                  <input id="skipIdentify" type="checkbox">
+                  <label for="skipIdentify" class="label-radio">
+                    <span class="ion ion-checkmark-round"></span>
+                  </label>
+                  <span class="ion ion-checkmark-round check-icon"></span>
+                </label>
+                <label class="form-control" for="skipIdentify">
+                  Use reverse DNS lookups on nodes to reinforce authentication to policy server (for older nodes only ( < <b>4.1</b>))
+                  <span id="skipIdentifyTooltip"></span>
+                </label>
+              </div>
+            </li>
+          </ul>
+          <lift:authz role="administration_write">
+            <input type="submit" value="[save]" id="cfserverNetworkSubmit"/>
+            <span class="lift:Msg?id=updateCfserverNetwork">[messages]</span>
+          </lift:authz>
+        </form>
       </div>
     </div>
+    <div class="inner-portlet">
+      <h3 class="page-title">Protocol</h3>
+      <div class="lift:administration.PropertiesManagement.networkProtocolSection" id="networkProtocolForm">
+        <form class="lift:form.ajax">
+          <ul>
+            <li class="rudder-form">
+              <div class="input-group">
+                <label class="input-group-addon" for="reportProtocol">
+                  <input id="reportProtocol" type="checkbox">
+                  <label for="reportProtocol" class="label-radio">
+                    <span class="ion ion-checkmark-round"></span>
+                  </label>
+                  <span class="ion ion-checkmark-round check-icon"></span>
+                </label>
+                <label class="form-control" for="reportProtocol">
+                  Use UDP (default) in place of TCP for syslog communication between node and servers
+                  <span class="tooltipable" tooltipid="reportProtocolTooltip" title="">
+                    <span class="glyphicon glyphicon-info-sign info"></span>
+                  </span>
+                  <div class="tooltipContent" id="reportProtocolTooltip">
+                    Rudder uses syslog to transfer report messages from nodes to relay and servers.
+                    <ul>
+                      <li><b>UDP (default):</b> the syslog never stalls an a non responsive connection, which could also stale other services on the node which use the same syslog, but packets could be lost.</li>
+                      <li><b>TCP:</b> Reports and the resulting compliance errors wil be never lost.</li>
+                    </ul>
+                    This settings is ignored on clients that don't support TCP (AIX, sysklogd, ...)
+                  </div>
+                </label>
+              </div>
+            </li>
+          </ul>
+          <lift:authz role="administration_write">
+            <input type="submit" value="[save]" id="networkProtocolSubmit"/>
+            <span class="lift:Msg?id=updateNetworkProtocol">[messages]</span>
+          </lift:authz>
+        </form>
+      </div>
+    </div>
+
     <div id="agentPolicyMode" class="lift:administration.PropertiesManagement.agentPolicyMode"></div>
+
     <div id="complianceMode" class="lift:administration.PropertiesManagement.complianceMode"></div>
 
     <div id="cfagentSchedule" class="lift:administration.PropertiesManagement.cfagentSchedule"></div>
 
     <div class="inner-portlet">
-      <div class="page-title">Change audit logs</div>
+      <h3 class="page-title">Change audit logs</h3>
       <div class="portlet-content">
-
         <div class="lift:administration.PropertiesManagement.changeMessage" id="changeMessageForm">
-          <div class="tw-bs">
-             <div class="col-lg-12 callout-fade callout-warning">
-               <div class="marker">
-                 <span class="glyphicon glyphicon-info-sign"></span>
-               </div>
-               <p>
-                 If enabled, prompt users to enter a message explaining the reason for each configuration change they make.<br/>
-                 These messages will be stored in each <a href="/secure/utilities/eventLogs">Event log</a> and as the commit message for the underlying git repository in 
-                 <i><strong><span id="configurationRepoPath"></span></strong></i>
-               </p>
-             </div>
-           </div>
-
-          <hr class="spacer" />
-          <div class="deca">
-            <form class="lift:form.ajax">
-
-              <div class="wbBaseField">
-                <label class="threeCol textight" style="font-weight:bold;width: 20%;">Enable change audit logs:</label><input id="enabled" type="checkbox"/>
-              </div>
-              <hr class="spacer"/>
-              <div class="wbBaseField">
-                    <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Make message mandatory: </span><span id="mandatoryTooltip"></span></label><input id="mandatory" type="checkbox"/>
-              </div>
-              <hr class="spacer"/>
-            <div class="wbBaseField">
-                    <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip"></span></label>
-                    <input id="explanation" type="text"/>
-                    <lift:authz role="administration_write">
-                      <span class="tw-bs">
-                        <input id="restoreExplanation" type="button"/>
-                      </span>
-                    </lift:authz>
-               </div>
-              <hr class="spacer"/>
-              <lift:authz role="administration_write">
-                <span class="tw-bs">
-                  <input type="submit" value="Reload" id="changeMessageSubmit"/>
-                </span>
-                <span class="lift:Msg?id=updateChangeMsg;errorClass=bs-text-danger;">[messages]</span>
-              </lift:authz>
-            </form>
+          <div class="col-xs-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            <p>
+              If enabled, prompt users to enter a message explaining the reason for each configuration change they make.<br/>
+              These messages will be stored in each <a href="/secure/utilities/eventLogs" target="_blank">Event log</a> and as the commit message for the underlying git repository in
+              <i><strong><span id="configurationRepoPath"></span></strong></i>
+            </p>
           </div>
+          <form class="lift:form.ajax">
+            <ul>
+              <li class="rudder-form">
+                <div class="input-group">
+                  <label class="input-group-addon" for="enabled">
+                    <input id="enabled" type="checkbox">
+                    <label for="enabled" class="label-radio">
+                      <span class="ion ion-checkmark-round"></span>
+                    </label>
+                    <span class="ion ion-checkmark-round check-icon"></span>
+                  </label>
+                  <label class="form-control" for="enabled">
+                    Enable change audit logs
+                  </label>
+                </div>
+              </li>
+              <li class="rudder-form">
+                <div class="input-group">
+                  <label class="input-group-addon" for="mandatory">
+                    <input id="mandatory" type="checkbox">
+                    <label for="mandatory" class="label-radio">
+                      <span class="ion ion-checkmark-round"></span>
+                    </label>
+                    <span class="ion ion-checkmark-round check-icon"></span>
+                  </label>
+                  <label class="form-control" for="mandatory">
+                    Make logs message mandatory
+                    <span id="mandatoryTooltip"></span>
+                  </label>
+                </div>
+              </li>
+            </ul>
+            <div class="form-group">
+              <label>Explanation to display<span id="explanationTooltip"></span></label>
+              <div class="input-group">
+                <input id="explanation" type="text"/>
+                <lift:authz role="administration_write">
+                  <span class="input-group-btn">
+                    <input id="restoreExplanation" type="button"/>
+                  </span>
+                </lift:authz>
+              </div>
+            </div>
+            <lift:authz role="administration_write">
+              <input type="submit" value="Reload" id="changeMessageSubmit"/>
+              <span class="lift:Msg?id=updateChangeMsg;errorClass=bs-text-danger;">[messages]</span>
+            </lift:authz>
+          </form>
         </div>
       </div>
     </div>
-
 
     <div class="inner-portlet">
       <div class="page-title">Change Requests (validation workflow)</div>
       <div class="portlet-content">
-
-        <div class="tw-bs">
-          <div class="col-lg-12 callout-fade callout-warning">
-            <div class="marker">
-              <span class="glyphicon glyphicon-info-sign"></span>
-            </div>
-            <p>
-              If enabled, all changes to configuration (Directives, Rules, Groups and Parameters) will be submitted for validation via a Change Request. <br/>
-              A new Change Request will enter the "<b>Pending validation</b>" status, then can be moved to "<b>Pending deployment</b>" (approved but not yet deployed) or "<b>Deployed</b>" (approved and deployed) statuses.
-            </p>
-            <p>
-              Only users with the "<b>validator</b>" or "<b>deployer</b>" roles are authorized to perform these steps (see <i><strong>/opt/rudder/etc/rudder-users.xml</strong></i>).
-            </p>
-            <p>
-              If disabled, all changes to configuration will be immediately deployed.
-            </p>
+        <div class="col-xs-12 callout-fade callout-warning">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
           </div>
+          <p>
+            If enabled, all changes to configuration (Directives, Rules, Groups and Parameters) will be submitted for validation via a Change Request. <br/>
+            A new Change Request will enter the <b>Pending validation</b> status, then can be moved to <b>Pending deployment</b> (approved but not yet deployed) or <b>Deployed</b> (approved and deployed) statuses.
+          </p>
+          <p>
+            Only users with the <b>validator</b> or <b>deployer</b> roles are authorized to perform these steps (see <i><strong>/opt/rudder/etc/rudder-users.xml</strong></i>).
+          </p>
+          <p>
+            If disabled, all changes to configuration will be immediately deployed.
+          </p>
         </div>
-
-        <hr class="spacer" />
-        <div class="deca">
-          <div
-            class="lift:administration.PropertiesManagement.workflow"
-            id="workflowForm">
-            <form class="lift:form.ajax">
-
-              <div class="wbBaseField">
-                <label class="threeCol textright" style="font-weight:bold;width: 20%;">Enable Change Requests:</label><input id="workflowEnabled" type="checkbox"/>
-              </div>
-              <hr class="spacer"/>
-              <div class="wbBaseField">
-                    <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self validation: </span><span id="selfValTooltip"></span></label><input id="selfVal" type="checkbox"/>
-              </div>
-              <hr class="spacer"/>
-            <div class="wbBaseField">
-                    <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self deployment: </span><span id="selfDepTooltip"></span></label><input id="selfDep" type="checkbox"/>
-              </div>
-              <hr class="spacer"/>
-              <lift:authz role="administration_write">
-                <span  class="tw-bs">
-                  <input type="submit" value="Reload" id="workflowSubmit"/>
-                </span>
-                <span class="lift:Msg?id=updateWorkflow">[messages]</span>
-              </lift:authz>
-            </form>
-          </div>
+        <div class="lift:administration.PropertiesManagement.workflow" id="workflowForm">
+          <form class="lift:form.ajax">
+            <ul>
+              <li class="rudder-form">
+                <div class="input-group">
+                  <label class="input-group-addon" for="workflowEnabled">
+                    <input id="workflowEnabled" type="checkbox">
+                    <label for="workflowEnabled" class="label-radio">
+                      <span class="ion ion-checkmark-round"></span>
+                    </label>
+                    <span class="ion ion-checkmark-round check-icon"></span>
+                  </label>
+                  <label class="form-control" for="workflowEnabled">
+                    Enable Change Requests
+                  </label>
+                </div>
+              </li>
+              <li class="rudder-form">
+                <div class="input-group">
+                  <label class="input-group-addon" for="selfVal">
+                    <input id="selfVal" type="checkbox">
+                    <label for="selfVal" class="label-radio">
+                      <span class="ion ion-checkmark-round"></span>
+                    </label>
+                    <span class="ion ion-checkmark-round check-icon"></span>
+                  </label>
+                  <label class="form-control" for="selfVal">
+                    Allow self validation
+                    <span id="selfValTooltip"></span>
+                  </label>
+                </div>
+              </li>
+              <li class="rudder-form">
+                <div class="input-group">
+                  <label class="input-group-addon" for="selfDep">
+                    <input id="selfDep" type="checkbox">
+                    <label for="selfDep" class="label-radio">
+                      <span class="ion ion-checkmark-round"></span>
+                    </label>
+                    <span class="ion ion-checkmark-round check-icon"></span>
+                  </label>
+                  <label class="form-control" for="selfDep">
+                    Allow self deployment
+                    <span id="selfDepTooltip"></span>
+                  </label>
+                </div>
+              </li>
+            </ul>
+            <lift:authz role="administration_write">
+              <input type="submit" value="Reload" id="workflowSubmit"/>
+              <span class="lift:Msg?id=updateWorkflow">[messages]</span>
+            </lift:authz>
+          </form>
         </div>
       </div>
     </div>
 
     <div class="inner-portlet">
-      <div class="page-title">File retention</div>
+      <h3 class="page-title">Modified files</h3>
       <div class="portlet-content">
-        <div class="tw-bs">
-          <div class="col-lg-12 callout-fade callout-warning">
+        <div class="col-xs-12 callout-fade callout-warning">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
+          </div>
+          <p>Every time Rudder modifies a file (by file editing or copying from a remote source), a <strong>backup</strong> is created on the agent under <i><strong>/var/rudder/modified-files/</strong></i>.</p>
+        </div>
+        <div class="lift:administration.PropertiesManagement.cfengineGlobalProps" id="cfengineGlobalPropsForm">
+          <form class="lift:form.ajax">
+            <div class="form-group">
+              <label>Number of days to retain modified files</label>
+              <input id="modifiedFilesTtl" type="number"/>
+            </div>
+            <lift:authz role="administration_write">
+              <input type="submit" value="[save]" id="cfengineGlobalPropsSubmit"/>
+              <span class="lift:Msg?id=updateCfengineGlobalProps;errorClass=bs-text-danger;">[messages]</span>
+            </lift:authz>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-portlet">
+      <h3 class="page-title">Logging</h3>
+      <div class="portlet-content">
+        <div class="lift:administration.PropertiesManagement.loggingConfiguration" id="storeAllLogsForm">
+          <div class="col-xs-12 callout-fade callout-warning">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
-            <p>Every time Rudder modifies a file (by file editing or copying from a remote source), a copy of the overwritten file is kept under <i><strong>/var/rudder/modified-files/</strong></i>.</p>
+            <p>All nodes in Rudder send reports via syslog to this Rudder root server. These logs are stored in an SQL database in order to determine compliance information displayed in this web interface. However, it can be useful to also store this information in a plain text log file, for example for statistics or debugging purposes. The option below enables this.</p>
             <p>
               Also, the full output from each agent run is stored in a file under <i><strong>/var/rudder/cfengine-community/outputs/</strong></i>.
               These files are automatically removed to save on disk space. You can configure the retention time (Time To Live) they are kept for here.
             </p>
           </div>
-        </div>
-          <div class="deca">
-            <div class="lift:administration.PropertiesManagement.cfengineGlobalProps" id="cfengineGlobalPropsForm">
-              <form class="lift:form.ajax">
-                <div class="wbBaseField">
-                  <label class="threeCol textight" style="font-weight:bold;width: 300px;">
-                    <span style="float:left">Number of days to retain modified files: </span>
-                    <span id="modifiedFilesTtlTooltip"></span>
+          <form class="lift:form.ajax">
+          <ul>
+            <li class="rudder-form">
+              <div class="input-group">
+                <label class="input-group-addon" for="storeAllLogsOnFile">
+                  <input id="storeAllLogsOnFile" type="checkbox">
+                  <label for="storeAllLogsOnFile" class="label-radio">
+                    <span class="ion ion-checkmark-round"></span>
                   </label>
-                  <input id="modifiedFilesTtl" type="text"/>
-                </div>
-                <hr class="spacer"/>
-                <div class="wbBaseField">
-                  <label class="threeCol textright" style="font-weight:bold;width: 300px;">
-                    <span style="float:left">Number of days to retain agent output files: </span>
-                    <span id="cfengineOutputsTtlTooltip"></span>
-                  </label>
-                  <input id="cfengineOutputsTtl" type="text"/>
-                </div>
-                <hr class="spacer"/>
-                <lift:authz role="administration_write">
-                  <span class="tw-bs">
-                    <input type="submit" value="[save]" id="cfengineGlobalPropsSubmit"/>
-                  </span>
-                  <span class="lift:Msg?id=updateCfengineGlobalProps;errorClass=bs-text-danger;">[messages]</span>
-                </lift:authz>
-              </form>
-            </div>
+                  <span class="ion ion-checkmark-round check-icon"></span>
+                </label>
+                <label class="form-control" for="storeAllLogsOnFile">
+                  Log all reports received to /var/log/rudder/reports/all.log
+                </label>
+              </div>
+            </li>
+          </ul>
+          <div class="form-group">
+            <label>Number of days to retain agent log files</label>
+            <input id="cfengineOutputsTtl" type="number"/>
           </div>
+          <lift:authz role="administration_write">
+            <input type="submit" value="[save]" id="loggingConfigurationSubmit"/>
+            <span class="lift:Msg?id=loggingConfiguration">[messages]</span>
+          </lift:authz>
+          </form>
+        </div>
       </div>
     </div>
 
     <div class="inner-portlet">
-      <div class="page-title">Logging</div>
-      <div class="portlet-content tw-bs">
-        <div class="lift:administration.PropertiesManagement.loggingConfiguration" id="storeAllLogsForm">
-          <div class="col-lg-12 callout-fade callout-warning">
+      <h3 class="page-title">Usage survey participation</h3>
+      <div class="portlet-content">
+        <div class="lift:administration.PropertiesManagement.sendMetricsConfiguration" id="sendMetrics">
+          <div class="col-xs-12 callout-fade callout-warning">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
-            <p>All nodes in Rudder send reports via syslog to this Rudder root server. These logs are stored in an SQL database in order to determine compliance information displayed in this web interface. However, it can be useful to also store this information in a plain text log file, for example for statistics or debugging purposes. The option below enables this.</p>
+            <p>To help the Rudder team continue to improve this software day after day, we are running a survey to collect usage statistics.</p>
+            <p>These statistics are submitted <b>anonymously</b>, and include overall statistics about your instance of Rudder
+               (number of Rules, Directives, Nodes, etc). No potentially-sensitive data is included
+               (only stock Rudder-provided techniques are examined, no hostnames, etc).
+               We highly value your privacy, as we do our own, so we will never share individual submissions (only globally compiled statistics).
+            </p>
+            <p>
+              If you want to check the information that is sent, just run <span class="pre">/opt/rudder/bin/rudder-metrics-reporting -v</span> on your Rudder server. This won't send any information without your consent.
+            </p>
+            <p>
+              This information is very valuable to the development team, as it helps us focus on the features that matter most and better understand what our users care about.
+              Please consider participating in the survey!
+            </p>
           </div>
-          <div class="deca col-xs-12">
-            <form class="lift:form.ajax">
-              <div class="form-group">
-                <label class="threeCol textright" style="width: 40%;">
-                  <span style="float:left">Log all reports received to /var/log/rudder/reports/all.log: </span>
-                </label>
-                <input id="storeAllLogsOnFile" type="text"/>
-              </div>
-              <lift:authz role="administration_write">
-                <div class="form-group">
-                  <input type="submit" value="[save]" id="loggingConfigurationSubmit"/>
+          <form class="lift:form.ajax">
+            <ul>
+              <li class="rudder-form">
+                <div class="input-group">
+                  <label class="input-group-addon" for="sendMetricsCheckbox">
+                    <input id="sendMetricsCheckbox" type="checkbox">
+                    <label for="sendMetricsCheckbox" class="label-radio">
+                      <span class="ion ion-checkmark-round"></span>
+                    </label>
+                    <span class="ion ion-checkmark-round check-icon"></span>
+                  </label>
+                  <label class="form-control" for="sendMetricsCheckbox">
+                    Send anonymous usage statistics
+                  </label>
                 </div>
-                <span class="lift:Msg?id=loggingConfiguration">[messages]</span>
-              </lift:authz>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="inner-portlet">
-      <div class="page-title">Usage survey participation</div>
-      <div class="portlet-content tw-bs">
-        <div class="lift:administration.PropertiesManagement.sendMetricsConfiguration" id="sendMetrics">
-          <div class="col-lg-12 callout-fade callout-warning">
-              <div class="marker">
-                <span class="glyphicon glyphicon-info-sign"></span>
-              </div>
-              <p>To help the Rudder team continue to improve this software day after day, we are running a survey to collect usage statistics.</p>
-              <p>These statistics are submitted anonymously, and include overall statistics about your instance of Rudder
-                 (number of Rules, Directives, Nodes, etc). No potentially-sensitive data is included
-                 (only stock Rudder-provided techniques are examined, no hostnames, etc).
-                 We highly value your privacy, as we do our own, so we will never share individual submissions (only globally compiled statistics)
-              </p>
-              <p>
-                If you want to check the information that is sent, just run "/opt/rudder/bin/rudder-metrics-reporting -v" on your Rudder server. This won't send any information without your consent.
-              </p>
-              <p>
-                This information is very valuable to the development team, as it helps us focus on the features that matter most and better understand what our users care about.
-                Please consider participating in the survey!
-              </p>
-          </div>
-          <div class="deca col-xs-12">
-            <form class="lift:form.ajax">
-              <div class="form-group">
-                <label class="threeCol textright" for="sendMetricsCheckbox" style="font-weight:bold;width: 20%;">Send anonymous usage statistics:</label><input id="sendMetricsCheckbox" type="checkbox"/>
-              </div>
-              <lift:authz role="administration_write">
-                <div class="form-group">
-                  <input type="submit" value="Reload" id="sendMetricsSubmit"/>
-                </div>
-                <span class="lift:Msg?id=sendMetricsMsg">[messages]</span>
-              </lift:authz>
-            </form>
-          </div>
+              </li>
+            </ul>
+            <lift:authz role="administration_write">
+              <input type="submit" value="Reload" id="sendMetricsSubmit"/>
+              <span class="lift:Msg?id=sendMetricsMsg">[messages]</span>
+            </lift:authz>
+          </form>
         </div>
       </div>
     </div>
@@ -397,119 +509,148 @@
       <div class="page-title">Display compliance and recent changes columns on rule summary</div>
       <div class="portlet-content tw-bs">
         <div class="lift:administration.PropertiesManagement.displayRuleColumnConfiguration" id="displayColumns">
-          <div class="col-lg-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-warning">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
             <div>
               In directive configuration page, we have the possibility to choose rules for the directive. The rule 
-              are presented in a summary table which look alike the one in rule page. For performance on ascetic
+              are presented in a summary table which look alike the one in rule page. For performance on aesthetic
               reason, you may want to hide compliance and recent changes columns on that table. 
-              The column will still be displayed on the rule page. 
+              The column will still be displayed on the rule page.
             </div>
           </div>
-          <div class="deca col-xs-12">
-            <form class="lift:form.ajax">
-              <div class="form-group">
-                <label class="threeCol textright" for="displayColumnsCheckbox" style="font-weight:bold;width: 20%;">Display rule compliance columns:</label><input id="displayColumnsCheckbox" type="checkbox"/>
-              </div>
-              <lift:authz role="administration_write">
-                <div class="form-group">
-                  <input type="submit" value="Save Changes" id="displayColumnsSubmit"/>
-                  <lift:Msg id="displayColumnsMsg">[messages]</lift:Msg>
+          
+          <form class="lift:form.ajax">
+            <ul>
+              <li class="rudder-form">
+                <div class="input-group">
+                  <label class="input-group-addon" for="displayColumnsCheckbox">
+                    <input id="displayColumnsCheckbox" type="checkbox">
+                    <label for="displayColumnsCheckbox" class="label-radio">
+                     <span class="ion ion-checkmark-round"></span>
+                    </label>
+                    <span class="ion ion-checkmark-round check-icon"></span>
+                  </label>
+                  <label class="form-control" for="displayColumnsCheckbox">
+                    Display rule compliance columns
+                  </label>
                 </div>
-              </lift:authz>
-            </form>
-          </div>
+              </li>
+            </ul>
+            <lift:authz role="administration_write">
+              <input type="submit" value="Save Changes" id="displayColumnsSubmit"/>
+              <span class="lift:Msg?id=displayColumnsMsg">[messages]</span>
+            </lift:authz>
+          </form>
         </div>
       </div>
     </div>
 
     <div class="inner-portlet">
-      <div class="page-title">Display changes graphs</div>
-      <div class="portlet-content tw-bs">
+      <h3 class="page-title">Display changes graphs</h3>
+      <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.displayGraphsConfiguration" id="displayGraphs">
-          <div class="col-lg-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-warning">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
-            <p>In Rules table, we display a graph for each Rule showing it's activity (number of repaired reports).</p>
+            <p>In Rules table, we display a graph for each Rule showing its activity (number of repaired reports).</p>
             <p>Unfortunately, some browsers (especially Firefox) have trouble displaying them and make Rule pages almost unusable.</p>
             <p>If you experience slow loading of Rules pages, you can disable this feature here.</p>
           </div>
-          <div class="deca col-xs-12">
-            <form class="lift:form.ajax">
-              <div class="form-group">
-                <label class="threeCol textright" for="displayGraphsCheckbox" style="width: 20%;">Display changes graphs:</label><input id="displayGraphsCheckbox" type="checkbox"/>
-              </div>
-              <lift:authz role="administration_write">
-                <input type="submit" value="Save Changes" id="displayGraphsSubmit"/>
-                <lift:Msg id="displayGraphsMsg">[messages]</lift:Msg>
-              </lift:authz>
-            </form>
-          </div>
+          <form class="lift:form.ajax">
+            <ul>
+              <li class="rudder-form">
+                <div class="input-group">
+                  <label class="input-group-addon" for="displayGraphsCheckbox">
+                    <input id="displayGraphsCheckbox" type="checkbox">
+                    <label for="displayGraphsCheckbox" class="label-radio">
+                      <span class="ion ion-checkmark-round"></span>
+                    </label>
+                    <span class="ion ion-checkmark-round check-icon"></span>
+                  </label>
+                  <label class="form-control" for="displayGraphsCheckbox">
+                    Display changes graphs
+                  </label>
+                </div>
+              </li>
+            </ul>
+            <lift:authz role="administration_write">
+              <input type="submit" value="Save Changes" id="displayGraphsSubmit"/>
+              <lift:Msg id="displayGraphsMsg">[messages]</lift:Msg>
+            </lift:authz>
+          </form>
         </div>
       </div>
     </div>
 
     <div class="inner-portlet">
-      <div class="page-title">Enable script evaluation in Directives</div>
-      <div class="portlet-content tw-bs">
+      <h3 class="page-title">Enable script evaluation in Directives</h3>
+      <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.directiveScriptEngineConfiguration" id="directiveScriptEngine">
-          <div class="col-lg-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-warning">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
-            If enabled, all password fields can contain a JavaScript expression.
-            These expressions are evaluated during promise generation, and can therefore provide unique values for each node.
-            Read the <a href="/rudder-doc/_javascript_evaluation_in_directives.html">script documentation</a> for more information.
+              If enabled, all password fields can contain a JavaScript expression.
+              These expressions are evaluated during promise generation, and can therefore provide unique values for each node.
+              Read the <a href="/rudder-doc/_javascript_evaluation_in_directives.html" target="_blank">script documentation</a> for more information.
           </div>
-          <div class="deca col-xs-12">
-            <form class="lift:form.ajax">
-              <div class="form-group">
-                <label class="threeCol textright" for="directiveScriptEngineCheckbox" style="width: 30%;">Enable script evaluation in Directives:</label>
-                <input id="directiveScriptEngineCheckbox" type="checkbox"/>
-              </div>
-              <lift:authz role="administration_write">
-                <div class="form-group">
-                  <input type="submit" value="Save Changes" id="directiveScriptEngineSubmit"/>
-                  <lift:Msg id="directiveScriptEngineMsg">[messages]</lift:Msg>
+          <form class="lift:form.ajax">
+            <ul>
+              <li class="rudder-form">
+                <div class="input-group">
+                  <label class="input-group-addon" for="directiveScriptEngineCheckbox">
+                    <input id="directiveScriptEngineCheckbox" type="checkbox">
+                    <label for="directiveScriptEngineCheckbox" class="label-radio">
+                      <span class="ion ion-checkmark-round"></span>
+                    </label>
+                    <span class="ion ion-checkmark-round check-icon"></span>
+                  </label>
+                  <label class="form-control" for="directiveScriptEngineCheckbox">
+                    Enable script evaluation in Directives
+                  </label>
                 </div>
-              </lift:authz>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="inner-portlet">
-      <div class="page-title">Clear policy caches</div>
-      <div class="portlet-content tw-bs">
-        <div class="col-lg-12 callout-fade callout-warning">
-           <div class="marker">
-             <span class="glyphicon glyphicon-info-sign"></span>
-           </div>
-          <p>Clear cached data. This
-            will trigger a full policy update, and regenerate
-            all promise files.</p>
-        </div>
-        <div class="deca col-xs-12">
-          <div class="lift:administration.ClearCache.render" id="clearCacheForm">
+              </li>
+            </ul>
             <lift:authz role="administration_write">
-              <form class="lift:form.ajax">
-                <input id="clearCacheButton" type="submit" value="[Clear cache]" />
-                <span class="lift:Msg?id=clearCacheNotice">[error]</span>
-              </form>
+              <input type="submit" value="Save Changes" id="directiveScriptEngineSubmit"/>
+              <lift:Msg id="directiveScriptEngineMsg">[messages]</lift:Msg>
             </lift:authz>
-          </div>
+          </form>
         </div>
       </div>
     </div>
 
     <div class="inner-portlet">
-      <div class="page-title">Manage dynamic groups</div>
-      <div class="portlet-content tw-bs">
-        <div class="col-lg-12 callout-fade callout-warning">
+      <h3 class="page-title">Clear policy caches</h3>
+      <div class="portlet-content">
+        <div class="col-xs-12 callout-fade callout-warning">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
+          </div>
+          <p>
+            Clear cached data. This
+            will trigger a full policy update, and regenerate
+            all promise files.
+          </p>
+        </div>
+        <div class="lift:administration.ClearCache.render" id="clearCacheForm">
+          <lift:authz role="administration_write">
+            <form class="lift:form.ajax">
+              <input id="clearCacheButton" type="submit" value="[Clear cache]" />
+              <span class="lift:Msg?id=clearCacheNotice">[error]</span>
+            </form>
+          </lift:authz>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-portlet">
+      <h3 class="page-title">Manage dynamic groups</h3>
+      <div class="portlet-content">
+        <div class="col-xs-12 callout-fade callout-warning">
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
@@ -517,32 +658,30 @@
           <p>To take into account new nodes and changes to their inventory, dynamic groups must be reloaded regularly.</p>
           <p>Currently, Rudder will automatically do this reload every <b id="dynGroupUpdateInterval">5</b> minutes (see <i><strong>/opt/rudder/etc/rudder-web.properties</strong></i>).</p>
         </div>
-        <div class="deca col-xs-12">
-          <div class="lift:administration.DyngroupReloading.render" id="dyngroupReloadingForm">
-            <lift:authz role="administration_write">
-              <form class="lift:form.ajax">
-                <input id="dyngroupReloadingButton" type="submit" value="[Reload dyngroups]" />
-                <span class="lift:msg?id=dyngroupReloadingNotice&errorClass=error">[error]</span>
-              </form>
-            </lift:authz>
-          </div>
+        <div class="lift:administration.DyngroupReloading.render"
+          id="dyngroupReloadingForm">
+          <lift:authz role="administration_write">
+            <form class="lift:form.ajax">
+              <input id="dyngroupReloadingButton" type="submit" value="[Reload dyngroups]" />
+              <span class="lift:msg?id=dyngroupReloadingNotice&errorClass=error">[error]</span>
+            </form>
+          </lift:authz>
         </div>
       </div>
     </div>
 
     <div class="inner-portlet">
-      <div class="page-title">Manage Technique library</div>
-      <div class="portlet-content tw-bs">
-        <div class="col-lg-12 callout-fade callout-warning">
+      <h3 class="page-title">Manage Technique library</h3>
+      <div class="portlet-content">
+        <div class="col-xs-12 callout-fade callout-warning">
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
-          <p>Techniques in Rudder are read from the filesystem (in <i>/var/rudder/configuration-repository/techniques</i>).</p>
+          <p>Techniques in Rudder are read from the filesystem (in <i><strong>/var/rudder/configuration-repository/techniques</strong></i>).</p>
           <p>To take into account new Techniques and changes, the Technique library must be updated regularly.</p>
           <p>Currently, Rudder will automatically do this update every <b id="techniqueLibraryUpdateInterval">5</b> minutes (see <i><strong>/opt/rudder/etc/rudder-web.properties</strong></i>).</p>
         </div>
-
-        <div class="deca col-xs-12 technique-settings">
+        <div class="technique-settings">
           <lift:authz role="administration_write">
             <div class="lift:administration.TechniqueLibraryManagement.reloadTechniqueButton" id="reloadTechniqueLibForm"></div>
             <span id="updateLib"></span>
@@ -551,7 +690,5 @@
       </div>
     </div>
   </div>
-</div>
-<div class="lift:administration.PropertiesManagement.onloadScript"></div>
+  <div class="lift:administration.PropertiesManagement.onloadScript"></div>
 </lift:surround>
-

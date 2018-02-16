@@ -106,6 +106,19 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
          "CONFIGURATION_REPOSITORY_FOLDER" , "The path to the configuration repository folder"
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
+    , SystemVariableSpec(
+         "RELAY_SYNC_METHOD"               , "Synchronization method for relay; can be classic, rsync or manual "
+                                           , multivalued = false
+                        )
+    , SystemVariableSpec(
+         "RELAY_SYNC_PROMISES"             , "Synchronize promises on relay with Rsync in rsync mode"
+                                           ,  constraint = Constraint(typeName = BooleanVType, default=Some("true"))
+                        )
+    , SystemVariableSpec(
+         "RELAY_SYNC_SHAREDFILES"          , "Synchronize sharedfiles on relay with Rsync in rsync mode"
+                                           , constraint = Constraint(typeName = BooleanVType, default=Some("true"))
+                        )
+
       //
       // The following variables contain information about all the node *directly*
       // managed by a policy server (i.e: we don't have children of relays here)
@@ -153,6 +166,22 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
       // end
+    , SystemVariableSpec(
+                 "MANAGED_NODES_CERT_UUID" , "UUID of node with certificate"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                   "MANAGED_NODES_CERT_CN" , "CN of certificate of the node"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                  "MANAGED_NODES_CERT_PEM" , "PEM encoded certificate of the node"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                   "MANAGED_NODES_CERT_DN" , "DN of certificate of the node"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
     , SystemVariableSpec(
                      "AUTHORIZED_NETWORKS" , "Networks authorized to connect to the policy server"
                                            , constraint = Constraint(mayBeEmpty=true)

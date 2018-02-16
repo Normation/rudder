@@ -131,7 +131,7 @@ class RuleValServiceImpl(
         Full(None)
       case Some((fullActiveTechnique, directive)) =>
         for {
-          policyPackage <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! s"The required version of technique is not available for directive ${directive.name}"
+          policyPackage <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! s"Version '${directive.techniqueVersion}' of technique '${fullActiveTechnique.techniqueName}' is not available for directive '${directive.name}' [${directive.id.value}]"
           varSpecs = policyPackage.rootSection.getAllVariables ++ policyPackage.systemVariableSpecs :+ policyPackage.trackerVariableSpec
           vared <- buildVariables(varSpecs, directive.parameters)
           exists <- {

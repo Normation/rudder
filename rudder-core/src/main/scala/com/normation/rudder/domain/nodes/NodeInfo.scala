@@ -73,7 +73,6 @@ final case class NodeInfo(
   , osDetails      : OsDetails
   , ips            : List[String]
   , inventoryDate  : DateTime
-  , publicKey      : Option[PublicKey]
   , keyStatus      : KeyStatus
   , agentsName     : Seq[AgentInfo]
   , policyServerId : NodeId
@@ -103,16 +102,22 @@ final case class NodeInfo(
    * Get a digest of the key in the proprietary CFEngine
    * digest format.
    */
-  lazy val cfengineKeyHash: String = {
-    publicKey.map(CFEngineKey.getCfengineDigest) match {
+  lazy val securityTokenHash: String = {
+    agentsName.headOption.map(_.securityToken) match {
+      case Some(key : PublicKey) =>
+        CFEngineKey.getCfengineDigest(key) match {
+          case Full(hash) =>
+            hash
+          case eb:EmptyBox =>
+            val e = eb ?~! s"Error when trying to get the CFEngine-MD5 digest of CFEngine public key for node '${hostname}' (${id.value})"
+            logger.error(e.messageChain)
+            ""
+        }
+      case Some(cert : Certificate) =>
+        logger.info(s"Node '${hostname}' (${id.value}) is a Dsc node and a we do not know how to generate a hash yet")
+        ""
       case None =>
         logger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
-        ""
-      case Some(Full(hash)) =>
-        hash
-      case Some(eb:EmptyBox) =>
-        val e = eb ?~! s"Error when trying to get the CFEngine-MD5 digest of CFEngine public key for node '${hostname}' (${id.value})"
-        logger.error(e.messageChain)
         ""
     }
   }
@@ -126,16 +131,23 @@ final case class NodeInfo(
    *
    */
   lazy val sha256KeyHash: String = {
-    publicKey.map(CFEngineKey.getSha256Digest) match {
+    agentsName.headOption.map(_.securityToken) match {
+      case Some(publicKey : PublicKey) =>
+        CFEngineKey.getSha256Digest(publicKey) match {
+        case Full(hash) =>
+          hash
+        case eb:EmptyBox =>
+          val e = eb ?~! s"Error when trying to get the sha-256 digest of CFEngine public key for node '${hostname}' (${id.value})"
+          logger.error(e.messageChain)
+          ""
+        }
+      case Some(cert : Certificate) =>
+        logger.info(s"Node '${hostname}' (${id.value}) is a Dsc node and a we do not know how to generate a hash yet")
+        ""
       case None =>
         logger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
         ""
-      case Some(Full(hash)) =>
-        hash
-      case Some(eb:EmptyBox) =>
-        val e = eb ?~! s"Error when trying to get the sha-256 digest of CFEngine public key for node '${hostname}' (${id.value})"
-        logger.error(e.messageChain)
-        ""
+
     }
 
   }

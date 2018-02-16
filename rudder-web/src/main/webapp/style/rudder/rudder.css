@@ -116,6 +116,7 @@ div.innerDetails {
 }
 #node_parameters{
   padding: 10px;
+  float: left;
 }
 
 table.nomargin {
@@ -2422,8 +2423,8 @@ form .tw-bs input {
 }
 
 .animate-hide {
-  -webkit-transition: all linear 0.5s;
-  transition: all linear 0.5s;
+  -webkit-transition: all linear .2s;
+  transition: all linear .2s;
   opacity: 1;
 }
 

@@ -65,6 +65,7 @@ import net.liftweb.http.SHtml.ElemAttr.pairToBasic
 import scala.Option.option2Iterable
 import scala.xml.NodeSeq.seqToNodeSeq
 import com.normation.rudder.web.components._
+import com.normation.rudder.web.services.AgentCompat
 
 /**
  * Snippet for managing the System and User Technique libraries.
@@ -559,12 +560,22 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] def jsTreeNodeOf_ptCategory(category:TechniqueCategory) : JsTreeNode = {
 
     def jsTreeNodeOf_pt(technique : Technique) : JsTreeNode = new JsTreeNode {
+
+      val agentTypes = technique.agentConfigs.map(_.agentType).toSet
+      val agentCompat = AgentCompat(agentTypes)
+
       override def body = {
-        val tooltipid = Helpers.nextFuncName
+
+        val tooltipContent = s"""
+          <h4>${technique.name}</h4>
+          <div class="tooltip-content">
+            <p>${technique.description}</p>
+            ${agentCompat.techniqueText}
+          </div>
+        """
         SHtml.a(
             { () => onClickTemplateNode(Some(technique), None) },
-            <span class="treeTechniqueName tooltipable" tooltipid={tooltipid} title={technique.description}>{technique.name}</span>
-            <div class="tooltipContent" id={tooltipid}><h3>{technique.name}</h3><div>{technique.description}</div></div>
+            <span class="treeTechniqueNamebsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{agentCompat.icon}{technique.name}</span>
         )
       }
       override def children = Nil
@@ -624,19 +635,26 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
       //there is two case: the normal one, and the case where the technique is missing and
       //we want to inform the user of the problem
-
+      val agentTypes = optTechnique.toList.flatMap(_.agentConfigs).map(_.agentType).toSet
+      val agentCompat = AgentCompat(agentTypes)
       optTechnique match {
         case Some(technique) =>
           new JsTreeNode {
             override def body = {
-              val tooltipid0 = Helpers.nextFuncName
+              val tooltipContent = s"""
+              <h4>${technique.name}</h4>
+              <div class="tooltip-content">
+                <p>${technique.description}</p>
+                ${agentCompat.techniqueText}
+                ${if(!activeTechnique.isEnabled){<div>This Technique is currently disabled.</div>}else{NodeSeq.Empty}}
+              </div>
+            """
               val tooltipid1 = Helpers.nextFuncName
               val numberDirectives = s"${activeTechnique.directives.size} directive(s) are based on that Technique"
               SHtml.a(
                 { () => onClickTemplateNode(Some(technique), Some(activeTechnique)) },
                   (
-                  <span class="treeTechniqueName tooltipable" tooltipid={tooltipid0} title={technique.description}>{technique.name}</span>
-                  <div class="tooltipContent" id={tooltipid0}><h3>{technique.name}</h3><div>{technique.description}</div></div>
+                  <span class="treeTechniqueName bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{agentCompat.icon}{technique.name}</span>
                   <span class="tooltipable" tooltipid={tooltipid1} title={numberDirectives}>
                     {s" (${activeTechnique.directives.size})"}
                   </span>

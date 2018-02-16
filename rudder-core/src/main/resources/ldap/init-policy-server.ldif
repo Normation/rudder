@@ -80,6 +80,7 @@ localAccountName: root
 cn: root
 localAdministratorAccountName: root
 nodeHostname: %%POLICY_SERVER_HOSTNAME%%
+publicKey: Dummy public key
 PolicyServerId: root
 inventoryDate: 19700101000000+0200
 receiveDate: 19700101000000+0200
@@ -95,14 +96,17 @@ rudderServerRole: rudder-web
 dn: nodeGroupId=hasPolicyServer-root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: nodeGroup
 objectClass: top
-cn: All nodes managed by root policy server
-description: All nodes known by Rudder directly connected to the root server
+cn: All classic Nodes managed by root policy server
+description: All classic Nodes known by Rudder directly connected to the root server. This group exists only as internal purpose and should not be used to configure nodes.
 isDynamic: TRUE
 nodeGroupId: hasPolicyServer-root
 nodeId: root
 isSystem: TRUE
 isEnabled: TRUE
-jsonNodeGroupQuery: {"select":"nodeAndPolicyServer","composition":"And","where":[{"objectType":"node","attribute":"policyServerId","comparator":"eq","value":"root"}]}
+jsonNodeGroupQuery: {"select":"nodeAndPolicyServer","composition":"And","where":[
+ {"objectType":"node","attribute":"policyServerId","comparator":"eq","value":"root"},
+ {"objectType":"node","attribute":"agentName","comparator":"eq","value":"cfengine"}
+ ]}
 
 dn: ruleTarget=policyServer:root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: specialRuleTarget

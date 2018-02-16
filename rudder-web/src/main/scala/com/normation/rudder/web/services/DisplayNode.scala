@@ -58,9 +58,9 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import bootstrap.liftweb.StaticResourceRewrite
 import com.normation.rudder.hooks.HookReturnCode.Interrupt
 import com.normation.rudder.hooks.HookReturnCode
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 
 /**
  * A service used to display details about a server
@@ -419,12 +419,12 @@ object DisplayNode extends Loggable {
           }.getOrElse(NodeSeq.Empty) }
           <b>Rudder agent version:</b> {sm.node.agents.map(_.version.map(_.value)).headOption.flatten.getOrElse("Not found")
           }<br/>
-          <b>Agent name:</b> {sm.node.agents.map(_.name.fullname).mkString(";")}<br/>
+          <b>Agent name:</b> {sm.node.agents.map(_.agentType.displayName).mkString(";")}<br/>
           <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
           { displayPolicyServerInfos(sm) }<br/>
           {
-            sm.node.publicKeys.headOption match {
-              case Some(key) =>
+            sm.node.agents.headOption match {
+              case Some(agent) =>
                 val checked = (sm.node.main.status, sm.node.main.keyStatus) match {
                   case (AcceptedInventory, CertifiedKey) => <span class="tw-bs">
                                                               <span class="glyphicon glyphicon-ok text-success tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
@@ -443,12 +443,17 @@ object DisplayNode extends Loggable {
                 val nodeId      = sm.node.main.id
                 val publicKeyId = s"publicKey-${nodeId.value}"
                 val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId) match {
-                  case Full(Some(nodeInfo)) => <span>{nodeInfo.cfengineKeyHash}</span>
-                  case _ => <i>CFEngine Key Hash not found</i>
+                  case Full(Some(nodeInfo)) => <span>{nodeInfo.securityTokenHash}</span>
+                  case _ => <i>Hash not found</i>
+                }
+
+                val tokenKind = agent.securityToken match {
+                  case _ : PublicKey   => "Public key"
+                  case _ : Certificate => "Certificate"
                 }
                 <b><a href="#" onclick={s"$$('#${publicKeyId}').toggle(300); return false;"}>Display Node key {checked}</a></b>
                 <div style="width=100%; overflow:auto;">
-                  <pre id={s"${publicKeyId}"} class="display-keys" style="display:none;"><label>Public key:</label>{key.key}<label>CFEngine Key Hash:</label>{cfKeyHash}</pre>
+                  <pre id={publicKeyId} class="display-keys" style="display:none;"><label>{tokenKind}:</label>{agent.securityToken.key}<label>{tokenKind} Hash:</label>{cfKeyHash}</pre>
                 </div> ++
                 Script(OnLoad(JsRaw(s"""createTooltip();""")))
               case None => NodeSeq.Empty

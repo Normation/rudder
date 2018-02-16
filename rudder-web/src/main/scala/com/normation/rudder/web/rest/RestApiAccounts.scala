@@ -32,7 +32,7 @@ class RestApiAccounts (
 
   serve {
     case Get("secure" :: "apiaccounts" :: Nil, req) =>
-      readApi.getAll() match {
+      readApi.getAll match {
         case Full(accountSeq) =>
           val accounts = ("accounts" -> JArray(accountSeq.toList.map(toJson(_))))
           toJsonResponse(None,accounts)("getAllAccounts",true)
@@ -41,7 +41,6 @@ class RestApiAccounts (
           toJsonError(None,s"Could not get accounts cause : ${(eb ?~ "could not get account").msg}")("getAllAccounts",true)
 
       }
-
 
     case "secure" :: "apiaccounts" :: Nil JsonPut body -> req =>
       req.json match {
@@ -75,7 +74,6 @@ class RestApiAccounts (
           toJsonError(None, "No Json data sent")("updateAccount",true)
       }
 
-
     case "secure" :: "apiaccounts" :: token :: Nil JsonPost body -> req =>
       val apiToken = ApiToken(token)
       req.json match {
@@ -101,7 +99,6 @@ class RestApiAccounts (
         case eb:EmptyBox=>
           toJsonError(None, "No Json data sent")("updateAccount",true)
       }
-
 
     case Delete("secure" :: "apiaccounts" :: token :: Nil, req) =>
       val apiToken = ApiToken(token)
@@ -129,7 +126,7 @@ class RestApiAccounts (
           val newToken = ApiToken(tokenGenerator.newToken(tokenSize))
           val generationDate = DateTime.now
           writeApi.save(
-              account.copy(token = newToken,tokenGenerationDate = generationDate)
+              account.copy(token = newToken, tokenGenerationDate = generationDate)
             , ModificationId(uuidGen.newUuid)
             , CurrentUser.getActor) match {
             case Full(account) =>
@@ -191,5 +188,3 @@ case class RestApiAccount(
     account.copy(name = nameUpdate, isEnabled = enableUpdate, description = descUpdate )
   }
 }
-
-

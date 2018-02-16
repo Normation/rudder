@@ -44,7 +44,7 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.AgentInfo
 import com.normation.inventory.domain.AgentVersion
-import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.Debian
 import com.normation.inventory.domain.EnvironmentVariable
 import com.normation.inventory.domain.Linux
@@ -94,7 +94,10 @@ import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import org.joda.time.DateTime
 import scala.collection.SortedMap
 import scala.language.implicitConversions
-
+import com.normation.inventory.domain.Windows
+import com.normation.inventory.domain.Windows2012
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.Certificate
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -102,6 +105,18 @@ import scala.language.implicitConversions
  * can be share among tests.
  */
 object NodeConfigData {
+
+  //a valid, not used pub key
+  //cfengine key hash is: 081cf3aac62624ebbc83be7e23cb104d
+  val PUBKEY =
+"""-----BEGIN RSA PUBLIC KEY-----
+MIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT
+Rsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg
+YBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh
+zUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f
+hMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4
+z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
+-----END RSA PUBLIC KEY-----"""
 
   val emptyNodeReportingConfiguration = ReportingConfiguration(None,None)
 
@@ -133,8 +148,8 @@ object NodeConfigData {
     , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
     , List("127.0.0.1", "192.168.0.100")
     , DateTime.now
-    , None, UndefinedKey
-    , Seq(AgentInfo(COMMUNITY_AGENT, Some(AgentVersion("4.0.0"))))
+    , UndefinedKey
+    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY)))
     , rootId
     , rootAdmin
     , Set( //by default server roles for root
@@ -172,8 +187,8 @@ object NodeConfigData {
     , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
     , List("192.168.0.10")
     , DateTime.now
-    , None, UndefinedKey
-    , Seq(AgentInfo(COMMUNITY_AGENT, Some(AgentVersion("4.0.0"))))
+    , UndefinedKey
+    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY)))
     , rootId
     , admin1
     , Set()
@@ -202,7 +217,6 @@ object NodeConfigData {
     , lastLoggedUser       = None
     , lastLoggedUserTime   = None
     , agents               = Seq()
-    , publicKeys           = Seq()
     , serverIps            = Seq()
     , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
     , softwareIds          = Seq()
@@ -218,6 +232,69 @@ object NodeConfigData {
   //node1 us a relay
   val node2Node = node1Node.copy(id = id2, name = id2.value)
   val node2 = node1.copy(node = node2Node, hostname = hostname2, policyServerId = node1.id )
+
+  val dscNode1Node = Node (
+      NodeId("node-dsc")
+    , "node-dsc"
+    , ""
+    , false
+    , false
+    , true //is policy server
+    , DateTime.now
+    , emptyNodeReportingConfiguration
+    , Seq()
+    , None
+  )
+
+  val dscNode1 = NodeInfo (
+      dscNode1Node
+    , "node-dsc.localhost"
+    , Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None))
+    , Windows(Windows2012, "Windows 2012 youpla boom", new Version("2012"), Some("sp1"), new Version("win-kernel-2012"))
+    , List("192.168.0.5")
+    , DateTime.now
+    , UndefinedKey
+    , Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("5.0.0")), Certificate("windows-node-dsc-certificate")))
+    , rootId
+    , admin1
+    , Set()
+    , None
+    , Some(MemorySize(1460132))
+    , None
+  )
+
+  val dscInventory1: NodeInventory = NodeInventory(
+      NodeSummary(
+          dscNode1.id
+        , AcceptedInventory
+        , dscNode1.localAdministratorAccountName
+        , dscNode1.hostname
+        , dscNode1.osDetails
+        , dscNode1.policyServerId
+        , UndefinedKey
+      )
+    , name                 = None
+    , description          = None
+    , ram                  = None
+    , swap                 = None
+    , inventoryDate        = None
+    , receiveDate          = None
+    , archDescription      = None
+    , lastLoggedUser       = None
+    , lastLoggedUserTime   = None
+    , agents               = Seq()
+    , serverIps            = Seq()
+    , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
+    , softwareIds          = Seq()
+    , accounts             = Seq()
+    , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
+    , processes            = Seq()
+    , vms                  = Seq()
+    , networks             = Seq()
+    , fileSystems          = Seq()
+    , serverRoles          = Set()
+  )
+
 
   val allNodesInfo = Map( rootId -> root, node1.id -> node1, node2.id -> node2)
 
@@ -257,7 +334,6 @@ object NodeConfigData {
     , isRootServer= false
   )
 
-
   /**
    * Some more nodes
    */
@@ -277,11 +353,10 @@ object NodeConfigData {
           , None
           , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
           , Nil, DateTime.now
-          , Some(PublicKey("rsa public key")), UndefinedKey, Seq(), NodeId("root")
+          , UndefinedKey, Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"))), NodeId("root")
           , "" , Set(), None, None, None
     )
   }).map(n => (n.id, n)).toMap
-
 
   /**
    *   ************************************************************************
@@ -311,7 +386,6 @@ object NodeConfigData {
     )
   )).toMap
 
-
   val fngc = FullNodeGroupCategory (
       NodeGroupCategoryId("test_root")
     , ""
@@ -319,7 +393,6 @@ object NodeConfigData {
     , Nil
     , fullRuleTargetInfos.values.toList
   )
-
 
   /**
    *   ************************************************************************
@@ -333,7 +406,7 @@ object NodeConfigData {
   implicit def toDID(id: String) = DirectiveId(id)
   implicit def toRID(id: String) = RuleId(id)
   implicit def toRCID(id: String) = RuleCategoryId(id)
-  val t1 = Technique(("t1", "1.0"), "t1", "t1", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("root"), None)
+  val t1 = Technique(("t1", "1.0"), "t1", "t1", Nil, TrackerVariableSpec(), SectionSpec("root"), None)
   val d1 = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
   val d2 = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce))
   val d3 = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit))
@@ -345,7 +418,6 @@ object NodeConfigData {
 
   val directives = FullActiveTechniqueCategory(ActiveTechniqueCategoryId("root"), "root", "root", Nil, fat1 :: Nil)
 
-
     /**
    *   ************************************************************************
    *                         Some rules
@@ -354,6 +426,5 @@ object NodeConfigData {
 
    val r1 = Rule("r1", "r1", 1, "cat1")
    val r2 = Rule("r2", "r2", 1, "cat1")
-
 
 }

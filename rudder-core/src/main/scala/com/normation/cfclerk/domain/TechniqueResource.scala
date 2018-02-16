@@ -44,9 +44,15 @@ package com.normation.cfclerk.domain
  * A resource may be either defined relatively to a technique, or relatively to
  * the configuration-repository directory (the git root directory).
  * Template filename extension is mandatory to be ".st".
+ *
+ * Agent type is not part of the ID because:
+ * - for a template, extension must be .st, so if you want different template for
+ *   cfengine and something else, you must have different base name.
+ * - for a "by path" resources, the path must be different for the resources to be
+ *   different.
  */
 sealed trait TechniqueResourceId {
-  def name: String
+    def name: String
 }
 
 /**

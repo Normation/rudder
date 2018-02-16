@@ -38,19 +38,20 @@
 package com.normation.rudder.services.policies.nodeconfig
 
 import com.normation.inventory.domain.NodeId
-import net.liftweb.common.Box
-import net.liftweb.common.Full
-import org.joda.time.DateTime
-import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants.{OC_NODES_CONFIG, A_NODE_CONFIG}
 import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.ldap.sdk.LDAPEntry
-import net.liftweb.common.Failure
-import net.liftweb.common.Loggable
-import com.normation.cfclerk.domain.Variable
-import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_CONFIG
+import com.normation.rudder.domain.RudderLDAPConstants.OC_NODES_CONFIG
 import com.normation.rudder.services.policies.write.Cf3PolicyDraft
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import net.liftweb.common.Box
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import org.joda.time.DateTime
+import com.normation.cfclerk.domain.Variable
 
 
 case class PolicyHash(
@@ -142,14 +143,14 @@ object NodeConfigurationHash {
      */
     val nodeInfoHashValue = {
       val i = nodeConfig.nodeInfo
-      List(
+      List[Int](
         i.name.hashCode
       , i.hostname.hashCode
       , i.localAdministratorAccountName.hashCode
       , i.policyServerId.hashCode
       , i.properties.hashCode
-      , i.isPolicyServer
-      , i.serverRoles
+      , i.isPolicyServer.hashCode
+      , i.serverRoles.hashCode
       , i.agentsName.hashCode
       , nodeConfig.modesConfig.hashCode
       ).hashCode
@@ -315,7 +316,7 @@ class LdapNodeConfigurationHashRepository(
 ) extends NodeConfigurationHashRepository with Loggable {
 
   import net.liftweb.json._
-  import net.liftweb.json.Serialization.{read, write}
+  import net.liftweb.json.Serialization.{ read, write }
   implicit val formats = Serialization.formats(NoTypeHints) ++ net.liftweb.json.ext.JodaTimeSerializers.all
 
   /*

@@ -38,10 +38,8 @@
 package com.normation.rudder.services.policies.write
 
 import scala.io.Codec
-
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
-import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
@@ -52,19 +50,19 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.exceptions.VariableException
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.inventory.domain.COMMUNITY_AGENT
-import com.normation.inventory.domain.NOVA_AGENT
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.templates.STVariable
-import com.normation.utils.Control._
-
-import org.joda.time.DateTime
-
+import com.normation.utils.Control.bestEffort
 import net.liftweb.common._
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyMode
+import org.joda.time.DateTime
+import scala.io.Codec
+import com.normation.inventory.domain.AgentType
+import com.normation.cfclerk.domain.TechniqueFile
+import com.normation.inventory.domain.OsDetails
 
 trait PrepareTemplateVariables {
 
@@ -82,7 +80,7 @@ trait PrepareTemplateVariables {
       agentNodeConfig  : AgentNodeConfiguration
     , nodeConfigVersion: NodeConfigId
     , rootNodeConfigId : NodeId
-    , templates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
+    , templates        : Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
@@ -97,13 +95,14 @@ trait PrepareTemplateVariables {
 class PrepareTemplateVariablesImpl(
     techniqueRepository      : TechniqueRepository        // only for getting reports file content
   , systemVariableSpecService: SystemVariableSpecService
+  , buildBundleSequence      : BuildBundleSequence
 ) extends PrepareTemplateVariables with Loggable {
 
   override def prepareTemplateForAgentNodeConfiguration(
       agentNodeConfig  : AgentNodeConfiguration
     , nodeConfigVersion: NodeConfigId
     , rootNodeConfigId : NodeId
-    , templates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
+    , templates        : Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
@@ -112,7 +111,7 @@ class PrepareTemplateVariablesImpl(
    logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})")
 
     val container = new Cf3PolicyDraftContainer(
-          agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value)).toSet
+          agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value, agentNodeConfig.agentType)).toSet
         , agentNodeConfig.config.policyDrafts
     )
 
@@ -120,32 +119,49 @@ class PrepareTemplateVariablesImpl(
     val generationTimestamp = DateTime.now().getMillis
 
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
-        systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == NOVA_AGENT     ) Seq("true") else Seq())
-      , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == COMMUNITY_AGENT) Seq("true") else Seq())
-      , systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.tagValue))
+        systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == AgentType.CfeEnterprise     ) Seq("true") else Seq())
+      , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == AgentType.CfeCommunity) Seq("true") else Seq())
+      , systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.toString))
       , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
+
     ).map(x => (x.spec.name, x)).toMap
 
     for {
-      bundleVars <- prepareBundleVars(agentNodeConfig.config.nodeInfo.id, agentNodeConfig.config.nodeInfo.policyMode, globalPolicyMode, container)
+      bundleVars <- prepareBundleVars(agentNodeConfig.config.nodeInfo.id, agentNodeConfig.agentType, agentNodeConfig.config.nodeInfo.osDetails
+                                    , agentNodeConfig.config.nodeInfo.policyMode, globalPolicyMode, container)
     } yield {
       val allSystemVars = systemVariables.toMap ++ bundleVars
       val preparedTemplate = prepareTechniqueTemplate(
-          agentNodeConfig.config.nodeInfo.id, container, allSystemVars, templates, generationTimestamp
+          agentNodeConfig.config.nodeInfo.id, agentNodeConfig.agentType, container, allSystemVars, templates, generationTimestamp
       )
 
-      logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: creating lines for expected reports CSV files")
-      val csv = ExpectedReportsCsv(prepareReportingDataForMetaTechnique(container, rudderIdCsvTag))
+      // we only need to generate expected_reports.csv for CFEngine-like agent
+      val csv = ExpectedReportsCsv(agentNodeConfig.agentType match {
+        case AgentType.CfeCommunity | AgentType.CfeEnterprise =>
+          logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: creating lines for expected reports CSV files")
+          prepareReportingDataForMetaTechnique(container, rudderIdCsvTag)
+        case _ => // DSC_AGENT or other
+          logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: not creating lines for expected reports CSV files - agent type '${agentNodeConfig.agentType.id}' does not need them")
+          Seq()
+      })
 
-      AgentNodeWritableConfiguration(agentNodeConfig.agentType, agentNodeConfig.paths, preparedTemplate.values.toSeq, csv, allSystemVars)
+      AgentNodeWritableConfiguration(
+          agentNodeConfig.agentType
+        , agentNodeConfig.config.nodeInfo.osDetails
+        , agentNodeConfig.paths
+        , preparedTemplate.values.toSeq
+        , csv
+        , allSystemVars
+      )
     }
   }
 
   private[this] def prepareTechniqueTemplate(
       nodeId              : NodeId // for log message
+    , agentType           : AgentType
     , container           : Cf3PolicyDraftContainer
     , extraSystemVariables: Map[String, Variable]
-    , allTemplates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
+    , allTemplates        : Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
     , generationTimestamp : Long
   ) : Map[TechniqueId, PreparedTechnique] = {
 
@@ -166,14 +182,19 @@ class PrepareTemplateVariablesImpl(
     val generationVariable = STVariable("GENERATIONTIMESTAMP", false, Seq(generationTimestamp), true)
 
     techniques.map {technique =>
-      val techniqueTemplatesIds = technique.templatesMap.keySet
+      val techniqueTemplatesIds = technique.templatesIds
       // this is an optimisation to avoid re-redeading template each time, for each technique. We could
       // just, from a strict correctness point of view, just do a techniquerepos.getcontent for each technique.template here
-      val techniqueTemplates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k)).values.toSet
+      val techniqueTemplates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 ==  agentType).values.toSet
       val variables = variablesByTechnique(technique.id) :+ rudderParametersVariable :+ generationVariable
+      val files = (technique.agentConfigs.find( _.agentType == agentType).map( _.files) match {
+        case None    => Set.empty[TechniqueFile]
+        case Some(x) => x.toSet[TechniqueFile]
+     })
+
       (
           technique.id
-        , PreparedTechnique(techniqueTemplates, variables, technique.files.toSet)
+        , PreparedTechnique(techniqueTemplates, variables, files)
       )
     }.toMap
   }
@@ -259,21 +280,15 @@ class PrepareTemplateVariablesImpl(
    */
   private[this] def prepareBundleVars(
       nodeId          : NodeId
+    , agentType       : AgentType
+    , osDetails       : OsDetails
     , nodePolicyMode  : Option[PolicyMode]
     , globalPolicyMode: GlobalPolicyMode
     , container       : Cf3PolicyDraftContainer
   ) : Box[Map[String,Variable]] = {
 
-    BuildBundleSequence.prepareBundleVars(nodeId, nodePolicyMode, globalPolicyMode, container).map { bundleVars =>
-
-      List(
-        SystemVariable(systemVariableSpecService.get("INPUTLIST") , bundleVars.inputlist  :: Nil)
-      , SystemVariable(systemVariableSpecService.get("BUNDLELIST"), bundleVars.bundlelist :: Nil)
-      , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , bundleVars.systemDirectivesInputs    :: Nil)
-      , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), bundleVars.systemDirectivesUsebundle :: Nil)
-      , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")  , bundleVars.directivesInputs    :: Nil)
-      , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"), bundleVars.directivesUsebundle :: Nil)
-      ).map(x => (x.spec.name, x)).toMap
+    buildBundleSequence.prepareBundleVars(nodeId, agentType, osDetails, nodePolicyMode, globalPolicyMode, container).map { bundleVars =>
+      bundleVars.map(x => (x.spec.name, x)).toMap
     }
   }
 

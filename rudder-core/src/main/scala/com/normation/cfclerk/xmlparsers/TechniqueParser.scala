@@ -44,6 +44,7 @@ import com.normation.cfclerk.exceptions.ParsingException
 import com.normation.utils.Utils._
 import scala.xml._
 import net.liftweb.common._
+import com.normation.inventory.domain.AgentType
 
 /**
  * Parse a technique (metadata.xml file)
@@ -55,46 +56,54 @@ class TechniqueParser(
   , systemVariableSpecService    : SystemVariableSpecService
 ) extends Loggable {
 
-  def parseXml(node: Node, id: TechniqueId, expectedReportCsvExists: Boolean): Technique = {
-    //check that node is <TECHNIQUE> and has a name attribute
-    if (node.label.toUpperCase == TECHNIQUE_ROOT) {
-      node.attribute(TECHNIQUE_NAME) match {
+  def parseXml(xml: Node, id: TechniqueId, expectedReportCsvExists: Boolean): Technique = {
+    //check that xml is <TECHNIQUE> and has a name attribute
+    if (xml.label.toUpperCase == TECHNIQUE_ROOT) {
+      xml.attribute(TECHNIQUE_NAME) match {
         case Some(nameAttr) if (TechniqueParser.isValidId(id.name.value) && nonEmpty(nameAttr.text)) =>
 
           val name = nameAttr.text
-          val compatible = try Some(parseCompatibleTag((node \ COMPAT_TAG).head)) catch { case _:Exception => None }
+          val compatible = try Some(parseCompatibleTag((xml \ COMPAT_TAG).head)) catch { case _:Exception => None }
 
-          val rootSection = sectionSpecParser.parseSectionsInPolicy(node, id, name)
+          val rootSection = sectionSpecParser.parseSectionsInPolicy(xml, id, name)
 
-          val description = ??!((node \ TECHNIQUE_DESCRIPTION).text).getOrElse(name)
+          val description = ??!((xml \ TECHNIQUE_DESCRIPTION).text).getOrElse(name)
 
-          val templates = (node \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).map(xml => parseTemplate(id, xml) )
-          val files = (node \ FILES \\ FILE).map(xml => parseFile(id, xml) )
+          val trackerVariableSpec = parseTrackerVariableSpec(xml)
 
-          val bundlesequence = (node \ BUNDLES_ROOT \\ BUNDLE_NAME).map(xml => Bundle(xml.text) )
+          val systemVariableSpecs = parseSysvarSpecs(xml,id)
 
-          val trackerVariableSpec = parseTrackerVariableSpec(node)
+          val isMultiInstance = ((xml \ TECHNIQUE_IS_MULTIINSTANCE).text.equalsIgnoreCase("true") )
 
-          val systemVariableSpecs = parseSysvarSpecs(node,id)
+          val longDescription = ??!((xml \ TECHNIQUE_LONG_DESCRIPTION).text).getOrElse("")
 
-          val isMultiInstance = ((node \ TECHNIQUE_IS_MULTIINSTANCE).text.equalsIgnoreCase("true") )
-
-          val longDescription = ??!((node \ TECHNIQUE_LONG_DESCRIPTION).text).getOrElse("")
-
-          val isSystem = ((node \ TECHNIQUE_IS_SYSTEM).text.equalsIgnoreCase("true"))
+          val isSystem = ((xml \ TECHNIQUE_IS_SYSTEM).text.equalsIgnoreCase("true"))
 
           //the technique provides its expected reports if at least one section has a variable of type REPORT_KEYS
           val providesExpectedReports = expectedReportCsvExists
 
-          val deprecationInfo = parseDeprecrationInfo(node)
+          val deprecationInfo = parseDeprecrationInfo(xml)
+
+          val agentConfigs = (
+            (xml \ "AGENT" ).toList.map(agent => parseAgentConfig(id, agent)).flatten ++
+            {
+              //for compability reason, we cheat and make the template/file/bundlesequence under root
+              //and not in an <AGENT> sub-element be considered as being in <AGENT type="cfengine-community,cfengine-enterprise">
+              val forCompatibilityAgent = <AGENT type={s"${AgentType.CfeCommunity.toString},${AgentType.CfeEnterprise.toString}"}>
+                {(xml \ PROMISE_TEMPLATES_ROOT)}
+                {(xml \ FILES)}
+                {(xml \ BUNDLES_ROOT)}
+              </AGENT>
+
+              parseAgentConfig(id, forCompatibilityAgent)
+            }
+          )
 
           val technique = Technique(
               id
             , name
             , description
-            , templates
-            , files
-            , bundlesequence
+            , agentConfigs
             , trackerVariableSpec
             , rootSection
             , deprecationInfo
@@ -123,15 +132,48 @@ class TechniqueParser(
 
           technique
 
-        case _ => throw new ParsingException("Not a policy node, missing 'name' attribute: %s".format(node))
+        case _ => throw new ParsingException("Not a policy xml, missing 'name' attribute: %s".format(xml))
       }
     } else {
-      throw new ParsingException("Not a policy node, bad node name. Was expecting <%s>, got: %s".format(TECHNIQUE_ROOT,node))
+      throw new ParsingException("Not a policy xml, bad xml name. Was expecting <%s>, got: %s".format(TECHNIQUE_ROOT,xml))
     }
   }
 
-  private[this] def parseTrackerVariableSpec(node: Node): TrackerVariableSpec = {
-    val trackerVariableSpecs = (node \ TRACKINGVAR)
+  /*
+   * Here, we are parsing <AGENT> xml, that contains the list of templates/files/bundles
+   * defined for the given agent.
+   *
+   * id is for reporting
+   */
+  private[this] def parseAgentConfig(id: TechniqueId, xml: Node): List[AgentConfig] = {
+    //start to parse agent types for that config. It's a comma separated list
+    import scala.language.postfixOps
+
+    if(xml.label != "AGENT") {
+      Nil
+    } else {
+
+      val agentTypes = (xml \ "@type" text).split(",").map { name =>
+        AgentType.fromValue(name) match {
+          case Full(agentType) => Some(agentType)
+          case eb: EmptyBox    =>
+            val msg = s"Error when parsing technique with id '${id.toString}', agent type='${name}' is not known and the corresponding config will be ignored"
+            val e = eb ?~! msg
+            logger.warn(e.messageChain)
+            None
+        }
+      }.flatten.toList
+
+      val templates = (xml \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).map(xml => parseTemplate(id, xml) )
+      val files = (xml \ FILES \\ FILE).map(xml => parseFile(id, xml) )
+      val bundlesequence = (xml \ BUNDLES_ROOT \\ BUNDLE_NAME).map(xml => BundleName(xml.text) )
+
+      agentTypes.map( agentType => AgentConfig(agentType, templates, files, bundlesequence))
+    }
+  }
+
+  private[this] def parseTrackerVariableSpec(xml: Node): TrackerVariableSpec = {
+    val trackerVariableSpecs = (xml \ TRACKINGVAR)
     if(trackerVariableSpecs.size == 0) { //default trackerVariable variable spec for that package
       TrackerVariableSpec()
     } else if(trackerVariableSpecs.size == 1) {
@@ -143,9 +185,9 @@ class TechniqueParser(
     } else throw new ParsingException("Only one <%s> tag is allowed the the document, but found %s".format(TRACKINGVAR,trackerVariableSpecs.size))
   }
 
-  private[this] def parseDeprecrationInfo(node: Node): Option[TechniqueDeprecationInfo] = {
+  private[this] def parseDeprecrationInfo(xml: Node): Option[TechniqueDeprecationInfo] = {
     for {
-      deprecationInfo <- (node \ TECHNIQUE_DEPRECATION_INFO).headOption
+      deprecationInfo <- (xml \ TECHNIQUE_DEPRECATION_INFO).headOption
     } yield {
       val message = deprecationInfo.text
       if (message.size == 0) {
@@ -161,8 +203,8 @@ class TechniqueParser(
    * Parse the list of system vars used by that policy package.
    *
    */
-  private[this] def parseSysvarSpecs(node: Node, id:TechniqueId) : Set[SystemVariableSpec] = {
-    (node \ SYSTEMVARS_ROOT \ SYSTEMVAR_NAME).map{ x =>
+  private[this] def parseSysvarSpecs(xml: Node, id:TechniqueId) : Set[SystemVariableSpec] = {
+    (xml \ SYSTEMVARS_ROOT \ SYSTEMVAR_NAME).map{ x =>
       try {
         systemVariableSpecService.get(x.text)
       } catch {
@@ -190,7 +232,7 @@ class TechniqueParser(
    * to root of configuration repository in place of relative to the technique.
    *
    */
-  private[this] def parseResource(techniqueId: TechniqueId, node: Node, isTemplate:Boolean): (TechniqueResourceId, String) = {
+  private[this] def parseResource(techniqueId: TechniqueId, xml: Node, isTemplate:Boolean): (TechniqueResourceId, String) = {
 
     def fileToList(f: java.io.File): List[String] = {
       if(f == null) {
@@ -203,17 +245,17 @@ class TechniqueParser(
     //the default out path for a template with name "name" is "techniqueName/techniqueVersion/name.cf
     def defaultOutPath(name: String) = s"${techniqueId.name.value}/${techniqueId.version.toString}/${name}${if(isTemplate) TechniqueTemplate.promiseExtension else ""}"
 
-    val outPath = (node \ PROMISE_TEMPLATE_OUTPATH).text match {
+    val outPath = (xml \ PROMISE_TEMPLATE_OUTPATH).text match {
       case "" => None
       case path => Some(path)
     }
 
-    val id = node.attribute(PROMISE_TEMPLATE_NAME) match {
+    val id = xml.attribute(PROMISE_TEMPLATE_NAME) match {
       case Some(attr) if (attr.size == 1) =>
         // some checking on name
         val n = attr.text.trim
         if(n.startsWith("/") || n.endsWith("/")) {
-          throw new ParsingException(s"Error when parsing xml ${node}. Resource name must not start nor end with '/'")
+          throw new ParsingException(s"Error when parsing xml ${xml}. Resource name must not start nor end with '/'")
         } else {
 
           if(n.startsWith(RUDDER_CONFIGURATION_REPOSITORY+"/")) {
@@ -231,7 +273,7 @@ class TechniqueParser(
           }
         }
 
-      case _ => throw new ParsingException(s"Error when parsing xml ${node}. Resource name is not defined")
+      case _ => throw new ParsingException(s"Error when parsing xml ${xml}. Resource name is not defined")
     }
     (id, outPath.getOrElse(defaultOutPath(id.name)))
   }
@@ -239,36 +281,36 @@ class TechniqueParser(
   /**
    * A file is almost exactly like a Template, safe the include that we don't care of.
    */
-  def parseFile(techniqueId: TechniqueId, node: Node): TechniqueFile = {
-    if(node.label != FILE) throw new ParsingException(s"Error: try to parse a <${FILE}> node, but actually get: ${node}")
+  def parseFile(techniqueId: TechniqueId, xml: Node): TechniqueFile = {
+    if(xml.label != FILE) throw new ParsingException(s"Error: try to parse a <${FILE}> xml, but actually get: ${xml}")
     // Default value for FILE is false, so we should only check if the value is true and if it is empty it
-    val included = (node \ PROMISE_TEMPLATE_INCLUDED).text == "true"
-    val (id, out) = parseResource(techniqueId, node, false)
+    val included = (xml \ PROMISE_TEMPLATE_INCLUDED).text == "true"
+    val (id, out) = parseResource(techniqueId, xml, false)
     TechniqueFile(id, out, included)
   }
 
-  def parseTemplate(techniqueId: TechniqueId, node: Node): TechniqueTemplate = {
-    if(node.label != PROMISE_TEMPLATE) throw new ParsingException(s"Error: try to parse a <${PROMISE_TEMPLATE}> node, but actually get: ${node}")
-    val included = !((node \ PROMISE_TEMPLATE_INCLUDED).text == "false")
-    val (id, out) = parseResource(techniqueId, node, true)
+  def parseTemplate(techniqueId: TechniqueId, xml: Node): TechniqueTemplate = {
+    if(xml.label != PROMISE_TEMPLATE) throw new ParsingException(s"Error: try to parse a <${PROMISE_TEMPLATE}> xml, but actually get: ${xml}")
+    val included = !((xml \ PROMISE_TEMPLATE_INCLUDED).text == "false")
+    val (id, out) = parseResource(techniqueId, xml, true)
     TechniqueTemplate(id, out, included)
   }
 
   /**
    * Parse a <compatible> marker
-   * @param node example :
+   * @param xml example :
    * <COMPATIBLE>
    * <OS>Ubuntu</OS>
    * <OS>debian-5</OS>
    * <AGENT version=">= 3.5">cfengine-community</AGENT>
    * </COMPATIBLE>
-   * @return A compatible variable corresponding to the entry node
+   * @return A compatible variable corresponding to the entry xml
    */
-  def parseCompatibleTag(node: Node): Compatible = {
-    if(node.label != COMPAT_TAG) throw new ParsingException("CompatibleParser was expecting a <%s> node and get:\n%s".format(COMPAT_TAG, node))
-    val os = node \ COMPAT_OS map (n =>
+  def parseCompatibleTag(xml: Node): Compatible = {
+    if(xml.label != COMPAT_TAG) throw new ParsingException("CompatibleParser was expecting a <%s> xml and get:\n%s".format(COMPAT_TAG, xml))
+    val os = xml \ COMPAT_OS map (n =>
       OperatingSystem(n.text, (n \ "@version").text))
-    val agents = node \ COMPAT_AGENT map (n =>
+    val agents = xml \ COMPAT_AGENT map (n =>
       Agent(n.text, (n \ "@version").text))
     Compatible(os, agents)
   }

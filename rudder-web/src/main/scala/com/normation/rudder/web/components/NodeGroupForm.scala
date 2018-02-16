@@ -62,7 +62,6 @@ import net.liftweb.util.Helpers._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.web.ChooseTemplate
-import bootstrap.liftweb.StaticResourceRewrite
 
 object NodeGroupForm {
   val templatePath = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil

@@ -80,6 +80,3 @@ final case class ApiAccount(
   , creationDate       : DateTime
   , tokenGenerationDate: DateTime
 ) extends HashcodeCaching
-
-
-

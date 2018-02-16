@@ -61,12 +61,12 @@ bundle server access_rules
           "/var/rudder/share/root/"
             maproot    => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  },
             admit      => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  },
-            admit_keys => { "MD5=" };
+            admit_keys => { "MD5=081cf3aac62624ebbc83be7e23cb104d" };
 
           "/var/rudder/shared-files/root/"
             maproot    => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  },
             admit      => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  },
-            admit_keys => { "MD5=" };
+            admit_keys => { "MD5=081cf3aac62624ebbc83be7e23cb104d" };
 
         
 

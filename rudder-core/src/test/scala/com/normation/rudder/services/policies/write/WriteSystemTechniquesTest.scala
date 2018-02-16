@@ -92,7 +92,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.AllTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.templates.FillTemplatesService
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
@@ -101,6 +101,11 @@ import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.services.policies.NodeConfigData.{root, node1, rootNodeConfig}
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.Variable
+import com.normation.cfclerk.domain.TrackerVariable
+import com.normation.inventory.domain.AgentType
+import com.normation.rudder.services.servers.ClassicSynchronization
 
 /**
  * Details of tests executed in each instances of
@@ -188,6 +193,10 @@ object TestSystemData {
     //denybadclocks and skipIdentify are runtime properties
     , getDenyBadClocks         = () => Full(true)
     , getSkipIdentify          = () => Full(false)
+      // relay synchronisation method
+    , getSyncMethod            = () => Full(ClassicSynchronization)
+    , getSyncPromises          = () => Full(false)
+    , getSyncSharedFiles       = () => Full(false)
     // TTLs are runtime properties too
     , getModifiedFilesTtl             = () => Full(30)
     , getCfengineOutputsTtl           = () => Full(7)
@@ -196,11 +205,11 @@ object TestSystemData {
     , getSyslogProtocol               = () => Full(SyslogUDP)
   )
 
-  // To uncomment in 4.2
-  //  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
+  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
   val prepareTemplateVariable = new PrepareTemplateVariablesImpl(
       techniqueRepository
     , systemVariableServiceSpec
+    , new BuildBundleSequence(systemVariableServiceSpec, writeAllAgentSpecificFiles)
   )
 
 
@@ -229,6 +238,7 @@ object TestSystemData {
       , logNodeConfig
       , prepareTemplateVariable
       , new FillTemplatesService()
+      , writeAllAgentSpecificFiles
       , "/we-don-t-want-hooks-here"
       , hookIgnore
     )
@@ -321,7 +331,7 @@ object TestSystemData {
 
   val globalSystemVariables = systemVariableService.getGlobalSystemVariables(globalAgentRun).openOrThrowException("I should get global system variable in test!")
 
-  val noLicense = Map.empty[NodeId, NovaLicense]
+  val noLicense = Map.empty[NodeId, CfeEnterpriseLicense]
 
   //
   //root has 4 system directive, let give them some variables
@@ -339,20 +349,42 @@ object TestSystemData {
      ).map(v => (v.spec.name, v)).toMap
   }
 
-  def common(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("hasPolicyServer-root"), DirectiveId("common-root"))
-    , technique       = commonTechnique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = commonVariables(nodeId, allNodeInfos)
-    , trackerVariable = commonTechnique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 0
-    , serial          = 2
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("Rudder system policy: basic setup (common)")
-    , directiveOrder  = BundleOrder("Common")
-    , overrides       = Set()
-    , policyMode      = None
-    , isSystem        = true
+
+  def policy (
+      id : Cf3PolicyDraftId
+    , technique   : Technique
+    , variableMap : Map[String, Variable]
+    , tracker     : TrackerVariable
+    , rule        : BundleOrder
+    , directive   : BundleOrder
+    , system      : Boolean = true
+    , policyMode  : Option[PolicyMode] = None
+  ) = {
+    Cf3PolicyDraft(
+        id
+      , technique
+      , DateTime.now
+      , variableMap
+      , tracker
+      , 0
+      , system
+      , policyMode
+      , AgentType.CfeCommunity
+      , 2
+      , rule
+      , directive
+      , Set()
+    )
+  }
+
+  def common(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = policy(
+      Cf3PolicyDraftId(RuleId("hasPolicyServer-root"), DirectiveId("common-root"))
+    , commonTechnique
+    , commonVariables(nodeId, allNodeInfos)
+    , commonTechnique.trackerVariableSpec.toVariable(Seq())
+    , BundleOrder("Rudder system policy: basic setup (common)")
+    , BundleOrder("Common")
+
   )
 
   val rolesTechnique = techniqueRepository.get(TechniqueId(TechniqueName("server-roles"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -363,20 +395,13 @@ object TestSystemData {
      ).map(v => (v.spec.name, v)).toMap
   }
 
-  val serverRole = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("server-roles"), DirectiveId("server-roles-directive"))
-    , technique       = rolesTechnique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = rolesVariables
-    , trackerVariable = rolesTechnique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 0
-    , serial          = 2
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("Rudder system policy: Server roles")
-    , directiveOrder  = BundleOrder("Server Roles")
-    , overrides       = Set()
-    , policyMode      = None
-    , isSystem        = true
+  val serverRole = policy(
+      Cf3PolicyDraftId(RuleId("server-roles"), DirectiveId("server-roles-directive"))
+    , rolesTechnique
+    , rolesVariables
+    , rolesTechnique.trackerVariableSpec.toVariable(Seq())
+    , BundleOrder("Rudder system policy: Server roles")
+    , BundleOrder("Server Roles")
   )
 
   val distributeTechnique = techniqueRepository.get(TechniqueId(TechniqueName("distributePolicy"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -386,20 +411,13 @@ object TestSystemData {
        spec("ALLOWEDNETWORK").toVariable(Seq("192.168.0.0/16"))
      ).map(v => (v.spec.name, v)).toMap
   }
-  val distributePolicy = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("root-DP"), DirectiveId("root-distributePolicy"))
-    , technique       = distributeTechnique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = distributeVariables
-    , trackerVariable = distributeTechnique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 0
-    , serial          = 2
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("distributePolicy")
-    , directiveOrder  = BundleOrder("Distribute Policy")
-    , overrides       = Set()
-    , policyMode      = None
-    , isSystem        = true
+  val distributePolicy = policy(
+      Cf3PolicyDraftId(RuleId("root-DP"), DirectiveId("root-distributePolicy"))
+    , distributeTechnique
+    , distributeVariables
+    , distributeTechnique.trackerVariableSpec.toVariable(Seq())
+    , BundleOrder("distributePolicy")
+    , BundleOrder("Distribute Policy")
   )
 
   val inventoryTechnique = techniqueRepository.get(TechniqueId(TechniqueName("inventory"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -409,20 +427,13 @@ object TestSystemData {
        spec("ALLOWEDNETWORK").toVariable(Seq("192.168.0.0/16"))
      ).map(v => (v.spec.name, v)).toMap
   }
-  val inventoryAll = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("inventory-all"), DirectiveId("inventory-all"))
-    , technique       = inventoryTechnique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = inventoryVariables
-    , trackerVariable = inventoryTechnique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 0
-    , serial          = 2
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("Rudder system policy: daily inventory")
-    , directiveOrder  = BundleOrder("Inventory")
-    , overrides       = Set()
-    , policyMode      = None
-    , isSystem        = true
+  val inventoryAll = policy(
+      Cf3PolicyDraftId(RuleId("inventory-all"), DirectiveId("inventory-all"))
+    , inventoryTechnique
+    , inventoryVariables
+    , inventoryTechnique.trackerVariableSpec.toVariable(Seq())
+    , BundleOrder("Rudder system policy: daily inventory")
+    , BundleOrder("Inventory")
   )
 
   //
@@ -439,20 +450,15 @@ object TestSystemData {
        , spec("CLOCK_TIMEZONE").toVariable(Seq("dontchange"))
      ).map(v => (v.spec.name, v)).toMap
   }
-  lazy val clock = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive1"))
-    , technique       = clockTechnique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = clockVariables
-    , trackerVariable = clockTechnique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 5
-    , serial          = 2
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("10. Global configuration for all nodes")
-    , directiveOrder  = BundleOrder("10. Clock Configuration")
-    , overrides       = Set()
-    , policyMode      = Some(PolicyMode.Enforce)
-    , isSystem        = false
+  lazy val clock = policy(
+      Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive1"))
+    , clockTechnique
+    , clockVariables
+    , clockTechnique.trackerVariableSpec.toVariable(Seq())
+    , BundleOrder("10. Global configuration for all nodes")
+    , BundleOrder("10. Clock Configuration")
+    , false
+    , Some(PolicyMode.Enforce)
   )
 
   lazy val rpmTechnique = techniqueRepository.get(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -469,20 +475,15 @@ object TestSystemData {
        , spec("RPM_PACKAGE_VERSION_DEFINITION").toVariable(Seq("default"))
      ).map(v => (v.spec.name, v)).toMap
   }
-  lazy val rpm = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("rule2"), DirectiveId("directive2"))
-    , technique       = rpmTechnique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = rpmVariables
-    , trackerVariable = rpmTechnique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 5
-    , serial          = 2
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("50. Deploy PLOP STACK")
-    , directiveOrder  = BundleOrder("20. Install PLOP STACK main rpm")
-    , overrides       = Set()
-    , policyMode      = Some(PolicyMode.Audit)
-    , isSystem        = false
+  lazy val rpm = policy(
+      Cf3PolicyDraftId(RuleId("rule2"), DirectiveId("directive2"))
+    , rpmTechnique
+    , rpmVariables
+    , rpmTechnique.trackerVariableSpec.toVariable(Seq())
+    , BundleOrder("50. Deploy PLOP STACK")
+    , BundleOrder("20. Install PLOP STACK main rpm")
+    , false
+    , Some(PolicyMode.Audit)
   )
 
   lazy val pkgTechnique = techniqueRepository.get(TechniqueId(TechniqueName("packageManagement"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -499,20 +500,15 @@ object TestSystemData {
        , spec("PACKAGE_POST_HOOK_COMMAND").toVariable(Seq(""))
      ).map(v => (v.spec.name, v)).toMap
   }
-  lazy val pkg = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f"))
-    , technique       = pkgTechnique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = pkgVariables
-    , trackerVariable = pkgTechnique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 5
-    , serial          = 0
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("60-rule-technique-std-lib")
-    , directiveOrder  = BundleOrder("Package management.")
-    , overrides       = Set()
-    , policyMode      = Some(PolicyMode.Enforce)
-    , isSystem        = false
+  lazy val pkg = policy(
+      Cf3PolicyDraftId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f"))
+    , pkgTechnique
+    , pkgVariables
+    , pkgTechnique.trackerVariableSpec.toVariable(Seq())
+    , BundleOrder("60-rule-technique-std-lib")
+    , BundleOrder("Package management.")
+    , false
+    , Some(PolicyMode.Enforce)
   )
 
   val ncf1Technique = techniqueRepository.get(TechniqueId(TechniqueName("Create_file"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -523,20 +519,15 @@ object TestSystemData {
        , spec("expectedReportKey File create").toVariable(Seq("file_create_/tmp/foo/bar"))
      ).map(v => (v.spec.name, v)).toMap
   }
-  val ncf1 = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("208716db-2675-43b9-ab57-bfbab84346aa"), DirectiveId("16d86a56-93ef-49aa-86b7-0d10102e4ea9"))
-    , technique       = ncf1Technique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = ncf1Variables
-    , trackerVariable = ncf1Technique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 5
-    , serial          = 0
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("50-rule-technique-ncf")
-    , directiveOrder  = BundleOrder("Create a file")
-    , overrides       = Set()
-    , policyMode      = Some(PolicyMode.Enforce)
-    , isSystem        = false
+  val ncf1 = policy(
+      Cf3PolicyDraftId(RuleId("208716db-2675-43b9-ab57-bfbab84346aa"), DirectiveId("16d86a56-93ef-49aa-86b7-0d10102e4ea9"))
+    , ncf1Technique
+    , ncf1Variables
+    , ncf1Technique.trackerVariableSpec.toVariable(Seq())
+    , BundleOrder("50-rule-technique-ncf")
+    , BundleOrder("Create a file")
+    , false
+    , Some(PolicyMode.Enforce)
   )
 
   /*
@@ -561,20 +552,17 @@ object TestSystemData {
        , spec("GENERIC_VARIABLE_CONTENT").toVariable(Seq("value from gvd #1 should be first")) // the one to override
      ).map(v => (v.spec.name, v)).toMap
   }
-  lazy val gvd1 = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive1"))
-    , technique       = gvdTechnique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = gvdVariables1
-    , trackerVariable = gvdTechnique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 0 // we want to make sure this one will be merged in first position
-    , serial          = 2
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("10. Global configuration for all nodes")
-    , directiveOrder  = BundleOrder("99. Generic Variable Def #1") // the sort name tell that it comes after directive 2
-    , overrides       = Set()
-    , policyMode      = Some(PolicyMode.Enforce)
-    , isSystem        = false
+  lazy val gvd1 = policy(
+      Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive1"))
+    , gvdTechnique
+    , gvdVariables1
+    , gvdTechnique.trackerVariableSpec.toVariable(Seq())
+    , BundleOrder("10. Global configuration for all nodes")
+    , BundleOrder("99. Generic Variable Def #1") // the sort name tell that it comes after directive 2
+    , false
+    , Some(PolicyMode.Enforce)
+  ).copy(
+      priority = 0 // we want to make sure this one will be merged in first position
   )
   lazy val gvdVariables2 = {
      val spec = gvdTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
@@ -583,23 +571,19 @@ object TestSystemData {
        , spec("GENERIC_VARIABLE_CONTENT").toVariable(Seq("value from gvd #2 should be last")) // the one to use for override
      ).map(v => (v.spec.name, v)).toMap
   }
-  lazy val gvd2 = Cf3PolicyDraft(
-      id              = Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive2"))
-    , technique       = gvdTechnique
-    , techniqueUpdateTime = DateTime.now
-    , variableMap     = gvdVariables2
-    , trackerVariable = gvdTechnique.trackerVariableSpec.toVariable(Seq())
-    , priority        = 10 // we want to make sure this one will be merged in last position
-    , serial          = 2
-    , modificationDate= DateTime.now
-    , ruleOrder       = BundleOrder("10. Global configuration for all nodes")
-    , directiveOrder  = BundleOrder("00. Generic Variable Def #2") // sort name comes before sort name of directive 1
-    , overrides       = Set()
-    , policyMode      = Some(PolicyMode.Enforce)
-    , isSystem        = false
+  lazy val gvd2 = policy(
+      Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive2"))
+    , gvdTechnique
+    , gvdVariables2
+    , gvdTechnique.trackerVariableSpec.toVariable(Seq())
+    , BundleOrder("10. Global configuration for all nodes")
+    , BundleOrder("00. Generic Variable Def #2") // sort name comes before sort name of directive 1
+    , false
+    , Some(PolicyMode.Enforce)
+  ).copy (
+      priority = 10 // we want to make sure this one will be merged in last position
   )
   //////////////
-
 
   // Allows override in policy mode, but default to audit
   val globalPolicyMode = GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always)
@@ -627,6 +611,7 @@ object TestSystemData {
       nodeInfo   = cfeNode
     , parameters = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
   )
+
 
   // A global list of files to ignore because variable content (like timestamp)
   def filterGeneratedFile(f: File): Boolean = {
@@ -701,7 +686,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
   }
 
   "A root node, with no node connected" should {
-    def writeNodeConfigWithUserDirectives(promiseWritter: Cf3PromisesFileWriterService, userDrafts: Cf3PolicyDraft*) = {
+    def writeNodeConfigWithUserDirectives(promiseWritter: PolicyWriterService, userDrafts: Cf3PolicyDraft*) = {
       val rnc = baseRootNodeConfig.copy(
           policyDrafts = baseRootNodeConfig.policyDrafts ++ userDrafts
       )
@@ -724,6 +709,57 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         :: """.*add:default:==:.*"""                               //rpm reports
         :: Nil
       )
+    }
+  }
+
+  "rudder-group.st template" should {
+
+    def getRootNodeConfig(groupLib: FullNodeGroupCategory) = {
+      // system variables for root
+      val systemVariables = systemVariableService.getSystemVariables(
+          root, allNodesInfo_rootOnly, groupLib, noLicense
+        , globalSystemVariables, globalAgentRun, globalComplianceMode
+      ).openOrThrowException("I should get system variable in tests")
+
+      // the root node configuration
+      rootNodeConfig.copy(
+          policyDrafts = Set(common(root.id, allNodesInfo_rootOnly), serverRole, distributePolicy, inventoryAll)
+        , nodeContext  = systemVariables
+        , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+      )
+
+    }
+
+    "correctly write nothing (no quotes) when no groups" in {
+      val (rootPath, writter) = getPromiseWritter("group-1")
+
+      // Actually write the promise files for the root node
+      writter.writeTemplate(
+          root.id
+        , Set(root.id)
+        , Map(root.id -> getRootNodeConfig(emptyGroupLib))
+        , Map(root.id -> NodeConfigId("root-cfg-id"))
+        , Map()
+        , globalPolicyMode
+        , DateTime.now
+      ).openOrThrowException("Can not write template!")
+
+      rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/no-group.cf")
+    }
+
+    "correctly write the classes and by_uuid array when groups" in {
+
+      // make a group lib without "all" target so that it's actually different than the full one,
+      // so that we don't have false positive due to bad directory cleaning
+      val groupLib2 = groupLib.copy(targetInfos = groupLib.targetInfos.take(groupLib.targetInfos.size - 1))
+      val rnc = getRootNodeConfig(groupLib2)
+
+      // Actually write the promise files for the root node
+      val (rootPath, writter) = getPromiseWritter("group-2")
+
+      writter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now).openOrThrowException("Can not write template!")
+
+      rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
     }
   }
 
@@ -788,57 +824,6 @@ class WriteSystemTechniquesTest extends TechniquesTest{
 
       (writen mustFull) and
       compareWith(rootPath.getParentFile/cfeNode.id.value, "node-gen-var-def-override", Nil)
-    }
-  }
-
-  "rudder-group.st template" should {
-
-    def getRootNodeConfig(groupLib: FullNodeGroupCategory) = {
-      // system variables for root
-      val systemVariables = systemVariableService.getSystemVariables(
-          root, allNodesInfo_rootOnly, groupLib, noLicense
-        , globalSystemVariables, globalAgentRun, globalComplianceMode
-      ).openOrThrowException("I should get system variable in tests")
-
-      // the root node configuration
-      rootNodeConfig.copy(
-          policyDrafts = Set(common(root.id, allNodesInfo_rootOnly), serverRole, distributePolicy, inventoryAll)
-        , nodeContext  = systemVariables
-        , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
-      )
-
-    }
-
-    "correctly write nothing (no quotes) when no groups" in {
-      val (rootPath, writter) = getPromiseWritter("group-1")
-
-      // Actually write the promise files for the root node
-      writter.writeTemplate(
-          root.id
-        , Set(root.id)
-        , Map(root.id -> getRootNodeConfig(emptyGroupLib))
-        , Map(root.id -> NodeConfigId("root-cfg-id"))
-        , Map()
-        , globalPolicyMode
-        , DateTime.now
-      ).openOrThrowException("Can not write template!")
-
-      rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/no-group.cf")
-    }
-
-    "correctly write the classes and by_uuid array when groups" in {
-
-      // make a group lib without "all" target so that it's actually different than the full one,
-      // so that we don't have false positive due to bad directory cleaning
-      val groupLib2 = groupLib.copy(targetInfos = groupLib.targetInfos.take(groupLib.targetInfos.size - 1))
-      val rnc = getRootNodeConfig(groupLib2)
-
-      // Actually write the promise files for the root node
-      val (rootPath, writter) = getPromiseWritter("group-2")
-
-      writter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now).openOrThrowException("Can not write template!")
-
-      rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
     }
   }
 }

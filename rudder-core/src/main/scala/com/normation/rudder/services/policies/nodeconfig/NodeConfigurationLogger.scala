@@ -38,16 +38,16 @@
 package com.normation.rudder.services.policies.nodeconfig
 
 
-import org.joda.time.DateTime
-import org.slf4j.LoggerFactory
-
 import com.normation.inventory.domain.NodeId
-import com.normation.utils.Control._
-
+import com.normation.utils.Control.sequence
+import java.io.File
+import java.io.PrintWriter
 import net.liftweb.common._
 import net.liftweb.json.NoTypeHints
 import net.liftweb.json.Serialization
-
+import net.liftweb.json.Serialization.writePretty
+import org.joda.time.DateTime
+import org.slf4j.LoggerFactory
 
 
 trait NodeConfigurationLogger {
@@ -69,8 +69,6 @@ class NodeConfigurationLoggerImpl(
 
   val logger = LoggerFactory.getLogger("rudder.debug.nodeconfiguration")
 
-  import java.io.File
-
   {
     val p = new File(path)
     p.mkdirs()
@@ -83,10 +81,7 @@ class NodeConfigurationLoggerImpl(
 
   def log(nodeConfiguration: Seq[NodeConfiguration]): Box[Set[NodeId]] = {
     import net.liftweb.json._
-    import net.liftweb.json.Serialization.writePretty
     implicit val formats = Serialization.formats(NoTypeHints)
-    import java.io.PrintWriter
-
     def writeIn[T](path:File)(f: PrintWriter => Box[T]) = {
       val printWriter = new java.io.PrintWriter(path)
       try {

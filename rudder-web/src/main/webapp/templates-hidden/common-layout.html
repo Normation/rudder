@@ -73,10 +73,18 @@
         }
     })(jQuery);
     ($(function(){
-    	if(window.innerWidth<1375){$('body').addClass('sidebar-collapse');}else{$('body').removeClass('sidebar-collapse');}
+      if(localStorage.getItem('sidebar-collapse') == 'true'){
+        $('body').addClass("sidebar-collapse");
+      }else{
+        if(window.innerWidth<1375){$('body').addClass('sidebar-collapse');}else{$('body').removeClass('sidebar-collapse');}
+      }
+      $('.sidebar-toggle').on('click',function(){
+        var isCollapsed = $('body').hasClass("sidebar-collapse");
+        localStorage.setItem('sidebar-collapse', isCollapsed);
+      });
     }));
     $(window).resize(function(){
-        if(window.innerWidth<1375){$('body').addClass('sidebar-collapse');}else{$('body').removeClass('sidebar-collapse');}
+        if(window.innerWidth<1375){$('body').addClass('sidebar-collapse');}else if(localStorage.getItem('sidebar-collapse') != 'true'){$('body').removeClass('sidebar-collapse');}
     });
     </script>
     <script data-lift="SendMetricsPopup.display" ></script>
@@ -85,7 +93,6 @@
       $(document).ready(function() {
         $("a", "form").click(function() { return false; });
         createTooltip();
-
         //don't let the browser tell, it may end-up with japanese if jquery doesn't know the variation :/
         $.datepicker.setDefaults($.datepicker.regional['en']);
         $.timepicker.setDefaults($.timepicker.regional['en']);

@@ -309,15 +309,16 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
          * one from the others.
          */
         type T = (String, DateTime, Option[String], Boolean, Long)
-        val nodeConfigVersionRegex = """(?s).+\[([^\]]+)\].*""".r
+
         //we want to match: """End execution with config [75rz605art18a05]"""
         // the (?s) allows . to match any characters, even non displayable ones
         implicit val ReportComposite: Composite[AgentRun] = {
            Composite[T].xmap(
                (t: T       ) => {
                  val optNodeConfigId = t._3.flatMap(version => version match {
-                   case nodeConfigVersionRegex(v) => Some(NodeConfigId(v))
-                   case _                         => None
+                   case "" => None
+                   case v  => Some(NodeConfigId(v))
+
                  })
                  AgentRun(AgentRunId(NodeId(t._1), t._2), optNodeConfigId, t._4, t._5)
                }
@@ -326,16 +327,16 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
            )
          }
         val getRunsQuery = """select distinct
-                            |  T.nodeid, T.executiontimestamp, coalesce(C.msg, '') as nodeconfigid, coalesce(C.iscomplete, false) as complete, T.insertionid
+                            |  T.nodeid, T.executiontimestamp, coalesce(C.keyvalue, '') as nodeconfigid, coalesce(C.iscomplete, false) as complete, T.insertionid
                             |from
                             |  (select nodeid, executiontimestamp, min(id) as insertionid from ruddersysevents where id > ? and id <= ? group by nodeid, executiontimestamp) as T
                             |left join
                             |  (select
-                            |    true as iscomplete, nodeid, executiontimestamp, msg
+                            |    true as iscomplete, nodeid, executiontimestamp, keyvalue
                             |  from
                             |    ruddersysevents where id > ? and id <= ? and
-                            |    ruleId like 'hasPolicyServer%' and
-                            |    component = 'common' and keyValue = 'EndRun'
+                            |    eventtype = 'control' and
+                            |    component = 'end'
                             |  ) as C
                             |on T.nodeid = C.nodeid and T.executiontimestamp = C.executiontimestamp""".stripMargin
 

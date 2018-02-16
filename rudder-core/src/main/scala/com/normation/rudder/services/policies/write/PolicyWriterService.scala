@@ -37,17 +37,16 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TechniqueTemplate
-import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.inventory.domain.NOVA_AGENT
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
@@ -78,12 +77,14 @@ import scala.io.Codec
 import scala.util.{ Failure => FailTry }
 import scala.util.Success
 import scala.util.Try
+import com.normation.cfclerk.domain.SystemVariable
+import com.normation.cfclerk.domain.Variable
 
 /**
  * Write promises for the set of nodes, with the given configs.
  * Requires access to external templates files.
  */
-trait Cf3PromisesFileWriterService {
+trait PolicyWriterService {
 
   /**
    * Write templates for node configuration that changed since the last write.
@@ -94,24 +95,24 @@ trait Cf3PromisesFileWriterService {
     , nodesToWrite  : Set[NodeId]
     , allNodeConfigs: Map[NodeId, NodeConfiguration]
     , versions      : Map[NodeId, NodeConfigId]
-    , allLicenses   : Map[NodeId, NovaLicense]
+    , allLicenses   : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
   ) : Box[Seq[NodeConfiguration]]
 }
 
 class Cf3PromisesFileWriterServiceImpl(
-    techniqueRepository  : TechniqueRepository
-  , pathComputer         : PathComputer
-  , logNodeConfig        : NodeConfigurationLogger
-  , prepareTemplate      : PrepareTemplateVariables
-  , fillTemplates        : FillTemplatesService
-  , HOOKS_D              : String
-  , HOOKS_IGNORE_SUFFIXES: List[String]
-) extends Cf3PromisesFileWriterService with Loggable {
+    techniqueRepository       : TechniqueRepository
+  , pathComputer              : PathComputer
+  , logNodeConfig             : NodeConfigurationLogger
+  , prepareTemplate           : PrepareTemplateVariables
+  , fillTemplates             : FillTemplatesService
+  , writeAllAgentSpecificFiles: WriteAllAgentSpecificFiles
+  , HOOKS_D                   : String
+  , HOOKS_IGNORE_SUFFIXES     : List[String]
+) extends PolicyWriterService with Loggable {
 
   val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
-  val GENEREATED_CSV_FILENAME = "rudder_expected_reports.csv"
 
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
@@ -149,7 +150,7 @@ class Cf3PromisesFileWriterServiceImpl(
     }
 
     val fileName = Constants.GENERATED_PARAMETER_FILE
-    val jsonParameters = generateParametersJson(agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value)))
+    val jsonParameters = generateParametersJson(agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value, agentNodeConfig.agentType)))
     val parameterContent = JsonAST.prettyRender(jsonParameters)
     logger.trace(s"Create parameter file '${agentNodeConfig.paths.newFolder}/${fileName}'")
     Try {
@@ -225,7 +226,7 @@ class Cf3PromisesFileWriterServiceImpl(
     , nodesToWrite    : Set[NodeId]
     , allNodeConfigs  : Map[NodeId, NodeConfiguration]
     , versions        : Map[NodeId, NodeConfigId]
-    , allLicenses     : Map[NodeId, NovaLicense]
+    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
   ) : Box[Seq[NodeConfiguration]] = {
@@ -276,7 +277,8 @@ class Cf3PromisesFileWriterServiceImpl(
       }) match {
         case s if s.charAt(0) == 'x' => (Runtime.getRuntime.availableProcessors * s.substring(1).toDouble).ceil.toInt
         case other => other.toInt
-      }})
+      }
+    })
     implicit val scheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
 
     //interpret HookReturnCode as a Box
@@ -286,32 +288,46 @@ class Cf3PromisesFileWriterServiceImpl(
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
       templates        <- readTemplateFromFileSystem(techniqueIds)
-      preparedPromises <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
-                           val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                           prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode) ?~!
-                           s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
 
+      //////////
+      // nothing agent specific before that
+      //////////
+
+
+      preparedPromises <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+                            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
+                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode) ?~!
+                           s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
                          }
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             (for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
-                              _ <- writeExpectedReportsCsv(prepared.paths, prepared.expectedReportsCsv, GENEREATED_CSV_FILENAME)
+                              _ <- writeAllAgentSpecificFiles.write(prepared)
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
                               "OK"
                             }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
                           }
-     propertiesWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
-                            writeNodePropertiesFile(agentNodeConfig) ?~!
-                              s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
-                          }
 
-     parametersWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+      //////////
+      // nothing agent specific after that
+      //////////
+
+      propertiesWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+                             writeNodePropertiesFile(agentNodeConfig) ?~!
+                               s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
+                           }
+
+      parametersWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                              writeRudderParameterFile(agentNodeConfig) ?~!
-                              s"An error occured while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
+                               s"An error occured while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
 
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
+
+      /// perhaps that should be a post-hook somehow ?
+      // and perhaps we should have an AgentSpecific global pre/post write
+
       nodePreMvHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
       preMvHooks       <- parrallelSequence(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
@@ -325,7 +341,7 @@ class Cf3PromisesFileWriterServiceImpl(
                                                                , ("RUDDER_NODE_ID", nodeId)
                                                                , ("RUDDER_NODE_HOSTNAME", hostname)
                                                                , ("RUDDER_NODE_POLICY_SERVER_ID", policyServer)
-                                                               , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.tagValue)
+                                                               , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.id)
                                                                , ("RUDDER_POLICIES_DIRECTORY_NEW", agentNodeConfig.paths.newFolder)
                                                                  // for compat in 4.1. Remove in 4.2
                                                                , ("RUDDER_NODEID", nodeId)
@@ -350,7 +366,7 @@ class Cf3PromisesFileWriterServiceImpl(
                                                              , ("RUDDER_NODE_ID", nodeId)
                                                              , ("RUDDER_NODE_HOSTNAME", hostname)
                                                              , ("RUDDER_NODE_POLICY_SERVER_ID", policyServer)
-                                                             , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.tagValue)
+                                                             , ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.id)
                                                              , ("RUDDER_POLICIES_DIRECTORY_CURRENT", agentNodeConfig.paths.baseFolder)
                                                                // for compat in 4.1. Remove in 4.2
                                                              , ("RUDDER_NODEID", nodeId)
@@ -393,7 +409,7 @@ class Cf3PromisesFileWriterServiceImpl(
     }
 
     sequence( agentConfig )  { case (agentInfo, config) =>
-      val agentType = agentInfo.name
+      val agentType = agentInfo.agentType
       for {
         paths <- if(rootNodeConfigId == config.nodeInfo.id) {
                     Full(NodePromisesPaths(
@@ -414,21 +430,29 @@ class Cf3PromisesFileWriterServiceImpl(
     }
   }
 
+  /*
+   * We are returning a map where keys are (TechniqueResourceId, AgentType) because
+   * for a given resource IDs, you can have different out path for different agent.
+   */
   private[this] def readTemplateFromFileSystem(
       techniqueIds: Set[TechniqueId]
-  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[TechniqueResourceId, TechniqueTemplateCopyInfo]] = {
+  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]] = {
 
     //list of (template id, template out path)
     val templatesToRead = for {
       technique <- techniqueRepository.getByIds(techniqueIds.toSeq)
-      template  <- technique.templates
+      template  <- technique.agentConfigs.flatMap(cfg => cfg.templates.map(t => (t.id, cfg.agentType, t.outPath)))
     } yield {
-      (template.id, template.outPath)
+      template
     }
 
     val now = System.currentTimeMillis()
 
-    val res = (parrallelSequence(templatesToRead) { case (templateId, templateOutPath) =>
+    /*
+     * NOTE : this is inefficient and store in a lot of multiple time the same content
+     * if only the outpath change for two differents agent type.
+     */
+   val res = (parrallelSequence(templatesToRead) { case (templateId, agentType, templateOutPath) =>
       for {
         copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
           optInputStream match {
@@ -442,7 +466,7 @@ class Cf3PromisesFileWriterServiceImpl(
           }
         }
       } yield {
-        (copyInfo.id, copyInfo)
+        ((copyInfo.id, agentType), copyInfo)
       }
     }).map( _.toMap)
 
@@ -450,61 +474,8 @@ class Cf3PromisesFileWriterServiceImpl(
     res
   }
 
-  private[this] def writeExpectedReportsCsv(paths: NodePromisesPaths, csv: ExpectedReportsCsv, csvFilename: String): Box[String] = {
-    val path = new File(paths.newFolder, csvFilename)
-    for {
-        _ <- tryo { FileUtils.writeStringToFile(path, csv.lines.mkString("\n"), Codec.UTF8.charSet) } ?~!
-               s"Can not write the expected reports CSV file at path '${path.getAbsolutePath}'"
-    } yield {
-      path.getAbsolutePath
-    }
-  }
-
-  private[this] def writeSystemVarJson(paths: NodePromisesPaths, variables: Map[String, Variable]) =  {
-    val path = new File(paths.newFolder, "rudder.json")
-    for {
-        _ <- tryo { FileUtils.writeStringToFile(path, systemVariableToJson(variables) + "\n", "UTF8") } ?~!
-               s"Can not write json parameter file at path '${path.getAbsolutePath}'"
-    } yield {
-      path.getAbsolutePath
-    }
-  }
-
-  private[this] def systemVariableToJson(vars: Map[String, Variable]): String = {
-    //only keep system variables, sort them by name
-    import net.liftweb.json._
-
-    //remove these system vars (perhaps they should not even be there, in fact)
-    val filterOut = Set(
-        "SUB_NODES_ID"
-      , "SUB_NODES_KEYHASH"
-      , "SUB_NODES_NAME"
-      , "SUB_NODES_SERVER"
-      , "MANAGED_NODES_ADMIN"
-      , "MANAGED_NODES_ID"
-      , "MANAGED_NODES_IP"
-      , "MANAGED_NODES_KEY"
-      , "MANAGED_NODES_NAME"
-      , "COMMUNITY", "NOVA"
-      , "BUNDLELIST", "INPUTLIST"
-    )
-
-    val systemVars = vars.toList.sortBy( _._2.spec.name ).collect { case (_, v: SystemVariable) if(!filterOut.contains(v.spec.name)) =>
-      // if the variable is multivalued, create an array, else just a String
-      val value = if(v.spec.multivalued) {
-        JArray(v.values.toList.map(JString))
-      } else {
-        JString(v.values.headOption.getOrElse(""))
-      }
-      JField(v.spec.name, value)
-    }
-
-    prettyRender(JObject(systemVars))
-  }
-
-
   private[this] def writePromises(
-      paths            : NodePromisesPaths
+      paths             : NodePromisesPaths
     , preparedTechniques: Seq[PreparedTechnique]
   ) : Box[NodePromisesPaths] = {
     // write the promises of the current machine and set correct permission
@@ -526,15 +497,64 @@ class Cf3PromisesFileWriterServiceImpl(
     }
   }
 
+  // just write an empty file for now
+  private[this] def writeSystemVarJson(paths: NodePromisesPaths, variables: Map[String, Variable]) =  {
+    val path = new File(paths.newFolder, "rudder.json")
+    for {
+        _ <- tryo { FileUtils.writeStringToFile(path, systemVariableToJson(variables) + "\n", Codec.UTF8.charSet) } ?~!
+               s"Can not write json parameter file at path '${path.getAbsolutePath}'"
+    } yield {
+      AgentSpecificFile(path.getAbsolutePath) :: Nil
+    }
+  }
+
+  private[this] def systemVariableToJson(vars: Map[String, Variable]): String = {
+    //only keep system variables, sort them by name
+    import net.liftweb.json._
+
+    //remove these system vars (perhaps they should not even be there, in fact)
+    val filterOut = Set(
+        "SUB_NODES_ID"
+      , "SUB_NODES_KEYHASH"
+      , "SUB_NODES_NAME"
+      , "SUB_NODES_SERVER"
+      , "MANAGED_NODES_CERT_UUID"
+      , "MANAGED_NODES_CERT_CN"
+      , "MANAGED_NODES_CERT_DN"
+      , "MANAGED_NODES_CERT_PEM"
+      , "MANAGED_NODES_ADMIN"
+      , "MANAGED_NODES_ID"
+      , "MANAGED_NODES_IP"
+      , "MANAGED_NODES_KEY"
+      , "MANAGED_NODES_NAME"
+      , "COMMUNITY", "NOVA"
+      , "BUNDLELIST", "INPUTLIST"
+    )
+
+    val systemVars = vars.toList.sortBy( _._2.spec.name ).collect { case (_, v: SystemVariable) if(!filterOut.contains(v.spec.name)) =>
+      // if the variable is multivalued, create an array, else just a String
+      // special case for RUDDER_DIRECTIVES_INPUTS - also an array
+      val value = if(v.spec.multivalued || v.spec.name == "RUDDER_DIRECTIVES_INPUTS") {
+        JArray(v.values.toList.map(JString))
+      } else {
+        JString(v.values.headOption.getOrElse(""))
+      }
+      JField(v.spec.name, value)
+    }
+
+    prettyRender(JObject(systemVars))
+  }
+
+
   /**
    * For agent needing it, copy licences to the correct path
    */
-  private[this] def copyLicenses(agentNodeConfigurations: Seq[AgentNodeConfiguration], licenses: Map[NodeId, NovaLicense]): Box[Seq[AgentNodeConfiguration]] = {
+  private[this] def copyLicenses(agentNodeConfigurations: Seq[AgentNodeConfiguration], licenses: Map[NodeId, CfeEnterpriseLicense]): Box[Seq[AgentNodeConfiguration]] = {
 
     sequence(agentNodeConfigurations) { case x @ AgentNodeConfiguration(config, agentType, paths) =>
 
       agentType match {
-        case NOVA_AGENT =>
+        case CfeEnterprise =>
           logger.debug("Writing licence for nodeConfiguration  " + config.nodeInfo.id);
           val sourceLicenceNodeId = if(config.nodeInfo.isPolicyServer) {
             config.nodeInfo.id

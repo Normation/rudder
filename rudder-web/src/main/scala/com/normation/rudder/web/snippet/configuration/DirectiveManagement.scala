@@ -61,6 +61,7 @@ import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.services.AgentCompat
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -232,32 +233,22 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def initTechniqueDetails(workflowEnabled: Boolean) : MemoizeTransform = SHtml.memoize {
     "#techniqueDetails *" #> ( currentTechnique match {
       case None =>
-        "#info-title *" #> "Usage" &
+        "#info-title *" #> "Directives" &
         "#details *" #> {
             <div class="col-lg-12">
               <div class="col-lg-12 callout-fade callout-warning">
                 <div class="marker">
                   <span class="glyphicon glyphicon-info-sign"></span>
                 </div>
-                <p>
-                  <em>Directives</em> are displayed in the tree of
-                  <a href="/secure/administration/techniqueLibraryManagement">
-                    <em>Active Techniques</em>
-                  </a>, grouped by categories.
-                </p>
-                <ul>
-                  <li>Fold/unfold category folders;</li>
-                  <li>Click on the name of a <em>Technique</em> to see its description;</li>
-                  <li>
-                    Click on the name of a <em>Directive</em> to see its configuration items.
-                    Details of the <em>Technique</em> it's based on will also be displayed.
-                  </li>
-                </ul>
-                <p>Additional <em>Techniques</em> may be available through the
-                  <a href="/secure/administration/techniqueLibraryManagement">
-                    <em>Techniques</em> screen
-                  </a>.
-                </p>
+                <p>A Directive is an instance of a Technique, which allows to set values for the parameters of the latter.</p>
+                <p>Each Directive can have a unique name, and should be completed with a short and a long description, and a collection of parameters for the variables defined by the Technique.</p>
+                <p>Techniques are often available in several versions, numbered X.Y, X being the major version number and Y the minor version number:</p>
+                <ol>
+                  <li><b>Bugs</b> are fixed in all existing versions of Rudder techniques. Make sure you update your Rudder packages frequently.</li>
+                  <li>A new <b>minor</b> technique version is created for any new features</li>
+                  <li>A new <b>major</b> version is created for any <b>architectural change</b> (such as refactoring)</li>
+                </ol>
+                <p>You can find your own Techniques written in the Technique Editor in the <b>User Techniques</b> category.</p>
               </div>
             </div>
       }
@@ -305,19 +296,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                (".directive *" #> piForm.directive.name)
              }
            } &
-           "#techniqueName" #> technique.name &
-           "#compatibility" #> technique.compatible.map { comp =>
-             { if(comp.os.isEmpty) {
-               NodeSeq.Empty
-             } else {
-               <li><b>Supported operating systems: </b>{comp.os.mkString(", ")}</li>
-             } } ++ {
-             if (comp.agents.isEmpty) {
-               NodeSeq.Empty
-             } else {
-               <li><b>Supported agents: </b>{comp.agents.mkString(", ")}</li>
-             } }
-           } &
+           "#techniqueName *" #> technique.name &
            "#techniqueDescription *" #>  technique.description &
            "#techniqueLongDescription" #>  technique.longDescription &
            "#isSingle *" #> showIsSingle(technique) &
@@ -346,16 +325,25 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       val isDeprecated = t.deprecrationInfo.isDefined
       val deprecationMessage = t.deprecrationInfo.map(_.message).getOrElse("")
       val acceptationDate = DateFormaterService.getFormatedDate(timeStamp)
+      val agentTypes = t.agentConfigs.map(_.agentType).toSet
+      val (dscSupport,classicSupport) = AgentCompat(agentTypes) match {
+        case AgentCompat.Dsc => (true,false)
+        case AgentCompat.Classic => (false,true)
+        case AgentCompat.All => (true,true)
+        case AgentCompat.NoAgent => (false,false)
+      }
       val action = {
         val ajax = SHtml.ajaxCall(JsNull, (_) => newDirective(t, activeTechnique, workflowEnabled))
         AnonFunc("",ajax)
       }
       JsObj(
-          ( "version"           -> v.toString )
-        , ( "isDeprecated"      -> isDeprecated)
-        , ("deprecationMessage" -> deprecationMessage)
-        , ("acceptationDate"    -> acceptationDate)
-        , ( "action"            -> action)
+          ( "version"            -> v.toString )
+        , ( "isDeprecated"       -> isDeprecated)
+        , ( "deprecationMessage" -> deprecationMessage)
+        , ( "acceptationDate"    -> acceptationDate)
+        , ( "dscSupport"         -> dscSupport)
+        , ( "classicSupport"     -> classicSupport)
+        , ( "action"             -> action)
       )
     }
     val dataArray = JsArray(techniqueVersionInfo.toList)

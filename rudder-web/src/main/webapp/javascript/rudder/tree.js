@@ -64,7 +64,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
             }
           },
       "template" : {
-            "icon" : "fa fa-cogs",
+            "icon" : false,
             "valid_children" : "none"
           },
           "default" : {
@@ -135,7 +135,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContex
             },
       },
       "template" : {
-          "icon" : "fa fa-cogs",
+          "icon" : false,
           "valid_children" : "none"
         },
         "default" : {
@@ -428,7 +428,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
 	        }
         },
         "template" : {
-            "icon" :  "fa fa-gear",
+            "icon" :  false,
             "valid_children" : [ "directive" ],
             "select_node" : function(e) {
                this.toggle_node(e);
@@ -436,7 +436,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
             }
           },
         "directive" : {
-            "icon" : "fa fa-file-text",
+            "icon" : false,
             "valid_children" : "none"
         },
         "default" : {

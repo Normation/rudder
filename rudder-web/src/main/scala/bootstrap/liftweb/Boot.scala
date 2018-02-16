@@ -72,7 +72,6 @@ object Boot {
   }
 }
 
-
 ////////// rewrites rules to remove the version from resources urls //////////
 //////////
 object StaticResourceRewrite extends RestHelper {
@@ -409,6 +408,7 @@ class Boot extends Loggable {
         }
       case _ => ApplicationLogger.info("Application Rudder started")
     }
+
   }
 
   private[this] def initPlugins(menus:List[Menu]) : List[Menu] = {

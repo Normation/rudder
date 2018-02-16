@@ -169,7 +169,7 @@ trait TStringComparator extends CriterionType {
       comparator match {
         case Regex | NotRegex =>
           try {
-            val _ = java.util.regex.Pattern.compile(v) //yes, "_" is not used, side effect are fabulous
+            val _ = java.util.regex.Pattern.compile(v) //yes, "_" is not used, side effect are fabulous! KEEP IT
             Full(v)
           } catch {
             case ex: java.util.regex.PatternSyntaxException => Failure(s"The regular expression '${v}' is not valid. Expected regex syntax is the java one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html", Full(ex), Empty)
@@ -391,10 +391,24 @@ case object OsNameComparator extends CriterionType {
     )
 }
 
+/*
+ * Agent comparator is kind of scpecial, because it needs to accomodate to the following cases:
+ * - historically, agent names were only "Nova" and "Community" (understood "cfengine", of course)
+ * - then, we changed in 4.2 to normalized "cfengine-community" and "cfengine-nova" (plus "dsc")
+ *   (but old agent are still "Nova" and "Community"
+ * - and we want a subcase "anything cfengine based" (because it is important for generation, for
+ *   group "haspolicyserver-*" and rule "inventory-all")
+ *
+ *   So we do actually need a special agent type "cfengine", and hand craft the buildFilter for it.
+ */
 case object AgentComparator extends CriterionType {
-  import com.normation.inventory.domain.InventoryConstants._
 
-  val agentTypes = List(A_NOVA_AGENT,A_COMMUNITY_AGENT)
+  val ANY_CFENGINE = "cfengine"
+  val (cfeTypes, cfeAgents) = ((ANY_CFENGINE, "Any CFEngine based agent"),(ANY_CFENGINE, AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil))
+  val allAgents = AgentType.allValues.toList
+
+  val agentTypes = ( cfeTypes  :: allAgents.map(a => (a.oldShortName, (a.displayName)))).sortBy( _._2 )
+  val agentMap   = ( cfeAgents :: allAgents.map(a => (a.oldShortName, a :: Nil))).toMap
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
@@ -402,18 +416,40 @@ case object AgentComparator extends CriterionType {
   }
   override def toLDAP(value:String) = Full(value)
 
+  /*
+   * We need compatibility for < 4.2 inventory
+   * 4.2+: a json is stored in AGENTS_NAME, so we need to check if it contains the valid agentType attribute
+   * 4.1: a json is stored in AGENTS_NAME, but not with the same value than 4.2 (oldshortName instead of id is stored as agentType ...)
+   * <4.1: AGENTS_NAME only contains the name of the agent (but a value that is different form the id, oldShortName)
+   */
+  private[this] def filterAgent(agent: AgentType) =
+      SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) :: // 4.2+
+      SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
+      EQ(A_AGENTS_NAME, agent.oldShortName) :: // 3.1 ( < 4.1 in fact)
+      Nil
+
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
+
+    val filters = for {
+      agents <- agentMap.get(value).toList
+      agent <- agents
+      filter <- filterAgent(agent)
+    } yield {
+      filter
+    }
     comparator match {
-      //for equals and not equals, check value for jocker
-      case Equals => SUB(A_AGENTS_NAME, null, Array(value), null)
-      case _ => NOT(SUB(A_AGENTS_NAME, null, Array(value), null))
+      //for equals and not equals, check value for joker
+      case Equals =>
+        OR(filters:_*)
+      case _ => //actually, this is meant to be "not equals"
+        NOT(OR(filters:_*))
     }
   }
 
   override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
     SHtml.select(
-      (agentTypes map (e => (e,e))).toSeq,
-      { if(agentTypes.contains(value)) Full(value) else Empty},
+      agentTypes,
+      Box(agentTypes.find( _._1 == value )).map( _._1),
       func,
       attrs:_*
     )

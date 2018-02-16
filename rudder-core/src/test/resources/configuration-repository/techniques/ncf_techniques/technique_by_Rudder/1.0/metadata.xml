@@ -1,0 +1,50 @@
+<TECHNIQUE name="Test Technique created through Rudder API">
+  <DESCRIPTION>This Technique exists only to see if Rudder creates Technique correctly.</DESCRIPTION>
+  <AGENT type="cfengine-community,cfengine-nova">
+    <BUNDLES>
+      <NAME>technique_by_Rudder</NAME>
+      <NAME>technique_by_Rudder_rudder_reporting</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/technique_by_Rudder/technique_by_Rudder.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_by_Rudder/1.0/rudder_reporting.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Technique-By-Rudder</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/dsc/ncf/50_techniques/technique_by_Rudder/1.0/technique_by_Rudder.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION component="true" multivalued="true" name="Command execution">
+      <REPORTKEYS>
+        <VALUE>Write-Host &quot;test&quot;</VALUE>
+        <VALUE>/bin/echo &quot;test&quot;</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION component="true" multivalued="true" name="Package install">
+      <REPORTKEYS>
+        <VALUE>openssh-server</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION component="true" multivalued="true" name="Package install version">
+      <REPORTKEYS>
+        <VALUE>${node.properties[apache_package_name]}</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION component="true" multivalued="true" name="Service start">
+      <REPORTKEYS>
+        <VALUE>${node.properties[apache_package_name]}</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

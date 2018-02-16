@@ -178,7 +178,7 @@ class PostNodeAcceptanceHookScripts(
                            ("RUDDER_NODE_ID"              , nodeInfo.id.value)
                          , ("RUDDER_NODE_HOSTNAME"        , nodeInfo.hostname)
                          , ("RUDDER_NODE_POLICY_SERVER_ID",  nodeInfo.policyServerId.value)
-                         , ("RUDDER_AGENT_TYPE"           ,  nodeInfo.agentsName.headOption.map(_.name.tagValue).getOrElse(""))
+                         , ("RUDDER_AGENT_TYPE"           ,  nodeInfo.agentsName.headOption.map(_.agentType.id).getOrElse(""))
                        )
       postHooks     <- RunHooks.getHooks(HOOKS_D + "/node-post-acceptance", HOOKS_IGNORE_SUFFIXES)
       runPostHook   =  RunHooks.syncRun(postHooks, hookEnv, systemEnv)
@@ -546,6 +546,9 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
       }
     }) match {
       case Full(seq) => //ok, cool
+        // Update hooks for the node
+        afterNodeAcceptedAsync(id)
+
         logger.info(s"New node accepted and managed by Rudder: ${id.value}")
         cacheToClear.foreach { _.clearCache }
 

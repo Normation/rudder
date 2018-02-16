@@ -59,7 +59,7 @@ import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
-
+import com.normation.rudder.services.servers.{RelaySynchronizationMethod,ClassicSynchronization, RsyncSynchronization, DisabledSynchronization}
 /**
  * This class manage the displaying of user configured properties.
  *
@@ -82,7 +82,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     import com.normation.rudder.authorization.Edit
     //If user does not have the Edit("administration") right, all inputs are disabled
     val disable = !CurrentUser.checkRights(Edit("administration"))
-    S.appendJs(JsRaw(s"""$$("input, select").prop("disabled",${disable})"""))
+    S.appendJs(JsRaw(s"""$$("input, select").attr("disabled",${disable})"""))
     NodeSeq.Empty
   }
 
@@ -90,6 +90,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "changeMessage" => changeMessageConfiguration
     case "workflow"      => workflowConfiguration
     case "denyBadClocks" => cfserverNetworkConfiguration
+    case "relaySynchronizationMethod" => relaySynchronizationMethodManagement
     case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration
     case "agentPolicyMode" => (xml) => agentPolicyModeConfiguration
     case "complianceMode" => (xml) => complianceModeConfiguration
@@ -147,7 +148,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           S.notice("updateChangeMsg","")
         }
       }
-      Run(s"""$$("#changeMessageSubmit").prop("disabled",${noModif||emptyString});""")
+      Run(s"""$$("#changeMessageSubmit").attr("disabled",${noModif||emptyString});""")
     }
 
     // Initialisation of form
@@ -157,9 +158,14 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       check() &
       Run(
         s"""
-            $$("#mandatory").prop("disabled",${!newStatus});
-            $$("#explanation").prop("disabled",${!newStatus});
-         """
+          $$("#mandatory").attr("disabled",${!newStatus});
+          $$("#explanation").attr("disabled",${!newStatus});
+          if(${!newStatus}){
+            $$("#mandatory").parent().parent().addClass('disabled');
+          }else{
+            $$("#mandatory").parent().parent().removeClass('disabled');
+          }
+        """
       )
     }
 
@@ -188,6 +194,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               , (b : Boolean) => { mandatory = b; check() }
               , ("id","mandatory")
               , ("class","twoCol")
+              , ("disabled", s"${!mandatory}")
             )
           case eb: EmptyBox =>
             val fail = eb ?~ "there was an error, while fetching value of property: 'Make message mandatory "
@@ -205,7 +212,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                     )
            Run(s"""
              var noModif = $mod && ($$("#explanation").val() == "$initValue");
-             $$("#changeMessageSubmit").prop("disabled",noModif);""")
+             $$("#changeMessageSubmit").attr("disabled",noModif);""")
         }
         initExplanation match {
           case Full(value) =>
@@ -214,8 +221,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                 value
               , (s : String) => { explanation = s; check() }
               , ("id","explanation")
-              , ("class","twoCol")
-              , ("style","width:30%;")
+              , ("class","form-control")
               , ("onkeydown",ajaxCall("checkExplanation", checkExplanation(value) ).toJsCmd)
             )
           case eb: EmptyBox =>
@@ -229,7 +235,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           ajaxButton(<span>Reset to default</span>, () => { explanation = "Please enter a reason explaining this change."
             Run("""$("#explanation").val("Please enter a reason explaining this change.");""") & check()
 
-            }  ,("class","btn btn-default btn-xs"), ("id","restoreExplanation"))
+            }  ,("class","btn btn-default"), ("id","restoreExplanation"))
         }.getOrElse(NodeSeq.Empty)
       } &
 
@@ -237,7 +243,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         initMandatory.map{ b:Boolean =>
           val tooltipid = Helpers.nextFuncName
           <span class="tooltipable" tooltipid={tooltipid} title="">
-            <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+            <span class="glyphicon glyphicon-info-sign info"></span>
           </span>
           <div class="tooltipContent" id={tooltipid}>
             If this option is enabled, users will be forced to enter a change audit log. Empty messages will not be accepted.
@@ -249,7 +255,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         initExplanation.map{ s:String =>
           val tooltipid = Helpers.nextFuncName
           <span class="tooltipable" tooltipid={tooltipid} title="">
-            <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+            <span class="glyphicon glyphicon-info-sign info"></span>
           </span>
           <div class="tooltipContent" id={tooltipid}>
             Content of the text displayed to prompt the user to enter a change audit log.
@@ -292,15 +298,23 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       if(!noModif){
         S.notice("updateWorkflow","")
       }
-      Run(s"""$$("#workflowSubmit").prop("disabled",${noModif});""")
+      Run(s"""$$("#workflowSubmit").attr("disabled",${noModif});""")
     }
     def initJs(newStatus :Boolean) = {
       enabled = newStatus
       check() &
       Run(
         s"""
-            $$("#selfVal").prop("disabled",${!newStatus});
-            $$("#selfDep").prop("disabled",${!newStatus});"""
+            $$("#selfVal").attr("disabled",${!newStatus});
+            $$("#selfDep").attr("disabled",${!newStatus});
+            if(${!newStatus}){
+              $$("#selfDep").parent().parent().addClass('disabled');
+              $$("#selfVal").parent().parent().addClass('disabled');
+            }else{
+              $$("#selfDep").parent().parent().removeClass('disabled');
+              $$("#selfVal").parent().parent().removeClass('disabled');
+            }
+        """
       )
     }
     ( "#workflowEnabled" #> {
@@ -355,7 +369,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Full(_) =>
             val tooltipid = Helpers.nextFuncName
             <span class="tooltipable" tooltipid={tooltipid} title="">
-              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+              <span class="glyphicon glyphicon-info-sign info"></span>
             </span>
             <div class="tooltipContent" id={tooltipid}>
               Allow users to validate Change Requests they created themselves? Validating is moving a Change Request to the "<b>Pending deployment</b>" status
@@ -369,7 +383,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Full(_) =>
             val tooltipid = Helpers.nextFuncName
             <span class="tooltipable" tooltipid={tooltipid} title="">
-              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+              <span class="glyphicon glyphicon-info-sign info"></span>
             </span>
             <div class="tooltipContent" id={tooltipid}>
               Allow users to deploy Change Requests they created themselves? Deploying is effectively applying a Change Request in the "<b>Pending deployment</b>" status.
@@ -439,7 +453,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             val tooltipid = Helpers.nextFuncName
 
             <span class="tooltipable" tooltipid={tooltipid} title="">
-              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+              <span class="glyphicon glyphicon-info-sign info"></span>
             </span>
             <div class="tooltipContent" id={tooltipid}>
                By default, copying configuration policy to nodes requires system clocks to be synchronized
@@ -469,7 +483,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Full(_) =>
             val tooltipid = Helpers.nextFuncName
             <span class="tooltipable" tooltipid={tooltipid} title="">
-              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+              <span class="glyphicon glyphicon-info-sign info"></span>
             </span>
             <div class="tooltipContent" id={tooltipid}>
               By default, copying configuration policy requires nodes to be able to
@@ -490,6 +504,130 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(check()))
   }
 
+  def relaySynchronizationMethodManagement = { xml : NodeSeq =>
+    //  initial values, updated on successfull submit
+    var initRelaySyncMethod = configService.relay_server_sync_method
+    // Be careful, we store negative value
+    var initRelaySyncPromises = configService.relay_server_syncpromises
+    var initRelaySyncSharedFiles = configService.relay_server_syncsharedfiles
+
+    // form values
+    var relaySyncMethod = initRelaySyncMethod.getOrElse(ClassicSynchronization)
+    var relaySyncPromises = initRelaySyncPromises.getOrElse(false)
+    var relaySyncSharedFiles = initRelaySyncSharedFiles.getOrElse(false)
+
+    def noModif = (
+         initRelaySyncMethod.map(_ == relaySyncMethod).getOrElse(false)
+      && initRelaySyncPromises.map(_ == relaySyncPromises).getOrElse(false)
+      && initRelaySyncSharedFiles.map(_ == relaySyncSharedFiles).getOrElse(false)
+    )
+
+    def check() = {
+      if(!noModif){
+        S.notice("updateRelaySynchronization","")
+      }
+      Run(s"""$$("#relaySynchronizationSubmit").prop('disabled', ${noModif});""")
+    }
+
+    def submit = {
+      configService.set_relay_server_sync_method(relaySyncMethod).foreach(updateOk => initRelaySyncMethod = Full(relaySyncMethod))
+      configService.set_relay_server_syncpromises(relaySyncPromises).foreach(updateOk => initRelaySyncPromises = Full(relaySyncPromises))
+      configService.set_relay_server_syncsharedfiles(relaySyncSharedFiles).foreach(updateOk => initRelaySyncSharedFiles = Full(relaySyncSharedFiles))
+
+      // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
+      startNewPolicyGeneration
+      S.notice("updateRelaySynchronization","Relay servers synchronization methods correctly updated")
+      check()
+    }
+
+    def setRelaySyncMethodJs(t:String) : JsCmd = {
+      t.toLowerCase() match {
+        case ClassicSynchronization.value => relaySyncMethod = ClassicSynchronization ; JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """)
+        case RsyncSynchronization.value =>   relaySyncMethod = RsyncSynchronization   ; JsRaw(""" $('#relayRsyncSynchronizeFiles').show(); """)
+        case DisabledSynchronization.value =>relaySyncMethod = DisabledSynchronization; JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """)
+      }
+    }
+    (
+       "#relaySyncMethod" #> {
+         initRelaySyncMethod match {
+            case Full(value) =>
+              SHtml.ajaxRadio(
+                Seq(ClassicSynchronization.value, RsyncSynchronization.value, DisabledSynchronization.value).map(_.capitalize)
+              , initRelaySyncMethod.map(_.value.capitalize)
+              , (t:String) => setRelaySyncMethodJs(t)
+              , ("id","relaySyncMethod")
+              ).toForm ++ Script(OnLoad(setRelaySyncMethodJs(value.value)))
+
+            case eb: EmptyBox =>
+              val fail = eb ?~ "there was an error while fetching value of property: 'Synchronize Policies using rsync' "
+              <div class="error">{fail.msg}</div>
+          }
+       } &
+       "#relaySyncPromises" #> {
+          initRelaySyncPromises match {
+            case Full(value) =>
+              SHtml.ajaxCheckbox(
+                value
+              , (b : Boolean) => { relaySyncPromises = b; check() }
+              , ("id","relaySyncPromises")
+              )
+            case eb: EmptyBox =>
+              val fail = eb ?~ "there was an error while fetching value of property: 'Synchronize Policies using rsync' "
+              <div class="error">{fail.msg}</div>
+          }
+        } &
+        "#relaySyncPromisesTooltip *" #> {
+
+        initRelaySyncPromises match {
+          case Full(_) =>
+            val tooltipid = Helpers.nextFuncName
+            <span class="tooltipable" tooltipid={tooltipid} title="">
+              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+            </span>
+            <div class="tooltipContent" id={tooltipid}>
+              If this is checked, when rsync synchronization method is used, folder /var/rudder/share will be synchronized using rsync.
+              If this is not checked, you'll have to synchronize yourself this folder
+            </div>
+
+          case _ => NodeSeq.Empty
+        }
+      } &
+       "#relaySyncSharedFiles" #> {
+          initRelaySyncSharedFiles match {
+            case Full(value) =>
+              SHtml.ajaxCheckbox(
+                value
+              , (b : Boolean) => { relaySyncSharedFiles = b; check() }
+              , ("id","relaySyncSharedFiles")
+              )
+            case eb: EmptyBox =>
+              val fail = eb ?~ "there was an error while fetching value of property: 'Synchronize Shared Files using rsync' "
+              <div class="error">{fail.msg}</div>
+          }
+        } &
+        "#relaySyncSharedFilesTooltip *" #> {
+
+        initRelaySyncSharedFiles match {
+          case Full(_) =>
+            val tooltipid = Helpers.nextFuncName
+            <span class="tooltipable" tooltipid={tooltipid} title="">
+              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+            </span>
+            <div class="tooltipContent" id={tooltipid}>
+              If this is checked, when rsync synchronization method is used, folder /var/rudder/configuration-repository/shared-files will be synchronized using rsync.
+              If this is not checked, you'll have to synchronize yourself this folder
+            </div>
+
+          case _ => NodeSeq.Empty
+        }
+      } &
+        "#relaySynchronizationSubmit " #> {
+          SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+        }
+    ) apply (xml ++ Script(check()))
+  }
+
+
   def networkProtocolSection = { xml : NodeSeq =>
     //  initial values, updated on successfull submit
     def networkForm(initValue : SyslogProtocol) = {
@@ -498,7 +636,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       def check = {
         val noChange = initReportsProtocol == reportProtocol
         S.notice("updateNetworkProtocol","")
-        Run(s"""$$("#networkProtocolSubmit").prop("disabled",${noChange});""")
+        Run(s"""$$("#networkProtocolSubmit").attr("disabled",${noChange});""")
       }
 
       def submit = {
@@ -605,44 +743,35 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     //  initial values, updated on successful submit
     var initModifiedFilesTtl = configService.cfengine_modified_files_ttl
-    var initCfengineOutputsTtl = configService.cfengine_outputs_ttl
-
     // form values
     var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
-    var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(7).toString
+
 
     def submit = {
       // first, check if the content are effectively Int
       try {
         val intModifiedFilesTtl = Integer.parseInt(modifiedFilesTtl)
-        val intCfengineOutputsTtl = Integer.parseInt(cfengineOutputsTtl)
         configService.set_cfengine_modified_files_ttl(intModifiedFilesTtl).foreach(updateOk => initModifiedFilesTtl = Full(intModifiedFilesTtl))
-        configService.set_cfengine_outputs_ttl(intCfengineOutputsTtl).foreach(updateOk => initCfengineOutputsTtl = Full(intCfengineOutputsTtl))
-
         // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
         startNewPolicyGeneration
         S.notice("updateCfengineGlobalProps","File retention settings correctly updated")
         check()
-
       } catch {
         case ex:NumberFormatException =>
-
           S.error("updateCfengineGlobalProps", "Invalid value "+ex.getMessage().replaceFirst("F", "f"))
           Noop
       }
-
     }
 
     def noModif = (
-         initModifiedFilesTtl.map(_.toString == modifiedFilesTtl).getOrElse(false)
-      && initCfengineOutputsTtl.map(_.toString == cfengineOutputsTtl).getOrElse(false)
+      initModifiedFilesTtl.map(_.toString == modifiedFilesTtl).getOrElse(false)
     )
 
     def check() = {
       if(!noModif){
         S.notice("updateCfengineGlobalProps","")
       }
-      Run(s"""$$("#cfengineGlobalPropsSubmit").prop("disabled",${noModif});""")
+      Run(s"""$$("#cfengineGlobalPropsSubmit").attr("disabled",${noModif});""")
     }
 
     ( "#modifiedFilesTtl" #> {
@@ -652,27 +781,14 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               value.toString
             , (s : String) => { modifiedFilesTtl = s; check() }
             , ("id","modifiedFilesTtl")
+            , ("class","form-control number-day")
+            , ("type","number")
           )
         case eb: EmptyBox =>
           val fail = eb ?~ "there was an error while fetching value of property: 'Modified files TTL' "
           <div class="error">{fail.msg}</div>
         }
       } &
-
-     "#cfengineOutputsTtl" #> {
-      initCfengineOutputsTtl match {
-        case Full(value) =>
-          SHtml.ajaxText(
-              value.toString
-            , (s : String) => { cfengineOutputsTtl = s; check() }
-            , ("id","cfengineOutputsTtl")
-          )
-        case eb: EmptyBox =>
-          val fail = eb ?~ "there was an error while fetching value of property: 'CFEngine Outputs TTL' "
-          <div class="error">{fail.msg}</div>
-        }
-      } &
-
       "#cfengineGlobalPropsSubmit " #> {
          SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
       }
@@ -683,11 +799,21 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     //  initial values, updated on successfull submit
     var initStoreAllCentralizedLogsInFile = configService.rudder_store_all_centralized_logs_in_file
-
+    var initCfengineOutputsTtl = configService.cfengine_outputs_ttl
     // form values
     var storeAllCentralizedLogsInFile  = initStoreAllCentralizedLogsInFile.getOrElse(false)
+    var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(7).toString
 
     def submit = {
+      try{
+        val intCfengineOutputsTtl = Integer.parseInt(cfengineOutputsTtl)
+        configService.set_cfengine_outputs_ttl(intCfengineOutputsTtl).foreach(updateOk => initCfengineOutputsTtl = Full(intCfengineOutputsTtl))
+
+      } catch{
+        case ex:NumberFormatException =>
+          S.error("sendMetricsMsg", "Invalid value "+ex.getMessage().replaceFirst("F", "f"))
+          Noop
+      }
       configService.set_rudder_store_all_centralized_logs_in_file(storeAllCentralizedLogsInFile).foreach(updateOk => initStoreAllCentralizedLogsInFile = Full(storeAllCentralizedLogsInFile))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
@@ -700,14 +826,15 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
 
     def noModif = (
-         initStoreAllCentralizedLogsInFile.map(_ == storeAllCentralizedLogsInFile).getOrElse(false)
+       initStoreAllCentralizedLogsInFile.map(_ == storeAllCentralizedLogsInFile).getOrElse(false)
+    && initCfengineOutputsTtl.map(_.toString == cfengineOutputsTtl).getOrElse(false)
     )
 
     def check() = {
       if(!noModif){
         S.notice("loggingConfiguration","")
       }
-      Run(s"""$$("#loggingConfigurationSubmit").prop("disabled",${noModif});""")
+      Run(s"""$$("#loggingConfigurationSubmit").attr("disabled",${noModif});""")
     }
 
     ( "#storeAllLogsOnFile" #> {
@@ -723,6 +850,21 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             <div class="error">{fail.msg}</div>
         }
       } &
+       "#cfengineOutputsTtl" #> {
+        initCfengineOutputsTtl match {
+          case Full(value) =>
+            SHtml.ajaxText(
+                value.toString
+              , (s : String) => { cfengineOutputsTtl = s; check() }
+              , ("id","cfengineOutputsTtl")
+              , ("class","form-control number-day")
+              , ("type","number")
+            )
+          case eb: EmptyBox =>
+            val fail = eb ?~ "there was an error while fetching value of property: 'CFEngine Outputs TTL' "
+            <div class="error">{fail.msg}</div>
+          }
+        } &
       "#loggingConfigurationSubmit " #> {
          SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
       }
@@ -759,7 +901,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               , (b : Boolean) => { currentSendMetrics = Some(b); check}
               , ("id","sendMetricsCheckbox")
             )
-          } &
+          }&
           "#sendMetricsSubmit " #> {
             SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
           }&
@@ -785,7 +927,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         def noModif() = initDisplayGraphs == currentdisplayGraphs
         def check() = {
           S.notice("displayGraphsMsg","")
-          Run(s"""$$("#displayGraphsSubmit").prop("disabled",${noModif()});""")
+          Run(s"""$$("#displayGraphsSubmit").attr("disabled",${noModif()});""")
         }
 
         def submit() = {
@@ -881,7 +1023,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         def noModif() = x == initSavedValued
         def check() = {
           S.notice("directiveScriptEngineMsg","")
-          Run(s"""$$("#directiveScriptEngineSubmit").prop("disabled",${noModif()});""")
+          Run(s"""$$("#directiveScriptEngineSubmit").attr("disabled",${noModif()});""")
         }
 
         def submit() = {

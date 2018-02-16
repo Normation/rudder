@@ -80,7 +80,6 @@ import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import org.joda.time.format.DateTimeFormat
-import bootstrap.liftweb.StaticResourceRewrite
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),

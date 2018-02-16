@@ -66,7 +66,8 @@ class PluginManagement extends DispatchSnippet with Loggable {
       ".page-title *" #> p.displayName &
       "#pluginId" #> (p.name.value + ": " + p.id) &
       "#pluginVersion" #> p.version.toString &
-      "#pluginDescription" #> p.description
+      "#pluginDescription" #> p.description &
+      "#pluginStatusInformation" #> p.statusInformation
     )(xml)
   }
 }

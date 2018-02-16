@@ -43,8 +43,6 @@ import net.liftweb.common.Full
 import com.normation.rudder.domain.Constants
 import net.liftweb.common.Failure
 
-
-
 @RunWith(classOf[JUnitRunner])
 class PathComputerTest extends Specification {
 
