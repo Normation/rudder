@@ -13,6 +13,9 @@
   "DENYBADCLOCKS":"true",
   "MODIFIED_FILES_TTL":"30",
   "NODEROLE":"  classes: \n    \"policy_server\" expression => \"any\";",
+  "RELAY_SYNC_METHOD":"classic",
+  "RELAY_SYNC_PROMISES":"false",
+  "RELAY_SYNC_SHAREDFILES":"false",
   "RUDDER_DIRECTIVES_INPUTS":[
     "\"Create_file/1.0/rudder_reporting.cf\",\n\"Create_file/1.0/Create_file.cf\",\n\"packageManagement/1.0/packageManagement.cf\","
   ],
