@@ -13,6 +13,9 @@
   "DENYBADCLOCKS":"true",
   "MODIFIED_FILES_TTL":"30",
   "NODEROLE":"  classes: \n    \"policy_server\" expression => \"any\";\n    \"root_server\" expression => \"any\";\n    \"rudder-ldap\" expression => \"any\";\n    \"rudder-inventory-ldap\" expression => \"any\";\n    \"rudder-reports\" expression => \"any\";\n    \"rudder-webapp\" expression => \"any\";\n    \"rudder-jetty\" expression => \"any\";\n    \"rudder-server-root\" expression => \"any\";\n    \"rudder-inventory-endpoint\" expression => \"any\";\n    \"rudder-db\" expression => \"any\";",
+  "RELAY_SYNC_METHOD":"classic",
+  "RELAY_SYNC_PROMISES":"false",
+  "RELAY_SYNC_SHAREDFILES":"false",
   "RUDDER_DIRECTIVES_INPUTS":[
     "\"fileTemplate/1.0_e9a1a909_2490_4fc9_95c3_9d0aa01717c9/fileTemplate.cf\",\n\"fileTemplate/1.0_99f4ef91_537b_4e03_97bc_e65b447514cc/fileTemplate.cf\","
   ],

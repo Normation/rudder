@@ -70,6 +70,8 @@ import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.BoundPolicyDraft
+import com.normation.rudder.services.servers.ClassicSynchronization
+
 
 /**
  * Details of tests executed in each instances of

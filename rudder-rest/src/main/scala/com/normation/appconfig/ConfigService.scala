@@ -62,7 +62,6 @@ import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 import com.normation.rudder.reports._
 import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
-
 import scala.language.implicitConversions
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeState
@@ -70,7 +69,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
-
+import com.normation.rudder.services.servers.{RelaySynchronizationMethod, ClassicSynchronization, RsyncSynchronization, DisabledSynchronization}
 /**
  * A service that Read mutable (runtime) configuration properties
  *
@@ -98,6 +97,13 @@ trait ReadConfigService {
    * CFEngine server properties
    */
   def cfengine_server_denybadclocks(): Box[Boolean]
+
+  /**
+   * Relay synchronization configuration
+   */
+  def relay_server_sync_method()       : Box[RelaySynchronizationMethod]
+  def relay_server_syncpromises()      : Box[Boolean]
+  def relay_server_syncsharedfiles()   : Box[Boolean]
 
   /**
    * Agent execution interval and start run
@@ -207,6 +213,14 @@ trait UpdateConfigService {
   def set_cfengine_server_skipidentify(value: Boolean): Box[Unit]
 
   /**
+   * Set Relay-Server synchronization method
+   */
+  def set_relay_server_sync_method(value: RelaySynchronizationMethod): Box[Unit]
+  def set_relay_server_syncpromises(value: Boolean)    : Box[Unit]
+  def set_relay_server_syncsharedfiles(value: Boolean) : Box[Unit]
+
+
+  /**
    * Agent frequency and start run
    */
   def set_agent_run_interval(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
@@ -311,6 +325,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.workflow.self.deployment=true
        cfengine.server.denybadclocks=true
        cfengine.server.skipidentify=false
+       relay.sync.method=classic
+       relay.sync.promises=true
+       relay.sync.sharedfiles=true
        agent.run.interval=5
        agent.run.splaytime=4
        agent.run.start.hour=0
@@ -401,7 +418,14 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   private[this] implicit def toNodeState(p: RudderWebProperty): NodeState = {
     NodeState.values.find( _.name == p.value.toLowerCase()).getOrElse(NodeState.Enabled) //default value is "enabled"
   }
+
   private[this] implicit def serState(x: NodeState): String = x.name
+
+  private[this] implicit def toRelaySynchronisationMethod(p: RudderWebProperty): RelaySynchronizationMethod = p.value match {
+    case RsyncSynchronization.value    => RsyncSynchronization
+    case DisabledSynchronization.value => DisabledSynchronization
+    case _                             => ClassicSynchronization  // default is classic
+  }
 
   private[this] implicit def toString(p: RudderWebProperty): String = p.value
 
@@ -449,6 +473,14 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def set_cfengine_server_denybadclocks(value: Boolean): Box[Unit] = save("cfengine_server_denybadclocks", value)
   def cfengine_server_skipidentify(): Box[Boolean] = get("cfengine_server_skipidentify")
   def set_cfengine_server_skipidentify(value: Boolean): Box[Unit] = save("cfengine_server_skipidentify", value)
+
+  // Relay synchronization configuration
+  def relay_server_sync_method()     : Box[RelaySynchronizationMethod] = get("relay.sync.method")
+  def set_relay_server_sync_method(value: RelaySynchronizationMethod): Box[Unit] = save("relay.sync.method", value.value)
+  def relay_server_syncpromises()                      : Box[Boolean] = get("relay.sync.promises")
+  def set_relay_server_syncpromises(value    : Boolean): Box[Unit]    = save("relay.sync.promises", value)
+  def relay_server_syncsharedfiles()                   : Box[Boolean] = get("relay.sync.sharedfiles")
+  def set_relay_server_syncsharedfiles(value: Boolean) : Box[Unit]    = save("relay.sync.sharedfiles", value)
 
   def agent_run_interval(): Box[Int] = get("agent_run_interval")
   def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
