@@ -38,28 +38,32 @@
 package com.normation.rudder.services.policies
 
 import com.normation.cfclerk.services.SystemVariableSpecService
-import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.services.servers.PolicyServerManagementService
+import com.normation.rudder.services.servers.RelaySynchronizationMethod
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.SyslogProtocol
-import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.services.servers.PolicyServerManagementService
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
-import com.normation.cfclerk.domain.Variable
-import net.liftweb.common.Loggable
-import com.normation.inventory.domain.ServerRole
-import com.normation.inventory.domain.PublicKey
-import com.normation.inventory.domain.Certificate
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
+import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.SystemVariable
+import net.liftweb.common.Loggable
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.ServerRole
+import com.normation.inventory.domain.PublicKey
+import com.normation.inventory.domain.Certificate
+
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]]
@@ -101,6 +105,10 @@ class SystemVariableServiceImpl(
   , serverRoles              : Seq[RudderServerRole]
   //denybadclocks is runtime property
   , getDenyBadClocks: () => Box[Boolean]
+  // relay synchronisation method
+  , getSyncMethod            : () => Box[RelaySynchronizationMethod]
+  , getSyncPromises          : () => Box[Boolean]
+  , getSyncSharedFiles       : () => Box[Boolean]
   // TTLs are runtime properties too
   , getModifiedFilesTtl             : () => Box[Int]
   , getCfengineOutputsTtl           : () => Box[Int]
@@ -150,6 +158,10 @@ class SystemVariableServiceImpl(
     val cfengineOutputsTtl = getProp("CFENGINE_OUTPUTS_TTL", getCfengineOutputsTtl)
     val reportProtocol = getProp("RUDDER_SYSLOG_PROTOCOL", () => getSyslogProtocol().map(_.value))
 
+    val relaySyncMethod      = getProp("RELAY_SYNC_METHOD", () => getSyncMethod().map(_.value))
+    val relaySyncPromises    = getProp("RELAY_SYNC_PROMISES", getSyncPromises)
+    val relaySyncSharedFiles = getProp("RELAY_SYNC_SHAREDFILES", getSyncSharedFiles)
+
     val sendMetricsValue = if (getSendMetrics().getOrElse(None).getOrElse(false)) {
       "yes"
     } else {
@@ -177,6 +189,9 @@ class SystemVariableServiceImpl(
         configurationRepositoryFolder ::
         denyBadClocks ::
         skipIdentify ::
+        relaySyncMethod ::
+        relaySyncPromises ::
+        relaySyncSharedFiles ::
         varAgentRunInterval ::
         varAgentRunSchedule ::
         varAgentRunSplayTime  ::

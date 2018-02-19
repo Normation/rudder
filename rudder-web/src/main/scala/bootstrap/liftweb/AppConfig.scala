@@ -1318,6 +1318,9 @@ object RudderConfig extends Loggable {
     , RUDDER_DIR_GITROOT
     , RUDDER_SERVER_ROLES
     , configService.cfengine_server_denybadclocks _
+    , configService.relay_server_sync_method
+    , configService.relay_server_syncpromises
+    , configService.relay_server_syncsharedfiles
     , configService.cfengine_modified_files_ttl _
     , configService.cfengine_outputs_ttl _
     , configService.rudder_store_all_centralized_logs_in_file _
