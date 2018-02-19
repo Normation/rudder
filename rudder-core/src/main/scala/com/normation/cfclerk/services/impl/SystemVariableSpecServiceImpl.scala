@@ -105,6 +105,19 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
          "CONFIGURATION_REPOSITORY_FOLDER" , "The path to the configuration repository folder"
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
+    , SystemVariableSpec(
+         "RELAY_SYNC_METHOD"               , "Synchronization method for relay; can be classic, rsync or manual "
+                                           , multivalued = false
+                        )
+    , SystemVariableSpec(
+         "RELAY_SYNC_PROMISES"             , "Synchronize promises on relay with Rsync in rsync mode"
+                                           ,  constraint = Constraint(typeName = BooleanVType, default=Some("true"))
+                        )
+    , SystemVariableSpec(
+         "RELAY_SYNC_SHAREDFILES"          , "Synchronize sharedfiles on relay with Rsync in rsync mode"
+                                           , constraint = Constraint(typeName = BooleanVType, default=Some("true"))
+                        )
+
       //
       // The following variables contain information about all the node *directly*
       // managed by a policy server (i.e: we don't have children of relays here)

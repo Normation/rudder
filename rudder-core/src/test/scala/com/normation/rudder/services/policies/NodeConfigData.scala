@@ -126,11 +126,9 @@ import net.liftweb.common.Box
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.repository.FullNodeGroupCategory
 import org.apache.commons.io.FileUtils
-import com.normation.rudder.repository.FullNodeGroupCategory
 import cats.data.NonEmptyList
-
+import com.normation.rudder.services.servers.ClassicSynchronization
 /*
  * This file is a container for testing data that are a little boring to
  * define, like node info, node config, etc. so that their declaration
@@ -544,6 +542,9 @@ class TestNodeConfiguration() {
 
     //denybadclocks is runtime properties
     , getDenyBadClocks         = () => Full(true)
+    , getSyncMethod            = () => Full(ClassicSynchronization)
+    , getSyncPromises          = () => Full(false)
+    , getSyncSharedFiles       = () => Full(false)
     // TTLs are runtime properties too
     , getModifiedFilesTtl             = () => Full(30)
     , getCfengineOutputsTtl           = () => Full(7)

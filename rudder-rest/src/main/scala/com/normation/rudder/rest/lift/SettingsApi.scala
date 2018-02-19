@@ -69,7 +69,7 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import net.liftweb.json.JsonDSL._
-
+import com.normation.rudder.services.servers.{RelaySynchronizationMethod,ClassicSynchronization, RsyncSynchronization, DisabledSynchronization}
 
 
 class SettingsApi(
@@ -89,6 +89,9 @@ class SettingsApi(
       RestModifiedFileTTL ::
       RestOutputFileTTL ::
       RestRequireTimeSynch ::
+      RestRelaySyncMethod ::
+      RestRelaySynchronizePolicies ::
+      RestRelaySynchronizeSharedFiles ::
       RestReportingProtocol ::
       RestReportingMode ::
       RestHeartbeat ::
@@ -277,7 +280,6 @@ class SettingsApi(
         result
       }
     }
-
   }
 
   case object RestPolicyMode extends RestSetting[PolicyMode] {
@@ -468,6 +470,39 @@ class SettingsApi(
     def get = Full(false)
     def set = (value : Boolean, _, _) => Full(Unit)
   }
+  case object RestRelaySyncMethod extends RestSetting[RelaySynchronizationMethod] {
+    val key = "relay_server_synchronization_method"
+    val startPolicyGeneration = true
+    def get = configService.relay_server_sync_method()
+    def set = (value : RelaySynchronizationMethod, _, _) => configService.set_relay_server_sync_method(value)
+    def toJson(value : RelaySynchronizationMethod) : JValue = value.value
+    def parseJson(json: JValue) = {
+      json match {
+        case JString(value) => parseParam(value.toLowerCase())
+        case x => Failure("Invalid value "+x)
+      }
+    }
+    def parseParam(param : String) = {
+      param.toLowerCase() match {
+        case ClassicSynchronization.value  => Full(ClassicSynchronization)
+        case RsyncSynchronization.value    => Full(RsyncSynchronization)
+        case DisabledSynchronization.value => Full(DisabledSynchronization)
+        case _ => Failure(s"Invalid value '${param}' for relay server synchronization method")
+      }
+    }
+  }
+  case object RestRelaySynchronizePolicies extends RestBooleanSetting {
+    val key = "relay_server_synchronize_policies"
+    val startPolicyGeneration = true
+    def get = configService.relay_server_syncpromises()
+    def set = (value : Boolean, _, _) => configService.set_relay_server_syncpromises(value)
+  }
+  case object RestRelaySynchronizeSharedFiles extends RestBooleanSetting {
+    val key = "relay_server_synchronize_shared_files"
+    val startPolicyGeneration = true
+    def get = configService.relay_server_syncsharedfiles()
+    def set = (value : Boolean, _, _) => configService.set_relay_server_syncsharedfiles(value)
+  }
   case object RestReportingProtocol extends RestSetting[SyslogProtocol] {
     val key = "rsyslog_reporting_protocol"
     val startPolicyGeneration = true
@@ -476,11 +511,7 @@ class SettingsApi(
     def toJson(value : SyslogProtocol) : JValue = value.value
     def parseJson(json: JValue) = {
       json match {
-        case JString(value) => value.toUpperCase() match {
-          case SyslogTCP.value => Full(SyslogTCP)
-          case SyslogUDP.value => Full(SyslogUDP)
-          case _ => Failure(s"Invalid value '${value}' for syslog protocol")
-        }
+        case JString(value) => parseParam(value.toUpperCase())
         case x => Failure("Invalid value "+x)
       }
     }
