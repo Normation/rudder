@@ -541,6 +541,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
 
     def setRelaySyncMethodJs(t:String) : JsCmd = {
+
       t.toLowerCase() match {
         case ClassicSynchronization.value => relaySyncMethod = ClassicSynchronization ; JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """)
         case RsyncSynchronization.value =>   relaySyncMethod = RsyncSynchronization   ; JsRaw(""" $('#relayRsyncSynchronizeFiles').show(); """)
@@ -548,20 +549,36 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       }
     }
     (
-       "#relaySyncMethod" #> {
+      "#relaySyncMethod" #> {
          initRelaySyncMethod match {
             case Full(value) =>
-              SHtml.ajaxRadio(
-                Seq(ClassicSynchronization.value, RsyncSynchronization.value, DisabledSynchronization.value).map(_.capitalize)
-              , initRelaySyncMethod.map(_.value.capitalize)
-              , (t:String) => setRelaySyncMethodJs(t)
-              , ("id","relaySyncMethod")
-              ).toForm ++ Script(OnLoad(setRelaySyncMethodJs(value.value)))
-
+              def radioHtml(label:String) : NodeSeq = {
+                val inputId = label+"-id"
+                val ajaxCall = SHtml.ajaxCall(Str(""), _ => setRelaySyncMethodJs(label))._2.toJsCmd
+                <li class="rudder-form">
+                  <div class="input-group">
+                    <label class="input-group-addon" for={inputId}>
+                      <input id={inputId} type="radio" name="relaySync" onclick={ajaxCall}/>
+                      <label for={inputId} class="label-radio">
+                        <span class="ion ion-checkmark-round"></span>
+                      </label>
+                      <span class="ion ion-checkmark-round check-icon"></span>
+                    </label>
+                    <label class="form-control" for={inputId}>
+                      {label.capitalize}
+                    </label>
+                  </div>
+                </li>
+              }
+              <ul id="relaySyncMethod">{
+              Seq(ClassicSynchronization.value, RsyncSynchronization.value, DisabledSynchronization.value).map(radioHtml)
+              }
+              </ul>++ Script(OnLoad(setRelaySyncMethodJs(value.value)))
             case eb: EmptyBox =>
               val fail = eb ?~ "there was an error while fetching value of property: 'Synchronize Policies using rsync' "
               <div class="error">{fail.msg}</div>
           }
+
        } &
        "#relaySyncPromises" #> {
           initRelaySyncPromises match {
@@ -626,7 +643,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
     ) apply (xml ++ Script(check()))
   }
-
 
   def networkProtocolSection = { xml : NodeSeq =>
     //  initial values, updated on successfull submit
@@ -745,7 +761,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     var initModifiedFilesTtl = configService.cfengine_modified_files_ttl
     // form values
     var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
-
 
     def submit = {
       // first, check if the content are effectively Int
