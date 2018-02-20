@@ -1,0 +1,87 @@
+#######################################################
+#
+# Test checking if a file can be copied from a local source
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { configuration, default("${this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "tmp"                      string => getenv("TEMP", 1024);
+    "source_file"              string => "${tmp}/source_test";
+    "destination_file_1"       string => "${tmp}/destination_test1";
+    "destination_file_2"       string => "${tmp}/destination_test2";
+    "destination_file_3"       string => "${tmp}/destination_test3";
+    "destination_file_4"       string => "${tmp}/destination_test4";
+    "destination_file_canon_1" string => canonify("${destination_file_1}");
+    "destination_file_canon_2" string => canonify("${destination_file_2}");
+    "destination_file_canon_3" string => canonify("${destination_file_3}");
+    "destination_file_canon_4" string => canonify("${destination_file_4}");
+
+  files:
+    "${source_file}"
+      edit_line => insert_lines("test file"),
+      create => "true";
+    "${destination_file_3}"
+      edit_line => insert_lines("test file"),
+      create => "true";
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1"  usebundle => file_copy_from_local_source_with_check("${init.source_file}", "${init.destination_file_1}", "/bin/true", "0");
+    "ph2"  usebundle => file_copy_from_local_source_with_check("${init.source_file}", "${init.destination_file_2}", "/bin/false", "0");
+    "ph3"  usebundle => file_copy_from_local_source_with_check("${init.source_file}", "${init.destination_file_3}", "/bin/false", "0");
+    "ph4"  usebundle => file_copy_from_local_source_with_check("${init.source_file}", "${init.destination_file_4}", "/bin/false", "1");
+}
+
+#######################################################
+
+bundle agent check
+{
+  vars:
+
+    "content_1" string => readfile("${init.destination_file_1}", "9999");
+    "content_3" string => readfile("${init.destination_file_3}", "9999");
+    "content_4" string => readfile("${init.destination_file_4}", "9999");
+
+  classes:
+    "file_1" expression => fileexists("${init.destination_file_1}");
+    "file_2" expression => fileexists("${init.destination_file_2}");
+    "file_3" expression => fileexists("${init.destination_file_3}");
+    "file_4" expression => fileexists("${init.destination_file_4}");
+
+    "content_1" expression => strcmp("${content_1}", "test file");
+    "content_3" expression => strcmp("${content_3}", "test file");
+    "content_4" expression => strcmp("${content_4}", "test file");
+
+    "ok_1" expression => "file_1.content_1.file_copy_from_local_source_with_check_${init.destination_file_canon_1}_repaired.!file_copy_from_local_source_with_check_${init.destination_file_canon_1}_error";
+    "ok_2" expression => "!file_2.file_copy_from_local_source_with_check_${init.destination_file_canon_2}_error";
+    "ok_3" expression => "file_3.content_3.file_copy_from_local_source_with_check_${init.destination_file_canon_3}_kept";
+    "ok_4" expression => "file_4.content_4.file_copy_from_local_source_with_check_${init.destination_file_canon_4}_repaired.!file_copy_from_local_source_with_check_${init.destination_file_canon_4}_error";
+    "ok" expression => "ok_1.ok_2.ok_3.ok_4";
+  
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
