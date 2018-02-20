@@ -187,7 +187,7 @@ def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = Fa
   content.append('      <INCLUDED>true</INCLUDED>')
   content.append('    </FILE>')
   if include_rudder_reporting:
-    content.append('    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/'+technique_metadata['bundle_name']+'/'+technique_metadata['version']+'rudder_reporting.cf">')
+    content.append('    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/'+technique_metadata['bundle_name']+'/'+technique_metadata['version']+'/rudder_reporting.cf">')
     content.append('      <INCLUDED>true</INCLUDED>')
     content.append('    </FILE>')
   content.append('  </FILES>')
