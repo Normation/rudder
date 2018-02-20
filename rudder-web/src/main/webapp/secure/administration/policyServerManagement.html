@@ -60,7 +60,7 @@
             <div id="policyServerText"></div>
             <form class="lift:form.ajax">
               <label class="col-xs-12">Allowed networks</label>
-              <div id="allowNetworkFields">
+              <div id="allowNetworkFields" class="networkFieldsContainer">
                 <div class="network-group col-lg-4 col-sm-6 col-xs-12">
                   <div class="input-group">
                     <input name="network" class="networkField form-control input-sm"/>
@@ -119,31 +119,44 @@
         <div class="lift:administration.PropertiesManagement.relaySynchronizationMethod" id="relaySynchronizationMethodForm">
           <form class="lift:form.ajax">
             <div class="tw-bs">
-              <label class="" style="font-weight:bold;width: 50%;">
-                <span>Synchronization method from Relay servers: </span>
-              </label>
+              <label>Synchronization method from Relay servers</label>
             </div>
-            <div class="radio">
-              <input id="relaySyncMethod" type="text"/>
-            </div>
+            <div id="relaySyncMethod"></div>
 
             <div id="relayRsyncSynchronizeFiles">
-              <div class="wbBaseField">
-                <label class="threeCol textright" style="font-weight:bold;width: 50%;">
-                  <span style="float:left">Synchronize policies using rsync: </span>
-                  <span id="relaySyncPromisesTooltip"></span>
-                </label>
-                <input id="relaySyncPromises" type="text"/>
-              </div>
-              <div class="wbBaseField">
-                <label class="threeCol textright" style="font-weight:bold;width: 50%;">
-                  <span style="float:left">Synchronize shared files using rsync: </span>
-                  <span id="relaySyncSharedFilesTooltip"></span>
-                </label>
-                <input id="relaySyncSharedFiles" type="text"/>
-              </div>
+	          <ul>
+	            <li class="rudder-form">
+	              <div class="input-group">
+	                <label class="input-group-addon" for="denyBadClocks">
+	                  <input id="relaySyncPromises" type="checkbox">
+	                  <label for="relaySyncPromises" class="label-radio">
+	                    <span class="ion ion-checkmark-round"></span>
+	                  </label>
+	                  <span class="ion ion-checkmark-round check-icon"></span>
+	                </label>
+	                <label class="form-control" for="relaySyncPromises">
+	                  Synchronize policies using rsync
+	                  <span id="relaySyncPromisesTooltip"></span>
+	                </label>
+	              </div>
+	            </li>
+	            <li class="rudder-form">
+	              <div class="input-group">
+	                <label class="input-group-addon" for="relaySyncSharedFiles">
+	                  <input id="relaySyncSharedFiles" type="checkbox">
+	                  <label for="relaySyncSharedFiles" class="label-radio">
+	                    <span class="ion ion-checkmark-round"></span>
+	                  </label>
+	                  <span class="ion ion-checkmark-round check-icon"></span>
+	                </label>
+	                <label class="form-control" for="relaySyncSharedFiles">
+	                  Synchronize shared files using rsync
+	                  <span id="relaySyncSharedFilesTooltip"></span>
+	                </label>
+	              </div>
+	            </li>
+	          </ul>
             </div>
-            <hr class="spacer"/>
             <lift:authz role="administration_write">
               <span class="tw-bs">
                 <input type="submit" value="[save]" id="relaySynchronizationSubmit"/>
