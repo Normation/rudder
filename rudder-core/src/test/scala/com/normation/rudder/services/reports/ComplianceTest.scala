@@ -211,7 +211,7 @@ class ComplianceTest extends Specification {
       val runTime = reports.head.executionTimestamp
       //here, we assume "compute compliance", i.e we are only testing the compliance engine, not
       //the meta-analysis on run consistancy (correct run, at the correct time, etc)
-      val runinfo = ComputeCompliance(runTime, config, runTime)
+      val runinfo = ComputeCompliance("", runTime, config, runTime)
       val status = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports)
 
       status.compliance must beEqualTo(ComplianceLevel(success=18, notApplicable = 8))

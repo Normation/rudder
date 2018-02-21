@@ -62,6 +62,8 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
   lazy val service = new HistorizationServiceImpl(repos)
 
 
+  val node1 = NodeConfigData.node1.copy(node = NodeConfigData.node1.node.copy(isPolicyServer = false))
+  val node2 = NodeConfigData.node2.copy(node = NodeConfigData.node2.node.copy(isPolicyServer = false))
 
   sequential
 
@@ -72,14 +74,14 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
     }
 
     "be able to add and found" in {
-      val op1 = repos.updateNodes(Seq(NodeConfigData.node1), Seq())
+      val op1 = repos.updateNodes(Seq(node1), Seq())
       val op2 = repos.getAllOpenedNodes
 
       (op1 === ()) and (op2.size === 1) and (op2.head.nodeId === "node1")
     }
 
     "be able to close and found new ones" in {
-      val op1 = service.updateNodes(Set(NodeConfigData.node2)).openOrThrowException("that test should not throw")
+      val op1 = service.updateNodes(Set(node2)).openOrThrowException("that test should not throw")
       val op2 = repos.getAllOpenedNodes
 
       (op1 === ()) and (op2.size === 1) and (op2.head.nodeId === "node2")

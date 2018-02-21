@@ -40,19 +40,15 @@ package com.normation.rudder.repository.jdbc
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.reports.execution.AgentRun
-import com.normation.rudder.reports.execution.AgentRunId
-import com.normation.rudder.reports.execution.RoReportsExecutionRepositoryImpl
-import com.normation.rudder.reports.execution.WoReportsExecutionRepositoryImpl
-
+import com.normation.rudder.reports.execution._
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 
-import scalaz.{Failure => _, _}, Scalaz._
+import scalaz.{Failure => _, _}
+import Scalaz._
 import doobie.imports._
 
 /**
@@ -85,18 +81,19 @@ class AgentRunsTest extends DBCommon {
         AgentRun(AgentRunId(n1, runMinus2), Some(NodeConfigId("nodeConfig_n1_v1")), true, 12)
       , AgentRun(AgentRunId(n1, runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), false, 42)
     )
+    val runWithConfig0 = AgentRunWithNodeConfig(runs(0).agentRunId, runs(0).nodeConfigVersion.map( id => (id, None)), runs(0).isCompleted, runs(0).insertionId)
 
     "correctly insert" in {
       woRunRepo.updateExecutions(Seq(runs(0))) must beEqualTo( Seq(Full(runs(0)) ))
     }
 
     "correctly find back" in {
-      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(0)))))
+      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runWithConfig0))))
     }
 
     "correctly ignore incomplete" in {
-      //(woRunRepo.updateExecutions(runs) must beEqualTo( Full(Seq(runs(1))) )) and
-      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(0)))))
+      (woRunRepo.updateExecutions(runs) must beEqualTo( Seq(Full(runs(1))) )) and
+      (roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runWithConfig0)))))
     }
 
     "don't find report when none was added" in {

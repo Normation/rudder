@@ -224,7 +224,7 @@ class StatusReportTest extends Specification {
     val modesConfig = NodeConfigData.defaultModesConfig
     val report = NodeStatusReport(
         NodeId("n1")
-      , Pending(
+      , Pending("",
             NodeExpectedReports(NodeId("n1"), NodeConfigId("plop"), DateTime.now(), None, modesConfig, List()) // TODO : correct that test
           , None, DateTime.now.plusMinutes(15)
         )

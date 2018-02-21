@@ -84,7 +84,7 @@ class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
     val runCompliances = reports.flatMap { r => r.runInfo match {
       //ignore case with no runs
       case _:NoReportInInterval |
-           NoRunNoExpectedReport |
+           _:NoRunNoExpectedReport |
            _:ReportsDisabledInInterval => None
 
       case x:Pending => x.optLastRun match {
