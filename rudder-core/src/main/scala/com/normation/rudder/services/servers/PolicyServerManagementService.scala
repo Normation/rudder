@@ -46,6 +46,9 @@ import net.liftweb.common.Loggable
 import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import ca.mrvisser.sealerate
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 
 /**
  * This service allows to manage properties linked to the root policy server,
@@ -54,7 +57,6 @@ import com.normation.eventlog.ModificationId
  * For now, the hypothesis that there is one and only one policy server is made.
  */
 trait PolicyServerManagementService {
-
 
   /**
    * Get the list of authorized networks, i.e the list of networks such that
@@ -67,7 +69,6 @@ trait PolicyServerManagementService {
    */
   def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) : Box[Seq[String]]
 }
-
 
 class PolicyServerManagementServiceImpl(
     roDirectiveRepository: RoDirectiveRepository
@@ -87,7 +88,6 @@ class PolicyServerManagementServiceImpl(
       allowedNetworks
     }
   }
-
 
   override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) : Box[Seq[String]] = {
 
@@ -113,18 +113,26 @@ class PolicyServerManagementServiceImpl(
   }
 }
 
-sealed trait RelaySynchronizationMethod {
-  def value : String
-}
+sealed trait RelaySynchronizationMethod { def value: String }
+object RelaySynchronizationMethod {
 
-object ClassicSynchronization extends RelaySynchronizationMethod {
-  val value = "classic"
-}
+  final case object Classic extends RelaySynchronizationMethod  { val value = "classic"  }
 
-object RsyncSynchronization extends RelaySynchronizationMethod {
-  val value = "rsync"
-}
+  final case object Rsync extends RelaySynchronizationMethod    { val value = "rsync"    }
 
-object DisabledSynchronization extends RelaySynchronizationMethod {
-  val value = "disable"
+  final case object Disabled extends RelaySynchronizationMethod { val value = "disabled" }
+
+  final val all: Set[RelaySynchronizationMethod] = sealerate.values[RelaySynchronizationMethod]
+
+  def parse(value: String): Box[RelaySynchronizationMethod] = {
+    value match {
+            case null|"" => Failure("An empty or null string can not be parsed as a relay synchronization method")
+            case s => s.trim.toLowerCase match {
+              case Classic.value  => Full(Classic)
+              case Disabled.value => Full(Disabled)
+              case Rsync.value    => Full(Rsync)
+              case _              => Failure(s"Cannot parse the given value as a valid relay synchronization method: '${value}'. Authorised values are: '${all.map( _.value).mkString(", ")}'")
+            }
+          }
+  }
 }

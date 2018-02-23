@@ -68,7 +68,9 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
-import com.normation.rudder.services.servers.{RelaySynchronizationMethod, ClassicSynchronization, RsyncSynchronization, DisabledSynchronization}
+import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.rudder.services.servers.RelaySynchronizationMethod
+
 /**
  * A service that Read mutable (runtime) configuration properties
  *
@@ -210,7 +212,6 @@ trait UpdateConfigService {
   def set_relay_server_sync_method(value: RelaySynchronizationMethod): Box[Unit]
   def set_relay_server_syncpromises(value: Boolean)    : Box[Unit]
   def set_relay_server_syncsharedfiles(value: Boolean) : Box[Unit]
-
 
   /**
    * Agent frequency and start run
@@ -375,9 +376,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     case _ => SyslogUDP
   }
   private[this] implicit def toRelaySynchronisationMethod(p: RudderWebProperty): RelaySynchronizationMethod = p.value match {
-    case RsyncSynchronization.value    => RsyncSynchronization
-    case DisabledSynchronization.value => DisabledSynchronization
-    case _                             => ClassicSynchronization  // default is classic
+    case Rsync.value    => Rsync
+    case Disabled.value => Disabled
+    case _              => Classic  // default is classic
   }
   private[this] implicit def toString(p: RudderWebProperty): String = p.value
 
