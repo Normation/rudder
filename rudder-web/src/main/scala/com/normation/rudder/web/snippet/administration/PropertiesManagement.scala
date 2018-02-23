@@ -555,10 +555,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               def radioHtml(label:String) : NodeSeq = {
                 val inputId = label+"-id"
                 val ajaxCall = SHtml.ajaxCall(Str(""), _ => setRelaySyncMethodJs(label))._2.toJsCmd
-                val checked = relaySyncMethod.value == label
-                var inputCheck = checked match {
-                  case true  => <input id={inputId} type="radio" name="relaySync" onclick={ajaxCall} checked=""/>
-                  case false => <input id={inputId} type="radio" name="relaySync" onclick={ajaxCall} />
+                val inputCheck = if ( relaySyncMethod.value == label ) {
+                  <input id={inputId} type="radio" name="relaySync" onclick={ajaxCall} checked=""/>
+                } else {
+                  <input id={inputId} type="radio" name="relaySync" onclick={ajaxCall} />
                 }
                 <li class="rudder-form">
                   <div class="input-group">
