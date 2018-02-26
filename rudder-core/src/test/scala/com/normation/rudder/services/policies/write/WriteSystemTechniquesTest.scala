@@ -105,7 +105,7 @@ import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.inventory.domain.AgentType
-import com.normation.rudder.services.servers.ClassicSynchronization
+import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 
 
 /**
@@ -195,7 +195,7 @@ object TestSystemData {
     , getDenyBadClocks         = () => Full(true)
     , getSkipIdentify          = () => Full(false)
       // relay synchronisation method
-    , getSyncMethod            = () => Full(ClassicSynchronization)
+    , getSyncMethod            = () => Full(Classic)
     , getSyncPromises          = () => Full(false)
     , getSyncSharedFiles       = () => Full(false)
     // TTLs are runtime properties too
@@ -212,7 +212,6 @@ object TestSystemData {
     , systemVariableServiceSpec
     , new BuildBundleSequence(systemVariableServiceSpec, writeAllAgentSpecificFiles)
   )
-
 
   /*
    * We parametrize the output of file writing with a sub-directory name,
@@ -264,7 +263,6 @@ object TestSystemData {
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set up root node configuration
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
   //a test node - CFEngine
   val nodeId = NodeId("c8813416-316f-4307-9b6a-ca9c109a9fb0")
@@ -623,8 +621,6 @@ object TestSystemData {
   }
 
   //write a config
-
-
 
 }
 

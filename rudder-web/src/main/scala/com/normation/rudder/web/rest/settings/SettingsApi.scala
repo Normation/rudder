@@ -67,7 +67,8 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.json.JsonAST._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization._
-import com.normation.rudder.services.servers.{RelaySynchronizationMethod,ClassicSynchronization, RsyncSynchronization, DisabledSynchronization}
+import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.rudder.services.servers.RelaySynchronizationMethod
 
 trait SettingsApi extends RestAPI {
   val kind = "settings"
@@ -409,9 +410,9 @@ class SettingsAPI8(
     }
     def parseParam(param : String) = {
       param.toLowerCase() match {
-        case ClassicSynchronization.value  => Full(ClassicSynchronization)
-        case RsyncSynchronization.value    => Full(RsyncSynchronization)
-        case DisabledSynchronization.value => Full(DisabledSynchronization)
+        case Classic.value  => Full(Classic)
+        case Rsync.value    => Full(Rsync)
+        case Disabled.value => Full(Disabled)
         case _ => Failure(s"Invalid value '${param}' for relay server synchronization method")
       }
     }
