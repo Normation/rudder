@@ -69,7 +69,8 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.services.servers.{RelaySynchronizationMethod,ClassicSynchronization, RsyncSynchronization, DisabledSynchronization}
+import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.rudder.services.servers.RelaySynchronizationMethod
 
 
 class SettingsApi(
@@ -484,9 +485,9 @@ class SettingsApi(
     }
     def parseParam(param : String) = {
       param.toLowerCase() match {
-        case ClassicSynchronization.value  => Full(ClassicSynchronization)
-        case RsyncSynchronization.value    => Full(RsyncSynchronization)
-        case DisabledSynchronization.value => Full(DisabledSynchronization)
+        case Classic.value  => Full(Classic)
+        case Rsync.value    => Full(Rsync)
+        case Disabled.value => Full(Disabled)
         case _ => Failure(s"Invalid value '${param}' for relay server synchronization method")
       }
     }

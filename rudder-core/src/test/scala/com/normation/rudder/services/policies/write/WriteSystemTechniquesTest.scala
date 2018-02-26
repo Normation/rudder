@@ -70,7 +70,7 @@ import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.BoundPolicyDraft
-import com.normation.rudder.services.servers.ClassicSynchronization
+import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 
 
 /**
@@ -103,7 +103,6 @@ object TestSystemData {
     , systemVariableServiceSpec
     , new BuildBundleSequence(systemVariableServiceSpec, writeAllAgentSpecificFiles)
   )
-
 
   /*
    * We parametrize the output of file writing with a sub-directory name,
@@ -197,8 +196,6 @@ object TestSystemData {
   }
 
   //write a config
-
-
 
 }
 
