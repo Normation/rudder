@@ -59,7 +59,9 @@ import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
-import com.normation.rudder.services.servers.{RelaySynchronizationMethod,ClassicSynchronization, RsyncSynchronization, DisabledSynchronization}
+import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.rudder.services.servers.RelaySynchronizationMethod
+
 /**
  * This class manage the displaying of user configured properties.
  *
@@ -512,7 +514,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     var initRelaySyncSharedFiles = configService.relay_server_syncsharedfiles
 
     // form values
-    var relaySyncMethod = initRelaySyncMethod.getOrElse(ClassicSynchronization)
+    var relaySyncMethod = initRelaySyncMethod.getOrElse(Classic)
     var relaySyncPromises = initRelaySyncPromises.getOrElse(false)
     var relaySyncSharedFiles = initRelaySyncSharedFiles.getOrElse(false)
 
@@ -540,25 +542,30 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       check()
     }
 
-    def setRelaySyncMethodJs(t:String) : JsCmd = {
-
-      t.toLowerCase() match {
-        case ClassicSynchronization.value => relaySyncMethod = ClassicSynchronization ; JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """)
-        case RsyncSynchronization.value =>   relaySyncMethod = RsyncSynchronization   ; JsRaw(""" $('#relayRsyncSynchronizeFiles').show(); """)
-        case DisabledSynchronization.value =>relaySyncMethod = DisabledSynchronization; JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """)
+    def setRelaySyncMethodJs(input : String) : JsCmd = {
+      RelaySynchronizationMethod.parse(input) match {
+        case Full(method) =>
+          relaySyncMethod = method
+          method match {
+            case Rsync              => JsRaw(""" $('#relayRsyncSynchronizeFiles').show(); """)
+            case Classic | Disabled => JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """)
+          }
+        case eb : EmptyBox =>
+          Noop
       }
     }
     (
       "#relaySyncMethod" #> {
          initRelaySyncMethod match {
             case Full(value) =>
-              def radioHtml(label:String) : NodeSeq = {
+              def radioHtml(method:RelaySynchronizationMethod) : NodeSeq = {
+                val label = method.value
                 val inputId = label+"-id"
-                val ajaxCall = SHtml.ajaxCall(Str(""), _ => setRelaySyncMethodJs(label))._2.toJsCmd
-                val checked = relaySyncMethod.value == label
-                var inputCheck = checked match {
-                  case true  => <input id={inputId} type="radio" name="relaySync" onclick={ajaxCall} checked=""/>
-                  case false => <input id={inputId} type="radio" name="relaySync" onclick={ajaxCall} />
+                val ajaxCall = SHtml.ajaxCall(Str(""), _ => setRelaySyncMethodJs(label) & check )._2.toJsCmd
+                val inputCheck = if (initRelaySyncMethod == method) {
+                  <input id={inputId} type="radio" name="relaySync" onclick={ajaxCall} checked=""/>
+                } else {
+                  <input id={inputId} type="radio" name="relaySync" onclick={ajaxCall} />
                 }
                 <li class="rudder-form">
                   <div class="input-group">
@@ -576,7 +583,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                 </li>
               }
               <ul id="relaySyncMethod">{
-              Seq(ClassicSynchronization.value, RsyncSynchronization.value, DisabledSynchronization.value).map(radioHtml)
+              RelaySynchronizationMethod.all.map(radioHtml)
               }
               </ul>++ Script(OnLoad(setRelaySyncMethodJs(value.value)))
             case eb: EmptyBox =>
