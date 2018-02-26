@@ -21,9 +21,11 @@
 # @documentation This bundle will define a class `condition_from_command_${condition_prefix}_{kept,not_ok,ok,reached}`
 # depending on the exit codes given in parameters.
 #
-# If the exit code is in the `true_codes` list, this will produce a kept outcome class and a `${condition_prefix}_true` condition
-# If the exit code is in the `false_codes` list, this will produce a repaired outcome class and a `${condition_prefix}_false` condition
-# If the exit code is not in the list, this will produce an error outcome class and no classes with `${condition_prefix}`
+# This bundle will additionnaly produce a `${condition_prefix}_true` or a `${condition_prefix}_false` condition depending on the result on the command:
+#
+# * If the exit code is in the `true_codes` list, this will produce a kept outcome class and a `${condition_prefix}_true` condition
+# * If the exit code is in the `false_codes` list, this will produce a repaired outcome class and a `${condition_prefix}_false` condition
+# * If the exit code is not in the list, this will produce an error outcome class and no classes with `${condition_prefix}`
 #
 # The created condition (class in cfengine speaking) is global to the agent.
 # To make the condition specific to current technique instance (or directive), add ${class_prefix} within the condition prefix,
