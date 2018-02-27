@@ -158,7 +158,7 @@
 # prop2 -> value2
 # ```
 #
-# Note: Starting from CFEngine 3.7, you can use `{{#-top-}} ... {{/-top-}}`
+# Note: You can use `{{#-top-}} ... {{/-top-}}`
 # to iterate over the top level container.
 #
 # @agent_version >=3.6
