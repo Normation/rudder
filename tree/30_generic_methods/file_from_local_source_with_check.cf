@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name File copy from local source with check
+# @name File from local source with check
 # @description Ensure that a file or directory is copied from a local source if a check command succeeds
 # @documentation This method is a conditionnal file copy.
 #
@@ -28,7 +28,7 @@
 # 
 # ```
 # # To copy a configuration file only if it passes a config test:
-# file_copy_from_local_source_with_check("/tmp/program.conf", "/etc/program.conf", "program --config-test", "0");
+# file_from_local_source_with_check("/tmp/program.conf", "/etc/program.conf", "program --config-test", "0");
 # ```
 #
 # This will:
@@ -44,13 +44,13 @@
 # @parameter rc_ok       Return codes to be considered as valid, separated by a comma (default is 0)
 # @parameter_constraint  rc_ok "allow_empty_string" : true
 # 
-# @class_prefix file_copy_from_local_source_with_check
+# @class_prefix file_from_local_source_with_check
 # @class_parameter destination
 
-bundle agent file_copy_from_local_source_with_check(source, destination, check_command, rc_ok)
+bundle agent file_from_local_source_with_check(source, destination, check_command, rc_ok)
 {
   vars:
-      "old_class_prefix" string => canonify("file_copy_from_local_source_with_check_${destination}");
+      "old_class_prefix" string => canonify("file_from_local_source_with_check_${destination}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${source}", "${destination}", "${check_command}" };
@@ -64,23 +64,23 @@ bundle agent file_copy_from_local_source_with_check(source, destination, check_c
       "copy_needed" not => returnszero("${paths.path[diff]} \"${source}\" \"${destination}\"", "useshell");
 
   methods:
-      "check"  usebundle => condition_from_command("file_copy_from_local_source_with_check_${canonified_file}_check", "${check_command} \"${source}\"", "${rc_ok}", "999"),
+      "check"  usebundle => condition_from_command("file_from_local_source_with_check_${canonified_file}_check", "${check_command} \"${source}\"", "${rc_ok}", "999"),
               ifvarclass => "copy_needed";
-      "copy"   usebundle => file_copy_from_local_source("${source}", "${destination}"),
-              ifvarclass => "file_copy_from_local_source_with_check_${canonified_file}_check_true";
+      "copy"   usebundle => file_from_local_source("${source}", "${destination}"),
+              ifvarclass => "file_from_local_source_with_check_${canonified_file}_check_true";
 
       "result" usebundle => _classes_success("${old_class_prefix}"),
               ifvarclass => "!copy_needed";
       "result" usebundle => _classes_failure("${old_class_prefix}"),
-                            # here we are not using file_copy_from_local_source_with_check_${canonified_file}_check_false as we want to allow any return code
+                            # here we are not using file_from_local_source_with_check_${canonified_file}_check_false as we want to allow any return code
                             # which is different from rc_ok as failure.
-              ifvarclass => "condition_from_command_file_copy_from_local_source_with_check_${canonified_file}_check_failed";
-      "result" usebundle => _classes_copy("file_copy_from_local_source_${canonified_file}", "${old_class_prefix}"),
-              ifvarclass => "file_copy_from_local_source_with_check_${canonified_file}_check_true";
+              ifvarclass => "condition_from_command_file_from_local_source_with_check_${canonified_file}_check_failed";
+      "result" usebundle => _classes_copy("file_from_local_source_${canonified_file}", "${old_class_prefix}"),
+              ifvarclass => "file_from_local_source_with_check_${canonified_file}_check_true";
 
 
       "report" usebundle => _log("Copying ${destination} from ${source} with check", "${old_class_prefix}", "${class_prefix}", @{args}),
-              ifvarclass => "!condition_from_command_file_copy_from_local_source_with_check_${canonified_file}_check_failed";
+              ifvarclass => "!condition_from_command_file_from_local_source_with_check_${canonified_file}_check_failed";
       "report" usebundle => _log("Copying ${destination} from ${source} failed at check command", "${old_class_prefix}", "${class_prefix}", @{args}),
-              ifvarclass => "condition_from_command_file_copy_from_local_source_with_check_${canonified_file}_check_failed";
+              ifvarclass => "condition_from_command_file_from_local_source_with_check_${canonified_file}_check_failed";
 }
