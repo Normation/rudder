@@ -17,6 +17,8 @@
 #####################################################################################
 
 # @name File copy from local source recurse
+# @rename file_from_local_source_recursion
+# @deprecated Use [file_from_local_source_recursion](#file_from_local_source_recursion) instead.
 # @description Ensure that a file or directory is copied from a local source
 #
 # @parameter source      Source file (absolute path on the target node)
@@ -33,38 +35,13 @@ bundle agent file_copy_from_local_source_recursion(source, destination, recursio
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${source}", "${destination}", "${recursion}" };
-
-  classes:
-      # depth_search prevents from copying file/symlink
-      # so we need to detect if we want to copy a folder or a file
-      # If we check if it is a file, the class will always be true
-      # event if was in fact a directory. Then, we test if it is a dir.
-      "is_dir_copy"  expression => isdir("${destination}");
-      # We won't be able to know if it is really a directory
-      # or not before the first iteration
-      "iteration_2"  expression => "iteration_1";
-      "iteration_1"  expression => "any";
-
-  files:
-   !is_dir_copy::
-      "${destination}"
-        copy_from    => ncf_local_cp_method("${source}", "digest"),
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
-
-   is_dir_copy::
-      "${destination}"
-        copy_from    => ncf_local_cp_method("${source}", "digest"),
-        depth_search => recurse("${recursion}"),
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+      "canonified_file"    string => canonify("${destination}");
 
   methods:
-    # The reports should only be made after we know if this is a
-    # directory (to apply recursion) or a file
-    iteration_2.!is_dir_copy::
-      "report"
-        usebundle  => _log("Copying ${destination} from ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
-
-    iteration_2.is_dir_copy::
-      "report"
-        usebundle  => _log("Copying ${destination} from ${source}, recursion level ${recursion}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "action"             usebundle => file_from_local_source_recursion("${source}", "${destination}", "${recursion}");
+    "class copy"         usebundle => _classes_copy("file_from_local_source_${canonified_file}", "${old_class_prefix}"),
+                         ifvarclass => "file_from_local_source_${canonified_file}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report"             usebundle  => _log("Copying ${destination} from ${source}, recursion level ${recursion}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

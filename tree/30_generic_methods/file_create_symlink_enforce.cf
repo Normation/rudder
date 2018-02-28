@@ -17,6 +17,8 @@
 #####################################################################################
 
 # @name Create symlink (optional overwriting)
+# @rename file_symlink_present_option
+# @deprecated Use [file_symlink_present_option](#file_symlink_present_option) instead.
 # @description Create a symlink at a destination path and pointing to a source target. This is also possible to enforce its creation
 #
 # @parameter source      Source file (absolute path on the target node)
@@ -33,15 +35,13 @@ bundle agent file_create_symlink_enforce(source, destination, enforce)
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${source}", "${destination}", "${enforce}" };
-
-  files:
-   # Symlink
-      "${destination}"
-                    link_from         => ln_s("${source}"),
-                    move_obstructions => "${enforce}",
-                    classes           => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                    comment           => "Create the ${destination} symlink pointing to ${source}";
+      "canonified_file"    string => canonify("${destination}");
 
   methods:
-      "report" usebundle => _log("Symlink ${destination} targeting ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "action"             usebundle => file_symlink_present_option("${source}", "${destination}", "${enforce}");
+    "class copy"         usebundle => _classes_copy("file_symlink_present_${canonified_file}", "${old_class_prefix}"),
+                         ifvarclass => "file_symlink_present_${canonified_file}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report" usebundle => _log("Symlink ${destination} targeting ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

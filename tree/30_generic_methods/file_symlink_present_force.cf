@@ -16,18 +16,16 @@
 #
 #####################################################################################
 
-# @name Create symlink
-# @rename file_symlink_present
-# @deprecated Use [file_symlink_present](#file_symlink_present) instead.
-# @description Create a symlink at a destination path and pointing to a source target except if a file or directory already exists.
+# @name Symlink present (force overwrite)
+# @description Create a symlink at a destination path and pointing to a source target even if a file or directory already exists.
 #
 # @parameter source      Source file (absolute path on the target node)
 # @parameter destination Destination file (absolute path on the target node)
 # 
-# @class_prefix file_create_symlink
+# @class_prefix file_symlink_present
 # @class_parameter destination
 
-bundle agent file_create_symlink(source, destination)
+bundle agent file_symlink_present_force(source, destination)
 {
   vars:
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
@@ -35,8 +33,8 @@ bundle agent file_create_symlink(source, destination)
       "args"              slist => { "${source}", "${destination}" };
 
   methods:
-      "create without enforce" usebundle => file_create_symlink_enforce("${source}", "${destination}", "false");
-      "new result classes"     usebundle => _classes_copy("${class_prefix}_create_without_enforce", "${class_prefix}");
+      "create with enforce"  usebundle => file_symlink_present_option("${source}", "${destination}", "true");
+      "new result classes"   usebundle => _classes_copy("${class_prefix}_create_with_enforce", "${class_prefix}");
 
-      "report"                 usebundle => _log("Symlink ${destination} targeting ${source}", "", "${class_prefix}", @{args});
+      "report"               usebundle => _log("Symlink ${destination} targeting ${source}", "", "${class_prefix}", @{args});
 }

@@ -17,6 +17,8 @@
 #####################################################################################
 
 # @name File ensure lines absent
+# @rename file_lines_absent
+# @deprecated Use [file_lines_absent](#file_lines_absent) instead.
 # @description Ensure that a line is absent in a specific location
 #
 # @parameter file File name to edit (absolute path on the target node)
@@ -32,16 +34,13 @@ bundle agent file_ensure_lines_absent(file, lines)
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${lines}" };
-
-  files:
-      "${file}"
-        create        => "false",
-        edit_line     => delete_lines_matching("${lines}"),
-        edit_defaults => ncf_empty_select("false"),
-        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+      "canonified_file"    string => canonify("${file}");
 
   methods:
-      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log("Ensure line(s) '${lines}' absent from ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "action"             usebundle => file_lines_absent("${file}", "${lines}");
+    "class copy"         usebundle => _classes_copy("file_lines_absent_${canonified_file}", "${old_class_prefix}"),
+                         ifvarclass => "file_lines_absent_${canonified_file}_reached";
+    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                         ifvarclass => "${class_prefix}_action_reached";
+    "report"   usebundle => _log("Ensure line(s) '${lines}' absent from ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

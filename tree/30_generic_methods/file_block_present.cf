@@ -16,31 +16,32 @@
 #
 #####################################################################################
 
-# @name File ensure block present
-# @rename file_block_present
-# @deprecated Use [file_block_present](#file_block_present) instead.
+# @name File block present
 # @description Ensure that a text block is present in a specific location
 #
 # @parameter file File name to edit (absolute path on the target node)
 # @parameter block Block(s) to add in the file
 #
-# @class_prefix file_ensure_block_present
+# @class_prefix file_block_present
 # @class_parameter file
 
-bundle agent file_ensure_block_present(file, block)
+bundle agent file_block_present(file, block)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_block_present_${file}");
+      "old_class_prefix" string => canonify("file_block_present_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${block}" };
-      "canonified_file"    string => canonify("${file}");
+
+  files:
+      "${file}"
+        create        => "true",
+        edit_line     => ncf_insert_block("${block}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "action"             usebundle => file_block_present("${file}", "${block}");
-    "class copy"         usebundle => _classes_copy("file_block_present_${canonified_file}", "${old_class_prefix}"),
-                         ifvarclass => "file_block_present_${canonified_file}_reached";
-    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                         ifvarclass => "${class_prefix}_action_reached";
-    "report" usebundle => _log("Insert text block ${block} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
+      "report" usebundle => _log("Insert text block ${block} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

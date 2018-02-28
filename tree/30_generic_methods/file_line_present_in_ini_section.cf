@@ -16,32 +16,49 @@
 #
 #####################################################################################
 
-# @name File ensure line in INI section
-# @rename file_line_present_in_ini_section
-# @deprecated Use [file_line_present_in_ini_section](#file_line_present_in_ini_section) instead.
+# @name File line in INI section
 # @description Ensure that a line is present in a section in a specific location. The objective of this method is to handle INI-style files.
 #
 # @parameter file File name to edit (absolute path on the target node)
 # @parameter section Name of the INI-style section under which lines should be added (not including the [] brackets)
 # @parameter line Line to ensure is present inside the section
 #
-# @class_prefix file_ensure_line_present_in_ini_section
+# @class_prefix file_line_present_in_ini_section
 # @class_parameter file
 
-bundle agent file_ensure_line_present_in_ini_section(file, section, line)
+bundle agent file_line_present_in_ini_section(file, section, line)
 {
   vars:
-      "old_class_prefix"       string => canonify("file_ensure_line_present_in_ini_section_${file}");
+      "old_class_prefix"       string => canonify("file_line_present_in_ini_section_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"                    slist => { "${file}", "${section}", "${line}" };
-      "canonified_file"    string => canonify("${file}");
+      "section_and_blank_line" string => "[${section}]
+";
+
+  classes:
+      # Check if the section exist: if not, a class will be raised to add it with a blank line.
+      "section_absent"  not => regline("^\[${section}\]$","${file}");
+
+  files:
+      # If the section is not present in the file, firstly it will be added
+      # with a blank line in order to be catched for the lines to add after it.
+      "${file}"
+        create        => "true",
+        edit_line     => ncf_insert_block("${section_and_blank_line}"),
+        edit_defaults => ncf_empty_select("false"),
+        ifvarclass    => "section_absent",
+        comment       => "Add section to file with a blank line";
+
+      # Add the missing lines after the section.
+      "${file}"
+        create        => "true",
+        edit_line     => ensure_line_in_ini_section("${section}", "${line}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "action"             usebundle => file_line_present_in_ini_section("${file}", "${tag}", "${line}");
-    "class copy"         usebundle => _classes_copy("file_line_present_in_ini_section_${canonified_file}", "${old_class_prefix}"),
-                         ifvarclass => "file_line_present_in_ini_section_${canonified_file}_reached";
-    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                         ifvarclass => "${class_prefix}_action_reached";
-    "report"   usebundle => _log("Insert line(s) ${line} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
+      "report"   usebundle => _log("Insert line(s) ${line} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

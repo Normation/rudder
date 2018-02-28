@@ -51,7 +51,7 @@ JAVA_OPTS=\\\"-Djava.awt.headless=true -Xmx1024m\\\"";
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_ensure_keys_values("${init.file}", "init.keys", "${init.separator}");
+    "ph1" usebundle => file_keys_values_present("${init.file}", "init.keys", "${init.separator}");
 }
 
 #######################################################
@@ -65,9 +65,9 @@ bundle agent check
   classes:
     "file_correct" 
        expression => returnszero("${file_diff_test}", "noshell"),
-       ifvarclass => canonify("file_ensure_keys_values_${init.file}_reached");
+       ifvarclass => canonify("file_keys_values_present_${init.file}_reached");
 
-    "ok"          expression => "file_correct.file_ensure_keys_values_${init.file_canon}_ok.!file_ensure_keys_values_${init.file_canon}_not_ok";
+    "ok"          expression => "file_correct.file_keys_values_present_${init.file_canon}_ok.!file_keys_values_present_${init.file_canon}_not_ok";
 
   reports:
     ok::

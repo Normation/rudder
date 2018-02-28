@@ -17,8 +17,6 @@
 #####################################################################################
 
 # @name File copy from remote source
-# @rename file_from_remote_source
-# @deprecated Use [file_from_remote_source](#file_from_remote_source) instead.
 # @description Ensure that a file or directory is copied from a policy server
 # @documentation *Note*: This method uses CFEngine file copy protocol, and can only download files from
 # the policy server. To download a file from an external source, you can use

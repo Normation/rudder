@@ -16,31 +16,27 @@
 #
 #####################################################################################
 
-# @name File create
-# @rename file_present
-# @deprecated Use [file_present](#file_present) instead.
+# @name Presence of a file
 # @description Create a file if it doesn't exist
 #
 # @parameter target     File to create (absolute path on the target node)
 #
-# @class_prefix file_create
+# @class_prefix file_present
 # @class_parameter target
 
-bundle agent file_create(target)
+bundle agent file_present(target)
 {
   vars:
-    "old_class_prefix" string => canonify("file_create_${target}");
+    "old_class_prefix" string => canonify("file_present_${target}");
     "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"              slist => { "${target}" };
-    "canonified_file"    string => canonify("${target}");
 
+  files:
+    "${target}"
+      create        => "true",
+      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "action"             usebundle => file_present("${target}");
-    "class copy"         usebundle => _classes_copy("file_present_${canonified_file}", "${old_class_prefix}"),
-                         ifvarclass => "file_present_${canonified_file}_reached";
-    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                         ifvarclass => "${class_prefix}_action_reached";
     "report" usebundle => _log("Presence of file ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

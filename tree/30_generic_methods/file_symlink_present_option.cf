@@ -16,27 +16,32 @@
 #
 #####################################################################################
 
-# @name Create symlink
-# @rename file_symlink_present
-# @deprecated Use [file_symlink_present](#file_symlink_present) instead.
-# @description Create a symlink at a destination path and pointing to a source target except if a file or directory already exists.
+# @name Symlink present (optional overwriting)
+# @description Create a symlink at a destination path and pointing to a source target. This is also possible to enforce its creation
 #
 # @parameter source      Source file (absolute path on the target node)
-# @parameter destination Destination file (absolute path on the target node)
+# @parameter destination Destination file (absolute path on the target node)
+# @parameter enforce     Force symlink if file already exist (true or false)
 # 
-# @class_prefix file_create_symlink
+# @class_prefix file_symlink_present
 # @class_parameter destination
 
-bundle agent file_create_symlink(source, destination)
+bundle agent file_symlink_present_option(source, destination, enforce)
 {
   vars:
+      "old_class_prefix" string => canonify("file_symlink_present_${destination}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"              slist => { "${source}", "${destination}" };
+      "args"              slist => { "${source}", "${destination}", "${enforce}" };
+
+  files:
+   # Symlink
+      "${destination}"
+                    link_from         => ln_s("${source}"),
+                    move_obstructions => "${enforce}",
+                    classes           => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                    comment           => "Create the ${destination} symlink pointing to ${source}";
 
   methods:
-      "create without enforce" usebundle => file_create_symlink_enforce("${source}", "${destination}", "false");
-      "new result classes"     usebundle => _classes_copy("${class_prefix}_create_without_enforce", "${class_prefix}");
-
-      "report"                 usebundle => _log("Symlink ${destination} targeting ${source}", "", "${class_prefix}", @{args});
+      "report" usebundle => _log("Symlink ${destination} targeting ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

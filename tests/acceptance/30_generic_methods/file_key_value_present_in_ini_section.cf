@@ -95,9 +95,9 @@ ${name_3}=${new_value_3}";
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_ensure_key_value_present_in_ini_section("${init.file_1}", "${init.section_1}", "${init.name_1}", "${init.value_1}");
-    "ph2" usebundle => file_ensure_key_value_present_in_ini_section("${init.file_2}", "${init.section_2}", "${init.name_2}", "${init.value_2}");
-    "ph3" usebundle => file_ensure_key_value_present_in_ini_section("${init.file_3}", "${init.section_3}", "${init.name_3}", "${init.new_value_3}");
+    "ph1" usebundle => file_key_value_present_in_ini_section("${init.file_1}", "${init.section_1}", "${init.name_1}", "${init.value_1}");
+    "ph2" usebundle => file_key_value_present_in_ini_section("${init.file_2}", "${init.section_2}", "${init.name_2}", "${init.value_2}");
+    "ph3" usebundle => file_key_value_present_in_ini_section("${init.file_3}", "${init.section_3}", "${init.name_3}", "${init.new_value_3}");
 }
 
 #######################################################
@@ -106,7 +106,7 @@ bundle agent check
 {
   vars:
     # Commands to check that reference files (expected result) are the same
-    # than the modified files by the generic_method 'file_ensure_key_value_present_in_ini_section'
+    # than the modified files by the generic_method 'file_key_value_present_in_ini_section'
     "line_1_exists_test" string => "/usr/bin/diff \"${init.reference_file_1}\" \"${init.file_1}\"";
     "line_2_exists_test" string => "/usr/bin/diff \"${init.reference_file_2}\" \"${init.file_2}\"";
     "line_3_exists_test" string => "/usr/bin/diff \"${init.reference_file_3}\" \"${init.file_3}\"";
@@ -114,17 +114,17 @@ bundle agent check
   classes:
     "line_1_exists"
        expression => returnszero("${line_1_exists_test}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_present_in_ini_section_${init.file_1}_reached");
+       ifvarclass => canonify("file_key_value_present_in_ini_section_${init.file_1}_reached");
     "line_2_exists"
        expression => returnszero("${line_2_exists_test}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_present_in_ini_section_${init.file_2}_reached");
+       ifvarclass => canonify("file_key_value_present_in_ini_section_${init.file_2}_reached");
     "line_3_exists"
        expression => returnszero("${line_3_exists_test}", "noshell"),
-       ifvarclass => canonify("file_ensure_key_value_present_in_ini_section_${init.file_3}_reached");
+       ifvarclass => canonify("file_key_value_present_in_ini_section_${init.file_3}_reached");
 
-    "ok_test1"    expression => "line_1_exists.file_ensure_key_value_present_in_ini_section_${init.file_1_canon}_ok.!file_1_ensure_line_present_in_ini_section_${init.file_1_canon}_error";
-    "ok_test2"    expression => "line_2_exists.file_ensure_key_value_present_in_ini_section_${init.file_2_canon}_ok.!file_2_ensure_line_present_in_ini_section_${init.file_2_canon}_error";
-    "ok_test3"    expression => "line_3_exists.file_ensure_key_value_present_in_ini_section_${init.file_3_canon}_ok.!file_3_ensure_line_present_in_ini_section_${init.file_3_canon}_error";
+    "ok_test1"    expression => "line_1_exists.file_key_value_present_in_ini_section_${init.file_1_canon}_ok.!file_1_line_present_in_ini_section_${init.file_1_canon}_error";
+    "ok_test2"    expression => "line_2_exists.file_key_value_present_in_ini_section_${init.file_2_canon}_ok.!file_2_line_present_in_ini_section_${init.file_2_canon}_error";
+    "ok_test3"    expression => "line_3_exists.file_key_value_present_in_ini_section_${init.file_3_canon}_ok.!file_3_line_present_in_ini_section_${init.file_3_canon}_error";
     "ok"          and => {"ok_test1","ok_test2","ok_test3"};
 
   reports:

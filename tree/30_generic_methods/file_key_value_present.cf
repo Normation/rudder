@@ -16,9 +16,7 @@
 #
 #####################################################################################
 
-# @name File ensure key -> value present
-# @rename file_key_value_present
-# @deprecated Use [file_key_value_present](#file_key_value_present) instead.
+# @name File key-value present
 # @description Ensure that the file contains a pair of "key separator value"
 # @documentation Edit (or create) the file, and ensure it contains an entry key -> value with arbitrary separator between the key and its value.
 # If the key is already present, the method will change the value associated with this key.
@@ -29,11 +27,11 @@
 # @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
 # @parameter_constraint separator "allow_whitespace_string" : true
 #
-# @class_prefix file_ensure_key_value
+# @class_prefix file_key_value_present
 # @class_parameter file
 
-bundle agent file_ensure_key_value(file, key, value, separator)
+bundle agent file_key_value_present(file, key, value, separator)
 {
   methods:
-      "action" usebundle => file_ensure_key_value_option("${file}", "${key}", "${value}", "${separator}", "lax");
+      "action" usebundle => file_key_value_present_option("${file}", "${key}", "${value}", "${separator}", "lax");
 }

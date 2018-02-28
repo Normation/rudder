@@ -16,9 +16,7 @@
 #
 #####################################################################################
 
-# @name File ensure keys -> values present
-# @rename file_keys_values_present
-# @deprecated Use [file_keys_values_present](#file_keys_values_present) instead.
+# @name File keys-values present
 # @description Ensure that the file contains all pairs of "key separator value", with arbitrary separator between each key and its value
 # @documentation This method ensures key-value pairs are present in a file.
 # 
@@ -78,23 +76,26 @@
 # @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
 # @parameter_constraint separator "allow_whitespace_string" : true 
 #
-# @class_prefix file_ensure_keys_values
+# @class_prefix file_keys_values_present
 # @class_parameter file
 
-bundle agent file_ensure_keys_values(file, keys, separator)
+bundle agent file_keys_values_present(file, keys, separator)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_keys_values_${file}");
+      "old_class_prefix" string => canonify("file_keys_values_present_${file}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${keys}", "${separator}" };
-      "canonified_file"    string => canonify("${file}");
+
+  files:
+      "${file}"
+        create        => "true",
+        edit_line     => ncf_maintain_keys_values("${keys}", "${separator}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "action"             usebundle => file_keys_values_present("${file}", "${keys}", "${separator}");
-    "class copy"         usebundle => _classes_copy("file_keys_values_present_${canonified_file}", "${old_class_prefix}"),
-                         ifvarclass => "file_keys_values_present_${canonified_file}_reached";
-    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                         ifvarclass => "${class_prefix}_action_reached";
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
       "report"   usebundle => _log("Ensure lines in format key${separator}values into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
