@@ -11,11 +11,11 @@
 
 # Correct all file permissions
 
-/bin/chmod -R u-x,u+rwX,g-w,g+rx,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}"
+/bin/chmod -R u-x,u+rwX,g-wx,g+rX,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}"
 r1=$?
 /bin/chgrp -R rudder-policy-reader "${RUDDER_POLICIES_DIRECTORY_NEW}"
 r2=$?
-/bin/chmod u-x,u+rwX,g-w,g+rx,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
+/bin/chmod u-x,u+rwX,g-wx,g+rX,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
 r3=$?
 /bin/chgrp rudder-policy-reader "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
 r4=$?
