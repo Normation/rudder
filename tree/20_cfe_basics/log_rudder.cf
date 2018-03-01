@@ -100,7 +100,7 @@ bundle agent _rudder_common_report(technique_name, status, identifier, component
 bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)
 {
 
-  class:
+  classes:
       "report" expression => "${report_data.should_report}";
 
   methods:
