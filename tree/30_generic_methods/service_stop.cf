@@ -39,7 +39,7 @@ bundle agent service_stop(service_name)
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"                     slist => { "${service_name}" };
 
-  class:
+  classes:
 
     "is_inner_method" expression => "!${report_data.should_report}";
 
