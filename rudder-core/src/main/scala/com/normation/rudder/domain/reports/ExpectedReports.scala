@@ -70,6 +70,7 @@ final case class NodeModeConfig(
   , nodePolicyMode      : Option[PolicyMode]
 )
 
+
 final case class NodeExpectedReports(
     nodeId             : NodeId
   , nodeConfigId       : NodeConfigId
@@ -89,7 +90,7 @@ final case class NodeExpectedReports(
   def agentRun: ResolvedAgentRunInterval = {
     if (nodeId == Constants.ROOT_POLICY_SERVER_ID) {
       //special case. The root policy server always run each 5 minutes
-      ResolvedAgentRunInterval(Duration.standardMinutes(5), 1)
+      ResolvedAgentRunInterval.defaultAgentRun
     } else {
       val run: Int = modes.nodeAgentRun.flatMap(x =>
           if (x.overrides.getOrElse(false)) Some(x.interval) else None

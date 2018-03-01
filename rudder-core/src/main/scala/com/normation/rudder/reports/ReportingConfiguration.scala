@@ -90,8 +90,16 @@ extends HashcodeCaching {
   }
 }
 
-final case class ResolvedAgentRunInterval(
-  interval: Duration, heartbeatPeriod: Int)
+final case class ResolvedAgentRunInterval(interval: Duration, heartbeatPeriod: Int)
+
+object ResolvedAgentRunInterval {
+
+  /**
+  * Default agent run duration, used for policy servers and for
+  * initial policies
+  */
+  def defaultAgentRun = ResolvedAgentRunInterval(Duration.standardMinutes(5), 1)
+}
 
 trait AgentRunIntervalService {
   def getGlobalAgentRun(): Box[AgentRunInterval]
