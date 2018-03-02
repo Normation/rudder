@@ -161,7 +161,7 @@ class NodeGroupForm(
                     </div>
       & "group-cfeclasses" #> <div class="form-group row">
                         <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300);$$(this).toggleClass('open');return false;"} class="toggle-caret">
-                          <label class="wbBaseFieldLabel">Display agent classes</label>
+                          <label class="wbBaseFieldLabel">Display agent conditions</label>
                           <span class="caret"></span>
                         </a>
                         <div class="well row" style="display: none" id={s"cfe-${nodeGroup.id.value}"}>
