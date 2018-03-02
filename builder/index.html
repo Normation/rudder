@@ -251,9 +251,11 @@
                                 <div class="col-sm-8">{{selectedTechnique.version}}</div>
                             </div>
                         </accordion-group>
-                        <accordion-group>
+                    </accordion>
+                    <accordion>
+                        <accordion-group ng-init="parameter_open = true" is-open="parameter_open">
                           <accordion-heading>
-                            <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
+                            <i class="glyphicon" ng-class="{'glyphicon-chevron-down': parameter_open, 'glyphicon-chevron-right': !parameter_open}"></i>
                             Parameters
                           </accordion-heading>
                           <div class="col-sm-12 no-padding-right">
