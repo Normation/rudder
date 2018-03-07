@@ -330,35 +330,54 @@ class TechniqueParser(
 
   /* parse RUNHOOKS xml node, which look like that:
     <RUNHOOKS>
-      <PRE name="package">
-        <PARAMETER name="package" value="vim"/>
+      <PRE bundle="runhook_package" >
+        <REPORT name="check_visudo_installed" value="ok"/> // value optionnal, if missing => "None"
+        <PARAMETER name="package" value="visudo"/>
+        <PARAMETER name="condition" value="debian"/>
+        ... more parameters ...
       </PRE>
-      <POST name="servive" if="debian">
+      <POST bundle="servive">
+        <REPORT name="something"/>
         <PARAMETER name="service" value="some value"/>
         <PARAMETER name="a post command">/something/that/is/complicated "with" 'all sort of quote'</PARAMETER>
       </POST>
     </RUNHOOKS>
   */
   def parseRunHooks(id: TechniqueId, xml: Node): List[RunHook] = {
+    def parseHookException(msg: String) = {
+      throw new ParsingException(s"Error: in technique '${id.toString()}', tried to parse a <${RUN_HOOKS}> xml, but "+ msg)
+    }
     def parseOneHook(xml: Node, kind: RunHook.Kind): RunHook = {
       def opt(s: String) = if(s == null || s == "") None else Some(s)
 
-      (xml \ "@name").text match {
-        case null | "" => throw new ParsingException(s"Error: in technique '${id.toString()}', tried to parse a run hooks, but attribute 'name' is missing in: ${xml}")
-        case name      =>
-          RunHook(name, kind, (xml \ "@condition").text, (xml \\ "PARAMETER").toList.flatMap(p =>
-            for {
-              pname  <- opt((p \ "@name" ).text)
-                        // for value, look first for <PARAMETER ... value="pvalue"/> and then <PARAMETER>pvalue</PARAMETER>
-              pvalue <- opt((p \ "@value").text) orElse opt(p.text)
-            } yield {
-              RunHook.Parameter(pname, pvalue)
-            }
+      (for {
+        bundle <- Box(opt((xml \ "@bundle").text)) ?~! s"attribute 'bundle' is missing in: ${xml}"
+        report <- Box((xml \\ "REPORT").toList.flatMap(r =>
+                    for {
+                      rname <- opt((r \ "@name").text)
+                    } yield {
+                      RunHook.Report(rname, opt((r \ "@value").text))
+                    }
+                  ).headOption) ?~! s"child node 'REPORT' is missing in: ${xml}"
+      } yield {
+        RunHook(bundle, kind, report, (xml \\ "PARAMETER").toList.flatMap(p =>
+          for {
+            pname  <- opt((p \ "@name" ).text)
+                      // for value, look first for <PARAMETER ... value="pvalue"/> and then <PARAMETER>pvalue</PARAMETER>
+            pvalue <- opt((p \ "@value").text) orElse opt(p.text)
+          } yield {
+            RunHook.Parameter(pname, pvalue)
+          }
          ))
+      }) match {
+        case Full(x)     => x
+        case eb:EmptyBox =>
+          val msg = (eb ?~! "XML is invalid: ").messageChain
+          parseHookException(msg)
       }
     }
 
-    if(xml.label != RUN_HOOKS) throw new ParsingException(s"Error: in technique '${id.toString()}', tried to parse a <${RUN_HOOKS}> xml, but actually got: ${xml}")
+    if(xml.label != RUN_HOOKS) parseHookException(s"actually got: ${xml}")
 
     // parse each direct children, but only proceed with PRE and POST. And the are parsed the same
     xml.child.toList.flatMap( c => c.label match {
