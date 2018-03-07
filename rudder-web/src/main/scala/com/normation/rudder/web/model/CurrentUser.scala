@@ -44,7 +44,7 @@ import bootstrap.liftweb.RudderUserDetail
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.service.user.User
 import com.normation.rudder.Rights
-import com.normation.rudder.api.ApiAcl
+import com.normation.rudder.api.{ApiAclElement, ApiAuthorization}
 
 /**
  * An utility class that get the currently logged user
@@ -83,9 +83,9 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]] ({
     }
   }
 
-  def getApiAcl: ApiAcl = {
+  def getApiAutz: ApiAuthorization = {
     this.get match {
-      case None    => ApiAcl.noAuthz
+      case None    => ApiAuthorization.None
       case Some(u) => u.apiAuthz
     }
   }

@@ -58,10 +58,7 @@ import net.liftweb.common._
 import Box.{tryo => _, _}
 import net.liftweb.util.Helpers._
 import net.liftweb.json.JsonAST.JObject
-import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.api.ApiAccountId
-import com.normation.rudder.api.ApiAccountName
-import com.normation.rudder.api.ApiToken
+import com.normation.rudder.api._
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
@@ -93,11 +90,6 @@ import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
 
 import scala.language.implicitConversions
-import com.normation.rudder.api.ApiAcl
-import com.normation.rudder.api.ApiAuthz
-import com.normation.rudder.api.AclPath
-import com.normation.rudder.api.HttpAction
-import com.normation.rudder.api.ApiAccountKind
 
 final object NodeStateEncoder {
   implicit def enc(state: NodeState): String = state.name
@@ -789,16 +781,16 @@ class LDAPEntityMapper(
 
   //////////////////////////////    API Accounts    //////////////////////////////
 
-  def serApiAcl(authz: ApiAcl): String = {
+  def serApiAcl(authz: List[ApiAclElement]): String = {
     import net.liftweb.json._
     import net.liftweb.json.Serialization._
     implicit val formats = Serialization.formats(NoTypeHints)
-    val toSerialize = JsonApiAcl(acl = authz.acl.map(a =>
+    val toSerialize = JsonApiAcl(acl = authz.map(a =>
       JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))
     ))
     write[JsonApiAcl](toSerialize)
   }
-  def unserApiAuthz(s: String): Either[String, ApiAcl] = {
+  def unserApiAuthz(s: String): Either[String, List[ApiAclElement]] = {
     import cats.implicits._
     import net.liftweb.json._
     implicit val formats = net.liftweb.json.DefaultFormats
@@ -810,11 +802,11 @@ class LDAPEntityMapper(
                      p <- AclPath.parse(path)
                      a <- actions.traverse(HttpAction.parse)
                    } yield {
-                     ApiAuthz(p, a.toSet)
+                     ApiAclElement(p, a.toSet)
                    }
                  }
     } yield {
-      ApiAcl(acl)
+      acl
     }
   }
 
@@ -835,21 +827,57 @@ class LDAPEntityMapper(
         description = e(A_DESCRIPTION).getOrElse("")
         // expiration date is optionnal
         expirationDate = e.getAsGTime(A_API_EXPIRATION_DATETIME)
-        //api authz are not optionnal, but may be missing for Rudder < 4.3 migration
+        //api authz kind/acl are not optionnal, but may be missing for Rudder < 4.3 migration
         //in that case, use the defaultACL
-        acl <- e(A_API_ACL) match {
-          case None    => Full(ApiAcl.noAuthz) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
-          case Some(s) => unserApiAuthz(s) match {
-            case Right(x)  => Full(x)
-            case Left(msg) => Failure(msg)
+        authz <- e(A_API_AUTHZ_KIND) match {
+                   case None    =>
+                     logger.warn(s"Missing API authorizations level kind for token '${name.value}' with id '${id.value}'")
+                     Full(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
+                   case Some(s) => ApiAuthorizationKind.parse(s) match {
+                     case Left(error) => Failure(error)
+                     case Right(kind) => kind match {
+                       case ApiAuthorizationKind.ACL =>
+                         //parse acl
+                         e(A_API_ACL) match {
+                           case None    =>
+                             logger.debug(s"API authorizations level kind for token '${name.value}' with id '${id.value}' is 'ACL' but it doesn't have any ACLs conigured")
+                             Full(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
+                           case Some(s) => unserApiAuthz(s) match {
+                             case Right(x)  => Full(ApiAuthorization.ACL(x))
+                             case Left(msg) => Failure(msg)
+                           }
+                         }
+                       case ApiAuthorizationKind.None => Full(ApiAuthorization.None)
+                       case ApiAuthorizationKind.RO   => Full(ApiAuthorization.RO  )
+                       case ApiAuthorizationKind.RW   => Full(ApiAuthorization.RW  )
+                     }
+                   }
+                 }
+      } yield {
+        val accountType = e(A_API_KIND) match {
+          case None    => ApiAccountType.PublicApi // this is the default
+          case Some(s) => ApiAccountType.values.find( _.name == s ).getOrElse(ApiAccountType.PublicApi)
+        }
+
+        def warnOnIgnoreAuthz(): Unit = {
+          if(e(A_API_AUTHZ_KIND).isDefined || e(A_API_EXPIRATION_DATETIME).isDefined) {
+            logger.warn(s"Attribute '${A_API_AUTHZ_KIND}' or '${A_API_EXPIRATION_DATETIME}' is defined for " +
+                        s"API account '${name.value}' [${id.value}], it will be ignored because the account is of type '${accountType.name}'.")
           }
         }
-        kind = e(A_API_KIND) match {
-          case None    => ApiAccountKind.PublicApi // this is the default
-          case Some(s) => ApiAccountKind.values.find( _.name == s ).getOrElse(ApiAccountKind.PublicApi)
+
+        val accountKind = accountType match {
+          case ApiAccountType.System =>
+            warnOnIgnoreAuthz()
+            ApiAccountKind.System
+          case ApiAccountType.User =>
+            warnOnIgnoreAuthz()
+            ApiAccountKind.User
+          case ApiAccountType.PublicApi =>
+            ApiAccountKind.PublicApi(authz, expirationDate.map(_.dateTime))
         }
-      } yield {
-        ApiAccount(id, kind, name, token, description, isEnabled, creationDatetime.dateTime, tokenCreationDatetime.dateTime, acl, expirationDate.map(_.dateTime))
+
+        ApiAccount(id, accountKind, name, token, description, isEnabled, creationDatetime.dateTime, tokenCreationDatetime.dateTime)
       }
     } else Failure(s"The given entry is not of the expected ObjectClass '${OC_API_ACCOUNT}'. Entry details: ${e}")
   }
@@ -864,12 +892,23 @@ class LDAPEntityMapper(
     mod +=! (A_API_TOKEN_CREATION_DATETIME, GeneralizedTime(principal.tokenGenerationDate).toString)
     mod +=! (A_DESCRIPTION, principal.description)
     mod +=! (A_IS_ENABLED, principal.isEnabled.toLDAPString)
-    mod +=! (A_API_KIND, principal.kind.name)
+    mod +=! (A_API_KIND, principal.kind.kind.name)
 
-    principal.expirationDate.foreach { e =>
-      mod +=! (A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString())
+    principal.kind match {
+      case ApiAccountKind.PublicApi(authz, exp) =>
+        exp.foreach { e =>
+          mod +=! (A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString())
+        }
+        //authorisation
+        authz match {
+          case ApiAuthorization.ACL(acl) =>
+            mod +=! (A_API_AUTHZ_KIND, authz.kind.name)
+            mod +=! (A_API_ACL, serApiAcl(acl))
+          case x =>
+            mod +=! (A_API_AUTHZ_KIND, x.kind.name)
+        }
+      case _ => //nothing to add
     }
-    mod +=! (A_API_ACL, serApiAcl(principal.authorizations))
     mod
   }
 
