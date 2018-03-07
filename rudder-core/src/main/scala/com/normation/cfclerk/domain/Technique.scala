@@ -78,6 +78,9 @@ object RunHook {
  * composition is the same
  */
 
+  // hooks report name and value
+  final case class Report(name: String, value: Option[String])
+
   // hooks parameters
   final case class Parameter(name: String, value: String)
 
@@ -95,9 +98,9 @@ object RunHook {
  * be run only one time per node per run.
  */
 final case class RunHook(
-    name      : String // name of the hook to execute. The actual, agent dependent bundle method name can be derived from it
+    bundle    : String // name of the hook to execute. The actual, agent dependent bundle method name can be derived from it
   , kind      : RunHook.Kind
-  , condition : String // a condition expression
+  , report    : RunHook.Report
   , parameters: List[RunHook.Parameter]
 )
 

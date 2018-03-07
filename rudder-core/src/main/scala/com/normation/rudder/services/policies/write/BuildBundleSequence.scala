@@ -431,9 +431,8 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
       case RunHook.Kind.Pre  => "pre-run-hook"
       case RunHook.Kind.Post => "post-run-hook"
     }
-    val condition = hook.condition.mkString("|")
     import BundleParam._
-    (promiser, Bundle(None, BundleName("do_run_hook"), List(DoubleQuote(hook.name), DoubleQuote(condition), SimpleQuote(hook.jsonParam))) :: Nil)
+    (promiser, Bundle(None, BundleName(hook.bundle), List(SimpleQuote(hook.jsonParam))) :: Nil)
   }
 
   /*
@@ -458,13 +457,18 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
 
 /*
  * Serialization version of a node hook parameter:
- * {
- *   "parameters": { "service": "syslog", ... }
- * , "reports"   : [ { "id": "report id" , "mode": "audit" }, { "id": "report id" , "mode": "enforce" }, ... ]
- * }
+ *  {
+ *    "parameters": { "package": "visudo", "condition": "debian", ... }
+ *  , "reports"   : [
+ *      { "id": "report id" , "mode": "audit"  , "technique":"some technique", "name":"check_visudo_installed", "value":"ok" }
+ *    , { "id": "report id" , "mode": "enforce", "technique":"some technique", "name":"check_visudo_installed", "value":"ok" }
+ *    , ...
+ *    ]
+ *  }
+ *
  * Must be top level to make Liftweb JSON lib happy
  */
-final case class JsonRunHookReport(id: String, mode: String)
+final case class JsonRunHookReport(id: String, mode: String, technique: String, name: String, value: String)
 final case class JsonRunHook(
     parameters: ListMap[String, String] // to keep order
   , reports   : List[JsonRunHookReport]
@@ -476,7 +480,7 @@ object JsonRunHookSer {
     def jsonParam: String = {
       val jh = JsonRunHook(
           ListMap(h.parameters.map(p => (p.name, p.value)):_*)
-        , h.reports.map(r => JsonRunHookReport(r.id.getReportId, r.mode.name))
+        , h.reports.map(r => JsonRunHookReport(r.id.getReportId, r.mode.name, r.technique, r.report.name, r.report.value.getOrElse("None")))
       )
       implicit val formats = Serialization.formats(NoTypeHints)
       Serialization.write(jh)

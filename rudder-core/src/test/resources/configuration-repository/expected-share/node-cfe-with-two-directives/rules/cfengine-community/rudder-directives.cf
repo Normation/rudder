@@ -16,10 +16,10 @@
 #
 #####################################################################################
 
-# This file is the main entry points for the bundle sequence for 
+# This file is the main entry points for the bundle sequence for
 # Rudder user directives. It is actually a list of method calls, and not
-# a bundle sequence, which allows to add the technique or directives 
-# names as promiser. 
+# a bundle sequence, which allows to add the technique or directives
+# names as promiser.
 
 body file control {
 
@@ -35,7 +35,7 @@ body file control {
 bundle agent rudder_directives {
 
   methods:
-      "pre-run-hook"                                  usebundle => do_run_hook("package","",'{"parameters":{"package":"vim"},"reports":[{"id":"208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0","mode":"enforce"}]}');
+      "pre-run-hook"                                  usebundle => runhook_package('{"parameters":{"package":"vim"},"reports":[{"id":"208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0","mode":"enforce","technique":"Create_file","name":"vim_installed","value":"None"}]}');
       "50-rule-technique-ncf/Create a file"           usebundle => rudder_reporting_context("16d86a56-93ef-49aa-86b7-0d10102e4ea9","208716db-2675-43b9-ab57-bfbab84346aa","Create_file");
       "50-rule-technique-ncf/Create a file"           usebundle => set_dry_run_mode("false");
       "50-rule-technique-ncf/Create a file"           usebundle => Create_file;
@@ -47,7 +47,7 @@ bundle agent rudder_directives {
       "60-rule-technique-std-lib/Package management." usebundle => clean_reporting_context;
       "remove_dry_run_mode"                           usebundle => set_dry_run_mode("false");
       "remove_dry_run_mode"                           usebundle => clean_reporting_context;
-      "post-run-hook"                                 usebundle => do_run_hook("servive","",'{"parameters":{"service":"some value","a post command":"/something/that/is/complicated \"with\" 'all sort of quote'"},"reports":[{"id":"208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0","mode":"enforce"}]}');
+      "post-run-hook"                                 usebundle => runhook_servive('{"parameters":{"service":"some value","a post command":"/something/that/is/complicated \"with\" 'all sort of quote'"},"reports":[{"id":"208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0","mode":"enforce","technique":"Create_file","name":"some value status","value":"restarted"}]}');
 
 }
 
