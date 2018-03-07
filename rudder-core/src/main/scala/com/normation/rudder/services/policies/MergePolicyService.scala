@@ -368,23 +368,22 @@ final object MergePolicyService {
      * avoid groupBy
      */
     // utility class to store reportId + RunHook
-    case class BoundHook(id: PolicyId, mode: PolicyMode, hook: RunHook)
+    case class BoundHook(id: PolicyId, mode: PolicyMode, technique: String, hook: RunHook)
 
     def recMerge(currentHook: BoundHook, remaining: List[BoundHook]): List[NodeRunHook] = {
       // partition between mergeable hooks and non-mergeable one
       val (toMerge, other) = remaining.partition(h =>
         h.hook.kind == currentHook.hook.kind &&
-          h.hook.name == currentHook.hook.name &&
+          h.hook.bundle == currentHook.hook.bundle &&
           h.hook.parameters == currentHook.hook.parameters
       )
       //now, build the "NodeRunHook" from the currentHook ++ toMerge
       val mergeable = currentHook :: toMerge
       val nodeRunHook = NodeRunHook(
-        currentHook.hook.name
+          currentHook.hook.bundle
         , currentHook.hook.kind
-        , mergeable.map(_.hook.condition)
+        , mergeable.map(h => NodeRunHook.ReportOn(h.id, h.mode, currentHook.technique, currentHook.hook.report))
         , currentHook.hook.parameters
-        , mergeable.map(h => NodeRunHook.ReportOn(h.id, h.mode))
       )
       // Recurse on "other" hooks, getting the one in head position as new current.
       // And keep the order, so "nodeRunHook" is on head!
@@ -401,7 +400,12 @@ final object MergePolicyService {
       v <- p.policyVars.toList
       h <- p.technique.agentConfig.runHooks
     } yield {
-      BoundHook(v.policyId, PolicyMode.directivePolicyMode(globalPolicyMode, nodePolicyMode, v.policyMode, p.technique.isSystem), h)
+      BoundHook(
+          v.policyId
+        , PolicyMode.directivePolicyMode(globalPolicyMode, nodePolicyMode, v.policyMode, p.technique.isSystem)
+        , p.technique.id.name.value
+        , h
+      )
     }
 
     sortedBoundHooks match {
