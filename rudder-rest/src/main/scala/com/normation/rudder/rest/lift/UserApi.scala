@@ -46,20 +46,12 @@ import net.liftweb.common.Full
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api._
 import net.liftweb.json.JsonAST.JArray
-import com.normation.rudder.api.ApiAcl
-import com.normation.rudder.api.RoApiAccountRepository
 import net.liftweb.common.EmptyBox
-import com.normation.rudder.api.WoApiAccountRepository
-import com.normation.rudder.api.ApiAccountId
-import com.normation.rudder.api.TokenGenerator
 import org.joda.time.DateTime
 import com.normation.rudder.rest.ApiAccountSerialisation._
 import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.api.ApiAccountKind
-import com.normation.rudder.api.ApiAccountName
-import com.normation.rudder.api.ApiToken
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 
@@ -123,8 +115,6 @@ class UserApi(
         , true
         , now
         , now
-        , ApiAcl(Nil)
-        , None
       )
 
       writeApi.save(account, ModificationId(uuidGen.newUuid), authzToken.actor) match {

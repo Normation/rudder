@@ -39,14 +39,14 @@ package com.normation.rudder.service.user
 
 import com.normation.eventlog.EventActor
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.api.ApiAcl
+import com.normation.rudder.api.ApiAuthorization
 
 trait UserService {
   def getCurrentUser: User
 }
 
 trait User {
-  def actor : EventActor
-  def checkRights(auth : AuthorizationType) : Boolean
-  def getApiAcl  : ApiAcl
+  def actor: EventActor
+  def checkRights(auth : AuthorizationType): Boolean
+  def getApiAutz: ApiAuthorization
 }

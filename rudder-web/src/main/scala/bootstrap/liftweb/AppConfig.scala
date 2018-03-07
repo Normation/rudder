@@ -51,7 +51,7 @@ import com.normation.rudder.services.reports._
 import com.normation.rudder.domain.queries._
 import bootstrap.liftweb.checks._
 import com.normation.cfclerk.services._
-import org.springframework.context.annotation.{ Bean, Configuration, Import }
+import org.springframework.context.annotation.{Bean, Configuration, Import}
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain._
 import com.normation.rudder.web.services._
@@ -59,6 +59,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.rudder.repository.ldap._
 import java.io.File
+
 import com.normation.rudder.services.eventlog._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.services.impl._
@@ -81,6 +82,7 @@ import com.normation.rudder.repository._
 import com.normation.rudder.services.modification.ModificationService
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
+
 import scala.util.Try
 import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
@@ -90,10 +92,7 @@ import com.normation.rudder.services.modification.DiffService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows._
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.api.RoLDAPApiAccountRepository
-import com.normation.rudder.api.TokenGeneratorImpl
-import com.normation.rudder.api.WoApiAccountRepository
-import com.normation.rudder.api.WoLDAPApiAccountRepository
+import com.normation.rudder.api._
 import com.normation.rudder.appconfig._
 import com.normation.rudder.batch._
 import com.normation.rudder.db.Doobie
@@ -146,20 +145,21 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import java.io.File
+
 import net.liftweb.common._
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
+
 import scala.util.Try
 import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
-import com.normation.rudder.api.RoApiAccountRepository
 import com.normation.rudder.service.user.UserService
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueArchiverImpl
+
 import scala.concurrent.duration._
-import com.normation.rudder.api.ApiAcl
 import java.nio.charset.StandardCharsets
 
 /**
@@ -733,8 +733,10 @@ object RudderConfig extends Loggable {
     Nil
 
   // new api dispatcher
-  val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
-  val rudderApi = {
+  lazy val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
+
+  lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
+  lazy val rudderApi = {
     import com.normation.rudder.rest.lift._
 
     val modules = List(
@@ -755,7 +757,9 @@ object RudderConfig extends Loggable {
         // info api must be resolved latter, because else it misses plugin apis !
     )
 
-    val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(userService), None)
+
+
+    val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, apiAuthorizationLevelService.aclEnabled _), None)
     modules.foreach { module =>
       api.addModules(module.getLiftEndpoints)
     }
@@ -820,7 +824,7 @@ object RudderConfig extends Loggable {
     , roLdap
     , ldapEntityMapper
     , stringUuidGenerator
-    , ApiAcl.allAuthz // for system token
+    , ApiAuthorization.allAuthz.acl // for system token
   )
 
   private[this] lazy val woLDAPApiAccountRepository = new WoLDAPApiAccountRepository(
@@ -1640,7 +1644,7 @@ object RudderConfig extends Loggable {
         , uuidGen
       )
     , new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount)
-    , new CheckApiTokenAcl(rudderDit, rwLdap, ldapEntityMapper)
+    , new CheckApiTokenAutorizationKind(rudderDit, rwLdap)
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////

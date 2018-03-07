@@ -103,7 +103,7 @@ final class RoLDAPApiAccountRepository(
   , val ldapConnexion: LDAPConnectionProvider[RoLDAPConnection]
   , val mapper       : LDAPEntityMapper
   , val uuidGen      : StringUuidGenerator
-  , val systemAcl    : ApiAcl
+  , val systemAcl    : List[ApiAclElement]
 ) extends RoApiAccountRepository with Loggable {
 
   val systemAPIAccount =
@@ -116,8 +116,6 @@ final class RoLDAPApiAccountRepository(
       , true
       , DateTime.now
       , DateTime.now
-      , systemAcl
-      , None // no expiration, it will be regenerated on reboot
     )
 
   override def getSystemAccount: ApiAccount = systemAPIAccount

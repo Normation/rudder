@@ -2,14 +2,12 @@ package com.normation.rudder.rest
 
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.common.Loggable
-import com.normation.rudder.api.WoApiAccountRepository
-import com.normation.rudder.api.RoApiAccountRepository
+import com.normation.rudder.api.{ApiAuthorization => ApiAuthz, RoApiAccountRepository, WoApiAccountRepository, _}
 import com.normation.rudder.rest.RestUtils._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common._
 import net.liftweb.json.JArray
 import org.joda.time.DateTime
-import com.normation.rudder.api._
 import net.liftweb.http.LiftResponse
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
@@ -54,18 +52,16 @@ class RestApiAccounts (
               val now = DateTime.now
               //by default, token expires after one month
               val expiration = restApiAccount.expiration.getOrElse(Some(now.plusMonths(1)))
-              val acl = restApiAccount.acl.getOrElse(ApiAcl.noAuthz)
+              val acl = restApiAccount.authz.getOrElse(ApiAuthz.None)
 
               val account = ApiAccount(
                   id
-                , ApiAccountKind.PublicApi
+                , ApiAccountKind.PublicApi(acl, expiration)
                 , restApiAccount.name.get ,ApiToken(tokenGenerator.newToken(tokenSize))
                 , restApiAccount.description.getOrElse("")
                 , restApiAccount.enabled.getOrElse(true)
                 , now
                 , now
-                , acl
-                , expiration
               )
               writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor) match {
                 case Full(_) =>
@@ -185,7 +181,7 @@ case class RestApiAccount(
   , enabled     : Option[Boolean]
   , oldId       : Option[ApiAccountId]
   , expiration  : Option[Option[DateTime]]
-  , acl         : Option[ApiAcl]
+  , authz       : Option[ApiAuthz]
 ) {
 
   // Id cannot change if already defined
@@ -193,9 +189,12 @@ case class RestApiAccount(
     val nameUpdate   = name.getOrElse(account.name)
     val enableUpdate = enabled.getOrElse(account.isEnabled)
     val descUpdate   = description.getOrElse(account.description)
-    val expUpdate    = expiration.getOrElse(account.expirationDate)
-    val aclUpdate    = acl.getOrElse(account.authorizations)
+    val kind = account.kind match {
+      case ApiAccountKind.PublicApi(a, e) =>
+        ApiAccountKind.PublicApi(authz.getOrElse(a), expiration.getOrElse(e))
+      case x => x
+    }
 
-    account.copy(name = nameUpdate, isEnabled = enableUpdate, description = descUpdate, expirationDate = expUpdate, authorizations = aclUpdate)
+    account.copy(name = nameUpdate, isEnabled = enableUpdate, description = descUpdate, kind = kind)
   }
 }
