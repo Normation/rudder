@@ -47,6 +47,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Box
+
 import scala.collection.immutable.TreeMap
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.NodeModeConfig
@@ -64,6 +65,7 @@ import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.AgentConfig
+import com.normation.cfclerk.domain.RunHook.Report
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 
 /*
@@ -232,7 +234,7 @@ final object NodeRunHook {
 
   // a report id with the corresponding mode to
   // use to make reports.
-  final case class ReportOn(id: PolicyId, mode: PolicyMode)
+  final case class ReportOn(id: PolicyId, mode: PolicyMode, technique: String, report: RunHook.Report)
 
 }
 
@@ -243,11 +245,10 @@ final object NodeRunHook {
  * This one is the merged version, for a given node.
  */
 final case class NodeRunHook(
-    name      : String // the kind of hook. The bundle method to call can be derived from that
+    bundle    : String // the kind of hook. The bundle method to call can be derived from that
   , kind      : RunHook.Kind
-  , condition : List[String] // a condition expression, that will "or" of each element (agent syntax dependand)
-  , parameters: List[RunHook.Parameter]
   , reports   : List[NodeRunHook.ReportOn]
+  , parameters: List[RunHook.Parameter]
 )
 
 
