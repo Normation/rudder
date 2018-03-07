@@ -12,15 +12,17 @@
       <INCLUDED>true</INCLUDED>
     </FILE>
   </FILES>
-  <!-- 
+  <!--
    here run hooks are the same for each agent for the sake of test simplicity, but in reallity, they
    will most likely be different.
    -->
   <RUNHOOKS>
-    <PRE name="package">
+    <PRE bundle="runhook_package">
+      <REPORT name="vim_installed"/>
       <PARAMETER name="package" value="vim"/>
     </PRE>
-    <POST name="servive" if="debian">
+    <POST bundle="runhook_servive" if="debian">
+      <REPORT name="some value status" value="restarted"/>
       <PARAMETER name="service" value="some value"/>
       <PARAMETER name="a post command">/something/that/is/complicated "with" 'all sort of quote'</PARAMETER>
     </POST>
@@ -36,10 +38,12 @@
       </FILE>
     </FILES>
     <RUNHOOKS>
-      <PRE name="package">
+      <PRE bundle="runhook_package">
+        <REPORT name="vim_installed"/>
         <PARAMETER name="package" value="vim"/>
       </PRE>
-      <POST name="servive" if="debian">
+      <POST bundle="runhook_servive" if="debian">
+        <REPORT name="some value status" value="restarted"/>
         <PARAMETER name="service" value="some value"/>
         <PARAMETER name="a post command">/something/that/is/complicated "with" 'all sort of quote'</PARAMETER>
       </POST>

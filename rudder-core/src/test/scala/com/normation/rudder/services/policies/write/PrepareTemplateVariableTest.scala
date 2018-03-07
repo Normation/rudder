@@ -93,24 +93,22 @@ List(raw""""Global configuration for all nodes/20. Install jdk version 1.0"     
         NodeRunHook(
             "package-install"
           , RunHook.Kind.Pre
-          , "cond1" :: "cond2" :: Nil
+          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) ::
+            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) :: Nil
           , RunHook.Parameter("package", "vim") :: RunHook.Parameter("action", "update-only") :: Nil
-          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce) ::
-            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce) :: Nil
         ) ::
         NodeRunHook(
             "service-restart"
           , RunHook.Kind.Post
-          , "cond3" :: "cond4" :: Nil
+          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) ::
+            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) :: Nil
           , RunHook.Parameter("service", "syslog") :: Nil
-          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce) ::
-            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce) :: Nil
         ) :: Nil
 
       //spaces inserted at the begining of promises in rudder_directives.cf are due to string template, not the formated string - strange
 
       CfengineBundleVariables.formatMethodsUsebundle(bundles, hooks) ===
-List(raw""""pre-run-hook"                                                                      usebundle => do_run_hook("package-install","cond1|cond2",'{"parameters":{"package":"vim","action":"update-only"},"reports":[{"id":"r1@@d1@@0","mode":"enforce"},{"id":"r1@@d1@@0","mode":"enforce"}]}');
+List(raw""""pre-run-hook"                                                                      usebundle => package-install('{"parameters":{"package":"vim","action":"update-only"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"}]}');
      |"Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
      |"Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => clean_reporting_context;
      |"Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => check_zmd_settings;
@@ -121,7 +119,7 @@ List(raw""""pre-run-hook"                                                       
      |"Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => clean_reporting_context;
      |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => check_apt_package_installation2;
      |"Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => clean_reporting_context;
-     |"post-run-hook"                                                                     usebundle => do_run_hook("service-restart","cond3|cond4",'{"parameters":{"service":"syslog"},"reports":[{"id":"r1@@d1@@0","mode":"enforce"},{"id":"r1@@d1@@0","mode":"enforce"}]}');""".stripMargin)
+     |"post-run-hook"                                                                     usebundle => service-restart('{"parameters":{"service":"syslog"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"}]}');""".stripMargin)
     }
   }
 }
