@@ -462,7 +462,7 @@ class RudderEndpointDispatcher(logger: Log) extends ConnectEndpoint {
 
           val endpoints = internalEndpoint ::: publicEndpoints
 
-          logger.debug(s"Connecting '${endpointSchema.name}', request type '${endpointSchema.action.name}' "+
+          logger.trace(s"Connecting '${endpointSchema.name}', request type '${endpointSchema.action.name.toUpperCase()}' "+
                        s"to URLs: ${endpoints.map(e => s"[v${e.version.value}] ${(e.prefix / endpointSchema.path).value}").mkString("; ")}")
           endpoints
     }
@@ -495,6 +495,9 @@ trait BuildHandler[REQ, RESP, T, P] {
   // we will need to get it from path.
   def getRequestInfo(req: REQ, supportedVersions: List[ApiVersion]): Either[ApiError, RequestInfo]
   def toResponse(error: ApiError): RESP
+
+  // an utility method used to log request information
+  def logReq(req: REQ): String
 
 
   // discriminate endpoint based on path / action / version
@@ -539,13 +542,13 @@ trait BuildHandler[REQ, RESP, T, P] {
         info.versionFromParam match {
           case None =>
             logger.debug(s"Several candidate endpoints, but version required in request parameter for them and it is missing")
-            Left(ApiError.BadRequest(s"Request is missing a version but the version is required for '${info.action.name} ${info.path.value}'. "+
+            Left(ApiError.BadRequest(s"Request is missing a version but the version is required for '${info.action.name.toUpperCase()} ${info.path.value}'. "+
                 s"Available versions: ${es.map( _.version.value).mkString("'","'","'")}", "unknow"))
           case Some(v) =>
             es.find( _.version == v) match {
               case None =>
                 logger.debug(s"Several candidate endpoints, but none with the one provided in request parameter")
-                Left(ApiError.BadRequest(s"Request is requiring version '${v.value}' but that version is not available for '${info.action.name} ${info.path.value}'. "+
+                Left(ApiError.BadRequest(s"Request is requiring version '${v.value}' but that version is not available for '${info.action.name.toUpperCase()} ${info.path.value}'. "+
                     s"Available versions: ${es.map( _.version.value).mkString("'","'","'")}", "unknow"))
               case Some(e) => // finally!
                 logger.trace(s"Found endpoint for handling: ${e}")
@@ -579,23 +582,33 @@ trait BuildHandler[REQ, RESP, T, P] {
   def buildApi(): List[REQ => Option[() => RESP]] = {
     apis.map { api =>
       val endpoints = connectEndpoint.withVersion(api.schema, supportedVersions)
-      // build the handlers
-      //for a given request
+      // build the handlers for a given request
+      // BUT be careful, the first part UNTIL the `yield { optEndpoint match...`
+      // is evaluated FOR ALL REQUEST coming to Rudder. So be efficient here.
+      // When all Rudder API will be normalized, we will be able to simplify the test
+      // to know if we should handle the request to simply ("does uri starts with 'api' or 'secure/api')
+      // and if so handle the request (even if it's to fail with an error "no endpoint can handle that api request")
       (req: REQ) =>
         (for {
           //try to get interesting info
           info        <- getRequestInfo(req, supportedVersions)
-          _           =  logger.trace(s"Check if API '${api.schema.name}' has endpoints for '${info.action.name} ${info.path.value}'")
+          _           =  logger.trace(s"Check if API '${api.schema.name}' has endpoints for '${info.action.name.toUpperCase()} ${info.path.value}'")
           // find the matching endpoint
           optEndpoint <- findEndpoint(endpoints, info)
+
         } yield {
+
+          ///// END OF EVAL FOR ALL WEBAPP REQUESTS /////
+
           //handle the optionnality and so the fact that API may not handle that path
           optEndpoint match {
             case None           => Option.empty[() => RESP]
-            case Some(endpoint) => Some(() => { //here we are allowed to do time-consuming side effects
+            case Some(endpoint) => Some(() => {
+              //here we are allowed to do time-consuming side effects
               // we do handle that request ! Now for actual handling;
               // in all case an response, even if an error (so Some(() => Full(...)))
-              logger.debug(s"Found an handler: ${endpoint}")
+              logger.debug(s"Processing request: ${logReq(req)}")
+              logger.debug(s"Found a valid endpoint handler: '${endpoint.schema.name}' on [${endpoint.schema.action.name.toUpperCase} ${endpoint.schema.path}] with version '${endpoint.version.value}'")
               val response: RESP = (for {
                 token         <- authz.checkAuthz(endpoint, info.path).leftMap { error =>
                                    logger.error(s"Authorization error for '${info.action.name.toUpperCase()} ${info.path.value}': ${error.msg}")
@@ -605,12 +618,12 @@ trait BuildHandler[REQ, RESP, T, P] {
                 canonicalPath <- info.path.drop(endpoint.prefix).leftMap(msg => ApiError.BadRequest(msg, endpoint.schema.name))
                 //extracts params from path
                 resources     <- api.schema.getResources(canonicalPath).leftMap { error =>
-                                   logger.error(s"Error when extracting request path resources from '${info.action.name} ${info.path.value}': ${error.msg}")
+                                   logger.error(s"Error when extracting request path resources from '${info.action.name.toUpperCase()} ${info.path.value}': ${error.msg}")
                                    error
                                  }
                 // extract modul parameters from request
                 params        <- api.getParam(req).leftMap { error =>
-                                   logger.error(s"Error when extracting request parameters from '${info.action.name} ${info.path.value}': ${error.msg}")
+                                   logger.error(s"Error when extracting request parameters from '${info.action.name.toUpperCase()} ${info.path.value}': ${error.msg}")
                                    error
                                  }
                 // here, we would like to have a an abstraction of the parameter to give to handler, so that
@@ -623,9 +636,9 @@ trait BuildHandler[REQ, RESP, T, P] {
                 // when the response is created.
 
                 val start = System.currentTimeMillis()
-                logger.trace(s"Executing handler for '${info.action.name} ${info.path.value}'")
+                logger.trace(s"Executing handler for '${info.action.name.toUpperCase()} ${info.path.value}'")
                 val exec = api.handler(endpoint.version, info.path, resources, req, params, token)
-                logger.debug(s"Handler for '${info.action.name} ${info.path.value}' executed in ${System.currentTimeMillis() - start} ms")
+                logger.debug(s"Handler for '${info.action.name.toUpperCase()} ${info.path.value}' executed in ${System.currentTimeMillis() - start} ms")
                 exec
               }).fold(error => toResponse(error), identity) // align left (i.e error) and righ type
 

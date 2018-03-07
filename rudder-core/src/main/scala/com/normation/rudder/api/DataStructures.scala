@@ -176,42 +176,90 @@ final object AclPath {
  * A path may have 0 authorized action, which explicity mean that there
  * is no authorization for that path.
  */
-final case class ApiAuthz(path: AclPath, actions: Set[HttpAction]) {
+final case class ApiAclElement(path: AclPath, actions: Set[HttpAction]) {
   def display = path.value + ":" + actions.map( _.name.toUpperCase()).mkString("[",",","]")
 }
 
-/*
- * An ACL (Access Control List) is the exhaustive list of
- * authorized path + the set of action on each path.
- *
- * It's a list, so ordered. If a path matches several entries in the
- * ACL list, only the first one is considered.
- */
-final case class ApiAcl(acl: List[ApiAuthz])
 
-final object ApiAcl {
+sealed trait ApiAuthorizationKind { def name: String }
+final object ApiAuthorizationKind {
+  final case object None extends ApiAuthorizationKind { override val name = "none" }
+  final case object RO   extends ApiAuthorizationKind { override val name = "ro"   }
+  final case object RW   extends ApiAuthorizationKind { override val name = "rw"   }
+  /*
+   * An ACL (Access Control List) is the exhaustive list of
+   * authorized path + the set of action on each path.
+   *
+   * It's a list, so ordered. If a path matches several entries in the
+   * ACL list, only the first one is considered.
+   */
+  final case object ACL  extends ApiAuthorizationKind { override val name = "acl"  }
+
+  def values = ca.mrvisser.sealerate.values[ApiAuthorizationKind]
+
+  def parse(s: String): Either[String, ApiAuthorizationKind] = {
+    val lc = s.toLowerCase
+    values.find( _.name == lc ) match {
+      case scala.None => Left(s"Unserialization error: '${s}' is not a known API authorization kind ")
+      case Some(x)    => Right(x)
+    }
+  }
+}
+
+/**
+ * Api authorisation kind.
+ * We have 3 levels:
+ * - no authorizations (for ex, an unknown user)
+ * - read-only / read-write: coarse grained authz with access to all GET (resp everything)
+ * - ACL: fine grained authz.
+ */
+sealed trait ApiAuthorization { def kind: ApiAuthorizationKind }
+final object ApiAuthorization {
+  final case object None                          extends ApiAuthorization { override val kind = ApiAuthorizationKind.None }
+  final case object RW                            extends ApiAuthorization { override val kind = ApiAuthorizationKind.RW   }
+  final case object RO                            extends ApiAuthorization { override val kind = ApiAuthorizationKind.RO   }
+  final case class  ACL(acl: List[ApiAclElement]) extends ApiAuthorization { override def kind = ApiAuthorizationKind.ACL  }
+
+
   /**
    * An authorization object with ALL authorization,
    * present and future.
    */
-  val allAuthz = ApiAcl(List(ApiAuthz(AclPath.Root(Nil), HttpAction.values)))
-
-  /*
-   * and one with none
-   */
-  val noAuthz = ApiAcl(Nil)
+  val allAuthz = ACL(List(ApiAclElement(AclPath.Root(Nil), HttpAction.values)))
 }
 
-sealed trait ApiAccountKind { def name: String }
-object ApiAccountKind {
+/**
+ * We have several kind of API accounts:
+ * - the "system" account is a pure in-memory one, whose token is genererated at each start.
+ *   It has super authz.
+ * - User API accounts are linked to a given user. They get the same rights has their user.
+ *   They are only available when a spcecific plugin enable them.
+ * - Standard account are used for public API acess.
+ *
+ */
+sealed trait ApiAccountType { def name: String }
+object ApiAccountType {
   // system token get special authorization and lifetime
-  final case object System    extends ApiAccountKind { val name = "system" }
+  final case object System    extends ApiAccountType { val name = "system" }
   // a token linked to an user account
-  final case object User      extends ApiAccountKind { val name = "user"   }
+  final case object User      extends ApiAccountType { val name = "user"   }
   // a standard API token, that can be only for public API access
-  final case object PublicApi extends ApiAccountKind { val name = "public" }
+  final case object PublicApi extends ApiAccountType { val name = "public" }
 
-  def values = ca.mrvisser.sealerate.values[ApiAccountKind]
+  def values = ca.mrvisser.sealerate.values[ApiAccountType]
+}
+
+
+sealed trait ApiAccountKind { def kind: ApiAccountType }
+object ApiAccountKind {
+  final case object System    extends ApiAccountKind { val kind = ApiAccountType.System }
+  final case object User      extends ApiAccountKind { val kind = ApiAccountType.User   }
+  final case class  PublicApi(
+      authorizations     : ApiAuthorization
+    , expirationDate     : Option[DateTime]
+  ) extends ApiAccountKind {
+    val kind = ApiAccountType.PublicApi
+  }
 }
 
 /**
@@ -228,7 +276,5 @@ final case class ApiAccount(
   , isEnabled          : Boolean
   , creationDate       : DateTime
   , tokenGenerationDate: DateTime
-  , authorizations     : ApiAcl
-  , expirationDate     : Option[DateTime]
 ) extends HashcodeCaching
 

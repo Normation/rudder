@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.marshalling
 
-import scala.xml.NodeSeq
+import scala.xml.{NodeSeq, Text, Node => XNode}
 import net.liftweb.common._
 import net.liftweb.common.Box._
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -47,7 +47,6 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.Directive
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.policies.SectionVal
-import scala.xml.{Node => XNode}
 import com.normation.utils.Control.sequence
 import com.normation.cfclerk.domain.TechniqueVersion
 import net.liftweb.util.Helpers.tryo
@@ -82,6 +81,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.workflows.DirectiveChangeItem
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.domain.TechniqueId
+
 import scala.util.Try
 import scala.util.Success
 import scala.util.{Failure => Catch}
@@ -651,7 +651,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
   //   <authz path="/foo/bar/$baz", actions="get, post, patch" />
   //   <authz path="/foo/wiz/$waz", actions="get, post, patch"/>
   // </acl>
-  private def unserAcl(entry: XNode): Box[ApiAcl] = {
+  private def unserAcl(entry: XNode): Box[ApiAuthorization.ACL] = {
     //at that point, any error is an grave error: we don't want to
     // mess up with authz
     import cats.implicits._
@@ -672,11 +672,11 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                        }
                    }
       } yield {
-        ApiAuthz(path, actions.toSet)
+        ApiAclElement(path, actions.toSet)
       }
     }
 
-    authzs.map( a => ApiAcl(a.toList))
+    authzs.map(acl => ApiAuthorization.ACL(acl.toList))
   }
 
 
@@ -698,19 +698,32 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                             case None    => Full(None)
                             case Some(s) => tryo { Some(dateFormatter.parseDateTime(s.text)) } ?~! ("Bad date format for field 'expirationDate' in entry type API Account : " + entry)
                           }
-      acl              <- (apiAccount \ "acl").headOption match {
+      authz            <- (apiAccount \ "authorization").headOption match {
                             case None      =>
                               // we are most likelly in a case where API ACL weren't implemented,
                               // because the event was saved < Rudder 4.3. Use a "nil" ACL
-                              Full(ApiAcl.noAuthz)
-                            case Some(xml) =>
+                              Full(ApiAuthorization.None)
+
+                            case Some(Text(ApiAuthorizationKind.RO.name)) =>
+                              Full(ApiAuthorization.RO)
+                            case Some(Text(ApiAuthorizationKind.RW.name)) =>
+                              Full(ApiAuthorization.RW)
+                            case Some(<acl>{xml}</acl>)                   =>
                               unserAcl(xml)
+                              // all other case: serialization pb => None
+                            case _  => Full(ApiAuthorization.None)
                           }
-      kind             = (apiAccount \ "kind").headOption.map( _.text ) match {
-                            case None    => ApiAccountKind.PublicApi
-                            case Some(s) => ApiAccountKind.values.find( _.name == s).getOrElse(ApiAccountKind.PublicApi)
+      accountType      =  (apiAccount \ "kind").headOption.map( _.text ) match {
+                            case None    => ApiAccountType.PublicApi
+                            case Some(s) => ApiAccountType.values.find( _.name == s).getOrElse(ApiAccountType.PublicApi)
                           }
     } yield {
+      val kind = accountType match {
+        case ApiAccountType.System => ApiAccountKind.System
+        case ApiAccountType.User => ApiAccountKind.User
+        case ApiAccountType.PublicApi => ApiAccountKind.PublicApi(authz, expirationDate)
+      }
+
       ApiAccount(
           ApiAccountId(id)
         , kind
@@ -720,8 +733,6 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         , isEnabled
         , creationDate
         , tokenGenDate
-        , acl
-        , expirationDate
       )
     }
   }

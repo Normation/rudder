@@ -40,8 +40,7 @@ package com.normation.rudder.rest
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.api.ApiAccountId
-import com.normation.rudder.api.ApiAccountName
+import com.normation.rudder.api.{ApiAccountId, ApiAccountName, ApiAuthorization => ApiAuthz}
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.parameters.ParameterName
@@ -61,7 +60,6 @@ import com.normation.rudder.services.queries.StringQuery
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.rest.data._
 import com.normation.utils.Control._
-
 import net.liftweb.common._
 import net.liftweb.http.Req
 import net.liftweb.json._
@@ -80,11 +78,10 @@ import com.normation.rudder.ncf.MethodCall
 import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.ncf.MethodParameter
 import com.normation.rudder.ncf.TechniqueParameter
-import com.normation.rudder.ncf.{ Technique => NcfTechnique }
+import com.normation.rudder.ncf.{Technique => NcfTechnique}
 import org.joda.time.format.ISODateTimeFormat
 import net.liftweb.util.Helpers
 import org.joda.time.DateTime
-import com.normation.rudder.api.ApiAcl
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -823,7 +820,7 @@ case class RestExtractorService (
       expriration <- extractJsonString(json, "expiration", toDateTime)
       // TODO parse ApiAcl
     } yield {
-      RestApiAccount(id, name, description, enabled, oldId, expriration.map(Some(_)), Some(ApiAcl.noAuthz))
+      RestApiAccount(id, name, description, enabled, oldId, expriration.map(Some(_)), Some(ApiAuthz.None))
     }
   }
 

@@ -38,7 +38,6 @@
 package com.normation.rudder.rest
 
 import org.specs2.matcher.MatchResult
-
 import net.liftweb.common.Full
 import net.liftweb.http.LiftRules
 import net.liftweb.http.LiftRulesMocker
@@ -61,9 +60,9 @@ import net.liftweb.json.JsonAST.JValue
 import com.normation.rudder.service.user.UserService
 import com.normation.rudder.service.user.User
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.rest.v1.RestStatus
-import com.normation.rudder.api.ApiAcl
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -77,7 +76,7 @@ object RestTestSetUp {
     val user = new User{
       val actor = new EventActor("test-user")
       def checkRights(auth : AuthorizationType) = true
-      def getApiAcl = ApiAcl.allAuthz
+      def getApiAutz = ApiAuthz.allAuthz
     }
     val getCurrentUser = user
 

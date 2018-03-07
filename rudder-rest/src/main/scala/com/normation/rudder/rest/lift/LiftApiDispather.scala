@@ -43,7 +43,7 @@ import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.api.HttpAction
 import net.liftweb.json.JsonAST.JString
 import com.normation.rudder.rest._
-import net.liftweb.common.Full
+import net.liftweb.common.{EmptyBox, Full}
 import org.slf4j.LoggerFactory
 
 final case class DefaultParams(prettify: Boolean)
@@ -105,6 +105,23 @@ class LiftHandler(
   }
   def addModules(modules: List[LiftApiModule]): Unit = {
     _apis = _apis ::: modules
+  }
+
+  def logReq(req: Req): String = {
+    val printJson = {
+      if(req.json_?) {
+        req.json match {
+          case eb: EmptyBox => "JSON request with NOT VALID JSON body"
+          case _            => "JSON request with valid JSON body"
+        }
+      } else if(req.xml_?) {
+        "XML request type"
+      } else {
+        "simple (non-JSON) request"
+      }
+    }
+
+    s"${req.requestType.method} ${req.contextPath}${req.uri} [${printJson}]"
   }
 
   def getRequestInfo(req: Req, supportedVersions: List[ApiVersion]): Either[ApiError, RequestInfo] = {
