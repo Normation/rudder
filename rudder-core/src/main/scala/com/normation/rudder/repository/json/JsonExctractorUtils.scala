@@ -103,7 +103,7 @@ trait JsonExctractorUtils[A[_]] {
         for {
           converted <- sequence(values) { convertTo(_) }
         } yield {
-          monad.sequence(converted.toList)
+          Traverse[List].sequence(converted.toList)
         }
       case JNothing   => emptyValue ?~! s"Array is empty when extracting array"
       case _          => Failure(s"Invalid json to extract a json array, current value is: ${compactRender(json)}")
