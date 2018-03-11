@@ -147,7 +147,7 @@ class EventLogJdbcRepository(
     }
 
     (for {
-      entries <- HC.process[(String, EventLogDetails)](q, param, 512).vector
+      entries <- HC.stream[(String, EventLogDetails)](q, param, 512).compile.toVector
     } yield {
       entries.map(toEventLog)
     }).attempt.transact(xa).unsafeRunSync
@@ -190,7 +190,7 @@ class EventLogJdbcRepository(
     }.void
 
     (for {
-      entries <- HC.process[(String, String, EventLogDetails)](q, param, 512).vector
+      entries <- HC.stream[(String, String, EventLogDetails)](q, param, 512).compile.toVector
     } yield {
       entries.map { case (crid, tpe, details) =>
         (ChangeRequestId(crid.substring(1, crid.length()-1).toInt), toEventLog((tpe, details)) )
