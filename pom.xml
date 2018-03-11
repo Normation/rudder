@@ -241,7 +241,7 @@ limitations under the License.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.0.2</version>
-        <configuration>      
+        <configuration>
           <archive>
             <addMavenDescriptor>false</addMavenDescriptor>
             <manifestEntries>
@@ -250,14 +250,14 @@ limitations under the License.
               <Build-Time>${maven.build.timestamp}</Build-Time>
               <version>${project.version}</version>
             </manifestEntries>
-          </archive>      
+          </archive>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
         <version>3.2.0</version>
-        <configuration>      
+        <configuration>
           <archive>
             <addMavenDescriptor>false</addMavenDescriptor>
             <manifestEntries>
@@ -267,7 +267,7 @@ limitations under the License.
               <Build-Time>${maven.build.timestamp}</Build-Time>
               <Version>${project.version}</Version>
             </manifestEntries>
-          </archive>      
+          </archive>
         </configuration>
       </plugin>
       <plugin>
@@ -351,22 +351,22 @@ limitations under the License.
     <asm-version>5.2</asm-version>
     <bcpkix-jdk15on-version>1.58</bcpkix-jdk15on-version>
     <monix-version>2.3.3</monix-version>
-    <!-- 
-      These one must be updated to work together 
-      We declare cats in "test" here, because it is not directly needed 
-      in any project before rudder. 
+    <!--
+      These one must be updated to work together
+      We declare cats in "test" here, because it is not directly needed
+      in any project before rudder.
     -->
-    <cats-version>1.0.0-RC1</cats-version>    
-    <specs2-version>4.0.1</specs2-version>
-    <doobie-version>0.5.0-M9</doobie-version>
-    <fs2-version>0.10.0-M8</fs2-version>
-    <http4s-version>0.18.0-M5</http4s-version>
+    <cats-version>1.0.1</cats-version>
+    <specs2-version>4.0.2</specs2-version>
+    <doobie-version>0.5.1</doobie-version>
+    <fs2-version>0.10.2</fs2-version>
+    <http4s-version>0.18.1</http4s-version>
 
-    <!-- 
+    <!--
       Hack to make scalac jvm parameters like RAM configurable.
       With that, one can override Xmx or add jvm parameters either
       in command line invocation: mvn compile -DjvmArg-Xmx="4G"
-      or in ~/.m2/settings.xml with profiles. 
+      or in ~/.m2/settings.xml with profiles.
     -->
 
     <jvmArg-Xmx>1G</jvmArg-Xmx>
@@ -386,9 +386,9 @@ limitations under the License.
 
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
 
-  <!-- 
-    This allows to use homogeneous version of scalaz everywhere. 
-    Yep, we need to explicitly specify them all. 
+  <!--
+    This allows to use homogeneous version of scalaz everywhere.
+    Yep, we need to explicitly specify them all.
   -->
   <dependencyManagement>
     <dependencies>
@@ -406,12 +406,12 @@ limitations under the License.
         <groupId>org.typelevel</groupId>
         <artifactId>cats-core_${scala-binary-version}</artifactId>
         <version>${cats-version}</version>
-      </dependency>            
+      </dependency>
       <dependency>
         <groupId>co.fs2</groupId>
         <artifactId>fs2-core_${scala-binary-version}</artifactId>
         <version>${fs2-version}</version>
-      </dependency>     
+      </dependency>
       <dependency>
         <groupId>org.tpolecat</groupId>
         <artifactId>doobie-core_${scala-binary-version}</artifactId>
@@ -422,7 +422,7 @@ limitations under the License.
         <artifactId>monix-reactive_${scala-binary-version}</artifactId>
         <version>${monix-version}</version>
       </dependency>
-      <!-- 
+      <!--
         lift-web
       -->
       <dependency>
@@ -444,17 +444,17 @@ limitations under the License.
         <groupId>net.liftweb</groupId>
         <artifactId>lift-json_${scala-binary-version}</artifactId>
         <version>${lift-version}</version>
-      </dependency>      
+      </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
         <artifactId>lift-util_${scala-binary-version}</artifactId>
         <version>${lift-version}</version>
-      </dependency>      
+      </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
         <artifactId>lift-webkit_${scala-binary-version}</artifactId>
         <version>${lift-version}</version>
-      </dependency>      
+      </dependency>
       <!-- joda time -->
       <dependency>
         <groupId>joda-time</groupId>
@@ -483,17 +483,17 @@ limitations under the License.
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
         <version>${commons-io-version}</version>
-      </dependency>      
+      </dependency>
       <dependency>
         <groupId>commons-lang</groupId>
         <artifactId>commons-lang</artifactId>
         <version>${commons-lang-version}</version>
-      </dependency>      
+      </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
         <version>${commons-codec-version}</version>
-      </dependency>      
+      </dependency>
 
       <!-- spring -->
       <dependency>
@@ -534,8 +534,8 @@ limitations under the License.
             <artifactId>ant</artifactId>
           </exclusion>
         </exclusions>
-      </dependency>  
-  
+      </dependency>
+
       <!--  test -->
       <dependency>
         <groupId>junit</groupId>
@@ -606,26 +606,31 @@ limitations under the License.
     <dependency>
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
+      <version>${jodatime-version}</version>
     </dependency>
     <!--  test -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <version>${junit-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.specs2</groupId>
       <artifactId>specs2-core_${scala-binary-version}</artifactId>
+      <version>${specs2-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.specs2</groupId>
       <artifactId>specs2-matcher-extra_${scala-binary-version}</artifactId>
+      <version>${specs2-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.specs2</groupId>
       <artifactId>specs2-junit_${scala-binary-version}</artifactId>
+      <version>${specs2-version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -637,11 +642,13 @@ limitations under the License.
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
+      <version>${logback-version}</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
+      <version>${logback-version}</version>
     </dependency>
   </dependencies>
-   
+
 </project>
