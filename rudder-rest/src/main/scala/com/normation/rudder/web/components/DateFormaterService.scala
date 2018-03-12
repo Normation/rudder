@@ -41,6 +41,9 @@ import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormatterBuilder
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
+import org.joda.time.format.DateTimeFormat
+import net.liftweb.common.Box
+import net.liftweb.util.Helpers
 
 object DateFormaterService {
 
@@ -51,6 +54,9 @@ object DateFormaterService {
     date.toString(dateFormat)
   }
 
+  def parseDate(date : String) : Box[DateTime] = {
+      Helpers.tryo {DateTimeFormat.forPattern(dateFormat).parseDateTime(date) }
+  }
   private[this] val periodFormatter = new PeriodFormatterBuilder().
     appendDays().
     appendSuffix(" day", " days").

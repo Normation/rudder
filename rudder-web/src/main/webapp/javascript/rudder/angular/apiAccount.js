@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-var accountManagement = angular.module('accountManagement', ['DataTables']);
+var accountManagement = angular.module('accountManagement', ['datatables', 'ui.toggle']);
 
 var popUpCreated = false;
 accountManagement.directive('validEmpty', function() {
@@ -55,8 +55,7 @@ accountManagement.directive('validEmpty', function() {
   };
 } );
     
-accountManagement.controller('AccountCtrl', function ($scope, $http) {
-
+accountManagement.controller('AccountCtrl', function ($scope, $http, DTOptionsBuilder) {
   $scope.getAccounts = function() {
     $http.get(apiPath).
     then(function (response) {
@@ -68,12 +67,11 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
     });
   }
 
-
   $scope.deleteAccount = function(account,index) {
     $http.delete(apiPath + '/'+account.token).
         success(function(data, status, headers, config) {
           $scope.accounts.splice(index,1);
-          $scope.myNewAccount = undefined;
+          $scope.myOldAccount = undefined;
         }).
         error(function(data, status, headers, config) {
          $scope.errorTable = data;
@@ -81,12 +79,11 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
         $('#oldAccountPopup').bsModal('hide');
   }
 
-  $scope.regenerateAccount = function(account,index) {
+  $scope.regenerateAccount = function(account) {
      $http.post(apiPath + '/'+account.token+"/regenerate").
        success(function(data, status, headers, config) {
          var newAccount = data.data.accounts[0];
-         $scope.accounts[index] = newAccount;
-         $.extend($scope.myNewAccount, newAccount);
+         account.token = newAccount.token;
        }).
        error(function(data, status, headers, config) {
          $scope.errorTable = data;
@@ -94,143 +91,37 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
       $('#oldAccountPopup').bsModal('hide');
   }
 
-$scope.enableButton = function(account,index) {
-  var button = $("<button class='btn btn-default'></button>");
-  if (account.enabled) {
-    button.text('Disable');
-    button.click( function(){
-      $scope.$apply(function() {
-        account.enabled = false;
-        $scope.saveAccount(account,index,false);
-      });
-    });
-  } else {
-    button.text('Enable');
-    button.click( function() {
-      $scope.$apply(function() {
-        account.enabled = true;
-        $scope.saveAccount(account,index,false);
-      });
-    })
-  }
-  return button;
-}
 
 $scope.addAccount = function() {
-  var newAccount = { id : "", name : "", token: "not yet obtained", enabled : true, description : ""}
+  var newAccount = { id : "", name : "", token: undefined, enabled : true, description : ""}
   $scope.myNewAccount = newAccount;
   $('#newAccountPopup').bsModal('show');  
 }
 
-//define what each column of the grid
-//get from the JSON people
-$scope.columnDefs = [
-    { "aTargets":[0], "mDataProp": "name", "sWidth": "20%", "sTitle" : "Account Name" }
-  , {   "aTargets":[1]
-      , "mDataProp": "token"
-      , 'bSortable': false
-      , "sWidth": "40%", "sTitle" : "Token"
-      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-          var content  = $("<span class='tw-bs'><button class='btn btn-default reload-token'><span class='glyphicon glyphicon-repeat'></span></button></span>")
-          content.find('.btn').click( function() {
-            $scope.popupDeletion(oData,iRow,$scope.regenerateAccount,"Regenerate token of");
-          });
-          var stringContent = $("<span>"+sData+"</span>");
-          $(nTd).empty();
-          $(nTd).prepend(stringContent);
-          $(nTd).prepend(content);
-      }
-    }
-  , {   "aTargets"      : [2]
-      , "mDataProp"     : "enabled"
-      , 'bSortable': false
-      , "sWidth": "10%"
-        , "sTitle" : "Status"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var color = sData ? "#5cb85c" : "#c9302c";
-        var content  = $(" <b>"+$scope.accountDisabled(sData)+"</b>")
-        $(nTd).empty();
-        $(nTd).attr("style","text-align:center;  background-color:"+color);
-        $(nTd).prepend(content);
-      }
-    }
-  , {   "aTargets"      : [3]
-      , "mDataProp"     : "enabled"
-      , 'bSortable': false
-      , "sWidth": "10%"
-      
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      $(nTd).addClass("tw-bs action-left");
-      var data = oData
-      var editButton  = $("<button class='btn btn-default'>Edit</button>");
-      editButton.click( function() {
-        data.oldName = data.name;
-        $scope.popupCreation(data,iRow);
-      });
-      $(nTd).empty();
-      $(nTd).prepend(editButton);
-    }
-  }
-  , {   "aTargets"      : [4]
-  , "mDataProp"     : "enabled"
-  , 'bSortable': false
-  , "sWidth": "10%"
-  , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      $(nTd).addClass("tw-bs action-center");
-      var data = oData
-      var statusButton = $scope.enableButton(data,iRow);
-      $(nTd).empty();
-      $(nTd).prepend(statusButton);
-    }
-}
-  , {   "aTargets"      : [5]
-  , "mDataProp"     : "enabled"
-  , 'bSortable': false
-  , "sWidth": "10%"
-  , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      $(nTd).addClass("tw-bs action-right");
-      var data = oData
-      var deleteButton  = $("<button class='btn btn-danger'>Delete</button>");
-      deleteButton.click( function() {
-        $scope.popupDeletion(data,iRow,$scope.deleteAccount,"Delete");
-      });
-      $(nTd).empty();
-      $(nTd).prepend(deleteButton);
-    }
-}
-]
 
-$scope.overrideOptions = {
-      "bFilter" : true
-    , "bPaginate" : true
-    , "bLengthChange": true
-    , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-        "sSearch": ""
-    }
-    , "aaSorting": [[ 0, "asc" ]]
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-  };
+$scope.options =
+	DTOptionsBuilder.newOptions().
+	  withPaginationType('full_numbers').
+	  withDOM('<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>').
+	  withLanguage({
+		    "sSearch": ""
+	  }).
+	  withOption("bLengthChange", true)
 
 $scope.popupCreation = function(account,index) {
-  $scope.$apply(function() {
-     $scope.myNewAccount = account;
-     // Maybe should use indexOf
+     $scope.myNewAccount = angular.copy(account);
      $scope.myNewAccount.index = index;
+     $scope.myNewAccount.oldName = account.name;
      $("#newAccountName").focus();
-  });
   $('#newAccountPopup').bsModal('show');
 
   return account;
 };
 
-$scope.popupDeletion = function(account, index, action, actionName) {
-  $scope.$apply(function() {
+$scope.popupDeletion = function(account, action, actionName) {
     $scope.myOldAccount = account;
-    $scope.myOldAccount.index = index;
-    $scope.myOldAccount.action = action;
+    $scope.myOldAccount.action = function(a) { return action(account); };
     $scope.myOldAccount.actionName = actionName;
-  });
     $('#oldAccountPopup').bsModal('show');
   return account;
 };
@@ -245,13 +136,13 @@ $scope.popupDeletion = function(account, index, action, actionName) {
      $scope.saveAccount(account,index,true);
    }
  }
- $scope.saveAccount = function(account,index,isPopup) {
+ $scope.saveAccount = function(account,isPopup) {
    if (isPopup)  {
      $scope.errorPopup = undefined;
    } else {
      $scope.errorTable = undefined;
    }
-   if(account.token == "not yet obtained" ) {
+   if(account.token === undefined ) {
      $http.put(apiPath,account).
      success( function(data, status, headers, config) {
        var newAccount = data.data.accounts[0];
@@ -271,11 +162,9 @@ $scope.popupDeletion = function(account, index, action, actionName) {
      $http.post(apiPath + '/'+account.token,account).
      success(function(data, status, headers, config) {
        var newAccount = data.data.accounts[0];
-       $scope.accounts[index] = newAccount;
-       $.extend($scope.myNewAccount, newAccount);
+       $scope.accounts[$scope.myNewAccount.index] = newAccount
+       //$.extend($scope.myNewAccount, newAccount);
        $scope.myNewAccount = undefined;
-       $("#accountGrid").dataTable().fnClearTable();
-       $("#accountGrid").dataTable().fnAddData($scope.accounts);
        $('#newAccountPopup').bsModal('hide');
 
      }).
@@ -289,27 +178,26 @@ $scope.popupDeletion = function(account, index, action, actionName) {
    }
  }
 
-  $scope.formTitle = function(account) {
-    if (account!= undefined && account.index!=undefined) {
-        return  "Update account '"+account.oldName+"'";
-    } else {
+  $scope.formTitle = function() {
+    if ($scope.myNewAccount === undefined || $scope.myNewAccount.token === undefined) {
       return "Create a new Account";
+    } else {
+      return  "Update account '"+$scope.myNewAccount.oldName+"'";
     }
-  }
-  $scope.accountDisabled = function(isEnabled) {
-    if(isEnabled) return "Enabled";
-    else return "Disabled";
   }
   
   $scope.getAccounts();
     
-  $scope.defineActionName = function(formName){
-      if(formName !== undefined) {
-        return formName.split(' ')[0];
+  $scope.defineActionName = function(){
+      if($scope.myNewAccount === undefined || $scope.myNewAccount.token === undefined) {
+        return "Create"
+      } else {
+    	return "Save"
       }
   }  
 } );
 
 $( document ).ready(function() {
   angular.bootstrap(document.getElementById('accountManagement'), ['accountManagement']);
+  $("#newAccount-expiration").datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm', timeInput: true});
 });

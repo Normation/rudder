@@ -59,6 +59,13 @@ import com.normation.rudder.api.ApiAccount
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.rest.data._
+import com.normation.rudder.api.ApiAccountKind.{ PublicApi => PublicApiAccount }
+import com.normation.rudder.api.ApiAccountKind.User
+import com.normation.rudder.api.ApiAccountKind.System
+import com.normation.rudder.api.ApiAuthorization.{ None => NoAccess }
+import com.normation.rudder.api.ApiAuthorization.RO
+import com.normation.rudder.api.ApiAuthorization.RW
+import com.normation.rudder.api.ApiAuthorization.ACL
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest
@@ -94,7 +101,6 @@ case class RestDataSerializerImpl (
     readTechnique : TechniqueRepository
   , diffService   : DiffService
 ) extends RestDataSerializer with Loggable {
-
 
   private[this] def serializeMachineType(machine: Option[MachineType]): JValue = {
     machine match {
@@ -555,21 +561,36 @@ case class RestDataSerializerImpl (
 
 }
 
-
 object ApiAccountSerialisation {
 
   implicit class Json(account: ApiAccount) {
 
+    val (expirationDate, authzType, aclList) :  (Option[String],Option[String],Option[List[String]]) = {
+      account.kind match {
+        case User | System => (None,None,None)
+        case PublicApiAccount(authz,expirationDate) =>
+          val aclList = authz match {
+            case NoAccess | RO | RW => None
+            case ACL(acls) => Some(acls.map(_.path.value))
+          }
+          ( expirationDate.map(DateFormaterService.getFormatedDate)
+          , Some(authz.kind.name)
+          , aclList )
+      }
+    }
     def toJson(): JObject = {
       ("id" -> account.id.value) ~
       ("name" -> account.name.value) ~
       ("token" -> account.token.value) ~
       ("tokenGenerationDate" -> DateFormaterService.getFormatedDate(account.tokenGenerationDate)) ~
+      ("kind" -> account.kind.kind.name) ~
       ("description" -> account.description) ~
       ("creationDate" -> DateFormaterService.getFormatedDate(account.creationDate)) ~
-      ("enabled" -> account.isEnabled)
+      ("enabled" -> account.isEnabled) ~
+      ("expirationDate" -> expirationDate) ~
+      ("authorizationType" -> authzType ) ~
+      ("aclList" -> aclList)
     }
 
   }
 }
-
