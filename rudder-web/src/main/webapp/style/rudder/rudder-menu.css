@@ -1385,8 +1385,18 @@ form .tooltip-content p {
   color: #3694d1;
 }
 
-.tw-bs .rudder-label.label-enforce{
+/* Cannot use label-sucess, which is overriden in AdminLTE.min.css with a !important */
+.rudder-label.label-enforce, .rudder-label.label-green{
   background-color: #9BC832;
+}
+
+.btn.btn-grey:focus, .btn.btn-grey:hover, .btn.btn-grey:active {
+	background-color: #777;
+	color: #eee;
+}
+
+.btn.btn-grey {
+	background-color: #aaa;
 }
 
 .tw-bs .rudder-label.label-state{
