@@ -64,7 +64,7 @@ class SendMetricsPopup extends DispatchSnippet with Loggable {
             SHtml.ajaxInvoke(() =>
               value match {
                 case _ : Some[Boolean] =>
-                  configService.set_send_server_metrics(value,CurrentUser.getActor,Some("Property modified from 'Send metrics' popup")) match {
+                  configService.set_send_server_metrics(value,CurrentUser.actor,Some("Property modified from 'Send metrics' popup")) match {
                     case Full(_) => JsRaw(s"""$$("#sendMetricsPopup").bsModal('hide')""")
                     case eb : EmptyBox =>
                       val msg = eb ?~! "Could not update 'metrics' property"
@@ -73,7 +73,7 @@ class SendMetricsPopup extends DispatchSnippet with Loggable {
                     }
                 case None =>
                   val modId = ModificationId(uuidGen.newUuid)
-                  val actor = CurrentUser.getActor
+                  val actor = CurrentUser.actor
                   val property = RudderWebProperty(RudderWebPropertyName("send_server_metrics"),"none","")
                     eventLogRepo.saveModifyGlobalProperty(modId, actor, property, property, ModifySendServerMetricsEventType, Some("Ask later for 'send metrics' value"))
                     JsRaw(s"""$$("#sendMetricsPopup").bsModal('hide')""")

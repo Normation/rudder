@@ -37,61 +37,20 @@
 
 package bootstrap.liftweb
 
-import com.normation.inventory.domain._
-import com.normation.inventory.services.core._
-import com.normation.inventory.ldap.core._
-import com.normation.rudder.batch._
-import com.normation.rudder.services.nodes._
-import com.normation.rudder.repository._
-import com.normation.rudder.services.queries._
-import com.normation.rudder.services.servers._
-import com.normation.rudder.services.system._
-import com.normation.rudder.services.policies._
-import com.normation.rudder.services.reports._
-import com.normation.rudder.domain.queries._
+import java.io.File
+import java.nio.charset.StandardCharsets
+
 import bootstrap.liftweb.checks._
 import com.normation.cfclerk.services._
-import org.springframework.context.annotation.{Bean, Configuration, Import}
-import com.normation.ldap.sdk._
-import com.normation.rudder.domain._
-import com.normation.rudder.web.services._
-import com.normation.utils.StringUuidGenerator
-import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.rudder.repository.ldap._
-import java.io.File
-
-import com.normation.rudder.services.eventlog._
-import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.services.impl._
-import com.normation.rudder.repository.ldap._
-import com.normation.rudder.repository.xml._
-import com.normation.rudder.repository.jdbc._
-import com.normation.rudder.repository._
-import net.liftweb.common.Loggable
-import com.normation.rudder.services.eventlog.HistorizationServiceImpl
-import com.normation.rudder.services.policies.DeployOnTechniqueCallback
-import com.normation.rudder.services.marshalling._
-import com.normation.rudder.rest._
-import com.normation.rudder.services.user.TrivialPersonIdentService
-import com.normation.rudder.services.eventlog.EventLogFactoryImpl
-import com.normation.rudder.web.services.UserPropertyService
-import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.migration.DefaultXmlEventLogMigration
-import net.liftweb.common._
-import com.normation.rudder.repository._
-import com.normation.rudder.services.modification.ModificationService
-import com.typesafe.config.Config
-import com.typesafe.config.ConfigFactory
-
-import scala.util.Try
-import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
+import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
-import com.normation.rudder.services.modification.DiffServiceImpl
-import com.normation.rudder.services.modification.DiffService
-import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.services.workflows._
-import com.normation.rudder.rest.RestExtractorService
+import com.normation.inventory.domain._
+import com.normation.inventory.ldap.core._
+import com.normation.inventory.services.core._
+import com.normation.ldap.sdk._
+import com.normation.rudder.UserService
 import com.normation.rudder.api._
 import com.normation.rudder.appconfig._
 import com.normation.rudder.batch._
@@ -99,31 +58,43 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.queries._
-import com.normation.rudder.migration._
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
+import com.normation.rudder.migration._
+import com.normation.rudder.ncf.TechniqueArchiverImpl
+import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.ComplianceModeServiceImpl
 import com.normation.rudder.reports.execution._
-import com.normation.rudder.appconfig._
-import com.normation.rudder.rule.category._
+import com.normation.rudder.repository._
+import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
+import com.normation.rudder.repository.jdbc._
+import com.normation.rudder.repository.ldap._
+import com.normation.rudder.repository.xml._
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest._
+import com.normation.rudder.rest.internal._
+import com.normation.rudder.rest.lift._
+import com.normation.rudder.rest.v1._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
-import com.normation.rudder.services.eventlog._
+import com.normation.rudder.rule.category._
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
 import com.normation.rudder.services.eventlog.HistorizationServiceImpl
+import com.normation.rudder.services.eventlog._
 import com.normation.rudder.services.marshalling._
 import com.normation.rudder.services.modification.DiffService
 import com.normation.rudder.services.modification.DiffServiceImpl
 import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.services.nodes._
-import com.normation.rudder.services.policies._
 import com.normation.rudder.services.policies.DeployOnTechniqueCallback
+import com.normation.rudder.services.policies._
 import com.normation.rudder.services.policies.nodeconfig._
 import com.normation.rudder.services.policies.write.BuildBundleSequence
-import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl
 import com.normation.rudder.services.policies.write.PathComputerImpl
+import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl
 import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
+import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
 import com.normation.rudder.services.queries._
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.reports._
@@ -133,10 +104,7 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.user.TrivialPersonIdentService
 import com.normation.rudder.services.workflows._
 import com.normation.rudder.web.model._
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.v1._
-import com.normation.rudder.rest.lift._
-import com.normation.rudder.rest.internal._
+import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.services._
 import com.normation.templates.FillTemplatesService
 import com.normation.utils.StringUuidGenerator
@@ -144,23 +112,15 @@ import com.normation.utils.StringUuidGeneratorImpl
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
-import java.io.File
-
-import net.liftweb.common._
 import net.liftweb.common.Loggable
+import net.liftweb.common._
 import org.apache.commons.io.FileUtils
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 
-import scala.util.Try
-import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
-import com.normation.rudder.service.user.UserService
-import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.ncf.TechniqueArchiverImpl
-
 import scala.concurrent.duration._
-import java.nio.charset.StandardCharsets
+import scala.util.Try
 
 /**
  * Define a resource for configuration.
@@ -1651,8 +1611,9 @@ object RudderConfig extends Loggable {
   ////////////////////////////// Directive Editor and web fields //////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
 
-  import com.normation.cfclerk.domain._
   import java.util.Locale
+
+  import com.normation.cfclerk.domain._
   import org.joda.time.format.DateTimeFormat
 
   lazy val frenchDateFormatter = DateTimeFormat.forPattern("dd/MM/yyyy").withLocale(Locale.FRANCE)
@@ -1774,7 +1735,8 @@ object RudderConfig extends Loggable {
 class AppConfig extends Loggable {
 
   ////////////////////// Snippet plugins & extension register //////////////////////
-  import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }
+  import com.normation.plugins.SnippetExtensionRegister
+  import com.normation.plugins.SnippetExtensionRegisterImpl
   @Bean
   def snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
 

@@ -37,19 +37,20 @@
 
 package com.normation.rudder.rest.internal
 
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.UserService
 import com.normation.rudder.rest.RestUtils._
+import com.normation.rudder.services.quicksearch.FullQuickSearchService
+import com.normation.rudder.services.quicksearch.QSObject
+import com.normation.rudder.services.quicksearch.QuickSearchResult
+import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.services.quicksearch.FullQuickSearchService
-import com.normation.rudder.services.quicksearch.QuickSearchResult
-import com.normation.rudder.services.quicksearch.QSObject
-import com.normation.rudder.service.user.UserService
-import com.normation.rudder.web.model.LinkUtil
+
 import scala.collection.Seq
-import com.normation.rudder.AuthorizationType
 
 /**
  * A class for the Quicksearch rest endpoint.
@@ -191,11 +192,10 @@ class RestQuicksearch (
 
   private[this] implicit class JsonSearchResult(r: QuickSearchResult) {
     import com.normation.inventory.domain.NodeId
-    import com.normation.rudder.domain.policies.DirectiveId
-    import com.normation.rudder.domain.policies.RuleId
     import com.normation.rudder.domain.nodes.NodeGroupId
     import com.normation.rudder.domain.parameters.ParameterName
-    import com.normation.rudder.services.quicksearch.QSAttribute._
+    import com.normation.rudder.domain.policies.DirectiveId
+    import com.normation.rudder.domain.policies.RuleId
     import com.normation.rudder.services.quicksearch.QuickSearchResultId._
 
     def toJson(): JObject = {

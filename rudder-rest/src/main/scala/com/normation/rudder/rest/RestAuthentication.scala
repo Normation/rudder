@@ -42,7 +42,7 @@ import net.liftweb.http.JsonResponse
 import net.liftweb.http.LiftSession
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.service.user.UserService
+import com.normation.rudder.UserService
 import com.normation.rudder.AuthorizationType
 
 class RestAuthentication(

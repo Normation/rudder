@@ -76,11 +76,11 @@ sealed trait HttpAction { def name: String }
 final case object HttpAction {
 
   final case object HEAD   extends HttpAction { val name = "head" }
-  final case object GET    extends HttpAction { val name = "get" }
+  final case object GET    extends HttpAction { val name = "get"  }
   // perhaps we should have an "accepted content type"
   // for update verbs
-  final case object PUT    extends HttpAction { val name = "put" }
-  final case object POST   extends HttpAction { val name = "post" }
+  final case object PUT    extends HttpAction { val name = "put"    }
+  final case object POST   extends HttpAction { val name = "post"   }
   final case object DELETE extends HttpAction { val name = "delete" }
 
   //no PATCH for now

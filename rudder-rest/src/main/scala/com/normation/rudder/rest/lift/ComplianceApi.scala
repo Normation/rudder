@@ -37,42 +37,36 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.rest.ApiVersion
+import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
+import com.normation.rudder.rest._
+import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.{ComplianceApi => API}
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.reports.ReportingService
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.ApiVersion
-import com.normation.rudder.rest._
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
-import net.liftweb.json.JsonDSL._
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.reports.ReportingService
-import net.liftweb.common.Box
-import com.normation.rudder.domain.policies.Rule
-import net.liftweb.common.Full
-import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.rest.data._
 
 class ComplianceApi(
     restExtractorService: RestExtractorService
   , complianceService   : ComplianceAPIService
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
 
-  import com.normation.rudder.rest.{ComplianceApi => API}
   import JsonCompliance._
+
+  def schemas = API
 
   /*
    * The actual builder for the compliance API.

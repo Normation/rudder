@@ -37,59 +37,51 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.rudder.rest.RestExtractorService
-import net.liftweb.common.Box
-import net.liftweb.common.Full
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.rest.RestUtils
-import net.liftweb.json._
+import com.normation.eventlog.EventActor
+import com.normation.eventlog._
+import com.normation.rudder.UserService
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
+import com.normation.rudder.domain.policies.DeleteRuleDiff
+import com.normation.rudder.domain.policies.ModifyToRuleDiff
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.repository.WoRuleRepository
+import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
-import net.liftweb.common.EmptyBox
-import com.normation.rudder.rest.ApiPath
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.EventActor
-import com.normation.rudder.services.workflows.ChangeRequestService
-import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.rest.RestDataSerializer
+import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.{RuleApi => API}
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.rule.category._
+import com.normation.rudder.services.workflows.ChangeRequestService
+import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.common._
+import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
-import net.liftweb.common.Loggable
-import com.normation.rudder.rest.RestDataSerializer
-import com.normation.rudder.service.user.UserService
-import net.liftweb.common._
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.rule.category._
-import com.normation.eventlog._
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.data._
-import com.normation.rudder.repository.WoRuleRepository
-import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.policies.DeleteRuleDiff
-import com.normation.rudder.domain.policies.ModifyToRuleDiff
+import net.liftweb.json._
 
 class RuleApi(
     restExtractorService : RestExtractorService
   , apiV2                : RuleApiService2
   , serviceV6            : RuleApiService6
   , uuidGen              : StringUuidGenerator
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
 
   import RestUtils._
   val dataName = "ruleCategories"
@@ -102,7 +94,7 @@ class RuleApi(
     RestUtils.actionResponse2(restExtractorService, dataName, uuidGen, None)(function, req, errorMessage)(action, actor)
   }
 
-  import com.normation.rudder.rest.{RuleApi => API}
+  def schemas = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
@@ -289,7 +281,7 @@ class RuleApiService2 (
   , restDataSerializer   : RestDataSerializer
 ) ( implicit userService : UserService ) {
 
-  import restDataSerializer.{ serializeRule => serialize}
+  import restDataSerializer.{serializeRule => serialize}
 
   private[this] def createChangeRequestAndAnswer (
       id           : String

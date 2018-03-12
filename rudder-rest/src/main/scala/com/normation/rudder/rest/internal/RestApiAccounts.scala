@@ -1,18 +1,21 @@
 package com.normation.rudder.rest
 
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.common.Loggable
-import com.normation.rudder.api.{ApiAuthorization => ApiAuthz, RoApiAccountRepository, WoApiAccountRepository, _}
-import com.normation.rudder.rest.RestUtils._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.common._
-import net.liftweb.json.JArray
-import org.joda.time.DateTime
-import net.liftweb.http.LiftResponse
-import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.service.user.UserService
+import com.normation.rudder.UserService
+import com.normation.rudder.api.RoApiAccountRepository
+import com.normation.rudder.api.WoApiAccountRepository
+import com.normation.rudder.api._
+import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.rest.ApiAccountSerialisation._
+import com.normation.rudder.rest.RestUtils._
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common.Loggable
+import net.liftweb.common._
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JArray
+import net.liftweb.json.JsonDSL._
+import org.joda.time.DateTime
 
 class RestApiAccounts (
     readApi        : RoApiAccountRepository

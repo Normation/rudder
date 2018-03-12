@@ -37,26 +37,27 @@
 
 package com.normation.rudder.rest.lift
 
-import net.liftweb.common.Box
-import com.normation.rudder.rest.RestExtractorService
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.http.Req
-import net.liftweb.http.LiftResponse
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.rest.ApiVersion
-import com.normation.rudder.ncf.TechniqueWriter
-import net.liftweb.common.Full
-import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.{NcfApi => API}
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common.Box
+import net.liftweb.common.Full
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
+import net.liftweb.json.JsonAST.JValue
 
 class NcfApi(
     techniqueWriter     : TechniqueWriter
   , restExtractorService: RestExtractorService
   , uuidGen             : StringUuidGenerator
-) extends LiftApiModuleProvider {
- val kind = "ncf"
+) extends LiftApiModuleProvider[API] {
+  val kind = "ncf"
 
   import com.normation.rudder.ncf.ResultHelper.resultToBox
   import com.normation.rudder.rest.RestUtils._
@@ -70,8 +71,8 @@ class NcfApi(
     actionResponse2(restExtractorService, dataName, uuidGen, None)(function, req, errorMessage)(action, actor)
   }
 
-  import com.normation.rudder.rest.{NcfApi => API}
 
+  def schemas = API
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
         case API.UpdateTechnique => UpdateTechnique
@@ -101,7 +102,7 @@ class NcfApi(
   }
 
   object CreateTechnique extends LiftApiModule0 {
-    val schema = API.UpdateTechnique
+    val schema = API.CreateTechnique
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid)

@@ -165,7 +165,7 @@ class RuleCategoryTree(
                           category
                         , destCatId
                         , ModificationId(uuidGen.newUuid)
-                        , CurrentUser.getActor
+                        , CurrentUser.actor
                         , reason = None
                       ) ?~! s"Error while trying to move category with requested id '${sourceCatId}' to category id '${destCatId}'"
             newRoot <- roRuleCategoryRepository.getRootCategory

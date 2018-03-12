@@ -158,18 +158,18 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         val modId = ModificationId(uuidGen.newUuid)
         (for {
           currentNetworks <- psService.getAuthorizedNetworks(policyServerId) ?~! s"Error when getting the list of current authorized networks for policy server ${policyServerId.value}"
-          changeNetwork   <- psService.setAuthorizedNetworks(policyServerId, goodNets, modId, CurrentUser.getActor) ?~! "Error when saving new allowed networks for policy server ${policyServerId.value}"
+          changeNetwork   <- psService.setAuthorizedNetworks(policyServerId, goodNets, modId, CurrentUser.actor) ?~! "Error when saving new allowed networks for policy server ${policyServerId.value}"
           modifications   =  UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks, goodNets))
           eventSaved      <- eventLogService.saveEventLog(modId,
                                UpdatePolicyServer(EventLogDetails(
                                  modificationId = None
-                               , principal = CurrentUser.getActor
+                               , principal = CurrentUser.actor
                                , details = modifications
                                , reason = None))) ?~! "Unable to save the user event log for modification on authorized networks for policy server ${policyServerId.value}"
         } yield {
         }) match {
           case Full(_) =>
-            asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+            asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
 
             Replace(allowedNetworksFormId, outerXml.applyAgain) &
             successPopup

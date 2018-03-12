@@ -37,22 +37,22 @@
 
 package com.normation.rudder.rest
 
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import net.liftweb.http.Req
 import com.normation.eventlog.EventActor
-import net.liftweb.json._
-import net.liftweb.http._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.http.js.JsExp
-import net.liftweb.common.Loggable
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-import net.liftweb.util.Helpers.tryo
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.UserService
 import com.normation.utils.StringUuidGenerator
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.http.Req
+import net.liftweb.http._
+import net.liftweb.http.js.JsExp
 import net.liftweb.json.JsonAST.RenderSettings
-import com.normation.rudder.service.user.UserService
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
+import net.liftweb.util.Helpers.tryo
 
 /**
  */

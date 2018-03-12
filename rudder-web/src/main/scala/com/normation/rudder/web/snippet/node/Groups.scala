@@ -351,7 +351,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
        }) match {
         case (sourceGroupId, destCatId) :: Nil =>
           (for {
-            result <- woNodeGroupRepository.move(NodeGroupId(sourceGroupId), NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
+            result <- woNodeGroupRepository.move(NodeGroupId(sourceGroupId), NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
             group  <- Box(lib.allGroups.get(NodeGroupId(sourceGroupId))) ?~! s"No such group: ${sourceGroupId}"
           } yield {
             (group.nodeGroup, lib.categoryByGroupId(group.nodeGroup.id))
@@ -391,7 +391,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
                           category.toNodeGroupCategory
                         , NodeGroupCategoryId(destCatId)
                         , ModificationId(uuidGen.newUuid)
-                        , CurrentUser.getActor
+                        , CurrentUser.actor
                         , reason = None)?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
           } yield {
             (category.id.value, result)

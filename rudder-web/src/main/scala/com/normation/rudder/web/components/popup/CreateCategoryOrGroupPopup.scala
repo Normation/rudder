@@ -245,7 +245,7 @@ class CreateCategoryOrGroupPopup(
             )
           , NodeGroupCategoryId(piContainer.get)
           , ModificationId(uuidGen.newUuid)
-          , CurrentUser.getActor
+          , CurrentUser.actor
           , piReasons.map(_.get)
         ) match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
@@ -274,7 +274,7 @@ class CreateCategoryOrGroupPopup(
             nodeGroup
           , NodeGroupCategoryId(piContainer.get)
           , ModificationId(uuidGen.newUuid)
-          , CurrentUser.getActor
+          , CurrentUser.actor
           , piReasons.map(_.get)
         ) match {
           case Full(x) =>

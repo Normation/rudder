@@ -300,10 +300,10 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <!--
     SQL Queries
     ===========
-    Information about SQL queries executed (timing, status, etc). 
+    Information about SQL queries executed (timing, status, etc).
     At debug level, you only get queries that returned a bad status or
-    takes more than 100ms to complete. 
-    At trace, you get them all. 
+    takes more than 100ms to complete.
+    At trace, you get them all.
   -->
   <logger name="sql" level="off" additivity="false">
     <appender-ref ref="OPSLOG" />
@@ -327,7 +327,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <!--
     Schechuled Jobs
     ================
-    This logger is in charge of all scheduled jobs and batches 
+    This logger is in charge of all scheduled jobs and batches
   -->
   <logger name="scheduledJob" level="info" additivity="false">
     <appender-ref ref="OPSLOG" />
@@ -410,10 +410,10 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <!--
     Hooks
     ==========
-    Information about hooks execution. 
-    This log allow to see what hooks are executed. 
-    
-    Debug level will display hooks with their parameter (may be quite noisy when there 
+    Information about hooks execution.
+    This log allow to see what hooks are executed.
+
+    Debug level will display hooks with their parameter (may be quite noisy when there
     is a lot of nodes implied). Trace add system information (like environment variables).
   -->
   <logger name="hooks" level="info" additivity="false">
@@ -421,6 +421,20 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
     <appender-ref ref="STDOUT" />
   </logger>
+
+
+  <!--
+    API
+    ===
+    Information about API processing.
+
+    This log write information about API processing:
+    - on trace mode, at bootstrap, what API are registered and to which version they are mapped
+    - on debug and trace, various information about API processing (what, who, timing, etc).
+      Trace level is quite verbose and print for each request result for ALL path tested (100 of lines)
+
+  -->
+  <logger name="api-processing" level="info" />
 
 
   <!-- ==================================================== -->
@@ -465,5 +479,5 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <!-- Uncomment to have precise log about LDAP queries done by the node search engine -->
 <!--   <logger name="com.normation.rudder.services.queries.InternalLDAPQueryProcessor" level="debug" /> -->
 
-   
+
 </configuration>
