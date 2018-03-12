@@ -368,7 +368,7 @@ input.queryInputValue, select.queryInputValue {
 }
 
 input.hasDatepicker {
-  width:90px !important;
+  width:90px;
 }
 
 button.ui-datepicker-trigger {

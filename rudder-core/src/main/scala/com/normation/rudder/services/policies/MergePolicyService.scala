@@ -30,7 +30,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-
 *
 *************************************************************************************
 */
@@ -48,13 +47,13 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.utils.Control.sequence
 
-
 /*
  * This file contains all the logic that allows to build a List of policies, for a node,
  * given the list of all applicable "BoundPolicyDraft" to that node.
  */
 final object MergePolicyService {
 
+  import com.normation.rudder.utils.Utils.eitherToBox
   /*
    * Order that compare Priority THEN bundle order to
    * sort BoundPolicyDraft
@@ -90,7 +89,6 @@ final object MergePolicyService {
     }
   }
 
-
   /*
    * That methods takes all the policy draft of a node and does what need to be done
    * to have a list of policies that can be translated into agent specific config files.
@@ -109,12 +107,6 @@ final object MergePolicyService {
    * NodeInfo is only used for reporting, that method should be contextualized in an other fashion to avoid that.
    */
   def buildPolicy(nodeInfo: NodeInfo, mode: GlobalPolicyMode, boundedPolicyDrafts: Seq[BoundPolicyDraft]): Box[List[Policy]] = {
-    // Either[String, T] => Box[T] with the obvious semantic
-    implicit def eitherToBox[A](res: Either[String, A]): Box[A] = res match {
-      case Left(s)  => Failure(s, Empty, Empty)
-      case Right(a) => Full(a)
-    }
-
 
     // now manage merge of mutli-instance mono-policy techniques
     // each merge can fails because of a consistency error, so we are grouping merge and checks
