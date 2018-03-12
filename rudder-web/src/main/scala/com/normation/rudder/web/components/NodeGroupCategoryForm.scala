@@ -200,7 +200,7 @@ class NodeGroupCategoryForm(
   }
 
   private[this] def onDelete() : JsCmd = {
-    woGroupCategoryRepository.delete(_nodeGroupCategory.id, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Node Group category deleted by user from UI")) match {
+    woGroupCategoryRepository.delete(_nodeGroupCategory.id, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Node Group category deleted by user from UI")) match {
       case Full(id) =>
         JsRaw("""$('#removeActionDialog').bsModal('hide');""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
@@ -293,7 +293,7 @@ class NodeGroupCategoryForm(
           newNodeGroup
         , NodeGroupCategoryId(container.get)
         , ModificationId(uuidGen.newUuid)
-        , CurrentUser.getActor
+        , CurrentUser.actor
         , Some("Node Group category saved by user from UI")
       ) match {
         case Full(x) =>

@@ -82,7 +82,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
   private[this] val eventlogDetailsService = RudderConfig.eventLogDetailsService
   private[this] val commitAndDeployChangeRequest =  RudderConfig.commitAndDeployChangeRequest
 
-  private[this] def checkAccess(cr:ChangeRequest) = CurrentUser.checkRights(AuthorizationType.Validator.Read)||CurrentUser.checkRights(AuthorizationType.Deployer.Read)||cr.owner == CurrentUser.getActor.name
+  private[this] def checkAccess(cr:ChangeRequest) = CurrentUser.checkRights(AuthorizationType.Validator.Read)||CurrentUser.checkRights(AuthorizationType.Deployer.Read)||cr.owner == CurrentUser.actor.name
   private[this] val CrId: Box[Int] = {S.param("crId").map(x=>x.toInt) }
   private[this] var changeRequest: Box[ChangeRequest] = {
     CrId match {
@@ -169,7 +169,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
 
   def displayActionButton(cr:ChangeRequest,step:WorkflowNodeId):NodeSeq = {
     val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case right: ActionType.Edit => right.authzKind}
-    val isOwner = cr.owner == CurrentUser.getActor.name
+    val isOwner = cr.owner == CurrentUser.actor.name
     ( "#backStep" #> {
       workflowService.findBackSteps(authz, step,isOwner) match {
         case Nil => NodeSeq.Empty
@@ -196,7 +196,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
   }
 
   private[this] def changeDetailsCallback (cr:ChangeRequest)(statusUpdate:ChangeRequestInfo) =  {
-    val newCR = changeRequestService.updateChangeRequestInfo(cr, statusUpdate, CurrentUser.getActor, None)
+    val newCR = changeRequestService.updateChangeRequestInfo(cr, statusUpdate, CurrentUser.actor, None)
     changeRequest = newCR
     SetHtml("changeRequestHeader", displayHeader(newCR.openOr(cr))) &
     SetHtml("changeRequestChanges", new ChangeRequestChangesForm(newCR.openOr(cr)).dispatch("changes")(NodeSeq.Empty))
@@ -357,7 +357,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
         updateForm(nextChosen)
       }
       else {
-        nextChosen._2(cr.id,CurrentUser.getActor,changeMessage.map(_.get)) match {
+        nextChosen._2(cr.id,CurrentUser.actor,changeMessage.map(_.get)) match {
           case Full(next) =>
             SetHtml("workflowActionButtons", displayActionButton(cr,next)) &
             SetHtml("newStatus",Text(next.value)) &

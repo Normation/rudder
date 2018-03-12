@@ -226,8 +226,8 @@ class Archives extends DispatchSnippet with Loggable {
     def archive(): JsCmd = {
       S.clearCurrentNotices
       (for {
-        commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name)
-        archive  <- archiveFunction(commiter, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User requested archive creation"), false)
+        commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name)
+        archive  <- archiveFunction(commiter, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User requested archive creation"), false)
       } yield {
         archive
       }) match {
@@ -242,8 +242,8 @@ class Archives extends DispatchSnippet with Loggable {
         case None    => error(Empty, "A valid archive must be chosen")
         case Some(commit) => (
           for {
-            commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name)
-            archive <- restoreFunction(commit, commiter, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User requested archive restoration to commit %s".format(commit.value)), false)
+            commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name)
+            archive <- restoreFunction(commit, commiter, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User requested archive restoration to commit %s".format(commit.value)), false)
           } yield
             archive ) match {
           case eb:EmptyBox => error(eb, restoreErrorMessage)

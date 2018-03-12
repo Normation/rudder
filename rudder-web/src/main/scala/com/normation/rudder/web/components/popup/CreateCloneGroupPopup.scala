@@ -99,7 +99,7 @@ class CreateCloneGroupPopup(
             )
           , NodeGroupCategoryId(groupContainer.get)
           , ModificationId(uuidGen.newUuid)
-          , CurrentUser.getActor
+          , CurrentUser.actor
           , Some("Node Group category created by user from UI")
         ) match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
@@ -125,7 +125,7 @@ class CreateCloneGroupPopup(
             clone
           , parentCategoryId
           , ModificationId(uuidGen.newUuid)
-          , CurrentUser.getActor
+          , CurrentUser.actor
           , groupReasons.map(_.get)
         ) match {
           case Full(x) =>

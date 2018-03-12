@@ -81,7 +81,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   def startNewPolicyGeneration() = {
     val modId = ModificationId(uuidGen.newUuid)
-    asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+    asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
   }
 
   def disableInputs = {
@@ -632,7 +632,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       }
 
       def submit = {
-        val actor = CurrentUser.getActor
+        val actor = CurrentUser.actor
         configService.set_rudder_syslog_protocol(reportProtocol,actor,None) match {
           case Full(_) =>
             // Update the initial value of the form
@@ -670,7 +670,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         networkForm(value)
       case eb: EmptyBox =>
         // We could not read current protocol, try repairing by setting protocol to UDP and warn user
-        val actor = CurrentUser.getActor
+        val actor = CurrentUser.actor
         configService.set_rudder_syslog_protocol(SyslogUDP,actor,Some("Property automatically reset to 'UDP' due to an error"))
         S.error("updateNetworkProtocol","Error when fetching 'Syslog protocol' property, Setting it to UDP")
         networkForm(SyslogUDP)
@@ -688,7 +688,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     new ComplianceModeEditForm[GlobalComplianceMode](
         globalMode
       , (complianceMode) => {
-          configService.set_rudder_compliance_mode(complianceMode,CurrentUser.getActor,genericReasonMessage)
+          configService.set_rudder_compliance_mode(complianceMode,CurrentUser.actor,genericReasonMessage)
         }
       , () => startNewPolicyGeneration
       , globalMode
@@ -716,7 +716,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
 
-    val actor = CurrentUser.getActor
+    val actor = CurrentUser.actor
     for {
       _ <- configService.set_agent_run_interval(schedule.interval,actor,genericReasonMessage)
       _ <- configService.set_agent_run_start_hour(schedule.startHour,actor,genericReasonMessage)
@@ -873,7 +873,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           Run(s"""$$("#sendMetricsSubmit").button( "option", "disabled",${noModif()});""")
         }
         def submit() = {
-          val save = configService.set_send_server_metrics(currentSendMetrics,CurrentUser.getActor,genericReasonMessage)
+          val save = configService.set_send_server_metrics(currentSendMetrics,CurrentUser.actor,genericReasonMessage)
           S.notice("sendMetricsMsg", save match {
             case Full(_)  =>
               initSendMetrics = currentSendMetrics

@@ -37,17 +37,9 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.rest.RestExtractorService
-import net.liftweb.common.Box
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import com.normation.rudder.rest.ApiVersion
-import com.normation.rudder.domain.policies.DirectiveId
-import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.rest.RestUtils
-import com.normation.utils.StringUuidGenerator
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentAgent
@@ -61,37 +53,37 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
+import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.RestDataSerializer
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.{DirectiveApi => API}
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.web.model.DirectiveEditor
 import com.normation.rudder.web.services.DirectiveEditorService
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.utils.Control._
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
 import net.liftweb.json.JArray
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonDSL._
-import com.normation.rudder.rest.RestDataSerializer
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.services.TechniqueRepository
 import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.web.services.DirectiveEditorService
-import com.normation.rudder.web.model.DirectiveEditor
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.AuthzToken
-import net.liftweb.common.Full
-import com.normation.eventlog.EventActor
-import com.normation.rudder.rest.data._
+import net.liftweb.json.JsonDSL._
 
 class DirectiveApi (
     readDirective       : RoDirectiveRepository
   , restExtractorService: RestExtractorService
   , apiV2               : DirectiveAPIService2
   , uuidGen             : StringUuidGenerator
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
 
   val dataName = "directives"
+
+  def schemas = API
 
   def response ( function : Box[JValue], req : Req, errorMessage : String, id : Option[String])(implicit action : String) : LiftResponse = {
     RestUtils.response(restExtractorService, dataName, id)(function, req, errorMessage)
@@ -107,7 +99,6 @@ class DirectiveApi (
     RestUtils.workflowResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage, defaultName)(action, actor)
   }
 
-  import com.normation.rudder.rest.{DirectiveApi => API}
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {

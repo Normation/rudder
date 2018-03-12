@@ -828,9 +828,9 @@ object DisplayNode extends Loggable {
   private[this] def removeNode(nodeId: NodeId) : JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     import com.normation.rudder.services.servers.DeletionResult._
-    removeNodeService.removeNode(nodeId, modId, CurrentUser.getActor) match {
+    removeNodeService.removeNode(nodeId, modId, CurrentUser.actor) match {
       case Full(Success) =>
-        asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
         onSuccess
       case Full(PostHookFailed(postHook)) =>
         val message = s"Node '${nodeId.value}' was deleted, but an error occured while running post-deletion hooks"

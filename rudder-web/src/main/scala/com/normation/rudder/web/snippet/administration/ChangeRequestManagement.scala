@@ -99,7 +99,7 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
   }
 
   def getLines() = {
-    val changeRequests = if (currentUser) roCrRepo.getAll else roCrRepo.getByContributor(CurrentUser.getActor)
+    val changeRequests = if (currentUser) roCrRepo.getAll else roCrRepo.getByContributor(CurrentUser.actor)
     JsTableData(changeRequests match {
       case Full(changeRequests) =>
 

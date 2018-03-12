@@ -405,7 +405,7 @@ class EventListDisplayer(
     }
 
     def addRestoreAction() =
-      personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name) match {
+      personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name) match {
       case Full(commiter) =>
         var rollbackAction : RollBackAction = null
 
