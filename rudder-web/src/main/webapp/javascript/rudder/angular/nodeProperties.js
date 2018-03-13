@@ -35,9 +35,9 @@
 *************************************************************************************
 */
 
-var app = angular.module('nodeProperties', ['DataTables', 'monospaced.elastic']);
+var app = angular.module('nodeProperties', ['datatables', 'monospaced.elastic']);
 
-app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
+app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, DTColumnDefBuilder) {
   //Initialize scope
   $scope.properties;
   $scope.nodeId;
@@ -53,81 +53,37 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, $compile) {
     $scope.newProperty = {'name':"", 'value':""};
   }
 
-  var columnDefs = [
-    {
-    "aTargets":[0],
-    "mDataProp": "name",
-    "sWidth": "20%",
-    "sTitle" : "Name",
-    "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      $(nTd).empty();
-      var divPropName = "<div>"+ sData +"</div>";
-      $(nTd).append(divPropName);
-      if(oData.provider){
-        var span = "<span class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title=''>" + oData.provider + "</span>";
-        var badge = $(span).get(0);
-        var tooltipText = "This node property is managed by its provider ‘<b>"+ oData.provider +"</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration.";
-        badge.setAttribute("title", tooltipText);
-        $(nTd).prepend(badge);
+  $scope.formatContent = function(property) {
+    var value = property.value
+      if (value !== null && typeof value === 'object') {
+        value = JSON.stringify(value, null, 2)
       }
-    }
-    }
-  , {
-    "aTargets":[1],
-    "sWidth": "75%",
-    "mDataProp": "value",
-    "sTitle" :"Value",
-    "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      var pre = $("<pre class='json-beautify' onclick='$(this).toggleClass(\"toggle\")'></pre>");
-      var content = sData;
-      if (sData !== null && typeof sData === 'object') {
-        content = JSON.stringify(sData, null, 2)
-      }
-      $(nTd).empty();
-      pre.html(content)
-      $(nTd).prepend(pre);
-     }
-   }
-  , {
-    "aTargets":[2],
-    "sWidth": "5%",
-    "mDataProp": "name",
-    "sTitle" :"",
-    "orderable": false,
-    "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      $(nTd).empty();
-      if (oData.rights !== "read-only") {
-        var deleteButton = $('<span class="fa fa-times text-danger" ng-click="popupDeletion(\''+sData+'\', \''+iRow+'\')"></span>');
-        $(nTd).addClass('text-center delete-action');
-        $(nTd).prepend(deleteButton);
-        $compile(deleteButton)($scope);
-      }
-    }
-  }];
-  var overrideOptions = {
-      "bFilter" : true
-    , "bPaginate" : true
-    , "bLengthChange": true
-    , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-        "sSearch": ""
-      }
-    , "aaSorting": [[ 0, "asc" ]]
-    , "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
-  };
+    return value;
+  }
+  $scope.options =
+    DTOptionsBuilder.newOptions().
+      withPaginationType('full_numbers').
+      withDOM('<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>').
+      withLanguage({
+          "sSearch": ""
+      }).
+      withOption('sWidth', '100%').
+      withOption("bLengthChange", true).
+      withOption("bAutoWidth", false)
 
-  var currentNodeId;
+  $scope.columns = [
+        DTColumnDefBuilder.newColumnDef(0).withOption("sWidth",'20%'),
+        DTColumnDefBuilder.newColumnDef(1).withOption("sWidth",'75%'),
+        DTColumnDefBuilder.newColumnDef(2).withOption("sWidth",'5%')
+    ];
+  var currentNodeId
   $scope.init = function(properties, nodeId, right){
     if(!right){
-      columnDefs[2].sClass = "hidden";
+      $scope.columns[2].notVisible();
     }
-    $scope.columnDefs = columnDefs;
-    $scope.overrideOptions = overrideOptions;
-    //Get current node properties
+    currentNodeId = nodeId
     $scope.properties = properties;
-    currentNodeId = nodeId;
     $scope.urlAPI = contextPath + '/secure/api/nodes/'+ nodeId;
-    $($scope.tableId).dataTable().fnAddData($scope.properties);
   }
 
   $scope.addProperty = function(){
