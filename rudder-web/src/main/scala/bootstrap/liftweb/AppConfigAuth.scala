@@ -487,7 +487,7 @@ class RestAuthenticationFilter(
               authenticate(RudderUserDetail(
                   REST_USER_PREFIX + s""""${systemAccount.name.value}"""" + s" (${systemAccount.id.value})"
                 , systemAccount.token.value
-                , RudderAuthType.Api.apiRudderRole
+                , Set(Role.Administrator)  // this token has "admin rights - use with care
                 , systemApiAcl
                 , RudderAuthType.Api
               ))
