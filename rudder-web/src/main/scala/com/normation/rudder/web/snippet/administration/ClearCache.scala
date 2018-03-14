@@ -80,7 +80,7 @@ class ClearCache extends DispatchSnippet with Loggable {
             , ClearCacheEventLog(
                 EventLogDetails(
                     modificationId = Some(modId)
-                  , principal = CurrentUser.getActor
+                  , principal = CurrentUser.actor
                   , details = EventLog.emptyDetails
                   , reason = Some("Node configuration cache deleted on user request")
                 )
@@ -93,7 +93,7 @@ class ClearCache extends DispatchSnippet with Loggable {
             case _ => //ok
           }
           logger.debug("Deleting node configurations on user clear cache request")
-          asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+          asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
         }
         Full(set)
     }
@@ -122,7 +122,7 @@ class ClearCache extends DispatchSnippet with Loggable {
               , ClearCacheEventLog(
                   EventLogDetails(
                       modificationId = Some(modId)
-                    , principal = CurrentUser.getActor
+                    , principal = CurrentUser.actor
                     , details = EventLog.emptyDetails
                     , reason = Some("Clearing cache for: node configuration, recent changes, compliance and node info at user request")
                   )
@@ -138,7 +138,7 @@ class ClearCache extends DispatchSnippet with Loggable {
         e
       case Full(set) => //ok
         logger.debug("Deleting node configurations on user clear cache request")
-        asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
         Full("ok")
     }
   }

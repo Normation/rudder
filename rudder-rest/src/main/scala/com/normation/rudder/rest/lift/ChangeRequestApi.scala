@@ -37,36 +37,37 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.domain.workflows.WorkflowNodeId
+import com.normation.rudder.repository.RoChangeRequestRepository
+import com.normation.rudder.repository.RoWorkflowRepository
+import com.normation.rudder.repository.WoChangeRequestRepository
+import com.normation.rudder.repository.WoWorkflowRepository
+import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.rest.RestUtils.toJsonError
+import com.normation.rudder.rest.ApiModuleProvider
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
+import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.{ChangeRequestApi => API}
+import com.normation.rudder.services.workflows.ChangeRequestService
+import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestService
+import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.utils.Control.boxSequence
+import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JString
-import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.rest.ApiVersion
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.repository.RoChangeRequestRepository
-import com.normation.rudder.repository.RoWorkflowRepository
-import com.normation.rudder.repository.WoWorkflowRepository
-import com.normation.rudder.services.workflows.ChangeRequestService
-import com.normation.rudder.services.workflows.WorkflowService
-import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestService
-import com.normation.rudder.repository.WoChangeRequestRepository
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.rest.RestDataSerializer
-import net.liftweb.common.Box
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.domain.workflows.WorkflowNodeId
-import net.liftweb.common.Failure
-import com.normation.rudder.rest.RestUtils._
-import com.normation.utils.Control.boxSequence
-import com.normation.rudder.domain.workflows.ChangeRequest
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.rest.AuthzToken
-
 
 class ChangeRequestApi (
     restExtractorService : RestExtractorService
@@ -80,7 +81,9 @@ class ChangeRequestApi (
   , commitRepository     : CommitAndDeployChangeRequestService
   , restDataSerializer   : RestDataSerializer
   , workflowEnabled      : () => Box[Boolean]
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
+
+  override def schemas: ApiModuleProvider[API] = API
 
   def checkWorkflow = {
     if (workflowEnabled().getOrElse(false))
@@ -109,8 +112,6 @@ class ChangeRequestApi (
 
   // While there is no authorisation on API, they got all rights.
   private[this] def apiUserRights = Seq("deployer","validator")
-
-  import com.normation.rudder.rest.{ChangeRequestApi => API}
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {

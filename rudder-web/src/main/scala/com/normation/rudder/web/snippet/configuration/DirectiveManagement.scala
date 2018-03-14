@@ -384,7 +384,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                     RudderConfig.woDirectiveRepository.delete(
                         directive.id
                       , ModificationId(RudderConfig.stringUuidGenerator.newUuid)
-                      , CurrentUser.getActor
+                      , CurrentUser.actor
                       , Some(s"Deleting directive '${directive.name}' (${directive.id}) because its Technique isn't available anymore")
                     ) match {
                       case Full(diff)   =>

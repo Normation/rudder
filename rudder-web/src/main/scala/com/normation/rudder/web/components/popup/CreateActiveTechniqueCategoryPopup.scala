@@ -141,7 +141,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
           )
          , ActiveTechniqueCategoryId(categoryContainer.get)
          , ModificationId(uuidGen.newUuid)
-         , CurrentUser.getActor
+         , CurrentUser.actor
          , Some("user created a new category")
       ) match {
           case Failure(m,_,_) =>

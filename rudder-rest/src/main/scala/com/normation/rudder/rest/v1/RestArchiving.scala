@@ -37,21 +37,21 @@
 
 package com.normation.rudder.rest
 
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.UserService
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.xml._
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest._
-import net.liftweb.common._
-import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
-import org.joda.time.DateTime
+import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import org.eclipse.jgit.lib.PersonIdent
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.service.user.UserService
+import org.joda.time.DateTime
 
 /**
  * A rest api that allows to deploy promises.

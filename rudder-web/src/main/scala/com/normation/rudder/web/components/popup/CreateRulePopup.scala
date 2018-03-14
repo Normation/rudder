@@ -206,7 +206,7 @@ class CreateOrCloneRulePopup(
           , isEnabledStatus = !clonedRule.isDefined
       )
 
-      woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.get )) match {
+      woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.actor, reason.map( _.get )) match {
           case Full(x) =>
             onSuccessCallback(rule) & closePopup()
           case Empty =>

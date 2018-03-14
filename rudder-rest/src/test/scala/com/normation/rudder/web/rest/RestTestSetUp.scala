@@ -57,9 +57,10 @@ import net.liftweb.util.NamedPF
 import net.liftweb.http.S
 import net.liftweb.common.EmptyBox
 import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.service.user.UserService
-import com.normation.rudder.service.user.User
+import com.normation.rudder.UserService
+import com.normation.rudder.User
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.RudderAccount
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.rest.v1.RestStatus
@@ -74,9 +75,9 @@ object RestTestSetUp {
   val uuidGen = new StringUuidGeneratorImpl()
   implicit val userService = new UserService {
     val user = new User{
-      val actor = new EventActor("test-user")
+      val account = RudderAccount.User("test-user", "pass")
       def checkRights(auth : AuthorizationType) = true
-      def getApiAutz = ApiAuthz.allAuthz
+      def getApiAuthz = ApiAuthz.allAuthz
     }
     val getCurrentUser = user
 

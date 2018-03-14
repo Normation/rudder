@@ -37,14 +37,14 @@
 
 package com.normation.rudder.rest.v1
 
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.PlainTextResponse
-import net.liftweb.common._
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.service.user.UserService
+import com.normation.rudder.UserService
 import com.normation.rudder.rest.RestUtils
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common._
+import net.liftweb.http.PlainTextResponse
+import net.liftweb.http.rest.RestHelper
 
 /**
  * A rest api that allows to deploy promises.

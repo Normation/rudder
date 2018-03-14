@@ -126,10 +126,10 @@ class CreateOrUpdateGlobalParameterPopup(
                        , newParameter
                        , parameter
                        , diff
-                       , CurrentUser.getActor
+                       , CurrentUser.actor
                        , paramReasons.map( _.get )
                        )
-          wfStarted <- workflowService.startWorkflow(cr.id, CurrentUser.getActor, paramReasons.map(_.get))
+          wfStarted <- workflowService.startWorkflow(cr.id, CurrentUser.actor, paramReasons.map(_.get))
         } yield {
           cr.id
         }

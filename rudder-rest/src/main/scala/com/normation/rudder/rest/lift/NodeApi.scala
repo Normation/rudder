@@ -37,94 +37,59 @@
 
 package com.normation.rudder.rest.lift
 
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils._
-import net.liftweb.common._
-import net.liftweb.json.JsonDSL._
-import com.normation.rudder.rest.ApiVersion
-import net.liftweb.http.OutputStreamResponse
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.ApiPath
-import com.normation.inventory.domain._
-import com.normation.rudder.rest.RestDataSerializer
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.servers.NewNodeManager
-import com.normation.rudder.services.servers.RemoveNodeService
-import com.normation.rudder.rest.RestUtils.getActor
-import com.normation.rudder.rest.RestUtils.toJsonError
-import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.utils.Control._
-import com.normation.utils.StringUuidGenerator
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
-import net.liftweb.http.Req
-import net.liftweb.json.JArray
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonDSL.pair2jvalue
-import net.liftweb.json.JsonDSL.string2jvalue
-import net.liftweb.common.Box
-import net.liftweb.json.JValue
-import com.normation.rudder.rest.RestDataSerializer
-import net.liftweb.common.Failure
-import com.normation.rudder.service.user.UserService
-import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestDataSerializer
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain._
-import net.liftweb.http.Req
-import net.liftweb.common._
-import com.normation.rudder.rest.RestUtils._
-import net.liftweb.json.JArray
-import net.liftweb.json.JsonDSL._
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.rest.ApiVersion
-import com.normation.inventory.services.core.ReadOnlySoftwareDAO
-import com.normation.rudder.services.nodes._
-import net.liftweb.common._
-import com.normation.inventory.ldap.core._
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.RestUtils._
-import com.normation.rudder.services.queries._
-import com.normation.inventory.domain._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
-import com.normation.rudder.domain.queries.Query
-import com.normation.eventlog.ModificationId
-
-import com.normation.inventory.domain._
-import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.repository.WoNodeRepository
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.utils.StringUuidGenerator
-
-import net.liftweb.common._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
-import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.nodes.Node
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
-import java.io.IOException
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.util.Arrays
-import scalaj.http.Http
+
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain._
+import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
+import com.normation.inventory.services.core.ReadOnlySoftwareDAO
+import com.normation.rudder.UserService
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes.CompareProperties
-import scalaj.http.HttpOptions
-import monix.eval.Task
-import scalaj.http.HttpConstants
-import com.normation.rudder.service.user.UserService
+import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.repository.WoNodeRepository
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
+import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.RestDataSerializer
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils.getActor
+import com.normation.rudder.rest.RestUtils.toJsonError
+import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.{NodeApi => API}
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.queries._
+import com.normation.rudder.services.servers.NewNodeManager
+import com.normation.rudder.services.servers.RemoveNodeService
+import com.normation.utils.Control._
+import com.normation.utils.StringUuidGenerator
+import monix.eval.Task
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.OutputStreamResponse
+import net.liftweb.http.Req
+import net.liftweb.json.JArray
+import net.liftweb.json.JValue
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.pair2jvalue
+import net.liftweb.json.JsonDSL.string2jvalue
+import scalaj.http.Http
+import scalaj.http.HttpConstants
+import scalaj.http.HttpOptions
 
 /*
  * NodeApi implementation.
@@ -139,9 +104,9 @@ class NodeApi (
   , apiV4               : NodeApiService4
   , serviceV6           : NodeApiService6
   , apiV8service        : NodeApiService8
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
 
-  import com.normation.rudder.rest.{NodeApi => API}
+  def schemas = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {

@@ -37,23 +37,24 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.rudder.rest.RestExtractorService
-import net.liftweb.http.Req
-import net.liftweb.http.LiftResponse
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.rest.ApiVersion
-import net.liftweb.common.Full
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.api._
-import net.liftweb.json.JsonAST.JArray
-import net.liftweb.common.EmptyBox
-import org.joda.time.DateTime
 import com.normation.rudder.rest.ApiAccountSerialisation._
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
+import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.{UserApi => API}
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
+import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
+import org.joda.time.DateTime
 
 class UserApi(
     restExtractor : RestExtractorService
@@ -61,10 +62,10 @@ class UserApi(
   , writeApi      : WoApiAccountRepository
   , tokenGenerator: TokenGenerator
   , uuidGen       : StringUuidGenerator
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
   api =>
 
-  import com.normation.rudder.rest.{UserApi => API}
+  def schemas = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
