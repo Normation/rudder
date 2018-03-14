@@ -37,46 +37,41 @@
 
 package com.normation.rudder.rest.lift
 
-import scala.util.{ Failure => TryFailure }
-import scala.util.Success
-import scala.util.Try
-
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils.response
-import com.normation.rudder.rest.ApiVersion
-
-import net.liftweb.common.Failure
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.AuthzToken
-import scala.collection.SortedMap
-
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
+import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestDataSerializer
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils.response
+import com.normation.rudder.rest.{TechniqueApi => API}
 import com.normation.utils.Control.boxSequence
 import com.normation.utils.Control.sequence
-
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL.seq2jvalue
+
+import scala.collection.SortedMap
+import scala.util.Success
+import scala.util.Try
+import scala.util.{Failure => TryFailure}
 
 class TechniqueApi (
     restExtractorService: RestExtractorService
   , apiV6               : TechniqueAPIService6
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
 
-  import com.normation.rudder.rest.{TechniqueApi => API}
+  def schemas = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {

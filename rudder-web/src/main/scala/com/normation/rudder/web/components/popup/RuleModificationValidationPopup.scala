@@ -288,10 +288,10 @@ class RuleModificationValidationPopup(
                        , rule
                        , initialState
                        , diff
-                       , CurrentUser.getActor
+                       , CurrentUser.actor
                        , crReasons.map( _.get )
                        )
-            wfStarted <- workflowService.startWorkflow(cr.id, CurrentUser.getActor, crReasons.map(_.get))
+            wfStarted <- workflowService.startWorkflow(cr.id, CurrentUser.actor, crReasons.map(_.get))
           } yield {
             cr.id
           }

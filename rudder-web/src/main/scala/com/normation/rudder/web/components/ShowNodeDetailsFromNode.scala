@@ -126,9 +126,9 @@ class ShowNodeDetailsFromNode(
     val modId = ModificationId(uuidGen.newUuid)
     boxNodeInfo = Full(Some(nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(heartbeatConfiguration = Some(heartbeatConfiguration))))))
     for {
-      result <- nodeRepo.updateNode(nodeInfo.node, modId, CurrentUser.getActor, None)
+      result <- nodeRepo.updateNode(nodeInfo.node, modId, CurrentUser.actor, None)
     } yield {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
     }
   }
 
@@ -148,14 +148,14 @@ class ShowNodeDetailsFromNode(
 
   def saveNodeState(nodeId: NodeId)(nodeState: NodeState): Box[NodeState] = {
     val modId =  ModificationId(uuidGen.newUuid)
-    val user  =  CurrentUser.getActor
+    val user  =  CurrentUser.actor
 
     for {
       oldNode <- nodeInfoService.getNode(nodeId)
       newNode =  oldNode.copy(state = nodeState)
       result  <- nodeRepo.updateNode(newNode, modId, user, None)
     } yield {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
       nodeState
     }
   }
@@ -184,14 +184,14 @@ class ShowNodeDetailsFromNode(
 
   def saveSchedule(nodeInfo : NodeInfo)( schedule: AgentRunInterval) : Box[Unit] = {
     val modId =  ModificationId(uuidGen.newUuid)
-    val user  =  CurrentUser.getActor
+    val user  =  CurrentUser.actor
     val newNodeInfo = nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))))
     boxNodeInfo = Full(Some(newNodeInfo))
     for {
       oldNode <- nodeInfoService.getNode(nodeId)
       result  <- nodeRepo.updateNode(newNodeInfo.node, modId, user, None)
     } yield {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
     }
   }
 

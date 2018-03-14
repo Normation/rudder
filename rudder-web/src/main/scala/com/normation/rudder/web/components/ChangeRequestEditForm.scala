@@ -96,7 +96,7 @@ class ChangeRequestEditForm (
   }
   private[this] val isEditable = {
     val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case right:ActionType.Edit => right.authzKind}
-    val isOwner = creator == CurrentUser.getActor.name
+    val isOwner = creator == CurrentUser.actor.name
     step.map(workflowService.isEditable(authz,_,isOwner))
     }.openOr(false)
 

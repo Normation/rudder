@@ -115,7 +115,7 @@ class TechniqueCategoryEditForm(
   }
 
   private[this] def deleteCategory() : JsCmd = {
-    activeTechniqueCategoryRepository.delete(currentCategory.id, ModificationId(uuidGen.newUuid),CurrentUser.getActor, Some("User deleted technique category from UI")) match {
+    activeTechniqueCategoryRepository.delete(currentCategory.id, ModificationId(uuidGen.newUuid),CurrentUser.actor, Some("User deleted technique category from UI")) match {
       case Full(id) =>
         //update UI
         JsRaw("$('#removeCategoryActionDialog').bsModal('hide');") &
@@ -205,7 +205,7 @@ class TechniqueCategoryEditForm(
                    name = categoryName.get,
                    description = categoryDescription.get
                )
-               activeTechniqueCategoryRepository.saveActiveTechniqueCategory(updatedCategory, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User updated category from UI")) match {
+               activeTechniqueCategoryRepository.saveActiveTechniqueCategory(updatedCategory, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User updated category from UI")) match {
                  case Failure(m,_,_) =>
                    categorFormTracker.addFormError(  error("An error occured: " + m) )
                  case Empty =>

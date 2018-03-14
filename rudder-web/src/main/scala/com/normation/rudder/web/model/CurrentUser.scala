@@ -37,14 +37,15 @@
 
 package com.normation.rudder.web.model
 
-import org.springframework.security.core.context.SecurityContextHolder
-import com.normation.eventlog.EventActor
-import net.liftweb.http.SessionVar
 import bootstrap.liftweb.RudderUserDetail
+import com.normation.eventlog.EventActor
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.service.user.User
 import com.normation.rudder.Rights
-import com.normation.rudder.api.{ApiAclElement, ApiAuthorization}
+import com.normation.rudder.RudderAccount
+import com.normation.rudder.User
+import com.normation.rudder.api.ApiAuthorization
+import net.liftweb.http.SessionVar
+import org.springframework.security.core.context.SecurityContextHolder
 
 /**
  * An utility class that get the currently logged user
@@ -67,12 +68,10 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]] ({
     case None => new Rights(AuthorizationType.NoRights)
   }
 
-  def getActor : EventActor = this.get match {
-    case Some(u) => EventActor(u.getUsername)
-    case None => EventActor("unknown")
+  def account : RudderAccount = this.get match {
+    case None    => RudderAccount.User("unknown", "")
+    case Some(u) => u.account
   }
-
-  def actor = getActor
 
   def checkRights(auth:AuthorizationType) : Boolean = {
     val authz = getRights.authorizationTypes
@@ -83,7 +82,7 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]] ({
     }
   }
 
-  def getApiAutz: ApiAuthorization = {
+  def getApiAuthz: ApiAuthorization = {
     this.get match {
       case None    => ApiAuthorization.None
       case Some(u) => u.apiAuthz

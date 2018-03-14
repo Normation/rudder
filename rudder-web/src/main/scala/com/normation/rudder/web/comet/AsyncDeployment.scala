@@ -174,7 +174,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     <lift:authz role="deployment_write"> {
       SHtml.a( {
         () =>
-          asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor, "User requested a manual policy update") //TODO: let the user fill the cause
+          asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.actor, "User requested a manual policy update") //TODO: let the user fill the cause
           Noop
       }
       , Text("Update policies")

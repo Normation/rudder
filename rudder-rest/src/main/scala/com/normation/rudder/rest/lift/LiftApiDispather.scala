@@ -38,12 +38,13 @@
 package com.normation.rudder.rest.lift
 
 import cats.data._
+import com.normation.rudder.api.HttpAction
+import com.normation.rudder.rest._
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
-import com.normation.rudder.api.HttpAction
 import net.liftweb.json.JsonAST.JString
-import com.normation.rudder.rest._
-import net.liftweb.common.{EmptyBox, Full}
 import org.slf4j.LoggerFactory
 
 final case class DefaultParams(prettify: Boolean)
@@ -76,8 +77,23 @@ trait LiftApiModule0 extends ApiModule0[Req, Full[LiftResponse], AuthzToken, Def
 /*
  * A LiftApiModuleProvider is just a class providing LiftModules
  */
-trait LiftApiModuleProvider {
+trait LiftApiModuleProvider[A <: EndpointSchema] {
+  def schemas: ApiModuleProvider[A]
   def getLiftEndpoints(): List[LiftApiModule]
+
+  /*
+   * Helps debugging bad mapping between a shema and its implementation.
+   * Will throw an exception at boot time in a schema / implem mismatch.
+   * In case you get it, look for the corresponding implementation how the
+   * API / implem is done, or if the "def schema = ... " in implem is correct
+   */
+  {
+    val ss = getLiftEndpoints().map( _.schema ).toSet
+    val names = ss.map(_.name)
+    assert(schemas.endpoints.forall(s => ss.exists(_ == s)), {
+      s"Programming error: an API schema misses definition: [${schemas.endpoints.collect{ case s if(!names.contains(s.name)) => s.name}.mkString(",")}]"
+    })
+  }
 }
 
 object LiftApiProcessingLogger extends Log {

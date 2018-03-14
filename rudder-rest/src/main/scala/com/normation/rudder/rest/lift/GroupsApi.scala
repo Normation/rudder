@@ -37,37 +37,28 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.UserService
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.domain.nodes._
 import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.rest._
+import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
-import com.normation.rudder.repository._
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.services.workflows._
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.eventlog.EventActor
-import net.liftweb.common._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
 import com.normation.rudder.rest._
-import net.liftweb.http.Req
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.{GroupApi => API}
 import com.normation.rudder.services.queries.QueryProcessor
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.service.user.UserService
+import com.normation.rudder.services.workflows._
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.eventlog.EventActor
-import com.normation.rudder.rest.data._
+import net.liftweb.json._
 
 class GroupsApi(
     readGroup           : RoNodeGroupRepository
@@ -76,9 +67,10 @@ class GroupsApi(
   , serviceV2           : GroupApiService2
   , serviceV5           : GroupApiService5
   , serviceV6           : GroupApiService6
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
 
-  import com.normation.rudder.rest.{GroupApi => API}
+
+  def schemas = API
 
   /*
    * The actual builder for the compliance API.
@@ -108,7 +100,7 @@ class GroupsApi(
     }
   }
   object Get extends LiftApiModule {
-    val schema = API.GetGroupCategoryDetails
+    val schema = API.GroupDetails
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV2.groupDetails(id, req, version)
@@ -294,8 +286,8 @@ class GroupApiService2 (
   , restDataSerializer   : RestDataSerializer
 ) ( implicit userService : UserService ) extends Loggable {
 
-  import restDataSerializer._
   import RestUtils._
+  import restDataSerializer._
 
   private[this] def createChangeRequestAndAnswer (
       id           : String

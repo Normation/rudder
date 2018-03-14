@@ -195,7 +195,7 @@ class RuleCategoryPopup(
     targetCategory match {
       case Some(category) =>
         val modId = new ModificationId(uuidGen.newUuid)
-        woRulecategoryRepository.delete(category.id, modId , CurrentUser.getActor, None, true) match {
+        woRulecategoryRepository.delete(category.id, modId , CurrentUser.actor, None, true) match {
           case Full(x) =>
             closePopup() &
             onSuccessCallback(x.value) &
@@ -230,7 +230,7 @@ class RuleCategoryPopup(
 
           val parent = RuleCategoryId(categoryParent.get)
           val modId = new ModificationId(uuidGen.newUuid)
-          woRulecategoryRepository.create(newCategory, parent,modId , CurrentUser.getActor, None)
+          woRulecategoryRepository.create(newCategory, parent,modId , CurrentUser.actor, None)
         case Some(category) =>
           val updated = category.copy(
                             name        =  categoryName.get
@@ -242,7 +242,7 @@ class RuleCategoryPopup(
             Failure("There are no modifications to save")
           } else {
             val modId = new ModificationId(uuidGen.newUuid)
-            woRulecategoryRepository.updateAndMove(updated, parent,modId , CurrentUser.getActor, None)
+            woRulecategoryRepository.updateAndMove(updated, parent,modId , CurrentUser.actor, None)
           }
       }) match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)

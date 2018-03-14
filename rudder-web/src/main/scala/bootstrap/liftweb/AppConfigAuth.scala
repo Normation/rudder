@@ -40,18 +40,41 @@ package bootstrap.liftweb
 import java.io.File
 import java.util.Collection
 
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.Rights
+import com.normation.rudder.Role
+import com.normation.rudder.RoleToRights
+import com.normation.rudder.RudderAccount
+import com.normation.rudder.api._
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.rest.RoleApiMapping
+import com.normation.rudder.web.services.UserSessionLogEvent
+import com.normation.utils.HashcodeCaching
+import com.typesafe.config.ConfigException
+import javax.servlet.Filter
+import javax.servlet.FilterChain
+import javax.servlet.FilterConfig
+import javax.servlet.ServletRequest
+import javax.servlet.ServletResponse
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
+import net.liftweb.common._
+import org.joda.time.DateTime
+import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.ImportResource
+import org.springframework.context.support.AbstractApplicationContext
 import org.springframework.context.support.ClassPathXmlApplicationContext
+import org.springframework.core.io.Resource
 import org.springframework.core.io.{ClassPathResource => CPResource}
 import org.springframework.core.io.{FileSystemResource => FSResource}
-import org.springframework.core.io.Resource
 import org.springframework.ldap.core.DirContextAdapter
 import org.springframework.ldap.core.DirContextOperations
 import org.springframework.security.authentication.AuthenticationProvider
+import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
@@ -67,39 +90,9 @@ import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
-import org.xml.sax.SAXParseException
-import com.normation.rudder.AuthorizationType
-import com.normation.rudder.api._
-import com.normation.rudder.RoleToRights
-import com.normation.rudder.Rights
-import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.web.services.UserSessionLogEvent
-import com.normation.utils.HashcodeCaching
-import com.typesafe.config.ConfigException
-import javax.servlet.Filter
-import javax.servlet.FilterChain
-import javax.servlet.FilterConfig
-import javax.servlet.ServletRequest
-import javax.servlet.ServletResponse
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
-
-import net.liftweb.common._
-import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
-import org.springframework.context.support.AbstractApplicationContext
-import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
-import org.springframework.ldap.core.DirContextAdapter
-import org.springframework.ldap.core.DirContextOperations
-import java.util.Collection
-
-import org.xml.sax.SAXParseException
-import com.normation.rudder.web.services.UserSessionLogEvent
-import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
-import org.springframework.security.authentication.BadCredentialsException
-import com.normation.rudder.rest.RoleApiMapping
-import org.joda.time.DateTime
-import com.normation.rudder.Role
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
+import org.xml.sax.SAXParseException
 
 import scala.collection.JavaConverters.asJavaCollectionConverter
 
@@ -121,8 +114,9 @@ import scala.collection.JavaConverters.asJavaCollectionConverter
 @ImportResource(Array("classpath:applicationContext-security.xml"))
 class AppConfigAuth extends ApplicationContextAware {
   import AppConfigAuth._
-  import scala.collection.JavaConverters.seqAsJavaListConverter
   import RudderProperties.config
+
+  import scala.collection.JavaConverters.seqAsJavaListConverter
 
   private[this] var appCtx: ApplicationContext = null //yeah...
 
@@ -195,7 +189,7 @@ class AppConfigAuth extends ApplicationContextAware {
       parseUsers(resource) match {
         case Some(config) =>
           new RudderInMemoryUserDetailsService(config.encoder, config.users.map { case (login,pass,roles) =>
-            RudderUserDetail(login, pass, roles.toSet, ApiAuthorization.ACL(RoleApiMapping.getApiAclFromRoles(roles)), RudderAuthType.User)
+            RudderUserDetail(RudderAccount.User(login, pass), roles.toSet, ApiAuthorization.ACL(RoleApiMapping.getApiAclFromRoles(roles)))
           }.toSet)
         case None =>
           ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
@@ -226,17 +220,20 @@ class AppConfigAuth extends ApplicationContextAware {
     // or let empty udder.auth.admin.login or rudder.auth.admin.password
 
     val set = if(config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
-      val admin = RudderUserDetail(
-          config.getString("rudder.auth.admin.login")
-        , config.getString("rudder.auth.admin.password")
-        , RoleToRights.parseRole(Seq("administrator")).toSet
-        , SYSTEM_API_ACL
-        , RudderAuthType.User
-      )
-      if(admin.login.isEmpty || admin.password.isEmpty) {
+      val login = config.getString("rudder.auth.admin.login")
+      val password = config.getString("rudder.auth.admin.password")
+
+      if(login.isEmpty || password.isEmpty) {
         Set.empty[RudderUserDetail]
       } else {
-        Set(admin)
+        Set(RudderUserDetail(
+            RudderAccount.User(
+                login
+              , password
+            )
+          , RoleToRights.parseRole(Seq("administrator")).toSet
+          , SYSTEM_API_ACL
+        ))
       }
     } else {
       Set.empty[RudderUserDetail]
@@ -334,8 +331,8 @@ object LogFailedLogin {
 /**
  *  A trivial, immutable implementation of UserDetailsService for RudderUser
  */
-class RudderInMemoryUserDetailsService(val passwordEncoder: PasswordEncoder, private[this] val _users:Set[RudderUserDetail]) extends UserDetailsService {
-  private[this] val users = Map[String,RudderUserDetail](_users.map(u => (u.login,u)).toSeq:_*)
+class RudderInMemoryUserDetailsService(val passwordEncoder: PasswordEncoder, private[this] val _users: Set[RudderUserDetail]) extends UserDetailsService {
+  private[this] val users = Map[String, RudderUserDetail](_users.map(u => (u.getUsername, u)).toSeq:_*)
 
   @throws(classOf[UsernameNotFoundException])
   override def loadUserByUsername(username:String) : RudderUserDetail = {
@@ -381,21 +378,20 @@ final object RudderAuthType {
  * 'authz' token of RudderUserDetail.
  */
 case class RudderUserDetail(
-    login   : String
-  , password: String
+    account : RudderAccount
   , roles   : Set[Role]
   , apiAuthz: ApiAuthorization
-  , userType: RudderAuthType
 ) extends UserDetails with HashcodeCaching {
   // merge roles rights
   val authz = new Rights(roles.flatMap(_.rights.authorizationTypes).toSeq:_*)
-  override val getAuthorities          = userType.grantedAuthorities
-  override val getPassword             = password
-  override val getUsername             = login
-  override val isAccountNonExpired     = true
-  override val isAccountNonLocked      = true
-  override val isCredentialsNonExpired = true
-  override val isEnabled               = true
+  override val (getUsername, getPassword, getAuthorities) = account match {
+    case RudderAccount.User(login, password) => (login         , password       , RudderAuthType.User.grantedAuthorities)
+    case RudderAccount.Api(api)              => (api.name.value, api.token.value, RudderAuthType.Api.grantedAuthorities)
+  }
+  override val isAccountNonExpired        = true
+  override val isAccountNonLocked         = true
+  override val isCredentialsNonExpired    = true
+  override val isEnabled                  = true
 }
 
 /**
@@ -467,11 +463,9 @@ class RestAuthenticationFilter(
             /* support of API v1 rest.AllowNonAuthenticatedUser */
             if(isValidNonAuthApiV1(httpRequest)) {
               authenticate(RudderUserDetail(
-                  "UnknownRestUser"
-                 , ""
+                  RudderAccount.User("UnknownRestUser", "")
                  , RudderAuthType.Api.apiRudderRole
                  , ApiAuthorization.None // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
-                 , RudderAuthType.Api
               ))
               chain.doFilter(request, response)
             } else {
@@ -485,11 +479,9 @@ class RestAuthenticationFilter(
             val systemAccount = apiTokenRepository.getSystemAccount
             if (systemAccount.token == apiToken) { // system token with super authz
               authenticate(RudderUserDetail(
-                  REST_USER_PREFIX + s""""${systemAccount.name.value}"""" + s" (${systemAccount.id.value})"
-                , systemAccount.token.value
+                  RudderAccount.Api(systemAccount)
                 , Set(Role.Administrator)  // this token has "admin rights - use with care
                 , systemApiAcl
-                , RudderAuthType.Api
               ))
 
               chain.doFilter(request, response)
@@ -502,7 +494,6 @@ class RestAuthenticationFilter(
                   failsAuthentication(httpRequest, httpResponse, Failure(s"No registered token '${token}'"))
 
                 case Full(Some(principal)) =>
-                  val rest_principal = REST_USER_PREFIX + s""""${principal.name.value}"""" + s" (${principal.id.value})"
 
                   if(principal.isEnabled) {
                     principal.kind match {
@@ -515,11 +506,9 @@ class RestAuthenticationFilter(
                           case _ => // no expiration date or expiration date not reached
 
                             val user = RudderUserDetail(
-                                rest_principal
-                              , principal.token.value
+                                RudderAccount.Api(principal)
                               , RudderAuthType.Api.apiRudderRole
                               , authz
-                              , RudderAuthType.Api
                             )
                             //cool, build an authentication token from it
                             authenticate(user)
@@ -535,11 +524,9 @@ class RestAuthenticationFilter(
                         }) match {
                           case Right(u) => //update acl
                             authenticate(RudderUserDetail(
-                                rest_principal
-                              , principal.token.value
+                                RudderAccount.Api(principal)
                               , RudderAuthType.Api.apiRudderRole
                               , u.apiAuthz
-                              , RudderAuthType.Api
                             ))
                             chain.doFilter(request, response)
 
@@ -570,14 +557,14 @@ case class AuthConfig(
 class RudderXmlUserDetailsContextMapper(authConfig: AuthConfig) extends UserDetailsContextMapper {
 
   val users = authConfig.users.map { case(login,pass,roles) =>
-    (login, RudderUserDetail(login, pass, roles.toSet, ApiAuthorization.ACL(RoleApiMapping.getApiAclFromRoles(roles)), RudderAuthType.User))
+    (login, RudderUserDetail(RudderAccount.User(login, pass), roles.toSet, ApiAuthorization.ACL(RoleApiMapping.getApiAclFromRoles(roles))))
   }.toMap
 
   //we are not able to try to save user in the XML file
   def mapUserToContext(user: UserDetails, ctx: DirContextAdapter) : Unit = ()
 
   def mapUserFromContext(ctx: DirContextOperations, username: String, authorities: Collection[_ <:GrantedAuthority]): UserDetails = {
-    users.getOrElse(username, RudderUserDetail(username, "", Set(Role.NoRights), ApiAuthorization.None, RudderAuthType.User))
+    users.getOrElse(username, RudderUserDetail(RudderAccount.User(username, ""), Set(Role.NoRights), ApiAuthorization.None))
   }
 
 }

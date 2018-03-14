@@ -509,7 +509,7 @@ class ModificationValidationPopup(
           changeRequestService.createChangeRequestFromRules(
                 changeRequestName.get
               , crReasons.map( _.get ).getOrElse("")
-              , CurrentUser.getActor
+              , CurrentUser.actor
               , crReasons.map( _.get )
               , baseRules
               , updatedRules
@@ -528,7 +528,7 @@ class ModificationValidationPopup(
               , directive.id
               , optOriginal
               , diff
-              , CurrentUser.getActor
+              , CurrentUser.actor
               , crReasons.map( _.get )
               , baseRules
               , updatedRules
@@ -544,7 +544,7 @@ class ModificationValidationPopup(
               nodeGroup.id
             , parentCategoryId
             , ModificationId(uuidGen.newUuid)
-            , CurrentUser.getActor
+            , CurrentUser.actor
             , crReasons.map( _.get )
           ) match {
             case Full(_) => //ok, continue
@@ -567,14 +567,14 @@ class ModificationValidationPopup(
           , nodeGroup
           , optOriginal
           , _
-          , CurrentUser.getActor
+          , CurrentUser.actor
           , crReasons.map(_.get))
         )
     }
 
     (for {
       crId <- cr.map(_.id)
-      wf <- workflowService.startWorkflow(crId, CurrentUser.getActor, crReasons.map(_.get))
+      wf <- workflowService.startWorkflow(crId, CurrentUser.actor, crReasons.map(_.get))
     } yield {
       crId
     }) match {
@@ -620,7 +620,7 @@ class ModificationValidationPopup(
     , why:Option[String]
     ): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
-    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.getActor, why) match {
+    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.actor, why) match {
       case Full(optChanges) =>
         optChanges match {
           case Some(diff) if diff.needDeployment =>

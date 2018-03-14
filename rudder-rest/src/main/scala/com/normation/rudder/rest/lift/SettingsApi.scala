@@ -37,40 +37,40 @@
 
 package com.normation.rudder.rest.lift
 
-import net.liftweb.common.Box
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.rest.ApiVersion
-import com.normation.rudder.appconfig._
 import com.normation.eventlog.EventActor
-import net.liftweb.common.Full
-import net.liftweb.common.Failure
-import net.liftweb.json.JsonAST.JString
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.utils.StringUuidGenerator
-import net.liftweb.json.JsonAST.JBool
-import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.appconfig.ReadConfigService
+import com.normation.rudder.appconfig.UpdateConfigService
+import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
-import net.liftweb.json.JsonAST.JInt
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogUDP
-import com.normation.rudder.domain.appconfig.FeatureSwitch
-import com.normation.rudder.reports.ComplianceModeName
-import net.liftweb.common.EmptyBox
-import net.liftweb.json.JsonAST._
-import com.normation.rudder.appconfig.ReadConfigService
-import com.normation.rudder.appconfig.UpdateConfigService
-import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
-import net.liftweb.json.JsonDSL._
-import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.{SettingsApi => API}
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
+import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
+import net.liftweb.json.JsonAST.JBool
+import net.liftweb.json.JsonAST.JInt
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST._
+import net.liftweb.json.JsonDSL._
 
 
 class SettingsApi(
@@ -78,7 +78,7 @@ class SettingsApi(
   , val configService       : ReadConfigService with UpdateConfigService
   , val asyncDeploymentAgent: AsyncDeploymentAgent
   , val uuidGen             : StringUuidGenerator
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
 
   val allSettings_v10: List[RestSetting[_]] =
       RestPolicyMode ::
@@ -119,7 +119,7 @@ class SettingsApi(
   val kind = "settings"
 
 
-  import com.normation.rudder.rest.{SettingsApi => API}
+  def schemas = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {

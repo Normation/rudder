@@ -37,47 +37,41 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.rudder.rest.RestUtils.toJsonError
-import com.normation.rudder.rest.RestExtractorService
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import net.liftweb.json.JString
-import net.liftweb.json.JsonDSL._
-import com.normation.rudder.rest.ApiVersion
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.ApiPath
 import com.normation.eventlog.EventActor
+import com.normation.rudder.UserService
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
-import com.normation.rudder.services.workflows.ChangeRequestService
-import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
+import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.RestDataSerializer
+import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.data.RestParameter
+import com.normation.rudder.rest.{ParameterApi => API}
+import com.normation.rudder.services.workflows.ChangeRequestService
+import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
+import net.liftweb.json.JString
 import net.liftweb.json.JsonDSL._
-import net.liftweb.common.Loggable
-import com.normation.rudder.rest.RestDataSerializer
-import com.normation.rudder.service.user.UserService
-import com.normation.rudder.rest.data.RestParameter
 
 class ParameterApi (
     restExtractorService: RestExtractorService
   , apiV2               : ParameterApiService2
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
 
-
-  import com.normation.rudder.rest.{ParameterApi => API}
+  def schemas = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
@@ -85,7 +79,7 @@ class ParameterApi (
       case API.CreateParameter  => CreateParameter
       case API.DeleteParameter  => DeleteParameter
       case API.ParameterDetails => ParameterDetails
-      case API.UpdateParameter  => ParameterDetails
+      case API.UpdateParameter  => UpdateParameter
     }).toList
   }
 
@@ -185,7 +179,7 @@ class ParameterApiService2 (
 ) ( implicit userService : UserService )
 extends Loggable {
 
-  import restDataSerializer.{ serializeParameter => serialize}
+  import restDataSerializer.{serializeParameter => serialize}
 
   private[this] def createChangeRequestAndAnswer (
       id           : String
