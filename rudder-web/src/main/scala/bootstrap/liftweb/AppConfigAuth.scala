@@ -462,8 +462,21 @@ class RestAuthenticationFilter(
 
             /* support of API v1 rest.AllowNonAuthenticatedUser */
             if(isValidNonAuthApiV1(httpRequest)) {
+
+              val name = "api-v1-unauthenticated-account"
+              val apiV1Account = ApiAccount(
+                  ApiAccountId(name)
+                , ApiAccountKind.PublicApi(ApiAuthorization.None, None) // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
+                , ApiAccountName(name)
+                , ApiToken(name)
+                , "API Accuount for un-authenticated API"
+                , true
+                , new DateTime(0)
+                , DateTime.now()
+              )
+
               authenticate(RudderUserDetail(
-                  RudderAccount.User("UnknownRestUser", "")
+                   RudderAccount.Api(apiV1Account)
                  , RudderAuthType.Api.apiRudderRole
                  , ApiAuthorization.None // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
               ))
