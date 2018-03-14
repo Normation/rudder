@@ -383,7 +383,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
           (for {
             activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)).flatMap(Box(_)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
-            result <- rwActiveTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User moved active technique from UI"))?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
+            result <- rwActiveTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User moved active technique from UI"))?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
           } yield {
             result
           }) match {
@@ -415,7 +415,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                           ActiveTechniqueCategoryId(sourceCatId)
                         , ActiveTechniqueCategoryId(destCatId)
                         , ModificationId(uuidGen.newUuid)
-                        , CurrentUser.getActor
+                        , CurrentUser.actor
                         , Some("User moved Active Technique Category from UI")) ?~! "Error while trying to move category with requested id %s into new parent: %s".format(sourceCatId,destCatId)
           } yield {
             result
@@ -459,7 +459,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                           ptName,
                           techniqueRepository.getTechniqueVersions(ptName).toSeq,
                           ModificationId(uuidGen.newUuid),
-                          CurrentUser.getActor,
+                          CurrentUser.actor,
                           Some("Active Technique added by user from UI")
                        )
                       ?~! errorMess.format(sourceactiveTechniqueId,destCatId)
@@ -774,7 +774,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
       def initJs = SetHtml("techniqueLibraryUpdateInterval" , <span>{updateTecLibInterval}</span>)
       def process = {
-        updatePTLibService.update(ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Technique library reloaded by user")) match {
+        updatePTLibService.update(ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Technique library reloaded by user")) match {
           case Full(x) =>
             S.notice("updateLib", "The Technique library was successfully reloaded")
           case e:EmptyBox =>

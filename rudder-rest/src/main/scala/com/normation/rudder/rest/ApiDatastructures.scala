@@ -172,6 +172,16 @@ object ApiPath {
   }
 }
 
+/**
+ * A bag of endpoints schema is provided by an ApiModuleProvider
+ */
+trait ApiModuleProvider[A <: EndpointSchema] {
+  def endpoints: List[A]
+}
+
+/**
+ * The actual definition of what is an endpoint schema.
+ */
 trait EndpointSchema {
 
   // canonical path of that api
@@ -205,6 +215,7 @@ trait EndpointSchema {
   type RESOURCES
   def getResources(path: ApiPath): Either[ApiError.BadParam, RESOURCES]
 }
+
 
 trait EndpointSchema0 extends EndpointSchema {
   type RESOURCES = Unit

@@ -41,11 +41,14 @@ import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.AclPathSegment
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.api.ApiAclElement
-import com.normation.rudder.api.{ ApiAuthorization => ApiAuthz }
-import com.normation.rudder.service.user.UserService
+import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
+import com.normation.rudder.UserService
 import com.normation.eventlog.EventActor
 import cats.implicits._
 import cats.data._
+import com.normation.rudder.RudderAccount
+import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.ApiAccountKind
 
 
 /*
@@ -103,33 +106,59 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
       else None
     }
 
+    def checkACL(acl: List[ApiAclElement], path: ApiPath, action: HttpAction): Option[String] = {
+      if(AclCheck(acl, path, endpoint.schema.action)) {
+        Some("ok")
+      } else {
+        None
+      }
+    }
+
     val user = userService.getCurrentUser
     for {
       // we want to compare the exact path asked by the user to take care of cases where he only has
       // access to a limited subset of named resourced for the endpoint.
       path <- requestPath.drop(endpoint.prefix).leftMap(msg => ApiError.BadRequest(msg, endpoint.schema.name))
-      ok   <- (user.getApiAutz match {
-                case ApiAuthz.None     =>
-                  logger.debug(s"User '${user.actor.name}' does not have any authorizations.")
-                  None
-                case ApiAuthz.RW       =>
-                  logger.debug(s"User '${user.actor.name}' has RW authorizations.")
-                  Some("ok")
-                // if ACL are not enable, we fall back to RO
-                case ApiAuthz.RO       =>
-                  logger.debug(s"User '${user.actor.name}' has RO authorization.")
+      ok   <- ((aclEnabled(), user.getApiAuthz, user.account) match {
+                /*
+                 * We need to check the account type. It is ok for a user account to have that
+                 * kind of ACL rights, because it's the way we use to map actual user account role to internal API
+                 * access (for ex: an user with role "node r/w/e" can change node properties, which use "update setting"
+                 * API, so he must have access to that, but not to other configuration API).
+                 * On the other hand, if we are dealing with an actual API account, we need to check its kind more
+                 * preciselly:
+                 * - a system account keep ACL eval (most likelly equiv to RW)
+                 * - a standard account get RO (we can broke third party app behovior but don't open too big security
+                 *   hole with updates)
+                 * - an user API account is disabled.
+                 */
+                // without plugin, api account linked to user are disabled
+                case (false, _, RudderAccount.Api(ApiAccount(_, ApiAccountKind.User, _, _, _, _, _, _))) =>
+                  logger.warn(s"API account linked to a user account '${user.actor.name}' is disabled because the API Authorization plugin is disabled.")
+                  None //token link to user account is a plugin only feature
+
+                // without plugin but ACL configured, standard api account are change to RO to avoid unwanted mod
+                case (false, ApiAuthz.ACL(acl), RudderAccount.Api(ApiAccount(_, _:ApiAccountKind.PublicApi, _, _, _, _, _, _))) =>
+                  logger.info(s"API account '${user.actor.name}' has ACL authorization but no plugin allows to interpret them. Revert to R0 rights.")
                   checkRO(endpoint.schema.action)
 
-                case ApiAuthz.ACL(_) if(!aclEnabled()) =>
-                  logger.debug(s"User '${user.actor.name}' has ACL authorization but no plugin allows to interpret them. Revert to RO rights.")
+                // in other cases, we interpret rights are they are reported (system user has ACL or RW independently of plugin status)
+                case (_ , ApiAuthz.None, _)    =>
+                  logger.debug(s"Acount '${user.actor.name}' does not have any authorizations.")
+                  None
+
+                case (_, ApiAuthz.RO, _   )    =>
+                  logger.debug(s"Account '${user.actor.name}' has RO authorization.")
                   checkRO(endpoint.schema.action)
-                case ApiAuthz.ACL(acl) =>
-                  logger.debug(s"User '${user.actor.name}' has ACL authorization and a plugin allows to interpret them.")
-                  if(AclCheck(acl, path, endpoint.schema.action)) {
-                    Some("ok")
-                  } else {
-                    None
-                  }
+
+                case (_, ApiAuthz.RW, _   )    =>
+                  logger.debug(s"Account '${user.actor.name}' has full RW authorization.")
+                  Some("ok")
+
+                case (_, ApiAuthz.ACL(acl), _) =>
+                  logger.debug(s"Account '${user.actor.name}' has ACL authorizations.")
+                  checkACL(acl, path, endpoint.schema.action)
+
               }).map(_ => Right(AuthzToken(EventActor(user.actor.name)))).getOrElse(
                 Left(ApiError.Authz(s"User '${user.actor.name}' is not allowed to access ${endpoint.schema.action.name.toUpperCase()} ${endpoint.prefix.value + "/" + endpoint.schema.path.value}", endpoint.schema.name))
               )

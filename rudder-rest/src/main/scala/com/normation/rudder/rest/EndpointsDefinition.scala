@@ -64,7 +64,7 @@ trait SortIndex {
 }
 
 sealed trait ComplianceApi extends EndpointSchema with GeneralApi with SortIndex
-object ComplianceApi {
+object ComplianceApi extends ApiModuleProvider[ComplianceApi] {
 
   final case object GetRulesCompliance extends ComplianceApi with ZeroParam with StartsAtVersion7 with SortIndex { val z = zz
     val description = "Get compliance information for all rules"
@@ -91,7 +91,7 @@ object ComplianceApi {
 }
 
 sealed trait GroupApi extends EndpointSchema with GeneralApi with SortIndex
-object GroupApi {
+object GroupApi extends ApiModuleProvider[GroupApi] {
   // API v2
   final case object ListGroups extends GroupApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = zz
     val description = "List all groups with their information"
@@ -144,7 +144,7 @@ object GroupApi {
 }
 
 sealed trait ChangeRequestApi extends EndpointSchema with GeneralApi with SortIndex
-object ChangeRequestApi {
+object ChangeRequestApi extends ApiModuleProvider[ChangeRequestApi] {
 
   final case object ListChangeRequests extends ChangeRequestApi with ZeroParam with StartsAtVersion3 with SortIndex { val z = zz
     val description = "List all change requests"
@@ -171,7 +171,7 @@ object ChangeRequestApi {
 }
 
 sealed trait DirectiveApi extends EndpointSchema with GeneralApi with SortIndex
-object DirectiveApi {
+object DirectiveApi extends ApiModuleProvider[DirectiveApi] {
 
   final case object ListDirectives extends DirectiveApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = zz
     val description = "List all directives"
@@ -202,7 +202,7 @@ object DirectiveApi {
 }
 
 sealed trait NcfApi extends EndpointSchema with GeneralApi with SortIndex
-object NcfApi {
+object NcfApi extends ApiModuleProvider[NcfApi] {
 
   final case object UpdateTechnique extends NcfApi with ZeroParam with StartsAtVersion9 with SortIndex { val z = zz
     val description = "Update technique created with technique editor"
@@ -217,7 +217,7 @@ object NcfApi {
 }
 
 sealed trait NodeApi extends EndpointSchema with GeneralApi with SortIndex
-object NodeApi {
+object NodeApi extends ApiModuleProvider[NodeApi] {
 
   final case object ListAcceptedNodes extends NodeApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = zz
     val description = "List all accepted nodes with configurable details level"
@@ -264,7 +264,7 @@ object NodeApi {
   def endpoints = ca.mrvisser.sealerate.values[NodeApi].toList.sortBy( _.z )
 }
 sealed trait ParameterApi extends EndpointSchema with GeneralApi with SortIndex
-object ParameterApi {
+object ParameterApi extends ApiModuleProvider[ParameterApi] {
 
   final case object ListParameters extends ParameterApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = zz
     val description = "List all global parameters"
@@ -291,7 +291,7 @@ object ParameterApi {
 }
 
 sealed trait SettingsApi extends EndpointSchema with GeneralApi with SortIndex
-object SettingsApi {
+object SettingsApi extends ApiModuleProvider[SettingsApi] {
   final case object GetAllSettings extends SettingsApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = zz
     val description = "Get information about all Rudder settings"
     val (action, path)  = GET / "settings"
@@ -313,7 +313,7 @@ object SettingsApi {
 }
 
 sealed trait UserApi extends EndpointSchema with InternalApi with SortIndex
-object UserApi {
+object UserApi extends ApiModuleProvider[UserApi] {
   final case object GetApiToken extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
     val description = "Get information about user personal API token"
     val (action, path)  = GET / "user" / "api" / "token"
@@ -331,7 +331,7 @@ object UserApi {
 }
 
 sealed trait TechniqueApi extends EndpointSchema with GeneralApi with SortIndex
-object TechniqueApi {
+object TechniqueApi extends ApiModuleProvider[TechniqueApi] {
 
   final case object ListTechniques extends TechniqueApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = zz
     val description = "List all techniques"
@@ -350,7 +350,7 @@ object TechniqueApi {
 }
 
 sealed trait RuleApi extends EndpointSchema with GeneralApi with SortIndex
-object RuleApi {
+object RuleApi extends ApiModuleProvider[RuleApi] {
 
   final case object ListRules extends RuleApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = zz
     val description = "List all rules with their information"
@@ -397,7 +397,7 @@ object RuleApi {
 }
 
 sealed trait InfoApi extends EndpointSchema with GeneralApi with SortIndex
-object InfoApi {
+object InfoApi extends ApiModuleProvider[InfoApi] {
 
   final case object ApiGeneralInformations extends InfoApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = zz
     val description = "Get information about Rudder public API"

@@ -352,7 +352,7 @@ class TechniqueEditForm(
         {
           val modId = ModificationId(uuidGen.newUuid)
           (for {
-            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.getActor, crReasonsRemovePopup.map (_.get))
+            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.actor, crReasonsRemovePopup.map (_.get))
             deploy <- {
               asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
               Full("Policy update request sent")
@@ -458,7 +458,7 @@ class TechniqueEditForm(
                     , technique.id.name
                     , techniqueRepository.getTechniqueVersions(technique.id.name).toSeq
                     , ModificationId(uuidGen.newUuid)
-                    , CurrentUser.getActor
+                    , CurrentUser.actor
                     , Some("User added a technique from UI")
                   )
 
@@ -550,7 +550,7 @@ class TechniqueEditForm(
     val modId = ModificationId(uuidGen.newUuid)
     (for {
       save <- rwActiveTechniqueRepository.changeStatus(uactiveTechniqueId, status,
-                modId, CurrentUser.getActor, crReasonsDisablePopup.map(_.get))
+                modId, CurrentUser.actor, crReasonsDisablePopup.map(_.get))
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
         Full("Policy update request sent")

@@ -37,19 +37,15 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.Endpoint
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.api.HttpAction
+import com.normation.rudder.rest._
+import com.normation.rudder.rest.{InfoApi => API}
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
+
 import scala.language.implicitConversions
-import com.normation.rudder.api.HttpAction
-import com.normation.rudder.rest.ApiKind
 
 /*
  * Information about the API
@@ -58,10 +54,10 @@ class InfoApi(
     restExtractor    : RestExtractorService
   , supportedVersions: List[ApiVersion]
   , endpoints        : List[Endpoint]
-) extends LiftApiModuleProvider {
+) extends LiftApiModuleProvider[API] {
   api =>
 
-  import com.normation.rudder.rest.{ InfoApi => API }
+  def schemas = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {

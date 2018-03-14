@@ -194,7 +194,7 @@ class CreateCloneDirectivePopup(
         )
       roDirectiveRepository.getActiveTechniqueAndDirective(directive.id) match {
         case Full((activeTechnique, _)) =>
-          woDirectiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.getActor, reasons.map(_.get)) match {
+          woDirectiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.actor, reasons.map(_.get)) match {
             case Full(directive) => {
                closePopup() & onSuccessCallback(cloneDirective)
             }
