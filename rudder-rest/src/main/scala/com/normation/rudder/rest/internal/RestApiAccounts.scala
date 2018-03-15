@@ -174,7 +174,6 @@ class RestApiAccounts (
     }
   }
 
-
 }
 
 case class RestApiAccount(

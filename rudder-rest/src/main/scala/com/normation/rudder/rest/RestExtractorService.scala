@@ -818,7 +818,8 @@ case class RestExtractorService (
       description <- extractJsonString(json, "description")
       enabled     <- extractJsonBoolean(json, "enabled")
       oldId       <- extractJsonString(json, "oldId", toApiAccountId)
-      expiration  <- extractJsonString(json, "expirationDate", DateFormaterService.parseDate)
+      expirationDefined <- extractJsonBoolean(json, "expirationDateDefined")
+      expirationValue  <- extractJsonString(json, "expirationDate", DateFormaterService.parseDate)
       authType    <- extractJsonString(json, "authorizationType", ApiAuthorizationKind.parse)
       aclList     <- extractJsonListString(json, "aclList")
     } yield {
@@ -829,7 +830,14 @@ case class RestExtractorService (
         case Some(ApiAuthorizationKind.RW) => Some(ApiAuthz.RW)
         case Some(ApiAuthorizationKind.ACL) => Some(ApiAuthz.ACL(Nil))
       }
-      RestApiAccount(id, name, description, enabled, oldId, expiration.map(Some(_)), auth)
+      val expiration = expirationDefined match {
+        case None => None
+        case Some(true) => Some(expirationValue)
+        case Some(false) => Some(None)
+      }
+      logger.info(expiration)
+      logger.info(expirationDefined)
+      RestApiAccount(id, name, description, enabled, oldId, expiration, auth)
     }
   }
 

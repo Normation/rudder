@@ -25,10 +25,10 @@
     form .ng-invalid-valid_empty {
       box-shadow : 0px 0px 1px 1px red;
     }
-    .btn.space-bottom{
+    .btn.space-bottom, .form-control.space-top{
       margin-bottom:10px;
     }
-    .btn.space-top{
+    .btn.space-top, .form-control.space-top{
       margin-top:10px;
     }
     .btn.delete-button{
@@ -59,14 +59,23 @@
         </div>
         <div ng-controller="AccountCtrl" class="tw-bs">
           <div ng-show="errorTable" style="width:100%; text-align:center; color:red" ng-cloak> {{errorTable.errorDetails}} </div>
-          <lift:authz role="administration_write">
-            <span class="tw-bs">
-              <button ng-click="addAccount();" class="btn btn-success new-icon space-bottom space-top">
-                Add API Account
-              </button>
-            </span>
-          </lift:authz>
-          <table datatable="ng" dt-options="options" class="table-striped table-hover table-bordered table" id="accountGrid" >
+          <div class="clearfix">
+            <lift:authz role="administration_write">
+              <button ng-click="addAccount();" class="btn pull-left btn-success new-icon space-bottom space-top">Add API account</button>
+            </lift:authz>
+            <div class="col-xs-2">
+              <select id="filter" class="form-control vresize float-inherit space-bottom space-top" ng-model="authFilter">
+                <option value="" disabled selected>Filter on access level</option>
+                <option value="">All accounts</option>
+                <option value="none">No access</option>
+                <option value="ro">Read only</option>
+                <option value="rw">Full access</option>
+                <option ng-disabled="!aclPlugin" value="acl"> Custom ACL {{ aclPlugin ? "" : "(Need plugin)"}}</option>
+              </select> 
+            </div>
+            <button class="btn btn-box-tool btn-blue pull-right space-top space-bottom" ng-click="getAccounts()">Refresh <span class="fa fa-refresh"></span></button>
+          </div>
+          <table datatable="ng" dt-options="options" dt-column-defs="columns"  class="table-striped table-hover table-bordered table" id="accountGrid" >
             <thead>
               <tr class="head tablewidth">
                 <th >Account Name</th>
@@ -76,11 +85,11 @@
               </tr>
             </thead>
             <tbody>
-              <tr ng-repeat="account in accounts track by $index">
-                <td >
-                <span >
-                  {{account.name}} <span ng-if="account.description" data-toggle="tooltip" data-placement="top" data-html="true" title={{account.description}} class="bsTooltip fa fa-question-circle info-icon"></span>
-                </span> 
+              <tr ng-repeat="account in accounts | filter:filterAccount track by $index">
+                <td class="align-middle">
+                  {{account.name}}
+                  <span ng-if="account.description" data-toggle="tooltip" data-placement="top" data-html="true" title={{account.description}} class="bsTooltip fa fa-question-circle info-icon ruddericon tooltipable"></span>
+                  <span class="badge badge-grey" data-original-title="" title="">{{authorisationName(account.authorizationType)}}</span>
                 </td>
                 <td>
                   <button class="btn btn-default reload-token" ng-click="popupDeletion(account,regenerateAccount,'Regenerate token of')">
@@ -88,8 +97,8 @@
                   </button>
                   {{account.token}}
                 </td>
-                <td>
-                  {{account.expirationDate !== undefined ? account.expirationDate : "Never"}}
+                <td class="align-middle">
+                    {{account.expirationDateDefined ? account.expirationDate : "Never"}}
                 </td>
                 <td>
                   <button class='btn btn-default' ng-click="popupCreation(account, $index)"><span class="fa fa-pencil"></span></button>
@@ -132,15 +141,16 @@
                         
                         <div class="form-group">
                             <label for="newAccount-expiration">Expiration date</label>
-                            <input id="newAccount-expiration" type="text" ng-model="myNewAccount.expirationDate" class="form-control vresize float-inherit"/>
+                            <toggle on="Enabled" off="Disabled" ng-model="myNewAccount.expirationDateDefined" onstyle="btn-blue" offstyle="btn-grey" ></toggle>
+                            <input id="newAccount-expiration" ng-disabled="!(myNewAccount.expirationDateDefined)" type="text" ng-model="myNewAccount.expirationDate" class="form-control vresize float-inherit"/>
                         </div>
                         <div class="form-group">
                             <label for="newAccount-access">Access level</label>
                             <select id="newAccount-access" class="form-control vresize float-inherit" ng-model="myNewAccount.authorizationType">
-                              <option value="none">No Access</option>
+                              <option value="none">No access</option>
                               <option value="ro">Read only</option>
                               <option value="rw">Full access</option>
-                              <option ng-disabled="true" value="acl"> Custom ACL</option>
+                              <option ng-disabled="!aclPlugin" value="acl"> Custom ACL {{ aclPlugin ? "" : "(Need plugin)"}}</option>
                             </select>
                         </div>
                     </form>

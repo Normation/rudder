@@ -310,7 +310,7 @@ class RuleDisplayer (
                 <div class="box-header with-border">
                   <h3 class="box-title"><i class="fa fa-gears" aria-hidden="true"></i>Rules</h3>
                   <div class="box-tools pull-right">
-                    <button class="btn btn-box-tool toggleTabFilter updateTable btn-sm" id="updateRuleTable">Refresh<span class="fa fa-refresh"></span></button>
+                    <button class="btn btn-box-tool btn-blue toggleTabFilter updateTable btn-sm" id="updateRuleTable">Refresh<span class="fa fa-refresh"></span></button>
                     <lift:authz role="rule_write">
                       {actionButtonRule}
                     </lift:authz>
