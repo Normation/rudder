@@ -38,6 +38,10 @@
   z-index: 99999;
 }
 
+.tw-bs .table {
+  margin-bottom:0;
+}
+
 .tw-bs .modal{
   overflow-x: hidden;
   overflow-y: auto;
@@ -758,4 +762,12 @@ form .tw-bs input {
   padding: 0 10px;
   box-sizing:content-box;
   border:none;
+}
+
+.tw-bs .table > tbody > tr > td.align-middle, .align-middle {
+  vertical-align: middle;
+}
+
+.tw-bs .badge-grey {
+  background-color: #777;
 }

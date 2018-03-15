@@ -1318,6 +1318,7 @@ form .tooltip-content p {
   font-weight: 700;
   border-radius: 3px;
   min-width: 78px;
+  backgroung-color: #777;
 }
 .dataTable td.tw-bs,.dataTable td .tw-bs{
   background-color:transparent;
@@ -2623,20 +2624,23 @@ h3.box-title {
 .nav-tabs-custom>.nav-tabs>li {
   margin-right: 0;
 }
-.toggleTabFilter.updateTable{
+
+.btn.btn-blue{
   background-color: #3694d1 !important;
   color: #fff !important;
   border: 1px solid #2173a9 !important;
-  border-bottom:none !important;
-  padding: 5px 10px !important;
 }
-.toggleTabFilter.updateTable:active{
+.btn.btn-blue:active{
   box-shadow: inset 0 0 4px 1px #286090;
 }
-.toggleTabFilter.updateTable:hover{
+.btn.btn-blue:hover{
   background-color: #337ab7 !important;
   border-color: #2e6da4 !important;
   color: #fff !important;
+}
+.toggleTabFilter.updateTable{
+  padding: 5px 10px !important;
+  border-bottom:none !important;
 }
 .box-tools > .btn > .fa,.box-tools > .btn > .glyphicon,.box-tools > .btn > .ion{
   margin-left: 6px;
