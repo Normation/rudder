@@ -75,12 +75,10 @@ trait AgentFormatBundleVariables {
   ) : BundleSequenceVariables
 }
 
-
 // does that implementation knows something about the current agent type
 trait AgentSpecificGenerationHandle {
   def handle(agentType: AgentType, os: OsDetails): Boolean
 }
-
 
 // specific generic (i.e non bundle order linked) system variable
 // todo - need to plug in systemvariablespecservice
@@ -140,11 +138,7 @@ class WriteAllAgentSpecificFiles extends WriteAgentSpecificFiles {
   }
 }
 
-
-
 object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
-  val GENEREATED_CSV_FILENAME = "rudder_expected_reports.csv"
-
 
   /**
    * This version only handle open source unix-like (*linux, *bsd) for
@@ -161,7 +155,9 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
   }
 
   override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
-    writeExpectedReportsCsv(cfg.paths, cfg.expectedReportsCsv, GENEREATED_CSV_FILENAME)
+    // We believe that expectedReports.csv is not used anymore on agent but still for expecter report generation.
+    // This is the first step to check that our hypothesis is ok before removing totally: https://www.rudder-project.org/redmine/issues/12225
+    Full(Nil)
   }
 
   import BuildBundleSequence.{InputFile, TechniqueBundles, BundleSequenceVariables}
@@ -173,14 +169,4 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
     , runHooks    : List[NodeRunHook]
   ) : BundleSequenceVariables = CfengineBundleVariables.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles, runHooks)
 
-
-  private[this] def writeExpectedReportsCsv(paths: NodePromisesPaths, csv: ExpectedReportsCsv, csvFilename: String): Box[List[AgentSpecificFile]] = {
-    val path = new File(paths.newFolder, csvFilename)
-    for {
-        _ <- tryo { FileUtils.writeStringToFile(path, csv.lines.mkString("\n"), StandardCharsets.UTF_8) } ?~!
-               s"Can not write the expected reports CSV file at path '${path.getAbsolutePath}'"
-    } yield {
-      AgentSpecificFile(path.getAbsolutePath) :: Nil
-    }
-  }
 }
