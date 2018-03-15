@@ -50,6 +50,13 @@ bundle agent file_enforce_content(file, lines, enforce)
     islist::
       "report_string" string => join(", ", "lines");
 
+  classes:
+    !pass2::
+      "islist" expression => isgreaterthan("$(length_list)", "1");
+
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
   methods:
     !islist.pass2::
       "action"              usebundle => file_content("${file}", "${lines}", "${enforce}");
