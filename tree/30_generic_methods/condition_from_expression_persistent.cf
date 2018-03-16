@@ -24,10 +24,8 @@
 #
 # The created condition (class in cfengine speaking) is global to the agent and is persisted accross runs.
 # The persistence duration is controlled using `${duration}`. There is no way to persist indefinitly.
-# To make the condition specific to current technique instance (or directive), add `${class_prefix}` within the condition prefix,
-# this variable is automatically defined in your technique and is available if you use Rudder agent >= 4.0 or CFEngine >= 3.8
 #
-# @parameter condition_prefix     The condition prefix, use ${class_prefix}_name to create a local condition
+# @parameter condition_prefix     The condition prefix
 # @parameter condition_expression The expression evaluated to create the condition (use 'any' to alwaus evaluate to true)
 # @parameter duration             The persistence suffix in minutes
 #

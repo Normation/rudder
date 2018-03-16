@@ -25,10 +25,8 @@
 # Calling this method with a condition expression transforms a complex expression into a single class condition.
 #
 # The created condition (class in cfengine speaking) is global to the agent.
-# To make the condition specific to current technique instance (or directive), add `${class_prefix}` within the condition prefix,
-# this variable is automatically defined in your technique and is available if you use Rudder agent >= 4.0 or CFEngine >= 3.8
 #
-# @parameter condition_prefix     The condition prefix, use ${class_prefix}_name to create a local condition
+# @parameter condition_prefix     The condition prefix
 # @parameter condition_expression The expression evaluated to create the condition (use 'any' to alwaus evaluate to true)
 #
 # @class_prefix condition_from_expression
