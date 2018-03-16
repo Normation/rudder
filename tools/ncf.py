@@ -162,7 +162,7 @@ def parse_bundlefile_metadata(content, bundle_type):
     #unicodeLine = unicode(line,"UTF-8") #line.decode('unicode-escape')
 
     # Parse metadata tag line
-    match = re.match("^\s*#\s*@(\w+)\s+(([a-zA-Z0-9_]+)\s+(.*?)|.*?)\s*$", line, flags=re.UNICODE)
+    match = re.match("^\s*#\s*@(\w+)\s*(([a-zA-Z0-9_]+)?\s+(.*?)|.*?)\s*$", line, flags=re.UNICODE)
     if match :
       tag = match.group(1)
       # Check if we are a valid tag
