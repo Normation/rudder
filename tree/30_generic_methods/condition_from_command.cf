@@ -26,10 +26,8 @@
 # If the exit code is not in the list, this will produce an error outcome class and no classes with `${condition_prefix}`
 #
 # The created condition (class in cfengine speaking) is global to the agent.
-# To make the condition specific to current technique instance (or directive), add ${class_prefix} within the condition prefix,
-# this variable is automatically defined in your technique and is available if you use Rudder agent >= 4.0 or CFEngine >= 3.8
 #
-# @parameter condition_prefix   The condition name, use ${class_prefix} to create a local condition
+# @parameter condition_prefix   The condition name
 # @parameter command            The command to run
 # @parameter true_codes         List of codes that produce a true status separated with commas (ex: 1,2,5)
 # @parameter false_codes        List of codes that produce a false status separated with commas (ex: 3,4,6)
