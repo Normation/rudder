@@ -18,7 +18,7 @@
 
 # @name Directory check exists
 # @description Checks if a directory exists
-# @documentation This bundle will define a class `directory_check_exists_${directory_name}_{ok, reached, kept}` if the
+# @documentation This bundle will define a condition `directory_check_exists_${directory_name}_{ok, reached, kept}` if the
 # directory exists, or `directory_check_exists_${directory_name}_{not_ok, reached, not_kept, failed}` if
 # the directory doesn't exists
 #

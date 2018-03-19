@@ -18,7 +18,7 @@
 
 # @name Package check installed
 # @description Verify if a package is installed in any version
-# @documentation This bundle will define a class `package_check_installed_${file_name}_{ok, reached, kept}` if the
+# @documentation This bundle will define a condition `package_check_installed_${file_name}_{ok, reached, kept}` if the
 # package is installed, or `package_check_installed_${file_name}_{not_ok, reached, not_kept, failed}` if
 # the package is not installed
 #

@@ -19,7 +19,7 @@
 
 # @name File check is FIFO/Pipe
 # @description Checks if a file exists and is a FIFO/Pipe
-# @documentation This bundle will define a class `file_check_FIFO_pipe_${file_name}_{ok, reached, kept}` if the
+# @documentation This bundle will define a condition `file_check_FIFO_pipe_${file_name}_{ok, reached, kept}` if the
 # file is a FIFO, or `file_check_FIFO_pipe_${file_name}_{not_ok, reached, not_kept, failed}` if
 # the file is not a fifo or does not exist
 #

@@ -19,7 +19,7 @@
 
 # @name File check if block device
 # @description Checks if a file exists and is a block device
-# @documentation This bundle will define a class `file_check_block_device_${file_name}_{ok, reached, kept}` if the
+# @documentation This bundle will define a condition `file_check_block_device_${file_name}_{ok, reached, kept}` if the
 # file is a block_device, or `file_check_block_device_${file_name}_{not_ok, reached, not_kept, failed}` if
 # the file is not a block device or does not exist
 #

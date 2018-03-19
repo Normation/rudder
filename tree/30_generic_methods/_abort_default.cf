@@ -22,7 +22,7 @@
 # @parameter reason  The reason to abort the agent
 # @parameter message The human readable message to display
 #
-# As this ends with an abort, we define no classes
+# As this ends with an abort, we define no result conditions
 #
 
 bundle agent _abort_default(reason, message)

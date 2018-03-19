@@ -18,7 +18,7 @@
 
 # @name Class combine ifthenelse
 # @description Aggregate class outcomes within an if then else structure
-# @documentation This bundle will define a class ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
+# @documentation This bundle will define a condition ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
 # based on  the test result and the method called afterwards.
 #
 # If the 'test' call has a '_true' outcome then the 'then' result is copied to destination

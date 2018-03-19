@@ -19,7 +19,7 @@
 
 # @name         File check is symlink to
 # @description  Checks if first file is symlink to second file
-# @documentation This bundle will define a class `file_check_symlinkto_${target}_{ok, reached, kept}` if the file `${symlink}`
+# @documentation This bundle will define a condition `file_check_symlinkto_${target}_{ok, reached, kept}` if the file `${symlink}`
 # is a symbolic link to `${target}`, or `file_check_symlinkto_${target}_{not_ok, reached, not_kept, failed}` if
 # if it is not a symbolic link, or any of the files does not exist. The symlink's path is resolved to the 
 # absolute path and checked against the target file's path, which must also be an absolute path.

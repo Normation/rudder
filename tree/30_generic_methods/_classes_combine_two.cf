@@ -18,7 +18,7 @@
 
 # @name Class combine two
 # @description Aggregate 2 class prefix into a new one
-# @documentation This bundle will define a class ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
+# @documentation This bundle will define a condition ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
 # based on ${first_prefix}_{kept,repaired,not_ok,ok,reached} and ${second_prefix}_{kept,repaired,not_ok,ok,reached}
 # keeping the worst outcome
 #

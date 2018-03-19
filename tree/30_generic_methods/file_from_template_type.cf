@@ -38,9 +38,9 @@
 # The data that will be used while expanding the template is the data available in
 # the agent at the time of expansion. That means:
 #
-# * CFEngine's sytem variables (`${sys.*}`, ...) and classes (`linux`, ``)
-# * data defined during execution (outcome classes of generic methods, ...)
-# * classes based on `condition_` generic methods
+# * CFEngine's sytem variables (`${sys.*}`, ...) and conditions (`linux`, ...)
+# * data defined during execution (result conditions of generic methods, ...)
+# * conditions based on `condition_` generic methods
 # * data defined in ncf using `variable_*` generic methods, which allow for example
 #   to load data from local json or yaml files.
 #

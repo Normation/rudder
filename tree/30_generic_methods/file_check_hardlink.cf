@@ -19,7 +19,7 @@
 
 # @name File check is hardlink
 # @description Checks if two files are the same (hard links)
-# @documentation This bundle will define a class `file_check_hardlink_${file_name_1}_{ok, reached, kept}` if the
+# @documentation This bundle will define a condition `file_check_hardlink_${file_name_1}_{ok, reached, kept}` if the
 # two files `${file_name_1}` and `${file_name_2}` are hard links of each other, or `file_check_hardlink_${file_name_1}_{not_ok, reached, not_kept, failed}` if
 # if the files are not hard links.
 #

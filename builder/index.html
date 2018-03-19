@@ -424,14 +424,14 @@
                             </div>
                             <form name="CForm.form">
                                 <div class="form-group condition-form">
-                                  <label class="control-label" for="advanced">Other classes:</label>
+                                  <label class="control-label" for="advanced">Other conditions:</label>
                                   <textarea msd-elastic name="cfClasses" class="form-control" rows="1" id="advanced" ng-pattern="/^\S+$/" ng-model="selectedMethod.advanced_class" ng-change="updateClassContext()"></textarea>
                                   <div ng-messages="CForm.form.cfClasses.$error" role="alert">
                                     <div ng-message="pattern" class="text-danger">This field cannot contain whitespace</div>
                                   </div>
                                 </div>
                                 <div class="form-group condition-form">
-                                  <label for="class_context">Class context:</label>
+                                  <label for="class_context">Applied condition expression:</label>
                                   <textarea style="cursor:text" msd-elastic name="cfClassContext" class="form-control" rows="1" id="advanced" ng-maxlength="2048" ng-model="selectedMethod.class_context" ng-readonly="true"></textarea>
                                   <span class="text-danger" ng-show="CForm.form.cfClassContext.$error.maxlength">
                                     Classes over 2048 characters are currently not supported.
@@ -468,7 +468,7 @@
                 </div>
                 <div class="col-md-5 fixed-footer" style="padding-top: 0; border-right:0; padding-bottom: 0;">
                     <h4 style="text-align:left; margin-top:0px;" class="panel-title">
-                      Result classes defined by this method
+                      Result conditions defined by this method
                     </h4>
                     <form class="form-horizontal editForm" name="editForm">
                         <div class="form-group"  style="margin-bottom:3px;margin-top:3px">

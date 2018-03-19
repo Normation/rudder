@@ -19,7 +19,7 @@
 
 # @name File check if socket
 # @description Checks if a file exists and is a socket
-# @documentation This bundle will define a class `file_check_socket_${file_name}_{ok, reached, kept}` if the
+# @documentation This bundle will define a condition `file_check_socket_${file_name}_{ok, reached, kept}` if the
 # file is a socket, or `file_check_socket_${file_name}_{not_ok, reached, not_kept, failed}` if
 # the file is not a socket or does not exist
 #

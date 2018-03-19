@@ -23,7 +23,7 @@
 # templates usage.
 #
 # This generic method will build a file from a jinja2 template
-# using data (classes and variables) found in the execution context.
+# using data (conditions and variables) found in the execution context.
 #
 #
 # #### Setup
@@ -46,7 +46,7 @@
 #
 # The main specificity of jinja2 templating is the use of two root containers:
 #
-# * `classes` to access currently defined classes
+# * `classes` to access currently defined conditions
 # * `vars` to access all currently defined variables
 # 
 # Note: You can add comments in the template, that will not be rendered in the output file with
@@ -54,18 +54,18 @@
 #
 # ##### Classes
 #
-# To display content based on classes definition:
+# To display content based on conditions definition:
 #
 # ```jinja2
-# {% if classes.my_class is defined  %}
+# {% if classes.my_condition is defined  %}
 #    display this if defined
 # {% endif %}
-# {% if not classes.my_class is defined %}
+# {% if not classes.my_condition is defined %}
 #    display this if not defined
 # {% endif %}
 # ```
 #
-# Note: You cannot use class expressions here.
+# Note: You cannot use condition expressions here.
 #
 # ##### Scalar variables
 #

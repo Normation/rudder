@@ -32,24 +32,24 @@
 #
 # The main specificity compared to standard mustache syntax of prefixes in all expanded values:
 #
-# * `classes` to access classes
+# * `classes` to access conditons
 # * `vars` to access all variables
 #
 # ##### Classes
 #
-# Here is how to display content depending on classes definition:
+# Here is how to display content depending on conditions definition:
 #
 # ```mustache
-# {{#classes.my_class}}
-#    content when my_class is defined
-# {{/classes.my_class}}
+# {{#classes.my_condition}}
+#    content when my_condition is defined
+# {{/classes.my_condition}}
 #
-# {{^classes.my_class}}
-#    content when my_class is *not* defined
-# {{/classes.my_class}}
+# {{^classes.my_condition}}
+#    content when my_condition is *not* defined
+# {{/classes.my_condition}}
 # ```
 #
-# Note: You cannot use class expressions here.
+# Note: You cannot use condition expressions here.
 #
 # ##### Scalar variable
 #

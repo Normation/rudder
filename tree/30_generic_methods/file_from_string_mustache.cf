@@ -25,7 +25,7 @@
 #
 # @class_prefix file_from_string_mustache
 # @class_parameter destination
-# This bundle will define a class file_from_string_mustache_${destination}_{kept,repaired,not_ok,ok,reached}
+# This bundle will define a condition file_from_string_mustache_${destination}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent file_from_string_mustache(template, destination)
 {

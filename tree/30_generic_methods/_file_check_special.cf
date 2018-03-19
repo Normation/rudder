@@ -25,7 +25,7 @@
 # 
 # @class_prefix file_check_special
 # @class_parameter file_name 
-# This bundle will define a class file_check_${file_type}_${file_name}_{ok, reached, kept} if the
+# This bundle will define a condition file_check_${file_type}_${file_name}_{ok, reached, kept} if the
 # file is a special file of type ${file_type}, or file_check_${file_type}_${file_name}_{not_ok, reached, not_kept, failed} if
 # the file is not a special file or does not exist
 

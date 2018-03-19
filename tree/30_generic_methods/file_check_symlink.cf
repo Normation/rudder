@@ -19,7 +19,7 @@
 
 # @name File check if symlink
 # @description Checks if a file exists and is a symlink
-# @documentation This bundle will define a class `file_check_symlink_${file_name}_{ok, reached, kept}` if the
+# @documentation This bundle will define a condition `file_check_symlink_${file_name}_{ok, reached, kept}` if the
 # file is a symlink, or `file_check_symlink_${file_name}_{not_ok, reached, not_kept, failed}` if
 # the file is not a symlink or does not exist
 #

@@ -17,15 +17,15 @@
 #####################################################################################
 
 # @name Condition from command 
-# @description Execute a command and create outcome classes depending on its exit code
-# @documentation This bundle will define a class `condition_from_command_${condition_prefix}_{kept,not_ok,ok,reached}`
+# @description Execute a command and create result conditions depending on its exit code
+# @documentation This bundle will define a condition `condition_from_command_${condition_prefix}_{kept,not_ok,ok,reached}`
 # depending on the exit codes given in parameters.
 #
 # This bundle will additionnaly produce a `${condition_prefix}_true` or a `${condition_prefix}_false` condition depending on the result on the command:
 #
-# * If the exit code is in the `true_codes` list, this will produce a kept outcome class and a `${condition_prefix}_true` condition
-# * If the exit code is in the `false_codes` list, this will produce a repaired outcome class and a `${condition_prefix}_false` condition
-# * If the exit code is not in the list, this will produce an error outcome class and no classes with `${condition_prefix}`
+# * If the exit code is in the `true_codes` list, this will produce a kept outcome condition and a `${condition_prefix}_true` condition
+# * If the exit code is in the `false_codes` list, this will produce a repaired outcome condition and a `${condition_prefix}_false` condition
+# * If the exit code is not in the list, this will produce an error outcome condition and no conditions with `${condition_prefix}`
 #
 # The created condition (class in cfengine speaking) is global to the agent.
 #
