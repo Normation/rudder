@@ -55,7 +55,10 @@ accountManagement.directive('validEmpty', function() {
   };
 } );
     
-accountManagement.controller('AccountCtrl', function ($scope, $http, DTOptionsBuilder) {
+accountManagement.controller('AccountCtrl', function ($scope, $http, DTOptionsBuilder, DTColumnDefBuilder) {
+
+  $scope.aclPlugin = false;
+  $scope.authFilter = undefined;
   $scope.getAccounts = function() {
     $http.get(apiPath).
     then(function (response) {
@@ -91,23 +94,43 @@ accountManagement.controller('AccountCtrl', function ($scope, $http, DTOptionsBu
       $('#oldAccountPopup').bsModal('hide');
   }
 
-
-$scope.addAccount = function() {
-  var newAccount = { id : "", name : "", token: undefined, enabled : true, description : ""}
+  $scope.filterAccount = function (value,index,array) {
+    if ($scope.authFilter === undefined || $scope.authFilter === "" ) {
+      return true;
+    } else {
+      return value.authorizationType === $scope.authFilter;
+    }
+  }
+  $scope.addAccount = function() {
+  var now = new Date();
+  now.setMonth(now.getMonth()+1);
+  var now = now.getFullYear()+"-"+(now.getMonth()+1)+"-"+now.getDate()+" "+now.getHours()+":"+now.getMinutes();
+  var newAccount = { id : "", name : "", token: undefined, enabled : true, description : "", authorizationType : "rw",expirationDateDefined : true, expirationDate : now}
   $scope.myNewAccount = newAccount;
   $('#newAccountPopup').bsModal('show');  
 }
 
 
 $scope.options =
-	DTOptionsBuilder.newOptions().
-	  withPaginationType('full_numbers').
-	  withDOM('<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>').
-	  withLanguage({
-		    "sSearch": ""
-	  }).
-	  withOption("bLengthChange", true)
+    DTOptionsBuilder.newOptions().
+      withPaginationType('full_numbers').
+      withDOM('<"dataTables_wrapper_top newFilter"f>t<"dataTables_wrapper_bottom"lip>').
+      withLanguage({
+            "searchPlaceholder": 'Filter',
+            "search": ''
+      }).
+      withOption("bLengthChange", true).
+      withOption( "lengthMenu", [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ]).
+      withOption("pageLength", 25).
+      withOption("jQueryUI", true).
+      withOption("bAutoWidth", false)
 
+  $scope.columns = [
+        DTColumnDefBuilder.newColumnDef(0).withOption("sWidth",'20%'),
+        DTColumnDefBuilder.newColumnDef(1).withOption("sWidth",'30%'),
+        DTColumnDefBuilder.newColumnDef(2).withOption("sWidth",'30%'),
+        DTColumnDefBuilder.newColumnDef(3).withOption("sWidth",'20%').notSortable()
+    ];
 $scope.popupCreation = function(account,index) {
      $scope.myNewAccount = angular.copy(account);
      $scope.myNewAccount.index = index;
@@ -178,6 +201,26 @@ $scope.popupDeletion = function(account, action, actionName) {
    }
  }
 
+  $scope.authorisationName = function(authorizationKind) {
+    var result = authorizationKind;
+    switch (authorizationKind) {
+      case "ro": 
+        result = "Read only";
+        break
+      case "rw":
+        result = "Full access";
+        break
+      case "none":
+        result = "No access";
+        break
+      case "acl":
+        result = "Custom ACLs";
+        break
+      default:
+        result = authorizationKind;
+    }
+    return result
+  }
   $scope.formTitle = function() {
     if ($scope.myNewAccount === undefined || $scope.myNewAccount.token === undefined) {
       return "Create a new Account";
@@ -192,7 +235,7 @@ $scope.popupDeletion = function(account, action, actionName) {
       if($scope.myNewAccount === undefined || $scope.myNewAccount.token === undefined) {
         return "Create"
       } else {
-    	return "Save"
+        return "Save"
       }
   }  
 } );

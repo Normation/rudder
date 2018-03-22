@@ -566,7 +566,7 @@ table.dataTable td img, table.dataTable th img {
 }
 
 .newFilter .dataTables_filter input {
-  padding: 8px 5px 8px 30px;
+  padding: 8px 5px;
   border: 1px solid #ccc;
 }
 
@@ -2696,3 +2696,4 @@ label span.text-fit{
   border-top: none;
   top: -2px;
 }
+

@@ -63,14 +63,20 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
   $scope.options =
     DTOptionsBuilder.newOptions().
       withPaginationType('full_numbers').
-      withDOM('<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>').
-      withLanguage({
-          "sSearch": ""
-      }).
+	  withDOM('<"dataTables_wrapper_top newFilter"f>t<"dataTables_wrapper_bottom"lip>').
+	  withLanguage({
+		    "searchPlaceholder": 'Filter',
+			"search": ''
+	  }).
       withOption('sWidth', '100%').
+      withOption('sDom', '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>').
       withOption("bLengthChange", true).
+	  withOption( "lengthMenu", [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ]).
+      withOption("pageLength", 25).
+      withOption("jQueryUI", true).
       withOption("bAutoWidth", false)
-
+      
+      
   $scope.columns = [
         DTColumnDefBuilder.newColumnDef(0).withOption("sWidth",'20%'),
         DTColumnDefBuilder.newColumnDef(1).withOption("sWidth",'75%'),

@@ -579,17 +579,18 @@ object ApiAccountSerialisation {
       }
     }
     def toJson(): JObject = {
-      ("id" -> account.id.value) ~
-      ("name" -> account.name.value) ~
-      ("token" -> account.token.value) ~
-      ("tokenGenerationDate" -> DateFormaterService.getFormatedDate(account.tokenGenerationDate)) ~
-      ("kind" -> account.kind.kind.name) ~
-      ("description" -> account.description) ~
-      ("creationDate" -> DateFormaterService.getFormatedDate(account.creationDate)) ~
-      ("enabled" -> account.isEnabled) ~
-      ("expirationDate" -> expirationDate) ~
-      ("authorizationType" -> authzType ) ~
-      ("aclList" -> aclList)
+      ("id"                    -> account.id.value) ~
+      ("name"                  -> account.name.value) ~
+      ("token"                 -> account.token.value) ~
+      ("tokenGenerationDate"   -> DateFormaterService.getFormatedDate(account.tokenGenerationDate)) ~
+      ("kind"                  -> account.kind.kind.name) ~
+      ("description"           -> account.description) ~
+      ("creationDate"          -> DateFormaterService.getFormatedDate(account.creationDate)) ~
+      ("enabled"               -> account.isEnabled) ~
+      ("expirationDate"        -> expirationDate) ~
+      ("expirationDateDefined" -> expirationDate.isDefined ) ~
+      ("authorizationType"     -> authzType ) ~
+      ("aclList"               -> aclList)
     }
 
   }
