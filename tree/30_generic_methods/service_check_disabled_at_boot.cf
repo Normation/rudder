@@ -35,9 +35,16 @@ bundle agent service_check_disabled_at_boot(service_name)
       "class_prefix"            string => canonify(join("_", "promisers"));
       "args"                     slist => { "${service_name}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
       "check_enabled"      usebundle => ncf_services("${service_name}", "is-enabled");
 
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "success" usebundle => _classes_success("${old_class_prefix}"),
                ifvarclass => "ncf_services_${canonified_service_name}_is_enabled_not_ok";
       "success" usebundle => _classes_success("${class_prefix}"),

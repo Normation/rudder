@@ -39,9 +39,16 @@ bundle agent service_restart_if(service_name, trigger_class)
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"                          slist => { "${service_name}",  "${trigger_class}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
 
       # Create kept class
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "success_class"              usebundle  => _classes_success("${old_class_prefix}"),
                                    # parenthesis used to negate all the classes
                                    ifvarclass => "!(${trigger_class})";

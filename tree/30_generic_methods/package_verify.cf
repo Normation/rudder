@@ -31,8 +31,15 @@ bundle agent package_verify(package_name)
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${package_name}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
       "verify latest"      usebundle => package_verify_version("${package_name}", "latest");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${class_prefix}_verify_latest", "${class_prefix}");
 
       "report"             usebundle => _log("Verify that package ${package_name} is installed", "", "${class_prefix}", @{args});

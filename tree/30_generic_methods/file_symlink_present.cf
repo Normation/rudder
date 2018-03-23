@@ -32,8 +32,15 @@ bundle agent file_symlink_present(source, destination)
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${source}", "${destination}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
       "create without enforce" usebundle => file_symlink_present_option("${source}", "${destination}", "false");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "new result classes"     usebundle => _classes_copy("${class_prefix}_create_without_enforce", "${class_prefix}");
 
       "report"                 usebundle => _log("Symlink ${destination} targeting ${source}", "", "${class_prefix}", @{args});

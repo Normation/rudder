@@ -176,8 +176,15 @@ bundle agent file_from_template_mustache(source_template, destination)
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"              slist => { "${source_template}", "${destination}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
     "file template mustache type"  usebundle => file_from_template_type("${source_template}", "${destination}", "mustache");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
     "new result classes"           usebundle => _classes_copy("${class_prefix}_file_template_mustache_type", "${class_prefix}");
 
     "report"                       usebundle => _log("Build file ${destination} from template ${source_template}", "", "${class_prefix}", @{args});

@@ -36,8 +36,15 @@ bundle agent directory_create(target)
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"              slist => { "${target}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
     "action"             usebundle => directory_present("${target}");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
     "class copy"         usebundle => _classes_copy("directory_present_${canonified_target}", "${old_class_prefix}"),
                          ifvarclass => "directory_present_${canonified_target}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),

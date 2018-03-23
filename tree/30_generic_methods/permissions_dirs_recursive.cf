@@ -34,8 +34,15 @@ bundle agent permissions_dirs_recursive(path, mode, owner, group)
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${path}", "${mode}", "${owner}", "${group}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
       "permission with recursion"  usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "directories", "inf");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "new result classes"         usebundle => _classes_copy("${class_prefix}_permission_with_recursion", "${class_prefix}");
 
       "report"                     usebundle => _log("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "", "${class_prefix}", @{args});

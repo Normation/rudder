@@ -33,8 +33,15 @@ bundle agent package_install_version(package_name, package_version)
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${package_name}", "${package_version}" };
   
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
       "install with version"  usebundle => package_install_version_cmp("${package_name}", "==", "${package_version}", "add");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "new result classes"    usebundle => _classes_copy("${class_prefix}_install_vith_version", "${class_prefix}");
 
       "report"                usebundle => _log("Install package ${package_name} version ${package_version}", "", "${class_prefix}", @{args});

@@ -36,8 +36,15 @@ bundle agent file_ensure_block_present(file, block)
       "args"              slist => { "${file}", "${block}" };
       "canonified_file"    string => canonify("${file}");
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
     "action"             usebundle => file_block_present("${file}", "${block}");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
     "class copy"         usebundle => _classes_copy("file_block_present_${canonified_file}", "${old_class_prefix}"),
                          ifvarclass => "file_block_present_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),

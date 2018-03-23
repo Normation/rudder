@@ -43,8 +43,15 @@ bundle agent file_ensure_key_value_option(file, key, value, separator, option)
       "args"              slist => { "${file}", "${key}", "${value}","${separator}", "${option}" };
       "canonified_file"    string => canonify("${target}");
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
     "action"             usebundle => file_key_value_present_option("${file}", "${key}", "${value}","${separator}", "${option}");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
     "class copy"         usebundle => _classes_copy("file_key_value_present_${canonified_file}", "${old_class_prefix}"),
                          ifvarclass => "file_present_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),

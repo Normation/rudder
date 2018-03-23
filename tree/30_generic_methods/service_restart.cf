@@ -33,9 +33,16 @@ bundle agent service_restart(service_name)
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"              slist => { "${service_name}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
       "restart always"     usebundle => service_restart_if("${service_name}","any");
 
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${class_prefix}_restart_always", "${class_prefix}");
 
       "report"             usebundle => _log("Restart service ${canonified_service_name}", "", "${class_prefix}", @{args});

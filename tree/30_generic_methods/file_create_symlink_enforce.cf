@@ -37,8 +37,15 @@ bundle agent file_create_symlink_enforce(source, destination, enforce)
       "args"              slist => { "${source}", "${destination}", "${enforce}" };
       "canonified_file"    string => canonify("${destination}");
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
     "action"             usebundle => file_symlink_present_option("${source}", "${destination}", "${enforce}");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
     "class copy"         usebundle => _classes_copy("file_symlink_present_${canonified_file}", "${old_class_prefix}"),
                          ifvarclass => "file_symlink_present_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),

@@ -36,14 +36,19 @@ bundle agent _service_check_running_smf(service_name)
       "class_prefix"        string => canonify(join("_", "promisers"));
       "args"                 slist => { "${service_name}" };
 
-  methods:
 
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
       "disable_reporting"     usebundle => disable_reporting;
+
 
       "check_if_service_is_running" usebundle => service_check_running("${service_name}");
 
-      "enable_reporting" usebundle => enable_reporting;
 
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "report"
         usebundle  => _log("Check if the service ${service_name} is started using SMF", "${old_class_prefix}", "${class_prefix}", @{args});
 }

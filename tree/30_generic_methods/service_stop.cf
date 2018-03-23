@@ -39,19 +39,18 @@ bundle agent service_stop(service_name)
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"                     slist => { "${service_name}" };
 
-  classes:
 
-    "is_inner_method" expression => "!${report_data.should_report}";
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
 
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
 
-    "disable_reporting"     usebundle => disable_reporting;
 
     "stop"      usebundle => service_action("${service_name}", "stop");
 
-    !is_inner_method::
-      "enable_reporting" usebundle => enable_reporting;
-
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
     any::
       "class copy" usebundle => _classes_copy("service_action_${canonified_service_name}", "${old_class_prefix}");
 

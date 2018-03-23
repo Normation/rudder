@@ -118,6 +118,8 @@ bundle agent file_from_template_type(source_template, destination, template_type
     "template_exists" expression => fileexists("${source_template}");
     "is_jinja2"       expression => strcmp("${template_type}", "jinja2");
 
+      "should_report"    expression => "${report_data.should_report}";
+
   files:
     "${destination}"
       create          => "true",
@@ -128,9 +130,14 @@ bundle agent file_from_template_type(source_template, destination, template_type
       classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
     is_jinja2.template_exists::
       "template" usebundle => ${jinja2_bundle_name}("${source_template}", "${destination}");
 
+    any::
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
+    is_jinja2.template_exists::
     !template_exists::
       "template_absent" usebundle => _classes_failure("${old_class_prefix}");
       "template_absent" usebundle => _classes_failure("${class_prefix}");

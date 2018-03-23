@@ -94,10 +94,17 @@ bundle agent service_action(service_name, action)
       "class_prefix"              string => canonify(join("_", "promisers"));
       "args"                      slist  => { "${service_name}", "${action}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
 
       "action"                 usebundle => ncf_services("${service_name}", "${action}");
 
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "class copy"             usebundle => _classes_copy("ncf_services_${canonified_service_name}_${canonified_action}", "${old_class_prefix}"),
                               ifvarclass => "ncf_services_${canonified_service_name}_${canonified_action}_reached";
       "new result classes"     usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),

@@ -31,8 +31,8 @@ bundle agent service_ensure_disabled_at_boot(service_name)
 {
   vars:
 
-    any::
 
+    any::
       "canonified_service_name" string => canonify("${service_name}");
 
       "old_class_prefix"        string => "service_ensure_disabled_at_boot_${canonified_service_name}";
@@ -40,14 +40,19 @@ bundle agent service_ensure_disabled_at_boot(service_name)
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"                     slist => { "${service_name}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
-    "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting"     usebundle => disable_reporting;
     "action"             usebundle => service_disabled("${service_name}");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
     "class copy"         usebundle => _classes_copy("service_disabled_${canonified_service_name}", "${old_class_prefix}"),
                          ifvarclass => "service_disabled_${canonified_service_name}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "enable_reporting"     usebundle => enable_reporting;
     "report"
         usebundle => _log("Ensure service ${service_name} is disabled at boot", "${old_class_prefix}", "${class_prefix}", @{args});
 

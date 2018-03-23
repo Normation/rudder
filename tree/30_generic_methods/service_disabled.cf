@@ -29,14 +29,18 @@ bundle agent service_disabled(service_name)
 {
   vars:
 
-    any::
 
+    any::
       "canonified_service_name" string => canonify("${service_name}");
 
       "old_class_prefix"        string => "service_disabled_${canonified_service_name}";
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"                     slist => { "${service_name}" };
+
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
 
   methods:
       "disable_reporting"     usebundle => disable_reporting;
@@ -49,6 +53,10 @@ bundle agent service_disabled(service_name)
         usebundle => ncf_services("${service_name}", "disable"),
         ifvarclass => "(!has_promiser_stack.service_check_disabled_at_boot_${canonified_service_name}_not_ok)|(has_promiser_stack.${class_prefix}_check_disabled_not_ok)";
 
+    any::
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
+    !windows::
       "already undefined"
         usebundle  => _classes_success("${old_class_prefix}"),
         ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_ok";
@@ -74,7 +82,6 @@ bundle agent service_disabled(service_name)
                           ifvarclass => "${class_prefix}_action_reached";
 
    any::
-      "enable_reporting"     usebundle => enable_reporting;
       "report"
         usebundle => _log("Ensure service ${service_name} is disabled at boot", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";

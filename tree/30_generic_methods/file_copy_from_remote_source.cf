@@ -51,8 +51,15 @@ bundle agent file_copy_from_remote_source(source, destination)
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${source}", "${destination}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
       "copy without recursion" usebundle => file_copy_from_remote_source_recursion("${source}", "${destination}", "0");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "new result classes"     usebundle => _classes_copy("${class_prefix}_copy_without_recursion", "${class_prefix}");
 
       "report"                 usebundle => _log("Copying ${destination} from ${source}", "", "${class_prefix}", @{args});

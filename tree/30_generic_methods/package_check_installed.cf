@@ -36,11 +36,18 @@ bundle agent package_check_installed(package_name)
       "args"                 slist => { "${package_name}" };
       "called_class_prefix" string => canonify("package_install_${package_name}");
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
 
       "check install with latest version"
         usebundle => package_install_version_cmp_update("${package_name}", "==", "latest", "verify", "false");
 
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "copy old classes" usebundle => _classes_copy("${called_class_prefix}", "${old_class_prefix}");
       "copy new classes" usebundle => _classes_copy("${class_prefix}_check_install_with_latest_version", "${class_prefix}");
 

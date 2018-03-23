@@ -32,8 +32,15 @@ bundle agent package_install(package_name)
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${package_name}" };
   
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
       "install latest"     usebundle => package_install_version("${package_name}", "latest");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${class_prefix}_install_latest", "${class_prefix}");
 
       "report"             usebundle => _log("Install package ${package_name}", "", "${class_prefix}", @{args});

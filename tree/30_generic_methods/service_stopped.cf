@@ -35,9 +35,13 @@ bundle agent service_stopped(service_name)
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"                          slist => { "${service_name}" };
 
-  methods:
 
-    "disable_reporting"     usebundle => disable_reporting;
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting"     usebundle => disable_reporting;
+
     !windows::
       "check running"
         usebundle  => service_check_running("${service_name}");
@@ -50,6 +54,10 @@ bundle agent service_stopped(service_name)
 
       # If service_check_running has no detected any process, it will not result
       # in a success so the result class of this promise should be the a success.
+    any::
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
+    !windows::
       "create success class"
         usebundle  => _classes_success("${old_class_prefix}"),
         ifvarclass => "(!has_promiser_stack.!service_check_running_${canonified_service_name}_kept)|(has_promiser_stack.!${class_prefix}_check_running_kept)";
@@ -73,7 +81,6 @@ bundle agent service_stopped(service_name)
                           ifvarclass => "${class_prefix}_action_reached";
 
     any::
-      "enable_reporting"     usebundle => enable_reporting;
       "report"
         usebundle  => _log("Ensure that service ${service_name} is stopped", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass =>"(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.!${class_prefix}_reached)";

@@ -43,10 +43,17 @@ bundle agent package_present(name, version, architecture, provider)
       "class_prefix"              string => canonify(join("_", "promisers"));
       "args"                      slist  => { "${name}", "${state}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
 
       "action"                 usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "present", "");
 
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "class copy"             usebundle => _classes_copy("ncf_package_present_${canonified_name}", "${old_class_prefix}"),
                               ifvarclass => "ncf_package_present_${canonified_name}_reached";
       "new result classes"     usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),

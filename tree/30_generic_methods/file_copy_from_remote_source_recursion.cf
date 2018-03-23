@@ -49,8 +49,15 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
       "args"              slist => { "${source}", "${destination}", "${recursion}" };
       "canonified_file"    string => canonify("${destination}");
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
     "action"             usebundle => file_from_remote_source_recursion("${source}", "${destination}", "${recursion}");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
     "class copy"         usebundle => _classes_copy("file_from_remote_source_${canonified_file}", "${old_class_prefix}"),
                          ifvarclass => "file_from_remote_source_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),

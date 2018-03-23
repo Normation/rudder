@@ -39,10 +39,17 @@ bundle agent service_start(service_name)
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"                     slist => { "${service_name}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
 
     "start"      usebundle => service_action("${service_name}", "start");
 
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
     "class copy" usebundle => _classes_copy("service_action_${canonified_service_name}", "${old_class_prefix}");
 
     "class copy" usebundle => _classes_copy("${class_prefix}_start", "${class_prefix}");

@@ -184,9 +184,9 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "datastate_file"    string => "${source_template}.datastate.${this.promiser_pid}.json";
       "destination_canon" string => canonify("${destination}");
       "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";
-    state_dumped_ok::
       # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
       # and can be used to check for errors.
+    state_dumped_ok::
       "errors" string => execresult("/usr/bin/python \"${jinja2_script}\" --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell");
 
   classes:
@@ -196,6 +196,8 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
+
+      "should_report"    expression => "${report_data.should_report}";
 
   files:
     # We can't use the generic method here because we want to avoid file backups
@@ -207,9 +209,14 @@ bundle agent file_from_template_jinja2(source_template, destination)
       classes => classes_generic("state_dumped");
 
   methods:
-    pass2.templating_ok::
+      "disable_reporting"     usebundle => disable_reporting;
       # Use a file copy to avoid any file size limitations of CFEngine variables.
+    pass2.templating_ok::
       "copy file"    usebundle => file_copy_from_local_source("${destination_tmp}", "${destination}");
+    any::
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
+    pass2.templating_ok::
       "copy classes" usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
 
     pass3.state_dumped_ok::

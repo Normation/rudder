@@ -34,16 +34,16 @@ bundle agent file_from_http_server(source, destination)
 
   vars:
 
-    _stdlib_path_exists_curl::
 
+    _stdlib_path_exists_curl::
       "action_command"            string => "${paths.path[curl]} -s -L -o ${destination} ${source}";
 
-    !_stdlib_path_exists_curl._stdlib_path_exists_wget::
 
+    !_stdlib_path_exists_curl._stdlib_path_exists_wget::
       "action_command"            string => "${paths.path[wget]} -O ${destination} ${source}";
 
-    any::
 
+    any::
       "canonified_destination"    string => canonify("${destination}");
       "canonified_action_command" string => canonify("${action_command}");
 
@@ -56,12 +56,19 @@ bundle agent file_from_http_server(source, destination)
 
     "file_exists"    expression => fileexists("${destination}");
 
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
+
 
     (_stdlib_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
-
       "action"                    usebundle => command_execution("${action_command}");
 
+    any::
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
+    (_stdlib_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
       "class copy"                usebundle => _classes_copy("command_execution_${canonified_action_command}", "${old_class_prefix}");
 
       "new result classes"        usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}");
@@ -69,14 +76,14 @@ bundle agent file_from_http_server(source, destination)
       "report"                    usebundle => _log("Download ${source} into ${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
                                  ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
-    !_stdlib_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
 
+    !_stdlib_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
       "force_failure_class"       usebundle => _classes_failure("${old_class_prefix}");
       "new result classes"        usebundle => _classes_failure("${class_prefix}");
       "report"                    usebundle => _log("Unable to download ${source}: neither wget or curl are installed", "${old_class_prefix}", "${class_prefix}", @{args});
 
-    file_exists::
 
+    file_exists::
       "force_success_class"       usebundle => _classes_success("${old_class_prefix}"),
                                  ifvarclass => "!command_execution_${canonified_action_command}_repaired";
       "new result classes"        usebundle => _classes_success("${class_prefix}"),

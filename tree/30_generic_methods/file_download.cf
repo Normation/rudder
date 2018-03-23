@@ -36,8 +36,8 @@ bundle agent file_download(source, destination)
 
   vars:
 
-    any::
 
+    any::
       "canonified_destination"    string => canonify("${destination}");
 
       "old_class_prefix"          string => "file_download_${canonified_destination}";
@@ -45,8 +45,15 @@ bundle agent file_download(source, destination)
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"                       slist => { "${source}", "${destination}" };
 
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
     "action"             usebundle => file_from_http_server("${source}", "${destination}");
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
     "class copy"         usebundle => _classes_copy("file_from_http_server_${canonified_destination}", "${old_class_prefix}"),
                          ifvarclass => "file_from_http_server_${canonified_destination}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),

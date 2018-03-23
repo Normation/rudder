@@ -53,12 +53,19 @@ bundle agent schedule_simple(job_id, agent_periodicity,
       "args"               slist => { "${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}",
                                       "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
                                       "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}" };
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
   methods:
+      "disable_reporting"     usebundle => disable_reporting;
     any::
       "simple scheduler" usebundle => schedule_simple_generic("${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
                                                               "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
                                                               "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}");
 
+      "reenable_reporting"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "kept"     usebundle => _classes_success("${old_class_prefix}"),
                  ifvarclass => "!job_${job_id}_run.!job_${job_id}_error";
       "kept"     usebundle => _classes_success("${class_prefix}"),
