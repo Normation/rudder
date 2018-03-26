@@ -30,12 +30,17 @@
 bundle agent file_ensure_lines_present(file, lines)
 {
   vars:
+      # old_class_prefix is not necessary, as file_enforce_content will report, with the same class prefix
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"              slist => { "${file}", "${lines}" };
+      "args"               slist => { "${file}", "${lines}" };
+
 
   methods:
       "enforce lines content" usebundle => file_enforce_content("${file}", "${lines}", "false");
+      "new result classes"    usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
+                             ifvarclass => "${class_prefix}_action_reached";
+
       "new result classes"    usebundle => _classes_copy("${class_prefix}_enforce_lines_content", "${class_prefix}");
 
       "report"                usebundle => _log("Insert content ${lines} into ${file}", "", "${class_prefix}", @{args});
