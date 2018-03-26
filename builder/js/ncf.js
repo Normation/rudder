@@ -506,6 +506,74 @@ $scope.groupMethodsByCategory = function () {
   return groupedMethods;
 };
 
+// method to export technique content into a json file
+$scope.exportTechnique = function(){
+  // selectedTechnique exists otherwise the buttons couldn't call us
+  var filename = $scope.selectedTechnique.name+'.json';
+  // build the exported technique object from the current selected technique
+  var calls = [];
+  for (var i = 0; i < $scope.selectedTechnique['method_calls'].length; i++) {
+    var call = $scope.selectedTechnique['method_calls'][i]
+    calls[i] = {
+      args:          call["args"],
+      class_context: call["class_context"],
+      method_name:   call["method_name"],
+      promiser:      call["promiser"]
+    }
+  }
+  var exportedTechnique = {
+    type: 'ncf_technique', version: 1.0, 
+    data: {
+      bundle_args: $scope.selectedTechnique["bundle_args"],
+      bundle_name: $scope.selectedTechnique["bundle_name"],
+      description: $scope.selectedTechnique["description"],
+      name:        $scope.selectedTechnique["name"],
+      version:     $scope.selectedTechnique["version"],
+      parameter:   $scope.selectedTechnique["parameter"],
+      method_calls: calls
+    }
+  };
+ 
+  var blob = new Blob([angular.toJson(exportedTechnique, true)], {type: 'text/plain'});
+  if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+    window.navigator.msSaveOrOpenBlob(blob, filename);
+  } else{
+    var e = document.createEvent('MouseEvents'),
+    a = document.createElement('a');
+    a.download = filename;
+    a.href = window.URL.createObjectURL(blob);
+    a.dataset.downloadurl = ['text/json', a.download, a.href].join(':');
+    e.initEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    a.dispatchEvent(e);
+    // window.URL.revokeObjectURL(url); // clean the url.createObjectURL resource
+  }
+}
+
+// method to import technique content from a json file
+$scope.onImportFileChange = function (fileEl) {
+  var files = fileEl.files;
+  var file = files[0];
+  var reader = new FileReader();
+
+  reader.onloadend = function(evt) {
+    if (evt.target.readyState === FileReader.DONE) {
+      $scope.$apply(function () {
+        var importedTechnique = JSON.parse(evt.target.result);
+        if(importedTechnique['type'] == 'ncf_technique' && importedTechnique['version'] == 1.0) {
+          var technique = toTechUI(importedTechnique['data']);
+          $scope.checkSelect(technique, $scope.selectTechnique);
+          $scope.editForm.$setDirty();
+          $scope.suppressFlag = true;
+        } else {
+          alert("Unsupported file type ! This version of Rudder only support import of ncf techniques files in format 1.0");
+        }
+      });
+    }
+  };
+  reader.readAsText(file);
+}
+
+
   // Method used to check if we can select a technique without losing changes
   $scope.checkSelect = function(technique, select) {
     // No selected technique, select technique

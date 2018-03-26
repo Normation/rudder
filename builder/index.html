@@ -138,14 +138,22 @@
                 <table class="table table-hover table-condensed table-ncf" >
                     <thead>
                         <tr>
-                            <th colspan=2>
-                                <div class="input-group input-group-sm pull-left" style="width:55%">
+                            <th colspan=2 style="border:none;">
+                                <button ng-click="newTechnique()" class="btn btn-xs btn-success" style="height:30px;"><span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>Create</button>
+                                <label class="btn btn-xs btn-default" style="height:30px;line-height:30px;margin-left:10px;" for="btn-import">
+                                    <span class="glyphicon glyphicon-upload" style="margin-right:5px"></span>Import
+                                    <input id="btn-import" type="file" onchange="angular.element(this).scope().onImportFileChange(this)" class="hidden">
+                                </label>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th colspan=2 style="border:none;">
+                                <div class="input-group input-group-sm pull-left">
                                     <span class="input-group-addon" style="padding:2px;"><span class="glyphicon glyphicon-search"></span></span>
                                     <input type="text" class="form-control" placeholder="Filter" ng-model="searchText.name" style="padding:2px">
                                 </div>
-                                <button ng-click="newTechnique()" class="btn btn-xs btn-success pull-right" style="height:30px;"><span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>Create</button>
                             </th>
-                        </tr>
+                       </tr>
                     </thead>
                     <tbody>
                         <tr  ng-repeat="technique in techniques | orderBy:'name':false | filter:searchText  track by $index" ng-click="checkSelect(technique,selectTechnique)">
@@ -191,6 +199,7 @@
                     <h3 >{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
                         <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-delete" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete</a>
                         <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone</a>
+                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="exportTechnique(selectedTechnique)">Export</a>
                     </h3>
                     <accordion>
                         <accordion-group ng-init="isopen = true" is-open="isopen">
