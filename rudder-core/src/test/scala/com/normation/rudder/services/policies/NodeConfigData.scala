@@ -325,7 +325,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , serverRoles          = Set()
   )
 
-
   val allNodesInfo = Map( rootId -> root, node1.id -> node1, node2.id -> node2)
 
   val defaultModesConfig = NodeModeConfig(
@@ -641,7 +640,6 @@ class TestNodeConfiguration() {
      ).map(v => (v.spec.name, v)).toMap
   }
 
-
   def draft (
       id          : PolicyId
     , technique   : Technique
@@ -887,13 +885,13 @@ class TestNodeConfiguration() {
     )
   }
 
-
   val ncf1Technique = techniqueRepository.get(TechniqueId(TechniqueName("Create_file"), TechniqueVersion("1.0"))).unsafeGet
   val ncf1Variables = {
      val spec = ncf1Technique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
          spec("expectedReportKey Directory create").toVariable(Seq("directory_create_/tmp/foo"))
        , spec("expectedReportKey File create").toVariable(Seq("file_create_/tmp/foo/bar"))
+       , spec("file_name").toVariable(Seq("\"foo"))
      ).map(v => (v.spec.name, v)).toMap
   }
   val ncf1 = {

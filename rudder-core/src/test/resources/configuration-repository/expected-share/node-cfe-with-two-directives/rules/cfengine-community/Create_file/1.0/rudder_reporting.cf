@@ -1,4 +1,4 @@
-bundle agent Create_file_rudder_reporting
+bundle agent Create_file_rudder_reporting(file_name)
 {
   vars:
     "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";

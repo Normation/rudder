@@ -1,4 +1,6 @@
 <TECHNIQUE name="Create a file">
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
   <DESCRIPTION>Create a file and a directory</DESCRIPTION>
   <BUNDLES>
     <NAME>Create_file</NAME>
@@ -59,6 +61,13 @@
       <REPORTKEYS>
         <VALUE><![CDATA[/tmp/foo/bar]]></VALUE>
       </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Technique parameters">
+      <INPUT>
+        <NAME>file_name</NAME>
+        <DESCRIPTION>File name</DESCRIPTION>
+        <LONGDESCRIPTION></LONGDESCRIPTION>
+      </INPUT>
     </SECTION>
   </SECTIONS>
 </TECHNIQUE>
