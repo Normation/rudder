@@ -69,7 +69,6 @@ case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends O
   }
 }
 
-
 object RunHook {
 /*
  * This data structure holds the agent specific
@@ -91,7 +90,6 @@ object RunHook {
   }
 
 }
-
 
 /*
  * A run hook is an (agent specific) action that should
@@ -183,6 +181,7 @@ case class Technique(
   , isSystem               : Boolean = false
   , providesExpectedReports: Boolean = false //does that Technique comes with a template file (csv) of expected reports ?
   , generationMode         : TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives
+  , useMethodReporting     : Boolean = false
 ) extends HashcodeCaching {
 
   require(null != id && !isEmpty(id.name.value), "ID is required in policy")

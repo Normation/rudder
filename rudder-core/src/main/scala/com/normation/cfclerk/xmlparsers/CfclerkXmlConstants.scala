@@ -47,7 +47,6 @@ object CfclerkXmlConstants {
 
   val SECTION_ROOT_NAME = "SECTIONS"
 
-
   val RUDDER_CONFIGURATION_REPOSITORY = "RUDDER_CONFIGURATION_REPOSITORY"
 
   /* tag names */
@@ -61,6 +60,7 @@ object CfclerkXmlConstants {
   val TECHNIQUE_IS_SYSTEM = "SYSTEM"
   val TECHNIQUE_DEPRECATION_INFO = "DEPRECATED"
   val TECHNIQUE_GENERATION_MODE = "POLICYGENERATION"
+  val TECHNIQUE_USE_METHOD_REPORTING = "USE_METHOD_REPORTING"
 
   //bundles
   val BUNDLES_ROOT = "BUNDLES"
@@ -90,7 +90,6 @@ object CfclerkXmlConstants {
   val COMPAT_TAG = "COMPATIBLE"
   val COMPAT_OS = "OS"
   val COMPAT_AGENT = "AGENT"
-
 
   //sections
   val SECTIONS_ROOT = "SECTIONS"
