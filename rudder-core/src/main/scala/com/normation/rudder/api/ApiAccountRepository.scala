@@ -65,9 +65,10 @@ import com.normation.utils.StringUuidGenerator
 trait RoApiAccountRepository {
 
   /**
-   * Retrieve all API Account
+   * Retrieve all standard API Account (not linked to an user,
+   * not system, i.e account.kind == PublicApi)
    */
-  def getAll: Box[Seq[ApiAccount]]
+  def getAllStandardAccounts: Box[Seq[ApiAccount]]
 
   def getByToken(token: ApiToken): Box[Option[ApiAccount]]
 
@@ -120,7 +121,7 @@ final class RoLDAPApiAccountRepository(
 
   override def getSystemAccount: ApiAccount = systemAPIAccount
 
-  override def getAll: Box[Seq[ApiAccount]] = {
+  override def getAllStandardAccounts: Box[Seq[ApiAccount]] = {
     for {
       ldap <- ldapConnexion
     } yield {
@@ -131,7 +132,10 @@ final class RoLDAPApiAccountRepository(
             val error = eb ?~! s"Ignoring API Account with dn ${e.dn} due to mapping error"
             logger.debug(error.messageChain)
             None
-          case Full(p) => Some(p)
+          case Full(p) => p.kind match {
+            case _: ApiAccountKind.PublicApi => Some(p)
+            case _                           => None
+          }
       } )
       accounts
     }
