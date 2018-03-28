@@ -1,4 +1,6 @@
 <TECHNIQUE name="Test Technique created through Rudder API">
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
   <DESCRIPTION>This Technique exists only to see if Rudder creates Technique correctly.</DESCRIPTION>
   <AGENT type="cfengine-community,cfengine-nova">
     <BUNDLES>
@@ -25,6 +27,13 @@
       <REPORTKEYS>
         <VALUE>${node.properties[apache_package_name]}</VALUE>
       </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Technique parameters">
+      <INPUT>
+        <NAME>PACKAGE_VERSION</NAME>
+        <DESCRIPTION>version</DESCRIPTION>
+        <LONGDESCRIPTION></LONGDESCRIPTION>
+      </INPUT>
     </SECTION>
   </SECTIONS>
 </TECHNIQUE>
