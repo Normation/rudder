@@ -34,7 +34,7 @@ class RestApiAccounts (
 
   serve {
     case Get("secure" :: "apiaccounts" :: Nil, req) =>
-      readApi.getAll match {
+      readApi.getAllStandardAccounts match {
         case Full(accountSeq) =>
           val accounts = ("accounts" -> JArray(accountSeq.toList.map(_.toJson)))
           toJsonResponse(None,accounts)("getAllAccounts",true)
