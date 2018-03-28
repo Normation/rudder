@@ -116,11 +116,15 @@ object BuildBundleSequence {
 
   // A bundle paramer is just a String, but it can be quoted with simple or double quote
   // (double quote is the default, and simple quote are used mostly for JSON)
-  sealed trait BundleParam { def quote: String }
+  sealed trait BundleParam {
+    def quote: String
+  }
   final object BundleParam {
-
     final case class SimpleQuote(value: String) extends BundleParam { def quote = "'"+value+"'" }
-    final case class DoubleQuote(value: String) extends BundleParam { def quote = "\""+value+"\"" }
+    final case class DoubleQuote(value: String) extends BundleParam {
+      val escapedValue = ParameterEntry.escapeString(value, AgentType.CfeCommunity)
+      def quote = "\""+escapedValue+"\""
+    }
   }
 
   // a Bundle is a BundleName and a Rudder Id that will
