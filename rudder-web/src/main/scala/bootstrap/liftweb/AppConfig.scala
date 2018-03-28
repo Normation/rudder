@@ -1002,7 +1002,9 @@ object RudderConfig extends Loggable {
 
   //we need a roLdap query checker for nodes in pending
   private[this] lazy val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(roLdap, pendingNodesDitImpl, nodeDit, new DitQueryData(pendingNodesDitImpl, nodeDit, rudderDit), ldapEntityMapper))
-  private[this] lazy val dynGroupServiceImpl = new DynGroupServiceImpl(rudderDitImpl, roLdap, ldapEntityMapper, inventoryQueryChecker)
+  private[this] lazy val dynGroupServiceImpl = new DynGroupServiceImpl(rudderDitImpl, roLdap, ldapEntityMapper)
+
+  lazy val pendingNodeCheckGroup = new CheckPendingNodeInDynGroups(inventoryQueryChecker)
 
   private[this] lazy val ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, rwLdap)
   private[this] lazy val unitRefuseGroup: UnitRefuseInventory = new RefuseGroups(

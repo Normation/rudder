@@ -38,18 +38,19 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.web.components.RuleGrid
-import net.liftweb.http.DispatchSnippet
-import net.liftweb.common._
-import net.liftweb.util.ClearClearable
-import net.liftweb.util.Helpers._
-import scala.xml.NodeSeq
-import scala.xml.Text
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
+import com.normation.rudder.web.components.RuleGrid
+import net.liftweb.common._
+import net.liftweb.http.DispatchSnippet
+import net.liftweb.util.ClearClearable
+import net.liftweb.util.Helpers._
+
+import scala.xml.NodeSeq
+import scala.xml.Text
 
 object ExpectedPolicyPopup {
 
@@ -70,6 +71,7 @@ class ExpectedPolicyPopup(
 
   private[this] val ruleRepository  = RudderConfig.roRuleRepository
   private[this] val dynGroupService = RudderConfig.dynGroupService
+  private[this] val checkDynGroup   = RudderConfig.pendingNodeCheckGroup
 
   def dispatch = {
     case "display" => {_ => display }
@@ -98,8 +100,9 @@ class ExpectedPolicyPopup(
 
   private[this] val getDependantRulesForNode:Box[Seq[Rule]] = {
     for {
-      dynGroup     <- dynGroupService.findDynGroups(Seq(nodeSrv.id)) ?~! "Error when building the map of dynamic group to update by node"
-      groupTargets =  dynGroup.getOrElse(nodeSrv.id, Seq())
+      allDynGroups <- dynGroupService.getAllDynGroups()
+      dynGroups    <- checkDynGroup.findDynGroups(Set(nodeSrv.id), allDynGroups.toList) ?~! "Error when building the map of dynamic group to update by node"
+      groupTargets =  dynGroups.getOrElse(nodeSrv.id, Seq())
       rules        <- ruleRepository.getAll(includeSytem = false)
     } yield {
       val allNodes = Map( (nodeSrv.id , (nodeSrv.isPolicyServer, nodeSrv.serverRoles)) )
