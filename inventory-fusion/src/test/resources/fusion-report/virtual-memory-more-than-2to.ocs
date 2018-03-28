@@ -27,12 +27,7 @@
         <POLICY_SERVER_HOSTNAME>192.168.110.47</POLICY_SERVER_HOSTNAME>
         <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
       </AGENT>
-      <AGENT>
-        <AGENT_NAME>modified-files__var_cfengine_bin_cf-agent.cfsaved</AGENT_NAME>
-        <CFENGINE_KEY />  <OWNER>root</OWNER>
-        <POLICY_SERVER_HOSTNAME />  <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
-      </AGENT>
-       <HOSTNAME>debian-6-64.labo.normation.com</HOSTNAME>
+      <HOSTNAME>debian-6-64.labo.normation.com</HOSTNAME>
       <UUID>b9a71482-5030-4699-984d-b03d28bbbf36</UUID>
     </RUDDER>
   </CONTENT>

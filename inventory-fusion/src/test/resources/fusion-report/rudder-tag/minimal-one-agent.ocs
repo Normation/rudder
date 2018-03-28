@@ -18,7 +18,7 @@
         <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
       </AGENT>
       <AGENT>
-        <AGENT_NAME>modified-files__var_cfengine_bin_cf-agent.cfsaved</AGENT_NAME>
+        <AGENT_NAME>should be an error</AGENT_NAME>
         <CFENGINE_KEY />  <OWNER>root</OWNER>
         <POLICY_SERVER_HOSTNAME />  <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
       </AGENT>

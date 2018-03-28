@@ -57,7 +57,6 @@ import com.normation.utils.{StringUuidGenerator,StringUuidGeneratorImpl}
 import java.io.File
 import org.slf4j.LoggerFactory
 import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
-import com.normation.inventory.provisioning.fusion.RudderServerRoleParsing
 import java.security.Security
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
@@ -124,27 +123,15 @@ class AppConfig {
       val keyNorm = new PrintedKeyNormalizer
       new FusionReportUnmarshaller(
           uuidGenerator
-        , rootParsingExtensions = (
-            RudderNodeIdParsing ::
-            RudderPolicyServerParsing ::
-            RudderMachineIdParsing ::
-            RudderCpuParsing ::
-            RudderRootUserParsing ::
-            RudderAgentNameParsing ::
-            RudderServerRoleParsing ::
-            Nil
-        )
-        , contentParsingExtensions = (
-            RudderUserListParsing ::
-            Nil
-        )
+        , rootParsingExtensions    = Nil
+        , contentParsingExtensions = Nil
       )
     }
 
     new DefaultReportUnmarshaller(
      fusionReportParser,
      Seq(
-         new PostUnmarshallCheckConsistency
+         new PreUnmarshallCheckConsistency
      )
     )
   }
@@ -204,7 +191,7 @@ class AppConfig {
     ))
 
   @Bean
-  def machineFinder() : MachineDNFinderAction =
+  def vmFinder() : MachineDNFinderAction =
     new MachineDNFinderService(Seq(
         //start by trying to use an already given UUID
         NamedMachineDNFinderAction("use_existing_id", new UseExistingMachineIdFinder(inventoryDitService,roLdapConnectionProvider,acceptedNodesDit.BASE_DN.getParent))
@@ -229,8 +216,7 @@ class AppConfig {
       uuidGenerator
     , acceptedNodesDit
     , serverFinder
-    , machineFinder
-    , machineFinder
+    , vmFinder
     , softwareFinder
   )
 

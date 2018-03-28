@@ -50,6 +50,11 @@ import scala.collection.mutable.Buffer
 
 import net.liftweb.common._
 
+
+/////
+///// these finders are used for VMs. For the machine linked to a node, the ID is derived from nodeId.
+/////
+
 /**
  * Retrieve the ID from the LDAP directory
  */

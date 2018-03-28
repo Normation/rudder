@@ -35,8 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.inventory.provisioning
-package fusion
+package com.normation.inventory.provisioning.fusion
 
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.AgentType._
@@ -104,146 +103,146 @@ class FusionReportUnmarshaller(
 
   override def fromXmlDoc(reportName:String, doc:NodeSeq) : Box[InventoryReport] = {
 
-     var report =  {
-      /*
-       * Fusion Inventory gives a device id, but we don't exactly understand
-       * how that id is generated and when/if it changes.
-       * At least, the presence of that tag is a good indicator
-       * that we have an actual Fusion Inventory report
-       */
-      val deviceId = optText(doc \ "DEVICEID").getOrElse {
-        return Failure("The XML does not seems to be a Fusion Inventory report (no device id found)")
-      }
+    // hostname is a little special and may fail
+    for {
+      hostname <- getHostname(doc)
+    } yield {
 
-      //init a node inventory
-      /*
-       * It is not the role of the report parsing to assign UUID to node
-       * and machine, we have special rules for that:
-       * - node id is handled in RudderNodeIdParsing
-       * - policy server is handled in RudderPolicyServerParsing
-       * - machine id is handled in RudderMachineIdParsing
-       */
-      val node = NodeInventory(
+      var report = {
+        /*
+         * Fusion Inventory gives a device id, but we don't exactly understand
+         * how that id is generated and when/if it changes.
+         * At least, the presence of that tag is a good indicator
+         * that we have an actual Fusion Inventory report
+         */
+        val deviceId = optText(doc \ "DEVICEID").getOrElse {
+          return Failure("The XML does not seems to be a Fusion Inventory report (no device id found)")
+        }
+
+        //init a node inventory
+        /*
+         * It is not the role of the report parsing to assign UUID to node
+         * and machine, we have special rules for that:
+         * - node id is handled in RudderNodeIdParsing
+         * - policy server is handled in RudderPolicyServerParsing
+         * - machine id is handled in RudderMachineIdParsing
+         */
+        val node = NodeInventory(
           NodeSummary(
               NodeId("dummy-node-id")
             , PendingInventory
             , "dummy-root"
-            , "dummy-hostname"
+            , hostname
             , UnknownOS()
             , NodeId("dummy-policy-server")
             , UndefinedKey
-      ) )
+          )
+        )
 
-      //create a machine used as a template to modify - used a fake UUID that will be change latter
-      val machine = MachineInventory(MachineUuid("dummy-machine-id"), PendingInventory, PhysicalMachineType)
+        //create a machine used as a template to modify - used a fake UUID that will be change latter
+        val machine = MachineInventory(MachineUuid("dummy-machine-id"), PendingInventory, PhysicalMachineType)
 
-      //idems for VMs and applications
-      val vms = List[MachineInventory]()
-      val applications =  List[Software]()
-      val version= processVersion(doc\\("Request")\("VERSIONCLIENT"));
-     InventoryReport(
-        reportName,
-        deviceId,
-        node,
-        machine,
-        version,
-        vms.toSeq,
-        applications,
-        doc
-      )
-    }
-
-     /*
-      * Insert bios, manufacturer and system serial in the inventory
-      * If Manufacturer or System Serial Number is already defined, skip them and write
-      * a warn log
-      */
-      def addBiosInfosIntoReport(
-          bios              : Option[Bios]
-        , manufacturer      : Option[Manufacturer]
-        , systemSerialNumber: Option[String]) : Unit = {
-        bios.foreach {x => report = report.copy( machine = report.machine.copy( bios = x +: report.machine.bios ) ) }
-
-        manufacturer.foreach{ x =>
-          report.machine.manufacturer match {
-            case None => // can update the manufacturer
-              report = report.copy(machine = report.machine.copy(manufacturer = Some(x)))
-            case Some(existingManufacturer) => //cannot update it
-              logger.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x}")
-          }
-        }
-        systemSerialNumber.foreach{ x =>
-          report.machine.systemSerialNumber match {
-            case None => // can update the System Serial Number
-              report = report.copy(machine = report.machine.copy(systemSerialNumber = Some(x)))
-            case Some(existingSystemSerialNumber) => //cannot update it
-              logger.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
-          }
-        }
+        //idems for VMs and applications
+        val vms = List[MachineInventory]()
+        val applications =  List[Software]()
+        val version= processVersion(doc\\("Request")\("VERSIONCLIENT"));
+        InventoryReport(
+          reportName,
+          deviceId,
+          node,
+          machine,
+          version,
+          vms.toSeq,
+          applications,
+          doc
+        )
       }
 
-    /*
-     * and now, actually parse !
-     * Each line is a partial function of the form: Node => Unit
-     */
-    for(e <- (doc \\ "REQUEST").head.child) { e.label match {
-      case "CONTENT" => for( elt <- e.head.child ) { elt.label match {
-        case "ACCESSLOG"   => processAccessLog(elt).foreach(x => report = report.copy ( node = report.node.copy( inventoryDate = Some(x) ), machine = report.machine.copy ( inventoryDate = Some(x) ) ))
-        case "BATTERIES"   => //TODO not sure about that
-        case "BIOS"        => val (bios, manufacturer, systemSerialNumber) = processBios(elt)
-                              addBiosInfosIntoReport(bios, manufacturer, systemSerialNumber)
-        case "CONTROLLERS" => processController(elt).foreach { x => report = report.copy( machine = report.machine.copy( controllers = x +: report.machine.controllers ) ) }
-        case "CPUS"        => processCpu(elt).foreach { x => report = report.copy( machine = report.machine.copy( processors = x +: report.machine.processors ) ) }
-        case "DRIVES"      => processFileSystem(elt).foreach { x => report = report.copy( node = report.node.copy( fileSystems = x +: report.node.fileSystems ) ) }
-        case "ENVS"        => processEnvironmentVariable(elt).foreach {x => report = report.copy(node = report.node.copy (environmentVariables = x +: report.node.environmentVariables ) ) }
-        case "HARDWARE"    =>  processHardware(elt, report).foreach(x => report = report.copy(node = x._1, machine = x._2))
-        case "OPERATINGSYSTEM" => report = processOsDetails(elt, report, e)
-        case "INPUTS"      => //TODO keyborad, mouse, speakers
-        case "MEMORIES"    => processMemory(elt).foreach { x => report = report.copy( machine = report.machine.copy( memories = x +: report.machine.memories ) ) }
-        case "NETWORKS"    => processNetworks(elt).foreach { x => report = report.copy( node = report.node.copy( networks = x +: report.node.networks ) ) }
-        case "PORTS"       => processPort(elt).foreach { x => report = report.copy( machine = report.machine.copy( ports = x +: report.machine.ports ) ) }
-        case "PROCESSES"   => processProcesses(elt).foreach { x => report = report.copy( node = report.node.copy ( processes = x +: report.node.processes))}
-        case "SLOTS"       => processSlot(elt).foreach { x => report = report.copy( machine = report.machine.copy( slots = x +: report.machine.slots ) ) }
-        case "SOFTWARES"   => report = report.copy( applications  = processSoftware(elt) +: report.applications )
-        case "SOUNDS"      => processSound(elt).foreach { x => report = report.copy( machine = report.machine.copy( sounds = x +: report.machine.sounds ) ) }
-        case "STORAGES"    => processStorage(elt).foreach { x => report = report.copy( machine = report.machine.copy( storages = x +: report.machine.storages ) ) }
-        case "USBDEVICES"  => //TODO only digits for them, not sure we want to keep that as it is.
-        case "LOCAL_USERS" => processLocalAccount(elt).foreach { x => report = report.copy(node = report.node.copy( accounts = (x +: report.node.accounts).distinct)) }
-        case "VIDEOS"      => processVideo(elt).foreach { x => report = report.copy( machine = report.machine.copy( videos = x +: report.machine.videos ) ) }
-        case "VIRTUALMACHINES" => processVms(elt).foreach { x =>  report = report.copy(node  = report.node.copy( vms = x +: report.node.vms) ) }
-     // done previously :    case "VERSIONCLIENT" => report = report.copy( version = processVersion(elt))
-        case x => contentParsingExtensions.find {
-            pf => pf.isDefinedAt((elt,report))
+       /*
+        * Insert bios, manufacturer and system serial in the inventory
+        * If Manufacturer or System Serial Number is already defined, skip them and write
+        * a warn log
+        */
+        def addBiosInfosIntoReport(
+            bios              : Option[Bios]
+          , manufacturer      : Option[Manufacturer]
+          , systemSerialNumber: Option[String]) : Unit = {
+          bios.foreach {x => report = report.copy( machine = report.machine.copy( bios = x +: report.machine.bios ) ) }
+
+          manufacturer.foreach{ x =>
+            report.machine.manufacturer match {
+              case None => // can update the manufacturer
+                report = report.copy(machine = report.machine.copy(manufacturer = Some(x)))
+              case Some(existingManufacturer) => //cannot update it
+                logger.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x}")
+            }
+          }
+          systemSerialNumber.foreach{ x =>
+            report.machine.systemSerialNumber match {
+              case None => // can update the System Serial Number
+                report = report.copy(machine = report.machine.copy(systemSerialNumber = Some(x)))
+              case Some(existingSystemSerialNumber) => //cannot update it
+                logger.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
+            }
+          }
+        }
+
+      /*
+       * and now, actually parse !
+       * Each line is a partial function of the form: Node => Unit
+       */
+      for(e <- (doc \\ "REQUEST").head.child) { e.label match {
+        case "CONTENT" => for( elt <- e.head.child ) { elt.label match {
+          case "ACCESSLOG"   => processAccessLog(elt).foreach(x => report = report.copy ( node = report.node.copy( inventoryDate = Some(x) ), machine = report.machine.copy ( inventoryDate = Some(x) ) ))
+          case "BATTERIES"   => //TODO not sure about that
+          case "BIOS"        => val (bios, manufacturer, systemSerialNumber) = processBios(elt)
+                                addBiosInfosIntoReport(bios, manufacturer, systemSerialNumber)
+          case "CONTROLLERS" => processController(elt).foreach { x => report = report.copy( machine = report.machine.copy( controllers = x +: report.machine.controllers ) ) }
+          case "CPUS"        => processCpu(elt).foreach { x => report = report.copy( machine = report.machine.copy( processors = x +: report.machine.processors ) ) }
+          case "DRIVES"      => processFileSystem(elt).foreach { x => report = report.copy( node = report.node.copy( fileSystems = x +: report.node.fileSystems ) ) }
+          case "ENVS"        => processEnvironmentVariable(elt).foreach {x => report = report.copy(node = report.node.copy (environmentVariables = x +: report.node.environmentVariables ) ) }
+          case "HARDWARE"    =>  processHardware(elt, report).foreach(x => report = report.copy(node = x._1, machine = x._2))
+          case "INPUTS"      => //TODO keyborad, mouse, speakers
+          case "LOCAL_USERS" => processLocalAccount(elt).foreach { x => report = report.copy(node = report.node.copy( accounts = (x +: report.node.accounts).distinct)) }
+          case "MEMORIES"    => processMemory(elt).foreach { x => report = report.copy( machine = report.machine.copy( memories = x +: report.machine.memories ) ) }
+          case "NETWORKS"    => processNetworks(elt).foreach { x => report = report.copy( node = report.node.copy( networks = x +: report.node.networks ) ) }
+          case "OPERATINGSYSTEM" => report = processOsDetails(elt, report, e)
+          case "PORTS"       => processPort(elt).foreach { x => report = report.copy( machine = report.machine.copy( ports = x +: report.machine.ports ) ) }
+          case "PROCESSES"   => processProcesses(elt).foreach { x => report = report.copy( node = report.node.copy ( processes = x +: report.node.processes))}
+          case "SLOTS"       => processSlot(elt).foreach { x => report = report.copy( machine = report.machine.copy( slots = x +: report.machine.slots ) ) }
+          case "SOFTWARES"   => report = report.copy( applications  = processSoftware(elt) +: report.applications )
+          case "SOUNDS"      => processSound(elt).foreach { x => report = report.copy( machine = report.machine.copy( sounds = x +: report.machine.sounds ) ) }
+          case "STORAGES"    => processStorage(elt).foreach { x => report = report.copy( machine = report.machine.copy( storages = x +: report.machine.storages ) ) }
+          case "USBDEVICES"  => //TODO only digits for them, not sure we want to keep that as it is.
+          case "VIDEOS"      => processVideo(elt).foreach { x => report = report.copy( machine = report.machine.copy( videos = x +: report.machine.videos ) ) }
+          case "VIRTUALMACHINES" => processVms(elt).foreach { x =>  report = report.copy(node  = report.node.copy( vms = x +: report.node.vms) ) }
+          case x => contentParsingExtensions.find {
+              pf => pf.isDefinedAt((elt,report))
+            }.foreach { pf =>
+              report = pf((elt,report))
+            }
+        } }
+        case x => rootParsingExtensions.find {
+            pf => pf.isDefinedAt((e,report))
           }.foreach { pf =>
-            report = pf((elt,report))
+            report = pf((e,report))
           }
       } }
-      case x => rootParsingExtensions.find {
-          pf => pf.isDefinedAt((e,report))
-        }.foreach { pf =>
-          report = pf((e,report))
-        }
-    } }
 
-    val demuxed = demux(report)
-    val reportWithSoftwareIds = demuxed.copy(
-       //add all software ids to node
-      node = demuxed.node.copy(
-          softwareIds = demuxed.applications.map( _.id )
+      val demuxed = demux(report)
+      val reportWithSoftwareIds = demuxed.copy(
+         //add all software ids to node
+        node = demuxed.node.copy(
+            softwareIds = demuxed.applications.map( _.id )
+        )
       )
-    )
-    val fullReport = processAndAddRudderElement(reportWithSoftwareIds,doc)
-
-    processHostname(fullReport, doc)
+      // <RUDDER> elements parsing must be done after software processing, because we get agent version from them
+      processRudderElement(doc \\ "RUDDER", reportWithSoftwareIds)
+    }
   }
 
   // Use RUDDER/HOSTNAME first and if missing OS/FQDN
-  def processHostname (report : InventoryReport, xml : NodeSeq) : Box[InventoryReport] = {
-
-    def updateHostname(hostname : String ) = {
-      report.copy( node = report.node.copyWithMain(m => m.copy (hostname = hostname ) ))
-    }
-
+  def getHostname(xml : NodeSeq): Box[String] = {
     def validHostname( hostname : String ) : Boolean = {
       val invalidList = "localhost" :: "127.0.0.1" :: "::1" :: Nil
       /* Invalid cases are:
@@ -256,19 +255,42 @@ class FusionReportUnmarshaller(
 
     (optTextHead(xml \\ "RUDDER" \ "HOSTNAME"), optTextHead(xml \\ "OPERATINGSYSTEM" \ "FQDN")) match {
       // Rudder tag
-      case (Some(hostname),_) if validHostname(hostname) => Full(updateHostname(hostname))
+      case (Some(hostname), _             ) if validHostname(hostname) =>
+        Full(hostname)
+
       // OS tag
-      case (_,Some(hostname)) if validHostname(hostname) => Full(updateHostname(hostname))
-      case (None,None)        => Failure("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)")
+      case (_             , Some(hostname)) if validHostname(hostname) =>
+        Full(hostname)
+      case (None          , None          )                            =>
+        Failure("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)")
     }
   }
 
   /**
-   * Since there is a specific rudder Tag in fusion inventory we need to process it
-   * It should be processed and add to the inventory at the end of the rootParsingExtensions are done
-   * rootparsing extensions are the data we added in the inventory before that are now handled directly by Fusion
+   * Parse Rudder Tag. In Rudder 4.3 and above, we don't need to parse anything but the <RUDDER> that looks like:
+   * <RUDDER>
+   *   <AGENT>
+   *     <AGENT_NAME>cfengine-community</AGENT_NAME>
+   *     <CFENGINE_KEY>....</CFENGINE_KEY>
+   *     <OWNER>root</OWNER>
+   *     <POLICY_SERVER_HOSTNAME>127.0.0.1</POLICY_SERVER_HOSTNAME>
+   *     <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+   *   </AGENT>
+   *   <AGENT_CAPABILITIES>
+   *     <AGENT_CAPABILITY>cfengine</AGENT_CAPABILITY>
+   *     ...
+   *   </AGENT_CAPABILITIES>
+   *   <HOSTNAME>rudder-snapshot.normation.com</HOSTNAME>
+   *   <SERVER_ROLES>
+   *     <SERVER_ROLE>rudder-server-root</SERVER_ROLE>
+   *     ...
+   *   </SERVER_ROLES>
+   *   <UUID>root</UUID>
+   * </RUDDER>
+   *
+   * Because it is fully supported since Rudder 4.1 (so migration are OK).
    */
-  def processAndAddRudderElement(report : InventoryReport, xml : NodeSeq ) : InventoryReport  = {
+  def processRudderElement(xml: NodeSeq, report: InventoryReport) : InventoryReport  = {
     // From an option and error message creates an option,
     // transform correctly option in a for comprehension
     def boxFromOption[T]( opt : Option[T], errorMessage : String) : Box[T] = {
@@ -284,19 +306,24 @@ class FusionReportUnmarshaller(
       }
     }
 
+    //parse the sub list of SERVER_ROLES/SERVER_ROLE, ignore other elements
+    def processServerRoles(xml:NodeSeq) : Seq[ServerRole] = {
+      (xml \ "SERVER_ROLES" \ "SERVER_ROLE").flatMap(e => optText(e).map(ServerRole(_)))
+    }
+
     // as a temporary solution, we are getting information from packages
 
-    def findAgent(software: Seq[Software], agentType: AgentType) = {
+    def findAgent(software: Seq[Software], agentType: AgentType): Option[AgentVersion] = {
       val agentSoftName = agentType.inventorySoftwareName.toLowerCase()
       for {
-        soft <- software.find{_.name.map(_.toLowerCase() contains agentSoftName).getOrElse(false)}
+        soft    <- software.find{_.name.map(_.toLowerCase() contains agentSoftName).getOrElse(false)}
         version <- soft.version
       } yield {
         AgentVersion(agentType.toAgentVersionName(version.value))
       }
     }
 
-    //the whole content of the attribute should be valid JONS Array
+    //the whole content of the CUSTOM_PROPERTIES attribute should be valid JSON Array
     def processCustomProperties(xml:NodeSeq) : List[CustomProperty] = {
       import net.liftweb.json._
 
@@ -314,85 +341,81 @@ class FusionReportUnmarshaller(
       }
     }
 
-    (xml \\ "RUDDER").headOption match {
-      case Some(rudder) =>
+    // Fetch all the agents configuration
+    val agents = (xml \\ "AGENT").flatMap { agentXML =>
+      val agent = for {
+         agentName <- boxFromOption(optText(agentXML \ "AGENT_NAME"), "could not parse agent name (tag AGENT_NAME) from rudder specific inventory")
+         agentType <- (AgentType.fromValue(agentName))
 
-        // Node Custom properties from agent hooks
-        val customProperties =  processCustomProperties(rudder \ "CUSTOM_PROPERTIES")
+         rootUser  <- boxFromOption(optText(agentXML \\ "OWNER") ,"could not parse rudder user (tag OWNER) from rudder specific inventory")
+         policyServerId <- boxFromOption(optText(agentXML \\ "POLICY_SERVER_UUID") ,"could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
 
-
-        // Fetch all the agents configuration
-        val agents = (rudder \\ "AGENT").flatMap { agentXML =>
-          val agent = for {
-             agentName <- boxFromOption(optText(agentXML \ "AGENT_NAME"), "could not parse agent name (tag AGENT_NAME) from rudder specific inventory")
-             agentType <- (AgentType.fromValue(agentName))
-
-             rootUser  <- boxFromOption(optText(agentXML \\ "OWNER") ,"could not parse rudder user (tag OWNER) from rudder specific inventory")
-             policyServerId <- boxFromOption(optText(agentXML \\ "POLICY_SERVER_UUID") ,"could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
-
-             optCert = optText(agentXML \ "AGENT_CERT")
-             optKey  = optText(agentXML \ "AGENT_KEY").orElse(optText(agentXML \ "CFENGINE_KEY"))
-             securityToken : SecurityToken <- agentType match {
-               case Dsc => optCert match {
-                 case Some(cert) => Full(Certificate(cert))
-                 case None => Failure("could not parse agent certificate (tag AGENT_CERT), which is mandatory for dsc agent")
-               }
-               case _         =>
-                 (optCert,optKey) match {
-                   case (Some(cert),_)   => Full(Certificate(cert))
-                   case (None,Some(key)) => Full(PublicKey(key))
-                   case (None,None) => Failure("could not parse agent security Token (tag AGENT_KEY/CFENGINE_KEY/AGENT_CERT), which is mandatory for cfengine agent")
-                 }
+         optCert = optText(agentXML \ "AGENT_CERT")
+         optKey  = optText(agentXML \ "AGENT_KEY").orElse(optText(agentXML \ "CFENGINE_KEY"))
+         securityToken : SecurityToken <- agentType match {
+           case Dsc => optCert match {
+             case Some(cert) => Full(Certificate(cert))
+             case None => Failure("could not parse agent certificate (tag AGENT_CERT), which is mandatory for dsc agent")
+           }
+           case _         =>
+             (optCert,optKey) match {
+               case (Some(cert), _        ) => Full(Certificate(cert))
+               case (None      , Some(key)) => Full(PublicKey(key))
+               case (None      , None     ) => Failure("could not parse agent security Token (tag AGENT_KEY or CFENGINE_KEY or AGENT_CERT), which is mandatory for cfengine agent")
              }
+         }
 
-          } yield {
+      } yield {
 
-            val version = findAgent(report.applications,agentType)
+        val version = findAgent(report.applications, agentType)
 
-            (AgentInfo(agentType,version,securityToken), rootUser, policyServerId)
-          }
-          agent match {
-            case eb: EmptyBox =>
-              val e = eb ?~! s"Error when parsing an <RUDDER><AGENT> entry, that agent will be ignored."
-              logger.error(e.messageChain)
-              e
-            case Full(x) => Full(x)
-          }
-        }
-
-        ( for {
-            agentOK        <- if(agents.size < 1) {
-                               Failure(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag")
-                             } else {
-                               Full("ok")
-                             }
-            uuid           <- boxFromOption(optText(rudder \ "UUID"), "could not parse uuid (tag UUID) from rudder specific inventory")
-            rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
-            policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
-          } yield {
-
-            report.copy (
-              node = report.node.copy (
-                  main             = report.node.main.copy (
-                                         rootUser       = rootUser
-                                       , policyServerId = NodeId(policyServerId)
-                                       , id             = NodeId(uuid)
-                                     )
-                , agents           = agents.map(_._1)
-                , customProperties = customProperties
-              )
-            )
-        } ) match {
-          case Full(report) => report
-          case eb:EmptyBox =>
-            val fail = eb ?~! s"Error when parsing <RUDDER> extention node in inventory report with name '${report.name}'. Rudder extension attribute won't be available in report."
-            logger.error(fail.messageChain)
-            report
-        }
-      case None => report
+        (AgentInfo(agentType,version,securityToken), rootUser, policyServerId)
+      }
+      agent match {
+        case eb: EmptyBox =>
+          val e = eb ?~! s"Error when parsing an <RUDDER><AGENT> entry in '${report.name}', that agent will be ignored."
+          logger.error(e.messageChain)
+          e
+        case Full(x) => Full(x)
+      }
     }
 
+    ( for {
+        agentOK        <- if(agents.size < 1) {
+                            Failure(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag (missing or see previous errors)")
+                          } else {
+                            Full("ok")
+                          }
+        uuid           <- boxFromOption(optText(xml \ "UUID"), "could not parse uuid (tag UUID) from rudder specific inventory")
+        rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
+        policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
+        serverRoles    =  processServerRoles(xml).toSet
+        // Node Custom properties from agent hooks
+        customProperties =  processCustomProperties(xml \ "CUSTOM_PROPERTIES")
+        // hostname is a special case processed in `processHostname`
+      } yield {
+
+        report.copy (
+          node = report.node.copy (
+              main = report.node.main.copy (
+                  rootUser = rootUser
+                , policyServerId = NodeId(policyServerId)
+                , id = NodeId(uuid)
+              )
+            , agents = agents.map(_._1)
+            , customProperties = customProperties
+            , serverRoles = serverRoles
+          )
+        )
+    } ) match {
+      case Full(report) => report
+      case eb:EmptyBox =>
+        val fail = eb ?~! s"Error when parsing <RUDDER> extention node in inventory report with name '${report.name}'. Rudder extension attribute won't be available in report."
+        logger.error(fail.messageChain)
+        report
+    }
   }
+
   /**
    * This method look into all list of components to search for duplicates and remove
    * them, updating the "quantity" field accordingly.

@@ -37,6 +37,8 @@
 
 package com.normation.inventory.domain
 
+import java.security.MessageDigest
+
 import com.normation.utils.Utils._
 import com.normation.utils.HashcodeCaching
 
@@ -52,3 +54,15 @@ case class MachineUuid(val value:String) extends Uuid with HashcodeCaching
 case class SoftwareUuid(val value:String) extends Uuid with HashcodeCaching
 
 case class MotherBoardUuid(val value:String) extends Uuid with HashcodeCaching
+
+object IdGenerator {
+  /**
+   * Generate a (stable) UUID from a string (ie, given the same string, get the same UUID).
+   * Use MD5, so expects the same collision rate than it.
+   */
+  def md5Hash(s: String): String = {
+    val md5 = MessageDigest.getInstance("MD5").digest(s.getBytes)
+    val id = (md5.map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}).toLowerCase
+    s"${id.substring(0,8)}-${id.substring(8,12)}-${id.substring(12,16)}-${id.substring(16,20)}-${id.substring(20)}"
+  }
+}
