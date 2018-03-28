@@ -54,41 +54,40 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <custom-filter position="BASIC_AUTH_FILTER" ref="restAuthenticationFilter" />
     </http>
 
-    <http use-expressions="true">
-        <session-management session-authentication-strategy-ref="sas"/>
-        
-        <!-- 
+    <http use-expressions="true" disable-url-rewriting="true">
+        <session-management session-fixation-protection="migrateSession">
+          <concurrency-control max-sessions="2" error-if-maximum-exceeded="true" />
+        </session-management>
+        <!--
            Comment to allows "no auth required", but the login form is still valid
-           May be used for development or demo.        
+           May be used for development or demo.
         -->
         <!-- Start comment -->
-        
+
         <intercept-url pattern="/secure/**" access="isAuthenticated()" />
-        
-        
+
+
         <!-- End comment -->
-    
-        <!-- Default pattern: anonymous rights for all not-already matched URL -->    
+
+        <!-- Default pattern: anonymous rights for all not-already matched URL -->
         <intercept-url pattern="/**" access="permitAll" />
-        
-        <form-login 
+
+        <form-login
             login-page="/index.html"
             login-processing-url="/j_spring_security_check"
-            default-target-url="/secure/index.html" 
+            default-target-url="/secure/index.html"
             authentication-failure-handler-ref="rudderWebAuthenticationFailureHandler"
             always-use-default-target="false"
         />
 <!--        <remember-me />-->
 
     </http>
-    
-    <!-- Disallow any session check -->
-    <beans:bean id="sas" class="org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy" />
 
-    <!-- 
-      Other authentication beans, especially <authentication-manager>, 
-      are defined or imported in class bootstrap.liftweb.AppConfigAuth 
+
+    <!--
+      Other authentication beans, especially <authentication-manager>,
+      are defined or imported in class bootstrap.liftweb.AppConfigAuth
     -->
-  
-    
+
+
 </beans:beans>
