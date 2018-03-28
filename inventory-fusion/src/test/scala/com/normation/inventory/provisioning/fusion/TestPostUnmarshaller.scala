@@ -98,7 +98,7 @@ class TestPreUnmarshaller extends Specification {
       check
     }
   }
-  val post = new PostUnmarshallCheckConsistency
+  val post = new PreUnmarshallCheckConsistency
 
   "Post inventory check should be ok" should {
      "With a valid inventory on Linux" in {

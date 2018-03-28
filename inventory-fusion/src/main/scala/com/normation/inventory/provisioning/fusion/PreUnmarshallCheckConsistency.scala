@@ -44,7 +44,7 @@ import com.normation.utils.Control.pipeline
 import com.normation.inventory.services.provisioning._
 import scala.xml.Elem
 
-class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
+class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   override val name = "post_process_inventory:check_consistency"
 
   /**
@@ -66,7 +66,6 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       checkOS _ ::
       checkKernelVersion _ ::
       checkAgent _ ::
-      checkMachineId _ ::
       Nil
 
     pipeline(checks, report) { (check,currentReport) =>
@@ -251,23 +250,4 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     }
   }
 
-  /**
-   * That one is special: we don't fail on a missing
-   * machine id, we just add an empty one.
-   */
-  private[this] def checkMachineId(report:NodeSeq) : Box[NodeSeq] = {
-    (report \ "MACHINEID") match {
-      case NodeSeq.Empty => //missing machine id tag, add an empty one
-        logger.warn("Missing MACHINEID tag, adding an empty one for consistency")
-
-        report match {
-          case Elem(prefix, label, attribs, scope, children @ _*) =>
-            val newChildren = children ++ <MACHINEID></MACHINEID>
-            Full(Elem(prefix, label, attribs, scope, false, newChildren : _*))
-          case _ => Failure("The given report does not seems to have an uniq root element and so can not be handled")
-        }
-
-      case _ => Full(report)
-    }
-  }
 }

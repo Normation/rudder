@@ -5204,6 +5204,9 @@ obFgkI+lNr7SvWYhmZlvRrZBqDmVwPo+rzirbRLONYLk1gpe8LApqpW/t1DwSBId
 -----END RSA PUBLIC KEY-----</CFENGINE_KEY>
       </AGENT>
       <HOSTNAME>node1.rudder.local</HOSTNAME>
+      <SERVER_ROLES>
+        <SERVER_ROLE>magikal_node</SERVER_ROLE>
+      </SERVER_ROLES>
     </RUDDER>
     <USERS>
       <LOGIN>vagrant</LOGIN>
@@ -5226,9 +5229,6 @@ obFgkI+lNr7SvWYhmZlvRrZBqDmVwPo+rzirbRLONYLk1gpe8LApqpW/t1DwSBId
 81FuOlrlezKWgEVA7QIARGTWIfOBK7BMyQIBIw==
 -----END RSA PUBLIC KEY-----</CFKEY>
 <HOSTNAME>node1.rudder.local</HOSTNAME>
-<SERVER_ROLES>
-<SERVER_ROLE>magikal_node</SERVER_ROLE>
-</SERVER_ROLES>
 <PROCESSORS>
 	<PROCESSOR>
 		<VENDOR>GenuineIntel</VENDOR>

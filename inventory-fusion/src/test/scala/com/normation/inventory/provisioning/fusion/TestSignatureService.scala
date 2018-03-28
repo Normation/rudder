@@ -98,12 +98,8 @@ class TestSignatureService extends Specification with Loggable {
   }
 
   val keyNorm = new PrintedKeyNormalizer
-  val extension = RudderAgentNameParsing
 
-  val parser = new FusionReportUnmarshaller(
-      new StringUuidGeneratorImpl
-    , rootParsingExtensions = extension:: Nil
-  )
+  val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
 
   val signed_report = parser.parse("fusion-report/signed_inventory.ocs")
   val unsigned_report = parser.parse("fusion-report/node-with-server-role-attribute.ocs")

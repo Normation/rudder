@@ -77,10 +77,7 @@ class TestReportParsing extends Specification with Loggable {
     }
   }
 
-    val parser = new FusionReportUnmarshaller(
-        new StringUuidGeneratorImpl
-      , rootParsingExtensions = RudderServerRoleParsing :: Nil
-    )
+    val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
 
   "All inventories in the fusion-report directory" should {
     "be correctly parsed and give a non generic OS type" in {
