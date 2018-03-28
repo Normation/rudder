@@ -37,6 +37,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <web-app>
+  <session-config>
+   <cookie-config>
+    <http-only>true</http-only>
+   </cookie-config>
+  </session-config>
 
   <context-param>
     <param-name>webAppRootKey</param-name>
