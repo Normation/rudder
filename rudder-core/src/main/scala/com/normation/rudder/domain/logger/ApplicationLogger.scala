@@ -61,5 +61,18 @@ object ScheduledJobLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("scheduledJob")
 }
 
-
+/**
+ * A logger for new nodes informations
+ */
+object NodeLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("nodes")
+  object PendingNode extends Logger {
+    // the logger for information about pending nodes (accept/refuse)
+    override protected def _logger = LoggerFactory.getLogger("nodes.pending")
+    // the logger for info about what policies will be applied to the new node
+    object Policies extends Logger {
+      override protected def _logger = LoggerFactory.getLogger("nodes.pending.policies")
+    }
+  }
+}
 

@@ -40,7 +40,6 @@ package com.normation.rudder.services.servers
 import java.lang.IllegalArgumentException
 
 import org.joda.time.DateTime
-import net.liftweb.common.Loggable
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Box
@@ -73,7 +72,6 @@ import com.normation.rudder.domain.queries.DitQueryData
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.Equals
-import com.normation.rudder.domain.eventlog.InventoryLogDetails
 import com.normation.rudder.domain.eventlog.RefuseNodeEventLog
 import com.normation.rudder.domain.eventlog.AcceptNodeEventLog
 import com.normation.rudder.repository.RoNodeGroupRepository
@@ -86,10 +84,9 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.utils.Control.sequence
 import com.normation.utils.Control.bestEffort
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.domain.eventlog.InventoryLogDetails
-import com.normation.rudder.domain.eventlog.InventoryLogDetails
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.domain.eventlog.InventoryLogDetails
+import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.nodes.NodeState
@@ -157,7 +154,7 @@ class PostNodeAcceptanceHookScripts(
     HOOKS_D              : String
   , HOOKS_IGNORE_SUFFIXES: List[String]
   , nodeInfoService      : NodeInfoService
-) extends NewNodeManagerHooks with Loggable {
+) extends NewNodeManagerHooks {
 
   override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = {
     val systemEnv = {
@@ -183,7 +180,7 @@ class PostNodeAcceptanceHookScripts(
       postHooks     <- RunHooks.getHooks(HOOKS_D + "/node-post-acceptance", HOOKS_IGNORE_SUFFIXES)
       runPostHook   =  RunHooks.syncRun(postHooks, hookEnv, systemEnv)
       timePostHooks =  (System.currentTimeMillis - postHooksTime)
-      _             =  logger.debug(s"Node-post-acceptance scripts hooks ran in ${timePostHooks} ms")
+      _             =  NodeLogger.PendingNode.debug(s"Node-post-acceptance scripts hooks ran in ${timePostHooks} ms")
     } yield {
       ()
     }
@@ -199,20 +196,20 @@ class PostNodeAcceptanceHookScripts(
  * Rollback is always a "best effort" task.
  */
 class NewNodeManagerImpl(
-    override val ldap:LDAPConnectionProvider[RoLDAPConnection],
-    override val pendingNodesDit:InventoryDit,
-    override val acceptedNodesDit:InventoryDit,
-    override val serverSummaryService:NodeSummaryServiceImpl,
-    override val smRepo:LDAPFullInventoryRepository,
-    override val unitAcceptors:Seq[UnitAcceptInventory],
-    override val unitRefusors:Seq[UnitRefuseInventory]
-  , val inventoryHistoryLogRepository : InventoryHistoryLogRepository
-  , val eventLogRepository : EventLogRepository
-  , override val updateDynamicGroups : UpdateDynamicGroups
-  , val cacheToClear: List[CachedRepository]
-  , nodeInfoService : NodeInfoService
-  , HOOKS_D              : String
-  , HOOKS_IGNORE_SUFFIXES: List[String]
+    override val ldap                 : LDAPConnectionProvider[RoLDAPConnection]
+  , override val pendingNodesDit      : InventoryDit
+  , override val acceptedNodesDit     : InventoryDit
+  , override val serverSummaryService : NodeSummaryServiceImpl
+  , override val smRepo               : LDAPFullInventoryRepository
+  , override val unitAcceptors        : Seq[UnitAcceptInventory]
+  , override val unitRefusors         : Seq[UnitRefuseInventory]
+  ,          val historyLogRepository : InventoryHistoryLogRepository
+  ,          val eventLogRepository   : EventLogRepository
+  , override val updateDynamicGroups  : UpdateDynamicGroups
+  ,          val cacheToClear         : List[CachedRepository]
+  ,              nodeInfoService      : NodeInfoService
+  ,              HOOKS_D              : String
+  ,              HOOKS_IGNORE_SUFFIXES: List[String]
 ) extends NewNodeManager with ListNewNode with ComposedNewNodeManager with NewNodeManagerHooks {
 
   private[this] val codeHooks = collection.mutable.Buffer[NewNodeManagerHooks]()
@@ -232,7 +229,7 @@ class NewNodeManagerImpl(
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait ListNewNode extends NewNodeManager with Loggable {
+trait ListNewNode extends NewNodeManager {
   def ldap:LDAPConnectionProvider[RoLDAPConnection]
   def serverSummaryService:NodeSummaryServiceImpl
   def pendingNodesDit:InventoryDit
@@ -244,7 +241,7 @@ trait ListNewNode extends NewNodeManager with Loggable {
           case Full(x) => Some(x)
           case b:EmptyBox =>
             val error = b ?~! "Error when mapping a pending node entry to a node object: %s".format(e.dn)
-            logger.debug(error.messageChain)
+            NodeLogger.PendingNode.debug(error.messageChain)
             None
         }
       }.flatten
@@ -307,7 +304,7 @@ trait UnitAcceptInventory {
 
 }
 
-trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeManagerHooks {
+trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
 
   def ldap:LDAPConnectionProvider[RoLDAPConnection]
   def pendingNodesDit:InventoryDit
@@ -317,7 +314,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
   def unitAcceptors:Seq[UnitAcceptInventory]
   def unitRefusors:Seq[UnitRefuseInventory]
 
-  def inventoryHistoryLogRepository : InventoryHistoryLogRepository
+  def historyLogRepository : InventoryHistoryLogRepository
   def eventLogRepository : EventLogRepository
 
   def updateDynamicGroups : UpdateDynamicGroups
@@ -332,7 +329,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
    * Retrieve the last inventory for the selected server
    */
   def retrieveLastVersions(nodeId : NodeId) : Option[DateTime] = {
-      inventoryHistoryLogRepository.versions(nodeId).flatMap(_.headOption)
+      historyLogRepository.versions(nodeId).flatMap(_.headOption)
   }
 
   /**
@@ -350,7 +347,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
               case Some(old) => errors = Some(Failure(msg, Empty, Full(old)))
             }
           case Full(x) =>
-            logger.trace("Refuse %s: step %s ok".format(srv.id, refusor.name))
+            NodeLogger.PendingNode.trace("Refuse %s: step %s ok".format(srv.id, refusor.name))
         }
       } catch {
         case e:Exception =>
@@ -413,12 +410,12 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
 
               eventLogRepository.saveEventLog(modId, entry) match {
                 case Full(_) =>
-                  logger.debug(s"Successfully refused node '${id.value}'")
+                  NodeLogger.PendingNode.debug(s"Successfully refused node '${id.value}'")
                 case _ =>
-                  logger.warn(s"Node '${id.value}' refused, but the action couldn't be logged")
+                  NodeLogger.PendingNode.warn(s"Node '${id.value}' refused, but the action couldn't be logged")
               }
             case None =>
-              logger.warn(s"Node '${id}' refused, but couldn't find it's inventory")
+              NodeLogger.PendingNode.warn(s"Node '${id}' refused, but couldn't find it's inventory")
           }
           refuse
         }
@@ -448,16 +445,16 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
   ////////////////////////////////////////////////////////////////////////////////////
 
   private[this] def rollback(unitAcceptors:Seq[UnitAcceptInventory], rollbackOn:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {
-    logger.debug("\n*****************************************************\nRollbacking\n*****************************************************")
+    NodeLogger.PendingNode.debug("\n*****************************************************\nRollbacking\n*****************************************************")
 
     for{
       toRollback <- unitAcceptors.reverse
     } {
-      logger.debug("Rollbacking %s for %s".format(toRollback.name, rollbackOn.map( _.node.main.id.value).mkString("; ")))
+      NodeLogger.PendingNode.debug("Rollbacking %s for %s".format(toRollback.name, rollbackOn.map( _.node.main.id.value).mkString("; ")))
       try {
         toRollback.rollback(rollbackOn, modId, actor)
       } catch {
-        case e:Exception => logger.error("Error when rollbacking acceptor process '%s'".format(toRollback.name))
+        case e:Exception => NodeLogger.PendingNode.error("Error when rollbacking acceptor process '%s'".format(toRollback.name))
       }
     }
   }
@@ -477,14 +474,14 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
         unitAcceptor.acceptOne(sm, modId, actor) ?~! "Error when executing accept node process named %s".format(unitAcceptor.name)
       } catch {
         case e:Exception => {
-          logger.debug("Exception in unit acceptor %s".format(unitAcceptor.name),e)
+          NodeLogger.PendingNode.debug("Exception in unit acceptor %s".format(unitAcceptor.name),e)
           Failure(e.getMessage, Full(e), Empty)
         }
       }
     }) match {
       case Full(seq) => Full(sm)
       case e:EmptyBox => //rollback that one
-        logger.error((e ?~! "Error when trying to accept node %s. Rollbacking.".format(sm.node.main.id.value)).messageChain)
+        NodeLogger.PendingNode.error((e ?~! "Error when trying to accept node %s. Rollbacking.".format(sm.node.main.id.value)).messageChain)
         rollback(unitAcceptors, Seq(sm), modId, actor)
         e
     }
@@ -507,13 +504,13 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
     unitAcceptors.foreach { unitAcceptor =>
       unitAcceptor.preAccept(Seq(sm), modId, actor) match {
         case Full(seq) => //ok, cool
-          logger.debug("Pre accepted phase: %s".format(unitAcceptor.name))
+          NodeLogger.PendingNode.debug("Pre accepted phase: %s".format(unitAcceptor.name))
         case eb:EmptyBox => //on an error here, stop
           val id = sm.node.main.id.value
           val msg = s"Error when trying to add node with id '${id}'"
           val e = eb ?~! msg
-          logger.error(e.messageChain)
-          logger.debug(s"Node with id '${id}' was refused during 'pre-accepting' step of phase '${unitAcceptor.name}'")
+          NodeLogger.PendingNode.error(e.messageChain)
+          NodeLogger.PendingNode.debug(s"Node with id '${id}' was refused during 'pre-accepting' step of phase '${unitAcceptor.name}'")
           //stop now
           return e
       }
@@ -528,10 +525,10 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
 
     //log
     acceptationResults match {
-      case Full(sm) => logger.debug("Unit acceptors ok for %s".format(id))
+      case Full(sm) => NodeLogger.PendingNode.debug("Unit acceptors ok for %s".format(id))
       case eb:EmptyBox =>
         val e = eb ?~! "Unit acceptor error for node %s".format(id)
-        logger.error(e.messageChain)
+        NodeLogger.PendingNode.error(e.messageChain)
         return eb
     }
 
@@ -549,7 +546,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
         // Update hooks for the node
         afterNodeAcceptedAsync(id)
 
-        logger.info(s"New node accepted and managed by Rudder: ${id.value}")
+        NodeLogger.PendingNode.info(s"New node accepted and managed by Rudder: ${id.value}")
         cacheToClear.foreach { _.clearCache }
 
         // Update hooks for the node - need to be done after cache cleaning
@@ -558,7 +555,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
         updateDynamicGroups.startManualUpdate
         acceptationResults
       case e:EmptyBox => //on an error here, rollback all accpeted
-        logger.error((e ?~! "Error when trying to execute accepting new server post-processing. Rollback.").messageChain)
+        NodeLogger.PendingNode.error((e ?~! "Error when trying to execute accepting new server post-processing. Rollback.").messageChain)
         rollback(unitAcceptors, Seq(sm), modId, actor)
         //only update results that where not already in error
         e
@@ -583,14 +580,14 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
         unitAcceptor =>
           unitAcceptor.preAccept(Seq(inventory), modId, actor) match {
             case Full(seq) => //ok, cool
-              logger.debug(s"Pre acceptance phase: '${unitAcceptor.name}' OK")
+              NodeLogger.PendingNode.debug(s"Pre acceptance phase: '${unitAcceptor.name}' OK")
               Full(seq)
             case eb:EmptyBox => //on an error here, stop
               val id = inventory.node.main.id.value
               val msg = s"Error when trying to add node with id '${id}'"
               val e = eb ?~! msg
-              logger.error(e.messageChain)
-              logger.debug(s"Node with id '${id}' was refused during 'pre-accepting' step of phase '${unitAcceptor.name}'")
+              NodeLogger.PendingNode.error(e.messageChain)
+              NodeLogger.PendingNode.debug(s"Node with id '${id}' was refused during 'pre-accepting' step of phase '${unitAcceptor.name}'")
               e
           }
       )
@@ -602,12 +599,12 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
         unitAcceptor =>
           unitAcceptor.postAccept(Seq(inventory), modId, actor) match {
             case Full(seq) => //ok, cool
-              logger.debug(s"Post acceptance phase: '${unitAcceptor.name}' OK")
+              NodeLogger.PendingNode.debug(s"Post acceptance phase: '${unitAcceptor.name}' OK")
               Full(seq)
             case eb:EmptyBox => //on an error here, rollback
               val msg = s"Error when trying to execute post-accepting for phase '${unitAcceptor.name}. Rollback."
               val e = eb ?~! msg
-              logger.error(e.messageChain)
+              NodeLogger.PendingNode.error(e.messageChain)
               rollback(unitAcceptors, Seq(inventory), modId, actor)
               e
           }
@@ -624,7 +621,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
          preAccept <- passPreAccept(inventory)
          // Accept it
          acceptationResults <- acceptOne(inventory, modId, actor) ?~! s"Error when trying to accept node ${id.value}"
-         log = logger.debug(s"Unit acceptors ok for '${id.value}'")
+         log = NodeLogger.PendingNode.debug(s"Unit acceptors ok for '${id.value}'")
          // Post accept it
          postAccept <- passPostAccept(inventory)
        } yield {
@@ -646,13 +643,13 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable with NewNodeMa
 
              eventLogRepository.saveEventLog(modId, entry) match {
                case Full(_) =>
-                 logger.debug(s"Successfully accepted node '${id.value}'")
+                 NodeLogger.PendingNode.debug(s"Successfully accepted node '${id.value}'")
                case _ =>
-                 logger.warn(s"Node '${id.value}' accepted, but the action couldn't be logged")
+                 NodeLogger.PendingNode.warn(s"Node '${id.value}' accepted, but the action couldn't be logged")
              }
 
            case None =>
-             logger.warn(s"Node '${id.value}' accepted, but couldn't find it's inventory")
+             NodeLogger.PendingNode.warn(s"Node '${id.value}' accepted, but couldn't find it's inventory")
          }
 
          // Update hooks for the node
@@ -702,7 +699,7 @@ class AcceptInventory(
     pendingNodesDit:InventoryDit,
     acceptedNodesDit:InventoryDit,
     smRepo:LDAPFullInventoryRepository
-) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
+) extends UnitAcceptInventory with UnitRefuseInventory {
 
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
@@ -724,8 +721,8 @@ class AcceptInventory(
       } yield {
         result
       }) match {
-        case e:EmptyBox => logger.error(rollbackErrorMsg(e, sm.node.main.id.value))
-        case Full(f) => logger.debug("Succesfully rollbacked %s for process '%s'".format(sm.node.main.id, this.name))
+        case e:EmptyBox => NodeLogger.PendingNode.error(rollbackErrorMsg(e, sm.node.main.id.value))
+        case Full(f) => NodeLogger.PendingNode.debug("Succesfully rollbacked %s for process '%s'".format(sm.node.main.id, this.name))
       }
     }
   }
@@ -751,7 +748,7 @@ class AcceptFullInventoryInNodeOu(
   ,              inventoryStatus  : InventoryStatus //expected inventory status of nodes for that processor
   ,              defaultPolicyMode: () => Box[Option[PolicyMode]]
   ,              defaultNodeState : () => Box[NodeState]
-) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
+) extends UnitAcceptInventory with UnitRefuseInventory {
 
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
@@ -806,8 +803,8 @@ class AcceptFullInventoryInNodeOu(
       } yield {
         result
       }) match {
-        case e:EmptyBox => logger.error(rollbackErrorMsg(e, sm.node.main.id.value))
-        case Full(f) => logger.debug("Succesfully rollbacked %s for process '%s'".format(sm.node.main.id, this.name))
+        case e:EmptyBox => NodeLogger.PendingNode.error(rollbackErrorMsg(e, sm.node.main.id.value))
+        case Full(f) => NodeLogger.PendingNode.debug("Succesfully rollbacked %s for process '%s'".format(sm.node.main.id, this.name))
       }
     }
   }
@@ -830,7 +827,7 @@ class RefuseGroups(
     override val name:String
   , roGroupRepo: RoNodeGroupRepository
   , woGroupRepo: WoNodeGroupRepository
-) extends UnitRefuseInventory with Loggable {
+) extends UnitRefuseInventory {
 
   //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
@@ -961,7 +958,7 @@ class HistorizeNodeStateOnChoice(
   , repos            : ReadOnlyFullInventoryRepository
   , historyRepos     : InventoryHistoryLogRepository
   , inventoryStatus  : InventoryStatus //expected inventory status of nodes for that processor
-) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
+) extends UnitAcceptInventory with UnitRefuseInventory {
 
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
