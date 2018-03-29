@@ -117,13 +117,14 @@ object BuildBundleSequence {
   // A bundle paramer is just a String, but it can be quoted with simple or double quote
   // (double quote is the default, and simple quote are used mostly for JSON)
   sealed trait BundleParam {
-    def quote: String
+    def quote(agentType : AgentType) : String
+    def name  : String
+    def value : String
   }
   final object BundleParam {
-    final case class SimpleQuote(value: String) extends BundleParam { def quote = "'"+value+"'" }
-    final case class DoubleQuote(value: String) extends BundleParam {
-      val escapedValue = ParameterEntry.escapeString(value, AgentType.CfeCommunity)
-      def quote = "\""+escapedValue+"\""
+    final case class SimpleQuote(value: String, name:String) extends BundleParam { def quote(agentType : AgentType) = "'"+value+"'" }
+    final case class DoubleQuote(value: String, name:String) extends BundleParam {
+      def quote(agentType : AgentType) = "\""+ParameterEntry.escapeString(value, agentType)+"\""
     }
   }
 
@@ -160,7 +161,7 @@ object BuildBundleSequence {
     , policyMode             : PolicyMode
   ) {
     val contextBundle : List[Bundle]  = main.map(_.id).distinct.collect{ case Some(id) =>
-      Bundle(None, BundleName(s"""rudder_reporting_context"""), List(id.directiveId.value, id.ruleId.value, techniqueId.name.value).map(BundleParam.DoubleQuote.apply) )
+      Bundle(None, BundleName(s"""rudder_reporting_context"""), List((id.directiveId.value,"directiveId"), (id.ruleId.value, "ruleId"), (techniqueId.name.value,"techniqueName")).map( (BundleParam.DoubleQuote.apply _).tupled ) )
     }
 
     def bundleSequence : List[Bundle] = contextBundle ::: pre ::: main ::: post ::: (cleanReportingBundle  :: Nil)
@@ -277,13 +278,14 @@ class BuildBundleSequence(
               for {
                 varName <- policy.technique.rootSection.copyWithoutSystemVars.getAllVariables.map(_.name)
               } yield {
-                policy.expandedVars.get(varName).map(_.values.headOption.getOrElse("")).getOrElse("")
+                val value = policy.expandedVars.get(varName).map(_.values.headOption.getOrElse("")).getOrElse("")
+                BundleParam.DoubleQuote(value,varName)
               }
             case TechniqueGenerationMode.MergeDirectives | TechniqueGenerationMode.MultipleDirectives =>
               Nil
           }
 
-        List(Bundle(Some(policy.id), bundleName, vars.toList.map(BundleParam.DoubleQuote.apply)))
+        List(Bundle(Some(policy.id), bundleName, vars.toList))
       } else {
         logger.warn(s"Technique '${policy.technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
         Nil
@@ -408,7 +410,7 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
     (allBundles.flatMap { case (promiser, bundles) =>
       bundles.map { bundle =>
         val params = if (bundle.params.size > 0) {
-          bundle.params.map( _.quote ).mkString("(", ",", ")")
+          bundle.params.map( _.quote(AgentType.CfeCommunity) ).mkString("(", ",", ")")
         } else {
           ""
         }
@@ -436,7 +438,7 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
       case RunHook.Kind.Post => "post-run-hook"
     }
     import BundleParam._
-    (promiser, Bundle(None, BundleName(hook.bundle), List(SimpleQuote(hook.jsonParam))) :: Nil)
+    (promiser, Bundle(None, BundleName(hook.bundle), List(SimpleQuote(hook.jsonParam, "hook_param"))) :: Nil)
   }
 
   /*
