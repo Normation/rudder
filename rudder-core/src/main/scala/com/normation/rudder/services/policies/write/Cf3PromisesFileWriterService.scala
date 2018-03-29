@@ -621,7 +621,7 @@ class Cf3PromisesFileWriterServiceImpl(
 
     techniqueRepository.getFileContent(file.id) { optStream =>
       optStream match {
-        case None => Failure(s"Can not open the technique reource file ${file.id} for reading")
+        case None => Failure(s"Can not open the technique resource file ${file.id} for reading")
         case Some(s) =>
           try {
             FileUtils.copyInputStreamToFile(s, destination)
