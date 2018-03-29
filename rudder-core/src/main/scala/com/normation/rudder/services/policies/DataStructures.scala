@@ -238,7 +238,6 @@ final object NodeRunHook {
 
 }
 
-
 /*
  * A node run hook is an (agent specific) action that should
  * be run only one time per node per run.
@@ -250,7 +249,6 @@ final case class NodeRunHook(
   , reports   : List[NodeRunHook.ReportOn]
   , parameters: List[RunHook.Parameter]
 )
-
 
 final case class NodeConfiguration(
     nodeInfo    : NodeInfo
@@ -287,8 +285,6 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId) extends Hash
   def getRudderUniqueId = directiveId.value.replaceAll("-","_")
 }
 
-
-
 /*
  * A policy "vars" is all the var data for a policy (expandedVars, originalVars,
  * trackingKey). They are grouped together in policy because some policy can
@@ -315,6 +311,7 @@ final case class PolicyTechnique(
   , isSystem               : Boolean = false
   , providesExpectedReports: Boolean = false //does that Technique comes with a template file (csv) of expected reports ?
   , generationMode         : TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives
+  , useMethodReporting     : Boolean = false
 ) extends HashcodeCaching {
 
   val templatesIds: Set[TechniqueResourceId] = agentConfig.templates.map(_.id).toSet
@@ -336,6 +333,7 @@ final object PolicyTechnique {
         , isSystem               = technique.isSystem
         , providesExpectedReports= technique.providesExpectedReports
         , generationMode         = technique.generationMode
+        , useMethodReporting     = technique.useMethodReporting
       ))
     }
   }
@@ -546,4 +544,3 @@ final case class RuleVal(
   , nodeIds           : Set[NodeId]
   , parsedPolicyDrafts: Seq[ParsedPolicyDraft]
 ) extends HashcodeCaching
-

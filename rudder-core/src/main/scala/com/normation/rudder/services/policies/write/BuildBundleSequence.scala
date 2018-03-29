@@ -158,12 +158,18 @@ object BuildBundleSequence {
     , isSystem               : Boolean
     , providesExpectedReports: Boolean
     , policyMode             : PolicyMode
+    , enableMethodReporting  : Boolean
   ) {
     val contextBundle : List[Bundle]  = main.map(_.id).distinct.collect{ case Some(id) =>
-      Bundle(None, BundleName(s"""rudder_reporting_context"""), List(id.directiveId.value, id.ruleId.value, techniqueId.name.value).map(BundleParam.DoubleQuote.apply) )
+      Bundle(None, BundleName("rudder_reporting_context"), List(id.directiveId.value, id.ruleId.value, techniqueId.name.value).map(BundleParam.DoubleQuote.apply) )
     }
 
-    def bundleSequence : List[Bundle] = contextBundle ::: pre ::: main ::: post ::: (cleanReportingBundle  :: Nil)
+    val methodReportingState : List[Bundle]  = {
+      val bundleToUse = if (enableMethodReporting) "enable_reporting" else "disable_reporting"
+      Bundle(None, BundleName(bundleToUse), Nil ) :: Nil
+
+    }
+    def bundleSequence : List[Bundle] = contextBundle ::: pre ::: methodReportingState ::: main ::: post ::: (cleanReportingBundle  :: Nil)
   }
 
   val cleanReportingBundle : Bundle = Bundle(None, BundleName(s"""clean_reporting_context"""), Nil )
@@ -300,7 +306,7 @@ class BuildBundleSequence(
         case _ =>
           techniqueBundles
       }
-      TechniqueBundles(name, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policy.technique.providesExpectedReports, policyMode)
+      TechniqueBundles(name, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policy.technique.providesExpectedReports, policyMode, policy.technique.useMethodReporting)
     }
   }
 
@@ -376,7 +382,7 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
     private[this] val audit   = Bundle(None, BundleName("""set_dry_run_mode("true")"""), Nil)
     private[this] val enforce = Bundle(None, BundleName("""set_dry_run_mode("false")"""), Nil)
     val dryRun = TechniqueId(TechniqueName("remove_dry_run_mode"), TechniqueVersion("1.0"))
-    private[this] val cleanup = TechniqueBundles(Directive(dryRun.name.value), dryRun, Nil, enforce :: Nil, Nil, false, false, PolicyMode.Enforce)
+    private[this] val cleanup = TechniqueBundles(Directive(dryRun.name.value), dryRun, Nil, enforce :: Nil, Nil, false, false, PolicyMode.Enforce, false)
   }
 
   /*

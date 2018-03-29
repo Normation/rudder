@@ -156,6 +156,7 @@ class TechniqueWriter (
           }
         }
         <DESCRIPTION>{technique.description}</DESCRIPTION>
+        <USEMETHODREPORTING>true</USEMETHODREPORTING>
         {agentSpecificSection}
         <SECTIONS>
           {reportingSection}
