@@ -80,6 +80,8 @@ class TechniqueParser(
 
           val isSystem = ((xml \ TECHNIQUE_IS_SYSTEM).text.equalsIgnoreCase("true"))
 
+          val useMethodReporting = nonEmpty((xml \ TECHNIQUE_USE_METHOD_REPORTING).text).map(_.equalsIgnoreCase("true")).getOrElse(expectedReportCsvExists)
+
           //the technique provides its expected reports if at least one section has a variable of type REPORT_KEYS
           val providesExpectedReports = expectedReportCsvExists
 
@@ -124,6 +126,7 @@ class TechniqueParser(
             , isSystem
             , providesExpectedReports
             , generationMode
+            , useMethodReporting
           )
 
           /*
