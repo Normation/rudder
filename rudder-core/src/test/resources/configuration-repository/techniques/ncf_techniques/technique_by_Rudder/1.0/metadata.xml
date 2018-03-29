@@ -1,5 +1,6 @@
 <TECHNIQUE name="Test Technique created through Rudder API">
   <DESCRIPTION>This Technique exists only to see if Rudder creates Technique correctly.</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
   <AGENT type="cfengine-community,cfengine-nova">
     <BUNDLES>
       <NAME>technique_by_Rudder</NAME>

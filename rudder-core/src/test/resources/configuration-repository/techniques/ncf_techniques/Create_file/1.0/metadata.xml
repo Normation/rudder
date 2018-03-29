@@ -1,6 +1,7 @@
 <TECHNIQUE name="Create a file">
   <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
   <MULTIINSTANCE>true</MULTIINSTANCE>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
   <DESCRIPTION>Create a file and a directory</DESCRIPTION>
   <BUNDLES>
     <NAME>Create_file</NAME>
