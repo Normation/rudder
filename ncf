@@ -91,9 +91,9 @@ if __name__ == '__main__':
   if sys.argv[1] == "init":
     init(sys.argv[2:])
   elif sys.argv[1] == "write_all_techniques":
-    write_all_techniques(sys.argv[2], None)
+    write_techniques(sys.argv[2], None)
   elif sys.argv[1] == "write_technique":
-    write_all_techniques(sys.argv[2],sys.argv[3])
+    write_techniques(sys.argv[2],sys.argv[3])
   else:
     usage()
     exit(1)
