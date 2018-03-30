@@ -427,8 +427,21 @@ class LDAPDiffMapper(
                     case PublicApi(_,date) => date
                     case _ => None
                   }
-                  val diffDate = GeneralizedTime.parse(mod.getAttribute().getValue()).map(_.dateTime)
-                  tryo(diff.copy(modExpirationDate = Some(SimpleDiff(expirationDate, Some(diffDate.get)))))
+                  val diffDate = tryo(mod.getAttribute().getValue() match {
+                    case "None" => None
+                    case v => GeneralizedTime.parse(v).map(_.dateTime)
+                  }).getOrElse(None)
+                  tryo(diff.copy(modExpirationDate = Some(SimpleDiff(expirationDate, diffDate))))
+                case A_API_AUTHZ_KIND =>
+                  val oldAuthType = oldAccount.kind match {
+                    case PublicApi(auth, _) =>
+                      auth.kind.name
+                    case kind =>
+                      kind.kind.name
+                  }
+                  Full(diff.copy(modAccountKind = Some(SimpleDiff(oldAuthType, mod.getAttribute().getValue()))))
+
+
                 case x => Failure("Unknown diff attribute: " + x)
               }
             }
