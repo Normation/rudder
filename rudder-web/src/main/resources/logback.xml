@@ -191,7 +191,16 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     Set level to debug or trace to have more precise information
     about the different acceptation steps of nodes.
    -->
-  <logger name="com.normation.rudder.services.servers.NewNodeManagerImpl" level="info" />
+  <logger name="nodes.pending" level="info" />
+
+  <!--
+    if you want detailled information about how policies that will be applied
+    to a node are calculated, uncomment that:
+  -->
+  <!--
+  <logger name="nodes.pending.policies" level="info" />
+  -->
+
 
 
   <!--

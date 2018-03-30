@@ -140,7 +140,7 @@ class UpdateDynamicGroups(
             dynGroupService.getAllDynGroups match {
               case Full(groupIds) =>
                 updateId = updateId + 1
-                LAUpdateDyngroup ! StartDynamicUpdate(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds))
+                LAUpdateDyngroup ! StartDynamicUpdate(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds.map(_.id)))
               case e:EmptyBox =>
                 val error = (e?~! "Error when trying to get the list of dynamic group to update")
                 logger.error( error.messageChain )
