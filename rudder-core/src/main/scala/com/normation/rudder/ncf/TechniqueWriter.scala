@@ -342,6 +342,15 @@ class DSCTechniqueWriter(
 
     val filteredCalls = technique.methodCalls.filterNot(_.methodId.value.startsWith("_"))
 
+    val parameters = technique.parameters match {
+      case Nil => ""
+      case params =>
+        params.map( p =>
+          s"""      [parameter(Mandatory=$$true)]
+             |      [string]$$${p.id.validDscName},"""
+        ).mkString("\n","\n","").stripMargin('|')
+    }
+
     val techniquePath = computeTechniqueFilePath(technique)
 
     for {
@@ -355,7 +364,7 @@ class DSCTechniqueWriter(
             |      [parameter(Mandatory=$$true)]
             |      [string]$$reportId,
             |      [parameter(Mandatory=$$true)]
-            |      [string]$$techniqueName,
+            |      [string]$$techniqueName,${parameters}
             |      [switch]$$auditOnly
             |  )
             |

@@ -202,7 +202,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
         ) :: Nil
       , new Version("1.0")
       , "This Technique exists only to see if Rudder creates Technique correctly."
-      , Nil
+      , TechniqueParameter(ParameterId("package_version"),ParameterId("version")) :: Nil
     )
 
   val expectedMetadataPath_any = s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/metadata.xml"

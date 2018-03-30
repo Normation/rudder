@@ -5,6 +5,8 @@ function Technique-Any {
       [string]$reportId,
       [parameter(Mandatory=$true)]
       [string]$techniqueName,
+      [parameter(Mandatory=$true)]
+      [string]$PackageVersion,
       [switch]$auditOnly
   )
 
