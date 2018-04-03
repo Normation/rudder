@@ -214,16 +214,25 @@ class CheckPendingNodeInDynGroups(
             val (withDep, stillBlocked) = b.partition( _.dependencies.contains(h.id) )
             // for each node with that dep: intersect or union nodeids, remove dep
             val newTodos = withDep.map { case DynGroup(id, dependencies, nodes, query, inc) =>
-                val (newNodeIds, newInc) = if(query.composition == CAnd) {
-                  (nodes.intersect(setNodeIds), inc)
-                } else {
-                  (nodes, setNodeIds ++ inc)
-                }
-                val newDep = dependencies - h.id
-                DynGroup(id, newDep, newNodeIds, query, newInc)
+              val (newNodeIds, newInc) = if(query.composition == CAnd) {
+                (nodes.intersect(setNodeIds), inc)
+              } else {
+                (nodes, setNodeIds ++ inc)
+              }
+              val newDep = dependencies - h.id
+              DynGroup(id, newDep, newNodeIds, query, newInc)
             }
-            NodeLogger.PendingNode.Policies.trace(" -> unblock: " + newTodos.map(_.id.value).mkString(", "))
-            recProcess(tail ::: newTodos, stillBlocked, (h.id, setNodeIds) :: res)
+            // we can be in a case where the dyngroup don't have any criteria remaning, because they were
+            // only subgroups. In that case, avoid to put it back in processing list, because their is nothing
+            // left to do for it.
+            // for these case, we keep all the node that are coming from the subgroup and that are looked for
+            val (alreadyDone, remainingNewTodos) = newTodos.partition( _.query.criteria.isEmpty )
+
+            NodeLogger.PendingNode.Policies.trace(" -> unblock     : " + remainingNewTodos.map(_.id.value).mkString(", "))
+            NodeLogger.PendingNode.Policies.trace(" -> already done: " + alreadyDone.map(_.id.value).mkString(", "))
+
+            val newRes =  alreadyDone.map(x => (x.id, x.includeNodes.union(x.testNodes)) ) ::: ((h.id, setNodeIds) :: res)
+            recProcess(tail ::: remainingNewTodos, stillBlocked, newRes)
           }) ?~! s"Error when trying to find what nodes belong to dynamic group ${h.id}"
       }
     }
