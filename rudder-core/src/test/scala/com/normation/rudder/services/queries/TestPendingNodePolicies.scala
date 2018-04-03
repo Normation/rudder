@@ -55,6 +55,8 @@ import com.normation.rudder.domain.queries.StringComparator
 import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.And
 import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -88,6 +90,9 @@ class TestPendingNodePolicies extends Specification {
    *  // or
    *  K ---> L (0) NOK
    *  M ---> N (1) OK
+   *
+   *  // also test with exactly one criteria (ie 0 criteria remaining if subgroup are excluded)
+   *  O --> P (1) OK
    */
 
   val groupCriterion = ObjectCriterion("group", Seq(
@@ -107,8 +112,9 @@ class TestPendingNodePolicies extends Specification {
   //the node that we will try to accept
   val node = NodeId("node")
 
-  def orQuery (g: NodeGroup) = Query(null, Or , Seq(cl, sub(g), cl))
-  def andQuery(g: NodeGroup) = Query(null, And, Seq(cl, sub(g), cl))
+  def orQuery     (g: NodeGroup) = Query(null, Or , Seq(cl, sub(g), cl))
+  def andQuery    (g: NodeGroup) = Query(null, And, Seq(cl, sub(g), cl))
+  def onlySubQuery(g: NodeGroup) = Query(null, And, Seq(sub(g)))
   val dummyQuery0 = Query(null, And, Seq(cl)) // will return 0 node
   val dummyQuery1 = Query(null, Or , Seq(cl)) // will return 1 node
 
@@ -134,23 +140,32 @@ class TestPendingNodePolicies extends Specification {
   val k = ng("k", orQuery(l) ) // ok b/c remaning query returns node
   val n = ng("n", dummyQuery1) // ok
   val m = ng("m", orQuery(n) ) // ok
+  val pp = ng("p", dummyQuery1) // ok ('p' is already taken apparently)
+  val o = ng("o", onlySubQuery(pp) ) // ok
+
 
 
   // a fake dyn group service
   val getDynGroups = new DynGroupService {
     override def getAllDynGroups(): Box[Seq[NodeGroup]] = Full(Seq(
-      a, b, c, d, e, /*f, static */ g, h, i, j, k, l, m, n
+      a, b, c, d, e, /*f, static */ g, h, i, j, k, l, m, n, o, pp
     ))
   }
 
   // a fake query checker
   val queryChecker = new QueryChecker {
     override def check(query: Query, nodeIds: Seq[NodeId]): Box[Seq[NodeId]] = {
-      Full((query match {
-        case x if(x == dummyQuery0) => Set.empty[NodeId]
-        case x if(x == dummyQuery1) => Set(node)
-        case x                      => Set(node)
-      }).intersect(nodeIds.toSet).toSeq)
+      // make a 0 criteria request raise an error like LDAP would do,
+      // see: https://www.rudder-project.org/redmine/issues/12338
+      if(query.criteria.isEmpty) {
+        Failure(s"Trying to perform an LDAP search on 0 criteria: error")
+      } else {
+        Full((query match {
+          case x if(x == dummyQuery0) => Set.empty[NodeId]
+          case x if(x == dummyQuery1) => Set(node)
+          case x                      => Set(node)
+        }).intersect(nodeIds.toSet).toSeq)
+      }
     }
   }
 
@@ -161,9 +176,15 @@ class TestPendingNodePolicies extends Specification {
       val groups = (for {
         x <- getDynGroups.getAllDynGroups()
         y <- checkGroups.findDynGroups(Set(node), x.toList)
-      } yield y).openOrThrowException("must work in tests").apply(node).map(_.value).sorted
-
-      groups must containTheSameElementsAs(List("a", "b", "c", "d", "i", "j", "k", "m", "n"))
+      } yield y) match {
+        case eb: EmptyBox =>
+          val e = eb ?~! "Error when processing dyngroups"
+          e.rootExceptionCause.foreach(ex => ex.printStackTrace())
+          throw new RuntimeException(e.messageChain)
+        case Full(res) =>
+          res.apply(node).map(_.value).sorted
+      }
+      groups must containTheSameElementsAs(List("a", "b", "c", "d", "i", "j", "k", "m", "n", "o", "p"))
     }
   }
 }
