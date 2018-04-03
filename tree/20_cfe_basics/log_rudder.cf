@@ -61,6 +61,7 @@ bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
 # component_name : the name of the component within the Technique
 # component_key  : the value of the component reference variable (or None if undefined)
 # message        : An explanation message understandable by a human
+# Warning, any modification here should also be ported to _rudder_common_report_hooks
 bundle agent _rudder_common_report(technique_name, status, identifier, component_name, component_key, message)
 {
   classes:
@@ -97,6 +98,7 @@ bundle agent _rudder_common_report(technique_name, status, identifier, component
 # component_key  : the value of the component reference variable (None if it does not exists)
 # message_prefix : The begining of an explanation message understandable by a human
 #
+# Warning, any modification here should also be ported to _rudder_common_generic_hooks
 bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)
 {
 
@@ -163,6 +165,136 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
         usebundle  => _rudder_common_report("${technique_name}", "audit_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired but should have been run in dry-run mode"),
         ifvarclass => "${class_prefix}_repaired";
 }
+
+
+######################################################################
+##### Reporting for the pre/post hooks
+##### These methods should not be used for normal generic method usage
+##### because they do not respect the stop on repair for audit mode
+######################################################################
+
+#
+# Automatically create reports based on existing classes starting by
+# class_prefix (as defined by the body classes rudder_common_classes)
+# Difference with _rudder_common_reports_generic : it remaps _repaired
+# to _audit_compliant in audit mode
+# Takes 7 parameters
+# technique_name : the name of the technique, human readable
+# class_prefix   : the prefix of a set of classes to reporting on (suffixes with "kept", "repaired" or "error")
+# identifier     : the identifier of the current Rule and Directive
+# component_name : the name of the component within the Technique
+# component_key  : the value of the component reference variable (None if it does not exists)
+# message_prefix : The begining of an explanation message understandable by a human
+# enforce_mode   : Define the mode of reporting: enforce or audit
+#
+bundle agent _rudder_common_reports_generic_hooks(technique_name, class_prefix, identifier, component_name, component_key, message_prefix, enforce_mode)
+{
+  classes:
+      "is_enforce" expression => strcmp("${enforce_mode}", "enforce");
+
+  methods:
+    is_enforce::
+      "na"
+        usebundle  => _rudder_common_report("${technique_name}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
+        ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+
+      "success"
+        usebundle  => _rudder_common_report("${technique_name}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
+        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+
+      "repaired"
+        usebundle  => _rudder_common_report("${technique_name}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
+        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
+
+      "error"
+        usebundle  => _rudder_common_report("${technique_name}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
+        ifvarclass => "${class_prefix}_error";
+
+    !is_enforce::
+      "na"
+        usebundle  => _rudder_common_report("${technique_name}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
+        ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+
+      "success"
+        usebundle  => _rudder_common_report("${technique_name}", "audit_compliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
+        ifvarclass => "(${class_prefix}_kept|${class_prefix}_repaired).!${class_prefix}_error";
+
+      "noncompliant"
+        usebundle  => _rudder_common_report("${technique_name}", "audit_noncompliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not correct"),
+        ifvarclass => "${class_prefix}_error";
+}
+
+
+# Create and send a report to the server
+# This bundle takes 7 parameters :
+# technique_name : the name of the technique, human readable
+# status         : the status of the Component, among the following values
+#    result_na
+#    result_success
+#    result_error
+#    result_repaired
+#    log_repaired (for logging only)
+#    log_warn     (for logging only)
+#    log_info     (for logging only)
+#    log_debug    (for logging only)
+#    log_trace    (for logging only)
+# identifier     : the identifier of the current Rule and Directive
+# component_name : the name of the component within the Technique
+# component_key  : the value of the component reference variable (or None if undefined)
+# message        : An explanation message understandable by a human
+# enforce_mode   : Define the mode of reporting: enforce or audit -> remap result_* to audit_ *
+bundle agent _rudder_common_report_hooks(technique_name, status, identifier, component_name, component_key, message, enforce_mode)
+{
+  vars:
+    is_enforce::
+      "resulting_status" string => "${status}";
+
+    !is_enforce.pass1.result_na::
+      "resulting_status" string => "audit_na";
+    !is_enforce.pass1.result_success::
+      "resulting_status" string => "audit_compliant";
+    !is_enforce.pass1.result_repaired::
+      "resulting_status" string => "audit_compliant"; # this is a specific case for hooks
+    !is_enforce.pass1.result_error::
+      "resulting_status" string => "audit_noncompliant";
+
+    !is_enforce.pass1.!(result_na|result_success|result_repaired|result_error)::
+      "resulting_status" string => "${status}";
+
+  classes:
+      "is_enforce"      expression => strcmp("${enforce_mode}", "enforce");
+
+      "result_na"       expression => strcmp("${status}", "result_na");
+      "result_success"  expression => strcmp("${status}", "result_success");
+      "result_repaired" expression => strcmp("${status}", "result_repaired");
+      "result_error"    expression => strcmp("${status}", "result_error");
+
+
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+    changes_only::
+      "send_reports" or => {
+                            strcmp("${status}", "result_error") ,
+                            strcmp("${status}", "result_repaired") ,
+                            strcmp("${status}", "log_warn") ,
+                            strcmp("${status}", "log_repaired") ,
+                            strcmp("${status}", "audit_noncompliant") ,
+                            strcmp("${status}", "audit_error") ,
+                           };
+
+  methods:
+    # If we need to send a report, make sure we have sent the "StartRun" message first
+    pass2.send_reports.!start_run_message_sent::
+      "Send start message"
+        usebundle => _startExecution("${identifier}"),
+        action    => immediate_ignore_dry_run;
+
+  reports:
+    pass2.(!changes_only|send_reports)::
+      "@@${technique_name}@@${resulting_status}@@${identifier}@@${component_name}@@${component_key}@@${g.execRun}##${g.uuid}@#${message}";
+}
+
 
 bundle agent _startExecution(identifier)
 {
