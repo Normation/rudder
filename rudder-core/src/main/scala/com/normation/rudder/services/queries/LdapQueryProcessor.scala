@@ -40,7 +40,7 @@ package com.normation.rudder.services.queries
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries._
-import com.unboundid.ldap.sdk.{ SearchScope => _, LDAPConnection => _, _ }
+import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
 import DereferencePolicy.NEVER
 import com.normation.ldap.sdk._
 import com.normation.inventory.domain._
@@ -49,13 +49,15 @@ import com.normation.inventory.ldap.core._
 import BuildFilter._
 import LDAPConstants._
 import net.liftweb.common._
-import com.normation.utils.Control.{sequence,pipeline}
+import com.normation.utils.Control.{pipeline, sequence}
 import java.util.regex.Pattern
+
 import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.LDAPNodeInfo
 import net.liftweb.json.JsonAST.JObject
+import org.slf4j.LoggerFactory
 
 /*
  * We have two type of filters:
@@ -205,13 +207,20 @@ class PendingNodesLDAPQueryChecker(
 ) extends QueryChecker {
 
   override def check(query:Query, limitToNodeIds:Seq[NodeId]) : Box[Seq[NodeId]] = {
-    for {
-      entries <- checker.internalQueryProcessor(query, Seq("1.1"), Some(limitToNodeIds))
-      ids <- sequence(entries) { entry =>
-        checker.ldapMapper.nodeDn2OptNodeId(entry.dn) ?~! "Can not get node ID from dn %s".format(entry.dn)
+    if(query.criteria.isEmpty) {
+      LoggerFactory.getILoggerFactory.getLogger(Logger.loggerNameFor(classOf[InternalLDAPQueryProcessor])).debug(
+        s"Checking a query with 0 criterium will always lead to 0 nodes: ${query}"
+      )
+      Full(Seq.empty[NodeId])
+    } else {
+      for {
+        entries <- checker.internalQueryProcessor(query, Seq("1.1"), Some(limitToNodeIds))
+        ids <- sequence(entries) { entry =>
+          checker.ldapMapper.nodeDn2OptNodeId(entry.dn) ?~! "Can not get node ID from dn %s".format(entry.dn)
+        }
+      } yield {
+        ids
       }
-    } yield {
-      ids
     }
   }
 }
