@@ -119,21 +119,21 @@ class NodeExpectedReportTest extends Specification {
   val d2 = DirectiveId("directive_2")
   val d3 = DirectiveId("directive_3")
 
-  val p1_id = PolicyId(r1, d1)
+  val p1_id = PolicyId(r1, d1, TechniqueVersion("1.0"))
   val p1 = Policy(
       p1_id
     , technique      = t1
     , DateTime.now.minusDays(1)
     , policyVars     = NonEmptyList.of(
           PolicyVars(
-              PolicyId(r1, d1)
+              PolicyId(r1, d1, TechniqueVersion("1.0"))
             , Some(PolicyMode.Audit)
             , Map(v("1_0", "1_0_0"), mv("1_1", "1_1_0", "1_1_1"), mv("1_2", "1_2_0", "1_2_1"))
             , Map(v("1_0", "1_0_0"), mv("1_1", "1_1_0", "1_1_1"), mv("1_2", "1_2_0", "1_2_1"))
             , t1.trackerVariableSpec.toVariable(p1_id.getReportId :: p1_id.getReportId :: Nil)
           )
         , PolicyVars(
-              PolicyId(r2, d2)
+              PolicyId(r2, d2, TechniqueVersion("1.0"))
             , None
             , Map(v("1_0", "2_0_0"), mv("1_1", "2_1_0"), mv("1_2", "2_2_0"))
             , Map(v("1_0", "2_0_0"), mv("1_1", "2_1_0"), mv("1_2", "2_2_0"))
@@ -147,14 +147,14 @@ class NodeExpectedReportTest extends Specification {
     , overrides      = Set()
   )
 
-  val p2_id = PolicyId(r2, d3)
+  val p2_id = PolicyId(r2, d3, TechniqueVersion("1.0"))
   val p2 = Policy(
       p2_id
     , technique      = t2
     , DateTime.now.minusDays(1)
     , policyVars     = NonEmptyList.of(
           PolicyVars(
-              PolicyId(r2, d3)
+              PolicyId(r2, d3, TechniqueVersion("1.0"))
             , None
             , Map(v("2_0", "3_0_0"), mv("2_1", "3_1_0"), mv("2_2", "3_2_0"))
             , Map(v("2_0", "3_0_0"), mv("2_1", "3_1_0"), mv("2_2", "3_2_0"))
