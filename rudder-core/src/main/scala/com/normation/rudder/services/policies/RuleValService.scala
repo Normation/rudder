@@ -135,33 +135,33 @@ class RuleValServiceImpl(
         Full(None)
       case Some((fullActiveTechnique, directive)) =>
         for {
-          policyPackage <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! s"Version '${directive.techniqueVersion}' of technique '${fullActiveTechnique.techniqueName}' is not available for directive '${directive.name}' [${directive.id.value}]"
-          varSpecs = policyPackage.rootSection.getAllVariables ++ policyPackage.systemVariableSpecs :+ policyPackage.trackerVariableSpec
+          technique <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! s"Version '${directive.techniqueVersion}' of technique '${fullActiveTechnique.techniqueName}' is not available for directive '${directive.name}' [${directive.id.value}]"
+          varSpecs = technique.rootSection.getAllVariables ++ technique.systemVariableSpecs :+ technique.trackerVariableSpec
           vared <- buildVariables(varSpecs, directive.parameters)
           exists <- {
-            if (vared.isDefinedAt(policyPackage.trackerVariableSpec.name)) {
+            if (vared.isDefinedAt(technique.trackerVariableSpec.name)) {
               Full("OK")
             } else {
-              logger.error("Cannot find key %s in Directive %s when building Rule %s".format(policyPackage.trackerVariableSpec.name, piId.value, ruleId.value))
-              Failure("Cannot find key %s in Directibe %s when building Rule %s".format(policyPackage.trackerVariableSpec.name, piId.value, ruleId.value))
+              logger.error("Cannot find key %s in Directive %s when building Rule %s".format(technique.trackerVariableSpec.name, piId.value, ruleId.value))
+              Failure("Cannot find key %s in Directibe %s when building Rule %s".format(technique.trackerVariableSpec.name, piId.value, ruleId.value))
             }
           }
-          trackerVariable <- vared.get(policyPackage.trackerVariableSpec.name)
-          otherVars = vared - policyPackage.trackerVariableSpec.name
+          trackerVariable <- vared.get(technique.trackerVariableSpec.name)
+          otherVars = vared - technique.trackerVariableSpec.name
           //only normal vars can be interpolated
         } yield {
             logger.trace("Creating a ParsedPolicyDraft %s from the ruleId %s".format(fullActiveTechnique.techniqueName, ruleId.value))
 
             Some(ParsedPolicyDraft(
-                PolicyId(ruleId, piId)
-              , policyPackage
+                PolicyId(ruleId, piId, technique.id.version)
+              , technique
                 // if the technique don't have an acceptation date time, this is bad. Use "now",
                 // which mean that it will be considered as new every time.
-              , fullActiveTechnique.acceptationDatetimes.get(policyPackage.id.version).getOrElse(DateTime.now)
+              , fullActiveTechnique.acceptationDatetimes.get(technique.id.version).getOrElse(DateTime.now)
               , directive.priority
               , directive.isSystem
               , directive.policyMode
-              , policyPackage.trackerVariableSpec.toVariable(trackerVariable.values)
+              , technique.trackerVariableSpec.toVariable(trackerVariable.values)
               , lookupNodeParameterization(otherVars.values.toSeq)
               , vared
               , ruleOrder

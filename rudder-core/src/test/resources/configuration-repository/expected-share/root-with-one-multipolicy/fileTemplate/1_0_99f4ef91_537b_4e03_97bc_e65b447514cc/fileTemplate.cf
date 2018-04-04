@@ -4,7 +4,7 @@
 #   -Take options in considerations(like perms)
 #   -Reporting
 
-bundle agent fileTemplate_99f4ef91_537b_4e03_97bc_e65b447514cc {
+bundle agent fileTemplate_1_0_99f4ef91_537b_4e03_97bc_e65b447514cc {
   vars:
       #Tracking key
       "trackingkey[1]" string => "ff44fb97-b65e-43c4-b8c2-0df8d5e8549f@@99f4ef91-537b-4e03-97bc-e65b447514cc@@0";
@@ -63,7 +63,7 @@ bundle agent fileTemplate_99f4ef91_537b_4e03_97bc_e65b447514cc {
 
       #Cancel persistent classes
       "cancel" string => "cancel persistence",
-               classes => cancel_all_classes("posthook_rerun_${index}_99f4ef91_537b_4e03_97bc_e65b447514cc"),
+               classes => cancel_all_classes("posthook_rerun_${index}_1_0_99f4ef91_537b_4e03_97bc_e65b447514cc"),
                ifvarclass => "command_execution_${posthook_canon[${index}]}_ok";
 
   classes:
@@ -78,7 +78,7 @@ bundle agent fileTemplate_99f4ef91_537b_4e03_97bc_e65b447514cc {
       "posthook_persistent_${index}" expression => strcmp("${persist[${index}]}", "true");
 
       #Check if the posthook is persistent and in error, set up a class for 10000 minutes => about 1 week
-      "posthook_rerun_${index}_99f4ef91_537b_4e03_97bc_e65b447514cc" expression => "posthook_persistent_${index}.command_execution_${posthook_canon[${index}]}_failed",
+      "posthook_rerun_${index}_1_0_99f4ef91_537b_4e03_97bc_e65b447514cc" expression => "posthook_persistent_${index}.command_execution_${posthook_canon[${index}]}_failed",
                                                scope => "namespace",
                                                persistence => "10000";
 
@@ -148,7 +148,7 @@ bundle agent fileTemplate_99f4ef91_537b_4e03_97bc_e65b447514cc {
       usebundle => command_execution(
         "${posthook[${index}]}"
       ),
-      ifvarclass => "posthook_launch_${index}|posthook_rerun_${index}_99f4ef91_537b_4e03_97bc_e65b447514cc";
+      ifvarclass => "posthook_launch_${index}|posthook_rerun_${index}_1_0_99f4ef91_537b_4e03_97bc_e65b447514cc";
 
 ################################################################################
 #                                    REPORTING                                 # 

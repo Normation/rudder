@@ -667,7 +667,7 @@ class TestNodeConfiguration() {
   }
 
   def common(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
-    val id = PolicyId(RuleId("hasPolicyServer-root"), DirectiveId("common-root"))
+    val id = PolicyId(RuleId("hasPolicyServer-root"), DirectiveId("common-root"), TechniqueVersion("1.0"))
     draft(
         id
       , commonTechnique
@@ -687,7 +687,7 @@ class TestNodeConfiguration() {
   }
 
   val serverRole = {
-    val id = PolicyId(RuleId("server-roles"), DirectiveId("server-roles-directive"))
+    val id = PolicyId(RuleId("server-roles"), DirectiveId("server-roles-directive"), TechniqueVersion("1.0"))
     draft(
         id
       , rolesTechnique
@@ -707,7 +707,7 @@ class TestNodeConfiguration() {
   }
 
   val distributePolicy = {
-    val id = PolicyId(RuleId("root-DP"), DirectiveId("root-distributePolicy"))
+    val id = PolicyId(RuleId("root-DP"), DirectiveId("root-distributePolicy"), TechniqueVersion("1.0"))
     draft(
         id
       , distributeTechnique
@@ -726,7 +726,7 @@ class TestNodeConfiguration() {
      ).map(v => (v.spec.name, v)).toMap
   }
   val inventoryAll = {
-    val id = PolicyId(RuleId("inventory-all"), DirectiveId("inventory-all"))
+    val id = PolicyId(RuleId("inventory-all"), DirectiveId("inventory-all"), TechniqueVersion("1.0"))
       draft(
         id
       , inventoryTechnique
@@ -752,7 +752,7 @@ class TestNodeConfiguration() {
      ).map(v => (v.spec.name, v)).toMap
   }
   lazy val clock = {
-    val id = PolicyId(RuleId("rule1"), DirectiveId("directive1"))
+    val id = PolicyId(RuleId("rule1"), DirectiveId("directive1"), TechniqueVersion("1.0"))
     draft(
         id
       , clockTechnique
@@ -786,7 +786,7 @@ class TestNodeConfiguration() {
      ).map(v => (v.spec.name, v)).toMap
   }
   lazy val rpm = {
-    val id = PolicyId(RuleId("rule2"), DirectiveId("directive2"))
+    val id = PolicyId(RuleId("rule2"), DirectiveId("directive2"), TechniqueVersion("1.0"))
     draft(
         id
       , rpmTechnique
@@ -814,7 +814,7 @@ class TestNodeConfiguration() {
      ).map(v => (v.spec.name, v)).toMap
   }
   lazy val pkg = {
-    val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f"))
+    val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f"), TechniqueVersion("1.0"))
     draft(
         id
       , pkgTechnique
@@ -844,7 +844,7 @@ class TestNodeConfiguration() {
      ).map(v => (v.spec.name, v)).toMap
   }
   lazy val fileTemplate1 = {
-    val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("e9a1a909-2490-4fc9-95c3-9d0aa01717c9"))
+    val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("e9a1a909-2490-4fc9-95c3-9d0aa01717c9"), TechniqueVersion("1.0"))
     draft(
         id
       , fileTemplateTechnique
@@ -872,7 +872,7 @@ class TestNodeConfiguration() {
      ).map(v => (v.spec.name, v)).toMap
   }
   lazy val fileTemplate2 = {
-    val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("99f4ef91-537b-4e03-97bc-e65b447514cc"))
+    val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("99f4ef91-537b-4e03-97bc-e65b447514cc"), TechniqueVersion("1.0"))
     draft(
         id
       , fileTemplateTechnique
@@ -895,7 +895,7 @@ class TestNodeConfiguration() {
      ).map(v => (v.spec.name, v)).toMap
   }
   val ncf1 = {
-    val id = PolicyId(RuleId("208716db-2675-43b9-ab57-bfbab84346aa"), DirectiveId("16d86a56-93ef-49aa-86b7-0d10102e4ea9"))
+    val id = PolicyId(RuleId("208716db-2675-43b9-ab57-bfbab84346aa"), DirectiveId("16d86a56-93ef-49aa-86b7-0d10102e4ea9"), TechniqueVersion("1.0"))
     draft(
         id
       , ncf1Technique
@@ -931,7 +931,7 @@ class TestNodeConfiguration() {
      ).map(v => (v.spec.name, v)).toMap
   }
   lazy val gvd1 = {
-    val id = PolicyId(RuleId("rule1"), DirectiveId("directive1"))
+    val id = PolicyId(RuleId("rule1"), DirectiveId("directive1"), TechniqueVersion("1.0"))
     draft(
       id
       , gvdTechnique
@@ -953,7 +953,7 @@ class TestNodeConfiguration() {
      ).map(v => (v.spec.name, v)).toMap
   }
   lazy val gvd2 = {
-    val id = PolicyId(RuleId("rule1"), DirectiveId("directive2"))
+    val id = PolicyId(RuleId("rule1"), DirectiveId("directive2"), TechniqueVersion("1.0"))
     draft(
         id
       , gvdTechnique
