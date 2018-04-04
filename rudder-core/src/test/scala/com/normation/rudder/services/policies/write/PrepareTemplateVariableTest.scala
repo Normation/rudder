@@ -96,15 +96,15 @@ List(raw""""Global configuration for all nodes/20. Install jdk version 1.0"     
         NodeRunHook(
             "package-install"
           , RunHook.Kind.Pre
-          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) ::
-            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) :: Nil
+          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1"), TechniqueVersion("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) ::
+            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1"), TechniqueVersion("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) :: Nil
           , RunHook.Parameter("package", "vim") :: RunHook.Parameter("action", "update-only") :: Nil
         ) ::
         NodeRunHook(
             "service-restart"
           , RunHook.Kind.Post
-          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) ::
-            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) :: Nil
+          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1"), TechniqueVersion("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) ::
+            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId("d1"), TechniqueVersion("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) :: Nil
           , RunHook.Parameter("service", "syslog") :: Nil
         ) :: Nil
 
