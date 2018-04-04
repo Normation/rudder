@@ -684,14 +684,16 @@ class PolicyWriterServiceImpl(
     logger.trace(s"Create promises file ${outPath} ${templateInfo.destination}")
 
     for {
-      filled   <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
+      filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
       // if the technique is multipolicy, replace rudderTag by reportId
-      replaced =  reportIdToReplace match {
-                    case None => filled
-                    case Some(id) => filled.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
-                  }
-      _        <- tryo { FileUtils.writeStringToFile(new File(outPath, templateInfo.destination), replaced, StandardCharsets.UTF_8) } ?~!
-                    s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
+      (replaced, dest) =  reportIdToReplace match {
+                            case None => (filled, templateInfo.destination)
+                            case Some(id) =>
+                              val replace = (s: String) => s.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
+                              (replace(filled), replace(templateInfo.destination))
+                          }
+      _                <- tryo { FileUtils.writeStringToFile(new File(outPath, dest), replaced, StandardCharsets.UTF_8) } ?~!
+                            s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
     } yield {
       outPath
     }

@@ -59,7 +59,7 @@ import com.normation.inventory.domain.AgentType
 @RunWith(classOf[JUnitRunner])
 class PolicyAgregationTest extends Specification {
   implicit def str2pId(id: String) = TechniqueId(TechniqueName(id), TechniqueVersion("1.0"))
-  implicit def str2PolicyId(id: String) = PolicyId(RuleId("r_"+id), DirectiveId("d_"+id))
+  implicit def str2PolicyId(id: String) = PolicyId(RuleId("r_"+id), DirectiveId("d_"+id), TechniqueVersion("1.0"))
 
   def compareValues(expected: Seq[(String, String)], actual1: Seq[String], actual2: Seq[String]) = {
     val actual = actual1.zip(actual2)

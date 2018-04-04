@@ -67,6 +67,7 @@ import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.AgentConfig
 import com.normation.cfclerk.domain.RunHook.Report
 import com.normation.cfclerk.domain.TechniqueGenerationMode
+import com.normation.cfclerk.domain.TechniqueVersion
 
 /*
  * This file contains all the specific data structures used during policy generation.
@@ -269,10 +270,13 @@ final case class NodeConfiguration(
 }
 
 /**
- * Unique identifier for a CFClerk policy instance
+ * Unique identifier for the policy.
+ * These a general container that can be used to generate the different ID
+ * used in rudder: the policyId as used in reports, the unique identifier
+ * used to differenciate multi-version technique, etc.
  *
  */
-final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId) extends HashcodeCaching {
+final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVersion: TechniqueVersion) extends HashcodeCaching {
 
   val value = s"${ruleId.value}@@${directiveId.value}"
 
@@ -282,7 +286,7 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId) extends Hash
    */
   def getReportId = value + "@@0" // as of Rudder 4.3, serial is always 0
 
-  def getRudderUniqueId = directiveId.value.replaceAll("-","_")
+  lazy val getRudderUniqueId = (techniqueVersion.toString + "_" + directiveId.value).replaceAll("""\W""","_")
 }
 
 /*
@@ -402,7 +406,7 @@ final object Policy {
    */
   def makeUniqueDest(path: String, p: Policy): String = {
     val subPath = s"${p.technique.id.name.value}/${p.technique.id.version.toString}"
-    path.replaceFirst(subPath, subPath+"_"+p.id.getRudderUniqueId)
+    path.replaceFirst(subPath, s"${p.technique.id.name.value}/${p.id.getRudderUniqueId}")
   }
 
   def withParams(p:Policy) : String  = {
