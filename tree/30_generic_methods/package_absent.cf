@@ -48,11 +48,11 @@ bundle agent package_absent(name, version, architecture, provider)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
 
       "action"                 usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "absent", "");
 
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "class copy"             usebundle => _classes_copy("ncf_package_absent_${canonified_name}", "${old_class_prefix}"),
                               ifvarclass => "ncf_package_absent_${canonified_name}_reached";

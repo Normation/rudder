@@ -209,13 +209,10 @@ bundle agent file_from_template_jinja2(source_template, destination)
       classes => classes_generic("state_dumped");
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
       # Use a file copy to avoid any file size limitations of CFEngine variables.
     pass2.templating_ok::
       "copy file"    usebundle => file_copy_from_local_source("${destination_tmp}", "${destination}");
-    any::
-      "reenable_reporting"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
     pass2.templating_ok::
       "copy classes" usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
 
@@ -231,6 +228,8 @@ bundle agent file_from_template_jinja2(source_template, destination)
 
       "new result classes"  usebundle  => _classes_copy("${old_class_prefix}", "${class_prefix}"),
                             ifvarclass => "${old_class_prefix}_reached";
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "report"              usebundle  => _log("Build file ${destination} from jinja2 template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
 
    reports:

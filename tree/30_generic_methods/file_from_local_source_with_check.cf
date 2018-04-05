@@ -66,13 +66,13 @@ bundle agent file_from_local_source_with_check(source, destination, check_comman
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
       "check"  usebundle => condition_from_command("file_from_local_source_with_check_${canonified_file}_check", "${check_command} \"${source}\"", "${rc_ok}", "999"),
               ifvarclass => "copy_needed";
       "copy"   usebundle => file_from_local_source("${source}", "${destination}"),
               ifvarclass => "file_from_local_source_with_check_${canonified_file}_check_true";
 
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "result" usebundle => _classes_success("${old_class_prefix}"),
               ifvarclass => "!copy_needed";

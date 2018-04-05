@@ -39,7 +39,7 @@ bundle agent service_started(service_name)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
     
     !windows::
       "check_running" usebundle  => service_check_running("${service_name}");
@@ -50,7 +50,7 @@ bundle agent service_started(service_name)
         ifvarclass => "!${class_prefix}_check_running_kept";
 
     any::
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
     !windows.has_promiser_stack::
       "class copy if not running"

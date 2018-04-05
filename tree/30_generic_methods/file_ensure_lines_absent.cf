@@ -41,9 +41,9 @@ bundle agent file_ensure_lines_absent(file, lines)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
     "action"             usebundle => file_lines_absent("${file}", "${lines}");
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
     "class copy"         usebundle => _classes_copy("file_lines_absent_${canonified_file}", "${old_class_prefix}"),
                          ifvarclass => "file_lines_absent_${canonified_file}_reached";

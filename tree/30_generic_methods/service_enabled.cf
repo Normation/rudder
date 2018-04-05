@@ -43,7 +43,7 @@ bundle agent service_enabled(service_name)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
     !windows::
       "check_at_boot"
         usebundle => service_check_started_at_boot("${service_name}");
@@ -53,7 +53,7 @@ bundle agent service_enabled(service_name)
         ifvarclass => "(!has_promiser_stack.service_check_started_at_boot_${canonified_service_name}_not_ok)|(has_promiser_stack.${class_prefix}_check_at_boot_not_ok)";
 
     any::
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
     !windows::
       "already defined"

@@ -59,14 +59,14 @@ bundle agent file_from_http_server(source, destination)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
 
 
     (_stdlib_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
       "action"                    usebundle => command_execution("${action_command}");
 
     any::
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
     (_stdlib_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
       "class copy"                usebundle => _classes_copy("command_execution_${canonified_action_command}", "${old_class_prefix}");

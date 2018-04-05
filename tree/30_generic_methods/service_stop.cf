@@ -44,12 +44,12 @@ bundle agent service_stop(service_name)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
 
 
     "stop"      usebundle => service_action("${service_name}", "stop");
 
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
     any::
       "class copy" usebundle => _classes_copy("service_action_${canonified_service_name}", "${old_class_prefix}");

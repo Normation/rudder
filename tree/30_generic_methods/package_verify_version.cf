@@ -28,7 +28,7 @@
 bundle agent package_verify_version(package_name, package_version)
 {
   vars:
-      "old_class_prefix"        string => "package_install_${canonified_package_name}";
+      "old_class_prefix"        string => canonify("package_install_${package_name}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${package_name}", "${package_name}" };
@@ -38,9 +38,9 @@ bundle agent package_verify_version(package_name, package_version)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
     "package verify"     usebundle => package_install_version_cmp("${package_name}", "==", "${package_version}", "verify");
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
     "new result classes" usebundle => _classes_copy("${class_prefix}_package_verify", "${class_prefix}");
 

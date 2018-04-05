@@ -44,7 +44,7 @@ bundle agent service_restart_if(service_name, trigger_class)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
 
       # Create kept class
       "success_class"              usebundle  => _classes_success("${old_class_prefix}"),
@@ -64,7 +64,7 @@ bundle agent service_restart_if(service_name, trigger_class)
       "class copy"                 usebundle  => _classes_copy("${class_prefix}_restart", "${class_prefix}"),
                                    ifvarclass => "${trigger_class}";
 
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "report"                     usebundle  => _log("Restart service ${canonified_service_name} if '${trigger_class}' condtion defined", "service_restart_${canonified_service_name}", "${class_prefix}", @{args});
 }

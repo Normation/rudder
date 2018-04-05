@@ -40,9 +40,9 @@ bundle agent permissions(path, mode, owner, group)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
       "permission without recursion"  usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "all", "0");
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "new result classes"            usebundle => _classes_copy("${class_prefix}_permission_without_recursion", "${class_prefix}");
 

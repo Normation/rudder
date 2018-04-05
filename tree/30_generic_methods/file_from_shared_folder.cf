@@ -42,9 +42,9 @@ bundle agent file_from_shared_folder(source, destination, hash_type)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
       "copy without recursion" usebundle => file_copy_from_remote_source_recursion("/var/rudder/configuration-repository/shared-files/${source}", "${destination}", "0");
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "class copy"             usebundle => _classes_copy("file_copy_from_remote_source_${canonified_destination}", "${old_class_prefix}");
       "new result classes"     usebundle => _classes_copy("${class_prefix}_copy_without_recursion", "${class_prefix}");

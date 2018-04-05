@@ -46,9 +46,9 @@ bundle agent file_copy_from_local_source_with_check(source, destination, check_c
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
     "action"             usebundle => file_from_local_source_with_check("${source}", "${destination}", "${check_command}", "${rc_ok}");
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
     "class copy"         usebundle => _classes_copy("file_from_local_source_with_check_${canonified_file}", "${old_class_prefix}"),
                          ifvarclass => "file_from_local_source_with_check_${canonified_file}_reached";

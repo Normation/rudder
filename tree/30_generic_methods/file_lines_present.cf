@@ -38,9 +38,9 @@ bundle agent file_lines_present(file, lines)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
       "enforce lines content" usebundle => file_content("${file}", "${lines}", "false");
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "new result classes"    usebundle => _classes_copy("${class_prefix}_enforce_lines_content", "${class_prefix}");
 

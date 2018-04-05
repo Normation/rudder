@@ -58,11 +58,11 @@ bundle agent package_state_options(name, version, architecture, provider, state,
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
 
       "action"                 usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "${state}", "${options}");
 
-      "reenable_reporting"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "class copy"             usebundle => _classes_copy("ncf_package_${canonified_state}_${canonified_name}", "${old_class_prefix}"),
                               ifvarclass => "ncf_package_${canonified_state}_${canonified_name}_reached";
