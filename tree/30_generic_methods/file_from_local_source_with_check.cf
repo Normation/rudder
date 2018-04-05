@@ -84,8 +84,8 @@ bundle agent file_from_local_source_with_check(source, destination, check_comman
               ifvarclass => "file_from_local_source_with_check_${canonified_file}_check_true";
 
 
-      "report" usebundle => _log("Copying ${destination} from ${source} with check", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report" usebundle => _log("Copying ${destination} from local ${source} with check", "${old_class_prefix}", "${class_prefix}", @{args}),
               ifvarclass => "!condition_from_command_file_from_local_source_with_check_${canonified_file}_check_failed";
-      "report" usebundle => _log("Copying ${destination} from ${source} failed at check command", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report" usebundle => _log("Copying ${destination} from local ${source} failed at check command", "${old_class_prefix}", "${class_prefix}", @{args}),
               ifvarclass => "condition_from_command_file_from_local_source_with_check_${canonified_file}_check_failed";
 }

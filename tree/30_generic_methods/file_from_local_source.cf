@@ -28,9 +28,10 @@
 bundle agent file_from_local_source(source, destination)
 {
   vars:
+     "old_class_prefix" string => canonify("file_from_local_source_${destination}");
      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
      "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"             slist => { "${source}", "${destination}" };
+     "args"             slist => { "${source}", "${destination}" };
 
 
   classes:
@@ -43,5 +44,5 @@ bundle agent file_from_local_source(source, destination)
                              ifvarclass => "should_report";
       "new result classes"     usebundle => _classes_copy("${class_prefix}_copy_without_recursion", "${class_prefix}");
 
-      "report"                 usebundle => _log("Copying ${destination} from ${source}", "", "${class_prefix}", @{args});
+      "report"                 usebundle => _log("Copying ${destination} from local ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

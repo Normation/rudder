@@ -30,6 +30,7 @@
 bundle agent file_create_symlink_force(source, destination)
 {
   vars:
+      "old_class_prefix" string => canonify("file_create_symlink_${destination}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${source}", "${destination}" };
@@ -45,5 +46,5 @@ bundle agent file_create_symlink_force(source, destination)
                              ifvarclass => "should_report";
       "new result classes"   usebundle => _classes_copy("${class_prefix}_create_with_enforce", "${class_prefix}");
 
-      "report"               usebundle => _log("Symlink ${destination} targeting ${source}", "", "${class_prefix}", @{args});
+      "report"               usebundle => _log("Symlink ${destination} targeting ${source} with forced overwrite", "${old_class_prefix}", "${class_prefix}", @{args});
 }

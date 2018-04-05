@@ -37,6 +37,7 @@
 bundle agent package_install_version_cmp(package_name, version_comparator, package_version, action)
 {
   vars:
+      "old_class_prefix"        string => "package_install_${canonified_package_name}";
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${package_name}", "${version_comparator}", "${package_version}", "${action}" };
@@ -52,5 +53,5 @@ bundle agent package_install_version_cmp(package_name, version_comparator, packa
                              ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${class_prefix}_install_or_update", "${class_prefix}");
 
-      "report"             usebundle => _log("Install package ${package_name} version ${package_version}", "", "${class_prefix}", @{args});
+      "report"             usebundle => _log("Install package ${package_name} version ${version_comparator} ${package_version}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

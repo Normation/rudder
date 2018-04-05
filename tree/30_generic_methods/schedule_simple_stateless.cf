@@ -49,6 +49,7 @@ bundle agent schedule_simple_stateless(job_id, agent_periodicity,
 {
   vars:
     any::
+      "old_class_prefix" string => "schedule_simple_${job_id}";
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}",
@@ -70,6 +71,6 @@ bundle agent schedule_simple_stateless(job_id, agent_periodicity,
                              ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${class_prefix}_simple_scheduler", "${class_prefix}");
 
-      "report"             usebundle => _log("Scheduling ${job_id}", "", "${class_prefix}", @{args});
+      "report"             usebundle => _log("Scheduling ${job_id} (with stateless schedule)", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

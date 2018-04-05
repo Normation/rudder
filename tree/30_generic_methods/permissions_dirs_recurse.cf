@@ -32,6 +32,7 @@
 bundle agent permissions_dirs_recurse(path, mode, owner, group)
 {
   vars:
+      "old_class_prefix"        string => canonify("permissions_${path}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${path}", "${mode}", "${owner}", "${group}" };
@@ -47,5 +48,5 @@ bundle agent permissions_dirs_recurse(path, mode, owner, group)
                              ifvarclass => "should_report";
       "new result classes"         usebundle => _classes_copy("${class_prefix}_permission_with_recursion", "${class_prefix}");
 
-      "report"                     usebundle => _log("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "", "${class_prefix}", @{args});
+      "report"                     usebundle => _log("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on dirs ${path} with ${recursion} recursion leve", "${old_class_prefix}", "${class_prefix}", @{args});
 }

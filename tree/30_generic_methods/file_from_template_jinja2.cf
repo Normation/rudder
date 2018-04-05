@@ -231,7 +231,7 @@ bundle agent file_from_template_jinja2(source_template, destination)
 
       "new result classes"  usebundle  => _classes_copy("${old_class_prefix}", "${class_prefix}"),
                             ifvarclass => "${old_class_prefix}_reached";
-      "report"              usebundle  => _log("Build file ${destination} from template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"              usebundle  => _log("Build file ${destination} from jinja2 template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
 
    reports:
      # Display templating errors in case of failure.

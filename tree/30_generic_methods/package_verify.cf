@@ -27,6 +27,7 @@
 bundle agent package_verify(package_name)
 {
   vars:
+      "old_class_prefix"        string => "package_install_${canonified_package_name}";
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${package_name}" };
@@ -42,6 +43,6 @@ bundle agent package_verify(package_name)
                              ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${class_prefix}_verify_latest", "${class_prefix}");
 
-      "report"             usebundle => _log("Verify that package ${package_name} is installed", "", "${class_prefix}", @{args});
+      "report"             usebundle => _log("Verify that package ${package_name} is installed", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 
