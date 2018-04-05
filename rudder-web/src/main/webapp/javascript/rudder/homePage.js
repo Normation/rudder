@@ -40,6 +40,7 @@
  * compliance information should not be displayed because there is no user-defined rules.
  * In that case, we just display placehoder texts.
  */
+
 function homePage (
     globalCompliance
   , globalGauge
@@ -132,7 +133,7 @@ var inventoryColors =
   , 'rgb(132, 63 , 152)'
   ];
 
-function doughnutChart (id,data,count, colors) {
+function doughnutChart (id,data,count,colors) {
 
   var context = $("#"+id)
 
@@ -143,19 +144,16 @@ function doughnutChart (id,data,count, colors) {
         , backgroundColor: colors
       } ]
   };
-
+  
   var chartOptions = {
       type: 'doughnut'
     , data: chartData
     , options: {
         legend: {
           display:false
-
         }
       , legendCallback: function(chart) {
         var text = [];
-
-
         text.push('<ul>');
         for (var i=0; i<chart.data.datasets[0].data.length; i++) {
           var removeHighlight = ' onmouseout="closeTooltip(event, \'' + chart.legend.legendItems[i].index + '\', \'' + id + '\')"';
@@ -193,8 +191,43 @@ function doughnutChart (id,data,count, colors) {
         , bodyFontSize: 12
         , bodyFontStyle : "bold"
         }
-      }
-  }
+
+        // redirects to the corresponding node's information when clicking on a node's diagram
+         , onClick: function() {
+             if (chartData.labels[0] !== undefined){
+              var query = {query:{select:"nodeAndPolicyServer",composition:"And"}}
+              switch (id) {
+                  case 'nodeOs':
+                      query.query.where = [{
+                          objectType: "node"
+                        , attribute : "osName"
+                        , comparator: "eq"
+                        , value     : chartData.labels[0]
+                      }]
+                      break;
+                  case 'nodeAgents':
+                       query.query.where = [{
+                          objectType: "software"
+                        , attribute : "cn"
+                        , comparator: "eq"
+                        , value     : "rudder-agent"
+                      },{
+
+                          objectType: "software"
+                        , attribute : "softwareVersion"
+                        , comparator: "regex"
+                        , value     : chartData.labels[0].replace(/\./g, "(\.|~)") + ".*"
+                      }]
+                      break;
+                  case 'nodeMachine':
+                      break;
+              }
+              var url = contextPath + "/secure/nodeManager/searchNodes#" +  JSON.stringify(query)
+              window.location = url;
+            }
+         }
+       }
+     }
 
   var chart = new Chart(context, chartOptions);
   window[id] = chart;
