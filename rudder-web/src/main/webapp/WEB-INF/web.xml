@@ -47,7 +47,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <context-param>
     <param-name>contextConfigLocation</param-name>
     <param-value>
-      bootstrap.liftweb.AppConfig 
+      bootstrap.liftweb.AppConfig
       bootstrap.rudder.plugin
     </param-value>
   </context-param>
@@ -57,15 +57,20 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
   </context-param>
 
-  <!-- 
-    Bootstrap the root application context as usual using our version of 
-    ContextLoaderListener 
-    It also configure the logging system at the good time. 
+  <!--
+    Bootstrap the root application context as usual using our version of
+    ContextLoaderListener
+    It also configure the logging system at the good time.
   -->
   <listener>
       <listener-class>bootstrap.liftweb.LiftInitContextListener</listener-class>
   </listener>
-        
+
+  <listener>
+    <!-- this is needed to actually destroy session in spring-security register when they are invalidated -->
+    <listener-class>org.springframework.security.web.session.HttpSessionEventPublisher</listener-class>
+  </listener>
+
   <filter>
     <filter-name>springSecurityFilterChain</filter-name>
     <filter-class>bootstrap.liftweb.LiftSpringSecurityFilter</filter-class>
