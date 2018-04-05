@@ -24,6 +24,7 @@ class RestApiAccounts (
   , tokenGenerator : TokenGenerator
   , uuidGen        : StringUuidGenerator
   , userService    : UserService
+  , apiAuthService : ApiAuthorizationLevelService
 ) extends RestHelper with Loggable {
 
   val tokenSize = 32
@@ -36,7 +37,11 @@ class RestApiAccounts (
     case Get("secure" :: "apiaccounts" :: Nil, req) =>
       readApi.getAllStandardAccounts match {
         case Full(accountSeq) =>
-          val accounts = ("accounts" -> JArray(accountSeq.toList.map(_.toJson)))
+          val accounts =
+            (
+              ("aclPluginEnabled" -> apiAuthService.aclEnabled) ~
+              ("accounts"  -> JArray(accountSeq.toList.map(_.toJson)))
+            )
           toJsonResponse(None,accounts)("getAllAccounts",true)
         case eb : EmptyBox =>
           logger.error(s"Could not get accounts cause : ${(eb ?~ "could not get account").msg}")
