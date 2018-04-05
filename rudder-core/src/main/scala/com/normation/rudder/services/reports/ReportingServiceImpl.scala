@@ -192,9 +192,9 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
                                    case None         => true
                                    case Some(status) => status.runInfo match { // We have a status on the run
                                      case t : ExpiringStatus => t.expirationDateTime.isBefore(now)
-                                     case UnexpectedVersion(_, _, lastRunExpiration, _, _)
+                                     case UnexpectedVersion(_,_, _, lastRunExpiration, _, _)
                                                              => lastRunExpiration.isBefore(now)
-                                     case UnexpectedNoVersion(_, _, lastRunExpiration, _, _)
+                                     case UnexpectedNoVersion(_,_, _, lastRunExpiration, _, _)
                                                              => lastRunExpiration.isBefore(now)
                                      case _                  => false
                                    }
@@ -296,16 +296,6 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       t1                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.trace(s"Compliance: get node run infos: ${t1-t0}ms")
 
-      // that gives us configId for runs, and expected configId (some may be in both set)
-      expectedConfigIds   =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfig.nodeConfigId) }
-      lastrunConfigId     =  runInfos.collect {
-                               case (nodeId, Pending(_, Some(run), _)) => NodeAndConfigId(nodeId, run._2.nodeConfigId)
-                               case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
-                             }
-
-      t2                  =  System.currentTimeMillis
-      _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t2-t0}ms")
-
       // compute the status
       nodeStatusReports   <- buildNodeStatusReports(runInfos, ruleIds, complianceMode.mode)
 
@@ -364,10 +354,9 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
      * We want to optimize and only query reports for nodes that we
      * actually want to merge/compare or report as unexpected reports
      */
-    val agentRunIds = (runInfos.collect { case(nodeId, run:LastRunAvailable) =>
-       AgentRunId(nodeId, run.lastRunDateTime)
-    }).toSet ++ (runInfos.collect { case(nodeId, Pending(_, Some(run), _)) =>
-       AgentRunId(nodeId, run._1)
+    val agentRunIds = (runInfos.collect {
+      case(nodeId, run:LastRunAvailable)                         => AgentRunId(nodeId, run.lastRunDateTime)
+      case(nodeId, Pending(_, _, Some((runTime, optConfig)), _)) => AgentRunId(nodeId, runTime)
     }).toSet
 
     for {

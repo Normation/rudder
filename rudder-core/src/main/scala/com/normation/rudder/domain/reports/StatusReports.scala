@@ -380,47 +380,45 @@ object NodeStatusReportSerialization {
 
   def jsonRunInfo(runInfo: RunAndConfigInfo): JValue = {
 
-    runInfo match {
-      case NoRunNoExpectedReport   =>
-        ( "type" -> "NoRunNoExpectedReport" )
-      case NoExpectedReport(t, id) =>
-        ( ( "type"           -> "NoExpectedReport" )
-        ~ ("lastRunConfigId" -> id.map( _.value )  )
-        )
-      case NoReportInInterval(e) =>
-        ( ( "type"             -> "NoReportInInterval" )
-        ~ ( "expectedConfigId" -> e.nodeConfigId.value )
-        )
-      case ReportsDisabledInInterval(e) =>
-        ( ( "type"             -> "ReportsDisabled"   )
-        ~ ( "expectedConfigId" -> e.nodeConfigId.value)
-        )
-      case UnexpectedVersion(t, id, _, e, _) =>
-        ( ( "type"             -> "UnexpectedVersion"       )
-        ~ ( "expectedConfigId" -> e.nodeConfigId.value      )
-        ~ ( "runConfigId"      -> id.get.nodeConfigId.value )
-        )
-      case UnexpectedNoVersion(_, id, _, e, _) =>
-        ( ( "type"             -> "UnexpectedNoVersion" )
-        ~ ( "expectedConfigId" -> e.nodeConfigId.value  )
-        ~ ( "runConfigId"      -> id.value              )
-        )
-      case UnexpectedUnknowVersion(_, id, e, _) =>
-        ( ( "type"             -> "UnexpectedUnknownVersion" )
-        ~ ( "expectedConfigId" -> e.nodeConfigId.value       )
-        ~ ( "runConfigId"      -> id.value                   )
-        )
-      case Pending(e, r, _) =>
-        ( ( "type"             -> "Pending"               )
-        ~ ( "expectedConfigId" -> e.nodeConfigId.value    )
-        ~ ("runConfigId"       -> r.map( _._2.nodeConfigId.value ) )
-        )
-      case ComputeCompliance(_, e, _) =>
-        ( ( "type"             -> "ComputeCompliance" )
-        ~ ( "expectedConfigId" -> e.nodeConfigId.value       )
-        ~ ( "runConfigId"      -> e.nodeConfigId.value       )
-        )
-    }
+    (
+      ( "type" -> runInfo.name )
+      ~ ((runInfo match {
+        case NoRunNoExpectedReport(_) =>
+          Nil
+        case NoExpectedReport(_, t, id) =>
+          ("lastRunConfigId" -> id.map( _.value )  )
+        case NoReportInInterval(_, e) =>
+          ( "expectedConfigId" -> e.nodeConfigId.value )
+        case ReportsDisabledInInterval(_, e) =>
+          ( "expectedConfigId" -> e.nodeConfigId.value)
+        case UnexpectedVersion(_, t, id, _, e, _) =>
+          (
+            ( "expectedConfigId" -> e.nodeConfigId.value      )
+          ~ ( "runConfigId"      -> id.get.nodeConfigId.value )
+          )
+        case UnexpectedNoVersion(_, _, id, _, e, _) =>
+          (
+            ( "expectedConfigId" -> e.nodeConfigId.value  )
+          ~ ( "runConfigId"      -> id.value              )
+          )
+        case UnexpectedUnknowVersion(_, _, id, e, _) =>
+          (
+            ( "expectedConfigId" -> e.nodeConfigId.value       )
+          ~ ( "runConfigId"      -> id.value                   )
+          )
+        case Pending(_, e, r, _) =>
+          (
+            ( "expectedConfigId" -> e.nodeConfigId.value    )
+          ~ ( "runConfigId"      -> r.flatMap( _._2.map( _.nodeConfigId.value ) ) )
+          )
+        case ComputeCompliance(_, _, e, _) =>
+          (
+            ( "expectedConfigId" -> e.nodeConfigId.value       )
+          ~ ( "runConfigId"      -> e.nodeConfigId.value       )
+          )
+      }): JObject)
+    )
+
   }
   def jsonStatusInfo(statusInfo: RunComplianceInfo): JValue = {
     (

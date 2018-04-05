@@ -95,7 +95,7 @@ class ExecutionBatchTest extends Specification {
     } yield {
       val runTime = reportsParam.headOption.map( _.executionTimestamp).getOrElse(DateTime.now)
       val info = nodeExpectedReports(nodeId)
-      val runInfo = ComputeCompliance(runTime, info, runTime.plusMinutes(5))
+      val runInfo = ComputeCompliance("", runTime, info, runTime.plusMinutes(5))
 
       (nodeId, ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reportsParam))
     })

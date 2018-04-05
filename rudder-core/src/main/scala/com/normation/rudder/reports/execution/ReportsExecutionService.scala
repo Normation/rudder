@@ -86,7 +86,7 @@ class ReportsExecutionService (
         if(idForCheck != 0 && lastReportId != idForCheck) {
           logger.error(s"There is an inconsistency in the processed agent runs: last process report id shoudl be ${idForCheck} " +
               s"but the value ${lastReportId} was retrieve from base. Check that you don't have several Rudder application " +
-              s"using the same database, or report that message to you support")
+              s"using the same database, or report that message to your support")
         }
 
         // Get reports of the last id and before last report date plus maxDays
@@ -142,7 +142,7 @@ class ReportsExecutionService (
                * here.
                */
               val completedRuns = reportExec.filter( _.isCompleted )
-              this.hook(lastReportId, maxReportId, completedRuns.map { _.agentRunId.nodeId}.toSet )
+              this.hook(lastReportId, maxReportId, completedRuns)
               // end of hooks code
 
               res.map( Some(_) )
@@ -188,9 +188,10 @@ class ReportsExecutionService (
    * The hook method where the other method needing to happen when
    * new reports are processed are called.
    */
-  private[this] def hook(lowestId: Long, highestId: Long, updatedNodeIds: Set[NodeId]) : Unit = {
+  private[this] def hook(lowestId: Long, highestId: Long, completedRuns: Seq[AgentRun]) : Unit = {
     val startHooks = System.currentTimeMillis
 
+    val updatedNodeIds = completedRuns.map( _.agentRunId.nodeId ).toSet
 
     Future {
       //update changes by rules
@@ -221,11 +222,23 @@ class ReportsExecutionService (
             logger.error("Root exception was: ", ex)
           }
         case Full(x) => //youhou
-          //save compliance in DB
           complianceRepos.saveRunCompliance(x.values.toList)
           logger.trace("Cache for compliance updates after new run received")
       }
     }
+
+    // TODO: save compliance for each run
+    // yes it means that we are duplicating compliance calculus for current cache
+    // and for old ones, but we will swith to a less expensive way in 4.3 // 4.4
+    // and only use existing compliance.
+//    Future {
+      // for all runs, get relevant information,
+      // and for each resulting compliance,
+      // save compliance in DB
+
+
+//    }
+
     import org.joda.time.Duration
     logger.debug(s"Hooks execution time: ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startHooks).toPeriod())}")
 

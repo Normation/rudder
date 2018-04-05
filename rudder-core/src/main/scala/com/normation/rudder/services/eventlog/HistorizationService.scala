@@ -111,7 +111,7 @@ class HistorizationServiceImpl(
     val nodeInfos = allNodeInfo.filterNot(_.isPolicyServer).toSeq
 
     val res = (tryo {
-      // fetch all the current nodes in the jdbc
+      // fetch all the current nodes in database
       val registered = historizationRepository.getAllOpenedNodes().map(x => x.nodeId -> x).toMap
 
       // detect changes

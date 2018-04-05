@@ -40,12 +40,12 @@ package com.normation.rudder.repository.jdbc
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Empty, EmptyBox, Full}
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
-import com.normation.rudder.db.DBCommon
+import com.normation.rudder.db.{DB, DBCommon, Doobie}
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.execution._
 import com.normation.rudder.reports.FullCompliance
@@ -55,10 +55,8 @@ import com.normation.rudder.reports.AgentRunIntervalService
 import org.joda.time.Duration
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.AgentRunInterval
-import net.liftweb.common.Box
-import com.normation.rudder.domain.logger.ComplianceDebugLogger
+import com.normation.rudder.domain.logger.{ComplianceDebugLogger, PolicyLogger}
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
-import net.liftweb.common.Empty
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
 import com.normation.rudder.services.nodes.NodeInfoService
@@ -82,9 +80,10 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.Technique
+import com.normation.rudder.domain
+
 import scala.collection.SortedMap
 import com.normation.rudder.repository.ComplianceRepository
-
 
 /**
  *
@@ -235,31 +234,65 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
  * TODO: need to test for "overridden" unique directive on a node
  */
 
-  //BE CAREFUL: we don't compare on expiration dates!
-  val EXPIRATION_DATE = new DateTime(0)
+  implicit def toRuleId(id: String): RuleId = RuleId(id)
+  implicit def toNodeId(id: String): NodeId = NodeId(id)
+  implicit def toConfigId(id: String): NodeConfigId = NodeConfigId(id)
+  implicit class ToNodeAndConfigId(_id: (/*nodeid*/String,/*configid*/String)) {
+    def id:NodeAndConfigId = NodeAndConfigId(NodeId(_id._1), NodeConfigId(_id._2))
+  }
 
-  val allNodes_t1 = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n+"_t1"), gen1, Some(gen2) ))).toMap
-  val allNodes_t2 = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n+"_t2"), gen2, None ))).toMap
 
-  val allConfigs = (allNodes_t1.toSeq ++ allNodes_t2).groupBy( _._1 ).mapValues( _.map( _._2 ) )
 
-//  val expecteds = (
-//    Map[DB.ExpectedReports[Unit], Seq[DB.ExpectedReportsNodes]]()
-//    ++ expect("r0", 1)( //r0 @ t1
-//        (1, "r0_d0", "r0_d0_c0", 1, """["r0_d0_c0_v0"]""", gen1, Some(gen2), allNodes_t1 )
-//      , (1, "r0_d0", "r0_d0_c1", 1, """["r0_d0_c1_v0"]""", gen1, Some(gen2), allNodes_t1 )
-//    )
-//    ++ expect("r1", 1)( //r1 @ t1
-//        (2, "r1_d1", "r1_d1_c0", 1, """["r1_d1_c0_v0"]""", gen1, Some(gen2), allNodes_t1 )
-//    )
-//    ++ expect("r0", 2)( //r0 @ t2
-//        (3, "r0_d0", "r0_d0_c0", 1, """["r0_d0_c0_v1"]""", gen2, None, allNodes_t2 )
-//      , (3, "r0_d0", "r0_d0_c1", 1, """["r0_d0_c1_v1"]""", gen2, None, allNodes_t2 )
-//    )
-//    ++ expect("r2", 1)( //r2 @ t2
-//        (4, "r2_d2", "r2_d2_c0", 1, """["r2_d2_c0_v0"]""", gen2, None, allNodes_t2 )
-//    )
-//  )
+
+  // for all the nodes, create node exeptected reports for the given date with EMPTY ruleExecptedReports
+  def nodeExpectedReportsTemplate(nodeIds: List[NodeId], configIdPostFix: String, start: DateTime, end: Option[DateTime]): List[NodeExpectedReports] = {
+    nodeIds.map(n => NodeExpectedReports(
+        n
+      , NodeConfigId(n.value+configIdPostFix)
+      , start
+      , end
+      , NodeConfigData.defaultModesConfig
+      , Nil
+    ))
+  }
+
+  def ruleExpectedReports(ruleId: String, serial: Int,
+    //                directiveId  policyMode                component   cardinality   componentValues
+    directives: List[(String     , Option[PolicyMode], List[(String    , Int         , String         )] )]): RuleExpectedReports = {
+    RuleExpectedReports(RuleId(ruleId), serial, directives.map { d =>
+      DirectiveExpectedReports(DirectiveId(d._1), d._2, false, d._3.map { c =>
+        ComponentExpectedReport(c._1, c._2, List(c._3), List(c._3))
+      }.toList)
+    }.toList)
+  }
+
+  val nodeIds = List("n0", "n1", "n2", "n3", "n4").map(NodeId)
+  val allNodes_t1 = nodeExpectedReportsTemplate(nodeIds, "_t1", gen1, Some(gen2))
+  val allNodes_t2 = nodeExpectedReportsTemplate(nodeIds, "_t2", gen2, None      )
+  val allConfigs = (allNodes_t1.toSeq ++ allNodes_t2)
+
+
+
+  val expecteds_t1: List[NodeExpectedReports] = allNodes_t1.map( _.copy(ruleExpectedReports =
+    ruleExpectedReports("r0", 1, ("r0_d0", None, List(("r0_d0_c0", 1, "r0_d0_c0_v0")
+                                                    , ("r0_d0_c1", 1, "r0_d0_c1_v0")
+    )) :: Nil) ::
+    ruleExpectedReports("r1", 1, ("r1_d1", None, List(("r1_d1_c0", 1, "r1_d1_c0_v0")
+    )) :: Nil) ::
+    Nil
+  ))
+
+  val expecteds_t2: List[NodeExpectedReports] = allNodes_t2.map( _.copy(ruleExpectedReports =
+    ruleExpectedReports("r0", 2, ("r0_d0", None, List(("r0_d0_c0", 1, "r0_d0_c0_v1")
+                                                    , ("r0_d0_c1", 1, "r0_d0_c1_v1")
+    )) :: Nil) ::
+    ruleExpectedReports("r2", 1, ("r2_d2", None, List(("r2_d2_c0", 1, "r2_d2_c0_v0")
+    )) :: Nil) ::
+    Nil
+  ))
+
+  val expecteds = expecteds_t1 ::: expecteds_t2
+
 
   val reports = (
     Map[String, Seq[Reports]]()
@@ -322,20 +355,17 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   "Init data" should {
 
-//    "insert reports 1" in {
-//
-//      val q = for {
-//        r <- DB.insertReports(reports.values.toList.flatten)
-//        e <- DB.insertExpectedReports(expecteds.keySet.toList)
-//        n <- DB.insertExpectedReportsNode(expecteds.values.toSet.flatten.toList)
-//      } yield {
-//        (r, e, n)
-//      }
-//
-//      val (r, e, n) = q.transact(xa).unsafePerformSync
-//
-//      (r must be_==(30)) and (e must be_==(6)) and (n must be_==(20))
-//    }
+    "insert reports 1" in {
+
+      import Doobie._
+      import doobie._
+
+      val r  = DB.insertReports(reports.values.toList.flatten).transact(xa).unsafePerformSync
+      val e1 = updateExpected.saveNodeExpectedReports(expecteds_t1).openOrThrowException("Saving expected reports #1 must succeed").size
+      val e2 = updateExpected.saveNodeExpectedReports(expecteds_t2).openOrThrowException("Saving expected reports #2 must succeed").size
+
+      (r must be_==(30)) and (e1+e2 must be_==(10))
+    }
 
 
     "insert execution" in {
@@ -344,91 +374,99 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       (updateRuns.findAndSaveExecutions(43) mustFull)
     }
 
-//    "insert node config info" in {
-//      //add node configuration in repos, testing "add" method
-//      (updateExpected.addNodeConfigIdInfo(allNodes_t1.mapValues(_.configId), gen1) mustFull) and
-//      (updateExpected.addNodeConfigIdInfo(allNodes_t2.mapValues(_.configId), gen2) mustFull)
-//    }
+    "nodes config info should be correctly inserted" in {
+      import Doobie._
+      import doobie._
+
+      val infos = Query0[String]("select config_ids from nodes_info where node_id = 'n1'").unique.transact(xa).unsafePerformSync
+
+      infos must beEqualTo(s"""[{"$gen1":"n1_t1"},{"$gen2":"n1_t2"}]""")
+    }
   }
 
   "Testing set-up for expected reports and agent run" should {  //be in ExpectedReportsTest!
-    //essentially test the combination of in/in(values clause
 
-    // TODO : CORRECT TESTS
-//    "be correct for in(tuple) clause" in {
-//      val res = findExpected.getExpectedReports(configs(("n1","n1_t1"))).openOrThrowException("'Test failed'")
-//      (res.size must beEqualTo(1)) and
-//      (res("n1").ruleExpectedReports.size must beEqualTo(2)) and
-//      (res("n1").nodeConfigId.value must beEqualTo("n1_t1"))
-//    }
-//
-//    "be correct for in(value(tuple)) clause" in {
-//      val res = findExpected.getExpectedReports(configs(("n1","n1_t1"),("n2","n2_t1"))).openOrThrowException("'Test failed'")
-//      (res.size must beEqualTo(2)) and (
-//       res("n1").ruleExpectedReports.size must beEqualTo(2)
-//      ) and (
-//       res("n1").nodeConfigId.value must beEqualTo("n1_t1")
-//      ) and (
-//       res("n2").ruleExpectedReports.size must beEqualTo(2)
-//      ) and (
-//       res("n1").nodeConfigId.value must beEqualTo("n2_t1")
-//      )
-//    }
+    "be correct for in(tuple) clause" in {
+        // Box[Map[NodeAndConfigId, Option[NodeExpectedReports]]]
+      val res = findExpected.getExpectedReports(configs(("n1","n1_t1"))).openOrThrowException("'Test failed'").mapValues(
+          _.getOrElse(throw new Exception("Required expected reports must be defined"))
+      )
+      (res.size must beEqualTo(1)) and
+      (res(("n1","n1_t1").id).ruleExpectedReports.size must beEqualTo(2)) and
+      (res(("n1","n1_t1").id).nodeConfigId.value must beEqualTo("n1_t1"))
+    }
+
+    "be correct for in(value(tuple)) clause" in {
+      val res = findExpected.getExpectedReports(configs(("n1","n1_t1"),("n2","n2_t1"))).openOrThrowException("'Test failed'").mapValues(
+          _.getOrElse(throw new Exception("Required expected reports must be defined"))
+      )
+      (res.size must beEqualTo(2)) and (
+       res(("n1","n1_t1").id).ruleExpectedReports.size must beEqualTo(2)
+      ) and (
+       res(("n1","n1_t1").id).nodeConfigId.value must beEqualTo("n1_t1")
+      ) and (
+       res(("n2","n2_t1").id).ruleExpectedReports.size must beEqualTo(2)
+      ) and (
+       res(("n2","n2_t1").id).nodeConfigId.value must beEqualTo("n2_t1")
+      )
+    }
 
     "contains runs for node" in {
+      def agentRuns(runs:(String, Option[(DateTime, Option[(String, Option[NodeExpectedReports])], Boolean, Long)])*): Map[NodeId, Option[AgentRunWithNodeConfig]] = {
+        runs.map { case (id, opt) =>
+          NodeId(id) -> opt.map(e => AgentRunWithNodeConfig(AgentRunId(NodeId(id), e._1), e._2.map(x => (NodeConfigId(x._1), x._2)), e._3, e._4))
+        }.toMap
+      }
+
       val res = roAgentRun.getNodesLastRun(Set("n0", "n1", "n2", "n3", "n4").map(NodeId(_))).openOrThrowException("test failed")
 
       res must beEqualTo(agentRuns(
-          ("n0" -> None                               )
-        , ("n1" -> Some(( run1, None         , true, 106 )))
-        , ("n2" -> Some(( run1, Some("n2_t1"), true, 102 )))
-        , ("n3" -> Some(( run2, None         , true, 126 )))
-        , ("n4" -> Some(( run2, Some("n4_t2"), true, 116 )))
+          ("n0" -> None                                                             )
+        , ("n1" -> Some(( run1, None                                  , true, 106 )))
+        , ("n2" -> Some(( run1, Some(("n2_t1", Some(expecteds_t1(2)))), true, 102 )))
+        , ("n3" -> Some(( run2, None                                  , true, 126 )))
+        , ("n4" -> Some(( run2, Some(("n4_t2", Some(expecteds_t2(4)))), true, 116 )))
       ))
 
     }
 
-    // TODO : CORRECT TESTS
-//    "return the correct expected reports on hardcode query" in {
-//
-//      val expectedInBase = findExpected.getExpectedReports(Set(
-//          NodeAndConfigId(NodeId("n4"),NodeConfigId("n4_t2"))
-//        , NodeAndConfigId(NodeId("n0"),NodeConfigId("n0_t2"))
-//        , NodeAndConfigId(NodeId("n3"),NodeConfigId("n3_t1"))
-//        , NodeAndConfigId(NodeId("n1"),NodeConfigId("n1_t1"))
-//        , NodeAndConfigId(NodeId("n2"),NodeConfigId("n2_t1"))
-//      ), Set(RuleId("r2")) ).openOrThrowException("Failed test, should be a full box")
-//
-//      val r = Map(
-//          SerialedRuleId(RuleId("r2"), 1) ->
-//          RuleNodeExpectedReports(
-//                RuleId("r2")
-//              , 1
-//              , List(DirectiveExpectedReports(DirectiveId("r2_d2"), Some(PolicyMode.Audit),
-//                  List(ComponentExpectedReport("r2_d2_c0",1,List("r2_d2_c0_v0"),List("r2_d2_c0_v0"))))
-//                )
-//              , gen2
-//              , None
-//      ))
-//
-//      val expected = Map(
-//        NodeId("n1") -> Map(NodeConfigId("n1_t1") -> Map()),
-//        NodeId("n2") -> Map(NodeConfigId("n2_t1") -> Map()),
-//        NodeId("n0") -> Map(NodeConfigId("n0_t2") -> r),
-//        NodeId("n3") -> Map(NodeConfigId("n3_t1") -> Map()),
-//        NodeId("n4") -> Map(NodeConfigId("n4_t2") -> r)
-//      )
-//
-//      expectedInBase must beEqualTo(expected)
-//
-//    }
+    "return the correct expected reports on hardcode query" in {
+
+      val expectedInBase = findExpected.getExpectedReports(configs(
+          ("n1", "n1_t1")
+        , ("n2", "n2_t1")
+        , ("n3", "n3_t1")
+        , ("n0", "n0_t2")
+        , ("n4", "n4_t2")
+      )).openOrThrowException("Failed test, should be a full box").mapValues( _.flatMap( x =>
+        x.ruleExpectedReports.filter( _.ruleId == RuleId("r2") ).headOption
+      ))
+
+      val r = RuleExpectedReports(
+          RuleId("r2")
+        , 1
+        , List(DirectiveExpectedReports(DirectiveId("r2_d2"), None, false,
+            List(ComponentExpectedReport("r2_d2_c0",1,List("r2_d2_c0_v0"),List("r2_d2_c0_v0"))))
+          )
+      )
+
+      val expected = Map[NodeAndConfigId, Option[RuleExpectedReports]](
+          ("n1", "n1_t1").id -> None
+        , ("n2", "n2_t1").id -> None
+        , ("n3", "n3_t1").id -> None
+        , ("n0", "n0_t2").id -> Some(r)
+        , ("n4", "n4_t2").id -> Some(r)
+      )
+
+      expectedInBase must beEqualTo(expected)
+
+    }
 
     "contains the node config ids" in {
+      val configs = findExpected.getNodeConfigIdInfos(nodeIds.toSet).
+        openOrThrowException("Test failed: the box should be full").values.flatten.map(_.map(_.configId)).flatten
 
-      val configs = findExpected.getNodeConfigIdInfos(allConfigs.keySet).openOrThrowException("Test failed: the box should be full")
-
-       configs.values.flatten.flatten must containTheSameElementsAs(allConfigs.values.toSeq.flatten)
-
+      configs must containTheSameElementsAs(allConfigs.map( _.nodeConfigId ))
     }
 
   }
@@ -446,8 +484,12 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
       ComplianceDebugLogger.info("change only / get r0")
 
+//      val logger = org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[ch.qos.logback.classic.Logger]
+//      logger.setLevel(ch.qos.logback.classic.Level.TRACE)
       val r = errorOnlyReportingService.findDirectiveRuleStatusReportsByRule(RuleId("r0"))
-      val result = r.openOrThrowException("'Test failed'")
+//      logger.setLevel(ch.qos.logback.classic.Level.INFO)
+
+      val result = r.openOrThrowException("'Test failed'").report.reports
 
       val expected = Seq(
           /*
@@ -463,7 +505,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
           ))
           /*
            * No second run, and since we don't have configId, we look how far
-           * we are from the oldest config. As if it's ok, the node is not sending
+           * we are from the oldest config. As it's ok, the node is not sending
            * bad reports.
            * So we look for current config, it's still pending.
            */
@@ -504,7 +546,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
           ))
       )
 
-      compareNodeStatus(result.report.reports, expected)
+      compareNodeStatus(result, expected)
     }
 
     "get r1" in {
@@ -894,6 +936,10 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
    *
    */
   def compareNodeStatus(results:Set[RuleNodeStatusReport], expecteds:Seq[RuleNodeStatusReport]) = {
+    //BE CAREFUL: we don't compare on expiration dates!
+    // (why so ?)
+    val EXPIRATION_DATE = new DateTime(0)
+
     val x = results.toSeq.sortBy(ruleNodeComparator).map(a => a.copy(expirationDate = EXPIRATION_DATE))
     val y = expecteds.sortBy(ruleNodeComparator).map(a => a.copy(expirationDate = EXPIRATION_DATE))
     x must containTheSameElementsAs(y)
@@ -939,30 +985,12 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     )
   }
 
-//  def expect(ruleId: String, serial: Int)
-//            //           nodeJoinKey, directiveId  component   cardinality   componentValues  beging     end            , (nodeId, version)
-//            (expecteds: (Int        , String     , String    , Int         , String         , DateTime, Option[DateTime], Map[NodeId,NodeConfigIdInfo])*)
-//  : Map[DB.ExpectedReports[Unit], Seq[DB.ExpectedReportsNodes]] = {
-//    expecteds.map { exp =>
-//      DB.ExpectedReports[Unit]((), exp._1, RuleId(ruleId), serial, DirectiveId(exp._2), exp._3, exp._4, exp._5, exp._5, exp._6, exp._7) ->
-//      exp._8.map{ case (nodeId, version) =>
-//        DB.ExpectedReportsNodes(exp._1, nodeId.value, version.configId.value :: Nil)
-//      }.toSeq
-//    }.toMap
-//  }
+
 
   //         nodeId               ruleId  serial dirId   comp     keyVal   execTime   severity  msg
   def node(nodeId:String)(lines: (String, Int,   String, String,  String,  DateTime,  String,   String)*): (String, Seq[Reports]) = {
     (nodeId, lines.map(t => toReport((t._6, t._1, t._3, nodeId, t._2,t._4,t._5,t._6,t._7,t._8))))
   }
 
-  implicit def toRuleId(id: String): RuleId = RuleId(id)
-  implicit def toNodeId(id: String): NodeId = NodeId(id)
-  implicit def toConfigId(id: String): NodeConfigId = NodeConfigId(id)
 
-  implicit def agentRuns(runs:(String, Option[(DateTime, Option[String], Boolean, Long)])*): Map[NodeId, Option[AgentRun]] = {
-    runs.map { case (id, opt) =>
-      NodeId(id) -> opt.map(e => AgentRun(AgentRunId(NodeId(id), e._1), e._2.map(NodeConfigId(_)), e._3, e._4))
-    }.toMap
-  }
 }

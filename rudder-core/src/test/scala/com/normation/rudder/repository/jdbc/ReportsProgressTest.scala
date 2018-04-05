@@ -41,13 +41,13 @@ import com.normation.BoxSpecMatcher
 import com.normation.rudder.db.DB.StatusUpdate
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.reports.execution.LastProcessedReportRepositoryImpl
-
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
 import scalaz.{Failure => _}
 import doobie.imports._
+import net.liftweb.common.Empty
 
 /**
  *
@@ -89,7 +89,7 @@ class ReportsProgressTest extends DBCommon with BoxSpecMatcher {
   "Last logged id" should {
 
     "correctly insert at start" in {
-      (lastlogged.getReportLoggerLastId mustFails()) and
+      (lastlogged.getReportLoggerLastId must beEqualTo(Empty)) and //here, Empty has a meaning :(
       (lastlogged.updateReportLoggerLastId(43) mustFullEq(43) ) and
       (lastlogged.getReportLoggerLastId mustFullEq(43))
     }

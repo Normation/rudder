@@ -85,60 +85,48 @@ object ComplianceDebugLogger extends Logger {
   implicit class RunAndConfigInfoToLog(c: RunAndConfigInfo) {
 
     val logDetails: String = c match {
-      case NoRunNoExpectedReport =>
+      case NoRunNoExpectedReport(msg) =>
         "expected NodeConfigId: not found | last run: not found"
 
-      case NoExpectedReport(lastRunDateTime, lastRunConfigId) =>
+      case NoExpectedReport(msg, lastRunDateTime, lastRunConfigId) =>
          s"expected NodeConfigId: not found |"+
          s" last run: nodeConfigId: ${lastRunConfigId.fold("none")(_.value)} received at ${lastRunDateTime}"
 
-      case NoReportInInterval(expectedConfigId) =>
+      case NoReportInInterval(msg, expectedConfigId) =>
          s"expected NodeConfigId: ${expectedConfigId.toLog}|"+
          s" last run: none available (or too old)"
 
-      case ReportsDisabledInInterval(expectedConfigId) =>
+      case ReportsDisabledInInterval(msg, expectedConfigId) =>
          s"expected NodeConfigId: ${expectedConfigId.toLog}|"+
          s" last run: none available (compliance mode is reports-disabled)]"
 
-      case Pending(expectedConfigId, optLastRun, expirationDateTime) =>
+      case Pending(msg, expectedConfigId, optLastRun, expirationDateTime) =>
         s"until ${expirationDateTime} expected NodeConfigId: ${expectedConfigId.toLog} |"+
-        s" last run: ${optLastRun.fold("none (or too old)")(x => s"nodeConfigId: ${x._2.toLog} received at ${x._1}")}"
+        s" last run: ${optLastRun.fold("none (or too old)")(x => s"${x._2.fold("no configuration id for run")(y => s"nodeConfigId: ${y.toLog}")} received at ${x._1}")}"
 
-      case UnexpectedVersion(lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfigId, expectedExpiration) =>
+      case UnexpectedVersion(msg, lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfigId, expectedExpiration) =>
         s"expected NodeConfigId: ${expectedConfigId.toLog} |"+
         s" last run: nodeConfigInfo: ${lastRunConfigInfo.toLog} received at ${lastRunDateTime} |"+
         s" expired at ${lastRunExpiration}"
 
-      case UnexpectedUnknowVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration) =>
+      case UnexpectedUnknowVersion(msg, lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
         s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime} |"+
         s" expired at ${expectedExpiration}"
 
-      case UnexpectedNoVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfig, expectedExpiration) =>
+      case UnexpectedNoVersion(msg, lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfig, expectedExpiration) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
         s" last run: no configId, received at ${lastRunDateTime} |"+
         s" expired at ${lastRunExpiration}"
 
-      case x@ComputeCompliance(lastRunDateTime, expectedConfig, expirationDateTime) =>
+      case x@ComputeCompliance(msg, lastRunDateTime, expectedConfig, expirationDateTime) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
         s" last run: nodeConfigId: ${x.lastRunConfigId.value} received at ${lastRunDateTime} |"+
         s" expired at ${expirationDateTime}"
 
     }
 
-    val logName =  c match {
-      case    NoRunNoExpectedReport     => "NoRunNoExpectedReport"
-      case _: NoExpectedReport          => "NoRunNoExpectedReport"
-      case _: NoReportInInterval        => "NoReportInInterval"
-      case _: UnexpectedVersion         => "UnexpectedVersion"
-      case _: UnexpectedNoVersion       => "UnexpectedNoVersion"
-      case _: UnexpectedUnknowVersion   => "UnexpectedUnknowVersion"
-      case _: ReportsDisabledInInterval => "ReportsDisabledInInterval"
-      case _: Pending                   => "Pending"
-      case _: ComputeCompliance         => "ComputeCompliance"
-    }
-
-    val toLog: String = logName + ": " + logDetails
+    val toLog: String = c.name + ": " + logDetails
   }
 
   implicit class AgentRunConfigurationToLog(info: (NodeId, ComplianceMode, ResolvedAgentRunInterval)) {
