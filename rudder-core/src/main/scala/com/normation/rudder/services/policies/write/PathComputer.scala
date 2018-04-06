@@ -70,6 +70,7 @@ class PathComputerImpl(
     , backupFolder: String // "/var/rudder/backup/"
     , communityAgentRootPath: String // "/var/rudder/cfengine-community/inputs"
     , enterpriseAgentRootPath: String // "/var/cfengine/inputs"
+    , chainDepthLimit: Int = 20 // max number of relay, to detect cycles
 ) extends PathComputer with Loggable {
 
   private[this] val promisesPrefix = "/rules"
@@ -92,7 +93,7 @@ class PathComputerImpl(
       Failure("ComputeBaseNodePath can not be used to get the (special) root paths")
     } else {
       for {
-        path <- recurseComputePath(rootNodeId, searchedNodeId, "/"  + searchedNodeId.value, allNodeConfigs)
+        path <- recurseComputePath(rootNodeId, searchedNodeId, "/"  + searchedNodeId.value, allNodeConfigs, Nil)
       } yield {
         NodePromisesPaths(
             searchedNodeId
@@ -123,29 +124,37 @@ class PathComputerImpl(
    * recurseComputePath(root, B, path) will return : machineA/share/ + path
    * recurseComputePath(A, B, path) will return : machineA/share/+ path
    * recurseComputePath(root, A, path) will return :  path
-   * @param fromNode
-   * @param toNode
-   * @param path
-   * @return
+   *
+   * We want to avoid stackoverflow if the user made an error and did a
+   * cycle in parents chain. We also want to provide an interesting
+   * information (the faulty chain)
+   * So we limit the depth of recursion to arbitrary 20 levels, and display them
+   * if they are reached.
+   *
    */
-  private def recurseComputePath(fromNodeId: NodeId, toNodeId: NodeId, path : String, allNodeConfig: Map[NodeId, NodeInfo]) : Box[String] = {
+  private def recurseComputePath(fromNodeId: NodeId, toNodeId: NodeId, path : String, allNodeConfig: Map[NodeId, NodeInfo], chain: List[NodeId]) : Box[String] = {
     if (fromNodeId == toNodeId) {
       Full(path)
     } else {
-      for {
-        toNode <- Box(allNodeConfig.get(toNodeId)) ?~! s"Missing node with id ${toNodeId.value} when trying to build the promise files path for node ${fromNodeId.value}"
-        pid    =  toNode.policyServerId
-        parent <- Box(allNodeConfig.get(pid)) ?~! s"Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the promise files for node ${fromNodeId.value}"
-        result <- parent match {
-                    case root if root.id == NodeId("root") =>
-                        // root is a specific case, it is the root of everything
-                        recurseComputePath(fromNodeId, root.id, path, allNodeConfig)
+      if(chain.size >= chainDepthLimit) {
+        Failure(s"We reach the maximum number of relay depth (${chainDepthLimit}), which is likely to denote a cycle in the chain of policy parents. " +
+                s"The faulty chain of node ID is: ${chain.reverse.map(_.value).mkString(" -> ")}")
+      } else {
+        for {
+          toNode <- Box(allNodeConfig.get(toNodeId)) ?~! s"Missing node with id ${toNodeId.value} when trying to build the promise files path for node ${fromNodeId.value}"
+          pid    =  toNode.policyServerId
+          parent <- Box(allNodeConfig.get(pid)) ?~! s"Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the promise files for node ${fromNodeId.value}"
+          result <- parent match {
+                      case root if root.id == NodeId("root") =>
+                          // root is a specific case, it is the root of everything
+                          recurseComputePath(fromNodeId, root.id, path, allNodeConfig, root.id :: chain)
 
-                    case policyParent =>
-                        recurseComputePath(fromNodeId, policyParent.id, policyParent.id.value + "/" + relativeShareFolder + "/" + path, allNodeConfig)
-                  }
-      } yield {
-        result
+                      case policyParent =>
+                          recurseComputePath(fromNodeId, policyParent.id, policyParent.id.value + "/" + relativeShareFolder + "/" + path, allNodeConfig, policyParent.id :: chain)
+                    }
+        } yield {
+          result
+        }
       }
     }
   }
