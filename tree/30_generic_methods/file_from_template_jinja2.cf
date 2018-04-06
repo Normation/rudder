@@ -232,9 +232,9 @@ bundle agent file_from_template_jinja2(source_template, destination)
                              ifvarclass => "should_report";
       "report"              usebundle  => _log("Build file ${destination} from jinja2 template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
 
-   reports:
-     # Display templating errors in case of failure.
-     "Templating error: ${errors}" ifvarclass => "state_dumped_ok.!templating_ok";
-
+  reports:
+    pass3::
+      # Display templating errors in case of failure.
+      "Templating error: ${errors}" ifvarclass => "state_dumped_ok.!templating_ok";
 }
 
