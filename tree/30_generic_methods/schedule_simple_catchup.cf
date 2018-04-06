@@ -37,7 +37,6 @@
 # @parameter periodicity_minutes   How often should the job run
 # @parameter periodicity_hours     How often should the job run
 # @parameter periodicity_days      How often should the job run
-# @parameter mode                  "nodups": avoid duplicate runs in the same period / "catchup": avoid duplicates and one or more run have been missed, run once before next period / "stateless": no check is done on past runs
 # 
 # @class_prefix schedule_simple
 # @class_parameter job_id
