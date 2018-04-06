@@ -50,7 +50,7 @@ bundle agent schedule_simple_catchup(job_id, agent_periodicity,
 {
   vars:
     any::
-      "old_class_prefix" string => "schedule_simple_${job_id}";
+      "old_class_prefix" string => canonify("schedule_simple_${job_id}");
       "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
