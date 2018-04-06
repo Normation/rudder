@@ -38,23 +38,25 @@
 package com.normation.rudder.web.snippet.administration
 
 import scala.xml.NodeSeq
-import net.liftweb.common.Loggable
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.Script
 import net.liftweb.http.js.JsCmds.jsExpToJsCmd
 import bootstrap.liftweb.RudderConfig
+import com.normation.plugins.{SnippetExtensionKey, SpringExtendableSnippet}
 
 
-class ApiAccounts extends DispatchSnippet with Loggable {
+class ApiAccounts extends DispatchSnippet with SpringExtendableSnippet[ApiAccounts] {
+  def extendsAt = SnippetExtensionKey(classOf[ApiAccounts].getSimpleName)
 
   private[this] val relativePath = RudderConfig.restApiAccounts.relativePath.mkString("/","/","")
 
-  def dispatch = {
-    case "render" => render
-  }
+  def mainDispatch = Map(
+      "render" -> render
+    , "body"   -> identity
+  )
 
-  def render(xml:NodeSeq) : NodeSeq = <head>{Script(JsRaw(s"""var contextPath = "${S.contextPath}"; var apiPath = "${S.contextPath+relativePath}"; """))}</head>
+  def render(xml:NodeSeq) : NodeSeq = <head>{Script(JsRaw(s"""var apiPath = "${S.contextPath+relativePath}"; """))}</head>
 
 }

@@ -62,6 +62,7 @@ accountManagement.controller('AccountCtrl', function ($scope, $http, DTOptionsBu
   $scope.getAccounts = function() {
     $http.get(apiPath).
     then(function (response) {
+      $scope.aclPlugin = response.data.data.aclPluginEnabled;
       $scope.accounts = response.data.data.accounts;
       return $scope.accounts
     }, function(response) {
