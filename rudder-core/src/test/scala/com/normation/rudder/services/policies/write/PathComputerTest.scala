@@ -77,4 +77,14 @@ class PathComputerTest extends Specification {
       beEqualTo(Full(NodePromisesPaths(node2.id, "/var/rudder/share/node1/share/node2/rules", "/var/rudder/share/node1/share/node2/rules.new", "/var/rudder/backup/node1/share/node2/rules")))
     }
   }
+
+  "When there is a loop in the policy server parent chain, the algo" should {
+    "raise an error" in {
+      val badNode1 = node1NodeConfig.copy(nodeInfo = node1NodeConfig.nodeInfo.copy(policyServerId = node2.id) )
+      val badNode2 = node2NodeConfig.copy(nodeInfo = node2NodeConfig.nodeInfo.copy(policyServerId = node1.id) )
+      val badConfig = allNodeConfig + (node1.id -> badNode1) + (node2.id -> badNode2)
+      pathComputer.computeBaseNodePath(node1.id, root.id, badConfig.mapValues(_.nodeInfo)) must beAnInstanceOf[Failure]
+    }
+  }
+
 }
