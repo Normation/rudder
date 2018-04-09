@@ -75,7 +75,7 @@ case class TechniqueAPIService6 (
     }
   }
 
-  def listDirectives (techniqueName : TechniqueName, wantedVersions: Option[List[TechniqueVersion]])  : Box[JValue] = {
+  def listTechniquesDirectives (techniqueName : TechniqueName, wantedVersions: Option[List[TechniqueVersion]])  : Box[JValue] = {
     def serializeDirectives (directives : Seq[Directive], techniques : SortedMap[TechniqueVersion, Technique], wantedVersions: Option[List[TechniqueVersion]] ) = {
      for {
        directive <- directives

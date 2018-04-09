@@ -78,7 +78,7 @@ class TechniqueAPI6 (
       , "directives"
       , Some(name)
       )(
-          apiV6.listDirectives(techniqueName, None)
+          apiV6.listTechniquesDirectives(techniqueName, None)
         , req
         , s"Could not find list of directives based on '${techniqueName}' Technique"
        ) ("listTechniquesDirectives")
@@ -87,7 +87,7 @@ class TechniqueAPI6 (
       val techniqueName = TechniqueName(name)
       val directives = Try(TechniqueVersion(version)) match {
         case Success(techniqueVersion) =>
-              apiV6.listDirectives(techniqueName, Some(techniqueVersion :: Nil))
+              apiV6.listTechniquesDirectives(techniqueName, Some(techniqueVersion :: Nil))
         case TryFailure(exception) =>
           Failure(s"Could not find list of directives based on '${techniqueName}' Technique, because we could not parse '${version}' as a valid technique version")
       }
