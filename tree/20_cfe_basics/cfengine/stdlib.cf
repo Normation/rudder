@@ -1,0 +1,89 @@
+############################################################################
+#  Copyright 2017 Northern.tech AS
+#
+#  This program is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License LGPL as published by the
+#  Free Software Foundation; version 3.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  To the extent this program is licensed as part of the Enterprise
+#  versions of CFEngine, the applicable Commercial Open Source License
+#  (COSL) may apply to this file if you as a licensee so wish it. See
+#  included file COSL.txt.
+###########################################################################
+#
+# CFEngine Community Open Promise-Body Library
+#
+# This initiative started by CFEngine promotes a
+# standardized set of names and promise specifications
+# for template functionality within CFEngine 3.
+#
+# The aim is to promote an industry standard for
+# naming of configuration patterns, leading to a
+# de facto middleware of standardized syntax.
+#
+# Names should be intuitive and parameters should be
+# minimal to assist readability and comprehensibility.
+
+# Contributions to this file are voluntarily given to
+# the cfengine community, and are moderated by CFEngine.
+# No liability or warranty for misuse is implied.
+#
+# If you add to this file, please try to make the
+# contributions "self-documenting". Comments made
+# after the bundle/body statement are retained in
+# the online docs
+#
+
+# For CFEngine Core: 3.7.0 to 3.7.x
+# Main COPBL include file
+
+###################################################
+# If you find CFEngine useful, please consider    #
+# purchasing a commercial version of the software.#
+###################################################
+
+bundle common stdlib_common
+# @brief Select which parts of the stdlib should be added to inputs
+{
+  vars:
+
+      "input[paths]"                      string => "$(this.promise_dirname)/paths.cf";
+      "input[common]"                     string => "$(this.promise_dirname)/common.cf";
+      "input[commands]"                   string => "$(this.promise_dirname)/commands.cf";
+      "input[packages]"                   string => "$(this.promise_dirname)/packages.cf";
+      "input[files]"                      string => "$(this.promise_dirname)/files.cf";
+      "input[edit_xml]"                   string => "$(this.promise_dirname)/edit_xml.cf";
+      "input[services]"                   string => "$(this.promise_dirname)/services.cf";
+      "input[processes]"                  string => "$(this.promise_dirname)/processes.cf";
+      "input[storage]"                    string => "$(this.promise_dirname)/storage.cf";
+      "input[databases]"                  string => "$(this.promise_dirname)/databases.cf";
+      "input[users]"                      string => "$(this.promise_dirname)/users.cf";
+      "input[monitor]"                    string => "$(this.promise_dirname)/monitor.cf";
+      "input[guest_environments]"         string => "$(this.promise_dirname)/guest_environments.cf";
+      "input[bundles]"                    string => "$(this.promise_dirname)/bundles.cf";
+      "input[reports]"                    string => "$(this.promise_dirname)/reports.cf";
+      "input[cfe_internal]"               string => "$(this.promise_dirname)/cfe_internal.cf";
+      "input[cfe_internal_hub]"           string => "$(this.promise_dirname)/cfe_internal_hub.cf";
+      "input[cfengine_enterprise_hub_ha]" string => "$(this.promise_dirname)/cfengine_enterprise_hub_ha.cf";
+
+      # jUnit and TAP reports
+      "input[testing]"                      string => "$(this.promise_dirname)/testing.cf";
+
+    any::
+      "inputs" slist => getvalues(input);
+
+  reports:
+    verbose_mode::
+      "$(this.bundle): adding COPBL stdlib inputs='$(inputs)'";
+}
+
+body file control
+# @brief Include the standard library files selected to inputs
+{
+      inputs => { @(stdlib_common.inputs) };
+}

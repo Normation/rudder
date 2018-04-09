@@ -8,7 +8,8 @@ The `cfengine` folder contains the CFEngine stdlib from 3.10.
 
 The changes made are:
 
-* Removing some files we do not use: testing.cf, autorun.cf, stdlib.cf, examples.cf, cfe_internal_hub.cf, cfengine_enterprise_hub_ha.cf
+* Removing some files we do not use and break ncf policies: stdlib.cf, autorun.cf
+* Removing some files used to manage CFEngine buhs: cfe_internal_hub.cf, cfengine_enterprise_hub_ha.cf
 * Changing all body action in common.cf to take the dry_run classes into account
 * Add back `_not_repaired` classes in classes_generic (https://tracker.mender.io/browse/CFE-1843)
 * In packages.cf, add the test package_method and change query_updates_ifelapsed to 240 minutes

@@ -1,0 +1,122 @@
+############################################################################
+#  Copyright 2017 Northern.tech AS
+#
+#  This program is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License LGPL as published by the
+#  Free Software Foundation; version 3.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  To the extent this program is licensed as part of the Enterprise
+#  versions of CFEngine, the applicable Commercial Open Source License
+#  (COSL) may apply to this file if you as a licensee so wish it. See
+#  included file COSL.txt.
+###########################################################################
+#
+# CFEngine Community Open Promise-Body Library
+#
+# This initiative started by CFEngine promotes a
+# standardized set of names and promise specifications
+# for template functionality within CFEngine 3.
+#
+# The aim is to promote an industry standard for
+# naming of configuration patterns, leading to a
+# de facto middleware of standardized syntax.
+#
+# Names should be intuitive and parameters should be
+# minimal to assist readability and comprehensibility.
+
+# Contributions to this file are voluntarily given to
+# the cfengine community, and are moderated by CFEngine.
+# No liability or warranty for misuse is implied.
+#
+# If you add to this file, please try to make the
+# contributions "self-documenting". Comments made
+# after the bundle/body statement are retained in
+# the online docs
+#
+
+# For CFEngine Core: 3.7.0 to 3.7.x
+# Examples you may find useful
+
+###################################################
+# If you find CFEngine useful, please consider    #
+# purchasing a commercial version of the software.#
+###################################################
+
+bundle agent probabilistic_usebundle(probability, bundlename)
+# @brief activate named bundle probabilistically
+# @param probability probability that the named bundle will be activated during
+# a given agent execution
+# @param bundlename the bundle to activate based on the probability
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#    methods:
+#      "Toss Coin"
+#        usebundle => probabilistic_usebundle("50", "heads"),
+#        comment => "Call bundle heads ~ 50% of the time";
+#
+#      "Trick Coin"
+#        usebundle => probabilistic_usebundle("75", "heads"),
+#        comment => "Call bundle heads ~ 75% of the time";
+# }
+# ```
+{
+  classes:
+    "fifty_fifty"
+      expression => strcmp("$(probability)", "50"),
+      comment => "We have to special case 50 because of the way dist classes
+                  work you would always get 50 defined";
+    "not_fifty_fifty" expression => "!fifty_fifty";
+    "have_remainder" expression => isvariable("remainder");
+
+    fifty_fifty.have_remainder::
+      "activate_bundle"
+        dist => { "$(probability)000", "$(remainder)"};
+
+    not_fifty_fifty.have_remainder::
+      "activate_bundle"
+        dist => { "$(probability)", "$(remainder)"};
+
+  vars:
+    fifty_fifty::
+      "remainder"
+        string => format("%d", eval("((100 - $(probability)) * 1000) +1", "math", "infix"));
+
+    not_fifty_fifty::
+      "remainder"
+        string => format("%d", eval("100 - $(probability)", "math", "infix"));
+
+  methods:
+    fifty_fifty::
+      "Activate bundle probabilistically"
+        handle => "probabilistic_usebundle_methods_special_case_fifty_fifty_activate_bundle",
+        usebundle => $(bundlename),
+        ifvarclass => "activate_bundle_$(probability)000",
+        comment => "Activate $(bundlename) $(probability)%ish of the time";
+
+    not_fifty_fifty::
+      "Activate bundle probabilistically"
+        handle => "probabilistic_usebundle_methods_activate_bundle",
+        usebundle => $(bundlename),
+        ifvarclass => "activate_bundle_$(probability)",
+        comment => "Activate $(bundlename) $(probability)% of the time";
+
+
+  reports:
+    DEBUG.fifty_fifty::
+      "$(this.bundle) Special case for 50/50";
+
+      "$(this.bundle) activate_bundle_$(probability)000"
+        ifvarclass => "activate_bundle_$(probability)000";
+
+      "$(this.bundle) activate_bundle_$(probability)001"
+        ifvarclass => "activate_bundle_$(probability)001";
+}
