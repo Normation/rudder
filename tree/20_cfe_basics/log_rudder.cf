@@ -64,6 +64,10 @@ bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
 # Warning, any modification here should also be ported to _rudder_common_report_hooks
 bundle agent _rudder_common_report(technique_name, status, identifier, component_name, component_key, message)
 {
+  # We cannot allow for empty component_name
+  defaults:
+      "component_name" string => "None", if_match_regex => "";
+
   classes:
     changes_only::
       "send_reports" or => {
@@ -101,6 +105,9 @@ bundle agent _rudder_common_report(technique_name, status, identifier, component
 # Warning, any modification here should also be ported to _rudder_common_generic_hooks
 bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)
 {
+  # We cannot allow for empty component_name
+  defaults:
+      "component_name" string => "None", if_match_regex => "";
 
   classes:
       "report" expression => "${report_data.should_report}";
@@ -189,6 +196,10 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
 #
 bundle agent _rudder_common_reports_generic_hooks(technique_name, class_prefix, identifier, component_name, component_key, message_prefix, enforce_mode)
 {
+  # We cannot allow for empty component_name
+  defaults:
+      "component_name" string => "None", if_match_regex => "";
+
   classes:
       "is_enforce" expression => strcmp("${enforce_mode}", "enforce");
 
@@ -260,6 +271,10 @@ bundle agent _rudder_common_report_hooks(technique_name, status, identifier, com
 
     !is_enforce.pass1.!(result_na|result_success|result_repaired|result_error)::
       "resulting_status" string => "${status}";
+
+  # We cannot allow for empty component_name
+  defaults:
+      "component_name" string => "None", if_match_regex => "";
 
   classes:
       "is_enforce"      expression => strcmp("${enforce_mode}", "enforce");
