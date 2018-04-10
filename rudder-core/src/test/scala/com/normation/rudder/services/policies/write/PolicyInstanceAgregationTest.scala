@@ -100,11 +100,15 @@ class DirectiveAgregationTest {
       )
   ) )
 
+  //the class that keep the list of known agents
+  lazy val agentRegiter = new AgentRegister()
+
   val systemVariableServiceSpec = new SystemVariableSpecServiceImpl()
   val prepareTemplate = new PrepareTemplateVariablesImpl(
       techniqueRepository
     , systemVariableServiceSpec
-    , new BuildBundleSequence(systemVariableServiceSpec, new WriteAllAgentSpecificFiles())
+    , new BuildBundleSequence(systemVariableServiceSpec, new WriteAllAgentSpecificFiles(agentRegiter))
+    , agentRegiter
   )
 
   def createInstance(activeTechniqueId:TechniqueId, id: String) = {

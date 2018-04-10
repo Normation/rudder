@@ -449,7 +449,7 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
     //the promiser value (may) comes from user input, so we need to escape
     //also, get the list of bundle for each promiser.
     //and we don't need isSystem anymore
-    val escapedSeq = bundleSeq.map(x => (ParameterEntry.escapeString(x.promiser.value, AgentType.CfeCommunity), x.bundleSequence) )
+    val escapedSeq = bundleSeq.map(x => (CFEngineAgentSpecificGeneration.escape(x.promiser.value), x.bundleSequence) )
 
     //that's the length to correctly vertically align things. Most important
     //number in all Rudder !

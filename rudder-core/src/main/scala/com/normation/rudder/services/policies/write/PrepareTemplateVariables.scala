@@ -96,6 +96,7 @@ class PrepareTemplateVariablesImpl(
     techniqueRepository      : TechniqueRepository        // only for getting reports file content
   , systemVariableSpecService: SystemVariableSpecService
   , buildBundleSequence      : BuildBundleSequence
+  , agentRegister            : AgentRegister
 ) extends PrepareTemplateVariables with Loggable {
 
   override def prepareTemplateForAgentNodeConfiguration(
@@ -132,7 +133,7 @@ class PrepareTemplateVariablesImpl(
     } yield {
       val allSystemVars = systemVariables.toMap ++ bundleVars
       val preparedTemplate = prepareTechniqueTemplate(
-          agentNodeConfig.config.nodeInfo.id, agentNodeConfig.agentType, container, allSystemVars, templates, generationTimestamp
+          agentNodeConfig.config.nodeInfo.id, agentNodeConfig.agentType, agentNodeConfig.config.nodeInfo.osDetails, container, allSystemVars, templates, generationTimestamp
       )
 
       // we only need to generate expected_reports.csv for CFEngine-like agent
@@ -159,6 +160,7 @@ class PrepareTemplateVariablesImpl(
   private[this] def prepareTechniqueTemplate(
       nodeId              : NodeId // for log message
     , agentType           : AgentType
+    , osDetails           : OsDetails
     , container           : Cf3PolicyDraftContainer
     , extraSystemVariables: Map[String, Variable]
     , allTemplates        : Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
@@ -166,7 +168,7 @@ class PrepareTemplateVariablesImpl(
   ) : Map[TechniqueId, PreparedTechnique] = {
 
     val techniques = container.getTechniques().values.toList
-    val variablesByTechnique = prepareVariables(nodeId, container, extraSystemVariables, techniques)
+    val variablesByTechnique = prepareVariables(nodeId, agentType, osDetails, container, extraSystemVariables, techniques)
 
     /*
      * From the container, convert the parameter into StringTemplate variable, that contains a list of
@@ -208,7 +210,9 @@ class PrepareTemplateVariablesImpl(
   }
 
   private[this] def prepareVariables(
-      nodeId: NodeId // for log message
+      nodeId    : NodeId // for log message
+    , agentType : AgentType
+    , osDetails : OsDetails
     , container : Cf3PolicyDraftContainer
     , systemVars: Map[String, Variable]
     , techniques: Seq[Technique]
@@ -250,10 +254,12 @@ class PrepareTemplateVariablesImpl(
       val stVariables = variables.flatten.map { v => STVariable(
           name = v.spec.name
         , mayBeEmpty = v.spec.constraint.mayBeEmpty
-        , values = v.getTypedValues match {
-            case Full(seq) => seq
-            case e:EmptyBox => throw new VariableException("Wrong type of variable " + v)
-          }
+        , values = agentRegister.findMap(agentType, osDetails) { agent =>  v.getValidatedValue(agent.escape) ?~! s"Wrong value type for variable '${v.spec.name}'" } match {
+                      case Full(seq)   => seq
+                      case eb:EmptyBox =>
+                        val e = (eb ?~! s"Error when preparing variable for node with ID '${nodeId.value}' on Technique '${technique.id.toString()}'")
+                        throw new VariableException(e.messageChain)
+                    }
         , v.spec.isSystem
       ) }
       (technique.id,stVariables)

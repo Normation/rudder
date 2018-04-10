@@ -51,7 +51,7 @@ import com.normation.rudder.services.reports._
 import com.normation.rudder.domain.queries._
 import bootstrap.liftweb.checks._
 import com.normation.cfclerk.services._
-import org.springframework.context.annotation.{ Bean, Configuration, Import }
+import org.springframework.context.annotation._
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain._
 import com.normation.rudder.web.services._
@@ -59,6 +59,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.rudder.repository.ldap._
 import java.io.File
+
 import com.normation.rudder.services.eventlog._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.services.impl._
@@ -82,6 +83,7 @@ import com.normation.rudder.repository._
 import com.normation.rudder.services.modification.ModificationService
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
+
 import scala.util.Try
 import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
@@ -163,12 +165,14 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import java.io.File
+
 import net.liftweb.common._
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
+
 import scala.util.Try
 import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
 import com.normation.rudder.api.RoApiAccountRepository
@@ -176,6 +180,8 @@ import com.normation.rudder.web.rest.ncf.NcfApi9
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueArchiver
 import com.normation.rudder.ncf.TechniqueArchiverImpl
+import com.normation.rudder.services.policies.write.AgentRegister
+
 import scala.concurrent.duration._
 
 /**
@@ -468,7 +474,8 @@ object RudderConfig extends Loggable {
   lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
 
   //used in plugins, so init may be needed in strange time to avoid NPE
-  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
+  lazy val agentRegister = new AgentRegister()
+  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles(agentRegister)
 
   //all cache that need to be cleared are stored here
   lazy val clearableCache: Seq[CachedRepository] = Seq(
@@ -1460,7 +1467,7 @@ object RudderConfig extends Loggable {
       techniqueRepositoryImpl
     , pathComputer
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
-    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService, new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles))
+    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService, new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles), agentRegister)
     , new FillTemplatesService()
     , writeAllAgentSpecificFiles
     , HOOKS_D

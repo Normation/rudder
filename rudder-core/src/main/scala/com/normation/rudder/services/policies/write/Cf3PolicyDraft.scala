@@ -221,7 +221,7 @@ final case class Cf3PolicyDraft(
  */
 case class ParameterEntry(
     parameterName : String
-  , parameterValue: String
+  , escapedValue : String
   , agentType     : AgentType
 ) {
   // returns the name of the parameter
@@ -229,44 +229,13 @@ case class ParameterEntry(
     parameterName
   }
 
-  // returns the _escaped_ value of the parameter,
-  // compliant with the syntax of CFEngine
+  // Returns the escaped value of the paramter
+  // The value must have been escaped at ParameterEntry construction
   def getEscapedValue() : String = {
-    ParameterEntry.escapeString(parameterValue,agentType)
+    escapedValue
   }
 
-  // Returns the unescaped (raw) value of the paramter
-  def getUnescapedValue() : String = {
-    parameterValue
-  }
 }
-
-object ParameterEntry {
-  def escapeString(x: String, agentType: AgentType) : String = {
-    // The parameter may be null (for legacy reason), and it should be checked
-    if (x == null)
-      x
-    else
-      agentType match {
-        case AgentType.Dsc => 
-          /* Escape string to be DSC compliant
-          * a ` will be escaped to ``
-          * a " will be escaped to `"
-          */
-          x.replaceAll("""`""", """``""").
-            replaceAll(""""""", """`"""")
-        case _             =>
-          /* Escape string to be CFEngine compliant
-           * a \ will be escaped to \\
-           * a " will be escaped to \"
-           */
-          x.replaceAll("""\\""", """\\\\""").
-            replaceAll(""""""" , """\\"""" )
-      }
-  }
-}
-
-
 
 /**
  * A container is just a set of key/value parameter and cf3policyDrafts

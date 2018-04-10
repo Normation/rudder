@@ -45,6 +45,10 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.inventory.domain.AgentType
+import com.normation.templates.FillTemplatesService
+import com.normation.templates.STVariable
+import net.liftweb.common.Full
 
 @RunWith(classOf[JUnitRunner])
 class PrepareTemplateVariableTest extends Specification {
@@ -58,6 +62,9 @@ class PrepareTemplateVariableTest extends Specification {
     , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle(ReportId("not used"), BundleName("check_apt_package_installation")))
     , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle(ReportId("not used"), BundleName("check_apt_package_installation2")))
   ).map { case(x,y) => TechniqueBundles(Directive(x), TID("not-used-here"), Nil, y::Nil, Nil, false, false, PolicyMode.Enforce) }
+
+val fillTemplate = new FillTemplatesService()
+
 
   // Ok, now I can test
   "Preparing the string for writting usebundle of directives" should {

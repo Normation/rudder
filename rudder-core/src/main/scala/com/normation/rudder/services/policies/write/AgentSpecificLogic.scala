@@ -55,12 +55,18 @@ import com.normation.inventory.domain.Bsd
  * writing process, mainly:
  * - specific files (like expected_reports.csv for CFEngine-based agent)
  * - specific format for "bundle" sequence.
+ * - specific escape for strings
  */
 
 //containser for agent specific file written during policy generation
 final case class AgentSpecificFile(
     path: String
 )
+
+
+trait AgentSpecificStringEscape {
+  def escape(value: String): String
+}
 
 //how do we write bundle sequence / input files system variable for the agent?
 trait AgentFormatBundleVariables {
@@ -89,13 +95,18 @@ trait WriteAgentSpecificFiles {
   def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]]
 }
 
-trait AgentSpecificGeneration extends AgentSpecificGenerationHandle with AgentFormatBundleVariables with WriteAgentSpecificFiles
+trait AgentSpecificGeneration
+  extends AgentSpecificGenerationHandle
+     with AgentFormatBundleVariables
+     with WriteAgentSpecificFiles
+     with AgentSpecificStringEscape
 
-// the pipeline of processing for the specific writes
-class WriteAllAgentSpecificFiles extends WriteAgentSpecificFiles {
 
+//the extendable pipeline able to find the correct agent given (agentype, os)
+
+class AgentRegister {
   /**
-   * Ordered list of handlers, init with the default agent (cfenfine for linux)
+   * Ordered list of handlers, init with the default agent (CFEngine for linux)
    */
   private[this] var pipeline: List[AgentSpecificGeneration] =  {
     CFEngineAgentSpecificGeneration :: Nil
@@ -104,19 +115,47 @@ class WriteAllAgentSpecificFiles extends WriteAgentSpecificFiles {
   /**
    * Add the support for a new agent generation type.
    */
-  def addAgentSpecificGeneration(agent: AgentSpecificGeneration): Unit = synchronized {
+  def addAgentLogic(agent: AgentSpecificGeneration): Unit = synchronized {
     //add at the end of the pipeline new generation
     pipeline = pipeline :+ agent
   }
 
-  override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
+  /**
+   * Find the first agent matching the required agentType/osDetail and apply f on it.
+   * If none is found, return a failure.
+   */
+  def findMap[T](agentType: AgentType, osDetails: OsDetails)(f: AgentSpecificGeneration => Box[T]) = {
+    pipeline.find(handler => handler.handle(agentType, osDetails)) match {
+      case None    => Failure(s"We were unable to find how to create directive sequences for Agent type ${agentType.toString()} on '${osDetails.fullName}'. " +
+                            "Perhaps you are missing the corresponding plugin. If not, please report a bug")
+      case Some(h) => f(h)
+    }
+  }
+
+  /**
+   * Execute a `traverse` on the registered agent, where `f` is used when the agentType/os is handled.
+   * Exec default on other cases.
+   *
+   */
+  def traverseMap[T](agentType: AgentType, osDetails: OsDetails)(default: () => Box[List[T]], f: AgentSpecificGeneration => Box[List[T]]): Box[List[T]] = {
     (sequence(pipeline) { handler =>
-      if(handler.handle(cfg.agentType, cfg.os)) {
-        handler.write(cfg)
+      if(handler.handle(agentType, osDetails)) {
+        f(handler)
       } else {
-        Full(Nil)
+        default()
       }
     }).map( _.flatten.toList)
+  }
+
+}
+
+
+// the pipeline of processing for the specific writes
+class WriteAllAgentSpecificFiles(agentRegister: AgentRegister) extends WriteAgentSpecificFiles {
+
+
+  override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
+    agentRegister.traverseMap(cfg.agentType, cfg.os)( () => Full(Nil), _.write(cfg))
   }
 
   import BuildBundleSequence.{InputFile, TechniqueBundles, BundleSequenceVariables}
@@ -129,11 +168,7 @@ class WriteAllAgentSpecificFiles extends WriteAgentSpecificFiles {
     , userBundles : List[TechniqueBundles]
   ) : Box[BundleSequenceVariables] = {
     //we only choose the first matching agent for that
-    pipeline.find(handler => handler.handle(agentType, osDetails)) match {
-      case None    => Failure(s"We were unable to find how to create directive sequences for Agent type ${agentType.toString()} on '${osDetails.fullName}'. " +
-                            "Perhaps you are missing the corresponding plugin. If not, please report a bug")
-      case Some(h) => Full(h.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles))
-    }
+    agentRegister.findMap(agentType, osDetails)( a => Full(a.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles)))
   }
 }
 
@@ -142,6 +177,13 @@ class WriteAllAgentSpecificFiles extends WriteAgentSpecificFiles {
 object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
   val GENEREATED_CSV_FILENAME = "rudder_expected_reports.csv"
 
+  /* Escape string to be CFEngine compliant
+   * a \ will be escaped to \\
+   * a " will be escaped to \"
+   */
+  override def escape(value: String): String = {
+    value.replaceAll("""\\""", """\\\\""").replaceAll(""""""" , """\\"""" )
+  }
 
   /**
    * This version only handle open source unix-like (*linux, *bsd) for

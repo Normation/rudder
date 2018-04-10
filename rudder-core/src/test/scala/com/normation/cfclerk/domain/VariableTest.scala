@@ -39,16 +39,19 @@ package com.normation.cfclerk.domain
 
 import com.normation.cfclerk.xmlparsers._
 import org.junit.runner.RunWith
+
 import scala.collection.mutable._
 import scala.xml._
 import org.xml.sax.SAXParseException
 import java.io.FileNotFoundException
+
 import com.normation.cfclerk.exceptions._
 import org.joda.time.format._
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.cfclerk.domain.HashAlgoConstraint._
+import com.normation.rudder.services.policies.write.CFEngineAgentSpecificGeneration
 
 
 @RunWith(classOf[JUnitRunner])
@@ -220,7 +223,7 @@ class VariableTest extends Specification {
     implicit val v = variable.copyWithSavedValue("true")
     haveName()
     haveDescription()
-    haveValue(true)
+    haveValue("true")
   }
 
   "Boolean variable" should {
@@ -228,7 +231,7 @@ class VariableTest extends Specification {
       constraint = Constraint(BooleanVType)), Seq())
 
     implicit val v = variable.copyWithSavedValue("false")
-    haveValue(false)
+    haveValue("false")
   }
 
   "Invalid variable" should {
@@ -268,7 +271,7 @@ class VariableTest extends Specification {
     beAnInput
     haveType("datetime")
 
-    haveValue(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue))(dateVariable.copyWithSavedValue(dateValue))
+    haveValue(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue).toString)(dateVariable.copyWithSavedValue(dateValue))
   }
 
   "Parsed variable having unvalid value" should {
@@ -297,7 +300,7 @@ class VariableTest extends Specification {
     haveType("raw")
 
     "have correct content" in {
-      (rawVariable.copyWithSavedValue(rawValue).getTypedValues.openOrThrowException("Invalid content for the raw variable") must containTheSameElementsAs(Seq(rawValue)))
+      (rawVariable.copyWithSavedValue(rawValue).getValidatedValue(identity).openOrThrowException("Invalid content for the raw variable") must containTheSameElementsAs(Seq(rawValue)))
     }
   }
 
@@ -305,7 +308,7 @@ class VariableTest extends Specification {
     implicit val simpleVariable = variables(simpleName)
     haveType("string")
     "correctly escape variable" in {
-      simpleVariable.copyWithSavedValue(rawValue).getTypedValues.openOrThrowException("Invalid content for the escaped variable") must containTheSameElementsAs(Seq(escapedTo))
+      simpleVariable.copyWithSavedValue(rawValue).getValidatedValue(CFEngineAgentSpecificGeneration.escape).openOrThrowException("Invalid content for the escaped variable") must containTheSameElementsAs(Seq(escapedTo))
     }
   }
 
@@ -541,9 +544,9 @@ class VariableTest extends Specification {
     }
   }
 
-  private[this] def haveValue(value: Any = refValue)(implicit variable: Variable) = {
+  private[this] def haveValue(value: String = refValue)(implicit variable: Variable) = {
     "have value '%s'".format(value) in {
-      variable.getTypedValues.openOrThrowException("test").head mustEqual value
+      variable.getValidatedValue(identity).openOrThrowException("test").head mustEqual value
     }
   }
 

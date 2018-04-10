@@ -73,9 +73,9 @@ sealed trait Variable extends Loggable {
    */
 
 
-  def getTypedValues(): Box[Seq[Any]] = {
+  def getValidatedValue(escape: String => String): Box[Seq[Any]] = {
     bestEffort(values) { x =>
-      castValue(x)
+      castValue(x, escape)
     }
   }
 
@@ -178,11 +178,13 @@ sealed trait Variable extends Loggable {
   def copyWithAppendedValues(seq: Seq[String]): Variable
 
 
-  protected def castValue(x: String) : Box[Any] = {
+  protected def castValue(x: String, escape: String => String) : Box[Any] = {
     //we don't want to check constraint on empty value
-    // when the variable is optionnal
+    // when the variable is optionnal.
+    // But I'm not sure if I understand what is happening with a an optionnal
+    // boolean, since we are returning a string in that case :/
     if(this.spec.constraint.mayBeEmpty && x.length < 1) Full("")
-    else spec.constraint.typeName.getTypedValue(x,spec.name)
+    else spec.constraint.typeName.getFormatedValidated(x, spec.name, escape)
   }
 }
 
@@ -360,7 +362,7 @@ object Variable {
    * Check the value we intend to put in the variable
    */
   def checkValue(variable: Variable, value: String): Boolean = {
-    variable.castValue(value).isDefined
+    variable.castValue(value, identity).isDefined // here we are not interested in the escape part
   }
 }
 

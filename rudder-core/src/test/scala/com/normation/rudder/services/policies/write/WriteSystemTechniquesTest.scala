@@ -206,11 +206,13 @@ object TestSystemData {
     , getSyslogProtocol               = () => Full(SyslogUDP)
   )
 
-  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
+  lazy val agentRegister = new AgentRegister()
+  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles(agentRegister)
   val prepareTemplateVariable = new PrepareTemplateVariablesImpl(
       techniqueRepository
     , systemVariableServiceSpec
     , new BuildBundleSequence(systemVariableServiceSpec, writeAllAgentSpecificFiles)
+    , agentRegister
   )
 
   /*
