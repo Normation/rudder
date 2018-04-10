@@ -62,6 +62,7 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.services.AgentCompat
 import net.liftweb.util.Helpers.TimeSpan
+import com.normation.cfclerk.domain.TechniqueGenerationMode._
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -276,6 +277,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             * with registered acceptation date time.
             * Also sort by version, reverse
             */
+
            val validTechniqueVersions = fullActiveTechnique.techniques.map { case(v, t) =>
              fullActiveTechnique.acceptationDatetimes.get(v) match {
                case Some(timeStamp) => Some((v, t, timeStamp))
@@ -304,17 +306,37 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         }
     })
   }
+  private[this] val (monoMessage,multiMessage,limitedMessage) =
+    ( "A unique Directive derived from that technique can be deployed on a given server."
+    , """Several Directives derived from that technique can be deployed on a given server.
+      Those Directives can be deployed at the same time even if they have a different policy mode.
+      Directives from this technique version can also be used with other Directives from a single limited multi instance technique version.
+      """
+    , "Several Directives derived from that technique can be deployed on a given server if they are based on the same technique version and have the same policy mode."
+    )
 
   private[this] def showIsSingle(technique:Technique) : NodeSeq = {
     <span>
       {
         if(technique.isMultiInstance) {
           {<b>Multi instance</b>} ++
-          Text(": several Directives derived from that template can be deployed on a given server")
+          Text(s": ${multiMessage}")
         } else {
-          {<b>Unique</b>} ++
-          Text(": an unique Directive derived from that template can be deployed on a given server")
+          {<b>Mono instance</b>} ++
+          Text(s": ${monoMessage}")
         }
+        (technique.generationMode, technique.isMultiInstance) match{
+          case (_, false) =>
+            {<b>Mono instance</b>} ++
+            Text(s": ${monoMessage}")
+          case (MergeDirectives, _) =>
+            {<b>Limited Multi instance</b>} ++
+            Text(s": ${limitedMessage}")
+          case (_,_) =>
+            {<b>Multi instance</b>} ++
+            Text(s": ${multiMessage}")
+        }
+
       }
     </span>
   }
@@ -322,28 +344,35 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] def showVersions(activeTechnique: FullActiveTechnique, validTechniques: Seq[(TechniqueVersion, Technique, DateTime)], workflowEnabled: Boolean) = {
 
     val techniqueVersionInfo = validTechniques.map { case(v,t, timeStamp) =>
-      val isDeprecated = t.deprecrationInfo.isDefined
+      val isDeprecated       = t.deprecrationInfo.isDefined
       val deprecationMessage = t.deprecrationInfo.map(_.message).getOrElse("")
-      val acceptationDate = DateFormaterService.getFormatedDate(timeStamp)
-      val agentTypes = t.agentConfigs.map(_.agentType).toSet
+      val acceptationDate    = DateFormaterService.getFormatedDate(timeStamp)
+      val agentTypes         = t.agentConfigs.map(_.agentType).toSet
       val (dscSupport,classicSupport) = AgentCompat(agentTypes) match {
         case AgentCompat.Dsc => (true,false)
         case AgentCompat.Classic => (false,true)
         case AgentCompat.All => (true,true)
         case AgentCompat.NoAgent => (false,false)
       }
+      val (multiVersionSupport,mvsMessage) = (t.generationMode, t.isMultiInstance) match{
+        case (_, false) => ("Mono instance", monoMessage)
+        case (MergeDirectives, _) => ("Limited multi instance", limitedMessage)
+        case (_,_) => ("Multi instance", multiMessage)
+      }
       val action = {
         val ajax = SHtml.ajaxCall(JsNull, (_) => newDirective(t, activeTechnique, workflowEnabled))
         AnonFunc("",ajax)
       }
       JsObj(
-          ( "version"            -> v.toString )
-        , ( "isDeprecated"       -> isDeprecated)
-        , ( "deprecationMessage" -> deprecationMessage)
-        , ( "acceptationDate"    -> acceptationDate)
-        , ( "dscSupport"         -> dscSupport)
-        , ( "classicSupport"     -> classicSupport)
-        , ( "action"             -> action)
+          ( "version"             -> v.toString          )
+        , ( "isDeprecated"        -> isDeprecated        )
+        , ( "deprecationMessage"  -> deprecationMessage  )
+        , ( "acceptationDate"     -> acceptationDate     )
+        , ( "dscSupport"          -> dscSupport          )
+        , ( "classicSupport"      -> classicSupport      )
+        , ( "multiVersionSupport" -> multiVersionSupport )
+        , ( "mvsMessage"          -> mvsMessage          )
+        , ( "action"              -> action              )
       )
     }
     val dataArray = JsArray(techniqueVersionInfo.toList)
