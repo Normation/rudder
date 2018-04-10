@@ -45,6 +45,7 @@ import com.normation.rudder.domain.nodes._
 import net.liftweb.common._
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
+import com.normation.rudder.domain.Constants
 
 class WoLDAPNodeRepository(
     nodeDit             : NodeDit
@@ -60,6 +61,7 @@ class WoLDAPNodeRepository(
       con           <- ldap
       existingEntry <- con.get(nodeDit.NODES.NODE.dn(node.id.value), attrs:_*) ?~! s"Cannot update node with id ${node.id.value} : there is no node with that id"
       oldNode       <- mapper.entryToNode(existingEntry) ?~! s"Error when transforming LDAP entry into a node for id ${node.id.value} . Entry: ${existingEntry}"
+      _             <- checkNodeModification(oldNode, node)
       // here goes the check that we are not updating policy server
       nodeEntry     =  mapper.nodeToEntry(node)
       result        <- con.save(nodeEntry, true, Seq()) ?~! s"Error when saving node entry in repository: ${nodeEntry}"
@@ -73,5 +75,52 @@ class WoLDAPNodeRepository(
     } yield {
       node
     } }
+  }
+
+    /**
+     * This method allows to check if the modification that will be made on a node are licit.
+     * (in particular on root node)
+     */
+  def checkNodeModification(oldNode: Node, newNode: Node): Box[Unit] = {
+    // use cats validation
+    import cats.implicits._
+    import cats.data._
+    import cats._
+
+    type ValidationResult = ValidatedNel[String, Unit]
+    val ok = ().validNel
+
+    def rootIsEnabled(node: Node): ValidationResult = {
+      if(node.state == NodeState.Enabled) ok
+      else s"Root node must always be in '${NodeState.Enabled.name}' lifecycle state.".invalidNel
+    }
+
+    def rootIsPolicyServer(node: Node): ValidationResult = {
+      if(node.isPolicyServer) ok
+      else "You can't change the 'policy server' nature of Root policy server".invalidNel
+    }
+
+    def rootIsSystem(node: Node): ValidationResult = {
+      if(node.isSystem) ok
+      else "You can't change the 'system' nature of Root policy server".invalidNel
+    }
+
+    def validateRoot(node: Node): Box[Unit] = {
+      // transform a validation result to a Full | Failure
+      implicit def toBox(validation: ValidationResult): Box[Unit] = {
+        validation.fold(
+          nel => Failure(nel.toList.mkString("; "))
+        ,
+          _ => Full(())
+        )
+      }
+
+      List(rootIsEnabled(node), rootIsPolicyServer(node), rootIsSystem(node)).sequence.map( _ => ())
+    }
+
+
+    if(newNode.id == Constants.ROOT_POLICY_SERVER_ID) {
+      validateRoot(newNode)
+    } else Full(())
   }
 }

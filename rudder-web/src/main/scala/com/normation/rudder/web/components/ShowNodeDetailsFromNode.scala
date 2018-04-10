@@ -59,6 +59,7 @@ import net.liftweb.http.js.JsExp
 import net.liftweb.util.Helpers._
 import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.reports.NodeComplianceMode
@@ -268,7 +269,7 @@ class ShowNodeDetailsFromNode(
    */
   private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean , displayCompliance: Boolean, globalMode : GlobalPolicyMode) : NodeSeq = {
     val id = JsNodeId(node.id)
-    ( "#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
+    ("#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
       "#node_groupTree" #>
         <div id={groupTreeId} class="tw-bs">
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>
@@ -276,14 +277,14 @@ class ShowNodeDetailsFromNode(
       "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some((node, globalMode)), Some(node.creationDate),  AcceptedInventory, isDisplayingInPopup = withinPopup) &
       "#nodeInventory *" #> DisplayNode.show(inventory, false) &
       "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
-      "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
-      "#node_parameters -*" #> nodeStateEditForm(node).nodeStateConfiguration&
+      "#logsDetails *" #> logDisplayer.asyncDisplay(node.id) &
+      "#node_parameters -*" #> (if(node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty else nodeStateEditForm(node).nodeStateConfiguration) &
       "#node_parameters -*" #> agentPolicyModeEditForm.cfagentPolicyModeConfiguration &
-      "#node_parameters -*" #> agentScheduleEditForm(node).cfagentScheduleConfiguration&
+      "#node_parameters -*" #> agentScheduleEditForm(node).cfagentScheduleConfiguration &
       "#node_parameters *+" #> complianceModeEditForm(node).complianceModeConfiguration &
       "#extraHeader" #> DisplayNode.showExtraHeader(inventory) &
       "#extraContent" #> DisplayNode.showExtraContent(Some(node), inventory) &
-      "#node_tabs [id]" #> s"details_${id}"
+     "#node_tabs [id]" #> s"details_${id}"
     ).apply(serverDetailsTemplate)
   }
 
