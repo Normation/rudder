@@ -120,7 +120,7 @@ object DefaultRequestLimits extends RequestLimits(0,0,0,0)
  * for accepted nodes (it also checks that the node is registered
  * in the ou=Nodes branch)
  */
-class AccepetedNodesLDAPQueryProcessor(
+class AcceptedNodesLDAPQueryProcessor(
     nodeDit        : NodeDit
   , inventoryDit   : InventoryDit
   , processor      : InternalLDAPQueryProcessor
@@ -184,6 +184,7 @@ class AccepetedNodesLDAPQueryProcessor(
   }
 
   override def process(query:Query) : Box[Seq[NodeInfo]] = {
+
     //only keep the one of the form Full(...)
     queryAndChekNodeId(query, NodeInfoService.nodeInfoAttributes, None).map { seq => seq.flatMap {
       case QueryResult(nodeEntry, inventoryEntry,machine) =>
@@ -331,7 +332,7 @@ class InternalLDAPQueryProcessor(
 
     //transform all the DNs we get to filters for the targeted object type
     //here, we are objectType dependent: we use a mapping that is saying
-    // "for that objectType, that dnType is transformed into a filter like that"
+    //"for that objectType, that dnType is transformed into a filter like that"
     val filterSeqSet : Seq[Set[Filter]] =
       (dnMapSets map { case (dnType, dnMapSet) =>
         dnMapSet map { dn => nodeJoinFilters(dnType)(dn) }
