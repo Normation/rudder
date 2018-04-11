@@ -27,21 +27,17 @@
       </div>
     </div>
 
-    <div class="col-xs-4">
+    <div class="col-xs-12">
       <form role="form" class="lift:form.ajax?class=form-horizontal%20rudder-form%20no-shadow">
-        <div class="globalConf col-xs-4">
-          <div class="form-group">
-            <select class="form-control input-sm" id="nodeStateSelect"></select>
-          </div>
+        <div class="globalConf form-group">
+          <select class="form-control input-sm" id="nodeStateSelect"></select>
         </div>
         <lift:authz role="administration_write">
           <div class="form-group">
-            <div class="pull-left control-label">
-              <button type="submit" class="btn btn-default" id="nodeStateSubmit">Save changes</button>
-            </div>
+            <button type="submit" class="btn btn-default" id="nodeStateSubmit">Save changes</button>
           </div>
         </lift:authz>
-        <div id="nodeStateMessage" class="col-xs-4">
+        <div id="nodeStateMessage" class="col-xs-12">
           <span class="lift:Msg?nodeStateMessage">[messages]</span>
         </div>
       </form>

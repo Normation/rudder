@@ -963,6 +963,12 @@ a.sidebar-toggle{
 }
 
 /* --- NODE PAGE --- */
+#nodeStateSelect{
+  width:auto;
+}
+#nodeStateSubmit{
+  margin-top:20px;
+}
 #submitSearch {
   padding-left: 7px;
 }
@@ -1318,7 +1324,7 @@ form .tooltip-content p {
   font-weight: 700;
   border-radius: 3px;
   min-width: 78px;
-  backgroung-color: #777;
+  background-color: #777;
 }
 .dataTable td.tw-bs,.dataTable td .tw-bs{
   background-color:transparent;
@@ -1343,7 +1349,7 @@ form .tooltip-content p {
 #nodeDetails .rudder-label{
   position: relative;
   margin-bottom: -4px;
-  top: -4px;
+  top: -1px;
   padding: 1px 8px;
 }
 
@@ -1402,8 +1408,13 @@ form .tooltip-content p {
 
 .tw-bs .rudder-label.label-state{
   cursor: default;
-  background-color: #fbff52;
-  color: #2e3436;
+  background-color: #ccc;
+  color: #444;
+  margin-left: 3px;
+}
+.dataTable .rudder-label.label-state{
+  padding: 3px 8px !important;
+  line-height: initial;
 }
 .tw-bs .rudder-label.label-enforce:before,.tw-bs .label-text.label-enforce:after{
   content: "Enforce";
