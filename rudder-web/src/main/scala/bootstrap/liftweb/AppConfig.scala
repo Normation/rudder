@@ -805,7 +805,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl,removedNodesDitImpl)
   private[this] lazy val uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
   private[this] lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
-  private[this] lazy val ldapEntityMapper = new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, acceptedNodesDitImpl, queryParser, inventoryMapper)
+  private[this] lazy val ldapEntityMapper: LDAPEntityMapper = new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, acceptedNodesDitImpl, queryParser, inventoryMapper)
 
   ///// items serializer - service that transforms items to XML /////
   private[this] lazy val ruleSerialisation: RuleSerialisation = new RuleSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
@@ -861,7 +861,8 @@ object RudderConfig extends Loggable {
    * For now, we don't want to query server other
    * than the accepted ones.
    */
-  private[this] lazy val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit)
+  private[this] lazy val getSubGroupChoices = () => roLdapNodeGroupRepository.getAll.map( seq => seq.map(g => SubGroupChoice(g.id, g.name)))
+  private[this] lazy val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, getSubGroupChoices)
   private[this] lazy val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
     override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
   }
@@ -1001,7 +1002,16 @@ object RudderConfig extends Loggable {
   )
 
   //we need a roLdap query checker for nodes in pending
-  private[this] lazy val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(roLdap, pendingNodesDitImpl, nodeDit, new DitQueryData(pendingNodesDitImpl, nodeDit, rudderDit), ldapEntityMapper))
+  private[this] lazy val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(
+    new InternalLDAPQueryProcessor(
+        roLdap
+      , pendingNodesDitImpl
+      , nodeDit
+        // here, we don't want to look for subgroups to show them in the form => always return an empty list
+      , new DitQueryData(pendingNodesDitImpl, nodeDit, rudderDit, () => Full(Nil)) 
+      , ldapEntityMapper
+    )
+  )
   private[this] lazy val dynGroupServiceImpl = new DynGroupServiceImpl(rudderDitImpl, roLdap, ldapEntityMapper)
 
   lazy val pendingNodeCheckGroup = new CheckPendingNodeInDynGroups(inventoryQueryChecker)

@@ -97,7 +97,7 @@ class TestQueryProcessor extends Loggable {
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
   val rudderDit = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
 
-  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit)
+  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit, () => Failure("For test, no subgroup"))
 
   val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
   val ldapMapper = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null, inventoryMapper)

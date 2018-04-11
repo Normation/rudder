@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.queries
 
 import com.normation.inventory.domain._
+
 import scala.xml._
 import com.unboundid.ldap.sdk._
 import com.normation.ldap.sdk._
@@ -46,6 +47,7 @@ import com.normation.inventory.ldap.core.LDAPConstants._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import java.util.Locale
+
 import net.liftweb.common._
 import net.liftweb.http.SHtml
 import net.liftweb.http.js._
@@ -54,8 +56,10 @@ import JsCmds._
 import JE._
 import net.liftweb.json._
 import JsonDSL._
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.queries._
+import net.liftweb.http.SHtml.SelectableOption
 
 sealed trait CriterionComparator {
   val id:String
@@ -660,6 +664,62 @@ case class NodePropertyComparator(ldapAttr: String) extends TStringComparator wi
     }
   }
 }
+
+/**
+ * A comparator that is used to build subgroup. 
+ * The actual comparison is on the sub-group ID, and we only
+ * authorize an "equal" comparison on it. 
+ * 
+ * But for the displaying, we present a dropdown with the list
+ * of nodes. 
+ */
+final case class SubGroupChoice(id: NodeGroupId, name: String)
+class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStringComparator with Loggable {
+  override val comparators = Equals :: Nil
+
+  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
+    // whatever the comparator it should be treated like Equals
+    case _ => escapedFilter(attributeName,value)
+  }
+  
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem = {
+    // we need to query for the list of groups here
+    val subGroups: Seq[SelectableOption[String]] = {
+      (for {
+        res <- getGroups()
+      } yield {
+        val g = res.map { case SubGroupChoice(id, name) => SelectableOption(id.value, name) }
+        // if current value is defined but not in the list, add it with a "missing group" label
+        if(value != "") {
+          g.find( _.value == value ) match {
+            case None    => SelectableOption(value, "Missing group") +: g
+            case Some(_) => g
+          }
+        } else {
+          g
+        }
+      }) match {
+        case Full(list)   => list.sortBy( _.label )
+        case eb: EmptyBox => //if an error occure, log and display the error in place of the label
+          val e = eb ?~! s"An error happens when trying to find the list of groups to use in sub-groups"
+          e.rootExceptionCause match {
+            case eb: EmptyBox => logger.error(e.messageChain)
+            case Full(ex)     => logger.error(e.messageChain, ex)
+          }
+          SelectableOption(value, "Error when looking for available groups") :: Nil
+      }
+    }
+  
+    SHtml.selectObj[String](
+        subGroups
+      , Box(subGroups.find( _.value == value).map( _.value))
+      , func
+      , attrs:_*
+    )  
+  }
+}
+
+
 
 case class Criterion(val name:String, val cType:CriterionType) extends HashcodeCaching {
   require(name != null && name.length > 0, "Criterion name must be defined")

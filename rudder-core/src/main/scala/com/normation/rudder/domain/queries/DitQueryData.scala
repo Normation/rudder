@@ -37,17 +37,19 @@
 
 package com.normation.rudder.domain.queries
 
-import com.unboundid.ldap.sdk.{DN,Filter}
+import com.unboundid.ldap.sdk.{DN, Filter}
 import com.normation.ldap.sdk._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
 import BuildFilter._
+
 import scala.collection.SortedMap
 import com.normation.rudder.services.queries.SpecialFilter
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderLDAPConstants.{ A_NODE_PROPERTY , OC_RUDDER_NODE_GROUP, A_NODE_GROUP_UUID }
+import com.normation.rudder.domain.RudderLDAPConstants.{A_NODE_GROUP_UUID, A_NODE_PROPERTY, OC_RUDDER_NODE_GROUP}
 import com.normation.rudder.domain.RudderDit
+import net.liftweb.common.Box
 
 /*
  * Here we define all data needed logic by the to create the search
@@ -99,7 +101,7 @@ final case object NodeDnJoin extends LDAPJoinElement(A_NODE_UUID) with HashcodeC
 //request for that object type.
 final case class LDAPObjectTypeFilter(value: Filter)
 
-class DitQueryData(dit:InventoryDit, nodeDit: NodeDit, rudderDit : RudderDit) {
+class DitQueryData(dit:InventoryDit, nodeDit: NodeDit, rudderDit : RudderDit, getGroups: () => Box[Seq[SubGroupChoice]]) {
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
 // Criterion(A_MACHINE_UUID, StringComparator),
 // Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
@@ -255,7 +257,7 @@ class DitQueryData(dit:InventoryDit, nodeDit: NodeDit, rudderDit : RudderDit) {
       Criterion("name.value", NodePropertyComparator(A_NODE_PROPERTY) )
     ))
   , ObjectCriterion("group", Seq(
-      Criterion(A_NODE_GROUP_UUID, ExactStringComparator)
+      Criterion(A_NODE_GROUP_UUID, new SubGroupComparator(getGroups))
     ))
   )
 
