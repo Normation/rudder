@@ -89,8 +89,10 @@ sealed trait KeyValueComparator extends BaseComparator
 case object HasKey extends KeyValueComparator { override val id = "hasKey" }
 
 trait ComparatorList {
+
+
   def comparators : Seq[CriterionComparator]
-  def comparatorForString(s:String) : Option[CriterionComparator] = {
+  def comparatorForString(s: String) : Option[CriterionComparator] = {
     val lower = s.toLowerCase
     for(comp <- comparators) {
       if(lower == comp.id.toLowerCase) return Some(comp)
@@ -107,9 +109,9 @@ object OrderedComparators extends ComparatorList {
   override def comparators : Seq[CriterionComparator] = BaseComparators.comparators ++ Seq(Lesser, LesserEq, Greater, GreaterEq)
 }
 
-sealed trait CriterionType  extends ComparatorList {
+sealed trait CriterionType extends ComparatorList {
   /*
-   * validate the value and return a normalized one
+   * validate the value and returns a normalized one
    * for the field.
    * DO NOT FORGET TO USE attrs ! (especially 'id')
    */
@@ -168,7 +170,7 @@ trait TStringComparator extends CriterionType {
       comparator match {
         case Regex | NotRegex =>
           try {
-            val _ = java.util.regex.Pattern.compile(v) //yes, "_" is not used, side effect are fabulous! KEEP IT
+            val _ = java.util.regex.Pattern.compile(v) //yes, "_" is not used, side effects are fabulous! KEEP IT
             Full(v)
           } catch {
             case ex: java.util.regex.PatternSyntaxException => Failure(s"The regular expression '${v}' is not valid. Expected regex syntax is the java one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html", Full(ex), Empty)
@@ -321,6 +323,39 @@ case object MemoryComparator extends CriterionType {
     case Some(m) => Full(m.toString)
     case None => Failure("Invalid memory size : '%s', expecting '300 Mo', '16KB', etc".format(v))
   }
+}
+
+
+case object MachineComparator extends CriterionType {
+
+  val machineTypes = "Virtual machine" ::  "Physical machine" :: Nil
+
+  override def comparators = Seq(Equals, NotEquals)
+  override protected def validateSubCase(v: String, comparator:CriterionComparator) = {
+    if (null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
+   }
+
+  override def toLDAP(value: String) = Full(value)
+
+  override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
+    val v = value match {
+      // the machine can't belong to another type
+      case "Virtual machine" => OC_VM
+      case "Physical machine" => OC_PM
+    }
+    comparator match {
+      case Equals => IS(v)
+      case _ => NOT(IS(v))
+    }
+  }
+
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
+    SHtml.select(
+      (machineTypes map (e => (e, e))).toSeq,
+      { if(machineTypes.contains(value)) Full(value) else Empty},
+      func,
+      attrs:_*
+    )
 }
 
 case object OstypeComparator extends CriterionType {
