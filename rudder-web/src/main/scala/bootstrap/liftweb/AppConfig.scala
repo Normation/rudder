@@ -993,7 +993,7 @@ object RudderConfig extends Loggable {
       poolSize = 2)
 
   //query processor for accepted nodes
-  private[this] lazy val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
+  private[this] lazy val queryProcessor = new AcceptedNodesLDAPQueryProcessor(
     nodeDitImpl,
     acceptedNodesDitImpl,
     new InternalLDAPQueryProcessor(roLdap, acceptedNodesDitImpl, nodeDit, ditQueryDataImpl, ldapEntityMapper),
