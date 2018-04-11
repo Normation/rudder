@@ -37,15 +37,25 @@
 
 package com.normation.rudder.web.rest.rule
 
+import com.normation.rudder.authorization.{Edit, Read, Write}
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.rest.RestAPI
 import com.normation.rudder.domain.policies.Tags
+import com.normation.rudder.web.model.CurrentUser
+import net.liftweb.http.Req
 
 trait RuleAPI extends RestAPI {
   val kind = "rules"
+
+  override protected def checkSecure : PartialFunction[Req, Boolean] = {
+    case Get(_,_) => CurrentUser.checkRights(Read("rule"))
+    case Post(_,_) | Put(_,_) | Delete(_,_) => CurrentUser.checkRights(Write("rule")) || CurrentUser.checkRights(Edit("rule"))
+    case _=> false
+
+  }
 }
 
 case class RestRule(
