@@ -20,24 +20,24 @@
 # @description Standard logging output
 #
 # @parameter message              The common part of the message to display
-# @parameter old_class_prefix     The prefix of the class for different states (0.x version)
-# @parameter origin_class_prefix  The prefix of the class for different states (1.x version)
+# @parameter old_class_prefix     The prefix of the class for different states (<4.3 version)
+# @parameter class_prefix         The prefix of the class for different states (4.3 version)
 # @parameter args                 The arguments used to call the generic method (slist)
 #
 # The args parameter is used:
 # * to be able to make reports when calling the same method with the same class parameter several times
 # * to be able to display detailed reports
 #
-# The origin_class_prefix is used in priority, with a fallback on the old_class_prefix if empty.
+# The class_prefix is used in priority, with a fallback on the old_class_prefix if empty.
 #
 # @class_prefix
 # @class_parameter old_class_prefix
 
-bundle agent _log(message, old_class_prefix, origin_class_prefix, args)
+bundle agent _log(message, old_class_prefix, class_prefix, args)
 {
   methods:
       # Report using the appropriate bundle(s)
       "wrapper for ${configuration.enabled_loggers}"
-        usebundle => ${configuration.enabled_loggers}("${message}", "${old_class_prefix}", "${origin_class_prefix}", "@{args}"),
-        comment   => "Call the ${method} bundle with arguments ${old_class_prefix}, ${origin_class_prefix}, @{args}";
+        usebundle => ${configuration.enabled_loggers}("${message}", "${old_class_prefix}", "${class_prefix}", "@{args}"),
+        comment   => "Call the ${method} bundle with arguments ${old_class_prefix}, ${class_prefix}, @{args}";
 }

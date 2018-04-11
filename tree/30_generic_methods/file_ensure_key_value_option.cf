@@ -37,12 +37,12 @@
 bundle agent file_ensure_key_value_option(file, key, value, separator, option)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_key_value_${file}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"              slist => { "${file}", "${key}", "${value}","${separator}", "${option}" };
-      "canonified_file"    string => canonify("${file}");
+      "old_class_prefix"   string => canonify("file_ensure_key_value_${file}");
+      "args"                slist => { "${file}", "${key}", "${value}","${separator}", "${option}" };
 
+      "report_param"       string => join("_", args);
+      "inner_class_prefix" string => canonify("file_key_value_present_${file}_${report_param}");
+      "class_prefix"       string => canonify("${old_class_prefix}_${report_param}");
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
@@ -54,7 +54,7 @@ bundle agent file_ensure_key_value_option(file, key, value, separator, option)
                           ifvarclass => "should_report";
       "class copy"         usebundle => _classes_copy("file_key_value_present_${canonified_file}", "${old_class_prefix}"),
                           ifvarclass => "file_key_value_present_${canonified_file}_reached";
-      "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                          ifvarclass => "${class_prefix}_action_reached";
+      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
+                          ifvarclass => "${inner_class_prefix}_reached";
       "report"             usebundle => _log("Ensure line in format key${separator}value in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

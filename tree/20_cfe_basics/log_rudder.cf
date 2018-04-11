@@ -20,25 +20,49 @@
 # @description Logging output for Rudder reports
 #
 # @parameter message              The common part of the message to display
-# @parameter old_class_prefix     The prefix of the class for different states (0.x version, empty to force new style logging only)
-# @parameter origin_class_prefix  The prefix of the class for different states (1.x version)
+# @parameter old_class_prefix     The prefix of the class for different states (<4.3 version)
+# @parameter class_prefix         The prefix of the class for different states (4.3+ version)
 # @parameter args                 The arguments used to call the generic method (slist)
 #
 # @class_prefix    logger_rudder
 # @class_parameter old_class_prefix
 
-bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
+bundle agent log_rudder(message, old_class_prefix, class_prefix, args)
 {
 
   vars:
 
-      "c_class_prefix" string => canonify("${old_class_prefix}");
+      "c_old_class_prefix"     string => canonify("${old_class_prefix}");
+      "c_class_prefix"         string => canonify("${class_prefix}");
+
+      "class_prefix_length"   int => string_length("${class_prefix}");
+
+  classes:
+      # Use the full class prefix if:
+      # - it is defined
+      # - its length is smaller than 1000 character (classes are limited to 1023 characters, so if the prefix
+      #   is too long, then classes are not defined and it can't be used
+      # Note that if we don't use the full class_prefix, we fallback to the previous use case, where classes collision happen
+      "class_prefix_null"    expression => strcmp("cf_null", "${class_prefix}");
+      "class_prefix_empty"   expression => strcmp("", "${class_prefix}");
+      "class_prefix_defined" expression => "!class_prefix_null.!class_prefix_empty";
+
+      "class_prefix_size_ok" expression => isgreaterthan("1000", "${class_prefix_length}");
+      "use_class_prefix"     expression => "class_prefix_defined.class_prefix_size_ok";
 
   methods:
+    !use_class_prefix::
+      "report" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${c_old_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${report_data.component_key}", "${message}"),
+        classes    => classes_generic("logger_rudder_${c_old_class_prefix}");
 
+    use_class_prefix::
       "report" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${c_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${report_data.component_key}", "${message}"),
         classes    => classes_generic("logger_rudder_${c_class_prefix}");
 
+  reports:
+    info.!class_prefix_size_ok::
+      # Since the class_prefix is too long, i'm not outputing it (it would fill several lines of text with no added value)
+      "${configuration.info}: Class prefix is too long - fallbacking to old_class_prefix ${old_class_prefix} for reporting";
 }
 
 # bundle backported from rudder (prefixed with _ to avoid conflicts)

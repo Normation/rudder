@@ -83,9 +83,9 @@ bundle agent file_keys_values_present(file, keys, separator)
 {
   vars:
       "old_class_prefix" string => canonify("file_keys_values_present_${file}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${keys}", "${separator}" };
+      "report_param"      string => join("_", args);
+      "class_prefix"      string => canonify("${old_class_prefix}_${report_param}");
 
   files:
       "${file}"
