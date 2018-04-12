@@ -328,7 +328,7 @@ case object MemoryComparator extends CriterionType {
 
 case object MachineComparator extends CriterionType {
 
-  val machineTypes = "Virtual machine" ::  "Physical machine" :: Nil
+  val machineTypes = "Virtual" ::  "Physical" :: Nil
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v: String, comparator:CriterionComparator) = {
@@ -340,8 +340,8 @@ case object MachineComparator extends CriterionType {
   override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
     val v = value match {
       // the machine can't belong to another type
-      case "Virtual machine" => OC_VM
-      case "Physical machine" => OC_PM
+      case "Virtual" => OC_VM
+      case "Physical" => OC_PM
     }
     comparator match {
       case Equals => IS(v)
