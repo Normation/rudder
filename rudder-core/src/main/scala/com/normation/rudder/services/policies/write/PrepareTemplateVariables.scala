@@ -55,6 +55,7 @@ import com.normation.templates.STVariable
 import com.normation.utils.Control.bestEffort
 import net.liftweb.common._
 import org.joda.time.DateTime
+
 import scala.io.Codec
 import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain.TechniqueFile
@@ -62,6 +63,7 @@ import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.Policy
 import com.normation.utils.Control.sequence
 import com.normation.cfclerk.domain.TechniqueGenerationMode
+import com.normation.inventory.domain.OsDetails
 
 trait PrepareTemplateVariables {
 
@@ -96,6 +98,7 @@ class PrepareTemplateVariablesImpl(
     techniqueRepository      : TechniqueRepository        // only for getting reports file content
   , systemVariableSpecService: SystemVariableSpecService
   , buildBundleSequence      : BuildBundleSequence
+  , agentRegister            : AgentRegister
 ) extends PrepareTemplateVariables with Loggable {
 
 
@@ -139,6 +142,7 @@ class PrepareTemplateVariablesImpl(
       preparedTemplate <- prepareTechniqueTemplate(
                               nodeId
                             , agentNodeConfig.agentType
+                            , agentNodeConfig.config.nodeInfo.osDetails
                             , agentNodeConfig.config.policies
                             , parameters
                             , allSystemVars
@@ -172,6 +176,7 @@ class PrepareTemplateVariablesImpl(
   private[this] def prepareTechniqueTemplate(
       nodeId              : NodeId // for log message
     , agentType           : AgentType
+    , osDetails           : OsDetails
     , policies            : List[Policy]
     , parameters          : Seq[ParameterEntry]
     , systemVars          : Map[String, Variable]
@@ -184,7 +189,7 @@ class PrepareTemplateVariablesImpl(
 
     sequence(policies) { p =>
       for {
-        variables <- prepareVariables(nodeId, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${nodeId.value}"
+        variables <- prepareVariables(nodeId, p, agentType, osDetails, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${nodeId.value}"
       } yield {
         val techniqueTemplatesIds = p.technique.templatesIds
         // only set if technique is multi-policy
@@ -221,6 +226,8 @@ class PrepareTemplateVariablesImpl(
   private[this] def prepareVariables(
       nodeId    : NodeId // for log message
     , policy    : Policy
+    , agentType : AgentType
+    , osDetails : OsDetails
     , systemVars: Map[String, Variable]
   ) : Box[Seq[STVariable]] = {
 
@@ -261,10 +268,12 @@ class PrepareTemplateVariablesImpl(
       variables.flatten.map { v => STVariable(
           name = v.spec.name
         , mayBeEmpty = v.spec.constraint.mayBeEmpty
-        , values = v.getTypedValues match {
-            case Full(seq) => seq
-            case e:EmptyBox => throw new VariableException("Wrong type of variable " + v)
-          }
+        , values = agentRegister.findMap(agentType, osDetails) { agent =>  v.getValidatedValue(agent.escape) ?~! s"Wrong value type for variable '${v.spec.name}'" } match {
+                      case Full(seq)   => seq
+                      case eb:EmptyBox =>
+                        val e = (eb ?~! s"Error when preparing variable for node with ID '${nodeId.value}' on Technique '${policy.technique.id.toString()}'")
+                        throw new VariableException(e.messageChain)
+                    }
         , v.spec.isSystem
       ) }
     }

@@ -117,14 +117,14 @@ object BuildBundleSequence {
   // A bundle paramer is just a String, but it can be quoted with simple or double quote
   // (double quote is the default, and simple quote are used mostly for JSON)
   sealed trait BundleParam {
-    def quote(agentType : AgentType) : String
+    def quote(agentEscape: String => String) : String
     def name  : String
     def value : String
   }
   final object BundleParam {
-    final case class SimpleQuote(value: String, name:String) extends BundleParam { def quote(agentType : AgentType) = "'"+value+"'" }
+    final case class SimpleQuote(value: String, name:String) extends BundleParam { def quote(agentEscape: String => String) = "'"+value+"'" }
     final case class DoubleQuote(value: String, name:String) extends BundleParam {
-      def quote(agentType : AgentType) = "\""+ParameterEntry.escapeString(value, agentType)+"\""
+      def quote(agentEscape: String => String) = "\""+agentEscape(value)+"\""
     }
   }
 
@@ -340,11 +340,12 @@ class BuildBundleSequence(
 ////////// Agent specific implementation to format outputs //////////
 //////////////////////////////////////////////////////////////////////
 
-object CfengineBundleVariables extends AgentFormatBundleVariables {
+object CfengineBundleVariables {
   import BuildBundleSequence._
 
-  override def getBundleVariables(
-      systemInputs: List[InputFile]
+  def getBundleVariables(
+      escape      : String => String
+    , systemInputs: List[InputFile]
     , sytemBundles: List[TechniqueBundles]
     , userInputs  : List[InputFile]
     , userBundles : List[TechniqueBundles]
@@ -353,10 +354,10 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
 
     BundleSequenceVariables(
         formatBundleFileInputFiles(systemInputs.map(_.path))
-      , formatMethodsUsebundle(sytemBundles, Nil)
+      , formatMethodsUsebundle(escape, sytemBundles, Nil)
       , formatBundleFileInputFiles(userInputs.map(_.path))
         //only user bundle may be set on PolicyMode = Verify
-      , formatMethodsUsebundle(userBundles.addDryRunManagement, runHooks)
+      , formatMethodsUsebundle(escape, userBundles.addDryRunManagement, runHooks)
     )
   }
 
@@ -397,11 +398,11 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
    *  "An other rule/its directive"                 usebundle => virtualMachines;
    * """
    */
-  def formatMethodsUsebundle(bundleSeq: List[TechniqueBundles], runHooks: List[NodeRunHook]): List[String] = {
+  def formatMethodsUsebundle(escape: String => String, bundleSeq: List[TechniqueBundles], runHooks: List[NodeRunHook]): List[String] = {
     //the promiser value (may) comes from user input, so we need to escape
     //also, get the list of bundle for each promiser.
     //and we don't need isSystem anymore
-    val escapedSeq = bundleSeq.map(x => (ParameterEntry.escapeString(x.promiser.value, AgentType.CfeCommunity), x.bundleSequence) )
+    val escapedSeq = bundleSeq.map(x => (CFEngineAgentSpecificGeneration.escape(x.promiser.value), x.bundleSequence) )
 
     // create / add in the escapedSeq hooks
     val preHooks  = runHooks.collect { case h if(h.kind == RunHook.Kind.Pre ) => getBundleForHook(h) }
@@ -416,7 +417,7 @@ object CfengineBundleVariables extends AgentFormatBundleVariables {
     (allBundles.flatMap { case (promiser, bundles) =>
       bundles.map { bundle =>
         val params = if (bundle.params.size > 0) {
-          bundle.params.map( _.quote(AgentType.CfeCommunity) ).mkString("(", ",", ")")
+          bundle.params.map( _.quote(escape) ).mkString("(", ",", ")")
         } else {
           ""
         }

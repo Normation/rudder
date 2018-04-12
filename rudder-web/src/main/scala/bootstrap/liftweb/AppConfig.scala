@@ -90,6 +90,7 @@ import com.normation.rudder.services.nodes._
 import com.normation.rudder.services.policies.DeployOnTechniqueCallback
 import com.normation.rudder.services.policies._
 import com.normation.rudder.services.policies.nodeconfig._
+import com.normation.rudder.services.policies.write.AgentRegister
 import com.normation.rudder.services.policies.write.BuildBundleSequence
 import com.normation.rudder.services.policies.write.PathComputerImpl
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl
@@ -411,7 +412,8 @@ object RudderConfig extends Loggable {
   lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
 
   //used in plugins, so init may be needed in strange time to avoid NPE
-  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
+  lazy val agentRegister = new AgentRegister()
+  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles(agentRegister)
 
   //all cache that need to be cleared are stored here
   lazy val clearableCache: Seq[CachedRepository] = Seq(
@@ -1297,7 +1299,7 @@ object RudderConfig extends Loggable {
       techniqueRepositoryImpl
     , pathComputer
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
-    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService, new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles))
+    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService, new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles), agentRegister)
     , new FillTemplatesService()
     , writeAllAgentSpecificFiles
     , HOOKS_D

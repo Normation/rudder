@@ -95,13 +95,14 @@ object TestSystemData {
   val licenseRepo = new LicenseRepositoryXML("we_don_t_have_license")
   val logNodeConfig = new NodeConfigurationLoggerImpl(abstractRoot + "/lognodes")
 
-  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles()
-
+  lazy val agentRegister = new AgentRegister()
+  lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles(agentRegister)
 
   val prepareTemplateVariable = new PrepareTemplateVariablesImpl(
       techniqueRepository
     , systemVariableServiceSpec
     , new BuildBundleSequence(systemVariableServiceSpec, writeAllAgentSpecificFiles)
+    , agentRegister
   )
 
   /*
