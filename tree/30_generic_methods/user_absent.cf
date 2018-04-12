@@ -30,9 +30,9 @@ bundle agent user_absent(login)
 {
   vars:
       "old_class_prefix"  string => canonify("user_absent_${login}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${login}" };
+      "report_param"      string => join("_", args);
+      "class_prefix"      string => canonify("${old_class_prefix}_${report_param}");
 
   users:
       "${login}"  policy      => "absent",

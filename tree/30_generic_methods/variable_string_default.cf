@@ -35,9 +35,9 @@ bundle agent variable_string_default(variable_prefix, variable_name, source_vari
 {
   vars:
       "old_class_prefix"  string => canonify("variable_string_default_${variable_name}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${variable_prefix}", "${variable_name}", "${source_variable,}", "${default_value}" };
+      "report_param"      string => join("_", args);
+      "class_prefix"      string => canonify("${old_class_prefix}_${report_param}");
 
     pass1::
       # define the variable within the variable_prefix namespace

@@ -20,53 +20,60 @@
 # @description Standard default logging output
 #
 # @parameter message              The common part of the message to display
-# @parameter old_class_prefix     The prefix of the class for different states (0.x version)
-# @parameter origin_class_prefix  The prefix of the class for different states (1.x version)
+# @parameter old_class_prefix     The prefix of the class for different states (<4.3 version)
+# @parameter class_prefix         The prefix of the class for different states (4.3 version)
 # @parameter args                 The arguments used to call the generic method (slist)
 #
 # @class_prefix _logger_default
 # @class_parameter old_class_prefix
 
-bundle agent _log_default(message, old_class_prefix, origin_class_prefix, args)
+bundle agent _log_default(message, old_class_prefix, class_prefix, args)
 {
   vars:
-    "canonified_prefix" string => canonify("${old_class_prefix}");
+      "canonified_prefix" string => canonify("${old_class_prefix}");
+      "c_class_prefix"    string => canonify("${class_prefix}");
+      "class_prefix_length"   int => string_length("${class_prefix}");
 
-    "promiser_count" int => length("this.callers_promisers");
+      "arg_list" string => join(",", "args");
 
-    # head(length-2) -> remove logger call stack (_log + _log_default)
-    "nologger_len" string => eval("${promiser_count}-2", "math", "infix");
-    "promisers_list_nologger" slist => sublist("this.callers_promisers", "head", "${nologger_len}");
+  classes:
+      # Use the full class prefix if:
+      # - it is defined
+      # - its length is smaller than 1000 character (classes are limited to 1023 characters, so if the prefix
+      #   is too long, then classes are not defined and it can't be used
+      # Note that if we don't use the full class_prefix, we fallback to the previous use case, where classes collision happen
 
-    "promisers" string => join("/", "promisers_list_nologger");
-
-    "arg_list" string => join(",", "args");
+      "class_prefix_null"    expression => strcmp("cf_null", "${class_prefix}");
+      "class_prefix_empty"   expression => strcmp("", "${class_prefix}");
+      "class_prefix_defined" expression => "!class_prefix_null.!class_prefix_empty";
+      "class_prefix_size_ok" expression => isgreaterthan("1000", "${class_prefix_length}");
+      "use_class_prefix"     expression => "class_prefix_defined.class_prefix_size_ok";
 
   reports:
-    debug.has_promiser_stack::
-      "${configuration.debug} Promise called ${promisers} with ${arg_list}"; # full debug information
+    debug.use_class_prefix::
+      "${configuration.debug} Promise called with ${arg_list} - using class_prefix for reporting"; # full debug information
 
-    debug.!has_promiser_stack::
+    debug.!use_class_prefix::
       "${configuration.debug} Promise kept, not doing anything: ${message}"
         ifvarclass => "${canonified_prefix}_kept.!${canonified_prefix}_repaired.!${canonified_prefix}_not_ok";
 
-    debug.has_promiser_stack::
+    debug.use_class_prefix::
       "${configuration.debug} Promise kept, not doing anything: ${message}"
-        ifvarclass => "${origin_class_prefix}_kept.!${origin_class_prefix}_repaired.!${origin_class_prefix}_not_ok";
+        ifvarclass => "${c_class_prefix}_kept.!${c_class_prefix}_repaired.!${c_class_prefix}_not_ok";
 
-    info.!has_promiser_stack::
+    info.!use_class_prefix::
       "${configuration.info} Promise repaired, made a change: ${message}"
         ifvarclass => "${canonified_prefix}_repaired.!${canonified_prefix}_not_ok";
 
-    info.has_promiser_stack::
+    info.use_class_prefix::
       "${configuration.info} Promise repaired, made a change: ${message}"
-        ifvarclass => "${origin_class_prefix}_repaired.!${origin_class_prefix}_not_ok";
+        ifvarclass => "${c_class_prefix}_repaired.!${c_class_prefix}_not_ok";
 
-    !has_promiser_stack:: # We always want to log errors
+    !use_class_prefix:: # We always want to log errors
       "${configuration.error} Promise could not be repaired, error encountered: ${message}"
         ifvarclass => "${canonified_prefix}_not_ok";
 
-    has_promiser_stack:: # We always want to log errors
+    use_class_prefix:: # We always want to log errors
        "${configuration.error} Promise could not be repaired, error encountered: ${message}"
-        ifvarclass => "${origin_class_prefix}_not_ok";
+        ifvarclass => "${c_class_prefix}_not_ok";
 }

@@ -1,8 +1,8 @@
-#######################################################
+#########################################################################################
 #
-# Test checking if reporting is correcly done with rudder_logger
+# This will check reporting within log_rudder, by checking the defined classes
 #
-#######################################################
+#########################################################################################
 
 bundle common acc_path
 {
@@ -22,50 +22,71 @@ body common control
 bundle agent init
 {
   vars:
-    "tmp"            string => getenv("TEMP", 1024);
+    "message"             string => "Test of the reporting";
+    "param[1]"            string => "/some/param.txt";
+    "old_class_prefix[1]" string => canonify("files_lines_present_${param[1]}");
+    "args_1"              slist  => { "${param[1]}", "${param[1]}", "${param[1]}" };
+    "report_param[1]"     string => join("_", args_1);
+    "class_prefix[1]"     string => canonify("${old_class_prefix[1]}_${report_param[1]}");
 
-    "message"         string => "is the expected report message";
-    "class_prefix"    string => "file_create__tmp_1";
-    "class_condition" string => "${class_prefix}_repaired";
+    "param[2]"            string => "/some/param.txt";
+    "old_class_prefix[2]" string => canonify("files_lines_present_${param[2]}");
+    "args_2"              slist  => { "${param[2]}", "bla", "bli" };
+    "report_param[2]"     string => join("_", args_2);
+    "class_prefix[2]"     string => canonify("${old_class_prefix[2]}_${report_param[2]}");
 
-    "current_technique_report_info.technique_name" string => "Test_logging_in_ncf";
+    "param[3]"            string => "/other/param.txt";
+    "old_class_prefix[3]" string => canonify("files_lines_present_${param[3]}");
+    "args_3"              slist  => { "${param[3]}", "bla", "bli" };
+    "report_param[3]"     string => join("_", args_3);
+    "class_prefix[3]"     string => "cf_null";
 
-    "expected_reporting" string => "R: @@Test_logging_in_ncf@@result_repaired@@32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@0@@File create@@/tmp/1@@12-11-54##123456@#the expected report message was repaired";
-    "escaped_expected"   string => escape("${expected_reporting}");
+    "param[4]"            string => "/very/long/parameter/text/results.txt";
+    "old_class_prefix[4]" string => canonify("files_lines_present_${param[4]}");
+    "args_4"              slist  => { "${param[4]}", "veryyyyyyyyyyyyyyyyyyyyyyyyyyyyylonnnnnnnnnnnnnnnnnnnnnnnnnnnnnnngtexxxxxxxxxxxxxxxxxxxxxxxxxt", "veryyyyyyyyyyyyyyyyyyyyyyyyyyyyylonnnnnnnnnnnnnnnnnnnnnnnnnnnnnnngtexxxxxxxxxxxxxxxxxxxxxxxxxt", "suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuupppppppppppppppppppppppppppppeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuupppppppppppppppppppppppppppppeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuupppppppppppppppppppppppppppppeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuupppppppppppppppppppppppppppppeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuupppppppppppppppppppppppppppppeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuupppppppppppppppppppppppppppppeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr" };
+    "report_param[4]"     string => join("_", args_4);
+    "class_prefix[4]"     string => canonify("${old_class_prefix[4]}_${report_param[4]}");
+
+
+    "tests_list"     slist => getindices("param");
 }
 
 #######################################################
 
 bundle agent test
 {
+  # 1,2 are success, 3 is repaired, 4 is error
+  methods:
+    "ph1" usebundle => _classes_success("${init.old_class_prefix[1]}");
+    "ph1" usebundle => _classes_success("${init.class_prefix[1]}");
+    "ph2" usebundle => _classes_success("${init.old_class_prefix[2]}");
+    "ph2" usebundle => _classes_success("${init.class_prefix[2]}");
+    "ph3" usebundle => _classes_repaired("${init.old_class_prefix[3]}");
+    "ph3" usebundle => _classes_repaired("${init.class_prefix[3]}");
+    "ph4" usebundle => _classes_failure("${init.old_class_prefix[4]}");
+    "ph4" usebundle => _classes_failure("${init.class_prefix[4]}");
+
+    # do the reporting part
+    # 3, 4 should use old_class_prefix, other the new class_prefix
+    "report1" usebundle => log_rudder("${init.message}", "${init.old_class_prefix[1]}", "${init.class_prefix[1]}", "@{init.args_1}");
+    "report2" usebundle => log_rudder("${init.message}", "${init.old_class_prefix[2]}", "${init.class_prefix[2]}", "@{init.args_2}");
+    "report3" usebundle => log_rudder("${init.message}", "${init.old_class_prefix[3]}", "${init.class_prefix[3]}", "@{init.args_3}");
+    "report4" usebundle => log_rudder("${init.message}", "${init.old_class_prefix[4]}", "${init.class_prefix[4]}", "@{init.args_4}");
+
 }
 
 #######################################################
 
 bundle agent check
 {
-  vars:
-    pass1::
-      # execute the agent, and get its output in 'output' variable
-      "reporting_output_cmd" string => "${sys.workdir}/bin/cf-agent -Kf \"${this.promise_dirname}/log_rudder_output.cf.sub\" -D AUTO";
-
-      "output" string => execresult("${reporting_output_cmd}", "noshell");
-
   classes:
-    pass1::
-      # Check if output contains the correct value
-      "ok" 
-         expression => regcmp(".*${init.escaped_expected}.*", "${output}");
-
-    any::
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
-
+      # 3, 4 should use old_class_prefix, other the new class_prefix
+      "ok"          expression => "logger_rudder_${init.class_prefix[1]}_reached.logger_rudder_${init.class_prefix[2]}_reached.logger_rudder_${init.old_class_prefix[3]}_reached.logger_rudder_${init.old_class_prefix[4]}_reached";
 
   reports:
-    pass2.ok::
+    ok::
       "$(this.promise_filename) Pass";
-    pass2.!ok::
+    !ok::
       "$(this.promise_filename) FAIL";
-      "$(this.promise_filename) Expected reports was not generated (got '${output}' but expected '${init.escaped_expected}' )";
+
 }
