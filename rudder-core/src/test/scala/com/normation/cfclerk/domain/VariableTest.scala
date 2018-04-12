@@ -223,7 +223,7 @@ class VariableTest extends Specification {
     implicit val v = variable.copyWithSavedValue("true")
     haveName()
     haveDescription()
-    haveValue("true")
+    haveValue(true)
   }
 
   "Boolean variable" should {
@@ -231,7 +231,7 @@ class VariableTest extends Specification {
       constraint = Constraint(BooleanVType)), Seq())
 
     implicit val v = variable.copyWithSavedValue("false")
-    haveValue("false")
+    haveValue(false)
   }
 
   "Invalid variable" should {
@@ -544,7 +544,7 @@ class VariableTest extends Specification {
     }
   }
 
-  private[this] def haveValue(value: String = refValue)(implicit variable: Variable) = {
+  private[this] def haveValue[T](value: T = refValue)(implicit variable: Variable) = {
     "have value '%s'".format(value) in {
       variable.getValidatedValue(identity).openOrThrowException("test").head mustEqual value
     }
