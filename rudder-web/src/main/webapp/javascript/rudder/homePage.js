@@ -193,20 +193,23 @@ function doughnutChart (id,data,count,colors) {
         }
 
         // redirects to the corresponding node's information when clicking on a node's diagram
-         , onClick: function() {
-             if (chartData.labels[0] !== undefined){
+         , onClick: function(event, data){
+
+             //check if the user click on something relevant
+             if (data[0] !== undefined){
               var query = {query:{select:"nodeAndPolicyServer",composition:"And"}}
               switch (id) {
-                  case 'nodeOs':
+                case 'nodeOs':
                       query.query.where = [{
-                          objectType: "node"
-                        , attribute : "osName"
-                        , comparator: "eq"
-                        , value     : chartData.labels[0]
-                      }]
+                             objectType: "node"
+                           , attribute : "osNAme"
+                           , comparator: "eq"
+                           , value     : data[0]._model.label
+                           }]
+
                       break;
                   case 'nodeAgents':
-                       query.query.where = [{
+                      query.query.where = [{
                           objectType: "software"
                         , attribute : "cn"
                         , comparator: "eq"
@@ -216,19 +219,35 @@ function doughnutChart (id,data,count,colors) {
                           objectType: "software"
                         , attribute : "softwareVersion"
                         , comparator: "regex"
-                        , value     : chartData.labels[0].replace(/\./g, "(\.|~)") + ".*"
+                        , value     : data[0]._model.label.replace(/\./g, "(\.|~)") + ".*"
                       }]
                       break;
                   case 'nodeMachine':
+                      query.query.where = [{
+                          objectType: "machine"
+                        , attribute : "machineType"
+                        , comparator: "eq"
+                        , value     : data[0]._model.label
+                       }]
                       break;
+
+                  // The following 'default' statement leads to code repetition
+                  // and will disapear as soon as the compliance chart will come.
+                  // We just don't want it to redirect for now because we are building the query.
+
+                  default:
+                     var chart = new Chart(context, chartOptions);
+                     window[id] = chart;
+                     context.after(chart.generateLegend());
+                     return;
+
               }
-              var url = contextPath + "/secure/nodeManager/searchNodes#" +  JSON.stringify(query)
-              window.location = url;
+               var url = contextPath + "/secure/nodeManager/searchNodes#" +  JSON.stringify(query)
+               window.location = url;
             }
          }
        }
      }
-
   var chart = new Chart(context, chartOptions);
   window[id] = chart;
   context.after(chart.generateLegend());
