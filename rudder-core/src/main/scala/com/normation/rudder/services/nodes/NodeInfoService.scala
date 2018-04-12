@@ -63,7 +63,7 @@ import com.normation.inventory.ldap.core.InventoryMapper
  * - the quantity of data on the wires.
  *
  * The general tactic is to have a local cache (a map of nodeid -> nodeinfo),
- * and before any access, we are checking of an update is necessary with
+ * and before any access, we are checking if an update is necessary with
  * a very quick oracle.
  * The oracle only look for at least one entry modified since the last oracle
  * check, and if one is found, says the cache is dirty.

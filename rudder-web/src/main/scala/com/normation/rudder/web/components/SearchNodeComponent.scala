@@ -491,7 +491,7 @@ object SearchNodeComponent {
   val otOptions : List[(String,String)] = {
     val opts = Buffer[(String,String)]()
     def add(s:String, pre:String="") = opts += ((s,pre + S.?("ldap.object."+s)))
-
+    
     add(OC_NODE)
     add("group",         " ├─ ")
     add(OC_NET_IF,       " ├─ ")

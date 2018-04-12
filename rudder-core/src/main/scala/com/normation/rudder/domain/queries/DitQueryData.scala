@@ -50,7 +50,7 @@ import com.normation.rudder.domain.RudderLDAPConstants.{ A_NODE_PROPERTY , OC_RU
 import com.normation.rudder.domain.RudderDit
 
 /*
- * Here we define all data needed logic by the to create the search
+ * Here we define all data needed logic by the webapp to create the search
  * form.
  *
  * The search form is organized in 4 levels :
@@ -74,7 +74,7 @@ case object QueryNodeDn extends DnType
 case object QuerySoftwareDn extends DnType
 
 /*
- * Mapping datas for LDAP query processor
+ * Mapping data for LDAP query processor
  *
  * Here, we store what are the LDAP URL for each type,
  * how join are made between them, etc.
@@ -99,10 +99,10 @@ final case object NodeDnJoin extends LDAPJoinElement(A_NODE_UUID) with HashcodeC
 //request for that object type.
 final case class LDAPObjectTypeFilter(value: Filter)
 
-class DitQueryData(dit:InventoryDit, nodeDit: NodeDit, rudderDit : RudderDit) {
+class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit) {
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
-// Criterion(A_MACHINE_UUID, StringComparator),
-// Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
+    //Criterion(A_MACHINE_UUID, StringComparator),
+    //Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
     Criterion(A_DESCRIPTION, StringComparator),
     Criterion(A_MODEL, StringComparator),
     Criterion(A_SERIAL_NUMBER, StringComparator),
@@ -129,6 +129,7 @@ class DitQueryData(dit:InventoryDit, nodeDit: NodeDit, rudderDit : RudderDit) {
 
   protected val criteriaSet = Set(
     ObjectCriterion(OC_MACHINE, Seq(
+      Criterion("machineType", MachineComparator),
       Criterion(A_MACHINE_UUID, StringComparator),
       Criterion(A_NAME, StringComparator),
       Criterion(A_DESCRIPTION, StringComparator),
@@ -304,6 +305,7 @@ case class LDAPObjectType(
     , "videoCardPhysicalElement"       -> LAOT(dit.MACHINES.dn, Sub, LAOTF(IS(OC_VIDEO)), None, ParentDNJoin)
     , "group"                          -> LAOT(rudderDit.GROUP.dn, Sub, LAOTF(IS(OC_RUDDER_NODE_GROUP)), None, NodeDnJoin)
   )
+
   }
 
   //We only know how to query NODES for now: special word for it.
