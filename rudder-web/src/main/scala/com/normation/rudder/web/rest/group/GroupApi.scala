@@ -37,13 +37,24 @@
 
 package com.normation.rudder.web.rest.group
 
+import com.normation.rudder.authorization.{Edit, Read, Write}
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.web.rest.RestAPI
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.web.model.CurrentUser
+import net.liftweb.http.Req
+
 
 trait GroupAPI extends RestAPI {
   val kind = "groups"
+
+  override protected def checkSecure : PartialFunction[Req, Boolean] = {
+    case Get(_,_) => CurrentUser.checkRights(Read("group"))
+    case Post(_,_) | Put(_,_) | Delete(_,_) => CurrentUser.checkRights(Write("group")) || CurrentUser.checkRights(Edit("group"))
+    case _=> false
+
+  }
 }
 
 case class RestGroup(
