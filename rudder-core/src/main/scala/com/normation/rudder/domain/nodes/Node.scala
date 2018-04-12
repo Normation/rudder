@@ -327,8 +327,8 @@ object JsonSerialisation {
 
   implicit class JsonParameter(x: ParameterEntry) {
     def toJson(): JObject = (
-        ( "name"     -> x.parameterName  )
-      ~ ( "value"    -> x.parameterValue )
+        ( "name"     -> x.parameterName )
+      ~ ( "value"    -> x.escapedValue  )
     )
   }
 
@@ -336,7 +336,7 @@ object JsonSerialisation {
     implicit val formats = DefaultFormats
 
     def dataJson(x: ParameterEntry) : JField = {
-      JField(x.parameterName, x.parameterValue)
+      JField(x.parameterName, x.escapedValue)
     }
 
     def toDataJson(): JObject = {

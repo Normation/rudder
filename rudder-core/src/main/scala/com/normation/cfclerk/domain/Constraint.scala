@@ -43,29 +43,53 @@ import net.liftweb.common._
 
 class ConstraintException(val msg: String) extends Exception(msg)
 
-trait VTypeWithRegex {
-  def regex:Option[RegexConstraint]
-}
 /**
  * A constraint about the type of a variable
  */
 sealed trait VTypeConstraint {
   def name: String
 
-  // Escape a String to be CFengine compliant
-  // a \ will be escaped to \\
-  // a " will be escaped to \"
-  // The parameter may be null (for some legacy reason), and it should be checked
-  def escapeString(x : String) : String = {
-    if (x == null)
-      x
-    else
-      x.replaceAll("""\\""", """\\\\""").replaceAll(""""""","""\\"""")
-  }
+  /* type of the element to use in string template.
+   * we only support "string" (almost everything), and "boolean" which
+   * are used in &IF( expressions.
+   */
+  type STTYPE
 
-  //check if the value is compatible with that type constrain.
-  //return a Failure on error, the checked value on success.
-  def getTypedValue(value:String, forField:String) : Box[Any] = Full(escapeString(value))
+  /*
+   * This method does three things:
+   * - it checks if the input value is correct reguarding the field constraint
+   * - it formats the string given its internal representation.
+   * - it uses the provided escape method to escape need chars in value.
+   *
+   * The escape function is a parameter because it can change from one agent to the next.
+   */
+  def getFormatedValidated(value: String, forField: String, escapeString: String => String) : Box[STTYPE]
+}
+
+/*
+ * When we want to have a string put in string template
+ */
+sealed trait STString extends VTypeConstraint {
+  override type STTYPE = String
+  override def getFormatedValidated(value: String, forField: String, escapeString: String => String): Box[String] = Full(escapeString(value))
+}
+
+sealed trait VTypeWithRegex extends STString {
+  def regex:Option[RegexConstraint]
+}
+
+/*
+ * When we want to have a boolean put in string template
+ */
+sealed trait STBoolean extends VTypeConstraint {
+  override type STTYPE = Boolean
+  override def getFormatedValidated(value: String, forField: String, escapeString: String => String): Box[Boolean] = {
+    try {
+      Full(value.toBoolean)
+    } catch {
+      case _:Exception => Failure(s"Wrong value ${value} for field '${forField}': expecting a boolean")
+    }
+  }
 }
 
 object VTypeConstraint {
@@ -101,10 +125,10 @@ object VTypeConstraint {
   val allTypeNames = validTypes(None,Seq()).map( _.name ).mkString(", ")
 }
 
-sealed trait StringVType extends VTypeConstraint with VTypeWithRegex {
+sealed trait StringVType extends VTypeConstraint with VTypeWithRegex with STString {
   def regex: Option[RegexConstraint]
 
-  override def getTypedValue(value:String, forField:String) : Box[Any] = regex match {
+  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = regex match {
     case None => Full(escapeString(value))
     case Some(regex) => regex.check(value, forField).map(escapeString(_))
   }
@@ -132,13 +156,13 @@ object MailVType extends FixedRegexVType {
 
 case class IntegerVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex  {
   override val name = "integer"
-  override def getTypedValue(value:String, forField:String) : Box[Any] = {
-    super.getTypedValue(value, forField).flatMap( _ =>
-      try {
+  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = {
+    super.getFormatedValidated(value, forField, escapeString).flatMap( _ =>
+      (try {
         Full(value.toInt)
       } catch {
         case _:Exception => Failure(s"Wrong value ${value} for field '${forField}': expecting an integer.")
-      }
+      }).map( _ => value )
     )
   }
 }
@@ -152,13 +176,13 @@ case class SizetbVType(regex: Option[RegexConstraint] = None) extends SizeVType 
 
 case class DateTimeVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex {
   override val name = "datetime"
-  override def getTypedValue(value:String, forField:String) : Box[Any] = {
-    super.getTypedValue(value, forField).flatMap( _ =>
-      try
+  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = {
+    super.getFormatedValidated(value, forField, escapeString).flatMap( _ =>
+      (try
         Full(ISODateTimeFormat.dateTimeParser.parseDateTime(value))
       catch {
         case _:Exception => Failure(s"Wrong value ${value} for field '${forField}': expecting a datetime in ISO 8601 standard.")
-      }
+      }).map( _.toString(ISODateTimeFormat.dateTime()))
     )
   }
 }
@@ -168,8 +192,8 @@ case class TimeVType(regex: Option[RegexConstraint] = None) extends VTypeConstra
 //other types
 
 // passwords
-sealed trait AbstactPassword extends VTypeConstraint {
-  override final def getTypedValue(value:String, forField:String) : Box[Any] = {
+sealed trait AbstactPassword extends VTypeConstraint with STString {
+  override final def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = {
     HashAlgoConstraint.unserialize(value).map( _._2 ).map(escapeString(_))
   }
 }
@@ -190,24 +214,18 @@ sealed trait DerivedPasswordVType extends AbstactPassword {
 final case object AixDerivedPasswordVType   extends DerivedPasswordVType { override val tpe = HashAlgoConstraint.DerivedPasswordType.AIX   }
 final case object LinuxDerivedPasswordVType extends DerivedPasswordVType { override val tpe = HashAlgoConstraint.DerivedPasswordType.Linux }
 
-case object BooleanVType extends VTypeConstraint {
+case object BooleanVType extends VTypeConstraint with STBoolean {
   override val name = "boolean"
-  override def getTypedValue(value:String, forField:String) : Box[Any] = {
-      try {
-        Full(value.toBoolean)
-      } catch {
-        case _:Exception => Failure(s"Wrong value ${value} for field '${forField}': expecting a boolean")
-      }
-  }
 }
-case object UploadedFileVType    extends VTypeConstraint { override val name = "uploadedfile" }
-case object SharedFileVType      extends VTypeConstraint { override val name = "sharedfile" }
-case object DestinationPathVType extends VTypeConstraint { override val name = "destinationfullpath" }
-case object PermVType            extends VTypeConstraint { override val name = "perm" }
-case object RawVType             extends VTypeConstraint {
+
+case object UploadedFileVType    extends VTypeConstraint with STString { override val name = "uploadedfile" }
+case object SharedFileVType      extends VTypeConstraint with STString { override val name = "sharedfile" }
+case object DestinationPathVType extends VTypeConstraint with STString { override val name = "destinationfullpath" }
+case object PermVType            extends VTypeConstraint with STString { override val name = "perm" }
+case object RawVType             extends VTypeConstraint with STString {
   override val name = "raw"
    // no escaping for raw types
-  override def getTypedValue(value:String, forField:String) : Box[Any] = Full(value)
+  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = Full(value)
 }
 
 case class Constraint(
@@ -226,7 +244,7 @@ case class Constraint(
         throw new ConstraintException("'%s' field must not be empty".format(varName))
       }
     } else {
-      typeName.getTypedValue(varValue, varName) match {
+      typeName.getFormatedValidated(varValue, varName, identity) match { // here, escaping is not important
         case Full(_) => //OK
         case f:Failure => throw new ConstraintException(f.messageChain)
         //we don't want that to happen

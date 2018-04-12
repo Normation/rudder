@@ -186,7 +186,7 @@ final case object ParameterForConfiguration {
  */
 final case class ParameterEntry(
     parameterName : String
-  , parameterValue: String
+  , escapedValue  : String
   , agentType     : AgentType
 ) {
   // returns the name of the parameter
@@ -197,37 +197,7 @@ final case class ParameterEntry(
   // returns the _escaped_ value of the parameter,
   // compliant with the syntax of CFEngine
   def getEscapedValue() : String = {
-    ParameterEntry.escapeString(parameterValue,agentType)
-  }
-
-  // Returns the unescaped (raw) value of the paramter
-  def getUnescapedValue() : String = {
-    parameterValue
-  }
-}
-
-final object ParameterEntry {
-  def escapeString(x: String, agentType: AgentType) : String = {
-    // The parameter may be null (for legacy reason), and it should be checked
-    if (x == null)
-      x
-    else
-      agentType match {
-        case AgentType.Dsc =>
-          /* Escape string to be DSC compliant
-          * a ` will be escaped to ``
-          * a " will be escaped to `"
-          */
-          x.replaceAll("""`""", """``""").
-            replaceAll(""""""", """`"""")
-        case _             =>
-          /* Escape string to be CFEngine compliant
-           * a \ will be escaped to \\
-           * a " will be escaped to \"
-           */
-          x.replaceAll("""\\""", """\\\\""").
-            replaceAll(""""""" , """\\"""" )
-      }
+    escapedValue
   }
 }
 
