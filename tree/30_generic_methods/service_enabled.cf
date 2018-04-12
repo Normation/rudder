@@ -52,9 +52,6 @@ bundle agent service_enabled(service_name)
         usebundle => ncf_services("${service_name}", "enable"),
         ifvarclass => "(!has_promiser_stack.service_check_started_at_boot_${canonified_service_name}_not_ok)|(has_promiser_stack.${class_prefix}_check_at_boot_not_ok)";
 
-    any::
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
     !windows::
       "already defined"
         usebundle  => _classes_success("${old_class_prefix}"),
@@ -81,6 +78,8 @@ bundle agent service_enabled(service_name)
                           ifvarclass => "${class_prefix}_action_reached";
 
    any::
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "report"
         usebundle => _log("Ensure service ${service_name} is started at boot", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";

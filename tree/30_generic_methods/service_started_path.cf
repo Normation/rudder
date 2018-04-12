@@ -51,9 +51,6 @@ bundle agent service_started_path(service_name, service_path)
         usebundle  => service_start("${service_name}"),
         ifvarclass => "!${class_prefix}_check_running_kept";
 
-    any::
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
     !windows.has_promiser_stack::
       "class copy if not running"
         usebundle  => _classes_copy("${class_prefix}_start_if_not_running", "${class_prefix}"),
@@ -85,6 +82,8 @@ bundle agent service_started_path(service_name, service_path)
                           ifvarclass => "${class_prefix}_action_reached";
 
     any::
+      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
       "report"
         usebundle  => _log("Ensure that service ${service_name} is running", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
