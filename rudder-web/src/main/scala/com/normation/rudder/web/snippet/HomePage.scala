@@ -52,6 +52,11 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.Version
+import com.normation.inventory.domain.WindowsType
+import com.normation.inventory.domain.LinuxType
+import com.normation.inventory.domain.SolarisOS
+import com.normation.inventory.domain.AixOS
+import com.normation.inventory.domain.BsdType
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.Control.sequence
 import com.unboundid.ldap.sdk.SearchRequest
@@ -283,6 +288,18 @@ class HomePage extends Loggable {
   }
 
   def inventoryInfo() = {
+
+
+    val osTypes = AixOS       ::
+      SolarisOS               ::
+      BsdType.allKnownTypes   :::
+      LinuxType.allKnownTypes :::
+      WindowsType.allKnownTypes
+
+    // mapping between os name and their string representation (printed on screen).
+
+    val osNames = JsObj(osTypes.map {os => (S.?("os.name." + os.name), Str(os.name))}:_*)
+
     ( for {
       nodeInfos <- HomePage.boxNodeInfos.get
     } yield {
@@ -302,6 +319,7 @@ class HomePage extends Loggable {
             ${machinesArray.toJsCmd}
           , ${osArray.toJsCmd}
           , ${nodeInfos.size}
+          , ${osNames.toJsCmd}
         )""")))
     } ) match {
       case Full(inventory) => inventory
