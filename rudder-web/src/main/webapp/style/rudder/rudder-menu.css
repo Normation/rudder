@@ -580,6 +580,22 @@ a.sidebar-toggle{
 .global-compliance,.global-compliance-details {
   height: 279px;
 }
+
+/* Node Breakdown */
+ul.graph-legend{
+  margin-top:10px;
+}
+ul.graph-legend > li.legend{
+  background-color:transparent;
+  transition-property:background-color;
+  transition-duration:.2s;
+  cursor:pointer;
+  border-radius:4px;
+}
+ul.graph-legend > li.legend:hover{
+  background-color:#f4f4f4;
+}
+
 /* ----- </DASHBOARD>  ----- */
 /* -- <NAVBAR>  ------------ */
 .skin-yellow .sidebar-menu>li.footer>span{
