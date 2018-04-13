@@ -164,7 +164,7 @@
                   <h4>Characteristics</h4>
                   <ul>
                     <li ng-non-bindable id="techniqueLongDescription">[technique.longDescription]</li>
-                    <li ng-non-bindable id="isSingle">[Unique Technique]</p>
+                    <li ng-non-bindable id="isSingle">[Unique Technique]</li>
                   </ul>
                 </div>
                 <div id="techniqueVersion" ng-controller="techniqueVersion">
@@ -173,6 +173,7 @@
                     <thead>
                       <tr>
                         <th colspan="2">Version</th>
+                        <th>Instances</th>
                         <th colspan="2">Agent type</th>
                         <th>Last updated on</th>
                         <lift:authz role="directive_write">
@@ -182,16 +183,24 @@
                     </thead>
                     <tbody>
                       <tr ng-repeat="technique in techniques" ng-hide="display(technique)">
-                        <td>{{technique.version}}</td>
                         <td>
-                          <span ng-if="technique.isDeprecated" class="glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="Deprecated: {{technique.deprecationMessage}}"></span></td>
+                          {{technique.version}}
+                        </td>
+                        <td>
+                          <span ng-if="technique.isDeprecated" class="glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="Deprecated: {{technique.deprecationMessage}}"></span>
+                        </td>
+                        <td>
+                          {{technique.multiVersionSupport}}<span class="fa fa-question-circle bsTooltip multiversion-icon" data-toggle="tooltip" data-placement="top" data-html="true" title="{{technique.mvsMessage}}"></span>
+                        </td>
                         <td>
                           <span ng-if="technique.classicSupport" class="fa fa-gear bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="This Technique version is compatible with the <b>classic</b> agent."></span>
                         </td>
                         <td>
                           <span ng-if="technique.dscSupport" class="dsc-icon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="This Technique version is compatible with the <b class='dsc'>DSC</b> agent."></span>
                         </td>
-                        <td>{{technique.acceptationDate}}</td>
+                        <td>
+                          {{technique.acceptationDate}}
+                        </td>
                         <lift:authz role="directive_write">
                           <td> <input type="button" ng-click="technique.action()" value="Create Directive"  class="btn btn-success btn-xs"/></td>
                         </lift:authz>
