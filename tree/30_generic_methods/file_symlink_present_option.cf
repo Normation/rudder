@@ -32,7 +32,7 @@ bundle agent file_symlink_present_option(source, destination, enforce)
       "old_class_prefix" string => canonify("file_symlink_present_${destination}");
       "args"              slist => { "${source}", "${destination}", "${enforce}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("${old_class_prefix}_${report_param}");
+      "class_prefix"      string => canonify("file_symlink_present_${report_param}");
 
   files:
    # Symlink

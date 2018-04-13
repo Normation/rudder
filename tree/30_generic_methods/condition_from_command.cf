@@ -43,7 +43,7 @@ bundle agent condition_from_command(condition_prefix, command, true_codes, false
       "old_class_prefix"  string => canonify("condition_from_command_${condition_prefix}");
       "args"               slist => { "${condition_prefix}", "${command}", "${true_codes}", "${false_codes}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("${old_class_prefix}_${report_param}");
+      "class_prefix"      string => canonify("condition_from_command_${report_param}");
 
       "true_list"     slist => splitstring("${true_codes}", "\s*,\s*", "256");
       "false_list"    slist => splitstring("${false_codes}", "\s*,\s*", "256");

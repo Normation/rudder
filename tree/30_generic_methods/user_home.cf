@@ -34,7 +34,7 @@ bundle agent user_home(login, home)
       "old_class_prefix"  string => canonify("user_home_${login}");
       "args"               slist => { "${login}", "${home}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("${old_class_prefix}_${report_param}");
+      "class_prefix"      string => canonify("user_home_${report_param}");
       
   classes:
       "user_exists"     expression => userexists("${login}");
