@@ -36,7 +36,7 @@ bundle agent file_check_symlinkto(symlink, target)
       "old_class_prefix"  string => canonify("file_check_symlinkto_${symlink}");
       "args"               slist => { "${symlink}", "${target}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("${old_class_prefix}_${report_param}");
+      "class_prefix"      string => canonify("file_check_symlinkto_${report_param}");
 
 
       "real_path"           string => execresult("/bin/readlink -f \"${symlink}\"", "noshell");

@@ -37,7 +37,7 @@ bundle agent http_request_content_headers(method, url, content, headers)
       "old_class_prefix" string => canonify("http_request_content_headers_${url}");
       "args"              slist => { "${method}", "${url}", "${content}", "${headers}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("${old_class_prefix}_${report_param}");
+      "class_prefix"      string => canonify("http_request_content_headers_${report_param}");
 
   classes:
     any::

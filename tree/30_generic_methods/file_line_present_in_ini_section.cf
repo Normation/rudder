@@ -32,7 +32,7 @@ bundle agent file_line_present_in_ini_section(file, section, line)
       "old_class_prefix"       string => canonify("file_line_present_in_ini_section_${file}");
       "args"                    slist => { "${file}", "${section}", "${line}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("${old_class_prefix}_${report_param}");
+      "class_prefix"      string => canonify("file_line_present_in_ini_section_${report_param}");
       "section_and_blank_line" string => "[${section}]
 ";
 

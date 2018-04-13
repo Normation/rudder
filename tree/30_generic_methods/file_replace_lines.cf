@@ -50,7 +50,7 @@ bundle agent file_replace_lines(file, line, replacement)
       "old_class_prefix" string => canonify("file_replace_lines_${file}");
       "args"              slist => { "${file}", "${line}", "${replacement}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("${old_class_prefix}_${report_param}");
+      "class_prefix"      string => canonify("file_replace_lines_${report_param}");
 
   files:
       "${file}"
