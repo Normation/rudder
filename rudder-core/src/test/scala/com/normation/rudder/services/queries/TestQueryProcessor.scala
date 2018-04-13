@@ -105,7 +105,7 @@ class TestQueryProcessor extends Loggable {
 
   val nodeInfoService = new NaiveNodeInfoServiceCachedImpl(ldap, nodeDit, DIT, removedDIT, pendingDIT, ldapMapper, inventoryMapper)
 
-  val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
+  val queryProcessor = new AcceptedNodesLDAPQueryProcessor(
       nodeDit,
       DIT,
       internalLDAPQueryProcessor,

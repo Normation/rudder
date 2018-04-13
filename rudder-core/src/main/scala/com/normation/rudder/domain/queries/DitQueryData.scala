@@ -49,7 +49,7 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 
 /*
- * Here we define all data needed logic by the to create the search
+ * Here we define all data needed logic by the webapp to create the search
  * form.
  *
  * The search form is organized in 4 levels :
@@ -73,7 +73,7 @@ case object QueryNodeDn extends DnType
 case object QuerySoftwareDn extends DnType
 
 /*
- * Mapping datas for LDAP query processor
+ * Mapping data for LDAP query processor
  *
  * Here, we store what are the LDAP URL for each type,
  * how join are made between them, etc.
@@ -100,8 +100,8 @@ final case class LDAPObjectTypeFilter(value: Filter)
 
 class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
-// Criterion(A_MACHINE_UUID, StringComparator),
-// Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
+    //Criterion(A_MACHINE_UUID, StringComparator),
+    //Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
     Criterion(A_DESCRIPTION, StringComparator),
     Criterion(A_MODEL, StringComparator),
     Criterion(A_SERIAL_NUMBER, StringComparator),
@@ -128,6 +128,7 @@ class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
 
   protected val criteriaSet = Set(
     ObjectCriterion(OC_MACHINE, Seq(
+      Criterion("machineType", MachineComparator),
       Criterion(A_MACHINE_UUID, StringComparator),
       Criterion(A_NAME, StringComparator),
       Criterion(A_DESCRIPTION, StringComparator),
