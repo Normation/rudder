@@ -154,7 +154,7 @@ function doughnutChart (id,data,count,colors) {
         }
       , legendCallback: function(chart) {
         var text = [];
-        text.push('<ul>');
+        text.push('<ul class="graph-legend">');
         for (var i=0; i<chart.data.datasets[0].data.length; i++) {
           var removeHighlight = ' onmouseout="closeTooltip(event, \'' + chart.legend.legendItems[i].index + '\', \'' + id + '\')"';
           var addHighlight    = ' onmouseover="openTooltip(event, \'' + chart.legend.legendItems[i].index + '\', \'' + id + '\')"';
@@ -246,6 +246,13 @@ function doughnutChart (id,data,count,colors) {
                window.location = url;
             }
          }
+         , hover: {
+             onHover: function(e) {
+                var point = this.getElementAtEvent(e);
+                if (point.length) e.target.style.cursor = 'pointer';
+                else e.target.style.cursor = 'default';
+             }
+          }
        }
      }
   var chart = new Chart(context, chartOptions);
