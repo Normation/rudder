@@ -641,20 +641,20 @@ final object JsEngine {
       , "accessDeclaredMembers" //needed by Nashorn to do stuff
       , "loadLibrary.sunec"     //needed by Rudder JS Lib
       , "loadLibrary.j2pkcs11"  //needed by Rudder JS Lib
+      , "loadLibrary.nio"       //needed by Rudder JS Lib
       , "accessClassInPackage.org.jcp.xml.dsig.internal.dom"
       , "getProtectionDomain"
       , "shutdownHooks"
       , "setContextClassLoader"
+      , "fileSystemProvider"
     )
     private[this] val reflectPerms = Set(
         "suppressAccessChecks" //needed by rhino to run almost anything, like creating a var - else NPE
     )
     private[this] val securityPerms = Set( //needed by rudder js lib
         //we are checking the start for them
-        "getProperty.security.provider"
+        "getProperty" // all getProperty are allowed, because JDK is eager to add new one in minor releases
       , "putProviderProperty"
-      , "getProperty.securerandom.source"
-      , "getProperty.jdk.certpath.disabledAlgorithms"
     )
 
     private[this] val filePerms = Set( //we only authorize read access
@@ -670,7 +670,7 @@ final object JsEngine {
             // We need to authorize access to a lot of jar/classes for crypto (lot of dependencies). However listing all
             // classes is impossible, causing a stackoverflow error see: http://stackoverflow.com/questions/2510683/securitymanager-stackoverflowerror
             // so we work-around by authorizing a lot of stuff
-          case x: FilePermission     if( x.getActions == "read" && (x.getName.contains(".class") || x.getName.endsWith(".jar")  || x.getName.endsWith(".so")   || x.getName.endsWith(".cfg") || x.getName.endsWith(".properties") || x.getName.endsWith(".certs") ) )  => // ok
+          case x: FilePermission     if( x.getActions == "read" && (x.getName.contains(".class") || x.getName.endsWith(".jar")  || x.getName.endsWith(".so")   || x.getName.endsWith(".cfg") || x.getName.endsWith(".properties") || x.getName.endsWith(".certs") || x.getName.endsWith("jre/lib/security/cacerts") ) )  => // ok
           case x: SecurityPermission if( securityPerms.exists( p => x.getName.startsWith(p) )       ) => // ok
           case x: NetPermission      if( x.getName == "specifyStreamHandler" ) => //ok
           case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.jdk.nashorn")   ) => // ok
