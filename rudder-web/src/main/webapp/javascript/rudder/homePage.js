@@ -41,6 +41,9 @@
  * In that case, we just display placehoder texts.
  */
 
+
+var g_osNames
+
 function homePage (
     globalCompliance
   , globalGauge
@@ -111,7 +114,6 @@ function homePage (
         else return globalGauge;
       }());
       $("#gauge-value").text(globalGauge+"%");
-
 
     doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors);
   }
@@ -194,18 +196,20 @@ function doughnutChart (id,data,count,colors) {
 
         // redirects to the corresponding node's information when clicking on a node's diagram
          , onClick: function(event, data){
-
              //check if the user click on something relevant
              if (data[0] !== undefined){
-              var query = {query:{select:"nodeAndPolicyServer",composition:"And"}}
+              var query = {query:{select:"nodeAndPolicyServer",composition:"And"}};
               switch (id) {
                 case 'nodeOs':
-                      query.query.where = [{
-                             objectType: "node"
-                           , attribute : "osNAme"
-                           , comparator: "eq"
-                           , value     : data[0]._model.label
-                           }]
+                     if (g_osNames == undefined)
+                        return ;
+                     var osName = g_osNames[data[0]._model.label];
+                     query.query.where = [{
+                         objectType: "node"
+                       , attribute : "osNAme"
+                       , comparator: "eq"
+                       , value     : osName
+                       }];
 
                       break;
                   case 'nodeAgents':
@@ -220,7 +224,7 @@ function doughnutChart (id,data,count,colors) {
                         , attribute : "softwareVersion"
                         , comparator: "regex"
                         , value     : data[0]._model.label.replace(/\./g, "(\.|~)") + ".*"
-                      }]
+                      }];
                       break;
                   case 'nodeMachine':
                       query.query.where = [{
@@ -228,21 +232,16 @@ function doughnutChart (id,data,count,colors) {
                         , attribute : "machineType"
                         , comparator: "eq"
                         , value     : data[0]._model.label
-                       }]
+                       }];
                       break;
 
-                  // The following 'default' statement leads to code repetition
-                  // and will disapear as soon as the compliance chart will come.
-                  // We just don't want it to redirect for now because we are building the query.
+                  // TODO : in the default statement, make the compliance graph clickable
 
                   default:
-                     var chart = new Chart(context, chartOptions);
-                     window[id] = chart;
-                     context.after(chart.generateLegend());
                      return;
 
               }
-               var url = contextPath + "/secure/nodeManager/searchNodes#" +  JSON.stringify(query)
+               var url = contextPath + "/secure/nodeManager/searchNodes#" +  JSON.stringify(query);
                window.location = url;
             }
          }
@@ -339,7 +338,9 @@ function homePageInventory (
     nodeMachines
   , nodeOses
   , count
+  , osNames
 ) {
+  g_osNames = osNames
   doughnutChart('nodeMachine',nodeMachines, count, inventoryColors);
   doughnutChart('nodeOs', nodeOses, count, inventoryColors);
 }
