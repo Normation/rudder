@@ -121,7 +121,7 @@ def check_parameter(parameter_value, parameter_constraints):
   if re.search(r'[$@][{(][$@{(a-zA-Z0-9[\]_.-]+[})]', parameter_value) is not None :
     constraint_set = variable_constraints
 
-  for (constraint_name, constraint_value) in parameter_constraints.iteritems():
+  for (constraint_name, constraint_value) in parameter_constraints.items():
     if constraint_name in constraint_set:
       constraint = constraint_set[constraint_name]
       constraint_check = constraint['check'](parameter_value,constraint_value)
