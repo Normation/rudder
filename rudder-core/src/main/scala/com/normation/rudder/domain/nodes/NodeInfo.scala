@@ -99,23 +99,39 @@ final case class NodeInfo(
   val policyMode                 = node.policyMode
 
   /**
-   * Get a digest of the key in the proprietary CFEngine
-   * digest format.
+   * Get a digest of the key in the proprietary CFEngine digest format. It is
+   * formated as expected by CFEngine authentication module, i.e with the
+   * "MD5=" prefix for community agent (resp. "SHA=") prefex for enterprise agent).
    */
   lazy val securityTokenHash: String = {
-    agentsName.headOption.map(_.securityToken) match {
-      case Some(key : PublicKey) =>
-        CFEngineKey.getCfengineDigest(key) match {
-          case Full(hash) =>
-            hash
+    agentsName.headOption.map(a => (a.agentType, a.securityToken)) match {
+
+      case Some((AgentType.CfeCommunity, key:PublicKey)) =>
+        CFEngineKey.getCfengineMD5Digest(key) match {
+          case Full(hash)  => "MD5="+hash
           case eb:EmptyBox =>
             val e = eb ?~! s"Error when trying to get the CFEngine-MD5 digest of CFEngine public key for node '${hostname}' (${id.value})"
             logger.error(e.messageChain)
             ""
         }
-      case Some(cert : Certificate) =>
-        logger.info(s"Node '${hostname}' (${id.value}) is a Dsc node and a we do not know how to generate a hash yet")
+
+      case Some((AgentType.CfeEnterprise, key:PublicKey)) =>
+        CFEngineKey.getCfengineSHA256Digest(key) match {
+          case Full(hash) => "SHA="+hash
+          case eb:EmptyBox =>
+            val e = eb ?~! s"Error when trying to get the CFEngine-SHA256 digest of CFEngine public key for node '${hostname}' (${id.value})"
+            logger.error(e.messageChain)
+            ""
+        }
+
+      case Some((AgentType.Dsc, _)) =>
+        logger.info(s"Node '${hostname}' (${id.value}) is a DSC node and a we do not know how to generate a hash yet")
         ""
+
+      case Some((_, _)) =>
+        logger.info(s"Node '${hostname}' (${id.value}) has an unsuported key type (CFEngine agent with certificate?) and a we do not know how to generate a hash yet")
+        ""
+
       case None =>
         logger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
         ""
@@ -178,8 +194,8 @@ object CFEngineKey {
    *
    * openssl rsa -RSAPublicKey_in -in /var/rudder/cfengine-community/ppkeys/node-MD5-hash.pub -text
    *
-   * The hash by itself is the MD5 sum of the byte array
-   * of the modulus concatenated with the byte array of
+   * The hash by itself is the MD5 (for CFEngine community) or SHA-256 (for CFEngine enterprise)
+   * sum of the byte array of the modulus concatenated with the byte array of
    * the exponent, both taken in big endian binary form.
    * The corresponding openssl C code used in CFEngine for
    * that is:
@@ -200,7 +216,19 @@ object CFEngineKey {
    *
    * Caution: to use the complete key, with header and footer, you need to use key.key
    */
-  def getCfengineDigest(key: PublicKey): Box[String] = {
+  def getCfengineMD5Digest(key: PublicKey): Box[String] = {
+    getCfengineDigest(key, "MD5")
+  }
+
+  def getCfengineSHA256Digest(key: PublicKey): Box[String] = {
+    getCfengineDigest(key, "SHA-256")
+  }
+
+  /*
+   * The actual implementation that can use either
+   * "MD5" or "SHA-256" digest.
+   */
+  protected def getCfengineDigest(key: PublicKey, algo: String) = {
     for {
                     // the parser able to read PEM files
                     // Parser may be null is the key is invalid
@@ -219,7 +247,7 @@ object CFEngineKey {
       keyspec    <- tryo { new X509EncodedKeySpec(pubkeyInfo.getEncoded) }
                     // into an RSA public key.
       rsaPubkey  <- tryo { keyFactory.generatePublic(keyspec).asInstanceOf[RSAPublicKey] }
-      md5        <- tryo { MessageDigest.getInstance("MD5") }
+      digest     <- tryo { MessageDigest.getInstance(algo) }
     } yield {
       // here, we must use the hexa-string representation,
       // because if we directly use ".toByteArray", a leading
@@ -229,9 +257,9 @@ object CFEngineKey {
       // We can note that the leading 0x00 is displayed in the
       // openssl command above, but that if we use it in the
       // md5 hash, we don't get the same result than CFEngine.
-      md5.update(Hex.decode(rsaPubkey.getModulus.toString(16)))
-      md5.update(rsaPubkey.getPublicExponent.toByteArray)
-      Hex.toHexString(md5.digest)
+      digest.update(Hex.decode(rsaPubkey.getModulus.toString(16)))
+      digest.update(rsaPubkey.getPublicExponent.toByteArray)
+      Hex.toHexString(digest.digest)
     }
   }
 
