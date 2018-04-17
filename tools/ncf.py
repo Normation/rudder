@@ -229,7 +229,7 @@ def parse_bundlefile_metadata(content, bundle_type):
     for param in parameters:
       parameter_name = param["name"]
       constraints = param_constraints.get(param["name"], ncf_constraints.default_constraint)
-      for key, constraint in constraints.iteritems():
+      for key, constraint in constraints.items():
         check = ncf_constraints.check_constraint_type(key, constraint)
         if not check['result']:
           raise NcfError("Value for constraint '" + key + "' of parameter '"+ param['name'] +"' is not valid, "+", ".join(check["errors"]))
