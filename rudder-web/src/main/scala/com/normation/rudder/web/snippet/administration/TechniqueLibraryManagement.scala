@@ -196,7 +196,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Categories are ordered in trees of subcategories.
    */
   def systemLibrary() : NodeSeq = {
-    <div id={htmlId_techniqueLibraryTree} class="col-xs-12 row">
+    <div id={htmlId_techniqueLibraryTree} class="row">
       <ul>{jsTreeNodeOf_ptCategory(techniqueRepository.getTechniqueLibrary).toXml}</ul>
       {Script(OnLoad(buildReferenceLibraryJsTree))}
     </div>
@@ -206,7 +206,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Display the actions bar of the user library
    */
   def userLibraryAction() : NodeSeq = {
-    SHtml.ajaxButton("Add category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "btn btn-default"))
+    SHtml.ajaxButton("Add category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "btn btn-success btn-outline new-icon pull-right"))
   }
 
   /**
@@ -217,7 +217,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Categories are ordered in trees of subcategories.
    */
   def userLibrary() : NodeSeq = {
-    <div id={htmlId_activeTechniquesTree} class="col-xs-12">{
+    <div id={htmlId_activeTechniquesTree} class="row">{
       val xml = {
         roActiveTechniqueRepository.getActiveTechniqueLibrary match {
           case eb:EmptyBox =>
@@ -226,7 +226,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             f.rootExceptionCause.foreach { ex =>
               logger.error("Exception causing the error was:" , ex)
             }
-            <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
+            <div class="col-xs-12">
+              <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
+            </div>
           case Full(activeTechLib) =>
             <ul>{ jsTreeNodeOf_uptCategory(activeTechLib).toXml }</ul>
         }
