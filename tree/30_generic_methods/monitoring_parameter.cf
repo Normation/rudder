@@ -1,0 +1,56 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Monitoring parameter
+# @description Add a monitoring parameter to a node (requires a monitoring plugin)
+#
+# @documentation
+# This method adds monitoring parameters to rudder nodes. The monitoring parameters are used to
+# pass configuration to the monitoring plugins running with Rudder. Expected keys and parameters
+# are specific to each plugin and can be found in their respective documentation.
+# 
+#
+# @parameter key Name of the parameter
+# @parameter value Value of the parameter
+#
+# @class_prefix monitoring_parameter
+# @class_parameter key
+# @class_parameter value
+
+bundle agent monitoring_parameter(key, value)
+{
+  vars:
+
+    "old_class_prefix" string => canonify("monitoring_parameter_${key}_${value}");
+    "promisers" slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+    "class_prefix" string => canonify(join("_", "promisers"));
+    "args" slist => {"${key}", "${value}"}; 
+
+  classes:
+  
+    "should_report" expression => "${report_data.should_report}";
+
+  methods:
+    
+    "disable_reporting_${old_class_prefix}" usebundle => disable_reporting;
+    "Write csv file" usebundle => file_ensure_lines_present("/var/rudder/tmp/rudder_monitoring.csv", "param,${key},${value}");
+    "reenable_reporting_${old_class_prefix}" usebundle => enable_reporting,
+      ifvarclass => "should_report";
+    "new result classes" usebundle => _classes_copy_invert_kept_repaired(canonify("file_ensure_lines_present_/var/rudder/tmp/rudder_monitoring.csv"), "${old_class_prefix}");
+    "report" usebundle => _log("Monitoring parameter ${key} set to ${value}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
