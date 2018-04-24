@@ -31,6 +31,14 @@
   .defaultButton span.ui-button-text {
     padding: 0;
   }
+  #nodeOnAcceptDefaults ul > li.rudder-form label.input-group-addon{
+    min-width:185px;
+    text-align:left;
+  }
+  #nodeOnAcceptDefaults ul > li.rudder-form select.form-control{
+      width: auto !important;
+    min-width: 25%;
+  }
 </style>
 <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/auditMode.js"></script>
 <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/authorizedNetworks.js"></script>
@@ -248,30 +256,34 @@
             </div>
             <p>Configure the default state and policy mode that a node get when it is accepted.</p>
           </div>
-          <form class="lift:form.ajax">
-            <ul>
-              <li class="rudder-form">
-                <div class="input-group space-bottom col-lg-4 col-xs-12">
-                  <label class="input-group-addon" for="nodeOnAcceptState">
-                    Node default state
-                  </label>
-                  <input id="nodeOnAcceptState" type="select" class="form-control">
-                </div>
-              </li>
-              <li class="rudder-form">
-                <div class="input-group space-bottom col-lg-4 col-xs-12">
-                  <label class="input-group-addon" for="nodeOnAcceptPolicyMode">
-                    Node default policy mode
-                  </label>
-                  <input id="nodeOnAcceptPolicyMode" type="select" class="form-control">
-                </div>
-              </li>
-            </ul>
-            <lift:authz role="administration_write">
-              <input type="submit" value="Save Changes" id="nodeOnAcceptDefaultsSubmit"/>
-              <lift:Msg id="displayGraphsMsg">[messages]</lift:Msg>
-            </lift:authz>
-          </form>
+          <div class="pull-left">
+            <form class="lift:form.ajax">
+              <ul>
+                <li class="rudder-form">
+                  <div class="input-group col-xs-12">
+                    <label class="input-group-addon" for="nodeOnAcceptState">
+                      Node default state
+                    </label>
+                    <input id="nodeOnAcceptState" type="select" class="form-control">
+                  </div>
+                </li>
+              </ul>
+              <ul>
+                <li class="rudder-form">
+                  <div class="input-group space-bottom col-xs-12">
+                    <label class="input-group-addon" for="nodeOnAcceptPolicyMode">
+                      Node default policy mode
+                    </label>
+                    <input id="nodeOnAcceptPolicyMode" type="select" class="form-control">
+                  </div>
+                </li>
+              </ul>
+              <lift:authz role="administration_write">
+                <input type="submit" value="Save Changes" id="nodeOnAcceptDefaultsSubmit"/>
+                <lift:Msg id="displayGraphsMsg">[messages]</lift:Msg>
+              </lift:authz>
+            </form>
+          </div>
         </div>
       </div>
     </div>

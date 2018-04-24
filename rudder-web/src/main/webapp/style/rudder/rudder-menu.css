@@ -2325,53 +2325,6 @@ hr.separation{
   padding:0;
   font-weight:900;
 }
-
-ul > li.rudder-form:first-child > .input-group label.form-control,#denyBadClocksForm ul > li:first-child > .input-group .input-group-addon,ul > li.rudder-form:first-child > .input-group .input-group-addon{
-  border-top:1px solid #d0d0d0;
-}
-#denyBadClocksForm ul > li:first-child > .input-group .input-group-addon,ul > li.rudder-form:first-child > .input-group .input-group-addon{
-  border-top-left-radius:4px;
-}
-#denyBadClocksForm ul > li:last-child > .input-group .input-group-addon,ul > li.rudder-form:last-child > .input-group .input-group-addon{
-  border-bottom-left-radius:4px;
-}
-ul > li.rudder-form:first-child > .input-group label.form-control{
-  border-top-right-radius:4px;
-}
-ul > li.rudder-form label{
-  cursor:pointer;
-}
-ul > li.rudder-form > .input-group label.form-control{
-  border-top-right-radius:0;
-  border-bottom-right-radius:0;
-  font-weight: 500;
-  color: #555;
-  font-size: 14px;
-}
-ul > li.rudder-form > .input-group .input-group-addon{
-  padding: 3px 11px;
-  background-color: #f4f4f4;
-}
-
-ul > li.rudder-form > .input-group label.form-control .glyphicon.info{
-  top:3px;
-}
-ul > li.rudder-form:last-child > .input-group label.form-control{
-  border-bottom-right-radius:4px;
-}
-ul > li.rudder-form > .input-group label.form-control,#denyBadClocksForm ul > li > .input-group .input-group-addon,ul > li.rudder-form > .input-group .input-group-addon{
-  border-top:none;
-}
-ul > li.rudder-form > .input-group label.form-control{
-	padding-right: 40px;
-}
-ul > li.rudder-form > .input-group.disabled label.form-control,ul > li.rudder-form > .input-group.disabled .input-group-addon{
-  background-color: #eeeeee;
-  cursor:no-drop;
-}
-ul > li.rudder-form > .input-group.disabled *{
-  cursor:no-drop;
-}
 #changeMessageSubmit{
   margin-top:5px;
 }
@@ -2459,6 +2412,7 @@ ul > li.rudder-form > .input-group label.form-control{
   font-weight: 500;
   color: #555;
   font-size: 14px;
+  padding-right: 40px;
 }
 ul.list-sm > li.rudder-form > .input-group label.form-control,#directiveRulesTab ul > li.rudder-form > .input-group label.form-control{
   height: auto;
