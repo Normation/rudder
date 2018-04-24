@@ -2753,14 +2753,6 @@ span.techversion {
   margin-right:5px;
   text-align:center;
 }
-.statusCell > span.tooltipable.tooltip {
-  opacity: 1;
-  font-family: inherit;
-  position: static;
-  font-size: 14px;
-  cursor: help;
-  font-weight: bold;
-}
 
 /* ICONS */
 .dsc-icon{
@@ -2794,6 +2786,26 @@ table a > i.fa-pencil{
 }
 table a > i.fa-pencil:hover{
   color:#333;
+}
+/* RULES TABLE */
+#grid_rules_grid_zone td.statusCell span.tooltip.tooltipable:after,#grid_dependentRulesGrid td.statusCell span.tooltip.tooltipable:after {
+  content: "\f059";
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: 1em;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  margin-left: 7px;
+  color: #999;
+}
+
+.statusCell > span.tooltipable.tooltip {
+  opacity: 1;
+  font-family: inherit;
+  position: static;
+  font-size: 14px;
+  cursor: help;
+  color:#999;
 }
 
 @keyframes opacity-1 {
