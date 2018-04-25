@@ -11,17 +11,6 @@
 <head>
   <title>Rudder - API accounts</title>
   <style>
-    #accounts{
-      margin: 0;
-      padding: 0;
-      list-style-type: none;
-    }
-    #accounts li{
-      display: inline;
-      float:left;
-      margin :0px 15px;
-      padding : 10px
-    }
     form .ng-invalid-valid_empty {
       box-shadow : 0px 0px 1px 1px red;
     }
@@ -36,6 +25,13 @@
     }
     #newAccount-expiration {
       width:100%
+    }
+    .toggle.btn {
+      min-width: 94px !important;
+    }
+    #newAccount-expiration {
+      margin-top: 6px;
+      margin-bottom: 12px;
     }
   </style>
   <script data-lift="with-cached-resource" src="/javascript/rudder/angular/apiAccount.js" ></script>
