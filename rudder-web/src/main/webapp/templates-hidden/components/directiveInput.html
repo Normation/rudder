@@ -3,13 +3,13 @@
 <input-text>
   <div class="tw-bs">
     <div class="input-group input-group-sm text-section col-xs-12" ng-controller="textController">
-      <span class="input-group-btn" ng-show="feature" ng-cloak>
+      <div class="input-group-btn" ng-show="feature" ng-cloak>
         <button class="btn btn-default  dropdown-toggle" data-toggle="dropdown" type="button">{{prefixName()}} <span class="caret"></span></button>
         <ul class="dropdown-menu">
           <li><a  ng-click="current.prefix = ''"  href="#">Text</a></li>
           <li><a ng-click="current.prefix = 'evaljs:'" href="#">JS</a></li>
         </ul>
-      </span>
+      </div>
         <input class="form-control monospace-font" ng-model="current.value" type="text" />
     </div>
   </div>
@@ -18,7 +18,7 @@
 <input-textarea>
   <div class="tw-bs">
     <div class="text-section col-xs-12 row" ng-controller="textController">
-    <div class="btn-group-sm btn-group"  ng-show="feature" ng-cloak>
+    <div class="btn-group-sm btn-group" ng-show="feature" ng-cloak>
       <button class="btn btn-default dropdown-toggle" data-toggle="dropdown" type="button">{{prefixName()}} <span class="caret"></span></button>
       <ul class="dropdown-menu">
         <li><a ng-click="current.prefix = ''"  href="#">Text</a></li>
