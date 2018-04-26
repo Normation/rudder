@@ -238,6 +238,10 @@ html, body, .Override.container{
 .table-ncf > tbody > tr:hover > td {
     background-color: #E8E8E8;
 }
+.table-ncf .input-group .form-control{
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+  white-space: initial;
+}
 textarea.form-control {
   resize:none;
   min-height:34px;
