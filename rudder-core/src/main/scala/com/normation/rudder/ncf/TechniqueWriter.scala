@@ -261,8 +261,8 @@ class ClassicTechniqueWriter extends AgentSpecificTechniqueWriter {
 }
 
 class DSCTechniqueWriter(
-    basePath : String
-  , translater       : InterpolatedValueCompiler
+    basePath   : String
+  , translater : InterpolatedValueCompiler
 ) extends AgentSpecificTechniqueWriter{
 
   import ResultHelper._
@@ -347,7 +347,7 @@ class DSCTechniqueWriter(
       case params =>
         params.map( p =>
           s"""      [parameter(Mandatory=$$true)]
-             |      [string]$$${p.id.validDscName},"""
+             |      [string]$$${p.name.validDscName},"""
         ).mkString("\n","\n","").stripMargin('|')
     }
 
