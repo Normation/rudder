@@ -6,7 +6,7 @@ function Technique-Any {
       [parameter(Mandatory=$true)]
       [string]$techniqueName,
       [parameter(Mandatory=$true)]
-      [string]$PackageVersion,
+      [string]$Version,
       [switch]$auditOnly
   )
 
