@@ -196,7 +196,7 @@ function doughnutChart (id,data,count,colors) {
 
         // redirects to the corresponding node's information when clicking on a node's diagram
          , onClick: function(event, data){
-             //check if the user click on something relevant
+             //check if the user clicks on something relevant
              if (data[0] !== undefined){
               var query = {query:{select:"nodeAndPolicyServer",composition:"And"}};
               switch (id) {
@@ -234,12 +234,20 @@ function doughnutChart (id,data,count,colors) {
                         , value     : data[0]._model.label
                        }];
                       break;
-
-                  // TODO : in the default statement, make the compliance graph clickable
-
-                  default:
+                  case 'nodeCompliance':
+                     var compliance = {
+                        "Poor"   : {min: 0,   max: 50}
+                       ,"Average": {min: 50,  max: 75}
+                       ,"Good"   : {min: 75,  max: 100}
+                       ,"Perfect": {min: 100}
+                       };
+                     var interval = compliance[data[0]._model.label.split(' ')[0]];
+                     var complianceFilter = {complianceFilter:interval};
+                     window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(complianceFilter);
                      return;
 
+                   default:
+                     return;
               }
                var url = contextPath + "/secure/nodeManager/searchNodes#" +  JSON.stringify(query);
                window.location = url;

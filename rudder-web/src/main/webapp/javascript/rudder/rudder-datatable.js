@@ -50,12 +50,49 @@ $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
 }
 
 /*
- * This function is used to resort a table after its sorting datas were changed ( like sorting function below)
+ * This function is used to resort a table after its sorting data were changed ( like sorting function below)
  */
 function resortTable (tableId) {
   var table = $("#"+tableId).DataTable({"retrieve" : true});
   table.draw();
 }
+
+
+$.fn.dataTable.ext.search.push(
+    function(settings, data, dataIndex ) {
+        // param needs to be JSON only so we remove the hash tag # at index 0
+
+        var param = decodeURIComponent(window.location.hash.substring(1));
+        if (param !== "" && window.location.pathname === contextPath + "/secure/nodeManager/nodes") {
+            var obj = JSON.parse(param);
+            var min = obj.complianceFilter.min;
+            var max = obj.complianceFilter.max;
+
+            if (min === undefined)
+                return true;
+
+            if (nodeCompliances !== undefined) {
+
+                // here, we get the id of the row element by looking deep inside settings...
+                // maybe there exists something cleaner.
+
+                var complianceArray = nodeCompliances[settings.aoData[dataIndex]._aData.id];
+                 if (complianceArray !== undefined) {
+                     var compliance = computeCompliancePercent(complianceArray);
+
+                     if (max === undefined)
+                        return compliance >= min;
+                      else
+                        return compliance >= min && compliance < max;
+                 }
+            }
+        }
+      return true;
+    });
+
+
+
+
 
 $.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
 {
@@ -458,25 +495,25 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         refresh();
       })
       var rows = this._('tr', {"page":"current"});
-       $.each(rows, function(index,row) {
-         var id = "Changes-"+row.id;
-         // Display compliance progress bar if it has already been computed
-         var compliance = ruleCompliances[row.id]
-         if (compliance !== undefined) {
-           $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
-         }
-         if (recentChangesGraph) {
-           var changes = recentGraphs[row.id]
-           if (changes !== undefined) {
-             $("#"+id).html(changes.element);
-           } else {
-             generateRecentGraph(row.id,recentChangesGraph);
-           }
-         } else {
-           generateRecentGraph(row.id,recentChangesGraph);
-         }
-       })
-      }
+      $.each(rows, function(index,row) {
+        var id = "Changes-"+row.id;
+        // Display compliance progress bar if it has already been computed
+        var compliance = ruleCompliances[row.id]
+        if (compliance !== undefined) {
+          $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
+        }
+        if (recentChangesGraph) {
+          var changes = recentGraphs[row.id]
+          if (changes !== undefined) {
+            $("#"+id).html(changes.element);
+          } else {
+            generateRecentGraph(row.id,recentChangesGraph);
+          }
+        } else {
+          generateRecentGraph(row.id,recentChangesGraph);
+        }
+      })
+     }
     , "aaSorting": [[ 0, "asc" ] , [ sortingDefault, "asc" ]]
     , "sDom": 'rt<"dataTables_wrapper_bottom"lip>'
   }
@@ -526,6 +563,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
  *   }
  */
 function createRuleComplianceTable(gridId, data, contextPath, refresh) {
+
   var columns = [ {
       "sWidth": "75%"
     , "mDataProp": "rule"
@@ -917,7 +955,7 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
       }
   }
 
-  return function (gridId,data) {createTable(gridId,data,columns, params, contextPath);}
+ return function (gridId,data) {createTable(gridId,data,columns, params, contextPath);}
 }
 
 
@@ -971,7 +1009,6 @@ function createNodeComponentValueTable(contextPath) {
     , "bInfo" : false
     , "aaSorting": [[ 0, "asc" ]]
   }
-
   return function (gridId,data) {createTable(gridId, data, columns, params, contextPath); createTooltip();$('.rudder-label').bsTooltip();}
 
 }
@@ -1041,7 +1078,6 @@ function createRuleComponentValueTable (contextPath) {
  *   }
  */
 function createNodeTable(gridId, data, contextPath, refresh) {
-  //base element for the clickable cells
   function callbackElement(oData, displayCompliance) {
     var elem = $("<a></a>");
     if("callback" in oData) {
@@ -1129,13 +1165,14 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         "sSearch": ""
     }
     , "fnDrawCallback": function( oSettings ) {
+
         $('[data-toggle="tooltip"]').bsTooltip();
         var rows = this._('tr', {"page":"current"});
-        $.each(rows, function(index,row) {
-          // Display compliance progress bar if it has already been computed
-          var compliance = nodeCompliances[row.id]
-          if (compliance !== undefined) {
-            $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
+        $.each(rows, function(index,row){
+           // Display compliance progress bar if it has already been computed
+           var compliance = nodeCompliances[row.id];
+           if (compliance !== undefined) {
+           $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
           }
         })
         $('.rudder-label').bsTooltip();
@@ -1732,7 +1769,6 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     , "pageLength": 25
     , "retrieve" : true
   };
-
   if (storageId !== undefined) {
     var storageParams = {
         "bStateSave" : true
