@@ -66,3 +66,6 @@
 #pendingChangeRequestNotification + .wbBaseField .wbBaseFieldLabel{
   margin:0 0 0 5px;
 }
+#groupsTree > .page-title{
+  padding-bottom:7px;
+}

@@ -161,7 +161,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   def createGroup(html:NodeSeq) : NodeSeq = {
       SHtml.ajaxButton("Create node group from this query", {
        () =>   showPopup()  },
-       ("class", "btn btn-default"))
+       ("class", "btn btn-success new-icon"))
   }
 
   def queryForm(sc : SearchNodeComponent) = {
