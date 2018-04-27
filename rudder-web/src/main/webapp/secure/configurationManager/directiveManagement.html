@@ -190,7 +190,9 @@
                         </td>
                         <td>{{technique.acceptationDate}}</td>
                         <lift:authz role="directive_write">
-                          <td> <input type="button" ng-click="technique.action()" value="Create Directive"  class="btn btn-success btn-xs"/></td>
+                          <td>
+                            <button type="button" ng-click="technique.action()" class="btn btn-success new-icon btn-xs">Create Directive</button>
+                          </td>
                         </lift:authz>
                       </tr>
                     </tbody>
@@ -201,7 +203,7 @@
                   </div>
                     <lift:authz role="directive_write">
                       <div class="space-top">
-                        <input type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" value="Create with latest version" class="btn btn-success"/>
+                        <button type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" class="btn btn-success new-icon">Create with latest version</button>
                       </div>
                     </lift:authz>
                 </div>
@@ -210,7 +212,7 @@
           </div>
         </div>
       </div>
- 
+
       <div class="directiveDetails">
         <div data-lift="configuration.DirectiveManagement.showDirectiveDetails" ></div>
       </div>

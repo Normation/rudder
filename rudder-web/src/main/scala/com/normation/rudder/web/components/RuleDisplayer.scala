@@ -127,11 +127,11 @@ class RuleDisplayer (
     )
   }
   def actionButtonCategory =
-               if (directive.isEmpty) {
-                SHtml.ajaxButton("", () => showCategoryPopup(None), ("class" -> "new-icon category btn btn-success btn-sm"))
-              } else {
-                NodeSeq.Empty
-              }
+    if (directive.isEmpty) {
+      SHtml.ajaxButton("", () => showCategoryPopup(None), ("class" -> "new-icon category btn btn-success btn-outline btn-sm"))
+    } else {
+      NodeSeq.Empty
+    }
 
   def displaySubcategories : NodeSeq = {
     <ul class="form-group list-sm">
