@@ -69,7 +69,7 @@ class TestNcfRudder(unittest.TestCase):
     """The rudder-reporting.cf content generated from a ncf technique must match the reporting we expect for our technique"""
     rudder_reporting_string = ncf_rudder.generate_rudder_reporting(self.technique_metadata)
     expected_rudder_reporting = self.test_rudder_reporting_content
-    self.assertEqual(expected_rudder_reporting, rudder_reporting_string)
+    self.assertEqual(expected_rudder_reporting.split("\n"), rudder_reporting_string.split("\n"))
 
 
   def test_path_for_technique_dir(self):
@@ -109,14 +109,17 @@ class TestNcfRudder(unittest.TestCase):
     expected_result.append('')
     expected_result.append('    !(debian)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("service_start_apache2");')
+    expected_result.append('      "dummy_report" usebundle => _method_reporting_context("Service start", "apache2");')
     expected_result.append('      "dummy_report" usebundle => log_rudder("Service start apache2 if debian", "service_start_apache2", "${class_prefix}", @{args});')
     expected_result.append('')
     expected_result.append('    !(service_start_apache2_repaired)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("package_install_openssh_server");')
+    expected_result.append('      "dummy_report" usebundle => _method_reporting_context("Package install", "openssh-server");')
     expected_result.append('      "dummy_report" usebundle => log_rudder("Package install openssh-server if service_start_apache2_repaired", "package_install_openssh_server", "${class_prefix}", @{args});')
     expected_result.append('')
     expected_result.append('    !(!service_start_apache2_repaired.debian)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("command_execution__bin_date");')
+    expected_result.append('      "dummy_report" usebundle => _method_reporting_context("Command execution", "/bin/date");')
     expected_result.append('      "dummy_report" usebundle => log_rudder("Command execution /bin/date if !service_start_apache2_repaired.debian", "command_execution__bin_date", "${class_prefix}", @{args});')
     expected_result.append('}')
 
@@ -162,6 +165,8 @@ class TestNcfRudder(unittest.TestCase):
     expected_result.append('  methods:')
     expected_result.append('')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("file_create_${sys.workdir}_module_env"),')
+    expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
+    expected_result.append('      "dummy_report" usebundle => _method_reporting_context("File create", "${sys.workdir}/module/env"),')
     expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
     expected_result.append('      "dummy_report" usebundle => log_rudder("File create ${sys.workdir}/module/env if directory_create_${sys.workdir}_module_repaired", "file_create_${sys.workdir}_module_env", "${class_prefix}", @{args}),')
     expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')

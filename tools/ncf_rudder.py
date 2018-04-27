@@ -208,6 +208,7 @@ def generate_rudder_reporting(technique):
     key_value = ncf.get_key_value(method_call, generic_method)
 
     class_prefix = ncf.get_class_prefix(key_value, generic_method)
+    method_reporting = '"dummy_report" usebundle => ' + ncf.generate_reporting_context(generic_method, method_call) 
     
     if not "cfengine-community" in generic_method["agent_support"]:
 
@@ -216,7 +217,8 @@ def generate_rudder_reporting(technique):
 
       content.append('    any::')
       content.append('    "dummy_report" usebundle => _classes_noop("'+class_prefix+'");')
-      content.append('    '+logger_call+';')
+      content.append('    ' + method_reporting + ';')
+      content.append('    ' + logger_call+';')
 
     elif method_call['class_context'] != "any":
       # escape double quote in key value
@@ -232,12 +234,15 @@ def generate_rudder_reporting(technique):
       if not "$" in method_call['class_context']:
         content.append('    !('+method_call['class_context']+')::')
         content.append('      "dummy_report" usebundle => _classes_noop("'+class_prefix+'");')
+        content.append('      ' + method_reporting + ';')
         content.append('      ' + logger_rudder_call + ';')
 
       else:
         class_context = ncf.canonify_class_context(method_call['class_context'])
 
         content.append('      "dummy_report" usebundle => _classes_noop("'+class_prefix+'"),')
+        content.append('                    ifvarclass => concat("!('+class_context+')");')
+        content.append('      ' + method_reporting + ',')
         content.append('                    ifvarclass => concat("!('+class_context+')");')
         content.append('      ' + logger_rudder_call + ',')
         content.append('                    ifvarclass => concat("!('+class_context+')");')
