@@ -581,10 +581,7 @@ def generate_technique_content(technique, methods):
       promiser = "method_call"
 
     # Set bundle context, first escape paramters
-    class_parameter_id    = method_info["class_parameter_id"] - 1
-    class_parameter_name  = regex.sub(r'\\"', method_info["name"])
-    class_parameter_value = regex.sub(r'\\"', method_call["args"][class_parameter_id])
-    content.append('    "'+promiser+'_context" usebundle => _method_reporting_context("'+class_parameter_name+'", "'+class_parameter_value+'");')
+    content.append('    "'+promiser+'_context" usebundle => '+ generate_reporting_context(method_info, method_call) + ";")
 
     # Append method call
     content.append('    "'+promiser+'" usebundle => '+method_name+'('+arg_value+'),')
@@ -596,6 +593,15 @@ def generate_technique_content(technique, methods):
   result =  '\n'.join(content)+"\n"
 
   return result 
+
+
+def generate_reporting_context(method_info, method_call):
+  # regex to match quote characters not preceded by a backslash
+  regex = re.compile(r'(?<!\\)"', flags=re.UNICODE )
+  class_parameter_id    = method_info["class_parameter_id"] - 1
+  class_parameter_name  = regex.sub(r'\\"', method_info["name"])
+  class_parameter_value = regex.sub(r'\\"', method_call["args"][class_parameter_id])
+  return '_method_reporting_context("'+class_parameter_name+'", "'+class_parameter_value+'")'
 
 
 # FUNCTIONS called directly by the API code
