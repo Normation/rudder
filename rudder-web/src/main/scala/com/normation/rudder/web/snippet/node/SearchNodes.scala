@@ -75,7 +75,6 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil
 
 class SearchNodes extends StatefulSnippet with Loggable {
 
-
   private[this] val queryParser = RudderConfig.cmdbQueryParser
   private[this] val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
@@ -162,7 +161,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   def createGroup(html:NodeSeq) : NodeSeq = {
       SHtml.ajaxButton("Create node group from this query", {
        () =>   showPopup()  },
-       ("class", "btn btn-default"))
+       ("class", "btn btn-success new-icon"))
   }
 
   def queryForm(sc : SearchNodeComponent) = {

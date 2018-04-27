@@ -144,7 +144,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   )
 
   def groupNewItem(workflowEnabled: Boolean) : NodeSeq = {
-      SHtml.ajaxButton("Create", () => showPopup(workflowEnabled), ("class","btn btn-default"))
+      SHtml.ajaxButton("Create", () => showPopup(workflowEnabled), ("class","btn btn-success new-icon pull-right"))
   }
 
   /**

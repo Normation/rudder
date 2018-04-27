@@ -961,7 +961,9 @@ a.sidebar-toggle{
 #editForm table{
   width:100%;
 }
-
+#techniqueLibraryTree ul.jstree-container-ul.jstree-children, #activeTechniquesTree ul.jstree-container-ul.jstree-children{
+  padding: 0 15px;
+}
 /* --- NODE PAGE --- */
 #submitSearch {
   padding-left: 7px;
@@ -2179,6 +2181,9 @@ hr.separation{
 }
 
 /* ----------------- BUTTONS -----------------  */
+.page-title.with-btn{
+  padding-bottom:7px;
+}
 .btn span.ion{
   position: absolute;
   right: 10px;
@@ -2210,7 +2215,16 @@ hr.separation{
 .tw-bs .btn-primary-rudder.loading .fa-spin{
  display: inline;
 }
-
+.tw-bs .btn.btn-success.btn-outline{
+  background-color: #fff !important;
+  color: #8fb92a !important;
+}
+.tw-bs .btn.btn-success.btn-outline:hover{
+  background-color: #8fb92a !important;
+  color: #fff !important;
+  transition-property: background-color, color;
+  transition-duration: .2s;
+}
 /* API ACCOUNTS PAGE */
 #accountGrid .reload-token{
 	margin-right:10px;
