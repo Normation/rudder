@@ -1615,7 +1615,7 @@ popin Alert
  * Underlined, dotted grey: that text has a tooltip
  */
 .tooltip {
-    color: DimGray;
+    color: #999;
     padding-top: 0px;
 }
 
@@ -2193,13 +2193,6 @@ table thead th div.DataTables_sort_wrapper span {
   top: 50%;
   margin-top: -8px;
   right: 0;
-}
-
-#grid_remove_popup_grid,#grid_dependentRulesGrid{
-    border-left: 1px solid #B4B3A8;
-    border-right: 1px solid #B4B3A8;
-    font-size: 12px;
-    margin-bottom: 0;
 }
 
 table thead th {
