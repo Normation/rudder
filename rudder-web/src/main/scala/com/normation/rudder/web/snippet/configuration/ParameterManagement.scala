@@ -97,7 +97,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
                        ajaxButton("Delete", () => showPopup("delete", Some(param), workflowEnabled), ("class", "btn btn-danger btn-xs"), ("style", "margin-left:5px;min-width:0px;"))
                        }</div>
       }) &
-      ".createParameter *" #> ajaxButton("Add Parameter", () => showPopup("create", None, workflowEnabled) , ("class","btn btn-success new-icon space-bottom space-top"))
+      ".createParameter *" #> ajaxButton("Create Global Parameter", () => showPopup("create", None, workflowEnabled) , ("class","btn btn-success new-icon space-bottom space-top"))
      ).apply(dataTableXml(gridName)) ++ Script(initJs)
   }
 

@@ -977,7 +977,9 @@ ul.graph-legend > li.legend:hover{
 #editForm table{
   width:100%;
 }
-
+#techniqueLibraryTree ul.jstree-container-ul.jstree-children, #activeTechniquesTree ul.jstree-container-ul.jstree-children{
+  padding: 0 15px;
+}
 /* --- NODE PAGE --- */
 #nodeStateSelect{
   width:auto;
@@ -2222,6 +2224,9 @@ hr.separation{
 }
 
 /* ----------------- BUTTONS -----------------  */
+.page-title.with-btn{
+  padding-bottom:7px;
+}
 .btn span.ion{
   position: absolute;
   right: 10px;
@@ -2253,7 +2258,16 @@ hr.separation{
 .tw-bs .btn-primary-rudder.loading .fa-spin{
  display: inline;
 }
-
+.tw-bs .btn.btn-success.btn-outline{
+  background-color: #fff !important;
+  color: #8fb92a !important;
+}
+.tw-bs .btn.btn-success.btn-outline:hover{
+  background-color: #8fb92a !important;
+  color: #fff !important;
+  transition-property: background-color, color;
+  transition-duration: .2s;
+}
 /* API ACCOUNTS PAGE */
 #accountGrid .reload-token{
 	margin-right:10px;
@@ -2707,14 +2721,6 @@ span.techversion {
   margin-right:5px;
   text-align:center;
 }
-.statusCell > span.tooltipable.tooltip {
-  opacity: 1;
-  font-family: inherit;
-  position: static;
-  font-size: 14px;
-  cursor: help;
-  font-weight: bold;
-}
 
 /* ICONS */
 .dsc-icon{
@@ -2748,6 +2754,26 @@ table a > i.fa-pencil{
 }
 table a > i.fa-pencil:hover{
   color:#333;
+}
+/* RULES TABLE */
+#grid_rules_grid_zone td.statusCell span.tooltip.tooltipable:after,#grid_dependentRulesGrid td.statusCell span.tooltip.tooltipable:after {
+  content: "\f059";
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: 1em;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  margin-left: 7px;
+  color: #999;
+}
+
+.statusCell > span.tooltipable.tooltip {
+  opacity: 1;
+  font-family: inherit;
+  position: static;
+  font-size: 14px;
+  cursor: help;
+  color:#999;
 }
 
 @keyframes opacity-1 {

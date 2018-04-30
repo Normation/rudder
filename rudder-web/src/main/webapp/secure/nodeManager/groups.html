@@ -46,7 +46,12 @@
 <div class="nodeGroupContainer">
   <div class="tw-bs col-sm">
     <div id="groupsTree" data-lift="node.Groups.groupHierarchy">
-      <div class="page-title">Group hierarchy</div>
+      <div class="page-title">
+        Group hierarchy
+        <lift:Authz role="group_write">
+          <div id="newItem">Here comes the New item Button</div>
+        </lift:Authz>
+      </div>
       <div id="groupeTree_actions_zone">
         <div class="col-xs-12 tree">
           <div class="filter-tree">
@@ -61,9 +66,6 @@
                 <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" >
                   <span class="fa fa-times"></span>
                 </button>
-                <lift:Authz role="group_write">
-                  <div id="newItem">Here comes the New item Button</div>
-                </lift:Authz>
               </div>
             </div>
           </div>

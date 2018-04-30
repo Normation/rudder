@@ -77,7 +77,7 @@ class CreateOrUpdateGlobalParameterPopup(
   private def titles = Map(
       "delete"  -> "Delete a Global Parameter"
     , "save"    -> "Update a Global Parameter"
-    , "create"  -> "Create a Global Parameter"
+    , "create"  -> "Add a Global Parameter"
   )
 
   private[this] val titleWorkflow = workflowEnabled match {

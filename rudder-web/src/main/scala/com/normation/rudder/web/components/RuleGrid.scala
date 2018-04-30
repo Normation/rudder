@@ -83,7 +83,6 @@ object RuleGrid {
         .noCompliance   {{ background-color:#b4b4b4; }}
         .applyingCompliance {{ background-color:#5bc0de; }}
         .compliance {{ text-align: center; }}
-        .statusCell {{font-weight:bold}}
       </style>
     </head>
 }
