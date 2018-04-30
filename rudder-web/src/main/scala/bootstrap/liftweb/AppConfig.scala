@@ -692,6 +692,7 @@ object RudderConfig extends Loggable {
     ApiVersion(8  , false) ::
     ApiVersion(9  , false) ::
     ApiVersion(10 , false) ::
+    ApiVersion(11 , false) ::
     Nil
 
   // new api dispatcher
@@ -716,6 +717,7 @@ object RudderConfig extends Loggable {
       , new TechniqueApi(restExtractorService, techniqueApiService6)
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
       , new UserApi(restExtractorService, roApiAccountRepository, woApiAccountRepository, tokenGenerator, stringUuidGenerator)
+      , new SystemApi(restExtractorService)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 

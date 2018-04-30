@@ -189,7 +189,7 @@ trait EndpointSchema {
   // the unique action for that end point. One
   // endpoint schema can have only one action.
   def action: HttpAction
-  // an name for the API. Can be used in answer to notice
+  // a name for the API. Can be used in answer to notice
   // the user, or to classify endpoints.
   // IT IS NOT AN IDENTIFIER. The only identifier is the
   // ACTION+PATH couple.
@@ -244,6 +244,7 @@ trait StartsAtVersion7  extends EndpointSchema { val versions = ApiV.From(7 ) }
 trait StartsAtVersion8  extends EndpointSchema { val versions = ApiV.From(8 ) }
 trait StartsAtVersion9  extends EndpointSchema { val versions = ApiV.From(9 ) }
 trait StartsAtVersion10 extends EndpointSchema { val versions = ApiV.From(10) }
+trait StartsAtVersion11 extends EndpointSchema { val versions = ApiV.From(11) }
 
 // utility extension trait to define the kind of API
 trait PublicApi   extends EndpointSchema { val kind = ApiKind.Public   }
@@ -346,7 +347,7 @@ object ApiError {
   final case class BadParam  (msg: String, apiName: String) extends ApiError
 }
 
-// information neeced from a request to be able to process it
+// information needed from a request to be able to process it
 final case class RequestInfo(
     action          : HttpAction
   , path            : ApiPath
@@ -433,7 +434,6 @@ class RudderEndpointDispatcher(logger: Log) extends ConnectEndpoint {
     //at least one version in supported API, so we know which is "latest"
     val versions = currentApiVersions.sortBy( _.value )
     val latest = versions.last
-
     // build the list of version for that API.
     val apiVersions = endointVersions match {
         case ApiV.OnlyLatest   => List(latest)
