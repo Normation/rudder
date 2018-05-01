@@ -211,7 +211,7 @@ class EventLogJdbcRepository(
     """
 
     (for {
-      entries <- query[(String, EventLogDetails)](q).vector
+      entries <- query[(String, EventLogDetails)](q).to[Vector]
     } yield {
       entries.map(toEventLog)
     }).attempt.transact(xa).unsafeRunSync ?~! s"could not find event log with request ${q}"

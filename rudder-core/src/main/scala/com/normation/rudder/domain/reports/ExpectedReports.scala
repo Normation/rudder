@@ -94,7 +94,7 @@ final case class NodeExpectedReports(
 
       val heartbeat = modes.nodeHeartbeatPeriod.getOrElse(modes.globalComplianceMode.heartbeatPeriod)
 
-      ResolvedAgentRunInterval(Duration.standardMinutes(run), heartbeat)
+      ResolvedAgentRunInterval(Duration.standardMinutes(run.toLong), heartbeat)
     }
   }
 }

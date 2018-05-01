@@ -704,12 +704,12 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                               // because the event was saved < Rudder 4.3. Use a "nil" ACL
                               Full(ApiAuthorization.None)
 
-                            case Some(Text(ApiAuthorizationKind.RO.name)) =>
+                            case Some(Text(ApiAuthorizationKind.RO.name))     =>
                               Full(ApiAuthorization.RO)
-                            case Some(Text(ApiAuthorizationKind.RW.name)) =>
+                            case Some(Text(ApiAuthorizationKind.RW.name))     =>
                               Full(ApiAuthorization.RW)
-                            case Some(<acl>{xml}</acl>)                   =>
-                              unserAcl(xml)
+                            case Some(<acl>{xml @ _*}</acl>) if(xml.nonEmpty) =>
+                              unserAcl(xml.head)
                               // all other case: serialization pb => None
                             case _  => Full(ApiAuthorization.None)
                           }

@@ -60,7 +60,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
   import db._
 
   def getAllOpenedNodes(): Seq[DB.SerializedNodes[Long]] = {
-    sql"select id, nodeid, nodename, nodedescription, starttime, endtime from nodes where endtime is null".query[DB.SerializedNodes[Long]].vector.transact(xa).unsafeRunSync
+    sql"select id, nodeid, nodename, nodedescription, starttime, endtime from nodes where endtime is null".query[DB.SerializedNodes[Long]].to[Vector].transact(xa).unsafeRunSync
   }
 
 
@@ -100,14 +100,14 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
 
     val action = for {
       groups     <- sql"""select id, groupid, groupname, groupdescription, nodecount, groupstatus, starttime, endtime
-                          from groups where endtime is null""".query[DB.SerializedGroups[Long]].list
+                          from groups where endtime is null""".query[DB.SerializedGroups[Long]].to[List]
       joinGroups <- groups.map(g => s"(${g.id})").toNel.foldMap { joinIds =>
                       (
                         Fragment.const(s"with tempgroupid (id) as (values ${joinIds.toList.mkString(",")} )") ++
                         fr"""select grouppkeyid, nodeid from groupsnodesjoin
                              inner join tempgroupid on tempgroupid.id = groupsnodesjoin.grouppkeyid
                           """
-                      ).query[DB.SerializedGroupsNodes].vector
+                      ).query[DB.SerializedGroupsNodes].to[Vector]
                     }(Applicative.monoid)
     } yield {
       val byIds = joinGroups.groupBy(_.groupPkeyId)
@@ -137,7 +137,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     sql"""select id, directiveid, directivename, directivedescription, priority, techniquename,
                   techniquehumanname, techniquedescription, techniqueversion, starttime, endtime
           from directives
-          where endtime is null""".query[DB.SerializedDirectives[Long]].vector.transact(xa).unsafeRunSync
+          where endtime is null""".query[DB.SerializedDirectives[Long]].to[Vector].transact(xa).unsafeRunSync
   }
 
   def updateDirectives(
@@ -168,17 +168,17 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       rules      <- sql"""select rulepkeyid, ruleid, categoryid, name, shortdescription,
                                  longdescription, isenabled, starttime, endtime
                           from rules
-                          where endtime is null""".query[DB.SerializedRules[Long]].list
+                          where endtime is null""".query[DB.SerializedRules[Long]].to[List]
       ruleIds    =  NonEmptyList.fromList(rules.map( _.id))
       groups     <- ruleIds.foldMap { joinIds =>
                         (fr"""select rulepkeyid, targetserialisation
                               from rulesgroupjoin
-                              where """ ++ joinIdsFrag(joinIds)).query[DB.SerializedRuleGroups].vector
+                              where """ ++ joinIdsFrag(joinIds)).query[DB.SerializedRuleGroups].to[Vector]
                     }(Applicative.monoid)
       directives <- ruleIds.foldMap { joinIds =>
                         (fr"""select rulepkeyid, directiveid
                               from rulesdirectivesjoin
-                              where """ ++ joinIdsFrag(joinIds)).query[DB.SerializedRuleDirectives].vector
+                              where """ ++ joinIdsFrag(joinIds)).query[DB.SerializedRuleDirectives].to[Vector]
                     }(Applicative.monoid)
     } yield {
         val dMap = directives.groupBy(_.rulePkeyId)

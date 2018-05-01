@@ -85,7 +85,6 @@ class WoLDAPNodeRepository(
     // use cats validation
     import cats.implicits._
     import cats.data._
-    import cats._
 
     type ValidationResult = ValidatedNel[String, Unit]
     val ok = ().validNel

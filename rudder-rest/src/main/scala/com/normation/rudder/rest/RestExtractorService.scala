@@ -79,9 +79,7 @@ import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.ncf.MethodParameter
 import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.ncf.{Technique => NcfTechnique}
-import org.joda.time.format.ISODateTimeFormat
-import net.liftweb.util.Helpers
-import org.joda.time.DateTime
+import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.web.components.DateFormaterService
 
 case class RestExtractorService (
@@ -215,10 +213,6 @@ case class RestExtractorService (
 
   private[this] def toApiAccountName (value:String) : Box[ApiAccountName] = {
     Full(ApiAccountName(value))
-  }
-
-  private[this] def toDateTime (value:String) : Box[DateTime] = {
-    Helpers.tryo { ISODateTimeFormat.basicDateTime().parseDateTime(value) }
   }
 
   private[this] def toWorkflowStatus (value : String) : Box[Seq[WorkflowNodeId]] = {

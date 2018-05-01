@@ -48,7 +48,6 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.xml.LicenseRepositoryXML
-import com.normation.rudder.services.policies.BuildNodeConfiguration
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.NodeConfigData.root
 import com.normation.rudder.services.policies.NodeConfigData.rootNodeConfig
@@ -70,7 +69,6 @@ import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.BoundPolicyDraft
-import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 
 
 /**

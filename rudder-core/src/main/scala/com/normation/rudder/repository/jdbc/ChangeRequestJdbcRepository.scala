@@ -77,7 +77,7 @@ class RoChangeRequestJdbcRepository(
 
   //utility method which correctly transform Doobie types towards Box[Vector[ChangeRequest]]
   private[this] def execQuery(q: Query0[Box[ChangeRequest]]): Box[Vector[ChangeRequest]] = {
-    q.vector.attempt.map(
+    q.to[Vector].attempt.map(
         // we are just ignoring change request with unserialisation
         // error. Does not seem the best.
         _.map(_.flatten.toVector)

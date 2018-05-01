@@ -119,7 +119,7 @@ case class UpstreamTechniqueVersion(value: String) extends Ordered[UpstreamTechn
   import scala.util.matching.Regex
   import TechniqueVersion.rest
 
-  def checkValid(strings: String*) {
+  def checkValid(strings: String*): Unit = {
     for (value <- strings) {
       if (value.length == 0 || !value(0).isDigit)
         throw new TechniqueVersionFormatException("The upstream_version should start with a digit : " + value)

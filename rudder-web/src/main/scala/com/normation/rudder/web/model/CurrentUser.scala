@@ -38,7 +38,6 @@
 package com.normation.rudder.web.model
 
 import bootstrap.liftweb.RudderUserDetail
-import com.normation.eventlog.EventActor
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.RudderAccount

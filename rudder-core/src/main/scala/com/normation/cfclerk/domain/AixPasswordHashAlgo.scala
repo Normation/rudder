@@ -92,7 +92,7 @@ object AixPasswordHashAlgo extends Loggable {
    * This code is a Scala adaptation from org.apache.commons.codec.digest.B64
    *
    */
-  def b64from24bit(b2: Byte, b1: Byte, b0: Byte, outNumChars: Int, buffer: JStringBuilder) {
+  def b64from24bit(b2: Byte, b1: Byte, b0: Byte, outNumChars: Int, buffer: JStringBuilder): Unit = {
     // The bit masking is necessary because the JVM byte type is signed!
     var w = ((b2 << 16) & 0x00ffffff) | ((b1 << 8) & 0x00ffff) | (b0 & 0xff)
     // It's effectively a "for" loop but kept to resemble the original C code.

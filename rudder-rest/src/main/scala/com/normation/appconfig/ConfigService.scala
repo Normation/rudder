@@ -393,19 +393,12 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     case "none" => None
     case _ => Some(false)
   }
-  private[this] implicit def serOptionBoolean(x: Option[Boolean]): String = x match {
-    case None        => "none"
-    case Some(true)  => "true"
-    case Some(false) => "false"
-  }
 
   private[this] implicit def toSyslogProtocol(p: RudderWebProperty): SyslogProtocol = p.value match {
     case SyslogTCP.value => // value is TCP
       SyslogTCP
     case _ => SyslogUDP
   }
-
-  private[this] implicit def serSyslogProtocol(x: SyslogProtocol): String = x.value
 
   private[this] implicit def toOptionPolicyMode(p: RudderWebProperty): Option[PolicyMode] = {
     PolicyMode.allModes.find( _.name == p.value.toLowerCase())

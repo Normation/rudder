@@ -68,7 +68,7 @@ class InfoApi(
   }
 
 
-  final case class EndpointInfo(
+  private case class EndpointInfo(
       name    : String
     , action  : HttpAction
     , versions: Set[ApiVersion]

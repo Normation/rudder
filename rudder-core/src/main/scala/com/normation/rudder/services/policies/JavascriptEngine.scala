@@ -47,15 +47,12 @@ import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.language.implicitConversions
-
 import com.normation.cfclerk.domain.HashAlgoConstraint._
-
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.services.policies.HashOsType._
 import com.normation.rudder.services.policies.JsEngine._
-import com.normation.utils.Control. _
-
+import com.normation.utils.Control._
 import ca.mrvisser.sealerate
 import javax.script.Bindings
 import javax.script.ScriptEngine
@@ -68,6 +65,7 @@ import net.liftweb.common.Full
 import java.io.FilePermission
 import java.lang.reflect.ReflectPermission
 import java.security.SecurityPermission
+
 import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
 import com.normation.cfclerk.domain.AixPasswordHashAlgo
@@ -75,6 +73,8 @@ import com.normation.cfclerk.domain.AbstactPassword
 import java.security.NoSuchAlgorithmException
 import java.net.NetPermission
 import java.util.logging.LoggingPermission
+
+import com.github.ghik.silencer.silent
 
 sealed trait HashOsType
 
@@ -489,7 +489,7 @@ final object JsEngine {
        * which interrected with it.
        *
        */
-      def abortWithConsequences(): Unit = {
+      @silent def abortWithConsequences(): Unit = {
         Thread.currentThread().stop()
       }
     }
@@ -578,7 +578,7 @@ final object JsEngine {
 
       try {
         // submit to the pool and synchroniously retrieve the value with a timeout
-        pool.submit(scriptCallable).get(maxTime._1, maxTime._2)
+        pool.submit(scriptCallable).get(maxTime._1.toLong, maxTime._2)
       } catch {
         case ex: ExecutionException => //this can happen when rhino get security exception... Yeah...
           throw RudderFatalScriptException(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex)
@@ -709,7 +709,7 @@ final object JsEngine {
   protected[policies] class RudderJsEngineThreadFactory(sm: SandboxSecurityManager) extends ThreadFactory {
     val RUDDER_JSENGINE_THREAD = "rudder-jsengine"
     class SandboxedThread(group: ThreadGroup, target: Runnable, name: String, stackSize: Long) extends Thread(group, target, name, stackSize) {
-      override def run() {
+      override def run(): Unit = {
         sm.isSandboxed.set(true)
         super.run()
       }

@@ -52,7 +52,6 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.OsDetails
 import com.normation.rudder.services.policies.Policy
-import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.NodeRunHook

@@ -88,7 +88,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       s"""select ${common_reports_column}
           from RudderSysEvents
           where (nodeid, executiontimestamp) in (VALUES ${nodeParam})
-      """ + ruleClause).vector.attempt.transact(xa).unsafeRunSync.map( _.groupBy( _.nodeId)) ?~!
+      """ + ruleClause).to[Vector].attempt.transact(xa).unsafeRunSync.map( _.groupBy( _.nodeId)) ?~!
       s"Error when trying to get last run reports for ${runs.size} nodes"
     }
   }
@@ -96,7 +96,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   override def findReportsByNode(nodeId   : NodeId) : Vector[Reports] = {
     val q = Query[NodeId, Reports](baseQuery + " and nodeId = ? order by id desc limit 1000", None).toQuery0(nodeId)
     // not a boxed return for that one?
-    q.vector.transact(xa).unsafeRunSync
+    q.to[Vector].transact(xa).unsafeRunSync
   }
 
   override def findReportsByNodeOnInterval(
@@ -107,7 +107,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     val q = Query[(NodeId, DateTime, DateTime), Reports](baseQuery +
         " and nodeId = ? and executionTimeStamp >= ?  and executionTimeStamp < ? ORDER BY executionTimeStamp asc"
       , None).toQuery0((nodeId, start, end))
-    q.vector.transact(xa).unsafeRunSync
+    q.to[Vector].transact(xa).unsafeRunSync
   }
 
   override def getReportsInterval(): Box[(Option[DateTime], Option[DateTime])] = {
@@ -261,7 +261,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     val events = kinds.map(k => s"eventtype='${k}'").mkString(" or ")
     val q = query[(Long, Reports)](s"${idQuery} and (${events}) order by executiondate desc limit 100")
 
-    q.vector.attempt.transact(xa).unsafeRunSync match {
+    q.to[Vector].attempt.transact(xa).unsafeRunSync match {
       case Left(e)    =>
           val msg = s"Could not fetch last hundred reports in the database. Reason is : ${e.getMessage}"
           logger.error(msg)
@@ -337,7 +337,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                             |  ) as C
                             |on T.nodeid = C.nodeid and T.executiontimestamp = C.executiontimestamp""".stripMargin
 
-        Query[(Long, Long, Long, Long), AgentRun](getRunsQuery, None).toQuery0((fromId, toId, fromId, toId)).vector
+        Query[(Long, Long, Long, Long), AgentRun](getRunsQuery, None).toQuery0((fromId, toId, fromId, toId)).to[Vector]
       }
     }
 
@@ -404,23 +404,23 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     //be careful, extract from 'epoch' gives seconds, not millis
     val mod = intervalInHour * 3600
     val start = startTime.getMillis / 1000
-    (query[(RuleId, Int, Interval)](
+    ((query[(RuleId, Int, Interval)](
       s"""select ruleid, count(*) as number, ( extract('epoch' from executiontimestamp)::bigint - ${start})/${mod} as interval
           from ruddersysevents
           where eventtype = 'result_repaired' and executionTimeStamp > '${new Timestamp(startTime.getMillis)}'::timestamp
           group by ruleid, interval;
       """
-    ).vector.attempt.transact(xa).unsafeRunSync ?~! "Error when trying to retrieve change reports").map { res =>
+    ).to[Vector].attempt.transact(xa).unsafeRunSync ?~! "Error when trying to retrieve change reports").map { res =>
       val groups = res.groupBy(_._1).mapValues( _.groupBy(_._3).mapValues(_.map( _._2).head)) //head non empty due to groupBy, and seq == 1 by query
       groups
-    }
+    }, intervalMeta)._1 //tricking scalac for false positive unused warning on intervalMeta.
   }
 
   override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]] = {
     query[ResultRepairedReport](s"""
       ${typedQuery} and eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId}
       order by executionTimeStamp asc
-    """).vector.attempt.transact(xa).unsafeRunSync
+    """).to[Vector].attempt.transact(xa).unsafeRunSync
   }
 
   override def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]] = {
@@ -432,7 +432,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       ${typedQuery} and eventtype='${Reports.RESULT_REPAIRED}' and ruleid='${ruleId.value}'
       and executionTimeStamp >  '${new Timestamp(interval.getStartMillis)}'::timestamp
       and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)  }'::timestamp order by executionTimeStamp asc ${l}
-    """).vector.attempt.transact(xa).unsafeRunSync
+    """).to[Vector].attempt.transact(xa).unsafeRunSync
   }
 
   override def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long,Reports)]] = {
@@ -440,7 +440,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       Full(Nil)
     else{
       val q = s"${idQuery} and id between '${lower}' and '${upper}' and (${kinds.map(k => s"eventtype='${k}'").mkString(" or ")}) order by id asc limit ${limit}"
-      query[(Long, Reports)](q).vector.attempt.transact(xa).unsafeRunSync ?~! s"Could not fetch reports between ids ${lower} and ${upper} in the database."
+      query[(Long, Reports)](q).to[Vector].attempt.transact(xa).unsafeRunSync ?~! s"Could not fetch reports between ids ${lower} and ${upper} in the database."
     }
   }
 }

@@ -166,7 +166,7 @@ class TestJsonQueryLexing {
 """
 
   @Test
-  def basicLexing() {
+  def basicLexing(): Unit = {
     val where = Seq(
         StringCriterionLine("processor", "speed", "gteq", Some("2000")),
         StringCriterionLine("node", "ram", "exists")

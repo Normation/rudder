@@ -101,7 +101,7 @@ class TestStringQueryParser {
 
 
   @Test
-  def basicParsing() {
+  def basicParsing(): Unit = {
 
     assertEquals(
       Full(Query(NodeReturnType, And, Seq(

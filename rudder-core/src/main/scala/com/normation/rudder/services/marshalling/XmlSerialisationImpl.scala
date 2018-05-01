@@ -91,7 +91,7 @@ import scala.xml.NodeSeq
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.rudder.domain.appconfig.RudderWebProperty
-import com.normation.rudder.api.{ApiAccount, ApiAccountKind, ApiAuthorization, ApiAuthorizationKind}
+import com.normation.rudder.api.{ApiAccount, ApiAccountKind, ApiAuthorization}
 import com.normation.cfclerk.domain.TechniqueId
 
 //serialize / deserialize tags

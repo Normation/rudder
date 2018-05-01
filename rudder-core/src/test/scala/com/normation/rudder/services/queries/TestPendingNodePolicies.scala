@@ -37,12 +37,10 @@
 
 package com.normation.rudder.services.queries
 
-import ch.qos.logback.classic.Level
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants.A_MACHINE_UUID
 import com.normation.inventory.ldap.core.LDAPConstants.OC_MACHINE
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
-import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.Criterion

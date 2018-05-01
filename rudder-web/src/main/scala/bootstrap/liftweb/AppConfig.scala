@@ -1010,7 +1010,7 @@ object RudderConfig extends Loggable {
       , pendingNodesDitImpl
       , nodeDit
         // here, we don't want to look for subgroups to show them in the form => always return an empty list
-      , new DitQueryData(pendingNodesDitImpl, nodeDit, rudderDit, () => Full(Nil)) 
+      , new DitQueryData(pendingNodesDitImpl, nodeDit, rudderDit, () => Full(Nil))
       , ldapEntityMapper
     )
   )
@@ -1033,8 +1033,8 @@ object RudderConfig extends Loggable {
     , rwLdap
     , ldapEntityMapper
     , PendingInventory
-    , configService.rudder_node_onaccept_default_policy_mode
-    , configService.rudder_node_onaccept_default_state
+    , configService.rudder_node_onaccept_default_policy_mode _
+    , configService.rudder_node_onaccept_default_state _
   )
 
   private[this] lazy val acceptHostnameAndIp: UnitAcceptInventory = new AcceptHostnameAndIp(
@@ -1296,9 +1296,9 @@ object RudderConfig extends Loggable {
     , RUDDER_DIR_GITROOT
     , RUDDER_SERVER_ROLES
     , configService.cfengine_server_denybadclocks _
-    , configService.relay_server_sync_method
-    , configService.relay_server_syncpromises
-    , configService.relay_server_syncsharedfiles
+    , configService.relay_server_sync_method _
+    , configService.relay_server_syncpromises _
+    , configService.relay_server_syncsharedfiles _
     , configService.cfengine_modified_files_ttl _
     , configService.cfengine_outputs_ttl _
     , configService.rudder_store_all_centralized_logs_in_file _

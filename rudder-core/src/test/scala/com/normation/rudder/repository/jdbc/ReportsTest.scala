@@ -119,7 +119,7 @@ class ReportsTest extends DBCommon {
     )
     "correctly init info" in {
       DB.insertReports(reports.values.toList.flatten).transact(xa).unsafeRunSync
-      sql"""select id from ruddersysevents""".query[Long].vector.transact(xa).unsafeRunSync.size === 8
+      sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa).unsafeRunSync.size === 8
     }
 
     "find the last reports for node0" in {

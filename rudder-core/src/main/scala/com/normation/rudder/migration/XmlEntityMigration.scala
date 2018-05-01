@@ -215,7 +215,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
            boxSequence(migrationResults) match {
             case Full(seq) =>
               val numberMigrated = seq.collect { case MigrationSuccess(i) => i }.sum
-              migrationEventLogRepository.setMigrationFileFormat(id, toVersion, DateTime.now)
+              migrationEventLogRepository.setMigrationFileFormat(id, toVersion.toLong, DateTime.now)
               logger.info(s"Completed migration to file format '${toVersion}', ${numberMigrated} records migrated")
               Full(MigrationSuccess(numberMigrated))
             case eb:EmptyBox => eb
@@ -418,7 +418,7 @@ trait EventLogsMigration extends BatchElementMigration[MigrationEventLog] {
     sql"""
       select id, eventType, data from (select id, eventType, data, ((xpath('/entry//@fileFormat',data))[1]::text) as version from eventlog) as T
       where version=${fromVersion.toString} limit ${batchSize}
-    """.query[MigrationEventLog].vector
+    """.query[MigrationEventLog].to[Vector]
   }
 
   final protected def save(logs: Vector[MigrationEventLog]) : ConnectionIO[Vector[MigrationEventLog]] = {
@@ -437,7 +437,7 @@ trait ChangeRequestsMigration extends BatchElementMigration[MigrationChangeReque
 
   override final def selectAllSqlRequest(batchSize:Int): ConnectionIO[Vector[MigrationChangeRequest]] = {
     sql"""select id, name, content from (select id, name, content, ((xpath('/changeRequest/@fileFormat', content))[1]::text) as version from changerequest) as T
-        where version=${fromVersion.toString} limit ${batchSize}""".query[MigrationChangeRequest].vector
+        where version=${fromVersion.toString} limit ${batchSize}""".query[MigrationChangeRequest].to[Vector]
   }
 
 
