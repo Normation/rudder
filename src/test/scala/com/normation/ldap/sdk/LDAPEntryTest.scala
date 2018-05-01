@@ -22,9 +22,8 @@ package com.normation.ldap.sdk
 
 import org.junit.runner.RunWith
 import org.specs2.mutable._
-import org.specs2.matcher._
 import org.specs2.runner.JUnitRunner
-import specs2.{run, arguments}
+import specs2.run
 import specs2.arguments._
 
 
@@ -45,7 +44,7 @@ class LDAPEntrySpecTest extends Specification /*with ScalaCheck*/ {
 }
 
 object LDAPEntrySpecMain {
-  def main(x: Array[String]) {
+  def main(x: Array[String]): Unit = {
     implicit val myargs = args(color = false)
     run(new LDAPEntrySpecTest())
     () // unit is expected

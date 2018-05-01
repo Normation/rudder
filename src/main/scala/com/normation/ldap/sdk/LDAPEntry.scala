@@ -24,7 +24,7 @@ import com.unboundid.ldap.sdk.schema.Schema
 import com.unboundid.ldap.sdk.{DN,RDN, Attribute,Modification}
 import DN.NULL_DN
 import com.unboundid.ldif.LDIFRecord
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable.Buffer
 
 import org.slf4j.LoggerFactory
@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory
 class LDAPEntry(private val _backed: UnboundidEntry) {
 
   //copy constructor, needed for special case, when mixing LDAPEntry with other types
-  def this(e:LDAPEntry) = this(new UnboundidEntry(e._backed.dn,e._backed.getAttributes.toSeq:_*))
+  def this(e:LDAPEntry) = this(new UnboundidEntry(e._backed.dn,e._backed.getAttributes.asScala.toSeq:_*))
 
   //define a read only view of the backed entry, usefull in ldap connection to not have to override everything defined by Unboundid
   def backed = new com.unboundid.ldap.sdk.ReadOnlyEntry(_backed)
@@ -112,7 +112,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
 
   def hasAttribute(attribute:Attribute) = _backed.hasAttribute(attribute)
 
-  def attributes : Iterable[Attribute]  = _backed.getAttributes
+  def attributes : Iterable[Attribute]  = _backed.getAttributes.asScala
 
   def typedAttributes(implicit shema:Schema) : Iterable[TypedAttribute] = {
     _backed.attributes.map(a => TypedAttribute(a))
@@ -232,7 +232,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
         if(toSave.size < 1) {
           _backed.removeAttribute(attributeName)
         } else {
-         _backed.setAttribute(new Attribute(attributeName,toSave))
+         _backed.setAttribute(new Attribute(attributeName, toSave.asJava))
         }
     }
   }
@@ -240,7 +240,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
   /** add given value(s) to given attribute. Create the attribute if does not exist */
   def +=(attribute:Attribute) =  _backed.addAttribute(attribute)
 
-  def +=(attributeName:String, values:String*) =  _backed.addAttribute(new Attribute(attributeName,values))
+  def +=(attributeName:String, values:String*) =  _backed.addAttribute(new Attribute(attributeName, values.asJava))
 
   /** remove attribute */
   def -=(attributeName:String) = _backed.removeAttribute(attributeName)
@@ -287,7 +287,7 @@ object LDAPEntry {
 
   def apply(e:UnboundidEntry):LDAPEntry = new LDAPEntry(new UnboundidEntry(e.getDN,e.getAttributes)) // val e = LDAPEntry(unboundidEntry)
   def apply(dn:DN, attributes:Attribute*):LDAPEntry = LDAPEntry(new UnboundidEntry(dn,attributes:_*))
-  def apply(dn:DN, attributes:Iterable[Attribute]):LDAPEntry = LDAPEntry(new UnboundidEntry(dn,attributes))
+  def apply(dn:DN, attributes:Iterable[Attribute]):LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes.toSeq:_*))
   def apply(rdnAttribute:String,rdnValue:String,parentDn:String, attributes:Attribute*) : LDAPEntry = {
     require(rdnValue != null && rdnValue.length > 0)
     apply(new DN(s"${rdnAttribute}=${rdnValue},${parentDn}"),attributes)
@@ -369,9 +369,9 @@ object LDAPEntry {
       com.unboundid.ldap.sdk.Entry.diff(origin.backed,target.backed,true,false,targetEntry.attributes.toSeq.map( _.getName):_*)
     }
     mods
-  }
+  }.asScala
 
   def diff(sourceEntry:LDAPEntry, targetEntry:LDAPEntry, onlyAttributes:Seq[String]) : Buffer[Modification] = {
-    com.unboundid.ldap.sdk.Entry.diff(sourceEntry.backed,targetEntry.backed,true,false,onlyAttributes:_*)
+    com.unboundid.ldap.sdk.Entry.diff(sourceEntry.backed,targetEntry.backed,true,false,onlyAttributes:_*).asScala
   }
 }

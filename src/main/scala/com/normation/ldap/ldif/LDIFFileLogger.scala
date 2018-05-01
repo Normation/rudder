@@ -65,9 +65,9 @@ trait LDIFFileLogger {
 class DummyLDIFFileLogger extends LDIFFileLogger {
   val loggerName = "dummy logger - no output"
   val ldifTraceRootDir = "no a real ldifTraceRootDir"
-  def tree(tree:LDAPTree) {}
-  def record(LDIFRecord: => LDIFRecord,comment:Option[String] = None) {}
-  def records(LDIFRecords: => Seq[LDIFRecord]) {}
+  def tree(tree:LDAPTree): Unit = {}
+  def record(LDIFRecord: => LDIFRecord,comment:Option[String] = None): Unit = {}
+  def records(LDIFRecords: => Seq[LDIFRecord]): Unit = {}
 }
 
 
@@ -124,14 +124,14 @@ trait Slf4jLDIFLogger extends LDIFFileLogger {
     logE(s"Exception when loggin LDIF trace in ${filename} (ignored)",e)
 
 
-  private def writeRecord(ldifWriter:LDIFWriter,LDIFRecord:LDIFRecord,comment:Option[String] = None) {
+  private def writeRecord(ldifWriter:LDIFWriter,LDIFRecord:LDIFRecord,comment:Option[String] = None): Unit = {
     comment match {
       case None => ldifWriter.writeLDIFRecord(LDIFRecord)
       case Some(c) => ldifWriter.writeLDIFRecord(LDIFRecord,c)
     }
   }
 
-  override def tree(tree:LDAPTree) {
+  override def tree(tree:LDAPTree): Unit = {
     if(isLogLevel) {
       val filename = traceFileName(tree.root.dn, "CONTENT")
       try {
@@ -151,7 +151,7 @@ trait Slf4jLDIFLogger extends LDIFFileLogger {
     }
   }
 
-  override def record(record: => LDIFRecord,comment:Option[String] = None) {
+  override def record(record: => LDIFRecord,comment:Option[String] = None): Unit = {
     if(isLogLevel) {
       var writer:LDIFWriter = null
       val opType = record match {
@@ -177,7 +177,7 @@ trait Slf4jLDIFLogger extends LDIFFileLogger {
     }
   }
 
-  override def records(records: => Seq[LDIFRecord]) {
+  override def records(records: => Seq[LDIFRecord]): Unit = {
     if(isLogLevel) {
       var writer:LDIFWriter = null
       val filename = traceFileName(records.head.getParsedDN, "RECORDS")

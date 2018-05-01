@@ -46,7 +46,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
   lazy val parentDn = root.parentDn
 
   //validation on children
-  private var _childrenValidation = new Subscriber[Message[(RDN,LDAPTree)],ObservableMap[RDN,LDAPTree]]() {
+  private val _childrenValidation = new Subscriber[Message[(RDN,LDAPTree)],ObservableMap[RDN,LDAPTree]]() {
     override def notify(pub: ObservableMap[RDN,LDAPTree],event: Message[(RDN, LDAPTree)]): Unit = {
       event match {
         case Update(loc,(rdn,tree)) =>
@@ -64,7 +64,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
 
   _children.subscribe(_childrenValidation)
 
-  override def children() = Map() ++ _children
+  override def children = Map() ++ _children
 
   def addChild(child:LDAPTree) : Unit = {
     child.root.rdn match {
@@ -84,7 +84,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
     _children.clear
     children.foreach { t => addChild(t) }
   }
-  def deleteChildren(rdns:Seq[RDN]) = rdns.foreach { r => _children -= r }
+  def deleteChildren(rdns:Seq[RDN]): Unit = rdns.foreach { r => _children -= r }
 
   override def addChild(rdn:RDN, child:Tree[LDAPEntry]) : Unit = {
     addChild(LDAPTree(child))
@@ -94,7 +94,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
     Seq(root.toLDIFRecord) ++ _children.valuesIterator.toSeq.flatMap( _.toLDIFRecords)
   }
 
-  override def toString() = {
+  override def toString(): String = {
     val children = {
         if(_children.size > 0) {
           val c = _children.map{ case(k,v) => s"${k} -> ${v}" }
@@ -108,7 +108,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
 
 
   //not sure it's a really good idea. Hopefully, we won't mix LDAPTrees and LDAPEntries in HashSet...
-  override def hashCode() = root.hashCode
+  override def hashCode(): Int = root.hashCode
   override def equals(that:Any) : Boolean = that match {
     case t:LDAPTree =>
       root == t.root &&
@@ -232,17 +232,17 @@ object LDAPTree {
 
       //remove entries present in source but not in target
       for(k <- source.children.keySet -- intersection) {
-        mods.addChild(k, Tree(Delete(source.children()(k).map(_.dn))))
+        mods.addChild(k, Tree(Delete(source.children(k).map(_.dn))))
       }
 
       //add entries present in target but not in source
       for(k <- target.children.keySet -- intersection) {
-        mods.addChild(k, Tree(Add(target.children()(k))))
+        mods.addChild(k, Tree(Add(target.children(k))))
       }
 
       //diff all entries both in source and target
       for(k <- intersection) {
-        diff(source.children()(k), target.children()(k), removeMissing) foreach { d =>
+        diff(source.children(k), target.children(k), removeMissing) foreach { d =>
           mods.addChild(k, d)
         }
       }
