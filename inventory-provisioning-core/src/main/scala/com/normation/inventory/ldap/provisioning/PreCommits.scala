@@ -40,7 +40,7 @@ package com.normation.inventory.ldap.provisioning
 import com.normation.inventory.services.provisioning._
 
 import com.normation.inventory.domain.InventoryReport
-import net.liftweb.common.{Box,Full,Empty,EmptyBox,Failure}
+import net.liftweb.common.{Box,Full,Failure}
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryMapper
 

@@ -39,7 +39,6 @@ package com.normation.inventory.ldap.provisioning
 
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType.REPLACE
-import com.normation.inventory.ldap.core._
 import com.unboundid.ldif._
 import org.joda.time.DateTime
 

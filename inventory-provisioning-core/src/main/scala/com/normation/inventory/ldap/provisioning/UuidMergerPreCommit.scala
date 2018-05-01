@@ -44,10 +44,8 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import net.liftweb.common._
-import org.slf4j.{Logger,LoggerFactory}
-import scala.collection.mutable.Buffer
+import org.slf4j.LoggerFactory
 import UuidMergerPreCommit._
-import java.security.MessageDigest
 
 object UuidMergerPreCommit {
   val logger = LoggerFactory.getLogger(classOf[UuidMergerPreCommit])
@@ -118,7 +116,7 @@ class UuidMergerPreCommit(
     }
 
     //update node's soft ids
-    var node = report.node.copy(
+    val node = report.node.copy(
         softwareIds = (mergedSoftwares.alreadySavedSoftware.map( _.id ) ++ mergedSoftwares.newSoftware.map(_.id)).toSeq
     )
 

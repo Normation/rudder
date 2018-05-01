@@ -41,19 +41,10 @@ import com.normation.inventory.services.provisioning._
 
 import com.normation.inventory.domain.InventoryReport
 import com.normation.inventory.services.core._
-import com.unboundid.ldap.sdk.Modification
-import com.unboundid.ldap.sdk.ModificationType.ADD
-import com.unboundid.ldif.{LDIFRecord,LDIFChangeRecord}
+import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.inventory.ldap.core._
-import com.normation.utils.StringUuidGenerator
-import com.normation.ldap.sdk._
-import BuildFilter._
-import LDAPConstants._
 import net.liftweb.common._
-import scala.xml.NodeSeq
 import com.normation.inventory.domain._
-import org.slf4j.LoggerFactory
-
 
 
 /*

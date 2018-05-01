@@ -63,8 +63,6 @@ import monix.reactive.observers.BufferedSubscriber
 import monix.reactive.observers.Subscriber
 import net.liftweb.common._
 import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RequestMethod.GET
-import org.springframework.web.bind.annotation.RequestMethod.POST
 
 import FusionReportEndpoint._
 import com.normation.inventory.services.provisioning.ReportSaver

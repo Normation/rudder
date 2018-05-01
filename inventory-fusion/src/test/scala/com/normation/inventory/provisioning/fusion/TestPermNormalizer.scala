@@ -85,7 +85,7 @@ zxq4Y0GWX9eP1xJrDRefErzwmMLnx0m3yzbb Eiygs2Y8xALmlW+uubu/A3o0Z4/IDEwbruepkB7Ug5
 
 
   @Test
-  def testSanitize() {
+  def testSanitize(): Unit = {
     assertEquals(reference , sanitizer(rsa_oneline))
     assertEquals(reference , sanitizer(rsa_72col))
     assertEquals(reference , sanitizer(pem_oneline))

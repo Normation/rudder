@@ -37,7 +37,6 @@
 
 package com.normation.inventory.domain
 
-import scala.collection.mutable.Buffer
 import scala.xml.NodeSeq
 import com.normation.utils.HashcodeCaching
 
