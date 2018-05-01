@@ -126,11 +126,6 @@ limitations under the License.
           </formats>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-war-plugin</artifactId>
-          <version>2.4</version>
-       </plugin>
        <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
@@ -154,6 +149,13 @@ limitations under the License.
         </executions>
         <configuration>
           <scalaCompatVersion>${scala-binary-version}</scalaCompatVersion>
+          <compilerPlugins>
+            <compilerPlugin>
+              <groupId>com.github.ghik</groupId>
+              <artifactId>silencer-plugin_${scala-binary-version}</artifactId>
+              <version>${silencer-lib-version}</version>
+            </compilerPlugin>
+          </compilerPlugins>
           <args>
             <!-- require java8, cf http://www.rudder-project.org/redmine/issues/9917 -->
             <arg>-target:jvm-1.8</arg>
@@ -161,6 +163,32 @@ limitations under the License.
             <arg>-Ypartial-unification</arg>
             <arg>-dependencyfile</arg>
             <arg>${basedir}/.scala_dependencies</arg>
+            <!-- standard warning, most of the one from https://tpolecat.github.io/2017/04/25/scalac-flags.html -->
+            <!-- corresponding scala line:
+              -Ypartial-unification  -language:existentials -language:higherKinds -language:implicitConversions
+              -Xlint:_,-nullary-unit,-missing-interpolator -Yno-adapted-args -Ywarn-dead-code -Ywarn-extra-implicit -Ywarn-inaccessible
+              -Ywarn-infer-any -Ywarn-nullary-override -Ywarn-numeric-widen -Ywarn-unused:imports -Ywarn-unused:locals -Ywarn-unused:privates
+            -->
+            <arg>-deprecation</arg>                  <!-- Emit warning and location for usages of deprecated APIs. -->
+            <arg>-explaintypes</arg>                 <!-- Explain type errors in more detail. -->
+            <arg>-feature</arg>                      <!-- Emit warning and location for usages of features that should be imported explicitly. -->
+            <arg>-unchecked</arg>                    <!-- Enable additional warnings where generated code depends on assumptions. -->
+            <arg>-language:existentials</arg>        <!-- Existential types (besides wildcard types) can be written and inferred -->
+            <arg>-language:higherKinds</arg>         <!-- Allow higher-kinded types -->
+            <arg>-language:implicitConversions</arg> <!-- Allow definition of implicit functions called views -->
+            <arg>-Xcheckinit</arg>                   <!--  Wrap field accessors to throw an exception on uninitialized access. -->
+            <arg>-Xfuture</arg>                      <!-- Turn on future language features. -->
+            <arg>-Xlint:_,-nullary-unit,-missing-interpolator</arg> <!-- Xlint, minus nullary-units and missing interpolator (which brings false positive in Rudder) -->
+            <arg>-Yno-adapted-args</arg>             <!-- Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver. -->
+            <arg>-Ywarn-dead-code</arg>              <!-- Warn when dead code is identified. -->
+            <arg>-Ywarn-extra-implicit</arg>         <!-- Warn when more than one implicit parameter section is defined. -->
+            <arg>-Ywarn-inaccessible</arg>           <!-- Warn about inaccessible types in method signatures. -->
+            <arg>-Ywarn-infer-any</arg>              <!-- Warn when a type argument is inferred to be `Any`. -->
+            <arg>-Ywarn-nullary-override</arg>       <!-- Warn when non-nullary `def f()' overrides nullary `def f'. -->
+            <arg>-Ywarn-numeric-widen</arg>          <!-- Warn when numerics are widened. -->
+            <arg>-Ywarn-unused:imports</arg>         <!-- Warn if an import selector is not referenced. -->
+            <arg>-Ywarn-unused:locals</arg>          <!-- Warn if a local definition is unused. -->
+            <arg>-Ywarn-unused:privates</arg>        <!-- Warn if a private member is unused. -->
           </args>
           <jvmArgs>
             <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>
@@ -240,7 +268,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.0.2</version>
+        <version>3.1.0</version>
         <configuration>
           <archive>
             <addMavenDescriptor>false</addMavenDescriptor>
@@ -333,35 +361,37 @@ limitations under the License.
     <rudder-version>4.3.1-SNAPSHOT</rudder-version>
     <spring-run-dep-version>4.3.1-SNAPSHOT</spring-run-dep-version>
 
-    <scala-version>2.12.4</scala-version>
+    <scala-version>2.12.6</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
-    <lift-version>3.0.2</lift-version>
+    <lift-version>3.2.0</lift-version>
     <slf4j-version>1.7.25</slf4j-version>
     <logback-version>1.2.3</logback-version>
     <junit-version>4.12</junit-version>
     <jodatime-version>2.9.9</jodatime-version>
-    <jodaconvert-version>1.9.2</jodaconvert-version>
+    <jodaconvert-version>2.0.1</jodaconvert-version>
     <commons-io-version>2.6</commons-io-version>
     <commons-codec-version>1.11</commons-codec-version>
     <commons-lang-version>2.6</commons-lang-version>
     <spring-version>3.2.18.RELEASE</spring-version>
     <spring-security-version>3.2.10.RELEASE</spring-security-version>
-    <jgit-version>4.9.0.201710071750-r</jgit-version>
+    <jgit-version>4.11.0.201803080745-r</jgit-version>
     <cglib-version>3.2.5</cglib-version>
     <asm-version>5.2</asm-version>
     <bcpkix-jdk15on-version>1.58</bcpkix-jdk15on-version>
     <monix-version>2.3.3</monix-version>
+    <silencer-lib-version>0.6</silencer-lib-version>
     <!--
       These one must be updated to work together
       We declare cats in "test" here, because it is not directly needed
       in any project before rudder.
     -->
-    <cats-version>1.0.1</cats-version>
+    <cats-version>1.1.0</cats-version>
     <specs2-version>4.0.2</specs2-version>
     <doobie-version>0.5.1</doobie-version>
-    <fs2-version>0.10.2</fs2-version>
+    <fs2-version>0.10.3</fs2-version>
     <http4s-version>0.18.1</http4s-version>
-
+    <shapeless-version>2.3.3</shapeless-version>
+    <cats-effect-version>1.0.0-RC</cats-effect-version>
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
       With that, one can override Xmx or add jvm parameters either
@@ -422,6 +452,17 @@ limitations under the License.
         <artifactId>monix-reactive_${scala-binary-version}</artifactId>
         <version>${monix-version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.typelevel</groupId>
+        <artifactId>cats-effect_${scala-binary-version}</artifactId>
+        <version>${cats-effect-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.chuusai</groupId>
+        <artifactId>shapeless_${scala-binary-version}</artifactId>
+        <version>${shapeless-version}</version>
+      </dependency>
+
       <!--
         lift-web
       -->
@@ -596,6 +637,12 @@ limitations under the License.
 
   <dependencies>
     <!-- almost used in all projects -->
+    <dependency>
+      <groupId>com.github.ghik</groupId>
+      <artifactId>silencer-lib_${scala-binary-version}</artifactId>
+      <version>${silencer-lib-version}</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>ca.mrvisser</groupId>
       <artifactId>sealerate_${scala-binary-version}</artifactId>
