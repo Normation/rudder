@@ -37,7 +37,6 @@
 package com.normation.rudder.web.rest.node
 
 import com.normation.eventlog.ModificationId
-
 import com.normation.inventory.domain._
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
@@ -45,7 +44,6 @@ import com.normation.rudder.repository.WoNodeRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.utils.StringUuidGenerator
-
 import net.liftweb.common._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
@@ -56,7 +54,10 @@ import java.io.OutputStream
 import java.io.IOException
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
+import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 import java.util.Arrays
+
 import scalaj.http.Http
 import com.normation.rudder.domain.nodes.CompareProperties
 import scalaj.http.HttpOptions
@@ -105,7 +106,7 @@ class NodeApiService8 (
       }
     } catch {
       case e : IOException =>
-        out.write(s"Error when trying to contact internal remote-run API: ${e.getMessage}".toByte)
+        out.write(s"Error when trying to contact internal remote-run API: ${e.getMessage}".getBytes(StandardCharsets.UTF_8))
         out.flush()
     }
   }
