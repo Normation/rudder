@@ -23,7 +23,7 @@ package com.normation.utils
 import org.junit._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import Control._
+import Control.sequence
 import net.liftweb.common._
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
@@ -33,13 +33,13 @@ class TestControl {
   val l = List(1,2,3,4,5,6,7,8,9)
 
   @Test
-  def stopSequenceInOrder() {
+  def stopSequenceInOrder(): Unit = {
     val res = sequence(l) { i => if(i%4 == 0) Failure(msg(i)) else Full(i) }
     assert(res == Failure(msg(4)), "Non parallele sequence traversal should process element in order and failed on first error")
   }
 
   @Test
-  def validSequenceKeepOrder() {
+  def validSequenceKeepOrder(): Unit = {
     val res = sequence(l) { i => Full(i+10) }
     l.zip(res.openOrThrowException("Should succeed!")).foreach { case (i,j) => assert(i + 10 == j, s"Non parallele sequence traversal should keep order, but ${i}+10 != ${j}") }
   }

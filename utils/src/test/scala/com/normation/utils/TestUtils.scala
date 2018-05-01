@@ -21,7 +21,6 @@
 package com.normation.utils
 
 import org.junit._
-import org.junit.Assert._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 
@@ -32,8 +31,8 @@ class TestUtils {
 
   // String isEmpty
 
-  @Test def nullIsEmpty() { assert(isEmpty(null)) }
-  @Test def emptyIsEmpty() { assert(isEmpty("")) }
-  @Test def somethingIsNotEmpty() { assert(!isEmpty("foo")) }
+  @Test def nullIsEmpty(): Unit = { assert(isEmpty(null)) }
+  @Test def emptyIsEmpty(): Unit = { assert(isEmpty("")) }
+  @Test def somethingIsNotEmpty(): Unit = { assert(!isEmpty("foo")) }
 
 }
