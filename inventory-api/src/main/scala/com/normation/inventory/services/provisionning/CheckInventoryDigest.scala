@@ -42,9 +42,9 @@ import java.util.Properties
 import java.security.Signature
 import java.security.PublicKey
 import org.apache.commons.io.IOUtils
-import javax.xml.bind.DatatypeConverter
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.inventory.domain._
+import org.bouncycastle.util.encoders.Hex
 
 
 
@@ -121,8 +121,8 @@ trait CheckInventoryDigest {
       signature.update(data);
       digest match {
         case InventoryDigestV1(_,digest) =>
-        val sig = DatatypeConverter.parseHexBinary(digest)
 
+        val sig = Hex.decode(digest)
         Full(signature.verify(sig))
       }
     } catch {
