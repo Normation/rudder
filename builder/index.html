@@ -242,7 +242,7 @@
                             <div class="form-group" show-errors>
                                 <label for="bundleName" class="col-sm-3 control-label">Bundle name:</label>
                                 <div class="col-sm-8">
-                                    <input disabled id="bundleName" bundlename name="bundle_name" class="form-control" ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
+                                    <input readonly id="bundleName" bundlename name="bundle_name" class="form-control" ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
                                 </div>
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.maxlength">
                                     Bundle names longer than 255 characters won't work on most filesystems.

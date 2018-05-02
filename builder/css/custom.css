@@ -408,6 +408,11 @@ ul[dnd-list] {
     position: absolute;
     right: 10px;
 }
+.editForm .form-control[readonly]{
+  cursor: text;
+  box-shadow: none !important;
+}
+
 input.form-control.ng-invalid.ng-dirty:focus{
     border-color: #b33630;
     outline: 0;
