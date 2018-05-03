@@ -171,7 +171,7 @@ function recentChangesGraph(changes, graphId, displayFullGraph) {
       , bordercolor: 'rgba(54, 162, 235, 1)'
     }]
   };
-  
+
   var option = {
       legend : {
         display : false
@@ -215,8 +215,8 @@ function recentChangesGraph(changes, graphId, displayFullGraph) {
     , data: chartData
     , options : option
   });
-  
-  
+
+
 }
 
 var count = 0
@@ -230,7 +230,7 @@ function generateRecentGraph(id, displayGraph) {
       container.append('<canvas id="'+graphId+'" height="20" ></canvas>');
 
       var myBarChart = recentChangesGraph(changes,graphId,false)
-      
+
       recentGraphs[id] = myBarChart;
 
     }
@@ -331,7 +331,6 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
   };
   var tags = {
       "mDataProp"     : "tags"
-    , "sClass"        : "never"
     , "sTitle"        : "Tags"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).empty();
@@ -486,7 +485,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
       }
     , "columnDefs": [{
           "targets": [ 0 ]
-        , "visible": false
+        , "visible": false 
         , "searchable": true
       }]
     , "fnDrawCallback": function( oSettings ) {
@@ -520,7 +519,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
   var table = createTable(gridId,data,columns, params, contextPath, refresh, "rules", isPopup);
   table.search("").columns().search("");
   if(isPopup){
-    $('#'+gridId).addClass("table table-hover table-striped table-bordered");   
+    $('#'+gridId).addClass("table table-hover table-striped table-bordered");
   }
 
   // Add callback to checkbox column
@@ -1094,6 +1093,9 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     return elem;
   }
   var columns = [ {
+      //only for search, not visible - see "columnDefs" def in parameter
+      "mDataProp": "state"
+  } , {
       "sWidth": "25%"
     , "mDataProp": "name"
     , "sTitle": "Node name"
@@ -1164,6 +1166,11 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "oLanguage": {
         "sSearch": ""
     }
+    , "columnDefs": [{
+          "targets": [ 0 ]
+        , "visible": false
+        , "searchable": true
+      }]
     , "fnDrawCallback": function( oSettings ) {
 
         $('[data-toggle="tooltip"]').bsTooltip();
@@ -1800,7 +1807,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   $('.dataTables_filter input').attr("placeholder", "Filter");
 
-  $('.tw-bs .modal .dataTables_filter input').addClass("form-control"); 
+  $('.tw-bs .modal .dataTables_filter input').addClass("form-control");
   $('#grid_remove_popup_grid').parent().addClass("table-responsive");
   $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
 

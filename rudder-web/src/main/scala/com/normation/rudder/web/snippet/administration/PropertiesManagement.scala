@@ -1063,13 +1063,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       SelectableOption[Option[PolicyMode]](Some(x), x.name.capitalize)
     }.toList
     // node states, sorted [init, enable, other]
-    val states = NodeState.values.toList.map { x => x match {
-      case NodeState.Initializing  => (0, x, S.?("node.states.initializing"))
-      case NodeState.Enabled       => (1, x, S.?("node.states.enabled"))
-      case NodeState.EmptyPolicies => (2, x, S.?("node.states.empty-policies"))
-      case NodeState.Ignored       => (3, x, S.?("node.states.ignored"))
-      case NodeState.PreparingEOL  => (4, x, S.?("node.states.preparing-eol"))
-    } }.sortBy( _._1 ).map{ case (_, x, label) =>
+    val states = NodeState.labeledPairs.map{ case (x, label) =>
       SelectableOption[NodeState](x, label)
     }
 

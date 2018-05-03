@@ -150,7 +150,7 @@ class SrvGrid(
       lastReports <- runs
       globalMode  <- configService.rudder_global_policy_mode()
     } yield {
-      nodes.map(node => NodeLine(node,lastReports.get(node.id), callback, globalMode))
+      nodes.map(node => NodeLine(node, lastReports.get(node.id), callback, globalMode))
     }) match {
       case eb: EmptyBox =>
         val msg = "Error when trying to get nodes info"

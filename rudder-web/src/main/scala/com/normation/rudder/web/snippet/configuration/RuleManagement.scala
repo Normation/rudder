@@ -56,7 +56,6 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.components.RuleDisplayer
-import com.normation.rudder.web.components.RuleDisplayer
 import com.normation.rudder.web.components.DisplayColumn
 
 /**
