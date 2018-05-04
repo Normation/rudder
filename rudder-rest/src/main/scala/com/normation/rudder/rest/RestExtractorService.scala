@@ -40,7 +40,7 @@ package com.normation.rudder.rest
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.api.{ApiAccountId, ApiAccountName, ApiAuthorization => ApiAuthz}
+import com.normation.rudder.api.{AclPath, ApiAccountId, ApiAccountName, ApiAclElement, ApiAuthorizationKind, HttpAction, ApiAuthorization => ApiAuthz}
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.parameters.ParameterName
@@ -82,7 +82,6 @@ import com.normation.rudder.ncf.{Technique => NcfTechnique}
 import org.joda.time.format.ISODateTimeFormat
 import net.liftweb.util.Helpers
 import org.joda.time.DateTime
-import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.web.components.DateFormaterService
 
 case class RestExtractorService (
@@ -810,6 +809,23 @@ case class RestExtractorService (
     }
   }
 
+
+  def extractApiACLFromJSON (json : JValue) : Box[ApiAclElement] = {
+    import com.normation.rudder.utils.Utils.eitherToBox
+    def extractAPIVerb(json : JValue) : Box[HttpAction] = {
+      json match {
+        case JString(v) => HttpAction.parse(v)
+        case s => Failure(s"Not a valid value for an http verb, expected a String, got ${compactRender(s)}")
+      }
+    }
+    for {
+      path <- CompleteJson.extractJsonString(json, "path", AclPath.parse)
+      actions <- CompleteJson.extractJsonArray(json \ "verbs")(extractAPIVerb)
+    } yield {
+      ApiAclElement(path, actions.toSet)
+    }
+  }
+
   def extractApiAccountFromJSON (json : JValue) : Box[RestApiAccount] = {
     import com.normation.rudder.utils.Utils.eitherToBox
     for {
@@ -821,22 +837,26 @@ case class RestExtractorService (
       expirationDefined <- extractJsonBoolean(json, "expirationDateDefined")
       expirationValue  <- extractJsonString(json, "expirationDate", DateFormaterService.parseDate)
       authType    <- extractJsonString(json, "authorizationType", ApiAuthorizationKind.parse)
-      aclList     <- extractJsonListString(json, "aclList")
+
+      aclList     <- extractJsonArray(json \ "aclList")(
+                       // I need an option here, but this function does not need to return an option
+                       // AndThern it to wrap the result in a option, then unwrap it with a getOrElse after it ran
+                       (extractApiACLFromJSON _ ).andThen(_.map(Some(_)))
+                     ).map(_.getOrElse(Nil))
     } yield {
+
       val auth = authType match {
         case None => None
         case Some(ApiAuthorizationKind.None) => Some(ApiAuthz.None)
         case Some(ApiAuthorizationKind.RO) => Some(ApiAuthz.RO)
         case Some(ApiAuthorizationKind.RW) => Some(ApiAuthz.RW)
-        case Some(ApiAuthorizationKind.ACL) => Some(ApiAuthz.ACL(Nil))
+        case Some(ApiAuthorizationKind.ACL) => Some(ApiAuthz.ACL(aclList))
       }
       val expiration = expirationDefined match {
         case None => None
         case Some(true) => Some(expirationValue)
         case Some(false) => Some(None)
       }
-      logger.info(expiration)
-      logger.info(expirationDefined)
       RestApiAccount(id, name, description, enabled, oldId, expiration, auth)
     }
   }
