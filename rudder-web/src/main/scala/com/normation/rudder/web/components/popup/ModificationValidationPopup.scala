@@ -112,11 +112,11 @@ final case object CreateAndModRules extends Action { val displayName: String = "
    *
    * Expects "Directive" or "Group" as argument
    */
-  private def titles(item:String, action: Action) = action match {
-    case Enable => "Enable a Directive"
-    case Disable => "Disable a Directive"
-    case Delete  => s"Delete a ${item}"
-    case Save    => s"Update a ${item}"
+  private def titles(item:String, name:String, action: Action) = action match {
+    case Enable  => s"Enable Directive '${name}'"
+    case Disable => s"Disable Directive '${name}'"
+    case Delete  => s"Delete ${item} '${name}'"
+    case Save    => s"Update ${item} '${name}'"
     case CreateSolo => s"Create a ${item}"
     case CreateAndModRules => s"Create a ${item}"
   }
@@ -234,13 +234,19 @@ class ModificationValidationPopup(
     case "popupContent" => { _ => popupContent }
   }
 
-  private[this] val name = if(item.isLeft) "Directive" else "Group"
-
   private[this] val disabled = item match {
     case Left(item) => ! item._4.isEnabled
     case Right(item) => ! item._1.isEnabled
   }
-  private[this] val explanation : NodeSeq = explanationMessages(name, action, disabled)
+
+  private[this] val (defaultRequestName, itemType, itemName) = {
+    item match {
+      case Left((t,a,r,d,opt,add,remove)) => (s"${action.displayName} Directive ${d.name}" , "Directive", d.name)
+      case Right((g,_,_))                 => (s"${action.displayName} Group ${g.name}"     , "Group", g.name)
+    }
+  }
+
+  private[this] val explanation : NodeSeq = explanationMessages(itemType, action, disabled)
   // When there is no rules, we need to remove the warning message
   private[this] val explanationNoWarning = ("#dialogDisableWarning" #> NodeSeq.Empty).apply(explanation)
   private[this] val groupLib = getGroupLib()
@@ -335,7 +341,7 @@ class ModificationValidationPopup(
     }
     (
       "#validationForm" #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
-      "#dialogTitle *" #> titles(name, action) &
+      "#dialogTitle *" #> titles(itemType, itemName, action) &
       "#explanationMessageZone" #> popupWarningMessages.map( _._1).getOrElse(explanationNoWarning) &
       "#disableItemDependencies" #> popupWarningMessages.map( _._2).getOrElse(NodeSeq.Empty) &
       ".reasonsFieldsetPopup" #> {
@@ -390,13 +396,6 @@ class ModificationValidationPopup(
           Nil
         }
       }
-    }
-  }
-
-  private[this] val defaultRequestName = {
-    item match {
-      case Left((t,a,r,d,opt,add,remove)) => s"${action.displayName} Directive ${d.name}"
-      case Right((g,_,_)) => s"${action.displayName} Group ${g.name}"
     }
   }
 
