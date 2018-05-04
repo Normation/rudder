@@ -47,8 +47,8 @@ There are several layers in this framework, from 10 to 60, where each layer is a
   - __10_ncf_internals__: This directory contains the mechanics and glue to make the framework work. This should be very rarely modified, and is generic.
   - __20_cfe_basics__: This directory contains libraries that can be reused; most notably the CFEngine Standard Library.
   - __30_generic_methods__: This directory contains reusable bundles, that perform unit tasks, and are completely generic (for example "file_create_symlink"). All generic methods are documented on the [reference page](http://www.ncf-project.org/pages/reference.html).
-  - __40_it_ops_knowledge__: This directory contains default values for services, like package names for a specific service accross different distributions (aka "is it httpd or apache2?"), paths to binaries, default configuration values for services, etc.
-  - __50_techniques__: This directory contains Techniques, which combine generic_methods and it_ops_knowledge to acheive system configurations you need. They may be generic ("Configure OpenSSH server") or specific ("Install and configure our in-house app"). The above example is a "technique".
+  - __40_it_ops_knowledge__: This directory contains default values for services, like package names for a specific service across different distributions (aka "is it httpd or apache2?"), paths to binaries, default configuration values for services, etc.
+  - __50_techniques__: This directory contains Techniques, which combine generic_methods and it_ops_knowledge to achieve system configurations you need. They may be generic ("Configure OpenSSH server") or specific ("Install and configure our in-house app"). The above example is a "technique".
   - __60_services__: This directory contains high-level service definitions, which it implements by calling individual techniques, with parameters and conditions. This level is specific for each organisation, and is intended to define services such as "Corporate web site" rather than "Apache config".
 
 Each level uses items from lower levels (lower numbers) or, in some cases, from its own level.
