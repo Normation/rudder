@@ -164,6 +164,7 @@ object QSDirectiveBackend extends Loggable {
         case PolicyServerId    => None
         case Properties        => None
         case CustomProperties  => None
+        case NodeState         => None
         case RudderRoles       => None
         case GroupId           => None
         case IsDynamic         => None
@@ -266,6 +267,7 @@ object QSLdapBackend {
       , PolicyServerId    -> A_POLICY_SERVER_UUID
       , Properties        -> A_NODE_PROPERTY
       , CustomProperties  -> A_CUSTOM_PROPERTY
+      , NodeState         -> A_STATE
       , RudderRoles       -> A_SERVER_ROLE
       , GroupId           -> A_NODE_GROUP_UUID
       , IsDynamic         -> A_IS_DYNAMIC
@@ -378,6 +380,7 @@ object QSLdapBackend {
         case PolicyServerId    => sub(a, token)
         case Properties        => sub(a, token)
         case CustomProperties  => sub(a, token)
+        case NodeState         => sub(a, token)
         case RudderRoles       => sub(a, token)
         case GroupId           => sub(a, token)
         case IsEnabled         => bool(MatchEnable, a, token)

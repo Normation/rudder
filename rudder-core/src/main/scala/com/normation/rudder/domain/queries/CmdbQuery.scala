@@ -56,7 +56,9 @@ import JsCmds._
 import JE._
 import net.liftweb.json._
 import JsonDSL._
+import com.normation.rudder.domain.RudderLDAPConstants.A_STATE
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.queries._
 import net.liftweb.http.SHtml.SelectableOption
@@ -329,6 +331,33 @@ case object MemoryComparator extends CriterionType {
   }
 }
 
+case object NodeStateComparator extends CriterionType {
+
+  //this need to be lazy, else access to "S." at boot will lead to NPE.
+  lazy val nodeStates = NodeState.labeledPairs.map{ case (x, label) => (x.name, label) }
+
+  override def comparators = Seq(Equals, NotEquals)
+  override protected def validateSubCase(v: String, comparator:CriterionComparator) = {
+    if (null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
+  }
+
+  override def toLDAP(value: String) = Full(value.toLowerCase)
+
+  override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
+    comparator match {
+      case Equals => EQ(A_STATE, value)
+      case _ => NOT(EQ(A_STATE, value))
+    }
+  }
+
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
+    SHtml.select(
+        nodeStates
+      , Box(nodeStates.find( _._1 == value).map(_._1))
+      , func
+      , attrs:_*
+    )
+}
 
 case object MachineComparator extends CriterionType {
 
@@ -701,12 +730,12 @@ case class NodePropertyComparator(ldapAttr: String) extends TStringComparator wi
 }
 
 /**
- * A comparator that is used to build subgroup. 
+ * A comparator that is used to build subgroup.
  * The actual comparison is on the sub-group ID, and we only
- * authorize an "equal" comparison on it. 
- * 
+ * authorize an "equal" comparison on it.
+ *
  * But for the displaying, we present a dropdown with the list
- * of nodes. 
+ * of nodes.
  */
 final case class SubGroupChoice(id: NodeGroupId, name: String)
 class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStringComparator with Loggable {
@@ -716,7 +745,7 @@ class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStr
     // whatever the comparator it should be treated like Equals
     case _ => escapedFilter(attributeName,value)
   }
-  
+
   override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem = {
     // we need to query for the list of groups here
     val subGroups: Seq[SelectableOption[String]] = {
@@ -744,19 +773,25 @@ class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStr
           SelectableOption(value, "Error when looking for available groups") :: Nil
       }
     }
-  
+
     SHtml.selectObj[String](
         subGroups
       , Box(subGroups.find( _.value == value).map( _.value))
       , func
       , attrs:_*
-    )  
+    )
   }
 }
 
 
-
-case class Criterion(val name:String, val cType:CriterionType) extends HashcodeCaching {
+/**
+ * Create a new criterion for the given attribute `name`, and `cType` comparator.
+ * Optionnaly, you can provide an override for the object type for which that
+ * criterion is looked up.
+ * It is necessary when you want to make the criterion appears under a given object type,
+ * but it is really in one other (for example: inventory node vs rudder node).
+ */
+case class Criterion(val name:String, val cType:CriterionType, overrideObjectType: Option[String] = None) extends HashcodeCaching {
   require(name != null && name.length > 0, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
 

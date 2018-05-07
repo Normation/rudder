@@ -38,7 +38,6 @@
 package com.normation.rudder.domain.nodes
 
 import com.normation.inventory.domain.FullInventory
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.policies.PolicyMode
@@ -48,7 +47,6 @@ import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.utils.HashcodeCaching
 import com.normation.utils.Control.sequence
 import com.normation.rudder.services.policies.ParameterEntry
-
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.inventory.domain.FullInventory
@@ -60,6 +58,7 @@ import net.liftweb.common.Full
 import net.liftweb.common.Failure
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import net.liftweb.http.S
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -107,6 +106,24 @@ final object NodeState {
   final case object PreparingEOL     extends NodeState { val name = "preparing-eol" }
 
   def values = ca.mrvisser.sealerate.values[NodeState]
+
+
+  // human readable, sorted list of (state, label)
+  def labeledPairs = {
+    val a = values.toList
+    val b = a.map { x => x match {
+      case NodeState.Initializing  => (0, x, S.?("node.states.initializing"))
+      case NodeState.Enabled       => (1, x, S.?("node.states.enabled"))
+      case NodeState.EmptyPolicies => (2, x, S.?("node.states.empty-policies"))
+      case NodeState.Ignored       => (3, x, S.?("node.states.ignored"))
+      case NodeState.PreparingEOL  => (4, x, S.?("node.states.preparing-eol"))
+    } }
+
+    b.sortBy( _._1 ).map{ case (_, x, label) =>
+      (x, label)
+    }
+  }
+
 }
 
 /*

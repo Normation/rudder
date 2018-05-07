@@ -47,7 +47,7 @@ import scala.collection.SortedMap
 import com.normation.rudder.services.queries.SpecialFilter
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderLDAPConstants.{A_NODE_GROUP_UUID, A_NODE_PROPERTY, OC_RUDDER_NODE_GROUP}
+import com.normation.rudder.domain.RudderLDAPConstants.{A_NODE_GROUP_UUID, A_NODE_PROPERTY, A_STATE, OC_RUDDER_NODE_GROUP}
 import com.normation.rudder.domain.RudderDit
 import net.liftweb.common.Box
 
@@ -197,6 +197,7 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
       , Criterion(A_OS_KERNEL_VERSION , OrderedStringComparator)
       , Criterion(A_ARCH, StringComparator)
       , Criterion(A_SERVER_ROLE, StringComparator)
+      , Criterion(A_STATE, NodeStateComparator, Some("rudderNode"))
       , Criterion(A_OS_RAM, MemoryComparator)
       , Criterion(A_OS_SWAP, MemoryComparator)
       , Criterion(A_AGENTS_NAME, AgentComparator)
@@ -287,6 +288,7 @@ case class LDAPObjectType(
     Map(
       "software"                       -> LAOT(dit.SOFTWARE.dn, One, LAOTF(ALL), None, DNJoin)
     , "node"                           -> LAOT(dit.NODES.dn, One, LAOTF(ALL), None, DNJoin)
+    , "rudderNode"                     -> LAOT(nodeDit.NODES.dn, One, LAOTF(ALL), None, DNJoin)
     , "nodeAndPolicyServer"            -> LAOT(dit.NODES.dn, One, LAOTF(ALL), None, DNJoin)
     , "serializedNodeProperty"         -> LAOT(nodeDit.NODES.dn, One, LAOTF(ALL),None,  DNJoin)
     , "networkInterfaceLogicalElement" -> LAOT(dit.NODES.dn, Sub, LAOTF(IS(OC_NET_IF)), None, ParentDNJoin)
@@ -318,6 +320,7 @@ case class LDAPObjectType(
     Map (
         "software"                       -> QuerySoftwareDn
       , "node"                           -> QueryNodeDn
+      , "rudderNode"                     -> QueryNodeDn
       , "nodeAndPolicyServer"            -> QueryNodeDn
       , "serializedNodeProperty"         -> QueryNodeDn
       , "networkInterfaceLogicalElement" -> QueryNodeDn
@@ -345,6 +348,7 @@ case class LDAPObjectType(
   val joinAttributes = Map(
       "software"                       -> DNJoin
     , "node"                           -> DNJoin
+    , "rudderNode"                     -> DNJoin
     , "nodeAndPolicyServer"            -> DNJoin
     , "serializedNodeProperty"         -> DNJoin
     , "networkInterfaceLogicalElement" -> ParentDNJoin

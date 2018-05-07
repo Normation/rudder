@@ -778,8 +778,10 @@ class InternalLDAPQueryProcessor(
         for {
           // Compute in one go all data for a filter, fails if one filter fails to build
           filtersWithQueryData <- sequence(query.criteria) {
-            case crit@CriterionLine(ot,a,comp,value) => {
-              val objectType = ot.objectType
+            case crit@CriterionLine(ot, a, comp, value) => {
+              // objectType may be overriden in the attribute (for node state).
+              val objectType =  a.overrideObjectType.getOrElse(ot.objectType)
+
               // Validate that for each object type in criteria, we know it
               if(objectTypes.isDefinedAt(objectType)) {
                 val tpe = if(objectType == "nodeAndPolicyServer") "node" else objectType
