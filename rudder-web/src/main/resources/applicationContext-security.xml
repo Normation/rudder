@@ -56,7 +56,14 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <http use-expressions="true" disable-url-rewriting="true">
         <session-management session-fixation-protection="migrateSession">
+          <!--
+            One can control the maximum concurrent session to have in parallel.
+            Unfortunatly, it seems to be unbeliebely hard to make it a configurable property.
+            One can add the control if wanted by uncommenting the line below.
+          -->
+          <!--
           <concurrency-control max-sessions="2" error-if-maximum-exceeded="true" />
+          -->
         </session-management>
         <!--
            Comment to allows "no auth required", but the login form is still valid
