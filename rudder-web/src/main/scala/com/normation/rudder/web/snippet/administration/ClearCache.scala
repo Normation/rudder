@@ -44,103 +44,14 @@ import util.Helpers._
 import js._
 import JsCmds._
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.eventlog.ClearCacheEventLog
-import com.normation.eventlog.EventLogDetails
-import com.normation.eventlog.EventLog
-import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
-
 
 class ClearCache extends DispatchSnippet with Loggable {
 
-  private[this] val nodeConfigurationService = RudderConfig.nodeConfigurationHashRepo
-  private[this] val asyncDeploymentAgent     = RudderConfig.asyncDeploymentAgent
-  private[this] val eventLogRepository       = RudderConfig.eventLogRepository
-  private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
-  private[this] val clearableCache           = RudderConfig.clearableCache
+  private[this] val clearCacheService = RudderConfig.clearCacheService
 
   def dispatch = {
     case "render" => clearCache
-  }
-
-  /*
-   * This one only clear the "node configuration" cache. That will
-   * force a full regeneration of all policies
-   */
-  def clearNodeConfigurationCache(storeEvent: Boolean = true) = {
-    nodeConfigurationService.deleteAllNodeConfigurations match {
-      case eb:EmptyBox =>
-        (eb ?~! "Error while clearing node configuration cache")
-      case Full(set) =>
-        if( storeEvent ) {
-          val modId = ModificationId(uuidGen.newUuid)
-          eventLogRepository.saveEventLog(
-              modId
-            , ClearCacheEventLog(
-                EventLogDetails(
-                    modificationId = Some(modId)
-                  , principal = CurrentUser.actor
-                  , details = EventLog.emptyDetails
-                  , reason = Some("Node configuration cache deleted on user request")
-                )
-              )
-          ) match {
-            case eb:EmptyBox =>
-              val e = eb ?~! "Error when logging the cache event"
-              logger.error(e.messageChain)
-              logger.debug(e.exceptionChain)
-            case _ => //ok
-          }
-          logger.debug("Deleting node configurations on user clear cache request")
-          asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
-        }
-        Full(set)
-    }
-  }
-
-  /*
-   * This method clear all caches, which are:
-   * - node configurations (force full regen)
-   * - cachedAgentRunRepository
-   * - recentChangesService
-   * - reportingServiceImpl
-   * - nodeInfoServiceImpl
-   */
-  def action =  {
-    S.clearCurrentNotices
-    val modId = ModificationId(uuidGen.newUuid)
-
-    //clear agentRun cache
-    clearableCache.foreach { _.clearCache }
-
-    //clear node configuration cache
-    (for {
-      set <- clearNodeConfigurationCache(storeEvent = false)
-      _   <- eventLogRepository.saveEventLog(
-                modId
-              , ClearCacheEventLog(
-                  EventLogDetails(
-                      modificationId = Some(modId)
-                    , principal = CurrentUser.actor
-                    , details = EventLog.emptyDetails
-                    , reason = Some("Clearing cache for: node configuration, recent changes, compliance and node info at user request")
-                  )
-                )
-             )
-    } yield {
-      set
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when clearing caches"
-        logger.error(e.messageChain)
-        logger.debug(e.exceptionChain)
-        e
-      case Full(set) => //ok
-        logger.debug("Deleting node configurations on user clear cache request")
-        asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
-        Full("ok")
-    }
   }
 
   def clearCache : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
@@ -151,7 +62,7 @@ class ClearCache extends DispatchSnippet with Loggable {
     def process(): JsCmd = {
       //clear errors
       S.clearCurrentNotices
-      action match {
+      clearCacheService.action(CurrentUser.actor) match {
         case empty:EmptyBox =>
           val e = empty ?~! "Error while clearing caches"
           S.error(e.messageChain)

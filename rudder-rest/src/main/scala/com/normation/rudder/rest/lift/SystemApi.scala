@@ -5,8 +5,11 @@ import com.normation.rudder.rest.RestUtils.{getActor, toJsonError, toJsonRespons
 import net.liftweb.json.JsonDSL._
 import com.normation.eventlog.ModificationId
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.ManualStartDeployment
 import com.normation.rudder.UserService
 import com.normation.rudder.batch.UpdateDynamicGroups
+import com.normation.rudder.services.ClearCacheServiceImpl
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.{EmptyBox, Full, Loggable}
 import net.liftweb.json.JsonAST.{JField, JObject}
@@ -21,10 +24,12 @@ class SystemApi(
   override def getLiftEndpoints(): List[LiftApiModule] = {
 
     API.endpoints.map(e => e match {
-      case API.Status           => Status
-      case API.TechniquesReload => TechniquesReload
-      case API.DyngroupsReload  => DyngroupsReload
-      case API.ReloadAll        => ReloadAll
+      case API.Status             => Status
+      case API.TechniquesReload   => TechniquesReload
+      case API.DyngroupsReload    => DyngroupsReload
+      case API.ReloadAll          => ReloadAll
+      case API.PoliciesUpdate     => PoliciesUpdate
+      case API.PoliciesRegenerate => PoliciesRegenerate
     })
   }
 
@@ -35,7 +40,8 @@ class SystemApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val prettify = params.prettify
       implicit val action = "getStatus"
-      toJsonResponse(None,("global" -> "ok"))
+
+      toJsonResponse(None, ("global" -> "OK"))
     }
   }
 
@@ -63,13 +69,34 @@ class SystemApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       apiv11service.reloadAll(req, params)
-
     }
   }
+
+  object PoliciesUpdate extends LiftApiModule0 {
+    val schema = API.PoliciesUpdate
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv11service.updatePolicies(req, params)
+    }
+  }
+
+  object PoliciesRegenerate extends LiftApiModule0 {
+    val schema = API.PoliciesRegenerate
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv11service.updatePolicies(req, params)
+    }
+  }
+
+
 }
 
 class SystemApiService11(
     updatePTLibService      : UpdateTechniqueLibrary
+  , clearCacheService       : ClearCacheServiceImpl
+  , asyncDeploymentAgent    : AsyncDeploymentAgent
   , uuidGen                 : StringUuidGenerator
   , updateDynamicGroups     : UpdateDynamicGroups
 ) (implicit userService: UserService) extends Loggable {
@@ -90,12 +117,12 @@ class SystemApiService11(
 
   //For now we are not able to give information about the group reload process.
   //We still send OK instead to inform the endpoint has correctly triggered.
-  private[this] def reloadDyngroupsWrapper() : Either[String, JField] = {
+  private[this] def reloadDyngroupsWrapper(): Either[String, JField] = {
     updateDynamicGroups.startManualUpdate
     Right(JField("dynamicGroups", "Started"))
   }
 
-  def reloadDyngroups(params: DefaultParams) : LiftResponse = {
+  def reloadDyngroups(params: DefaultParams): LiftResponse = {
 
     implicit val action = "reloadDynGroups"
     implicit val prettify = params.prettify
@@ -106,7 +133,7 @@ class SystemApiService11(
     }
   }
 
-  def reloadTechniques(req: Req, params: DefaultParams) = {
+  def reloadTechniques(req: Req, params: DefaultParams) : LiftResponse = {
 
     implicit val action = "reloadTechniques"
     implicit val prettify = params.prettify
@@ -117,7 +144,7 @@ class SystemApiService11(
     }
   }
 
-  def reloadAll(req: Req, params: DefaultParams) = {
+  def reloadAll(req: Req, params: DefaultParams) : LiftResponse = {
 
     implicit val action = "reloadAll"
     implicit val prettify = params.prettify
@@ -131,5 +158,23 @@ class SystemApiService11(
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
+  }
+
+  def updatePolicies(req: Req, params: DefaultParams) : LiftResponse = {
+
+    implicit val action = "updatePolicies"
+    implicit val prettify = params.prettify
+
+    asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), getActor(req), "Policy update asked by REST request")
+    toJsonResponse(None, "policies" -> "Started")
+  }
+
+  def regeneratePolicies(req: Req, params: DefaultParams) : LiftResponse = {
+
+    implicit val action = "regeneratePolicies"
+    implicit val prettify = params.prettify
+
+    clearCacheService.action(getActor(req))
+    toJsonResponse(None, "policies" -> "Started")
   }
 }
