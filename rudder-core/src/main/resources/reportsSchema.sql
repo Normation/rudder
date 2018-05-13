@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -47,14 +47,14 @@ ALTER database rudder SET standard_conforming_strings=true;
 
 /*
  *************************************************************************************
- * The following tables are used as input from agent 
- * action. 
+ * The following tables are used as input from agent
+ * action.
  * We store execution reports, historize them, and
- * also store each run in a dedicated tables. 
- * 
+ * also store each run in a dedicated tables.
+ *
  * These tables are (should) be independant from
- * rudder-the-webapp and should be directly 
- * feeded by syslog. 
+ * rudder-the-webapp and should be directly
+ * feeded by syslog.
  *************************************************************************************
  */
 
@@ -90,7 +90,7 @@ CREATE INDEX changes_executionTimeStamp_idx ON RudderSysEvents (executionTimeSta
 
 
 /*
- * The table used to store archived agent execution reports. 
+ * The table used to store archived agent execution reports.
  */
 CREATE TABLE ArchivedRudderSysEvents (
   id                 bigint PRIMARY KEY
@@ -110,10 +110,10 @@ CREATE TABLE ArchivedRudderSysEvents (
 CREATE INDEX executionTimeStamp_archived_idx ON ArchivedRudderSysEvents (executionTimeStamp);
 
 /*
- * That table store the agent execution times for each nodes. 
- * We keep the starting time of the given run and the fact 
- * that the run completed (we got an "execution END" report) 
- * or not. 
+ * That table store the agent execution times for each nodes.
+ * We keep the starting time of the given run and the fact
+ * that the run completed (we got an "execution END" report)
+ * or not.
  */
 CREATE TABLE ReportsExecution (
   nodeId       text NOT NULL
@@ -140,10 +140,10 @@ CREATE TABLE ArchivedReportsExecution (
 , PRIMARY KEY(nodeId, date)
 );
 
-/* 
+/*
  *************************************************************************************
- * The following tables store what Rudder expects from agent. 
- * The are used to store rules versions and corresponding expected datas. 
+ * The following tables store what Rudder expects from agent.
+ * The are used to store rules versions and corresponding expected datas.
  *************************************************************************************
  */
 
@@ -151,7 +151,7 @@ CREATE TABLE ArchivedReportsExecution (
 /*
  * We also have a table of the list of node with configId / generationDate
  * so what we can answer the question: what is the last config id for that node ?
- * The date helps now if we should have received report for that node. 
+ * The date helps now if we should have received report for that node.
  */
 CREATE TABLE nodes_info (
   node_id    text PRIMARY KEY CHECK (node_id <> '')
@@ -161,17 +161,17 @@ CREATE TABLE nodes_info (
 
 -- Create the table for the node configuration
 CREATE TABLE nodeConfigurations (
-  nodeId            text NOT NULL CHECK (nodeId <> '')  
+  nodeId            text NOT NULL CHECK (nodeId <> '')
 , nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
 , beginDate         timestamp with time zone NOT NULL
 , endDate           timestamp with time zone
 
--- here, I'm using text but with valid JSON in it, because for now we can't impose postgres > 9.2, 
+-- here, I'm using text but with valid JSON in it, because for now we can't impose postgres > 9.2,
 -- and interesting function are on 9.3/9.4.  we will be able to migrate with:
 -- ALTER TABLE table1 ALTER COLUMN col1 TYPE JSON USING col1::JSON;
--- or if version == 9.2, we need to do a several steps script like: 
+-- or if version == 9.2, we need to do a several steps script like:
 -- https://github.com/airblade/paper_trail/issues/600#issuecomment-136279154
--- and then garbage collect space with:  
+-- and then garbage collect space with:
 -- vacuum full nodecompliance;
 
 , configuration     text NOT NULL CHECK (configuration <> '' )
@@ -189,7 +189,7 @@ CREATE INDEX nodeConfigurations_nodeConfigId ON nodeConfigurations (nodeConfigId
 
 -- Create the table for the archived node configurations
 CREATE TABLE archivedNodeConfigurations (
-  nodeId            text NOT NULL CHECK (nodeId <> '')  
+  nodeId            text NOT NULL CHECK (nodeId <> '')
 , nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
 , beginDate         timestamp with time zone NOT NULL
 , endDate           timestamp with time zone
@@ -197,10 +197,10 @@ CREATE TABLE archivedNodeConfigurations (
 , PRIMARY KEY (nodeId, nodeConfigId, beginDate)
 );
 
-/* 
+/*
  *************************************************************************************
  * The following tables stores "node compliance", i.e all the interesting information
- * about what was the compliance of a node FOR A GIVEN RUN. 
+ * about what was the compliance of a node FOR A GIVEN RUN.
  * That table *only* store information for runs, and does not track (non exaustively):
  * - when the node expected configuration is updated - only a new run will check,
  * - node not sending runs - only the fact that we don't have data can be observed
@@ -208,14 +208,31 @@ CREATE TABLE archivedNodeConfigurations (
  *************************************************************************************
  */
 
+CREATE TYPE Compliance AS (
+  ruleId          text
+, directiveId     text
+, complianceLevel int[]
+);
+
+-- Create the table for the node compliance
+CREATE TABLE nodeComplianceComposite (
+  nodeId            text NOT NULL CHECK (nodeId <> '')
+, runTimestamp      timestamp with time zone NOT NULL
+, details  Compliance[] NOT NULL
+, PRIMARY KEY (nodeId, runTimestamp)
+);
+
+
+
+
 -- Create the table for the node compliance
 CREATE TABLE nodeCompliance (
-  nodeId            text NOT NULL CHECK (nodeId <> '')  
+  nodeId            text NOT NULL CHECK (nodeId <> '')
 , runTimestamp      timestamp with time zone NOT NULL
 
 -- endOfList is the date until which the compliance information
 -- are relevant. After that date/time, the node must have sent
--- a more recent run, this one is not valide anymore. 
+-- a more recent run, this one is not valide anymore.
 , endOfLife         timestamp with time zone
 
 -- all information about the run and what lead to that compliance:
@@ -236,7 +253,7 @@ CREATE TABLE nodeCompliance (
 , details  text NOT NULL CHECK (details <> '' )
 
 -- Primary key is given by a run timestamp and the node id. We could
--- have duplicate if node clock change, but it would need to have 
+-- have duplicate if node clock change, but it would need to have
 -- exact same timestamp down to the millis, quite improbable.
 
 , PRIMARY KEY (nodeId, runTimestamp)
@@ -248,7 +265,7 @@ CREATE INDEX nodeCompliance_endOfLife ON nodeCompliance (endOfLife);
 
 -- Create the table for the archived node compliance
 CREATE TABLE archivedNodeCompliance (
-  nodeId            text NOT NULL CHECK (nodeId <> '')  
+  nodeId            text NOT NULL CHECK (nodeId <> '')
 , runTimestamp      timestamp with time zone NOT NULL
 , endOfLife         timestamp with time zone
 , runAnalysis       text NOT NULL CHECK (runAnalysis <> '' )
@@ -258,11 +275,11 @@ CREATE TABLE archivedNodeCompliance (
 );
 
 
-/* 
+/*
  *************************************************************************************
- * The following tables stores "event logs", i.e logs action about user and 
+ * The following tables stores "event logs", i.e logs action about user and
  * system event that can leads to configuration changes and are needed to allows
- * audit track logs. 
+ * audit track logs.
  *************************************************************************************
  */
 
@@ -278,7 +295,7 @@ CREATE TABLE EventLog (
 , reason         text
 , eventType      text
 , data           xml
-); 
+);
 
 CREATE INDEX eventType_idx ON EventLog (eventType);
 CREATE INDEX creationDate_idx ON EventLog (creationDate);
@@ -286,8 +303,8 @@ CREATE INDEX eventlog_fileFormat_idx ON eventlog (((((xpath('/entry//@fileFormat
 
 
 /*
- * That table is used when a migration between 
- * event log format is needed. 
+ * That table is used when a migration between
+ * event log format is needed.
  */
 CREATE SEQUENCE MigrationEventLogId start 1;
 CREATE TABLE MigrationEventLog (
@@ -295,7 +312,7 @@ CREATE TABLE MigrationEventLog (
 , detectionTime       timestamp with time zone NOT NULL
 , detectedFileFormat  integer
 , migrationStartTime  timestamp with time zone
-, migrationEndTime    timestamp with time zone 
+, migrationEndTime    timestamp with time zone
 , migrationFileFormat integer
 , description         text
 );
@@ -304,8 +321,8 @@ CREATE TABLE MigrationEventLog (
 /*
  *************************************************************************************
  * A table used to store generic properties related to the database and that could not
- * go the the LDAP backend. Typically, that's property that must be updated during a 
- * transaction or are really frequently written. 
+ * go the the LDAP backend. Typically, that's property that must be updated during a
+ * transaction or are really frequently written.
  *************************************************************************************
  */
 
@@ -319,7 +336,7 @@ CREATE TABLE RudderProperties(
 /*
  *************************************************************************************
  * The following tables are used to manage
- * validation workflows and change requests 
+ * validation workflows and change requests
  *************************************************************************************
  */
 
@@ -351,10 +368,10 @@ CREATE TABLE StatusUpdate (
 );
 
 
-/* 
+/*
  *************************************************************************************
  * The following tables stores names about object to be able to historize them
- * and present them back to the user in a meaningful way. 
+ * and present them back to the user in a meaningful way.
  *************************************************************************************
  */
 
