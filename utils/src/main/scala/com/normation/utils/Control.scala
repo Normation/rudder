@@ -21,7 +21,6 @@
 package com.normation.utils
 
 import net.liftweb.common._
-import scala.collection.parallel._
 
 /**
  *
