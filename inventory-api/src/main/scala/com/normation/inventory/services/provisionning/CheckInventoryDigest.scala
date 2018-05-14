@@ -42,9 +42,9 @@ import java.util.Properties
 import java.security.Signature
 import java.security.PublicKey
 import org.apache.commons.io.IOUtils
-import javax.xml.bind.DatatypeConverter
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.inventory.domain.{ PublicKey => AgentKey, _ }
+import org.bouncycastle.util.encoders.Hex
 
 /**
  * We are using a simple date structure that handle the digest file
@@ -122,9 +122,8 @@ trait CheckInventoryDigest {
               signature.update(data);
               digest match {
                 case InventoryDigestV1(_,digest) =>
-                val sig = DatatypeConverter.parseHexBinary(digest)
-
-                Full(signature.verify(sig))
+                  val sig = Hex.decode(digest)
+                  Full(signature.verify(sig))
               }
             } catch {
               case e : Exception =>
