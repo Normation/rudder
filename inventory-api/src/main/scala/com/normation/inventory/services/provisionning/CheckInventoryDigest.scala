@@ -123,7 +123,6 @@ trait CheckInventoryDigest {
               signature.update(data);
               digest match {
                 case InventoryDigestV1(_,digest) =>
-
                   val sig = Hex.decode(digest)
                   Full(signature.verify(sig))
               }
