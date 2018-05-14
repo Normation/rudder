@@ -43,7 +43,6 @@ import com.normation.utils.StringUuidGeneratorImpl
 import net.liftweb.common._
 import com.normation.inventory.domain.InventoryReport
 import com.normation.inventory.services.provisioning._
-import java.security.PublicKey
 import com.normation.inventory.domain.KeyStatus
 import java.security.Security
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -55,7 +54,6 @@ class TestSignatureService extends Specification with Loggable {
   Security.addProvider(new BouncyCastleProvider());
 
   private[this] def getInputStream (path : String) = {
-    import java.net.URL
     val url = this.getClass.getClassLoader.getResource(path)
     if(null == url) throw new NullPointerException(s"Resource with relative path '${path}' is null (missing resource? Spelling? Permissions?)")
     url.openStream()

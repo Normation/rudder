@@ -41,15 +41,13 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
-import com.unboundid.ldap.sdk.{DN,ChangeType}
-import com.normation.ldap.sdk.BuildFilter
+import com.unboundid.ldap.sdk.DN
 import com.normation.inventory.domain._
 import com.normation.ldap.sdk.RwLDAPConnection
 import net.liftweb.common.Empty
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Box
-import com.unboundid.ldap.sdk.Attribute
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import org.specs2.matcher.MatchResult
@@ -208,7 +206,6 @@ class TestInventory extends Specification {
         val found = repo.get(m.id)
 
         (m === found.openOrThrowException("For test")) and {
-          val d = repo.delete(m.id)
           repo.delete(m.id)
           val x = repo.get(m.id)
           x must beEqualTo(Empty)
@@ -311,8 +308,6 @@ class TestInventory extends Specification {
         repo.save(full(n, m)).isOK
         and {
           val FullInventory(node, machine) = repo.get(n.main.id, PendingInventory).openOrThrowException("in Test")
-
-          val direct = repo.get(m.id)
 
           (
             node === n

@@ -39,8 +39,6 @@ package com.normation.inventory.provisioning.endpoint
 package config
 
 //domain and generic interfaces
-import com.normation.inventory.domain._
-import com.normation.inventory.services.core._
 import com.normation.inventory.services.provisioning._
 import com.normation.inventory.provisioning.fusion._
 import com.normation.inventory.ldap.core._
@@ -50,11 +48,8 @@ import com.normation.ldap.ldif.DefaultLDIFFileLogger
 import com.unboundid.ldif.LDIFChangeRecord
 import org.springframework.context.annotation.{Bean,Configuration,Import}
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.beans.factory.config.PropertiesFactoryBean
-import org.springframework.core.io.{ClassPathResource, FileSystemResource}
 import org.springframework.web.multipart.commons.CommonsMultipartResolver
 import com.normation.utils.{StringUuidGenerator,StringUuidGeneratorImpl}
-import java.io.File
 import org.slf4j.LoggerFactory
 import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
 import java.security.Security
@@ -120,7 +115,6 @@ class AppConfig {
   @Bean
   def pipelinedReportUnmarshaller : ReportUnmarshaller = {
     val fusionReportParser = {
-      val keyNorm = new PrintedKeyNormalizer
       new FusionReportUnmarshaller(
           uuidGenerator
         , rootParsingExtensions    = Nil

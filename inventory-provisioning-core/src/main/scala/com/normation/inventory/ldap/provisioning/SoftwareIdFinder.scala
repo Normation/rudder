@@ -44,13 +44,8 @@ import BuildFilter._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
 import com.normation.inventory.domain._
-
-import scala.collection.mutable.Buffer
-
-import net.liftweb.common.{Box,Empty,Full}
-
+import net.liftweb.common.Box
 import org.slf4j.LoggerFactory
-import NameAndVersionIdFinder._
 
 object NameAndVersionIdFinder {
   val logger = LoggerFactory.getLogger(classOf[NameAndVersionIdFinder])

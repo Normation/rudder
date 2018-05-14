@@ -515,7 +515,7 @@ class InventoryMapper(
       val m = MachineInventory(id,inventoryStatus,machineType,name,mbUuid,inventoryDate, receiveDate
                                , manufacturer, systemSerialNumber)
       //map subentries and return result
-      (m /: tree.children()) { case (m,(rdn,t)) => mapAndAddMachineElement(t.root(),m) }
+      (m /: tree.children) { case (m,(rdn,t)) => mapAndAddMachineElement(t.root(),m) }
     }
   }
 
@@ -655,10 +655,6 @@ class InventoryMapper(
   }
 
   //////////////////Node/ NodeInventory /////////////////////////
-
-  // User defined properties : the regexp that the data should abide by
-  // {KEY}VALUE
-  private[this] val userDefinedPropertyRegex = """\{([^\}]+)\}(.+)""".r
 
   def treeFromNode(server:NodeInventory) : LDAPTree = {
     import com.normation.inventory.domain.AgentInfoSerialisation._
@@ -989,7 +985,7 @@ class InventoryMapper(
       node <- nodeFromEntry(tree.root)
     } yield {
       //map subentries and return result
-      (node /: tree.children()) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root(),m) }
+      (node /: tree.children) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root(),m) }
     }
   }
 

@@ -39,7 +39,7 @@ package com.normation.inventory.services.provisioning
 
 import com.normation.inventory.domain.InventoryReport
 import com.normation.utils.Control.pipeline
-import net.liftweb.common.{Box,Full,Empty,EmptyBox,Failure}
+import net.liftweb.common.{Box,Full,Empty,Failure}
 import net.liftweb.common.Loggable
 
 /**

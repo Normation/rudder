@@ -48,7 +48,6 @@ import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldap.sdk.{Modification, ModificationType}
 import com.normation.ldap.sdk.BuildFilter.EQ
 import com.unboundid.ldap.sdk.DN
-import com.normation.ldap.ldif.LDIFNoopChangeRecord
 
 
 trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChangeRecord]]

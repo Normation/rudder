@@ -38,7 +38,6 @@
 package com.normation.inventory.services.provisioning
 
 import com.normation.inventory.domain._
-import org.slf4j.{Logger,LoggerFactory}
 import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
 

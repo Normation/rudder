@@ -20,7 +20,6 @@
 
 package com.normation.history.impl
 
-import junit.framework.TestSuite
 import org.junit._
 import org.junit.Assert._
 import org.junit.runner.RunWith
@@ -55,7 +54,7 @@ class TestFileHistoryLogRepository {
 
   val repos = new FileHistoryLogRepository(rootDir, StringMarshaller,StringId)
 
-  @Test def basicTest {
+  @Test def basicTest: Unit = {
     val id1 = "data1"
     assertEquals(Full(List()), repos.getIds.map(_.toList))
     assertEquals( _:EmptyBox, repos.versions(id1))
@@ -84,7 +83,7 @@ class TestFileHistoryLogRepository {
 object TestFileHistoryLogRepository {
   val rootDir = System.getProperty("java.io.tmpdir") + "/testFileHistoryLogRepo"
 
-  def clean {
+  def clean: Unit = {
     FileUtils.deleteDirectory(new File(rootDir))
   }
 

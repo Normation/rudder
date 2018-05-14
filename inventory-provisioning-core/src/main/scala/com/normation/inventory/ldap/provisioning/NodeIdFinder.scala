@@ -44,7 +44,6 @@ import com.normation.ldap.sdk._
 import BuildFilter._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
-import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain._
 
 import net.liftweb.common._

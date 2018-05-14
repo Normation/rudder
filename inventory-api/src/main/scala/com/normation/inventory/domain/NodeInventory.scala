@@ -38,13 +38,8 @@
 package com.normation.inventory.domain
 
 import java.net.InetAddress
-import java.net.UnknownHostException
 
-import InetAddressUtils._
-import org.joda.time.DateTime
-import com.normation.inventory.domain._
 import com.normation.utils.HashcodeCaching
-import org.joda.time.DateTime
 import org.joda.time.DateTime
 import net.liftweb.common._
 import net.liftweb.json.JsonAST.JValue

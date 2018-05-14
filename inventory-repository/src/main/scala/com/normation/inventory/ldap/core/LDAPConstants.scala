@@ -37,7 +37,6 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.utils.Utils
 import com.normation.ldap.sdk.schema.LDAPSchema
 
 object LDAPConstants {

@@ -41,13 +41,9 @@ import com.normation.inventory.services.provisioning._
 import com.unboundid.ldap.sdk.DN
 import com.normation.ldap.sdk._
 import BuildFilter._
-import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
-
-import scala.collection.mutable.Buffer
-
 import net.liftweb.common._
 
 
@@ -107,7 +103,7 @@ class FromMotherBoardUuidIdFinder(
                 logger.info("-> %s".format(e(A_MACHINE_UUID).get))
               }
             }
-            Full(MachineUuid(entries(0)(A_MACHINE_UUID).get),inventoryDitService.getInventoryStatus(dit))
+            Full((MachineUuid(entries(0)(A_MACHINE_UUID).get),inventoryDitService.getInventoryStatus(dit)))
           } else Empty
         }
       }

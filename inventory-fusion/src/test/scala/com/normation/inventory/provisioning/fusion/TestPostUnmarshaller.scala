@@ -39,17 +39,10 @@ package com.normation.inventory.provisioning.fusion
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import com.normation.utils.StringUuidGeneratorImpl
 import net.liftweb.common._
-import com.normation.inventory.domain.InventoryReport
-import com.normation.inventory.domain.ServerRole
 import scala.xml.XML
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-import java.io.File
-import com.normation.inventory.domain.AgentType._
-import com.normation.inventory.domain.Windows
-import com.normation.inventory.domain.Windows2012
 import com.normation.inventory.services.provisioning.PreUnmarshall
 import java.io.InputStream
 import org.xml.sax.SAXParseException
@@ -80,7 +73,6 @@ class TestPreUnmarshaller extends Specification {
   }
 
     def check(checkRelativePath: String): Box[NodeSeq] = {
-      import java.net.URL
       val url = this.getClass.getClassLoader.getResource(checkRelativePath)
       if(null == url) throw new NullPointerException(s"Resource with relative path '${checkRelativePath}' is null (missing resource? Spelling? Permissions?)")
       val is = url.openStream()

@@ -285,7 +285,7 @@ class UUID_ENTRY[U <: Uuid](val entryObjectClass:String,val rdnAttributeName:Str
 /**
  * An Organizational Unit
  */
-class OU(ouName:String,parentDn:DN)(implicit dit:AbstractDit) extends ENTRY1("ou",ouName) {
+class OU(ouName:String,parentDn:DN) extends ENTRY1("ou",ouName) {
   ou =>
 
   lazy val rdn : RDN = this.rdn(this.rdnValue._1)

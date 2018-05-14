@@ -37,7 +37,6 @@
 
 package com.normation.inventory.ldap.core
 
-import com.unboundid.ldap.sdk.DN
 import com.normation.ldap.sdk._
 import BuildFilter.{EQ,OR}
 import com.normation.inventory.domain._

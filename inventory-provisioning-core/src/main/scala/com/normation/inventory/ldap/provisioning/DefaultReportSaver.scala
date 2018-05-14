@@ -40,13 +40,9 @@ package com.normation.inventory.ldap.provisioning
 import com.normation.inventory.domain.InventoryReport
 import com.normation.inventory.services.provisioning._
 import com.unboundid.ldif.LDIFChangeRecord
-import com.normation.ldap.sdk.{LDAPConnectionProvider,LDAPEntry}
+import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core._
-import com.normation.inventory.domain._
-import net.liftweb.common.{Box,Full,Empty,EmptyBox,Failure}
-import scala.collection.mutable.Buffer
-import org.slf4j.LoggerFactory
-import com.normation.ldap.sdk.BuildFilter
+import net.liftweb.common.{Box,Full,Empty,Failure}
 import net.liftweb.common.Loggable
 import com.normation.ldap.sdk.RwLDAPConnection
 
