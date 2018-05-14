@@ -29,7 +29,7 @@ import ResultCode._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.ldap.ldif.{LDIFFileLogger,LDIFNoopChangeRecord}
 import net.liftweb.common.{Box,Full,Empty,Failure}
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import com.normation.utils.Control.sequence
 import org.slf4j.LoggerFactory
 
@@ -299,11 +299,11 @@ sealed class RoLDAPConnection(
 
   override def search(sr:SearchRequest) : Seq[LDAPEntry] = {
     try {
-      backed.search(sr).getSearchEntries.map(e => LDAPEntry(e.getDN,e.getAttributes))
+      backed.search(sr).getSearchEntries.asScala.map(e => LDAPEntry(e.getDN,e.getAttributes.asScala))
     } catch {
       case e:LDAPSearchException if(onlyReportOnSearch(e.getResultCode)) =>
         logger.error("Ignored execption (configured to be ignored)",e)
-        e.getSearchEntries().map(e => LDAPEntry(e.getDN,e.getAttributes))
+        e.getSearchEntries.asScala.map(e => LDAPEntry(e.getDN, e.getAttributes.asScala))
     }
   }
 
@@ -313,7 +313,7 @@ sealed class RoLDAPConnection(
       else backed.getEntry(dn.toString, attributes:_*)
     } match {
       case null => Empty
-      case r => Full(LDAPEntry(r.getDN, r.getAttributes))
+      case r => Full(LDAPEntry(r.getDN, r.getAttributes.asScala))
     }
   }
 
@@ -328,7 +328,7 @@ sealed class RoLDAPConnection(
       val all = backed.search(dn.toString,Sub,BuildFilter.ALL)
       if(all.getEntryCount() > 0) {
         //build the tree
-        val tree = LDAPTree(all.getSearchEntries.map(x => LDAPEntry(x)))
+        val tree = LDAPTree(all.getSearchEntries.asScala.map(x => LDAPEntry(x)))
         tree
       } else Empty
     } catch {
@@ -599,7 +599,7 @@ class RwLDAPConnection(
           val mods = LDAPEntry.merge(existing,entry, false, removeMissingAttributes, forceKeepMissingAttributes)
           if(!mods.isEmpty) {
             try {
-              applyModify(new ModifyRequest(entry.dn.toString,mods))
+              applyModify(new ModifyRequest(entry.dn.toString, mods.asJava))
             } catch {
               case e:LDAPException if(onlyReportOnModify(e.getResultCode)) =>
                 logIgnoredException(entry.dn.toString, "modify", e)

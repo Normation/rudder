@@ -47,7 +47,7 @@ class SchemaTest {
      +=("L1_0_0_0", sup =  OC("L1_0_0")).
      +=("L1_2_0", sup =  OC("L1_2"))
 
-  @Test def demuxTest() {
+  @Test def demuxTest(): Unit = {
 
     assertEquals(Set(), OC.demux())
 

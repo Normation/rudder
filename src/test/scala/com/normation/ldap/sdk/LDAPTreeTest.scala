@@ -24,10 +24,8 @@ import org.junit.Test
 import org.junit.Assert._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import com.normation.ldap.sdk.LDAPEntry._
 import com.unboundid.ldap.sdk.{RDN,DN}
 import DN.NULL_DN
-import scala.collection.mutable.{Map => MutMap}
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class LDAPTreeTest {
@@ -40,7 +38,7 @@ class LDAPTreeTest {
   val dn3 = new DN(rdn3, dn2)
 
   @Test
-  def testAddSubChild() {
+  def testAddSubChild(): Unit = {
 
     object tree extends LDAPTree {
       top =>
@@ -70,7 +68,7 @@ class LDAPTreeTest {
 
 
   @Test
-  def buildTreeFromEntries() {
+  def buildTreeFromEntries(): Unit = {
     val rdn4 = new RDN("cn=child2")
     val entries = Seq(
         LDAPEntry(dn2),
@@ -82,10 +80,10 @@ class LDAPTreeTest {
     val optTree = LDAPTree(entries)
     assertTrue(optTree.isDefined)
     val tree = optTree.openOrThrowException("this is for test")
-    assertEquals(1,tree._children .size)
+    assertEquals(1l, tree._children.size.toLong)
     val mTree = tree._children(rdn2)
     assertEquals(LDAPEntry(dn2), mTree.root)
-    assertEquals(2, mTree.children.size )
+    assertEquals(2l, mTree.children.size.toLong)
     assertEquals(LDAPEntry(dn3), mTree._children(rdn3).root)
     assertEquals(LDAPEntry(new DN(rdn4,dn2)), mTree._children(rdn4).root)
   }
