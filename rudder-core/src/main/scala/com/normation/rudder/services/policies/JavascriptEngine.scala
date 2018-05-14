@@ -642,11 +642,15 @@ final object JsEngine {
       , "loadLibrary.sunec"     //needed by Rudder JS Lib
       , "loadLibrary.j2pkcs11"  //needed by Rudder JS Lib
       , "loadLibrary.nio"       //needed by Rudder JS Lib
+      , "loadLibrary.net"       //needed by Rudder JS Lib
       , "accessClassInPackage.org.jcp.xml.dsig.internal.dom"
+      , "accessClassInPackage.jdk.internal.reflect"
       , "getProtectionDomain"
       , "shutdownHooks"
       , "setContextClassLoader"
       , "fileSystemProvider"
+      , "getClassLoader"
+      , "accessSystemModules"
     )
     private[this] val reflectPerms = Set(
         "suppressAccessChecks" //needed by rhino to run almost anything, like creating a var - else NPE
@@ -670,7 +674,7 @@ final object JsEngine {
             // We need to authorize access to a lot of jar/classes for crypto (lot of dependencies). However listing all
             // classes is impossible, causing a stackoverflow error see: http://stackoverflow.com/questions/2510683/securitymanager-stackoverflowerror
             // so we work-around by authorizing a lot of stuff
-          case x: FilePermission     if( x.getActions == "read" && (x.getName.contains(".class") || x.getName.endsWith(".jar")  || x.getName.endsWith(".so")   || x.getName.endsWith(".cfg") || x.getName.endsWith(".properties") || x.getName.endsWith(".certs") || x.getName.endsWith("jre/lib/security/cacerts") ) )  => // ok
+          case x: FilePermission     if( x.getActions == "read" && (x.getName.contains(".class") || x.getName.endsWith(".jar")  || x.getName.endsWith(".so")   || x.getName.endsWith(".cfg") || x.getName.endsWith(".properties") || x.getName.endsWith(".certs") || x.getName.endsWith("jre/lib/security/cacerts") || x.getName.contains("/security/policy/unlimited")) )  => // ok
           case x: SecurityPermission if( securityPerms.exists( p => x.getName.startsWith(p) )       ) => // ok
           case x: NetPermission      if( x.getName == "specifyStreamHandler" ) => //ok
           case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.jdk.nashorn")   ) => // ok
