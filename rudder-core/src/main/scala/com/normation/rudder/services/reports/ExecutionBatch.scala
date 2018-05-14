@@ -233,8 +233,10 @@ case class ComputeCompliance(
  */
 
 object ExecutionBatch extends Loggable {
-  final val matchCFEngineVars = """.*\$(\{.+\}|\(.+\)).*""".r
-  final private val replaceCFEngineVars = """\$\{.+\}|\$\(.+\)"""
+  //these patterns must be reluctant matches to avoid strange things
+  //when two variables are presents, or something like: ${foo}xxxxxx}.
+  final val matchCFEngineVars = """.*\$(\{.+?\}|\(.+?\)).*""".r
+  final private val replaceCFEngineVars = """\$\{.+?\}|\$\(.+?\)"""
 
   /**
    * containers to store common information about "what are we
@@ -270,10 +272,12 @@ object ExecutionBatch extends Loggable {
    * Takes a string, that should contains a CFEngine var ( $(xxx) or ${xxx} )
    * replace the $(xxx) (or ${xxx}) part by .*
    * and doubles all the \
-   * Returns a string that is suitable for a being used as a regexp
+   * Returns a string that is suitable for a being used as a regexp, with anything not
+   * in ".*" quoted with \Q...\E.
+   * For example, "${foo}(bar)$(baz)foo" => "\Q\E.*\Q(bar)\E.*\Qfoo\E"
    */
-  final def replaceCFEngineVars(x : String) : String = {
-    x.replaceAll(replaceCFEngineVars, ".*").replaceAll("""\\""", """\\\\""")
+  final def replaceCFEngineVars(x : String) : Pattern = {
+    Pattern.compile("""\Q"""+ x.replaceAll(replaceCFEngineVars, """\\E.*\\Q""") + """\E""")
   }
 
   case class ContextForNoAnswer(
@@ -966,7 +970,7 @@ object ExecutionBatch extends Loggable {
 
     // build the list of unexpected ComponentValueStatusReport
     // i.e value
-    val unexpectedStatusReports = {
+    val (unexpectedStatusReports, unexpectedReports) = {
       val unexpectedReports = getUnexpectedReports(
           expectedComponent.componentsValues.toList
         , filteredReports
@@ -979,15 +983,13 @@ object ExecutionBatch extends Loggable {
 
       }
 
-      for {
-        unexpectedReport <- unexpectedReports
-      } yield {
+      (unexpectedReports.map(unexpectedReport =>
         ComponentValueStatusReport(
            unexpectedReport.keyValue
          , unexpectedReport.keyValue
          , List(MessageStatusReport(ReportType.Unexpected, unexpectedReport.message))
         )
-      }
+      ), unexpectedReports)
 
     }
 
@@ -1012,7 +1014,7 @@ object ExecutionBatch extends Loggable {
       case (kind,  (value, unexpandedValue)) =>
         value match {
           case matchCFEngineVars(_) =>
-            val pattern = Pattern.compile(replaceCFEngineVars(value))
+            val pattern = replaceCFEngineVars(value)
             kind.copy(cfeVar = (unexpandedValue, pattern) :: kind.cfeVar)
           case _ => kind.copy(simple = kind.simple + ((unexpandedValue, value +: kind.simple.getOrElse(unexpandedValue, Seq()))))
         }
@@ -1068,7 +1070,7 @@ object ExecutionBatch extends Loggable {
     }
 
     // Remove all already parsed reports so we only look in remaining reports for Cfengine variables
-    val usedReports = noneReports ++ simpleReports
+    val usedReports = noneReports ++ simpleReports ++ unexpectedReports
     val remainingReports = filteredReports.diff(usedReports)
 
     // Find what reports matche what cfengine variables
@@ -1350,15 +1352,16 @@ object ExecutionBatch extends Loggable {
     , reports  : Seq[Reports]
   ) : Seq[Reports] = {
 
-    val isExpected = (head:String, s:String) => head match {
+    val isExpected = (head:String, value:String) => head match {
       case matchCFEngineVars(_) =>
-        val matchableExpected = replaceCFEngineVars(head)
-        s.matches(matchableExpected)
-      case x => x == s
+        val pattern = replaceCFEngineVars(head)
+        pattern.matcher(value).matches()
+      case x => x == value
     }
 
     keyValues match {
-      case Nil          => reports
+      case Nil          =>
+        reports
       case head :: tail =>
         getUnexpectedReports(tail, reports.filterNot(r => isExpected(head, r.keyValue)))
     }

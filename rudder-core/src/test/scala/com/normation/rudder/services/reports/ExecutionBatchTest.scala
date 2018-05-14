@@ -176,8 +176,8 @@ class ExecutionBatchTest extends Specification {
       , List("foo", "bar")
     )
 
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswer, PolicyMode.Enforce)
-    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswer, PolicyMode.Enforce)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce)
 
     "return a component globally repaired " in {
       withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
@@ -230,8 +230,8 @@ class ExecutionBatchTest extends Specification {
       , List("None", "None")
       , List("None", "None")
     )
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswer, PolicyMode.Enforce)
-    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswer, PolicyMode.Enforce)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce)
 
     "return a component with exact reporting" in {
       withGood.compliance === ComplianceLevel(repaired = 1, success = 1)
@@ -275,8 +275,8 @@ class ExecutionBatchTest extends Specification {
       , List("${sys.bla}", "${sys.foo}")
     )
 
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswer, PolicyMode.Enforce)
-    val withBad   = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswer, PolicyMode.Enforce)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce)
+    val withBad   = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce)
 
     "return a component globally repaired " in {
       withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
@@ -317,8 +317,8 @@ class ExecutionBatchTest extends Specification {
       , List("${rudder.node.hostname}", "${rudder.node.hostname}", "bar")
     )
 
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswer, PolicyMode.Enforce)
-    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswer, PolicyMode.Enforce)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce)
 
     "return a component with the correct number of success and repaired" in {
       //be carefull, here the second success is for the same unexpanded as the repaire,
@@ -384,7 +384,7 @@ class ExecutionBatchTest extends Specification {
       })
 
       val t1 = System.currentTimeMillis
-      val result = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, resultReports, NoAnswer, PolicyMode.Enforce)
+      val result = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, resultReports, ReportType.Missing, PolicyMode.Enforce)
       val t2 = System.currentTimeMillis - t1
 
       val compliance = ComplianceLevel(
@@ -510,6 +510,36 @@ class ExecutionBatchTest extends Specification {
       , patterns = Success("/var/${sys.bla}") :: Success("/var/cfengine") :: Nil
       , reports  = Success("/var/cfengine") :: Success("/var/cfengine") :: Nil
     )
+
+    // handle correctly ${boo}bar} vs ${foo}xxx} (ie matches only the variable part)
+    test("matches only the variable part of variable"
+      , patterns = Repaired("${foo}xxx}") :: Success("$(bar)yyyy)")  :: Nil
+      , reports  = Success ("ayyyy)"    ) :: Repaired("bxxx}") :: Nil
+    )
+
+    // there should be nothing special about "\" even if cfengine escape them
+    test("""nothing special with \ when a ${var} is present"""
+      , patterns = Repaired("${foo}x\\x}") :: Nil
+      , reports  = Repaired("yx\\x}") :: Nil
+    )
+
+    test("""nothing special with \"""
+      , patterns = Repaired("x\\x}") :: Nil
+      , reports  = Repaired("x\\x}") :: Nil
+    )
+
+    // we need to take care of the fact that ${const.dollar} is always replaced by cfengine
+    test("consider regex special chars as normal chars"
+      , patterns = Repaired("[^foo$]") :: Success("(bar)") :: Success("""\D\p{Lower}""") :: Nil
+      , reports  = Repaired("[^foo$]") :: Success("(bar)") :: Success("""\D\p{Lower}""") :: Nil
+    )
+
+    // we need to take care of the fact that ${const.dollar} is always replaced by cfengine
+    test("correctly understand ${const.dollar}"
+      , patterns = Repaired("""[ ${const.dollar}(echo "enabled") = 'enabled' ]""") :: Success("/var/${const.dollar}cfengine") :: Nil
+      , reports  = Repaired("""[ $(echo "enabled") = 'enabled' ]""") :: Success("/var/$cfengine") :: Nil
+    )
+
   }
 
   val fullCompliance = GlobalComplianceMode(FullCompliance, 1)
@@ -892,7 +922,7 @@ class ExecutionBatchTest extends Specification {
       , List("/var/cfengine", "bar")
     )
 
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswer, PolicyMode.Enforce)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce)
 
     "return a component globally success " in {
       withGood.compliance === ComplianceLevel(success = 1, notApplicable = 1)
