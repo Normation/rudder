@@ -307,7 +307,7 @@ class TechniqueEditForm(
     successPopup
   }
 
-  private[this] def cleanTrackers() {
+  private[this] def cleanTrackers(): Unit = {
     formTracker.clean
     formTrackerRemovePopup.clean
     formTrackerDisactivatePopup.clean

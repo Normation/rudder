@@ -128,7 +128,7 @@ class TestQueryProcessor extends Loggable {
 
   val sr = NodeId("root") +: s
 
-  @Test def ensureNodeLoaded() {
+  @Test def ensureNodeLoaded(): Unit = {
     //just check that we correctly loaded demo data in serve
     val s = (for {
       con <- ldap
@@ -140,7 +140,7 @@ class TestQueryProcessor extends Loggable {
     assert(expected == s, s"Not found the expected number of entries in test LDAP directory [expected: ${expected}, found: ${s}], perhaps the demo entries where not correctly loaded")
   }
 
-  @Test def basicQueriesOnId() {
+  @Test def basicQueriesOnId(): Unit = {
 
     /* find back all server */
     val q0 = TestQuery(
@@ -177,7 +177,7 @@ class TestQueryProcessor extends Loggable {
     testQueries( q0 :: q1 :: q2 :: Nil)
   }
 
-  @Test def basicQueriesOnOneNodeParameter() {
+  @Test def basicQueriesOnOneNodeParameter(): Unit = {
     // only two servers have RAM: server1(RAM) = 10000000, server2(RAM) = 1
 
     val q2_0 = TestQuery(
@@ -216,7 +216,7 @@ class TestQueryProcessor extends Loggable {
     testQueries(q2_0 :: q2_0_ :: q2_1 :: q2_1_ :: q2_2 :: q2_2_ :: Nil)
   }
 
-  @Test def machineComponentQueries() {
+  @Test def machineComponentQueries(): Unit = {
     val q3 = TestQuery(
       "q3",
       parser("""
@@ -229,7 +229,7 @@ class TestQueryProcessor extends Loggable {
     testQueries(q3 :: Nil)
   }
 
-  @Test def softwareQueries() {
+  @Test def softwareQueries(): Unit = {
 
     val q1 = TestQuery(
       "q1",
@@ -252,7 +252,7 @@ class TestQueryProcessor extends Loggable {
     testQueries(q1 :: q2 :: Nil)
   }
 
-  @Test def logicalElementQueries() {
+  @Test def logicalElementQueries(): Unit = {
 
     val q1 = TestQuery(
       "q1",
@@ -275,7 +275,7 @@ class TestQueryProcessor extends Loggable {
     testQueries(q1 :: q2 :: Nil)
   }
 
-  @Test def regexQueries() {
+  @Test def regexQueries(): Unit = {
 
     //regex and "subqueries" for logical elements should not be contradictory
     //here, we have to *only* search for logical elements with the regex
@@ -419,7 +419,7 @@ class TestQueryProcessor extends Loggable {
     testQueries(q0  :: q1 :: q1_ :: q2 :: q2_ :: q3 :: q3_2 :: q4 :: q5 :: q6 :: q7 :: q8 :: q9 :: Nil)
   }
 
-  @Test def dateQueries() {
+  @Test def dateQueries(): Unit = {
     //the node inventory date is 15/05/2013
 
     def q(name: String, comp: String, day: Int, expects: Seq[NodeId] ) = TestQuery(
@@ -455,7 +455,7 @@ class TestQueryProcessor extends Loggable {
     )
   }
 
-  @Test def policyServerQueriesOnId() {
+  @Test def policyServerQueriesOnId(): Unit = {
 
     val q0 = TestQuery(
       "q0",
@@ -478,7 +478,7 @@ class TestQueryProcessor extends Loggable {
     testQueries( q0 :: q1 :: Nil)
   }
 
-  @Test def agentTypeQueries {
+  @Test def agentTypeQueries: Unit = {
 
     val allCfengine = TestQuery(
       "allCfengine",
@@ -530,7 +530,7 @@ class TestQueryProcessor extends Loggable {
   /**
    * Test environment variable
    */
-  @Test def nodeJsonFixedKeyQueries() {
+  @Test def nodeJsonFixedKeyQueries(): Unit = {
 
     val q1 = TestQuery(
       "q1",
@@ -556,7 +556,7 @@ class TestQueryProcessor extends Loggable {
   /**
    * Test environment variable and nodeProperty
    */
-  @Test def nodeNameValueQueries() {
+  @Test def nodeNameValueQueries(): Unit = {
 
     val q1 = TestQuery(
       "q1",
@@ -579,7 +579,7 @@ class TestQueryProcessor extends Loggable {
     testQueries(q1 :: q2 :: Nil)
   }
 
-  @Test def nodeProperties() {
+  @Test def nodeProperties(): Unit = {
     val q1 = TestQuery(
       "q1",
       parser("""
@@ -650,7 +650,7 @@ class TestQueryProcessor extends Loggable {
     testQueries(q1 :: q2 :: q3 :: q4 :: q5 ::  q6 :: q7 :: Nil)
   }
 
-  @Test def nodePropertiesMissingEqualsReq() {
+  @Test def nodePropertiesMissingEqualsReq(): Unit = {
     // Failing request, see #10570
     // if there is no "=", we must only find node with empty value for the key
     val q1 = TestQuery(
@@ -665,7 +665,7 @@ class TestQueryProcessor extends Loggable {
      testQueries(q1 :: Nil)
   }
 
-  @Test def nodePropertiesFailingReq() {
+  @Test def nodePropertiesFailingReq(): Unit = {
     // Failing request, see #10570
     val failingRegexRequest =
       parser("""
@@ -685,7 +685,7 @@ class TestQueryProcessor extends Loggable {
     }
   }
 
-  @Test def unsortedQueries() {
+  @Test def unsortedQueries(): Unit = {
     val q1 = TestQuery(
       "q1",
       parser("""
@@ -729,7 +729,7 @@ class TestQueryProcessor extends Loggable {
           format(name,foundWithLimit,ids),ids.size.toLong,foundWithLimit.size.toLong)
   }
 
-  @After def after() {
+  @After def after(): Unit = {
     ldap.server.shutDown(true)
   }
 }

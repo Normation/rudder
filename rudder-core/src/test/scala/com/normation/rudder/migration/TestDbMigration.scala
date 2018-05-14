@@ -143,7 +143,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
         val id = insertLog(log)
         logger.debug(s"Inserting ${k}, id: ${id}")
 
-        (k,log.copy( id = Some(id) ))
+        (k,log.copy( id = Some(id.toLong) ))
       }).toMap
     }
 
@@ -178,7 +178,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
       val logs = sql"""
         select id, eventtype, creationdate, principal, causeid, severity, data
         from eventlog
-      """.query[MigrationTestLog].vector.transact(xa).unsafeRunSync.filter(log =>
+      """.query[MigrationTestLog].to[Vector].transact(xa).unsafeRunSync.filter(log =>
                    //only actually migrated file format
                    try {
                      log.data \\ "@fileFormat" exists { _.text.toInt == 6 }

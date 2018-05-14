@@ -128,7 +128,7 @@ case class RoReportsExecutionRepositoryImpl (
                           (DB.AgentRun, Option[String], Option[String], Option[DateTime], Option[DateTime], Option[String])
                         ].map {
                           case tuple@(r, t1, t2, t3, t4, t5) => (r, unserNodeConfig(t1, t2, t3, t4, t5))
-                        }.vector
+                        }.to[Vector]
         } yield {
 
           val runsMap = (runs.map { case (r, optConfig) =>

@@ -94,7 +94,7 @@ object AutoCompleteAutoSubmit {
   /**
    * register the resources with lift (typically in boot)
    */
-  def init() {
+  def init(): Unit = {
     import net.liftweb.http.ResourceServer
 
     ResourceServer.allow({

@@ -120,7 +120,7 @@ class TestManageMigration_5_6 extends DBCommon with BoxSpecMatcher {
 
     for(i <- 0 to 4) {
       s"not be launched if fileformat is $i" in {
-        val res = withFileFormatLine(i) {
+        val res = withFileFormatLine(i.toLong) {
            () => migrationManagement.migrate
         }
         res mustFullEq(MigrationVersionNotSupported)

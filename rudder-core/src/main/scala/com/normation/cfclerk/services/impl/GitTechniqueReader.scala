@@ -156,7 +156,8 @@ class GitTechniqueReader(
     }
   }
 
-  private final case class NoRootCategory(msg: String) extends Exception(msg)
+  //can not set private because of "outer ref cannot be checked" scalac bug
+  private case class NoRootCategory(msg: String) extends Exception(msg)
 
   private[this] var currentTechniquesInfoCache : TechniquesInfo = {
     try {

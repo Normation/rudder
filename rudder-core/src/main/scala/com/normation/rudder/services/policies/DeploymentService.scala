@@ -85,7 +85,6 @@ import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
-import scala.language.implicitConversions
 
 
 /**

@@ -517,7 +517,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     After(TimeSpan(0),JsRaw("""createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
   }
 
-  private[this] final case class MissingTechniqueException(directive: Directive) extends
+  private[this] case class MissingTechniqueException(directive: Directive) extends
     Exception(s"Directive ${directive.name} (${directive.id.value}) is bound to a Technique without any valid version available")
 
   private[this] def updateDirectiveSettingForm(
@@ -597,7 +597,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   private[this] def onRemoveSuccessCallBack(workflowEnabled: Boolean): JsCmd = {
     updateDirectiveLibrary(workflowEnabled)&
-        After(0,JsRaw("""applyFilter('directiveFilter');"""))
+        After(TimeSpan(0),JsRaw("""applyFilter('directiveFilter');"""))
   }
 
   private[this] def updateDirectiveLibrary(workflowEnabled : Boolean) : JsCmd = {

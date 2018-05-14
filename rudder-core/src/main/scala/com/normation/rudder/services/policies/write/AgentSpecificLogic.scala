@@ -37,10 +37,7 @@
 
 package com.normation.rudder.services.policies.write
 
-import org.apache.commons.io.FileUtils
-import java.io.File
 import net.liftweb.common.Box
-import net.liftweb.util.Helpers.tryo
 import com.normation.inventory.domain.AgentType
 import com.normation.utils.Control.sequence
 import net.liftweb.common.Full
@@ -48,7 +45,6 @@ import net.liftweb.common.Failure
 import com.normation.inventory.domain.OsDetails
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.Bsd
-import java.nio.charset.StandardCharsets
 import com.normation.rudder.services.policies.NodeRunHook
 
 /*

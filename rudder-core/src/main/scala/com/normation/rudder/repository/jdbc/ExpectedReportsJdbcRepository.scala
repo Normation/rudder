@@ -119,7 +119,7 @@ class FindExpectedReportsJdbcRepository(
                        select nodeid, nodeconfigid, begindate, enddate, configuration
                        from nodeconfigurations
                        where (nodeid, nodeconfigid) in (${nodeAndIds.map(x => s"('${x.nodeId.value}','${x.version.value}')").mkString(",")} )
-                     """).vector
+                     """).to[Vector]
         }yield {
           val configsMap = (configs.flatMap {
             case Left((id, c, _)) =>
@@ -149,7 +149,7 @@ class FindExpectedReportsJdbcRepository(
                        from nodeconfigurations
                        inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
                        where enddate is null"""
-                     ).query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].vector
+                     ).query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].to[Vector]
         } yield {
           val t1 =  System.currentTimeMillis
           TimingDebugLogger.trace(s"Compliance: query to get current expected reports: ${t1-t0}ms")
@@ -181,7 +181,7 @@ class FindExpectedReportsJdbcRepository(
     else {
       (for {
         entries <-query[(NodeId, String)](s"""select node_id, config_ids from nodes_info
-                                              where ${in("node_id", nodeIds.map(_.value))}""").vector
+                                              where ${in("node_id", nodeIds.map(_.value))}""").to[Vector]
       } yield {
         val res = entries.map{ case(nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
         nodeIds.map(n => (n, res.get(n))).toMap
@@ -224,7 +224,7 @@ class UpdateExpectedReportsJdbcRepository(
                            from nodeconfigurations
                            inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
                            where enddate is NULL"""
-                        ).query[A].list.attempt.transact(xa).unsafeRunSync
+                        ).query[A].to[List].attempt.transact(xa).unsafeRunSync
 
         type B = (NodeId, Vector[NodeConfigIdInfo])
         val getInfos: Either[Throwable, List[B]] = (
@@ -232,7 +232,7 @@ class UpdateExpectedReportsJdbcRepository(
                               select node_id, config_ids from nodes_info
                               inner join tempnodeid on tempnodeid.id = nodes_info.node_id
                             """
-                          ).query[B].list.attempt.transact(xa).unsafeRunSync
+                          ).query[B].to[List].attempt.transact(xa).unsafeRunSync
 
         // common part: find old configs and node config info for all config to update
         val time_0 = System.currentTimeMillis
@@ -462,7 +462,7 @@ class UpdateExpectedReportsJdbcRepository(
    */
   override def deleteNodeConfigIdInfo(date:DateTime) : Box[Int] = {
     (for {
-      allNodeConfigId       <- sql"""select node_id, config_ids from nodes_info""".query[(NodeId, String)].vector
+      allNodeConfigId       <- sql"""select node_id, config_ids from nodes_info""".query[(NodeId, String)].to[Vector]
       mapOfBeforeAfter      = allNodeConfigId.map { case (nodeId, nodeConfigIds) =>
                                 ( nodeId
                                 , NodeConfigIdSerializer.unserialize(nodeConfigIds).partition(config =>

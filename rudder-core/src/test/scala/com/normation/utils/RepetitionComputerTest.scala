@@ -52,7 +52,7 @@ class RepetitionComputerTest {
 
   // Set a given date to a day, and see what's happening
   @Test
-  def testDaysManipulation() {
+  def testDaysManipulation(): Unit = {
 
     // this is a wednesday
     val localDate =  ISODateTimeFormat.localDateParser.parseDateTime("2010-05-12").toLocalDate

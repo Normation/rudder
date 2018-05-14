@@ -148,7 +148,7 @@ class AgentRunIntervalServiceImpl (
               if (x.overrides) Some(x.heartbeatPeriod) else None)
           }.getOrElse(gHeartbeat)
 
-          (nodeId, ResolvedAgentRunInterval(Duration.standardMinutes(run), heartbeat))
+          (nodeId, ResolvedAgentRunInterval(Duration.standardMinutes(run.toLong), heartbeat))
         }
       }.toMap
     }

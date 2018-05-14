@@ -55,7 +55,7 @@ class RoWorkflowJdbcRepository(doobie: Doobie) extends RoWorkflowRepository with
   val SELECT_SQL = fr"SELECT id, state FROM Workflow "
 
   def getAllByState(state : WorkflowNodeId) :  Box[Seq[ChangeRequestId]] = {
-    sql"""select id from workflow where state = ${state}""".query[ChangeRequestId].vector.attempt.transact(xa).unsafeRunSync
+    sql"""select id from workflow where state = ${state}""".query[ChangeRequestId].to[Vector].attempt.transact(xa).unsafeRunSync
   }
 
   def getStateOfChangeRequest(crId: ChangeRequestId) : Box[WorkflowNodeId] = {
@@ -63,7 +63,7 @@ class RoWorkflowJdbcRepository(doobie: Doobie) extends RoWorkflowRepository with
   }
 
   def getAllChangeRequestsState() : Box[Map[ChangeRequestId,WorkflowNodeId]] = {
-    sql"select id, state from workflow".query[(ChangeRequestId, WorkflowNodeId)].vector.attempt.transact(xa).unsafeRunSync.map( _.toMap )
+    sql"select id, state from workflow".query[(ChangeRequestId, WorkflowNodeId)].to[Vector].attempt.transact(xa).unsafeRunSync.map( _.toMap )
   }
 }
 

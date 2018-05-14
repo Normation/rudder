@@ -89,10 +89,10 @@ object RunNuCommand extends Loggable {
     val promise = Promise[CmdResult]()
     val stderr, stdout = new StringBuilder()
 
-    override def onStderrChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult) {
+    override def onStderrChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult): Unit = {
       while(buffer.hasRemaining) { stderr + buffer.get() }
     }
-    override def onStdoutChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult) {
+    override def onStdoutChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult): Unit = {
       while(buffer.hasRemaining) { stdout + buffer.get() }
     }
 

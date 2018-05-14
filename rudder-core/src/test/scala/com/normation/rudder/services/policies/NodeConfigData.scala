@@ -127,7 +127,6 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.repository.FullNodeGroupCategory
 import org.apache.commons.io.FileUtils
-import cats.data.NonEmptyList
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 /*
  * This file is a container for testing data that are a little boring to

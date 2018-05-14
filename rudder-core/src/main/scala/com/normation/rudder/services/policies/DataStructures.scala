@@ -65,7 +65,6 @@ import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.AgentConfig
-import com.normation.cfclerk.domain.RunHook.Report
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueVersion
 

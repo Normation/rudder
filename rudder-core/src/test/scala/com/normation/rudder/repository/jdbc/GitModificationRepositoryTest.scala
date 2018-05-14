@@ -74,7 +74,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
   "Git modification repo" should {
 
     "found nothing at start" in {
-      sql"select gitcommit from gitcommit".query[String].vector.transact(xa).unsafeRunSync must beEmpty
+      sql"select gitcommit from gitcommit".query[String].to[Vector].transact(xa).unsafeRunSync must beEmpty
     }
 
     "be able to add commits" in {

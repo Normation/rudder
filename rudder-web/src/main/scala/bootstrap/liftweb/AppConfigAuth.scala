@@ -40,6 +40,7 @@ package bootstrap.liftweb
 import java.io.File
 import java.util.Collection
 
+import com.github.ghik.silencer.silent
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
@@ -79,7 +80,6 @@ import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder
-import org.springframework.security.authentication.encoding.PasswordEncoder
 import org.springframework.security.authentication.encoding.PlaintextPasswordEncoder
 import org.springframework.security.authentication.encoding.ShaPasswordEncoder
 import org.springframework.security.core.AuthenticationException
@@ -125,7 +125,7 @@ class AppConfigAuth extends ApplicationContextAware {
   // we define the System ApiAcl as one that is all mighty and can manage everything
   val SYSTEM_API_ACL = ApiAuthorization.allAuthz
 
-  def setApplicationContext(applicationContext: ApplicationContext) {
+  def setApplicationContext(applicationContext: ApplicationContext): Unit = {
     //prepare specific properties for new context
     import scala.collection.JavaConverters._
     RudderProperties.authenticationMethods.foreach { x =>
@@ -294,9 +294,12 @@ object LogFailedLogin {
   }
 
   def getUser(ex: AuthenticationException): String = {
+    //remove deprecation warning
+    @silent def getAuthentication(bce: AuthenticationException) = bce.getAuthentication
+
     ex match {
       case bce:BadCredentialsException =>
-        bce.getAuthentication match {
+        getAuthentication(bce) match {
           case user: UsernamePasswordAuthenticationToken => user.getName
           case _                                         => "unknown"
         }
@@ -331,7 +334,7 @@ object LogFailedLogin {
 /**
  *  A trivial, immutable implementation of UserDetailsService for RudderUser
  */
-class RudderInMemoryUserDetailsService(val passwordEncoder: PasswordEncoder, private[this] val _users: Set[RudderUserDetail]) extends UserDetailsService {
+class RudderInMemoryUserDetailsService(val passwordEncoder: PasswordEncoder.Rudder, private[this] val _users: Set[RudderUserDetail]) extends UserDetailsService {
   private[this] val users = Map[String, RudderUserDetail](_users.map(u => (u.getUsername, u)).toSeq:_*)
 
   @throws(classOf[UsernameNotFoundException])
@@ -408,8 +411,6 @@ class RestAuthenticationFilter(
 ) extends Filter with Loggable {
   def destroy(): Unit = {}
   def init(config: FilterConfig): Unit = {}
-
-  private[this] val REST_USER_PREFIX = "REST Account: "
 
   private[this] val api_v1_url = List(
       "/api/status"
@@ -562,8 +563,13 @@ class RestAuthenticationFilter(
   }
 }
 
-case class AuthConfig(
-  encoder: PasswordEncoder,
+//remove deprecation warning on `PasswordEncoder`
+@silent object PasswordEncoder {
+  type Rudder = org.springframework.security.authentication.encoding.PasswordEncoder
+}
+
+@silent case class AuthConfig(
+  encoder: PasswordEncoder.Rudder,
   users:List[(String,String,Seq[Role])]
 ) extends HashcodeCaching
 

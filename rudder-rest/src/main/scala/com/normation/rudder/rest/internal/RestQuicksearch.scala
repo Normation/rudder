@@ -167,7 +167,8 @@ class RestQuicksearch (
     JArray(jsonList)
   }
 
-  private[this] final case class ResultTypeSummary(
+  // private case class cannot be final because of scalac bug
+  private[this] case class ResultTypeSummary(
       tpe            : String
     , originalNumber : Int
     , returnedNumber : Int
