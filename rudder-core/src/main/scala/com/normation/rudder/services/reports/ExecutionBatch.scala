@@ -682,7 +682,13 @@ object ExecutionBatch extends Loggable {
     val t3 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Compliance: computing policy status for ${nodeId}: ${t3-t2}ms")
 
-    NodeStatusReport.applyByNode(nodeId, runInfo, status, ruleNodeStatusReports)
+    val overrides = runInfo match {
+      case x: ExpectedConfigAvailable => x.expectedConfig.overrides
+      case x: LastRunAvailable        => x.lastRunConfigInfo.map( _.overrides ).getOrElse(Nil).toList
+      case _                          => Nil
+    }
+
+    NodeStatusReport.applyByNode(nodeId, runInfo, status, overrides, ruleNodeStatusReports)
   }
 
 

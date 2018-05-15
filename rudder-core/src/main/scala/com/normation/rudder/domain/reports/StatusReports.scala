@@ -106,6 +106,7 @@ final class NodeStatusReport private (
     val nodeId    : NodeId
   , val runInfo   : RunAndConfigInfo
   , val statusInfo: RunComplianceInfo
+  , val overrides : List[OverridenPolicy]
   , val report    : AggregatedStatusReport
 ) extends StatusReport {
   lazy val compliance = report.compliance
@@ -113,13 +114,13 @@ final class NodeStatusReport private (
 }
 
 object NodeStatusReport {
-  def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, reports: Iterable[RuleNodeStatusReport]) = {
-    new NodeStatusReport(nodeId, runInfo, statusInfo, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
+  def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides : List[OverridenPolicy], reports: Iterable[RuleNodeStatusReport]) = {
+    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
   }
 
   // To use when you are sure that all reports are indeed for the designated node.
-  def applyByNode(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, reports: Iterable[RuleNodeStatusReport]) = {
-    new NodeStatusReport(nodeId, runInfo, statusInfo, AggregatedStatusReport(reports.toSet))
+  def applyByNode(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides : List[OverridenPolicy], reports: Iterable[RuleNodeStatusReport]) = {
+    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport(reports.toSet))
   }
 
   /*
@@ -134,6 +135,7 @@ object NodeStatusReport {
         nodeStatusReport.nodeId
       , nodeStatusReport.runInfo
       , nodeStatusReport.statusInfo
+      , nodeStatusReport.overrides
       , AggregatedStatusReport.applyFromAggregatedStatusReport(nodeStatusReport.report, ruleIds)
     )
 

@@ -265,7 +265,7 @@ function activateButtonOnFormChange(containerDivId, buttonId, status) {
  */
 function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, saveButton) {
   $('#'+buttonId).removeProp("disabled")
-  
+
   // all change on the form
   $('#'+containerDivId+' > form').change(function() { disableButton(saveButton);});
   // This one is for all input (text, textarea, password... and yes, button)
@@ -432,13 +432,13 @@ function filterTableInclude(tableId, filter, include) {
     return;
   }
 
-  
+
   if (filter === "") {
     includeFilter = filter;
   } else {
     includeFilter = finalFilter +"|^"+filter+" »";
   }
-   
+
   var table = $(tableId).DataTable({"retrieve": true});
   if (include === undefined || include) {
     table.column(column).search(includeFilter,true,false,true ).draw();
@@ -561,6 +561,16 @@ $(document).ready(function() {
   createTooltip();
 });
 
+function directiveOverridenTooltip(explanation){
+  var tooltip = "" +
+    "<h4>Directive Skipped On Node</h4>" +
+    "<div class='tooltip-content policy-mode overriden'>"+
+    "<p>This directive is skipped because it is overriden by an other one on that node.</p>"+
+    "<p>"+ explanation +"</p>"+
+    "</div>";
+  return tooltip;
+}
+
 function policyModeTooltip(kind, policyName, explanation){
   var tooltip = "" +
     "<h4>Node Policy Mode </h4>" +
@@ -593,7 +603,12 @@ function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation, conta
   }
   var span = "<span class='rudder-label label-sm "+ labelType +"' data-toggle='tooltip' data-placement='top' data-html='true' "+ dataContainer +" title=''></span>";
   var badge = $(span).get(0);
-  var tooltip = policyModeTooltip(elmnt, policyMode, explanation);
+  var tooltip = null;
+  if(currentPolicyMode == "overriden") {
+    tooltip = directiveOverridenTooltip(explanation);
+  } else {
+    tooltip = policyModeTooltip(elmnt, policyMode, explanation);
+  }
   badge.setAttribute("title", tooltip);
   return badge;
 }
