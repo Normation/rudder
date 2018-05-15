@@ -95,7 +95,7 @@ class DefaultApiAuthorizationLevel(logger: Log) extends ApiAuthorizationLevelSer
 
 
 /*
- * Default authenticatio scheme. It will check for ACL enabled by the plugin.
+ * Default authentication scheme. It will check for ACL enabled by the plugin.
  * In that implementation, we match ACL for token which are of "acl" kind.
  */
 class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () => Boolean) extends ApiAuthorization[AuthzToken] {

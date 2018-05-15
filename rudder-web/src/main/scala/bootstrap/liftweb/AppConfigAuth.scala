@@ -452,25 +452,20 @@ class RestAuthenticationFilter(
    * and authenticate in SpringSecurity with that.
    */
   def doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain): Unit = {
-
     (request, response) match {
-
       case (httpRequest:HttpServletRequest, httpResponse:HttpServletResponse) =>
-
-        httpRequest.getHeader(apiTokenHeaderName) match {
-
+        val token = httpRequest.getHeader(apiTokenHeaderName);
+        token match {
           case null | "" =>
-
             /* support of API v1 rest.AllowNonAuthenticatedUser */
             if(isValidNonAuthApiV1(httpRequest)) {
-
               val name = "api-v1-unauthenticated-account"
               val apiV1Account = ApiAccount(
                   ApiAccountId(name)
                 , ApiAccountKind.PublicApi(ApiAuthorization.None, None) // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
                 , ApiAccountName(name)
                 , ApiToken(name)
-                , "API Accuount for un-authenticated API"
+                , "API Account for un-authenticated API"
                 , true
                 , new DateTime(0)
                 , DateTime.now()
@@ -488,7 +483,6 @@ class RestAuthenticationFilter(
 
           case token =>
             //try to authenticate
-
             val apiToken = ApiToken(token)
             val systemAccount = apiTokenRepository.getSystemAccount
             if (systemAccount.token == apiToken) { // system token with super authz

@@ -68,7 +68,7 @@ import com.normation.rudder.api.ApiAuthorization.RW
 import com.normation.rudder.api.ApiAuthorization.ACL
 
 /**
- *  Centralize all function to serialize datas as valid answer for API Rest
+ *  Centralize all function to serialize data as valid answer for API Rest
  */
 trait RestDataSerializer {
 
