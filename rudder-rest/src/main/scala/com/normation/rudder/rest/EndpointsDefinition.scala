@@ -396,6 +396,18 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
   def endpoints = ca.mrvisser.sealerate.values[RuleApi].toList.sortBy( _.z )
 }
 
+
+sealed trait SystemApi extends EndpointSchema with GeneralApi with SortIndex
+object SystemApi extends ApiModuleProvider[SystemApi] {
+
+  final case object ApiStatus extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description = "Get Api status"
+    val (action, path) = GET / "system" / "status"
+  }
+
+  def endpoints = ca.mrvisser.sealerate.values[SystemApi].toList.sortBy( _.z )
+}
+
 sealed trait InfoApi extends EndpointSchema with GeneralApi with SortIndex
 object InfoApi extends ApiModuleProvider[InfoApi] {
 

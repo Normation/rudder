@@ -110,17 +110,17 @@ class NodeApi (
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-      case API.NodeDetails         => NodeDetails
-      case API.PendingNodeDetails  => PendingNodeDetails
-      case API.DeleteNode          => DeleteNode
-      case API.UpdateNode          => UpdateNode
-      case API.ChangePendingNodeStatus => ChangePendingNodeStatus
+      case API.NodeDetails              => NodeDetails
+      case API.PendingNodeDetails       => PendingNodeDetails
+      case API.DeleteNode               => DeleteNode
+      case API.UpdateNode               => UpdateNode
+      case API.ChangePendingNodeStatus  => ChangePendingNodeStatus
       case API.ChangePendingNodeStatus2 => ChangePendingNodeStatus2
-      case API.ListAcceptedNodes   => ListAcceptedNodes
-      case API.ListPendingNodes    => ListPendingNodes
-      case API.ApplyPocicyAllNodes => ApplyPocicyAllNodes
-      case API.ApplyPolicy         => ApplyPolicy
-    }).toList
+      case API.ListAcceptedNodes        => ListAcceptedNodes
+      case API.ListPendingNodes         => ListPendingNodes
+      case API.ApplyPocicyAllNodes      => ApplyPocicyAllNodes
+      case API.ApplyPolicy              => ApplyPolicy
+    })
   }
 
   object NodeDetails extends LiftApiModule {
@@ -237,7 +237,6 @@ class NodeApi (
               toJsonError(None, failMsg.msg)("listAcceptedNodes",prettify)
 
           }
-
         case eb:EmptyBox =>
           val failMsg = eb ?~ "Node detail level not correctly sent"
           toJsonError(None, failMsg.msg)("listAcceptedNodes",prettify)
