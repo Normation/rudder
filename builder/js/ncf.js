@@ -381,7 +381,13 @@ $scope.getSessionStorage = function(){
       if(!$scope.conflictFlag && !deleted){
         $scope.originalTechnique = existingTechnique;
       }
-    }// else : New technique
+    }else{// else : New technique
+      var saved = $scope.techniques.find(function(technique){return technique.bundle_name === $scope.selectedTechnique.bundle_name })
+      if(saved !== undefined){
+        $scope.originalTechnique = angular.copy(saved);
+        $scope.selectedTechnique = angular.copy(saved);
+      }
+    }
   }// else : Empty session storage
 }
 
@@ -942,7 +948,9 @@ $scope.groupMethodsByCategory = function () {
       if (angular.equals($scope.originalTechnique, origin_technique)) {
         // If we were cloning a technique, remove its 'clone' state
         savedTechnique.isClone = false;
-        $scope.originalTechnique=angular.copy(savedTechnique);
+        if($scope.originalTechnique.bundle_name!=="" && $scope.originalTechnique.bundle_name!==undefined){
+          $scope.originalTechnique=angular.copy(savedTechnique);
+        }
         $scope.selectedTechnique=angular.copy(savedTechnique);
         // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
         $scope.selectedMethod = undefined;
