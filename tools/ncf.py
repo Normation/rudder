@@ -151,6 +151,7 @@ def parse_bundlefile_metadata(content, bundle_type):
   param_constraints = {} 
   multiline = False
   previous_tag = None
+  match_line = ""
 
   for line in content.splitlines():
     # line should already be unicode
@@ -440,7 +441,7 @@ def check_technique_metadata(technique_metadata):
   if len(technique_metadata['bundle_name']) > 253:
     raise NcfError("Bundle names longer than 255 characters won't work on most filesystems.")
   elif len(technique_metadata['bundle_name']) > 100:
-      warnings.push("Bundle names longer than 100 characters may not work on some filesystems (Windows, in particular).")
+    warnings.append("Bundle names longer than 100 characters may not work on some filesystems (Windows, in particular).")
 
   # If there is no method call, raise an exception
   if len(technique_metadata['method_calls']) == 0:
