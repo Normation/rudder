@@ -233,7 +233,7 @@ html, body, .Override.container{
 }
 
 .table-ncf > tbody > tr > td {
-  word-break: break-word;
+  word-break: break-all;
 }
 .table-ncf > tbody > tr:hover > td {
     background-color: #E8E8E8;
@@ -414,7 +414,15 @@ input.form-control.ng-invalid.ng-dirty:focus{
     -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(179, 54, 48, 0.38);
     box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(179, 54, 48, 0.38);
 }
-
+#technique-name{
+  position: relative;
+  padding-right: 150px;
+}
+#technique-name .btn-technique{
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
 /* --- IFRAME --- */
 body.iframe .navbar-inverse.navbar-static-top {
     display: none;
