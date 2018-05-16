@@ -174,9 +174,11 @@
             <div ng-if="selectedTechnique" >
               <div id="editform-container">
                     <div class="title">Technique</div>
-                    <h3 >{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
-                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-delete" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete</a>
-                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone</a>
+                    <h3 id="technique-name">{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
+                        <div class="btn-technique">
+                          <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-delete" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete</a>
+                          <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone</a>
+                        </div>
                     </h3>
                     <accordion>
                         <accordion-group ng-init="isopen = true" is-open="isopen">
