@@ -5,6 +5,7 @@
 import os
 import sys
 import shutil
+import traceback
 
 DEFAULT_NCF_DIR = '/usr/share/ncf'
 
