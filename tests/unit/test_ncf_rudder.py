@@ -47,9 +47,9 @@ class TestNcfRudder(unittest.TestCase):
     any_technique_method_calls = ncf.parse_technique_methods(self.test_any_technique)
     self.any_technique_metadata['method_calls'] = any_technique_method_calls
 
-    self.test_rudder_reporting_file = os.path.realpath('test_technique_rudder_reporting.cf')
-    with open(self.test_rudder_reporting_file) as fd:
-      self.test_rudder_reporting_content = fd.read()
+    self.rudder_reporting_file = os.path.realpath('test_technique_rudder_reporting.cf')
+    with open(self.rudder_reporting_file) as fd:
+      self.rudder_reporting_content = fd.read()
 
     # Testing Techniques with quote
     self.test_technique_with_quote_file = os.path.realpath('test_technique_with_quote.cf')
@@ -68,7 +68,7 @@ class TestNcfRudder(unittest.TestCase):
   def test_rudder_reporting_from_technique(self):
     """The rudder-reporting.cf content generated from a ncf technique must match the reporting we expect for our technique"""
     rudder_reporting_string = ncf_rudder.generate_rudder_reporting(self.technique_metadata)
-    expected_rudder_reporting = self.test_rudder_reporting_content
+    expected_rudder_reporting = self.rudder_reporting_content
     self.assertEqual(expected_rudder_reporting.split("\n"), rudder_reporting_string.split("\n"))
 
 
@@ -131,9 +131,9 @@ class TestNcfRudder(unittest.TestCase):
     diff = self._unidiff_output(result, generated_result)
 
     if len(diff):
-        print
-        print "Test test_rudder_reporting_content failed, this is the diff between expected and actual result:"
-        print diff
+        print()
+        print("Test test_rudder_reporting_content failed, this is the diff between expected and actual result:")
+        print(diff)
 
     self.assertEqual(result, generated_result)
 
@@ -180,9 +180,9 @@ class TestNcfRudder(unittest.TestCase):
     diff = self._unidiff_output(result, generated_result)
 
     if len(diff):
-        print
-        print "Test test_rudder_reporting_with_variable_content failed, this is the diff between expected and actual result:"
-        print diff
+        print()
+        print("Test test_rudder_reporting_with_variable_content failed, this is the diff between expected and actual result:")
+        print(diff)
 
     self.assertEqual(result, generated_result)
 

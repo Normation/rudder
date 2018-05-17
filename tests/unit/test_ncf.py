@@ -211,36 +211,6 @@ class TestNcf(unittest.TestCase):
   # Tests for writing/delete Techniques all metadata info
   #####################################
     
-  def test_generate_technique_content(self):
-    """Test if content from a valid technique generated a valid CFEngine file as expected"""
-    # Expected content of Technique
-    expected_result = []
-    expected_result.append('# @name Bla Technique for evaluation of parsingness')
-    expected_result.append('# @description This meta-Technique is a sample only, allowing for testing.')
-    expected_result.append('# @version 0.1')
-    expected_result.append('')
-    expected_result.append('bundle agent bla')
-    expected_result.append('{')
-    expected_result.append('  methods:')
-    expected_result.append('    "method_call" usebundle => package_install_version("${bla.apache_package_name}", "2.2.11"),')
-    expected_result.append('      ifvarclass => concat("any");')
-
-    expected_result.append('    "method_call" usebundle => service_start("${bla.apache_package_name}"),')
-    expected_result.append('      ifvarclass => concat("cfengine");')
-
-    expected_result.append('    "method_call" usebundle => package_install("openssh-server"),')
-    expected_result.append('      ifvarclass => concat("cfengine");')
-
-    expected_result.append('    "method_call" usebundle => _logger("NA", "NA"),')
-    expected_result.append('      ifvarclass => concat("!cfengine");')
-    expected_result.append('}')
-
-    # Join all lines with \n to get a pretty technique file
-    result = '\n'.join(expected_result)+"\n"
-    generated_result = ncf.generate_technique_content(self.technique_metadata)
-
-    self.assertEqual(result, generated_result)
-
   def test_check_mandatory_keys_technique_metadata(self):
     """Test if a broken metadata raise a correct NcfError exception"""
 
