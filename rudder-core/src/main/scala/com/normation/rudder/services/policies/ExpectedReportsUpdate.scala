@@ -54,6 +54,7 @@ import com.normation.rudder.domain.reports.NodeExpectedReports
 import scalaz.{Failure => _}
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.domain.reports.OverridenPolicy
 
 
 /**
@@ -142,6 +143,11 @@ class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepositor
     val filteredExpandedRuleVals = filterOverridenDirectives(expandedRuleVals, overrides)
 
 
+    //transform overrides toward a map of [nodeId -> OverridenDirectives]
+    val overridesByNode = overrides.groupBy( _.nodeId ).mapValues(seq => seq.map(x =>
+      OverridenPolicy(Cf3PolicyDraftId(x.ruleId, x.directiveId), x.overridenBy)
+    ).toList)
+
     // transform to rule expected reports by node
     val directivesExpectedReports = filteredExpandedRuleVals.map { case ExpandedRuleVal(ruleId, serial, configs) =>
       configs.toSeq.map { case (nodeConfigId, directives) =>
@@ -190,6 +196,7 @@ class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepositor
         , None
         , allNodeModes(nodeId) //that shall not throw, because we have all nodes here
         , rules.toList
+        , overridesByNode.getOrElse(nodeId, Nil)
       )
     }.toList
 

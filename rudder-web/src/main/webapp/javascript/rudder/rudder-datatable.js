@@ -134,7 +134,7 @@ function recentChangesGraph(changes, graphId, displayFullGraph) {
       , bordercolor: 'rgba(54, 162, 235, 1)'
     }]
   };
-  
+
   var option = {
       legend : {
         display : false
@@ -178,8 +178,8 @@ function recentChangesGraph(changes, graphId, displayFullGraph) {
     , data: chartData
     , options : option
   });
-  
-  
+
+
 }
 
 var count = 0
@@ -193,7 +193,7 @@ function generateRecentGraph(id, displayGraph) {
       container.append('<canvas id="'+graphId+'" height="20" ></canvas>');
 
       var myBarChart = recentChangesGraph(changes,graphId,false)
-      
+
       recentGraphs[id] = myBarChart;
 
     }
@@ -483,7 +483,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
   var table = createTable(gridId,data,columns, params, contextPath, refresh, "rules", isPopup);
   table.search("").columns().search("");
   if(isPopup){
-    $('#'+gridId).addClass("table table-hover table-striped table-bordered");   
+    $('#'+gridId).addClass("table table-hover table-striped table-bordered");
   }
 
   // Add callback to checkbox column
@@ -1760,7 +1760,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   $('.dataTables_filter input').attr("placeholder", "Filter");
 
-  $('.tw-bs .modal .dataTables_filter input').addClass("form-control"); 
+  $('.tw-bs .modal .dataTables_filter input').addClass("form-control");
   $('#grid_remove_popup_grid').parent().addClass("table-responsive");
   $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
 

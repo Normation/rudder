@@ -330,10 +330,10 @@ object ChangeLine {
  *   }
  */
 case class RuleComplianceLine (
-    rule        : Rule
-  , id          : RuleId
-  , compliance  : ComplianceLevel
-  , details     : JsTableData[DirectiveComplianceLine]
+    rule             : Rule
+  , id               : RuleId
+  , compliance       : ComplianceLevel
+  , details          : JsTableData[DirectiveComplianceLine]
   , policyMode       : String
   , modeExplanation  : String
 ) extends JsTableLine {
@@ -545,12 +545,20 @@ object ComplianceData extends Loggable {
     , globalMode  : GlobalPolicyMode
   ) : JsTableData[RuleComplianceLine] = {
 
+    //add overriden directive in the list under there rule
+    val overridesByRules = report.overrides.groupBy( _.policy.ruleId )
+
+    //we can have rules with only overriden reports, so we just prepend them. When
+    //a rule is defined for that id, it will override that default.
+    val overridesRules = overridesByRules.mapValues(_ => AggregatedStatusReport(Nil))
+
     val ruleComplianceLine = for {
-      (ruleId, aggregate) <- report.byRules
+      (ruleId, aggregate) <- (overridesRules ++ report.byRules)
       rule                <- rules.find( _.id == ruleId )
     } yield {
       val nodeMode = allNodeInfos.get(nodeId).flatMap { _.policyMode }
-      val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode))
+      val details = getOverridenDirectiveDetails(overridesByRules.getOrElse(ruleId, Nil), directiveLib, rules) ++
+                    getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode))
 
       val directivesMode = aggregate.directives.keys.map(directiveLib.allDirectives.get(_).flatMap(_._2.policyMode)).toSet
       val (policyMode,explanation) = ComputePolicyMode.ruleModeOnNode(nodeMode, globalMode)(directivesMode)
@@ -566,6 +574,40 @@ object ComplianceData extends Loggable {
     }
 
     JsTableData(ruleComplianceLine.toList)
+  }
+
+  def getOverridenDirectiveDetails(
+      overrides   : List[OverridenPolicy]
+    , directiveLib: FullActiveTechniqueCategory
+    , rules       : Seq[Rule]
+  ) : List[DirectiveComplianceLine] = {
+    val overridesData = for {
+      over                            <- overrides
+      (overridenTech , overridenDir)  <- directiveLib.allDirectives.get(over.policy.directiveId)
+      rule                            <- rules.find( _.id == over.overridenBy.ruleId)
+      (overridingTech, overridingDir) <- directiveLib.allDirectives.get(over.overridenBy.directiveId)
+    } yield {
+      val overridenTechName    = overridenTech.techniques.get(overridenDir.techniqueVersion).map(_.name).getOrElse("Unknown technique")
+      val overridenTechVersion = overridenDir.techniqueVersion
+
+      val components = Nil
+      val policyMode = "overriden"
+      val explanation= "This directive is unique: only one directive derived from its technique can be set on a given node "+
+                       s"at the same time. This one is overriden by direcitve '<i><b>${overridingDir.name}</b></i>' in rule "+
+                       s"'<i><b>${rule.name}</b></i>' on that node."
+
+      DirectiveComplianceLine (
+          overridenDir
+        , overridenTechName
+        , overridenTechVersion
+        , ComplianceLevel()
+        , JsTableData(Nil)
+        , policyMode
+        , explanation
+      )
+    }
+
+    overridesData.toList
   }
 
   //////////////// Directive Report ///////////////
@@ -595,7 +637,7 @@ object ComplianceData extends Loggable {
       (fullActiveTechnique, directive) <- directiveLib.allDirectives.get(directiveStatus.directiveId)
     } yield {
       val techniqueName    = fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
-      val techniqueVersion = directive.techniqueVersion;
+      val techniqueVersion = directive.techniqueVersion
       val components       =  getComponentsComplianceDetails(directiveStatus.components.values.toSet, true)
       val (policyMode,explanation) = computeMode(directive.policyMode)
 

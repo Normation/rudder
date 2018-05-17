@@ -77,7 +77,7 @@ class ExecutionBatchTest extends Specification {
     val mode = NodeModeConfig(GlobalComplianceMode(FullCompliance, 30), None, AgentRunInterval(None, 5, 14, 5, 4), None, globalPolicyMode, Some(PolicyMode.Enforce))
     nodeIds.map { id =>
       (NodeId(id) -> NodeExpectedReports(NodeId(id), NodeConfigId("version_" + id), now, None, mode
-                       , List(RuleExpectedReports(RuleId(ruleId), serial, directives))
+                       , List(RuleExpectedReports(RuleId(ruleId), serial, directives)), Nil
                      )
       )
     }.toMap
