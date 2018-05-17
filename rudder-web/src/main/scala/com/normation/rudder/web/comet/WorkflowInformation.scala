@@ -59,6 +59,7 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
   private[this] val isDeployer = CurrentUser.checkRights(AuthorizationType.Deployer.Edit)
   def registerWith = asyncWorkflow
 
+  override val defaultHtml = NodeSeq.Empty
 
   val layout =
     <li class="dropdown notifications-menu">

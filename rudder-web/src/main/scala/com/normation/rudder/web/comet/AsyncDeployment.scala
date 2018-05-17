@@ -62,6 +62,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   override def registerWith = asyncDeploymentAgent
 
+  override val defaultHtml = NodeSeq.Empty
+
   override def lowPriority = {
     case d:DeploymentStatus => deploymentStatus = d ; reRender()
   }
