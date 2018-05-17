@@ -14,16 +14,16 @@ def check_comments_for_all_generic_methods():
     try:
       metadata = ncf.parse_generic_method_metadata(content)['result']
     except Exception as e:
-      print "Error in " + file + ": " + e.__str__()
+      print("Error in " + file + ": " + e.__str__())
 
     if metadata['name'] in names:
-      print "Name '" + metadata['name'] + "' already used by another generic_method (found in file " + file + ")"
+      print("Name '" + metadata['name'] + "' already used by another generic_method (found in file " + file + ")")
       errors += 1
     else:
       names.append(metadata['name'])
 
   if errors == 0:
-    print "R: ./30_generic_methods/each_generic_method_name_should_be_unique.py Pass"
+    print("R: ./30_generic_methods/each_generic_method_name_should_be_unique.py Pass")
 
   return (errors != 0)
 

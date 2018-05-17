@@ -18,7 +18,7 @@ if __name__ == '__main__':
   check_backquotes = re.compile('[^\`]*\$[^\`]*')
   errors = 0
   
-  for name, method in generic_methods.iteritems():
+  for name, method in generic_methods.items():
     if "documentation" in method:
       if check_backquotes.match(method["documentation"]):
         print("Test "+name+" has non escaped $ in its documentation")

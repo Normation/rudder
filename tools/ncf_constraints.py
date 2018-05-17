@@ -8,10 +8,7 @@ import os
 import codecs
 from pprint import pprint
 
-if sys.version_info < (3,):
-  string_type = unicode
-else:
-  string_type = str
+string_type = type(u'')
 
 ### Constraint checking function
 
