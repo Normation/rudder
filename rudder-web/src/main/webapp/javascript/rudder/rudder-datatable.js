@@ -485,7 +485,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
       }
     , "columnDefs": [{
           "targets": [ 0 ]
-        , "visible": false 
+        , "visible": false
         , "searchable": true
       }]
     , "fnDrawCallback": function( oSettings ) {
@@ -1630,6 +1630,7 @@ function compliancePercentValue(compliances) {
   decomposedValues.sort(function(a,b){return b.dec - a.dec;});
   total = decomposedValues.reduce(function(a, b) {;return {val : (a.val + b.val)}; }, {val:0}).val;
   diff = 100 - total;
+
   for(var i=0; i<diff ; i++){
     decomposedValues[i].val++;
   }

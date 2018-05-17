@@ -310,7 +310,9 @@ final object MergePolicyService {
           s"keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}', discarding less priorize: "+
           s"${lesserPriority.map(x => x.id.ruleId.value+"@@"+x.id.directiveId.value).mkString("'", "', ", "'")}")
 
-      val o = (samePriority.tail.map(x => (x.id.ruleId,x.id.directiveId)) ++ lesserPriority.map(x => (x.id.ruleId,x.id.directiveId))).toSet
+      val o = (samePriority.tail.map(x => PolicyId(x.id.ruleId,x.id.directiveId,x.technique.id.version)) ++
+                  lesserPriority.map(x => PolicyId(x.id.ruleId,x.id.directiveId,x.technique.id.version))
+              ).toSet
 
       keep.copy(overrides = o)
     }

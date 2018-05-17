@@ -141,6 +141,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
                 r.nodeId
               , r.runInfo
               , r.statusInfo
+              , Nil // overrides are not used here
               , filtered
             )
           )

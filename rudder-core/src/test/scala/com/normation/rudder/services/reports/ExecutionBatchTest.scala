@@ -46,7 +46,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
 
@@ -77,7 +76,7 @@ class ExecutionBatchTest extends Specification {
     val mode = NodeModeConfig(GlobalComplianceMode(FullCompliance, 30), None, AgentRunInterval(None, 5, 14, 5, 4), None, globalPolicyMode, Some(PolicyMode.Enforce))
     nodeIds.map { id =>
       (NodeId(id) -> NodeExpectedReports(NodeId(id), NodeConfigId("version_" + id), now, None, mode
-                       , List(RuleExpectedReports(RuleId(ruleId), directives))
+                       , List(RuleExpectedReports(RuleId(ruleId), directives)), Nil
                      )
       )
     }.toMap

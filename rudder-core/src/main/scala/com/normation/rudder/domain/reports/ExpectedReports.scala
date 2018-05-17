@@ -37,6 +37,7 @@
 
 package com.normation.rudder.domain.reports
 
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
@@ -57,6 +58,9 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import org.joda.time.Duration
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.services.policies.PolicyId
+import net.liftweb.common.EmptyBox
 
 final case class NodeModeConfig(
     globalComplianceMode: ComplianceMode
@@ -67,6 +71,15 @@ final case class NodeModeConfig(
   , nodePolicyMode      : Option[PolicyMode]
 )
 
+/*
+ * A place where we store overriden directive. We keep what rule->directive
+ * is overriden by what other rule->directive
+ */
+case class OverridenPolicy(
+    policy     : PolicyId
+  , overridenBy: PolicyId
+)
+
 final case class NodeExpectedReports(
     nodeId             : NodeId
   , nodeConfigId       : NodeConfigId
@@ -74,6 +87,7 @@ final case class NodeExpectedReports(
   , endDate            : Option[DateTime]
   , modes              : NodeModeConfig
   , ruleExpectedReports: List[RuleExpectedReports]
+  , overrides          : List[OverridenPolicy]
 ) {
 
   def configInfo = NodeConfigIdInfo(nodeConfigId, beginDate, endDate)
@@ -183,6 +197,7 @@ object ExpectedReportsSerialisation {
   final case class JsonNodeExpectedReports(
       modes              : NodeModeConfig
     , ruleExpectedReports: List[RuleExpectedReports]
+    , overrides          : List[OverridenPolicy]
   )
 
 
@@ -223,6 +238,12 @@ object ExpectedReportsSerialisation {
           } ) )
         )
      ~  ("rules" -> jsonRuleExpectedReports(n.ruleExpectedReports))
+     ~  ("overrides" -> (n.overrides.map { o =>
+          (
+            ("policy"      -> ( ("ruleId" -> o.policy.ruleId.value     ) ~ ("directiveId" -> o.policy.directiveId.value) ))
+          ~ ("overridenBy" -> ( ("ruleId" -> o.overridenBy.ruleId.value) ~ ("directiveId" -> o.overridenBy.directiveId.value) ))
+          )
+        }))
     )
   }
 
@@ -239,7 +260,6 @@ object ExpectedReportsSerialisation {
              ~ ("components"  -> (d.components.map { c =>
                  (
                    ("componentName" -> c.componentName)
-                 // ~ ("cardinality"   -> c.cardinality // #10625: ignore cardinality)
                  ~ ("values"        -> c.componentsValues)
                  ~ ("unexpanded"    -> c.unexpandedComponentsValues)
                  )
@@ -325,6 +345,27 @@ object ExpectedReportsSerialisation {
       }
     }
 
+    def over(json: JValue): Box[OverridenPolicy] = {
+      (
+          (json \ "policy" \ "ruleId")
+        , (json \ "policy" \ "directiveId")
+        , (json \ "overridenBy" \ "ruleId")
+        , (json \ "overridenBy" \ "directiveId")
+     ) match {
+        case (JString(drid), JString(ddid), JString(orid), JString(odid)) =>
+          val (v1, v2) = {
+            ((json \ "policy" \ "techniqueVersion"), (json \ "overridenBy" \ "techniqueVersion")) match {
+              case (JString(v1), JString(v2)) => (TechniqueVersion(v1), TechniqueVersion(v2))
+              case _                          => (TechniqueVersion("0.0"), TechniqueVersion("0.0"))
+            }
+          }
+
+          Full(OverridenPolicy(PolicyId(RuleId(drid), DirectiveId(ddid), v1), PolicyId(RuleId(orid), DirectiveId(odid), v2)))
+        case _ =>
+          Failure(s"Error when parsing rule expected reports from json: '${compactRender(json)}'")
+      }
+    }
+
     def rule(json: JValue): Box[RuleExpectedReports] = {
       (
           (json \ "ruleId" )
@@ -385,6 +426,8 @@ object ExpectedReportsSerialisation {
       }
     }
 
+    val overrideUnserErrorMsg = s"Error when deserializing policy overrides in node configuration. They will be ignore. A full policy regeneration should correct the problem."
+
     for {
       json  <- tryo { parse(s) }
       modes <- (json \ "modes" ) match {
@@ -395,14 +438,27 @@ object ExpectedReportsSerialisation {
                  case JArray(rules) => sequence(rules)(rule)
                  case x             => Failure(s"Error when parsing the list of rules from expected node configuration: '${compactRender(x)}'")
                }
+      over  <- (json \ "overrides") match {
+                 //we don't want to fail nodeconfig etraction for that.
+                 case JArray(overrides) => sequence(overrides)(over) match {
+                   case Full(seq)    => Full(seq)
+                   case eb: EmptyBox =>
+                     val msg = eb ?~! overrideUnserErrorMsg
+                     ApplicationLogger.error(msg.messageChain)
+                     Full(Nil)
+                 }
+                 case x                 =>
+                     ApplicationLogger.error(overrideUnserErrorMsg)
+                     Full(Nil)
+               }
     } yield {
-      JsonNodeExpectedReports(modes, rules.toList)
+      JsonNodeExpectedReports(modes, rules.toList, over.toList)
     }
   }
 
   implicit class NodeToJson(n: NodeExpectedReports) {
     def toJValue() = {
-      jsonNodeExpectedReports(JsonNodeExpectedReports(n.modes, n.ruleExpectedReports))
+      jsonNodeExpectedReports(JsonNodeExpectedReports(n.modes, n.ruleExpectedReports, n.overrides))
     }
     def toJson() = prettyRender(toJValue)
     def toCompactJson = compactRender(toJValue)
