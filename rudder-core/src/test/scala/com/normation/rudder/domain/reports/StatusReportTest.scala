@@ -225,10 +225,11 @@ class StatusReportTest extends Specification {
     val report = NodeStatusReport(
         NodeId("n1")
       , Pending(
-            NodeExpectedReports(NodeId("n1"), NodeConfigId("plop"), DateTime.now(), None, modesConfig, List()) // TODO : correct that test
+            NodeExpectedReports(NodeId("n1"), NodeConfigId("plop"), DateTime.now(), None, modesConfig, Nil, List()) // TODO : correct that test
           , None, DateTime.now.plusMinutes(15)
         )
       , RunComplianceInfo.OK
+      , Nil
     , parse("""
        n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
        n1, r1, 12, d1, c1  , v1  , "", pending   , pending msg

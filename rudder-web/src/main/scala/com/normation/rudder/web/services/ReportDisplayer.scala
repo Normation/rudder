@@ -88,7 +88,7 @@ class ReportDisplayer(
    */
   def asyncDisplay(node : NodeInfo) : NodeSeq = {
     val id = JsNodeId(node.id)
-    val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails",displayReports(node)) )
+    val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails", displayReports(node)) )
     Script(OnLoad(JsRaw(s"""
       if($$("[aria-controls='node_reports']").hasClass('ui-tabs-active')){
         ${callback.toJsCmd}
@@ -318,7 +318,7 @@ class ReportDisplayer(
              * In these case, filter out "unexpected" reports to only
              * keep missing ones, and do not show the "compliance" row.
              */
-            val filtered = NodeStatusReport(report.nodeId, report.runInfo, report.statusInfo, report.report.reports.flatMap { x =>
+            val filtered = NodeStatusReport(report.nodeId, report.runInfo, report.statusInfo, report.overrides, report.report.reports.flatMap { x =>
               x.withFilteredElements(
                   _ => true   //keep all (non empty) directives
                 , _ => true   //keep all (non empty) component values

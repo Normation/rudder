@@ -182,7 +182,7 @@ object Doobie {
         tuple => {
               parseJsonNodeExpectedReports(tuple._5) match {
                 case Full(x)      =>
-                  \/-(NodeExpectedReports(tuple._1, tuple._2, tuple._3, tuple._4, x.modes, x.ruleExpectedReports))
+                  \/-(NodeExpectedReports(tuple._1, tuple._2, tuple._3, tuple._4, x.modes, x.ruleExpectedReports, x.overrides))
                 case eb: EmptyBox =>
                   -\/((tuple._1, tuple._2, tuple._3))
               }

@@ -48,6 +48,13 @@ import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Loggable
+import com.normation.rudder.domain.parameters.ParameterName
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
+import com.normation.rudder.domain.reports.NodeModeConfig
+
 
 case class ParameterForConfiguration(
     name       : ParameterName
@@ -59,6 +66,8 @@ case object ParameterForConfiguration {
     ParameterForConfiguration(param.name, param.value)
   }
 }
+
+
 
 case class NodeConfiguration(
     nodeInfo    : NodeInfo
