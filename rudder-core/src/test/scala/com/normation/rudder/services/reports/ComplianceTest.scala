@@ -191,7 +191,7 @@ class ComplianceTest extends Specification {
         case "" => None
         case d  => Some(dateParser.parseDateTime(d))
       }
-      NodeExpectedReports(NodeId(l(0)), NodeConfigId(l(1)), dateParser.parseDateTime(l(3)), end, json.modes, json.ruleExpectedReports)
+      NodeExpectedReports(NodeId(l(0)), NodeConfigId(l(1)), dateParser.parseDateTime(l(3)), end, json.modes, json.ruleExpectedReports, Nil)
     }
   }
 

@@ -75,6 +75,7 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.hooks.HookEnvPairs
+
 import scala.concurrent.Future
 import com.normation.rudder.hooks.HooksImplicits
 import com.normation.rudder.domain.nodes.NodeState
@@ -85,6 +86,7 @@ import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
+import com.normation.rudder.domain.reports.OverridenPolicy
 
 
 /**
@@ -942,19 +944,6 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
   def complianceCache  : CachedFindRuleNodeStatusReports
   def confExpectedRepo : UpdateExpectedReportsRepository
 
-  /**
-   * Container class to store that for a given
-   * node, for a rule and directive, all values
-   * are overriden by an other directive derived from the
-   * same unique technique
-   */
-  case class UniqueOverrides(
-      nodeId: NodeId
-    , ruleId: RuleId
-    , directiveId: DirectiveId
-    , overridenBy: PolicyId
-  )
-
   override def computeExpectedReports(
       ruleVal          : Seq[RuleVal]
     , configs          : Seq[NodeConfiguration]
@@ -965,6 +954,11 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
 
     configs.map { nodeConfig =>
       val nodeId = nodeConfig.nodeInfo.id
+      // overrides are in the reverse way, we need to transform them into OverridenPolicy
+      val overrides = nodeConfig.policies.flatMap { p =>
+        p.overrides.map(overriden => OverridenPolicy(overriden, p.id) )
+      }
+
       NodeExpectedReports(
           nodeId
         , updatedNodes(nodeId)
@@ -972,6 +966,7 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
         , None
         , allNodeModes(nodeId) //that shall not throw, because we have all nodes here
         , RuleExpectedReportBuilder(nodeConfig.policies)
+        , overrides
       )
     }.toList
   }

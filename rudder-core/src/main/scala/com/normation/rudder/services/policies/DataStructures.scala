@@ -351,7 +351,7 @@ final case class Policy(
   , policyMode         : Option[PolicyMode]
   , ruleOrder          : BundleOrder
   , directiveOrder     : BundleOrder
-  , overrides          : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
+  , overrides          : Set[PolicyId] //a set of other draft overriden by that one
 ) extends Loggable {
 
   // here, it is extremely important to keep sorted order
@@ -469,7 +469,7 @@ final case class BoundPolicyDraft(
   , policyMode     : Option[PolicyMode]
   , ruleOrder      : BundleOrder
   , directiveOrder : BundleOrder
-  , overrides      : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
+  , overrides      : Set[PolicyId] //a set of other draft overriden by that one
 ) {
 
   /**
