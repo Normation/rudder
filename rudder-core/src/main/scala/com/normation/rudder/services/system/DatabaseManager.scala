@@ -45,6 +45,16 @@ import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.utils.Control
 
+
+sealed trait DeleteCommand {
+  def date: DateTime
+}
+
+object DeleteCommand {
+  final case class Reports        (date: DateTime) extends DeleteCommand
+  final case class ComplianceLevel(date: DateTime) extends DeleteCommand
+}
+
 trait DatabaseManager {
 
   /**
@@ -77,7 +87,7 @@ trait DatabaseManager {
   /**
    * Delete reports older than target date both in archived reports and reports database
    */
-  def deleteEntries(date : DateTime) : Box[Int]
+  def deleteEntries(reports: DeleteCommand.Reports, complianceLevels: Option[DeleteCommand.ComplianceLevel]) : Box[Int]
 }
 
 class DatabaseManagerImpl(
@@ -111,14 +121,14 @@ class DatabaseManagerImpl(
    }
 
 
-   def deleteEntries(date : DateTime) : Box[Int] = {
-     val reports = reportsRepository.deleteEntries(date) ?~! "An error occured while deleting reports"
-     val nodeConfigs = expectedReportsRepo.deleteNodeConfigIdInfo(date) ?~! "An error occured while deleting old node configuration IDs"
-     val deleteNodeConfigs = expectedReportsRepo.deleteNodeConfigurations(date) ?~! "An error occured while deleting Node Configurations"
-     val deleteNodeCompliances = expectedReportsRepo.deleteNodeCompliances(date) ?~! "An error occured while deleting Node Compliances"
+   def deleteEntries(reports: DeleteCommand.Reports, complianceLevels: Option[DeleteCommand.ComplianceLevel]) : Box[Int] = {
+     val nodeReports = reportsRepository.deleteEntries(reports.date) ?~! "An error occured while deleting reports"
+     val nodeConfigs = expectedReportsRepo.deleteNodeConfigIdInfo(reports.date) ?~! "An error occured while deleting old node configuration IDs"
+     val deleteNodeConfigs = expectedReportsRepo.deleteNodeConfigurations(reports.date) ?~! "An error occured while deleting Node Configurations"
+     val deleteNodeCompliances = expectedReportsRepo.deleteNodeCompliances(reports.date) ?~! "An error occured while deleting Node Compliances"
+     val deleteNodeComplianceLevels = Box(complianceLevels).flatMap(c => expectedReportsRepo.deleteNodeComplianceLevels(c.date) ?~! "An error occured while deleting Node Compliances")
 
      // Accumulate errors, them sum values
-     (Control.bestEffort(Seq(reports, nodeConfigs, deleteNodeConfigs, deleteNodeCompliances)) (identity)).map(_.sum)
-
+     (Control.bestEffort(Seq(nodeReports, nodeConfigs, deleteNodeConfigs, deleteNodeCompliances, deleteNodeComplianceLevels)) (identity)).map(_.sum)
    }
 }
