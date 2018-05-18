@@ -675,6 +675,14 @@ object RudderConfig extends Loggable {
       , restDataSerializer
     )
 
+  // System API
+
+  val systemApiService11 = new SystemApiService11(
+                                updateTechniqueLibrary
+                              , uuidGen
+                              , updateDynamicGroups
+  )
+
   private[this] val complianceAPIService = new ComplianceAPIService(
           roRuleRepository
         , nodeInfoService
@@ -717,7 +725,7 @@ object RudderConfig extends Loggable {
       , new TechniqueApi(restExtractorService, techniqueApiService6)
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
       , new UserApi(restExtractorService, roApiAccountRepository, woApiAccountRepository, tokenGenerator, stringUuidGenerator)
-      , new SystemApi(restExtractorService)
+      , new SystemApi(restExtractorService, systemApiService11)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 
