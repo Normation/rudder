@@ -1,3 +1,6 @@
 #!/bin/bash
 
 make test-common
+
+find . -name '*.py' | xargs pylint -E --disable=C,R --persistent=n
+pylint -E --disable=C,R --persistent=n --init-hook="sys.path[0:0] = ['./tools']" ncf
