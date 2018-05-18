@@ -43,7 +43,7 @@ import sourcecode.Line
 
 
 /*
- * This file contains the definution of all endpoint schema
+ * This file contains the definition of all endpoint schema
  * in Rudder base.
  *
  * Any module wanting to contribute an API
@@ -400,10 +400,29 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
 sealed trait SystemApi extends EndpointSchema with GeneralApi with SortIndex
 object SystemApi extends ApiModuleProvider[SystemApi] {
 
-  final case object ApiStatus extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+  final case object Status extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
     val description = "Get Api status"
     val (action, path) = GET / "system" / "status"
-  }
+    }
+
+  // For now, the techniques reload endpoint is implemented in the System API
+  // but moving it inside the Techniques API should be discussed.
+
+   final case object TechniquesReload extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+     val description = "reload all techniques" // automatically done every 5 minutes
+     val (action, path) = POST / "system" / "action" / "techniques" /"reload"
+    }
+
+   final case object DyngroupsReload extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+      val description = "reload all dynamic groups"
+      val (action, path) = POST / "system" / "action" / "groups" / "reload"
+    }
+
+   final case object ReloadAll extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+      val description = "reload both techniques and dynamic groups"
+      val (action, path) = POST / "system" / "action" / "reload"
+    }
+
 
   def endpoints = ca.mrvisser.sealerate.values[SystemApi].toList.sortBy( _.z )
 }
