@@ -3,12 +3,12 @@
 #####################################################################################
 #
 # This file is part of Rudder.
-# 
+#
 # Rudder is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # In accordance with the terms of section 7 (7. Additional Terms.) of
 # the GNU General Public License version 3, the copyright holders add
 # the following Additional permissions:
@@ -21,12 +21,12 @@
 # documentation that, without modification of the Source Code, enables
 # supplementary functions or services in addition to those offered by
 # the Software.
-# 
+#
 # Rudder is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -34,7 +34,7 @@
 #####################################################################################
 
 ##
-# Default configuration file for the application. 
+# Default configuration file for the application.
 # You can define the location of the file by
 # setting "rudder.configFile" JVM property,
 # for example:
@@ -75,7 +75,7 @@ rudder.endpoint.cmdb=http://localhost:8080/endpoint/upload/
 rudder.server.relay.api=https://localhost/rudder/relay-api
 
 #
-# The port used by the rsyslog server on the Rudder root server. 
+# The port used by the rsyslog server on the Rudder root server.
 # Default port number is 514, but in some cases this may need to be changed.
 # For example, on Ubuntu version >= 12.04 rsyslog runs as a non-root user,
 # so using port 514 is not permitted, thus we must use a port higher than 1024.
@@ -94,10 +94,10 @@ ldap.host=localhost
 ldap.port=389
 ldap.authdn=cn=manager,cn=rudder-configuration
 #
-# Password used to connect to the OpenLDAP server. 
-# On a standard Rudder installation, the password is managed in 
+# Password used to connect to the OpenLDAP server.
+# On a standard Rudder installation, the password is managed in
 # "/opt/rudder/etc/rudder-passwords.conf" and the value below
-# will be overriden. 
+# will be overriden.
 #
 ldap.authpw=secret
 
@@ -114,10 +114,10 @@ rudder.jdbc.driver=org.postgresql.Driver
 rudder.jdbc.url=jdbc:postgresql://localhost:5432/rudder
 rudder.jdbc.username=rudder
 #
-# Password used to connect to the PostgreSQL server. 
-# On a standard Rudder installation, the password is managed in 
+# Password used to connect to the PostgreSQL server.
+# On a standard Rudder installation, the password is managed in
 # "/opt/rudder/etc/rudder-passwords.conf" and the value below
-# will be overriden. 
+# will be overriden.
 #
 rudder.jdbc.password=Normation
 rudder.jdbc.maxPoolSize=25
@@ -146,6 +146,18 @@ rudder.jdbc.maxPoolSize=25
 
 rudder.batch.reportscleaner.archive.TTL=4
 rudder.batch.reportscleaner.delete.TTL=90
+
+#
+# Automatic compliance levels cleaning.
+# This allows you to define the periode of time during which
+# compliance level data for nodes, by run, up to directive
+# granularity are kept.
+# The table grows at ~60kB / node / directive / day
+# (ie, for 100 nodes, with 15 rules having each of them 10 directives,
+# you need ~25GB for a month back of data).
+# There is no archive state for compliance levels.
+#
+rudder.batch.reportscleaner.compliancelevels.delete.TTL=15
 
 #
 # Schedule option for automatic cleaning
@@ -193,21 +205,21 @@ rudder.webdav.password=rudder
 ####################################
 
 #
-# Port used by the community edition of CFEngine agent to 
+# Port used by the community edition of CFEngine agent to
 # contact the server (that's the server port).
 #
 rudder.community.port=5309
 
 #
-# Path to where CFEngine Enterprise (ex Nova) licenses are stored. 
+# Path to where CFEngine Enterprise (ex Nova) licenses are stored.
 #
 rudder.dir.licensesFolder=/opt/rudder/etc/licenses
 
 #
-# Directories used to write nodes promises. 
+# Directories used to write nodes promises.
 # - promises generated for a node with id UUID go in ***/var/rudder/share/UUID***
 #   For now, that property can not be modified, because there is no simple
-#   way of doing that and letting node knowing where to go look for there promises. 
+#   way of doing that and letting node knowing where to go look for there promises.
 # - promises generated for CFEngine community server go into ***/var/rudder/cfengine-community/inputs***
 # - promises generated for CFEngine Nova server go into ***/var/cfengine/inputs***
 # - 'rudder.dir.backup' is the directory path where previous configuration of each node are stored
@@ -224,20 +236,20 @@ rudder.dir.shared.files.folder=/var/rudder/configuration-repository/shared-files
 
 #
 # Debug Node Configuration parameters
-# 
-# Node Configurations are all the parameters (global parameters, 
+#
+# Node Configurations are all the parameters (global parameters,
 # applied rules/directives with their parameters, node information, etc)
 # contextualized for the node. They are the resources used to actually
-# generate promises for THAT node. 
+# generate promises for THAT node.
 #
 # By default, these information are only used internally by Rudder and
-# are not available to the user. But they may be needed in some cases, 
-# for debugging. 
+# are not available to the user. But they may be needed in some cases,
+# for debugging.
 #
 # This option allows to define the directory where the node configurations
-# (in JSON format) will go. 
-# 
-# To enable the writing of node configurations, enable the logger 
+# (in JSON format) will go.
+#
+# To enable the writing of node configurations, enable the logger
 # named "rudder.debug.nodeconfiguration" in logback.xml
 #
 rudder.debug.nodeconfiguration.path=/var/log/rudder/nodeConfigurations
@@ -247,18 +259,18 @@ rudder.debug.nodeconfiguration.path=/var/log/rudder/nodeConfigurations
 ############################################
 
 #
-# The path of the root directory of the Technique library. 
-# It MUST be the same directory of ${rudder.dir.gitRoot} 
+# The path of the root directory of the Technique library.
+# It MUST be the same directory of ${rudder.dir.gitRoot}
 # or one of its sub-directories
 #
 rudder.dir.techniques=/var/rudder/configuration-repository/techniques
 
 
 #
-# The directory containing tools used by Rudder or nodes. 
+# The directory containing tools used by Rudder or nodes.
 # You should configure the path of that directory to be
 # the "tools" subdirectory of "rudder-technique" local
-# clone of git repository 
+# clone of git repository
 # (see property rudder.git.rudder-technique)
 #
 rudder.dir.dependencies=/var/rudder/tools
@@ -274,10 +286,10 @@ rudder.batch.techniqueLibrary.updateInterval=5
 
 #
 # Configure the refs path to use for the git repository for
-# the Technique Reference Library. 
+# the Technique Reference Library.
 # The default is to use "refs/heads/master" (the local master
-# branch). 
-# You have to use the full ref path. 
+# branch).
+# You have to use the full ref path.
 #
 rudder.techniqueLibrary.git.refs.path=refs/heads/master
 
@@ -288,22 +300,22 @@ rudder.techniqueLibrary.git.refs.path=refs/heads/master
 
 #
 # Configuration repository is the place where all Group/Directive/Rules
-# configured by the user are historized. 
+# configured by the user are historized.
 #
 
 #
-# The full path to the directory containing the 
+# The full path to the directory containing the
 # .git,  directives, groups and rules directories.
 #
 rudder.dir.gitRoot=/var/rudder/configuration-repository
 
 #
-# If true, an archive of Rules, groups, 
+# If true, an archive of Rules, groups,
 # Directives and Active Techniques are recorded
 # to the rudder.dir.gitRoot directory specified above
 # and a git commit is performed when any of these items is modified.
 # Boolean, defaults to true.
-# 
+#
 rudder.autoArchiveItems=true
 
 ###############################
@@ -325,17 +337,17 @@ rudder.batch.dyngroup.updateInterval=5
 #
 # Boolean, defaults to true
 # If true, REST API urls v1 won't require
-# to be authenticated to be accessed. 
-# The reason to have default=true for that is 
-# that in that use case, the authorization and 
+# to be authenticated to be accessed.
+# The reason to have default=true for that is
+# that in that use case, the authorization and
 # authentication part for the REST API
 # will be done by a third party software, like Apache
 #
 # If false, these API will need to be authenticated
-# with a valid token managed in the 
-# "Administration => API Accounts" screen of Rudder 
+# with a valid token managed in the
+# "Administration => API Accounts" screen of Rudder
 # web application.
-# 
+#
 # API affected by that property:
 # - /api/status
 # - /api/techniqueLibrary/reload
@@ -344,7 +356,7 @@ rudder.batch.dyngroup.updateInterval=5
 # - /api/archives/*
 #
 #  DEPRECATED: use of authentication token will become
-#              mandatory for all API URLs. 
+#              mandatory for all API URLs.
 #
 rudder.rest.allowNonAuthenticatedUser=true
 
@@ -356,10 +368,10 @@ rudder.rest.allowNonAuthenticatedUser=true
 # Inventory historization root directory
 #
 # The directory used as root directory to store LDIF dump
-# of historized inventories. 
-# It must be synchronise with the property of the same name in 
-# the "inventory endpoint" web application (inventory-web.properties), 
-# which is the application actually writing the files. 
+# of historized inventories.
+# It must be synchronise with the property of the same name in
+# the "inventory endpoint" web application (inventory-web.properties),
+# which is the application actually writing the files.
 #
 # This historized inventories are used in the node acceptation
 # screen, to keep information about the state of the node
@@ -371,9 +383,9 @@ history.inventories.rootdir=/var/rudder/inventories/historical
 # Non compliant reports logger #################################################
 ###############################
 
-# Rudder can log a line for each 5 minute period when configuration policy is 
+# Rudder can log a line for each 5 minute period when configuration policy is
 # not correctly applied (in error or repaired).
-# 
+#
 # Default path is /var/log/rudder/compliance/non-compliant-reports.log, and can
 # be changed in /opt/rudder/etc/logback.xml.
 #
@@ -401,7 +413,7 @@ rudder.batch.reports.logInterval=1
 rudder.batch.storeAgentRunTimes.maxDays=5
 
 # Delay before to launch of the reports executions actor (default : 5)
-# 
+#
 # This value determine the frequency of the reports executions actor.
 # This needs to be run very often so you should keep it as low as possible.
 # Having a low delay will means that agent executions are almost synchronized with now.
@@ -416,10 +428,10 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 
 #
 # Rudder has a root admin account, with full rights on the
-# application, and whose authentication is independant from 
-# the authentication provider chosen (file, LDAP, etc). 
+# application, and whose authentication is independant from
+# the authentication provider chosen (file, LDAP, etc).
 # By default, the accound is disabled (either by letting the
-# the login or the password empty, or by commenting it). 
+# the login or the password empty, or by commenting it).
 #
 
 #rudder.auth.admin.login=rootadmin
@@ -428,35 +440,35 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 #
 # By default, both authentication and authorization are handle in the rudder-users.xml
 # file. But you may want to rely on your existing entreprise Active Directory or LDAP
-# to take care of the authentication part. 
+# to take care of the authentication part.
 # To choose the scheme to use, either use 'file' or 'ldap' for the rudder.auth.type
-# parameter. 
-# You can also use a comma separated list of authentication provider to use, 
-# like 'ldap, file' in which case each one will be tested in turned for authentication. 
-# 
-# When set to 'ldap', passwords in rudder-users.xml are ignored and the 
-# authentication is delegated to the LDAP server configured below. 
+# parameter.
+# You can also use a comma separated list of authentication provider to use,
+# like 'ldap, file' in which case each one will be tested in turned for authentication.
+#
+# When set to 'ldap', passwords in rudder-users.xml are ignored and the
+# authentication is delegated to the LDAP server configured below.
 # By convention, when LDAP authentication is enable, 'password' field in
-# rudder-users.xml are set to 'LDAP' 
+# rudder-users.xml are set to 'LDAP'
 #
 # Comma separated list of authentication providers. Default provider are
-# 'file', 'ldap'. 
+# 'file', 'ldap'.
 #
 rudder.auth.provider=file
 
 
-# The following parameters allow to configure the LDAP authentication provider. 
-# The LDAP authentication procedure is a typical bind/search/rebind, in which 
-# an application connection (bind) is used to search (search) for an user entry 
-# given some base and filter parameters, and then, a bind (rebind) is tried on 
-# that entry with the credential provided by the user. 
-# That allows to seperate the user DN (especially RDN) from the search criteria. 
+# The following parameters allow to configure the LDAP authentication provider.
+# The LDAP authentication procedure is a typical bind/search/rebind, in which
+# an application connection (bind) is used to search (search) for an user entry
+# given some base and filter parameters, and then, a bind (rebind) is tried on
+# that entry with the credential provided by the user.
+# That allows to seperate the user DN (especially RDN) from the search criteria.
 #
 # Be careful, the authorization is still done in the rudder-user.xml, what means
-# that each user should have access to Rudder MUST have a line in that file. 
+# that each user should have access to Rudder MUST have a line in that file.
 # Without that line, the user can have a successful LDAP authentication, but
-# won't be able to do or see anything in Rudder (safe logout). 
-# 
+# won't be able to do or see anything in Rudder (safe logout).
+#
 
 #
 # Connection URL to the LDAP server, in the form:
@@ -472,22 +484,22 @@ rudder.auth.ldap.connection.bind.dn=cn=admin,dc=mycorp,dc=com
 
 #
 # Bind password used by Rudder to do the search.
-# String, no default value. 
+# String, no default value.
 #
 rudder.auth.ldap.connection.bind.password=secret
 
 #
-# Search base and filter to use to find the user. 
-# The search base can be left empty. 
+# Search base and filter to use to find the user.
+# The search base can be left empty.
 # In the filter, {0} denotes the value provided as
-# login by the user. 
+# login by the user.
 #
 rudder.auth.ldap.searchbase=ou=People
 rudder.auth.ldap.filter=(&(uid={0})(objectclass=person))
 
 #
 # An AD example would be:
-# 
+#
 #rudder.auth.ldap.searchbase=
 #rudder.auth.ldap.filter=(&(sAMAccountName={0})(objectclass=user))
 
@@ -533,12 +545,12 @@ rudder.server-roles.cfengine-mission-portal=autodetect
 # Server side Hooks #############################################################
 ####################
 
-# This property contains the comma separated list of suffixes that will be checked 
-# before running a hook under /opt/rudder/etc/hooks.d. 
+# This property contains the comma separated list of suffixes that will be checked
+# before running a hook under /opt/rudder/etc/hooks.d.
 # If an executable file has one of the following suffixes, it
-# will be IGNORED and the corresponding hook skipped. Non executable files are 
-# always ignored, with or without any of these suffixes. 
-# 
+# will be IGNORED and the corresponding hook skipped. Non executable files are
+# always ignored, with or without any of these suffixes.
+#
 # Spaces are trimmed. Case is not relevant (both .disabled and .DISABLED will be ignored)
 
 rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
@@ -558,7 +570,7 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
 # Command line tools used to check the validity of generated promises
 # DEPRECATED: these commands aren't used anymore. This task is now managed by hook:
 #             /opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check
-#             
+#
 #rudder.community.checkpromises.command=/var/rudder/cfengine-community/bin/cf-promises
 #rudder.nova.checkpromises.command=/bin/true
 
@@ -572,19 +584,19 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
 
 
 #
-# A list of properties actually used in Rudder, but for features disable in the UI. 
+# A list of properties actually used in Rudder, but for features disable in the UI.
 #
 
 #
 #  Upload directory
 #  The directory where new uploaded files are stored
-#  DEPRECATED: not used any more in Rudder UI. 
+#  DEPRECATED: not used any more in Rudder UI.
 #
 upload.root.directory=/var/rudder/files/
 
 #
 # The directory used to put uploaded files shared between
-# several nodes. 
+# several nodes.
 # A symlink from the file to the relevant node promise directory
 # will be created on each node needing the file in place
 # of copying it.
@@ -594,14 +606,14 @@ rudder.dir.uploaded.file.sharing=/var/rudder/files/
 #
 #  Emergency stop
 #  path to the script/binary that allows emergency orchestrator stop
-#  DEPRECATED: feature no more available in Rudder UI. 
+#  DEPRECATED: feature no more available in Rudder UI.
 #
 bin.emergency.stop=/opt/rudder/bin/cfe-red-button.sh
 
 #
 # LDAP DIT configuration
 #
-# You must not modify the following properties, used to 
+# You must not modify the following properties, used to
 # configure the internal structure of the LDAP Directory.
 # DEPRECATED: Changing these values will result in a non-working Rudder server
 #
