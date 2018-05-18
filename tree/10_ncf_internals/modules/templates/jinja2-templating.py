@@ -20,7 +20,6 @@
 
 import sys
 import os
-import sys
 from optparse import OptionParser
 
 import jinja2

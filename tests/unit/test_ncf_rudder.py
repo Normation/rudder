@@ -222,7 +222,7 @@ class TestNcfRudder(unittest.TestCase):
     # python3 tests
     if sys.version_info[0] == 3:
       # unicode in source file -> correct unicode in python string (ncf builder use case)
-      result = ncf_rudder.canonify('héhé')
+      result = ncf.canonify('héhé')
       self.assertEquals(result, "h__h__")
 
 

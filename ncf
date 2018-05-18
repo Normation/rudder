@@ -60,7 +60,7 @@ def write_techniques(root_path, opt_bundle_name):
     if techniques[opt_bundle_name] is not None:
       techniques = { opt_bundle_name : techniques[opt_bundle_name] }
     else:
-      sys.stderr.write("Error: Unable to write Technique files related to Technique '"+technique+"', skipping... (Technique '"+technique+"' does not exist)\n")
+      sys.stderr.write("Error: Unable to write Technique files related to Technique '"+opt_bundle_name+"', skipping... (Technique '"+opt_bundle_name+"' does not exist)\n")
       exit(1)
 
   ret = 0
