@@ -226,11 +226,16 @@ object RudderProperties {
         }
     }
 
+  // some value used as defaults for migration
+  val migrationConfig =
+    s"""rudder.batch.reportscleaner.compliancelevels.delete.TTL=15
+    """
+
   val config : Config = {
-    configResource match {
+    (configResource match {
       case ClassPathResource(name) => ConfigFactory.load(name)
       case FileSystemResource(file) => ConfigFactory.load(ConfigFactory.parseFile(file))
-    }
+    }).withFallback(ConfigFactory.parseString(migrationConfig))
   }
 
   //some logic for the authentication providers
