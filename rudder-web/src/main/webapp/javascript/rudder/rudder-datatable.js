@@ -1571,7 +1571,7 @@ function compliancePercentValue(compliances) {
   var obj = {};
   var tmp,diff,total;
   for(var i in compliances){
-	tmp = compliances[i];
+  	tmp = compliances[i];
     obj = {
       val : parseInt(tmp)
     , dec : tmp%1
@@ -1579,10 +1579,14 @@ function compliancePercentValue(compliances) {
     };
     decomposedValues.push(obj);
   }
+
   decomposedValues.sort(function(a,b){return b.dec - a.dec;});
   total = decomposedValues.reduce(function(a, b) {;return {val : (a.val + b.val)}; }, {val:0}).val;
+
+  //we can have total = 0 in the case of overriden directives. We don't want to loop until 100.
+  //in fact, that loop can't be ok if (100 - total) > decomposedValue.length
   diff = 100 - total;
-  for(var i=0; i<diff ; i++){
+  for(var i=0; i<diff && i<decomposedValues.length; i++){
     decomposedValues[i].val++;
   }
   decomposedValues.sort(function(a,b){return a.ind - b.ind;});
