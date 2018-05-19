@@ -52,7 +52,6 @@ import com.normation.rudder.db.Doobie._
 import doobie._, doobie.implicits._
 import cats.implicits._
 import com.normation.rudder.domain.logger.PolicyLogger
-import com.normation.rudder.domain.logger.ReportLogger
 
 
 class PostgresqlInClause(
@@ -197,12 +196,10 @@ class FindExpectedReportsJdbcRepository(
 class UpdateExpectedReportsJdbcRepository(
     doobie     : Doobie
   , pgInClause: PostgresqlInClause
-) extends UpdateExpectedReportsRepository {
+) extends UpdateExpectedReportsRepository with Loggable {
 
   import doobie._
   import Doobie._
-
-  val logger = ReportLogger
 
   override def closeNodeConfigurations(nodeId: NodeId): Box[NodeId] = {
     sql"""
@@ -456,31 +453,6 @@ class UpdateExpectedReportsJdbcRepository(
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
       case Right(i)  => Full(i.sum)
-    }
-  }
-
-  /**
-   * Delete all node compliance levels whose run timestamp is before a date
-   */
-  override def deleteNodeComplianceLevels(date: DateTime) : Box[Int] = {
-
-    val dateAt_0000 = date.toString("yyyy-MM-dd")
-    val d1 = s"delete from nodecompliancelevels where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'"
-
-    logger.debug(s"""Deleting NodeCompliance with SQL query: [[
-                   | ${d1}
-                   |]]""".stripMargin)
-
-    (for {
-      i <- Update0(d1, None).run.attempt.transact(xa).unsafeRunSync()
-    } yield {
-      i
-    }) match  {
-      case Left(ex) =>
-        val msg ="Could not delete NodeCompliance in the database, cause is " + ex.getMessage()
-        logger.error(msg)
-        Failure(msg, Full(ex), Empty)
-      case Right(i) => Full(i)
     }
   }
 

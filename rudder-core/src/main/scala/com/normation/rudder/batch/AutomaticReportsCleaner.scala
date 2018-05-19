@@ -45,7 +45,6 @@ import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import net.liftweb.actor.SpecializedLiftActor
-import com.normation.rudder.services.system.DeleteCommand
 
 /**
  *  An helper object designed to help building automatic reports cleaning
@@ -267,11 +266,10 @@ trait DatabaseCleanerActor extends SpecializedLiftActor[DatabaseCleanerMessage] 
  *  Archive action doesn't run if its TTL is more than Delete TTL.
  */
 class AutomaticReportsCleaning(
-    val dbManager         : DatabaseManager
-  , val deletettl         : Int // in days
-  , val archivettl        : Int // in days
-  , val complianceLevelttl: Int // in days
-  , val freq              : CleanFrequency
+        dbManager : DatabaseManager
+  , val deletettl : Int // in days
+  , val archivettl: Int // in days
+  , val freq      : CleanFrequency
 ) {
   val reportLogger = ReportLogger
   val logger = ScheduledJobLogger
@@ -280,16 +278,16 @@ class AutomaticReportsCleaning(
   val archiver:DatabaseCleanerActor = if(archivettl < 1) {
     val propertyName = "rudder.batch.reportsCleaner.archive.TTL"
     reportLogger.info("Disable automatic database archive sinces property %s is 0 or negative".format(propertyName))
-    new LADatabaseCleaner(ArchiveAction(dbManager,this),-1, complianceLevelttl)
+    new LADatabaseCleaner(ArchiveAction(dbManager,this),-1)
   } else {
     // Don't launch automatic report archiving if reports would have already been deleted by automatic reports deleting
     if ((archivettl < deletettl ) && (deletettl > 0)) {
       logger.trace("***** starting Automatic Archive Reports batch *****")
-      new LADatabaseCleaner(ArchiveAction(dbManager,this),archivettl, complianceLevelttl)
+      new LADatabaseCleaner(ArchiveAction(dbManager,this),archivettl)
     }
     else {
       reportLogger.info("Disable automatic archive since archive maximum age is older than delete maximum age")
-      new LADatabaseCleaner(ArchiveAction(dbManager,this),-1, complianceLevelttl)
+      new LADatabaseCleaner(ArchiveAction(dbManager,this),-1)
     }
   }
   archiver ! CheckLaunch
@@ -297,10 +295,10 @@ class AutomaticReportsCleaning(
   val deleter:DatabaseCleanerActor = if(deletettl < 1) {
     val propertyName = "rudder.batch.reportsCleaner.delete.TTL"
     reportLogger.info("Disable automatic database deletion sinces property %s is 0 or negative".format(propertyName))
-    new LADatabaseCleaner(DeleteAction(dbManager,this),-1, complianceLevelttl)
+    new LADatabaseCleaner(DeleteAction(dbManager,this),-1)
   } else {
     logger.trace("***** starting Automatic Delete Reports batch *****")
-    new LADatabaseCleaner(DeleteAction(dbManager,this), deletettl, complianceLevelttl)
+    new LADatabaseCleaner(DeleteAction(dbManager,this),deletettl)
   }
   deleter ! CheckLaunch
 
@@ -308,15 +306,11 @@ class AutomaticReportsCleaning(
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
 
-  private class LADatabaseCleaner(cleanaction:CleanReportAction, reportsttl:Int, compliancettl:Int) extends DatabaseCleanerActor {
+  private class LADatabaseCleaner(cleanaction:CleanReportAction,ttl:Int) extends DatabaseCleanerActor {
     updateManager =>
 
     private[this] val reportLogger = ReportLogger
-    private[this] val automatic = reportsttl > 0
-    // compliancettl may be disabled, it's managed with the Option[DeleteCommand.ComplianceLevel]
-    // We don't handle the case where compliancelevel cleaning would be enabled and reports one
-    // disable, because really, if someone has enought free space to keep ruddersysevent forever,
-    // he can handle compliance forever, too.
+    private[this] val automatic = ttl > 0
     private[this] var currentState: CleanerState = IdleCleaner
     private[this] var lastRun: DateTime = DateTime.now()
 
@@ -325,9 +319,9 @@ class AutomaticReportsCleaning(
     private[this] def formatDate(date:DateTime) : String = date.toString("yyyy-MM-dd HH:mm")
     val logger = ScheduledJobLogger
 
-    private[this] def activeCleaning(reports: DeleteCommand.Reports, compliances: Option[DeleteCommand.ComplianceLevel], message : DatabaseCleanerMessage, kind:String) : Unit = {
-      val formattedDate = formatDate(reports.date)
-      cleanaction.act(reports, compliances) match {
+    private[this] def activeCleaning(date : DateTime, message : DatabaseCleanerMessage, kind:String) : Unit = {
+      val formattedDate = formatDate(date)
+      cleanaction.act(date) match {
         case eb:EmptyBox =>
           // Error while cleaning. Do not start again, since there is heavy chance
           // that without an human intervention, it will fail again, leading to
@@ -382,19 +376,11 @@ class AutomaticReportsCleaning(
 
           case ActiveCleaner =>
             val now = DateTime.now
-            val reportsCommand = DeleteCommand.Reports(now.minusDays(reportsttl))
-            val complianceCommand = if(compliancettl > 0) {
-              Some(DeleteCommand.ComplianceLevel(now.minusDays(compliancettl)))
-            } else {
-              None
-            }
-            val formattedDate = formatDate(reportsCommand.date)
+            val target = now.minusDays(ttl)
+            val formattedDate = formatDate(target)
             logger.trace("***** %s Database *****".format(cleanaction.name))
-            reportLogger.info(s"Reports database: Automatic ${cleanaction.name.toLowerCase()} started for all reports before ${formattedDate}")
-            complianceCommand.foreach { c =>
-              reportLogger.info(s"Compliance level database: Automatic ${cleanaction.name.toLowerCase()} started for all compliance levels reports before ${formatDate(c.date)}")
-            }
-            activeCleaning(reportsCommand, complianceCommand, CleanDatabase,"automatic")
+            reportLogger.info("Reports database: Automatic %s started for all reports before %s".format(cleanaction.name.toLowerCase(),formattedDate))
+            activeCleaning(target,CleanDatabase,"automatic")
 
           case IdleCleaner => ()
         }
@@ -408,7 +394,7 @@ class AutomaticReportsCleaning(
               currentState = ActiveCleaner
               logger.trace("***** Start manual %s database *****".format(cleanaction.name))
               reportLogger.info("Reports database: Manual %s started for all reports before %s ".format(cleanaction.name.toLowerCase(), formattedDate))
-              activeCleaning(DeleteCommand.Reports(date),None,ManualLaunch(date),"Manual")
+              activeCleaning(date,ManualLaunch(date),"Manual")
 
         case ActiveCleaner => reportLogger.info("Reports database: A database cleaning is already running, please try later")
         }

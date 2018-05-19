@@ -80,11 +80,6 @@ trait UpdateExpectedReportsRepository {
    * Delete all NodeCompliance for runs older than date
    */
   def deleteNodeCompliances(date: DateTime) : Box[Int]
-
-  /**
-   * Delete all nodecompliancelevels for uns older than date.
-   */
-  def deleteNodeComplianceLevels(date: DateTime): Box[Int]
 }
 
 

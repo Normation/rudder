@@ -5,7 +5,6 @@ import org.joda.time.DateTime
 import net.liftweb.common._
 import com.normation.rudder.services.system.DatabaseManager
 import com.normation.rudder.batch._
-import com.normation.rudder.services.system.DeleteCommand
 
 
 /*
@@ -20,7 +19,7 @@ sealed trait CleanReportAction {
   def actor    : DatabaseCleanerActor
   def actorIsIdle : Boolean  = actor.isIdle
   def progress : String = if (actor.isIdle) "idle" else "in progress"
-  def act(reports: DeleteCommand.Reports, complianceLevel: Option[DeleteCommand.ComplianceLevel]) : Box[Int]
+  def act (date : DateTime) : Box[Int]
   // This method ask for a cleaning
   def ask (date : DateTime) : String = {
     if (actorIsIdle) {
@@ -37,7 +36,7 @@ final case class ArchiveAction(dbManager:DatabaseManager,dbCleaner : AutomaticRe
   val name = "archive"
   val past = "archived"
   val continue = "archiving"
-  def act(reports: DeleteCommand.Reports, complianceLevel: Option[DeleteCommand.ComplianceLevel]) = dbManager.archiveEntries(reports.date)
+  def act(date:DateTime) = dbManager.archiveEntries(date)
   lazy val actor = dbCleaner.archiver
 }
 
@@ -45,6 +44,6 @@ final case class DeleteAction(dbManager:DatabaseManager,dbCleaner : AutomaticRep
   val name = "delete"
   val past = "deleted"
   val continue = "deleting"
-  def act(reports: DeleteCommand.Reports, complianceLevel: Option[DeleteCommand.ComplianceLevel]) = dbManager.deleteEntries(reports, complianceLevel)
+  def act(date:DateTime) = dbManager.deleteEntries(date)
   lazy val actor = dbCleaner.deleter
 }
