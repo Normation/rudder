@@ -59,10 +59,12 @@ import com.normation.templates.STVariable
 import com.normation.utils.Control.bestEffort
 import net.liftweb.common._
 import org.joda.time.DateTime
+
 import scala.io.Codec
 import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.inventory.domain.OsDetails
+import com.normation.utils.Control
 
 trait PrepareTemplateVariables {
 
@@ -111,25 +113,26 @@ class PrepareTemplateVariablesImpl(
 
    logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})")
 
-    val container = new Cf3PolicyDraftContainer(
-          agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value, agentNodeConfig.agentType)).toSet
-        , agentNodeConfig.config.policyDrafts
-    )
-
     //Generate for each node an unique timestamp.
     val generationTimestamp = DateTime.now().getMillis
 
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
-        systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == AgentType.CfeEnterprise     ) Seq("true") else Seq())
-      , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == AgentType.CfeCommunity) Seq("true") else Seq())
+        systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == AgentType.CfeEnterprise) Seq("true") else Seq())
+      , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == AgentType.CfeCommunity ) Seq("true") else Seq())
       , systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.toString))
       , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
 
     ).map(x => (x.spec.name, x)).toMap
 
     for {
-      bundleVars <- prepareBundleVars(agentNodeConfig.config.nodeInfo.id, agentNodeConfig.agentType, agentNodeConfig.config.nodeInfo.osDetails
-                                    , agentNodeConfig.config.nodeInfo.policyMode, globalPolicyMode, container)
+      paramValues <- Control.sequence(agentNodeConfig.config.parameters.toSeq) { x =>
+                       agentRegister.findMap(agentNodeConfig.agentType, agentNodeConfig.config.nodeInfo.osDetails){ agent =>
+                         Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
+                       }
+                     }
+      container   =  new Cf3PolicyDraftContainer(paramValues.toSet, agentNodeConfig.config.policyDrafts)
+      bundleVars  <- prepareBundleVars(agentNodeConfig.config.nodeInfo.id, agentNodeConfig.agentType, agentNodeConfig.config.nodeInfo.osDetails
+                                     , agentNodeConfig.config.nodeInfo.policyMode, globalPolicyMode, container)
     } yield {
       val allSystemVars = systemVariables.toMap ++ bundleVars
       val preparedTemplate = prepareTechniqueTemplate(
