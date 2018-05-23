@@ -21,5 +21,6 @@
 bundle common rudder_parameters {
   vars:
    "rudder_file_edit_header" string => "### Managed by Rudder, edit with care ###";
+   "ntpserver" string => "pool.\"ntp\".org";
 
 }

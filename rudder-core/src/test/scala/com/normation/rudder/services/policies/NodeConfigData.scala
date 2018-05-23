@@ -745,7 +745,7 @@ class TestNodeConfiguration() {
      Seq(
          spec("CLOCK_FQDNNTP").toVariable(Seq("true"))
        , spec("CLOCK_HWSYNC_ENABLE").toVariable(Seq("true"))
-       , spec("CLOCK_NTPSERVERS").toVariable(Seq("pool.ntp.org"))
+       , spec("CLOCK_NTPSERVERS").toVariable(Seq("${rudder.param.ntpserver}"))
        , spec("CLOCK_SYNCSCHED").toVariable(Seq("240"))
        , spec("CLOCK_TIMEZONE").toVariable(Seq("dontchange"))
      ).map(v => (v.spec.name, v)).toMap

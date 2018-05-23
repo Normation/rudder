@@ -264,7 +264,9 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     def writeNodeConfigWithUserDirectives(promiseWritter: PolicyWriterService, userDrafts: BoundPolicyDraft*) = {
       val rnc = baseRootNodeConfig.copy(
           policies = policies(baseRootNodeConfig.nodeInfo, baseRootDrafts ++ userDrafts)
-      )
+          //testing escape of "
+        , parameters = baseRootNodeConfig.parameters + ParameterForConfiguration(ParameterName("ntpserver"), """pool."ntp".org""")
+     )
 
       // Actually write the promise files for the root node
       promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now)
