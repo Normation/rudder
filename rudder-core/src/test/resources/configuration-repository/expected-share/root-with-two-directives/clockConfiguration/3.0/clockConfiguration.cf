@@ -28,7 +28,7 @@ bundle agent check_clock_configuration
 {
 
   vars:
-      "ntpServers" slist => { "pool.ntp.org"};
+      "ntpServers" slist => { "${rudder.param.ntpserver}"};
 
     windows::
       # For windows, we must extract both ip and domain name values
