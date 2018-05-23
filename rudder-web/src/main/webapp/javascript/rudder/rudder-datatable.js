@@ -1593,6 +1593,26 @@ function compliancePercentValue(compliances) {
   return decomposedValues;
 }
 
+function computeSmallBarsSizeAndPercent (compliances, minVal, minPxSize) {
+  res = {
+    percent   : 0
+  , pixelSize : 0
+  };
+  //We calculate the total percentage of the bars which are less than minSize%.
+  //Then we calculate the total size taken by them after have been resized.
+  $(compliances).each(function(index,compliance) {
+    // This is the integer part, that we will use to compute size of the bar
+    var compliancePercent = compliance.val;
+    // Full compliance value (integer and decimal) we need that to check that we do have a value, we only ignore 0
+    var realValue = compliancePercent+ compliance.dec;
+    if((compliancePercent < minVal) && (realValue > 0)){
+      res.percent += compliancePercent;
+      res.pixelSize += minPxSize;
+    }
+  });
+  return res;
+}
+
 function getProgressBars(arr, minPxSize){
   //Values less than 8 are hidden by default on small devices
   var minVal = 3;
@@ -1605,32 +1625,26 @@ function getProgressBars(arr, minPxSize){
   var compliances = compliancePercentValue(arr);
   //Recalculate the compliance bars size only on a Node Details page.
   //If it isn't the case, this function does nothing.
+  // Math.min.apply(Math,arr) gives the minimal value in an array ... Js ...
   if((Math.min.apply(Math,arr)<9)){
-    var totalSmallBarsPercent = totalSmallBarsPx = 0;
     // Minimum given size (in px) of a bar
     var bar;
     //We calculate the total percentage of the bars which are less than minSize%.
     //Then we calculate the total size taken by them after have been resized.
-    $(compliances).each(function(index,compliance) {
-      var compliancePercent = compliance.val;
-      if((compliancePercent<minVal)&&(compliancePercent>0)){
-        totalSmallBarsPercent += compliancePercent;
-        totalSmallBarsPx += minPxSize;
-      }
-    });
+    var totalSmallBars = computeSmallBarsSizeAndPercent(compliances, minVal, minPxSize);
     //Here, we set the new width for each bar.
     $(compliances).each(function(index,compliance){
       var compliancePercent = compliance.val;
-      if(compliancePercent<minVal){
+      if(compliancePercent < minVal){
         bar = {
           width: minPxSize+"px"
         , value: displayValue(compliancePercent)
         };
       }else{
         //We calculate the remaining free space of the Compliance Bar
-        var baseSize = "(100% - " + totalSmallBarsPx + "px)";
+        var baseSize = "(100% - " + totalSmallBars.pixelSize + "px)";
         //Then we calculate the percentage of each bar with respect to this space.
-        var percentBar = compliancePercent / (100 - totalSmallBarsPercent );
+        var percentBar = compliancePercent / (100 - totalSmallBars.percent );
         bar = {
           width : "calc( "+baseSize+" * "+percentBar+")"
         , value: displayValue(compliancePercent)
