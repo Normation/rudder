@@ -64,6 +64,7 @@ import com.normation.rudder.services.policies.Policy
 import com.normation.utils.Control.sequence
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.inventory.domain.OsDetails
+import com.normation.utils.Control
 
 trait PrepareTemplateVariables {
 
@@ -124,8 +125,6 @@ class PrepareTemplateVariablesImpl(
 
     ).map(x => (x.spec.name, x)).toMap
 
-    val parameters = agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value, agentNodeConfig.agentType)).toSeq
-
     val boxBundleVars = buildBundleSequence.prepareBundleVars(
                             nodeId
                           , agentNodeConfig.agentType
@@ -138,6 +137,11 @@ class PrepareTemplateVariablesImpl(
 
     for {
       bundleVars       <- boxBundleVars
+      parameters       <- Control.sequence(agentNodeConfig.config.parameters.toSeq) { x =>
+                            agentRegister.findMap(agentNodeConfig.agentType, agentNodeConfig.config.nodeInfo.osDetails){ agent =>
+                              Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
+                            }
+                          }
       allSystemVars    =  systemVariables.toMap ++ bundleVars
       preparedTemplate <- prepareTechniqueTemplate(
                               nodeId
