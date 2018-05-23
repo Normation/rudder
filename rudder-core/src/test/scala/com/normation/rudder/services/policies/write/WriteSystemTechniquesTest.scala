@@ -446,7 +446,7 @@ object TestSystemData {
      Seq(
          spec("CLOCK_FQDNNTP").toVariable(Seq("true"))
        , spec("CLOCK_HWSYNC_ENABLE").toVariable(Seq("true"))
-       , spec("CLOCK_NTPSERVERS").toVariable(Seq("pool.ntp.org"))
+       , spec("CLOCK_NTPSERVERS").toVariable(Seq("${rudder.param.ntpserver}"))
        , spec("CLOCK_SYNCSCHED").toVariable(Seq("240"))
        , spec("CLOCK_TIMEZONE").toVariable(Seq("dontchange"))
      ).map(v => (v.spec.name, v)).toMap
@@ -688,6 +688,8 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     def writeNodeConfigWithUserDirectives(promiseWritter: PolicyWriterService, userDrafts: Cf3PolicyDraft*) = {
       val rnc = baseRootNodeConfig.copy(
           policyDrafts = baseRootNodeConfig.policyDrafts ++ userDrafts
+          //testing escape of "
+        , parameters = baseRootNodeConfig.parameters + ParameterForConfiguration(ParameterName("ntpserver"), """pool."ntp".org""")
       )
 
       // Actually write the promise files for the root node
