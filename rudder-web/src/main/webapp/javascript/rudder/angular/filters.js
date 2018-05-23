@@ -213,8 +213,13 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
     refuseEnter(event);
   }
 
+  // Add a grace period before effectively do the search
+  var rto;
   $scope.filterGlobal = function(str) {
-    $(tableId).DataTable().search(str).draw();
+    if (rto !== undefined) { clearTimeout(rto); }
+    rto = setTimeout(function() {
+      $(tableId).DataTable().search(str).draw();
+    }, 200);
   }
 
   // Autocomplete methods
