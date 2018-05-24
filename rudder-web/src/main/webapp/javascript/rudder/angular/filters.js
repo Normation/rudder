@@ -200,8 +200,13 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
     return !$scope.only.key && !$scope.only.value;
   }
 
+  // Add a grace period before effectively do the search
+  var to;
   $scope.searchTree = function(treeId) {
-    $(treeId).jstree('searchtag', $scope.searchStr, $scope.tags, $scope.only);
+    if (to !== undefined) { clearTimeout(to); }
+    to = setTimeout(function() {
+      $(treeId).jstree('searchtag', $scope.searchStr, $scope.tags, $scope.only);
+    }, 200);
   }
   
   $scope.clearSearchFieldTree = function(treeId) {
