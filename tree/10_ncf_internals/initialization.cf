@@ -22,6 +22,10 @@
 bundle agent initialization
 {
 
+  vars:
+      # Reporting context for Rudder
+      "report_data.should_report" string => "true";
+
   files:
       "${sys.workdir}/modules"
         copy_from         => local_dcp("${this.promise_dirname}/modules"),

@@ -402,11 +402,6 @@ bundle agent clean_reporting_context {
     "report_data.identifier"     string => "";
 }
 
-bundle agent report_data {
-  vars:
-    "should_report" string => "true";
-}
-
 bundle agent disable_reporting {
   vars:
     "report_data.should_report" string => "false";
