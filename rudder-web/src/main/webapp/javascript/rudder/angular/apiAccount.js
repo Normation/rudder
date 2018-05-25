@@ -71,10 +71,10 @@ accountManagement.controller('AccountCtrl', function ($scope, $http, DTOptionsBu
     });
   }
 
-  $scope.deleteAccount = function(account,index) {
+  $scope.deleteAccount = function(account) {
     $http.delete(apiPath + '/'+account.token).
         success(function(data, status, headers, config) {
-          $scope.accounts.splice(index,1);
+          $scope.accounts = $scope.accounts.filter(acc => acc.id !== account.id);
           $scope.myOldAccount = undefined;
         }).
         error(function(data, status, headers, config) {
