@@ -1,0 +1,321 @@
+#!/usr/bin/python
+
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# This script is based on the CFEngine's masterfiles yum script:
+# https://github.com/cfengine/masterfiles/blob/master/modules/packages/yum
+
+# Licensed under:
+# MIT Public License
+# Copyright (C) 2012-2014 CFEngine AS
+
+import sys
+import os
+import subprocess
+import re
+
+
+rpm_cmd = os.environ.get('CFENGINE_TEST_RPM_CMD', "/bin/rpm")
+rpm_quiet_option = ["--quiet"]
+# The pattern name can not be retrieved from a rpm simple query since its name may differ from the package name...
+rpm_output_format = "Version=%{version}-%{release}\nArchitecture=%{arch}\n"
+
+zypper_cmd = os.environ.get('CFENGINE_TEST_ZYPPER_CMD', "/usr/bin/zypper")
+zypper_options = ["--quiet", "-n"]
+
+NULLFILE = open(os.devnull, 'w')
+
+
+redirection_is_broken_cached = -1
+
+def redirection_is_broken():
+    # Older versions of Python have a bug where it is impossible to redirect
+    # stderr using subprocess, and any attempt at redirecting *anything*, not
+    # necessarily stderr, will result in it being closed instead. This is very
+    # bad, because RPM may then open its RPM database on file descriptor 2
+    # (stderr), and will cause it to output error messages directly into the
+    # database file. Fortunately "stdout=subprocess.PIPE" doesn't have the bug,
+    # and that's good, because it would have been much more tricky to solve.
+    global redirection_is_broken_cached
+    if redirection_is_broken_cached == -1:
+        cmd_line = [sys.argv[0], "internal-test-stderr"]
+        if subprocess.call(cmd_line, stdout=sys.stderr) == 0:
+            redirection_is_broken_cached = 0
+        else:
+            redirection_is_broken_cached = 1
+
+    return redirection_is_broken_cached
+
+
+def subprocess_Popen(cmd, stdout=None, stderr=None):
+    if not redirection_is_broken() or (stdout is None and stderr is None) or stdout == subprocess.PIPE or stderr == subprocess.PIPE:
+        return subprocess.Popen(cmd, stdout=stdout, stderr=stderr)
+
+    old_stdout_fd = -1
+    old_stderr_fd = -1
+
+    if stdout is not None:
+        old_stdout_fd = os.dup(1)
+        os.dup2(stdout.fileno(), 1)
+
+    if stderr is not None:
+        old_stderr_fd = os.dup(2)
+        os.dup2(stderr.fileno(), 2)
+
+    result = subprocess.Popen(cmd)
+
+    if old_stdout_fd >= 0:
+        os.dup2(old_stdout_fd, 1)
+        os.close(old_stdout_fd)
+
+    if old_stderr_fd >= 0:
+        os.dup2(old_stderr_fd, 2)
+        os.close(old_stderr_fd)
+
+    return result
+
+
+def subprocess_call(cmd, stdout=None, stderr=None):
+    process = subprocess_Popen(cmd, stdout, stderr)
+    return process.wait()
+
+
+# When retrieving data from a rpm file, it will only works with quite new
+# pattern building as describe in https://doc.opensuse.org/projects/libzypp/HEAD/zypp-pattern-packages.html
+# Older formats, xml based will fail.
+def get_package_data():
+    pkg_string = ""
+    for line in sys.stdin:
+        if line.startswith("File="):
+            pkg_string = line.split("=", 1)[1].rstrip()
+            # Don't break, we need to exhaust stdin.
+
+    if not pkg_string:
+        return 1
+
+    if pkg_string.startswith("/"):
+        # Absolute file.
+        sys.stdout.write("PackageType=file\n")
+        sys.stdout.flush()
+
+        rpmProcess = subprocess_Popen([rpm_cmd, "-qp", "--provides", pkg_string], stdout=subprocess.PIPE, stderr=NULLFILE)
+        (rawOutput, junk) = rpmProcess.communicate()
+        name = re.match("pattern\(\) =+ (?P<name>\S+)\s[\s\S]+", rawOutput)
+        if name is not None:
+          sys.stdout.write("Name=" + name.group("name").rstrip("\n") + "\n")
+          return subprocess_call([rpm_cmd, "--qf", rpm_output_format, "-qp", pkg_string], stderr=NULLFILE)
+        else:
+          sys.stdout.write(line + "ErrorMessage: Package pattern name not found\n")
+          return 1
+
+    elif re.search("[:,]", pkg_string):
+        # Contains an illegal symbol.
+        sys.stdout.write(line + "ErrorMessage: Package string with illegal format\n")
+        return 1
+    else:
+        sys.stdout.write("PackageType=repo\n")
+        sys.stdout.write("Name=" + pkg_string + "\n")
+        return 0
+
+
+def list_installed():
+    # Ignore everything.
+    sys.stdin.readlines()
+
+    patterns = list_installed_patterns()
+    if patterns == "":
+        sys.stdout.write("")
+    else:
+      patterns_array = patterns.split(' ')
+      command = [zypper_cmd] + zypper_options + ["info", "-t", "pattern"] + patterns_array
+
+      process =  subprocess_Popen(command , stdout=subprocess.PIPE, stderr=NULLFILE)
+      for line in process.stdout:
+          name = re.match("Name: (?P<name>\S+)", line)
+          version = None
+          arch = re.match("Arch: (?P<arch>\S+)", line)
+          if name is not None:
+            sys.stdout.write("Name=" + name.group("name").rstrip("\n") + "\n")
+
+            # The version showed in zypper info is the latest available version
+            zypperProcess = subprocess_Popen([zypper_cmd] + ["patterns", "--installed-only"], stdout=subprocess.PIPE, stderr=NULLFILE)
+            grepProcess = subprocess.Popen(["grep", name.group("name")], stdin=zypperProcess.stdout, stdout=subprocess.PIPE)
+            cutProcess = subprocess.check_output(["awk", "{print $5}"], stdin=grepProcess.stdout)
+
+            zypperProcess.wait()
+            grepProcess.wait()
+            zypperProcess.stdout.close()
+            grepProcess.stdout.close()
+
+            version = cutProcess
+            if version is not None:
+              sys.stdout.write("Version=" + version.rstrip("\n") + "\n")
+          elif arch is not None:
+            sys.stdout.write("Architecture=" + arch.group("arch").rstrip("\n") + "\n")
+      process.stdout.close()
+    return 0
+
+def list_installed_patterns():
+# Return a one line space separated list of the patterns installed
+# Zypper's output looks like:
+# S | Name    | Version | Repository | Dependency
+# --+---------+---------+------------+-----------
+# i | 32bit   | 12-64.3 | @System    |           
+#
+    command = [zypper_cmd] +  zypper_options + ["-t", "patterns", "--installed-only"]
+    process =  subprocess_Popen(command, stdout=subprocess.PIPE)
+    patterns = ""
+    for line in process.stdout:
+        match = re.match("i\s+\|\s+(?P<name>\S+)\s+\|.*$", line)
+        if match is not None:
+            patterns +=  match.group("name") + " "
+    process.stdout.close()
+    return patterns.strip()
+
+
+# Local update support has not been tested.
+def list_updates(online):
+    # Assume that the output for packages and patterns are the same....
+    # Ignore everything.
+    sys.stdin.readlines()
+
+    online_flag = []
+    if not online:
+        online_flag = ["--no-refresh"]
+
+    process = subprocess_Popen([zypper_cmd] + zypper_options + online_flag + ["list-updates", "-t", "pattern"], stdout=subprocess.PIPE)
+    lastline = ""
+    for line in process.stdout:
+
+# Zypper's output looks like:
+#
+# S | Repository | Name             | Available Version | Arch
+# --+------------+------------------+-------------------+-------
+# v | local      | rudder_test_repo | 3-64.3            | x86_64
+#
+# Which gives:
+#
+# v    |         local          |           rudder_test_repo          |           3-64.3               |       x86_64
+#             may contain                    package name                    version available               architecture
+#            special chars
+# v\s+\|[^\|]+                 \|\s+(?P<name>\S+)\s+                \|\s+(?P<version>\S+)\s+          \|\s+(?P<arch>\S+)\s*$
+#
+# The first char will always be "v" which means there is a new version avaialble on search outputs.
+
+      match = re.match("v\s+\|[^\|]+\|\s+(?P<name>\S+)\s+\|\s+(?P<version>\S+)\s+\|\s+(?P<arch>\S+)\s*$", line)
+      if match is not None:
+        sys.stdout.write("Name=" + match.group("name") + "\n")
+        sys.stdout.write("Version=" + match.group("version") + "\n")
+        sys.stdout.write("Architecture=" + match.group("arch") + "\n")
+
+    return 0
+
+# Parse the stdin and build a list of complete package names
+# Format: package_base_name<.architecture><{=/</>/<=/>=}version}>
+# Only "=" operator is supported
+def construct_complete_package_names():
+    complete_names = []
+    pattern = ""
+    version = ""
+    architecture = ""
+    for line in sys.stdin:
+        flag=line.split("=", 1)[0].rstrip()
+        if (flag == 'Name'):
+          complete_names.append(pattern + architecture + version)
+          version = ""
+          architecture = ""
+          pattern = line.split("=", 1)[1].rstrip()
+        if (flag == 'Version'):
+          #The only operator supported here is "="
+          version = "=" + line.split("=", 1)[1].rstrip()
+        if (flag == 'Architecture'):
+          architecture = "." + line.split("=", 1)[1].rstrip()
+        if (flag == 'Options'):
+          pass
+    complete_names.append(pattern + architecture + version)
+    return complete_names
+
+
+def remove():
+    cmd_line = [zypper_cmd] + zypper_options + ["remove", "-t", "pattern"]
+    cmd_line += construct_complete_package_names()
+    return subprocess_call(cmd_line, stdout=NULLFILE, stderr=NULLFILE)
+
+
+def file_install():
+    cmd_line = [zypper_cmd] + zypper_options + ["in", "-t", "pattern"]
+    found = False
+    for line in sys.stdin:
+        if line.startswith("File="):
+            found = True
+            cmd_line.append(line.split("=", 1)[1].rstrip())
+
+    if not found:
+        return 0
+
+    return subprocess_call(cmd_line, stdout=NULLFILE, stderr=NULLFILE)
+
+def repo_install():
+    cmd_line = [zypper_cmd] + zypper_options + ["in", "-t", "pattern"]
+    cmd_line += construct_complete_package_names()
+    return subprocess_call(cmd_line, stdout=NULLFILE, stderr=NULLFILE)
+
+def main():
+    if len(sys.argv) < 2:
+        sys.stderr.write("Need to provide argument\n")
+        return 2
+
+    if sys.argv[1] == "internal-test-stderr":
+        # This will cause an exception if stderr is closed.
+        try:
+            os.fstat(2)
+        except OSError:
+            return 1
+        return 0
+
+    elif sys.argv[1] == "supports-api-version":
+        sys.stdout.write("1\n")
+        return 0
+
+    elif sys.argv[1] == "get-package-data":
+        return get_package_data()
+
+    elif sys.argv[1] == "list-installed":
+        return list_installed()
+
+    elif sys.argv[1] == "list-updates":
+        return list_updates(True)
+
+    elif sys.argv[1] == "list-updates-local":
+        return list_updates(False)
+
+    elif sys.argv[1] == "repo-install":
+        return repo_install()
+
+    elif sys.argv[1] == "remove":
+        return remove()
+
+    elif sys.argv[1] == "file-install":
+        return file_install()
+
+    else:
+        sys.stderr.write("Invalid operation\n")
+        return 2
+
+sys.exit(main())
