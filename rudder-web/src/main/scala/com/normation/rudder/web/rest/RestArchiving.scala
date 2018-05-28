@@ -152,7 +152,7 @@ class RestArchiving(
           val e = eb ?~! "Error when trying to list available archives for %s".format(archiveType)
           PlainTextResponse(e.messageChain, 503)
         case Full(map) =>
-          JsonResponse(formatList("groupArchives", map))
+          JsonResponse(formatList(archiveType, map))
       }
   }
 
