@@ -396,7 +396,6 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
   def endpoints = ca.mrvisser.sealerate.values[RuleApi].toList.sortBy( _.z )
 }
 
-
 sealed trait SystemApi extends EndpointSchema with GeneralApi with SortIndex
 object SystemApi extends ApiModuleProvider[SystemApi] {
 
@@ -414,24 +413,154 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
     }
 
    final case object DyngroupsReload extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
-      val description = "reload all dynamic groups"
-      val (action, path) = POST / "system" / "action" / "groups" / "reload"
+     val description = "reload all dynamic groups"
+     val (action, path) = POST / "system" / "action" / "groups" / "reload"
     }
 
    final case object ReloadAll extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
-      val description = "reload both techniques and dynamic groups"
-      val (action, path) = POST / "system" / "action" / "reload"
+     val description = "reload both techniques and dynamic groups"
+     val (action, path) = POST / "system" / "action" / "reload"
     }
 
   final case object PoliciesUpdate extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
-      val description = "update all policies"
-      val (action, path) = POST / "system" / "action" / "policies" / "update"
+    val description = "update all policies"
+    val (action, path) = POST / "system" / "action" / "policies" / "update"
     }
 
   final case object PoliciesRegenerate extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
     val description = "regenerate all policies"
     val (action, path) = POST / "system" / "action" / "policies" / "regenerate"
   }
+
+  // Archive list endpoints
+
+  final case object ArchivesGroupsList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "list groups archives"
+    val (action, path) = GET / "system" /"archives" / "groups" / "list"
+  }
+
+  final case object ArchivesDirectivesList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "list directives archives"
+    val (action, path) = GET / "system" / "archives" / "directives" / "list"
+  }
+
+  final case object ArchivesRulesList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "list rules archives"
+    val (action, path) = GET / "system" / "archives" / "rules"/ "list"
+  }
+
+  final case object ArchivesFullList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "list all archives"
+    val (action, path) = GET / "system" / "archives" / "list"
+  }
+
+  //Archive restore endpoints
+
+  final case object RestoreGroupsLatestArchive extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "restore groups latest archive"
+    val (action, path) = POST / "system" / "archives" / "groups" / "latestArchive"/ "restore"
+  }
+
+  final case object RestoreDirectivesLatestArchive extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "restore directives latest archive"
+    val (action, path) = POST / "system" / "archives" / "directives" / "latestArchive"/ "restore"
+  }
+
+  final case object RestoreRulesLatestArchive extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "restore rules latest archive"
+    val (action, path) = POST / "system" / "archives" / "rules" / "latestArchive"/ "restore"
+  }
+
+  final case object RestoreFullLatestArchive extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "restore all latest archive"
+    val (action, path) = POST / "system" / "archives" / "latestArchive"/ "restore"
+  }
+
+
+  final case object RestoreGroupsLatestCommit extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "restore groups latest commit"
+    val (action, path) = POST / "system" / "archives" / "groups" / "latestCommit"/ "restore"
+  }
+
+  final case object RestoreDirectivesLatestCommit extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "restore directives latest commit"
+    val (action, path) = POST / "system" / "archives" / "directives" / "latestCommit"/ "restore"
+  }
+
+  final case object RestoreRulesLatestCommit extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "restore rules latest commit"
+    val (action, path) = POST / "system" / "archives" / "rules" / "latestCommit"/ "restore"
+  }
+
+  final case object RestoreFullLatestCommit extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "restore full latest commit"
+    val (action, path) = POST / "system" / "archives" / "full" / "latestCommit"/ "restore"
+  }
+
+  //Archive endpoints
+  final case object ArchiveGroups extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "archive groups"
+    val (action, path) = POST / "system" / "archives" / "groups" / "archive"
+  }
+
+  final case object ArchiveDirectives extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "archive directives"
+    val (action, path) = POST / "system" / "archives" / "directives" / "archive"
+  }
+
+  final case object ArchiveRules extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "archive rules"
+    val (action, path) = POST / "system" / "archives" / "rules" / "archive"
+  }
+
+  final case object ArchiveFull extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "archive full"
+    val (action, path) = POST / "system" / "archives" / "full" / "archive"
+  }
+
+  //Restore a particular entity base on its datetime
+
+  final case object ArchiveGroupDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description = "restore a group archive based on its date time id"
+    val (action, path) = POST / "system" / "archives" / "group" / "restore" /"{dateTime}"
+  }
+
+  final case object ArchiveDirectiveDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description = "restore a directive archive based on its date time id"
+    val (action, path) = POST / "system" / "archives" / "directive" / "restore" / "{dateTime}"
+  }
+
+  final case object ArchiveRuleDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description = "restore a rule archive based on its date time id"
+    val (action, path) = POST / "system" / "archives" / "group" / "restore" / "{dateTime}"
+  }
+
+  final case object ArchiveFullDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description = "restore a full archive based on its date time id"
+    val (action, path) = POST / "system" / "archives" / "full" / "restore" / "{dateTime}"
+  }
+
+ // ZIP Archive endpoints
+
+  final case object GetGroupsZipArchive extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description = "Get a groups zip archive based on its commit id"
+    val (action, path) = GET / "system" / "archives" / "zip" / "groups" / "{commitId}"
+  }
+
+  final case object GetDirectivesZipArchive extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description = "Get a directives zip archive based on its commit id"
+    val (action, path) = GET / "system" / "archives" / "zip" / "directives" / "{commitId}"
+  }
+
+  final case object GetRulesZipArchive extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description = "Get a rules zip archive based on its commit id"
+    val (action, path) = GET / "system" / "archives" / "zip" / "rules" / "{commitId}"
+  }
+
+final case object GetAllZipArchive extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = zz
+  val description = "Get a full zip archive based on its commit id"
+  val (action, path) = GET / "system" / "archives" / "zip" / "full" / "{commitId}"
+}
 
   def endpoints = ca.mrvisser.sealerate.values[SystemApi].toList.sortBy( _.z )
 }

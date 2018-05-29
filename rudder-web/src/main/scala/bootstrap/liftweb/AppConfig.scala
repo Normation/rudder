@@ -698,6 +698,9 @@ object RudderConfig extends Loggable {
     , asyncDeploymentAgent
     , uuidGen
     , updateDynamicGroups
+    , itemArchiveManager
+    , personIdentService
+    , gitRepo
   )
 
   private[this] val complianceAPIService = new ComplianceAPIService(
