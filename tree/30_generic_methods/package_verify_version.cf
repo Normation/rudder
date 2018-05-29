@@ -44,5 +44,5 @@ bundle agent package_verify_version(package_name, package_version)
                              ifvarclass => "should_report";
     "new result classes" usebundle => _classes_copy("${class_prefix}_package_verify", "${class_prefix}");
 
-    "report"             usebundle => _log("Verify that package ${package_name} is installed in version ${package_version}", "${old_class_prefix}", "", @{args});
+    "report"             usebundle => _log_v3("Verify that package ${package_name} is installed in version ${package_version}", "${package_name}", "${old_class_prefix}", "", @{args});
 }

@@ -72,7 +72,7 @@ bundle agent file_content(file, lines, enforce)
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
     !islist.pass2::
-      "report" usebundle => _log("Insert content ${lines} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log_v3("Insert content ${lines} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
     islist.pass2::
-      "report" usebundle => _log("Insert content ${report_string} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log_v3("Insert content ${report_string} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

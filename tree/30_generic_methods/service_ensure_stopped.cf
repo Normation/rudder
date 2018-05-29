@@ -52,6 +52,6 @@ bundle agent service_ensure_stopped(service_name)
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
     "report"
-        usebundle  => _log("Ensure that service ${service_name} is stopped", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Ensure that service ${service_name} is stopped", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

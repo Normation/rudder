@@ -167,18 +167,18 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
   methods:
     (debian|redhat|SuSE).immediate.!update::
-      "Reports" usebundle => _log("Install package ${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log_v3("Install package ${package_name}", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
     (debian|redhat|SuSE).immediate.update::
-      "Reports" usebundle => _log("Install or update package ${package_name} in version ${package_version}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log_v3("Install or update package ${package_name} in version ${package_version}", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
     (debian|redhat|SuSE).!immediate.!version_not_specified::
-      "Reports" usebundle => _log("Verify that package ${package_name} is installed in version ${package_version}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log_v3("Verify that package ${package_name} is installed in version ${package_version}", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
     (debian|redhat|SuSE).!immediate.version_not_specified.update::
-      "Reports" usebundle => _log("Verify that package ${package_name} is installed and up-to-date", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log_v3("Verify that package ${package_name} is installed and up-to-date", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
     (debian|redhat|SuSE).!immediate.version_not_specified.!update::
-      "Reports" usebundle => _log("Verify that package ${package_name} is installed", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log_v3("Verify that package ${package_name} is installed", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     !(debian|redhat|SuSE)::
       "force failure class" usebundle => _classes_failure("${class_prefix}");
       "force failure class" usebundle => _classes_failure("${old_class_prefix}");
-      "report failure"      usebundle => _log("Install or update package ${package_name} - systems other than Debian-, Red Hat- and SuSE-like are not currently supported", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report failure"      usebundle => _log_v3("Install or update package ${package_name} - systems other than Debian-, Red Hat- and SuSE-like are not currently supported", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

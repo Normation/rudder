@@ -188,5 +188,5 @@ bundle agent file_from_template_mustache(source_template, destination)
                              ifvarclass => "should_report";
     "new result classes"           usebundle => _classes_copy("${class_prefix}_file_template_mustache_type", "${class_prefix}");
 
-    "report"                       usebundle => _log("Build file ${destination} from mustache template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"                       usebundle => _log_v3("Build file ${destination} from mustache template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

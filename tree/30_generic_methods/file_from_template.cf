@@ -59,6 +59,6 @@ bundle agent file_from_template(source_template, destination)
     any::
       "sanitize"        usebundle => _classes_sanitize("${old_class_prefix}");
       "sanitize"        usebundle => _classes_sanitize("${class_prefix}");
-      "report"          usebundle => _log("Build file ${destination} from template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"          usebundle => _log_v3("Build file ${destination} from template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

@@ -110,6 +110,6 @@ bundle agent service_action(service_name, action)
       "new result classes"     usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                               ifvarclass => "${class_prefix}_action_reached";
 
-      "report"                 usebundle => _log("Run action ${action} on service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"                 usebundle => _log_v3("Run action ${action} on service ${service_name}", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
                               ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 }

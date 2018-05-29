@@ -38,5 +38,5 @@ bundle agent file_present(target)
       classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "report" usebundle => _log("Presence of file ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report" usebundle => _log_v3("Presence of file ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

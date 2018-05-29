@@ -50,5 +50,5 @@ bundle agent _service_check_running_smf(service_name)
       "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "report"
-        usebundle  => _log("Check if the service ${service_name} is started using SMF", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Check if the service ${service_name} is started using SMF", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

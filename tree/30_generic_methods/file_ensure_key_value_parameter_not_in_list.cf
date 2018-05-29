@@ -75,5 +75,5 @@ bundle agent file_ensure_key_value_parameter_not_in_list(file, key, key_value_se
                          ifvarclass => "file_key_value_parameter_absent_in_list_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report"   usebundle => _log("Ensure not ${parameter_regex} in line ${key}${key_value_separator} values in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"   usebundle => _log_v3("Ensure not ${parameter_regex} in line ${key}${key_value_separator} values in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

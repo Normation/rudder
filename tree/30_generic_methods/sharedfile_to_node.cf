@@ -139,17 +139,17 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
       "force_failure_class old"   usebundle => _classes_failure("${old_class_prefix}");
       "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
     !_stdlib_path_exists_curl::
-      "report"                    usebundle => _log("Unable to perform a HTTP queries on ${url}: curl is not installed", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                    usebundle => _log_v3("Unable to perform a HTTP queries on ${url}: curl is not installed", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
     check_failed::
-      "report"                    usebundle => _log("Unable to contact HTTP server on ${url} from sharedfile_to_node", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                    usebundle => _log_v3("Unable to contact HTTP server on ${url} from sharedfile_to_node", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
     !file_exists::
-      "report"                    usebundle => _log("File ${file_path} does not exist", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                    usebundle => _log_v3("File ${file_path} does not exist", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     _stdlib_path_exists_curl.file_exists.!check_failed.pass3::
       "result"                    usebundle => _classes_combine_ifthenelse("${old_class_prefix}_exist", "success", "${old_class_prefix}_uploaded", "${old_class_prefix}");
       "result"                    usebundle => _classes_combine_ifthenelse("${class_prefix}_exist", "success", "${class_prefix}_uploaded", "${class_prefix}");
 
-      "report"                    usebundle => _log("Sharing ${file_path} with ${target_uuid} under the name ${file_id} for ${ttl}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                    usebundle => _log_v3("Sharing ${file_path} with ${target_uuid} under the name ${file_id} for ${ttl}", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
     _stdlib_path_exists_curl::

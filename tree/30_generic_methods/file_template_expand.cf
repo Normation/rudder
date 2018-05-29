@@ -49,5 +49,5 @@ bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log("Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${target_file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

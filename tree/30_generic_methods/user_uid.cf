@@ -54,16 +54,16 @@ bundle agent user_uid(login, uid)
       "error" usebundle => _classes_failure("${class_prefix}");
 
       "report_error"
-        usebundle => _log("User ${login} does not exist. Setting user ${login} uid to ${uid}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("User ${login} does not exist. Setting user ${login} uid to ${uid}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
           ifvarclass => "!user_exists";
 
       "report_error"
-        usebundle => _log("Uid ${uid} already in use. Setting user ${login} uid to ${uid}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("Uid ${uid} already in use. Setting user ${login} uid to ${uid}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
           ifvarclass => "!user_free_uid.user_diff_uid";
 
     args_defined::
       "report_success"
-        usebundle => _log("User ${login} uid set to ${uid}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("User ${login} uid set to ${uid}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
           ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
 }

@@ -54,6 +54,6 @@ bundle agent file_copy_from_local_source_with_check(source, destination, check_c
                          ifvarclass => "file_from_local_source_with_check_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report"             usebundle  => _log("Copying ${destination} from local ${source} with check", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"             usebundle  => _log_v3("Copying ${destination} from local ${source} with check", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

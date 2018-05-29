@@ -50,11 +50,11 @@ bundle agent user_locked(login)
         "error" usebundle => _classes_failure("${class_prefix}");
 
         "report_error"
-          usebundle => _log("User ${login} does not exist. Locking user ${login}", "${old_class_prefix}", "${class_prefix}", @{args});
+          usebundle => _log_v3("User ${login} does not exist. Locking user ${login}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     args_defined::
       "report_success"
-        usebundle => _log("User ${login} locking status", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("User ${login} locking status", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
           ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
 }

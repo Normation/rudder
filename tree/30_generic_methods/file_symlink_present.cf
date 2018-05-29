@@ -44,5 +44,5 @@ bundle agent file_symlink_present(source, destination)
                              ifvarclass => "should_report";
       "new result classes"     usebundle => _classes_copy("${class_prefix}_create_without_enforce", "${class_prefix}");
 
-      "report"                 usebundle => _log("Symlink ${destination} targeting ${source} (without overwrite)", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                 usebundle => _log_v3("Symlink ${destination} targeting ${source} (without overwrite)", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

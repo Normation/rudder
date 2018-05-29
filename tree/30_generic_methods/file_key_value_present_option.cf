@@ -68,5 +68,5 @@ bundle agent file_key_value_present_option(file, key, value, separator, option)
     pass2::
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log("Ensure line in format key${separator}value in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Ensure line in format key${separator}value in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

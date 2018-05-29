@@ -58,6 +58,6 @@ bundle agent file_download(source, destination)
                          ifvarclass => "file_from_http_server_${canonified_destination}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report"             usebundle => _log("Download ${source} into ${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"             usebundle => _log_v3("Download ${source} into ${destination}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

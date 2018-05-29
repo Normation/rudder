@@ -54,7 +54,7 @@ bundle agent user_create(login, description, home, group, shell, locked)
 
   methods:
       "report"
-        usebundle => _log("User ${login} create", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("User ${login} create", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
 }

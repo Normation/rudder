@@ -48,6 +48,6 @@ bundle agent file_key_value_present_in_ini_section(file, section, name, value)
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle  => _log("Set line ${name}=${value} in section ${section} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle  => _log_v3("Set line ${name}=${value} in section ${section} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

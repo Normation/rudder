@@ -44,5 +44,5 @@ bundle agent file_from_local_source(source, destination)
                              ifvarclass => "should_report";
       "new result classes"     usebundle => _classes_copy("${class_prefix}_copy_without_recursion", "${class_prefix}");
 
-      "report"                 usebundle => _log("Copying ${destination} from local ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                 usebundle => _log_v3("Copying ${destination} from local ${source}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -81,7 +81,7 @@ bundle agent service_stopped(service_name)
       "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "report"
-        usebundle  => _log("Ensure that service ${service_name} is stopped", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle  => _log_v3("Ensure that service ${service_name} is stopped", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass =>"(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.!${class_prefix}_reached)";
 
 }

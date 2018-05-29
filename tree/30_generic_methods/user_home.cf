@@ -52,11 +52,11 @@ bundle agent user_home(login, home)
       "error" usebundle => _classes_failure("${class_prefix}");
 
       "report_error"
-        usebundle => _log("User ${login} does not exist. Setting user ${login} home to ${home}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("User ${login} does not exist. Setting user ${login} home to ${home}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
       
     args_defined::
       "report_success"
-        usebundle => _log("User ${login} home set to ${home}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("User ${login} home set to ${home}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
           ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 }
 

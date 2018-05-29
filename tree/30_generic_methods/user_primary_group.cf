@@ -52,20 +52,20 @@ bundle agent user_primary_group(login, primary_group)
       "error" usebundle => _classes_failure("${class_prefix}");
 
       "report_error"
-        usebundle => _log("Group ${primary_group} does not exist. Setting user ${login} primary_group to ${primary_group}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("Group ${primary_group} does not exist. Setting user ${login} primary_group to ${primary_group}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "!group_exists.user_exists";
       
       "report_error"
-        usebundle => _log("User ${login} does not exist. Setting user ${login} primary_group to ${primary_group}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("User ${login} does not exist. Setting user ${login} primary_group to ${primary_group}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "!user_exists.group_exists";
 
       "report_error"
-        usebundle => _log("User ${login} and group ${primary_group} do not exist. Setting user ${login} primary_group to ${primary_group}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("User ${login} and group ${primary_group} do not exist. Setting user ${login} primary_group to ${primary_group}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "!user_exists.!group_exists";
 
     args_defined:: 
       "report_success"
-        usebundle => _log("User ${login} primary_group set to ${primary_group}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("User ${login} primary_group set to ${primary_group}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 }
 

@@ -50,5 +50,5 @@ bundle agent file_create_symlink_enforce(source, destination, enforce)
                          ifvarclass => "file_symlink_present_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report" usebundle => _log("Symlink ${destination} targeting ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report" usebundle => _log_v3("Symlink ${destination} targeting ${source}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

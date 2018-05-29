@@ -49,5 +49,5 @@ bundle agent file_remove(target)
                          ifvarclass => "file_absent_${canonified_target}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report"             usebundle => _log("Remove file ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"             usebundle => _log_v3("Remove file ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

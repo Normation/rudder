@@ -55,6 +55,6 @@ bundle agent service_check_disabled_at_boot(service_name)
       "failure" usebundle => _classes_failure("${class_prefix}"),
                ifvarclass => "${class_prefix}_check_enabled_ok";
 
-      "reports" usebundle => _log("Check if service ${service_name} is disabled at boot", "${old_class_prefix}", "${class_prefix}", @{args});
+      "reports" usebundle => _log_v3("Check if service ${service_name} is disabled at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

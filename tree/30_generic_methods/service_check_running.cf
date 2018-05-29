@@ -49,5 +49,5 @@ bundle agent service_check_running(service_name)
       "new result classes" usebundle => _classes_copy("${class_prefix}_check_active", "${class_prefix}"),
                           ifvarclass => "${class_prefix}_check_active_reached";
 
-      "report"             usebundle => _log("Check if the service ${service_name} is started", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Check if the service ${service_name} is started", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

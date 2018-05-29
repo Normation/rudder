@@ -32,7 +32,7 @@ bundle agent _logger_default(message, old_class_prefix)
       "empty_slist" slist => { cf_null };
 
   methods:
-      "legacy _logger_default wrapper" usebundle => _log_default("${message}", "${old_class_prefix}", "", @{empty_slist});
+      "legacy _logger_default wrapper" usebundle => _log_default("${message}", "", "${old_class_prefix}", "", @{empty_slist});
 
   reports:
     cfengine::

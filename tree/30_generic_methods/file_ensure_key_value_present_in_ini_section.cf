@@ -52,6 +52,6 @@ bundle agent file_ensure_key_value_present_in_ini_section(file, section, name, v
                          ifvarclass => "file_key_value_present_in_ini_section_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-      "report"   usebundle  => _log("Set line ${name}=${value} in section ${section} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle  => _log_v3("Set line ${name}=${value} in section ${section} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

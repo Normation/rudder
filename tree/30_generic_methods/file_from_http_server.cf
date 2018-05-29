@@ -73,14 +73,14 @@ bundle agent file_from_http_server(source, destination)
 
       "new result classes"        usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}");
 
-      "report"                    usebundle => _log("Download ${source} into ${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"                    usebundle => _log_v3("Download ${source} into ${destination}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
                                  ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
 
     !_stdlib_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
       "force_failure_class"       usebundle => _classes_failure("${old_class_prefix}");
       "new result classes"        usebundle => _classes_failure("${class_prefix}");
-      "report"                    usebundle => _log("Unable to download ${source}: neither wget or curl are installed", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                    usebundle => _log_v3("Unable to download ${source}: neither wget or curl are installed", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 
     file_exists::
@@ -88,7 +88,7 @@ bundle agent file_from_http_server(source, destination)
                                  ifvarclass => "!command_execution_${canonified_action_command}_repaired";
       "new result classes"        usebundle => _classes_success("${class_prefix}"),
                                  ifvarclass => "!${class_prefix}_action_repaired";
-      "report"                    usebundle => _log("File ${destination} already downloaded", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"                    usebundle => _log_v3("File ${destination} already downloaded", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
                                  ifvarclass => "(!has_promiser_stack.!command_execution_${canonified_action_command}_repaired)|(has_promiser_stack.!${class_prefix}_action_repaired)";
 
 }

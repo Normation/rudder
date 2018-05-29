@@ -108,11 +108,11 @@ bundle agent file_key_value_parameter_absent_in_list(file, key, key_value_separa
                       ifvarclass => "invalid_enclosing";
 
     pass2.!invalid_enclosing.line_with_key_present::
-      "report"   usebundle => _log("Ensure ${parameter_regex} is not in ${key}${key_value_separator} values in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Ensure ${parameter_regex} is not in ${key}${key_value_separator} values in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     pass2.!invalid_enclosing.!line_with_key_present::
-      "report"   usebundle => _log("Non existing key ${key} with value ${leading_char_separator} ${parameter_regex} ${closing_char_separator} in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Non existing key ${key} with value ${leading_char_separator} ${parameter_regex} ${closing_char_separator} in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     pass2.invalid_enclosing::
-      "report"   usebundle => _log("Ensure not ${parameter_regex} in line ${key}${key_value_separator} values in ${file} must have either no enclosing character, or two, but not only one", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Ensure not ${parameter_regex} in line ${key}${key_value_separator} values in ${file} must have either no enclosing character, or two, but not only one", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

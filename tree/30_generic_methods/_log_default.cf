@@ -20,6 +20,7 @@
 # @description Standard default logging output
 #
 # @parameter message              The common part of the message to display
+# @parameter class_parameter      The class_parameter of reporting - not used in this logger
 # @parameter old_class_prefix     The prefix of the class for different states (<4.3 version)
 # @parameter class_prefix         The prefix of the class for different states (4.3 version)
 # @parameter args                 The arguments used to call the generic method (slist)
@@ -27,7 +28,7 @@
 # @class_prefix _logger_default
 # @class_parameter old_class_prefix
 
-bundle agent _log_default(message, old_class_prefix, class_prefix, args)
+bundle agent _log_default(message, class_parameter, old_class_prefix, class_prefix, args)
 {
   vars:
       "canonified_prefix" string => canonify("${old_class_prefix}");

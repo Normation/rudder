@@ -76,5 +76,5 @@ bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separa
                          ifvarclass => "file_key_value_parameter_present_in_list_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report"   usebundle => _log("Ensure ${parameter} in line ${key}${key_value_separator} values in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"   usebundle => _log_v3("Ensure ${parameter} in line ${key}${key_value_separator} values in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

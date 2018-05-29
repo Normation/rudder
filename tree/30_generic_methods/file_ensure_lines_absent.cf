@@ -49,5 +49,5 @@ bundle agent file_ensure_lines_absent(file, lines)
                          ifvarclass => "file_lines_absent_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report"   usebundle => _log("Ensure line(s) '${lines}' absent from ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"   usebundle => _log_v3("Ensure line(s) '${lines}' absent from ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

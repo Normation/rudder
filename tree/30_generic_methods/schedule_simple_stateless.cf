@@ -70,6 +70,6 @@ bundle agent schedule_simple_stateless(job_id, agent_periodicity,
                              ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${class_prefix}_simple_scheduler", "${class_prefix}");
 
-      "report"             usebundle => _log("Scheduling ${job_id} (with stateless schedule)", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Scheduling ${job_id} (with stateless schedule)", "${job_id}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

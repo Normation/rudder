@@ -50,5 +50,5 @@ bundle agent file_ensure_lines_present(file, lines)
 
       "new result classes"    usebundle => _classes_copy("${class_prefix}_enforce_lines_content", "${class_prefix}");
 
-      "report"                usebundle => _log("Append content ${lines} if needed into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                usebundle => _log_v3("Append content ${lines} if needed into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

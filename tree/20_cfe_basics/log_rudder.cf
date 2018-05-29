@@ -20,6 +20,7 @@
 # @description Logging output for Rudder reports
 #
 # @parameter message              The common part of the message to display
+# @parameter class_parameter      The class_parameter for reporting (4.3+ version)
 # @parameter old_class_prefix     The prefix of the class for different states (<4.3 version)
 # @parameter class_prefix         The prefix of the class for different states (4.3+ version)
 # @parameter args                 The arguments used to call the generic method (slist)
@@ -27,7 +28,7 @@
 # @class_prefix    logger_rudder
 # @class_parameter old_class_prefix
 
-bundle agent log_rudder(message, old_class_prefix, class_prefix, args)
+bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix, args)
 {
 
   vars:
@@ -35,7 +36,12 @@ bundle agent log_rudder(message, old_class_prefix, class_prefix, args)
       "c_old_class_prefix"     string => canonify("${old_class_prefix}");
       "c_class_prefix"         string => canonify("${class_prefix}");
 
-      "class_prefix_length"   int => string_length("${class_prefix}");
+      "class_prefix_length"       int => string_length("${class_prefix}");
+      "component_key"          string => "${class_parameter}";
+
+  defaults:
+      # if class_parameter is not set, then use the component_key from report_data
+      "component_key"          string => "${report_data.component_key}", if_match_regex => "";
 
   classes:
       # Use the full class prefix if:
@@ -52,11 +58,11 @@ bundle agent log_rudder(message, old_class_prefix, class_prefix, args)
 
   methods:
     !use_class_prefix::
-      "report" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${c_old_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${report_data.component_key}", "${message}"),
+      "report" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${c_old_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
         classes    => classes_generic("logger_rudder_${c_old_class_prefix}");
 
     use_class_prefix::
-      "report" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${c_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${report_data.component_key}", "${message}"),
+      "report" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${c_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
         classes    => classes_generic("logger_rudder_${c_class_prefix}");
 
   reports:

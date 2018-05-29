@@ -57,5 +57,5 @@ bundle agent file_check_regular(file_name)
 
     any::
       "report"
-        usebundle => _log("Check if ${file_name} is a regular file", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Check if ${file_name} is a regular file", "${file_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
