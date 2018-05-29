@@ -68,6 +68,9 @@ bundle common package_module_knowledge
 
     aix::
       "platform_default" string => "nimclient";
+
+    slackware::
+      "platform_default" string => "slackpkg";
 }
 
 body package_module apt_get
@@ -133,6 +136,13 @@ body package_module yum
     query_installed_ifelapsed => "60";
     query_updates_ifelapsed => "240";
     #default_options => {};
+}
+
+body package_module slackpkg
+{
+    query_installed_ifelapsed => "60";
+    query_updates_ifelapsed => "1440";
+    #default_options =>  {};
 }
 
 body package_module pkg
