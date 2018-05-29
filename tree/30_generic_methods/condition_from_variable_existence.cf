@@ -1,0 +1,50 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Condition from variable existence
+# @description Create a condition from the existence of a variable
+# @documentation This bundle will define a class `{condition_prefix}_{variable_name}_{true/false}
+#
+# @parameter condition_prefix Prefix of the class (condition) generated
+# @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable
+#
+# @class_prefix condition_from_variable_existence
+# @class_parameter condition_prefix
+
+bundle agent condition_from_variable_existence(condition_prefix, variable_name)
+{
+  vars:
+      "old_class_prefix"  string => canonify("condition_from_variable_existence_${condition_prefix}");
+      "args"               slist => { "${condition_prefix}", "${variable_name}" };
+      "report_param"      string => join("_", args);
+      "class_prefix"      string => canonify("condition_from_variable_existence_${report_param}");
+
+  classes:
+
+      "${condition_prefix}_true"  expression => isvariable("${variable_name}"),
+            scope => "namespace";
+
+      "${condition_prefix}_false"  not => isvariable("${variable_name}"),
+            scope => "namespace";
+
+  methods:
+      "success" usebundle => _classes_success("${old_class_prefix}");
+      "success" usebundle => _classes_success("${class_prefix}");
+
+      "report"  usebundle => _log("Create the condition ${condition_prefix}_{true,false} from the existence of variable ${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

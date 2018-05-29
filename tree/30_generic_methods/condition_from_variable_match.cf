@@ -1,0 +1,50 @@
+# @name Condition from variable match
+# @description Test the content of a string variable
+# @documentation Test a variable content and create outcome classes depending on its value.
+#  This generic method will define a class `condition_from_variable_match_${condition_prefix}_{kept, repaired, error, reached}`. 
+#
+#  If the variable is found and its content matches the given regex, this will produce a kept outcome condition and a `${condition_prefix}_true` condition
+#  If the variable can not be found or if its content does not match the given regex, this will produce an error outcome condition and a `${condition_prefix}_false` condition
+#  /!\ Regex for unix machine must be PCRE compatible and those for Windows agent must respect the .Net regex format.
+# @parameter condition_prefix Prefix of the class (condition) generated
+# @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable
+# @parameter expected_match Regex to use to test if the variable content is compliant
+#
+# @class_prefix condition_from_variable_match
+# @class_parameter condition_prefix
+
+
+bundle agent condition_from_variable_match(condition_prefix, variable_name, expected_match)
+{
+  vars:
+      "old_class_prefix"  string => canonify("condition_from_variable_match_${condition_prefix}");
+      "args"               slist => { "${condition_prefix}", "${variable_name}" };
+      "report_param"      string => join("_", args);
+      "class_prefix"      string => canonify("condition_from_variable_match_${report_param}");
+
+  classes:
+      "pass1" expression => "any";
+      "pass2" expression => "pass1";
+      "pass3" expression => "pass2";
+
+    pass2::
+      "var_exists" expression => isvariable("${variable_name}");
+
+      "${condition_prefix}_true"  and => {regcmp("${expected_match}", "${${variable_name}}"), "var_exists"},
+                                       scope => "namespace";
+
+      "${condition_prefix}_false"  or => {"!${condition_prefix}_true", "!var_exists"},
+                                       scope => "namespace";
+
+  methods:
+    pass3::
+      "failure" usebundle => _classes_failure("${class_prefix}"),
+        ifvarclass => "!var_exists";
+
+      "success" usebundle => _classes_success("${old_class_prefix}"),
+        ifvarclass => "var_exists";
+      "success" usebundle => _classes_success("${class_prefix}"),
+        ifvarclass => "var_exists";
+
+      "report"  usebundle => _log("Create the condition ${condition_prefix}_{true,false} from the result of regex: /${expected_match}/ on variable ${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

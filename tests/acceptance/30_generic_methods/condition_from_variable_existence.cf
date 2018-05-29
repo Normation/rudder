@@ -1,0 +1,63 @@
+#######################################################
+#
+# Test if only success classes are created
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { configuration, default("$(this.promise_filename)") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+  methods:
+    "method_call" usebundle => variable_string("my_prefix", "my_variable", "Some text");
+    "method_call" usebundle => variable_string("my_prefix", "my_empty_variable", "");
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1"         usebundle => condition_from_variable_existence("class1", "my_prefix.my_variable");
+    "ph2"         usebundle => condition_from_variable_existence("class2", "my_prefix.my_empty_variable");
+    "ph3"         usebundle => condition_from_variable_existence("class3", "my_prefix.my_undefined_variable");
+
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+      "ok_class1"  expression => "condition_from_variable_existence_class1_my_prefix_my_variable_ok.class1_true";
+      "ok_class2"  expression => "condition_from_variable_existence_class2_my_prefix_my_empty_variable_ok.class2_true";
+      "ok_class3"  expression => "condition_from_variable_existence_class3_my_prefix_my_undefined_variable_ok.class3_false";
+
+      "ok"         expression => "ok_class1.ok_class2.ok_class3";
+
+  reports:
+    !ok_class1::
+      "Test 1 failed";
+    !ok_class2::
+      "Test 2 failed";
+    !ok_class3::
+      "Test 3 failed";
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
