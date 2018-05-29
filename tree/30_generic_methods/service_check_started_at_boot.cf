@@ -43,5 +43,15 @@ bundle agent service_check_started_at_boot(service_name)
       "new result classes" usebundle => _classes_copy("${class_prefix}_check_enabled", "${class_prefix}"),
                           ifvarclass => "${class_prefix}_check_enabled_reached";
 
-      "reports"            usebundle => _log("Check if service ${service_name} is started at boot", "${old_class_prefix}", "${class_prefix}", @{args});
+      "success" usebundle => _classes_success("${old_class_prefix}"),
+               ifvarclass => "ncf_services_${canonified_service_name}_is_enabled_ok";
+      "success" usebundle => _classes_success("${class_prefix}"),
+               ifvarclass => "${class_prefix}_check_enabled_ok";
+
+      "failure" usebundle => _classes_failure("${old_class_prefix}"),
+               ifvarclass => "ncf_services_${canonified_service_name}_is_enabled_not_ok";
+      "failure" usebundle => _classes_failure("${class_prefix}"),
+               ifvarclass => "${class_prefix}_check_enabled_not_ok";
+
+      "reports" usebundle => _log("Check if service ${service_name} is started at boot", "${old_class_prefix}", "${class_prefix}", @{args});
 }
