@@ -443,8 +443,8 @@ object DisplayNode extends Loggable {
                 val nodeId      = sm.node.main.id
                 val publicKeyId = s"publicKey-${nodeId.value}"
                 val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId) match {
-                  case Full(Some(nodeInfo)) => <span>{nodeInfo.securityTokenHash}</span>
-                  case _ => <i>Hash not found</i>
+                  case Full(Some(nodeInfo)) if(nodeInfo.securityTokenHash.nonEmpty) => <span>{nodeInfo.securityTokenHash}</span>
+                  case _                                                            => <span><i>Hash not available</i></span>
                 }
 
                 val tokenKind = agent.securityToken match {

@@ -195,7 +195,7 @@ object NodeInfoService {
  * For test, we need a way to split the cache part from its retrieval.
  */
 
-trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRepository {
+trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRepository {
   import NodeInfoService._
 
   def ldap           : LDAPConnectionProvider[RoLDAPConnection]
@@ -299,7 +299,10 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
 
         val res = nodes.flatMap { case (id, nodeEntry) =>
           for {
-            nodeInv   <- nodeInventories.get(id)
+            nodeInv   <- nodeInventories.get(id).orElse { //log missing elements
+                           logger.debug(s"Node with id '${id}' is in ou=Nodes,cn=rudder-configuration but doesn't have an inventory")
+                           None
+                         }
             machineInv = for {
                            containerDn  <- nodeInv(A_CONTAINER_DN)
                            machineEntry <- machineInventories.get(containerDn)
@@ -310,7 +313,7 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
             nodeInfo <- ldapMapper.convertEntriesToNodeInfos(ldapNode.nodeEntry, ldapNode.nodeInventoryEntry, ldapNode.machineEntry) match {
                           case Full(nodeInfo) => Some(nodeInfo)
                           case eb : EmptyBox =>
-                            val fail = eb ?~! "An error occured while updating node cache"
+                            val fail = eb ?~! s"An error occured while updating node cache: can not unserialize node with id '${id}', it will be ignored"
                             logger.error(fail.messageChain)
                             // for now we only log the error message, and keep a None so Node data are not updated
                             None

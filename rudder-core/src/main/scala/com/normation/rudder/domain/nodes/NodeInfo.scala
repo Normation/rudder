@@ -114,7 +114,7 @@ final case class NodeInfo(
             ""
         }
       case Some(cert : Certificate) =>
-        logger.info(s"Node '${hostname}' (${id.value}) is a Dsc node and a we do not know how to generate a hash yet")
+        logger.info(s"Node '${hostname}' (${id.value}) is a DSC node and a we do not know how to generate a hash yet")
         ""
       case None =>
         logger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
