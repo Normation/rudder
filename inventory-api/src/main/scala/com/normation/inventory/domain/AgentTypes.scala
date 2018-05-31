@@ -179,25 +179,26 @@ object AgentInfoSerialisation {
         case _ => None
       }
     }
+    def error(kind: String) = s"""Bad value defined for security token. Expected format is: "securityToken: {"type":"${kind}","value":"...."} """
 
     agentType match {
       case Dsc => tokenJson \ "type" match {
         case JString(Certificate.kind) => extractValue(tokenJson) match {
           case Some(token) => Full(Certificate(token))
-          case None => Failure("No value defined for security token")
+          case None => Failure(error(Certificate.kind))
         }
         case JString(PublicKey.kind) => Failure("Cannot have a public Key for dsc agent, only a certificate is valid")
-        case JNothing => Failure("No value define for security token")
+        case JNothing => Failure(error(Certificate.kind))
         case invalidJson => Failure(s"Invalid value for security token, ${compactRender(invalidJson)}")
       }
       case _ => tokenJson \ "type" match {
         case JString(Certificate.kind) => extractValue(tokenJson) match {
           case Some(token) => Full(Certificate(token))
-          case None => Failure("No value defined for security token")
+          case None => Failure(error(Certificate.kind))
         }
         case JString(PublicKey.kind) => extractValue(tokenJson) match {
           case Some(token) => Full(PublicKey(token))
-          case None => Failure("No value defined for security token")
+          case None => Failure(error(PublicKey.kind))
         }
         case invalidJson =>
           tokenDefault match {
@@ -246,16 +247,21 @@ object AgentInfoSerialisation {
    * - else, try to parse in old format, put None to version.
    */
   def parseCompatNonJson(s: String, optToken : Option[String]): Box[AgentInfo] = {
-    parseJson(s, optToken).or(
-      for {
-        agentType <- AgentType.fromValue(s) ?~! (
-             s"Error when mapping '${s}' to an agent info. We are expecting either a json like "+
-             s"{'agentType': type, 'version': opt_version}, or an agentType with allowed values in ${AgentType.allValues.mkString(", ")}"
-               )
-        token  <- parseSecurityToken(agentType, JNothing, optToken)
-      } yield {
-        AgentInfo(agentType, None, token)
-      }
-    )
+    parseJson(s, optToken) match {
+      case Full(info)   => Full(info)
+      case eb: EmptyBox =>
+        val jsonError = eb ?~! "Error when parsing JSON information about the agent type."
+        for {
+          agentType <- AgentType.fromValue(s) ?~! (
+               s"Error when mapping '${s}' to an agent info. We are expecting either " +
+               s"an agentType with allowed values in ${AgentType.allValues.mkString(", ")}" +
+               s" or " +
+               s"a json like {'agentType': type, 'version': opt_version, 'securityToken': ...} but we get: ${jsonError.messageChain}"
+             )
+          token  <- parseSecurityToken(agentType, JNothing, optToken)
+        } yield {
+          AgentInfo(agentType, None, token)
+        }
+    }
   }
 }
