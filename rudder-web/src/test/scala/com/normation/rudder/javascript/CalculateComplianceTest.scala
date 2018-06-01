@@ -96,7 +96,7 @@ class CalculateComplianceTest extends Specification {
 
   val emptyJsBindings = new SimpleBindings()
   def js(js: String): Box[String] = {
-    JsEngine.SandboxedJsEngine.sandboxed { box =>
+    JsEngine.SandboxedJsEngine.sandboxed(this.getClass.getClassLoader.getResource("rudder-js.policy")) { box =>
       for {
         _ <- box.singleEval(imports, emptyJsBindings)
         x <- box.singleEval(js, emptyJsBindings)
