@@ -38,7 +38,6 @@
 package com.normation.rudder.services.policies
 
 import java.security.Permission
-import java.util.PropertyPermission
 import java.util.concurrent._
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -63,16 +62,20 @@ import net.liftweb.common.Empty
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import java.io.FilePermission
-import java.lang.reflect.ReflectPermission
-import java.security.SecurityPermission
 
 import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
 import com.normation.cfclerk.domain.AixPasswordHashAlgo
 import com.normation.cfclerk.domain.AbstactPassword
 import java.security.NoSuchAlgorithmException
-import java.net.NetPermission
+import java.net.URL
+import java.nio.file.Paths
+import java.security.CodeSource
+import java.security.ProtectionDomain
 import java.util.logging.LoggingPermission
+import java.security.cert.Certificate
+
+import sun.security.provider.PolicyFile
 
 import com.github.ghik.silencer.silent
 
@@ -323,11 +326,22 @@ final object JsEngineProvider {
    * (i.e: different eval may have to different bindings).
    * So we just provide eval-indep lib here, but we don't
    * have any for now.
+   *
+   * Security policy are taken from `rudder-js.policy` file in the classpath
+   * unlessthe file `/opt/rudder/etc/rudder-js.policy` is defined.
    */
   def withNewEngine[T](feature: FeatureSwitch)(script: JsEngine => Box[T]): Box[T] = {
     feature match {
       case FeatureSwitch.Enabled  =>
-        SandboxedJsEngine.sandboxed { engine => script(engine) }
+        val defaultPath = this.getClass.getClassLoader.getResource("rudder-js.policy")
+        val userPolicies = Paths.get("/opt/rudder/etc/rudder-js.policy")
+        val url = if(userPolicies.toFile.canRead) {
+          userPolicies.toUri.toURL
+        } else {
+          defaultPath
+        }
+
+        SandboxedJsEngine.sandboxed(url) { engine => script(engine) }
       case FeatureSwitch.Disabled =>
         script(DisabledEngine)
     }
@@ -423,8 +437,8 @@ final object JsEngine {
      * This is expensive, several seconds on a 8-core i7 @ 3.5Ghz.
      * So you should minimize the number of time it is done.
      */
-    def sandboxed[T](script: SandboxedJsEngine => Box[T]): Box[T] = {
-      var sandbox = new SandboxSecurityManager()
+    def sandboxed[T](policyFileUrl: URL)(script: SandboxedJsEngine => Box[T]): Box[T] = {
+      var sandbox = new SandboxSecurityManager(policyFileUrl)
       var threadFactory = new RudderJsEngineThreadFactory(sandbox)
       var pool = Executors.newSingleThreadExecutor(threadFactory)
       System.setSecurityManager(sandbox)
@@ -624,8 +638,10 @@ final object JsEngine {
    * but more by mistake (because he didn't understood when the script is evaled,
    * for example).
    *
+   * The security rules are taken from a rudder-js.policy file.
+   *
    */
-  protected[policies] class SandboxSecurityManager extends SecurityManager {
+  protected[policies] class SandboxSecurityManager(policyFileUrl: URL) extends SecurityManager {
     //by default, we don't sand box. Thread will do it in their factory
     val isSandboxed = {
       val itl = new InheritableThreadLocal[Boolean]()
@@ -633,61 +649,25 @@ final object JsEngine {
       itl
     }
 
-    //authorized / needed runtime permissions
-    private[this] val runtimePerms = Set(
-        "modifyThread"      //needed by thread factory to try to kill the thread
-      , "createClassLoader" //needed by rhino to run almost anything, like creating a var - else NPE
-      , "nashorn.createGlobal" //needed by Nashorn to do stuff
-      , "accessDeclaredMembers" //needed by Nashorn to do stuff
-      , "loadLibrary.sunec"     //needed by Rudder JS Lib
-      , "loadLibrary.j2pkcs11"  //needed by Rudder JS Lib
-      , "loadLibrary.nio"       //needed by Rudder JS Lib
-      , "loadLibrary.net"       //needed by Rudder JS Lib
-      , "accessClassInPackage.org.jcp.xml.dsig.internal.dom"
-      , "accessClassInPackage.jdk.internal.reflect"
-      , "getProtectionDomain"
-      , "shutdownHooks"
-      , "setContextClassLoader"
-      , "fileSystemProvider"
-      , "getClassLoader"
-      , "accessSystemModules"
-    )
-    private[this] val reflectPerms = Set(
-        "suppressAccessChecks" //needed by rhino to run almost anything, like creating a var - else NPE
-    )
-    private[this] val securityPerms = Set( //needed by rudder js lib
-        //we are checking the start for them
-        "getProperty" // all getProperty are allowed, because JDK is eager to add new one in minor releases
-      , "putProviderProperty"
-    )
-
-    private[this] val filePerms = Set( //we only authorize read access
-        "/dev/random"
-      , "/dev/urandom"
-    )
+    val protectionDomain = new ProtectionDomain(new CodeSource(null, Array[Certificate]()), null)
+    // policy file must be instanciate here else it need to follows its own rules...
+    val policyFile = new PolicyFile(policyFileUrl)
 
     override def checkPermission(permission: Permission): Unit = {
       if(isSandboxed.get) {
-
+        // there some perms which are hard to specify in that file
         permission match {
-          case x: FilePermission     if( x.getActions == "read" && filePerms.contains(x.getName)    ) => // ok
-            // We need to authorize access to a lot of jar/classes for crypto (lot of dependencies). However listing all
-            // classes is impossible, causing a stackoverflow error see: http://stackoverflow.com/questions/2510683/securitymanager-stackoverflowerror
-            // so we work-around by authorizing a lot of stuff
-          case x: FilePermission     if( x.getActions == "read" && (x.getName.contains(".class") || x.getName.endsWith(".jar")  || x.getName.endsWith(".so")   || x.getName.endsWith(".cfg") || x.getName.endsWith(".properties") || x.getName.endsWith(".certs") || x.getName.endsWith("jre/lib/security/cacerts") || x.getName.contains("/security/policy/unlimited")) )  => // ok
-          case x: SecurityPermission if( securityPerms.exists( p => x.getName.startsWith(p) )       ) => // ok
-          case x: NetPermission      if( x.getName == "specifyStreamHandler" ) => //ok
-          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.jdk.nashorn")   ) => // ok
-          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.com.sun.script")   ) => // ok
-          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.sun.security.") ) => // ok
-          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.sun.reflect") ) => // ok
-          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.sun.org.mozilla.javascript") ) => // ok
-          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.jdk.internal.org.objectweb.asm") ) => // ok
-          case x: RuntimePermission  if( runtimePerms.contains(x.getName)  ) => // ok
-          case x: ReflectPermission  if( reflectPerms.contains(x.getName)  ) => // ok
-          case x: PropertyPermission if( x.getActions == "read"            ) => // ok
+          // jar and classes
+          case x: FilePermission if( x.getActions == "read" && (x.getName.contains(".class") || x.getName.endsWith(".jar")  || x.getName.endsWith(".so") ) ) => // ok
+          // configuration files
+          case x: FilePermission if( x.getActions == "read" && (x.getName.endsWith(".cfg") || x.getName.endsWith(".properties") ) )  => // ok
+          // cert files and config
+          case x: FilePermission if( x.getActions == "read" && (x.getName.endsWith(".certs") || x.getName.endsWith("jre/lib/security/cacerts") || x.getName.contains("/security/policy/unlimited")) )  => // ok
           case x: LoggingPermission  => // ok
+          // else look in the dynamic rules from rudder-js.policy files
+          case x if(policyFile.implies(protectionDomain, permission)) => // ok
           case x =>
+            //JsDirectiveParamLogger.warn(s"Script tries to access protected resources: ${permission.toString}")
             throw new SecurityException("access denied to: " + permission)    // error
         }
       } else {

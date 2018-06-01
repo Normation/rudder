@@ -40,14 +40,15 @@ package com.normation.rudder.services.policies
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-
 import net.liftweb.common._
 import org.specs2.matcher.MatchResult
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.cfclerk.domain.InputVariableSpec
 import org.specs2.matcher.Matcher
+
 import scala.util.matching.Regex
 import com.normation.cfclerk.domain.Variable
+import sun.security.provider.PolicyFile
 
 /*
  * This class test the JsEngine.
@@ -76,6 +77,8 @@ class TestJsEngine extends Specification {
     val major = Integer.parseInt(javaVersionElements(1))
     major >= 8 // else rhino, because we don't support java 1.5 and before in all case
   }
+
+  val policyFile = this.getClass.getClassLoader.getResource("rudder-js.policy")
 
   /**
    * A failure matcher utility that pattern matches the result message
@@ -151,7 +154,7 @@ class TestJsEngine extends Specification {
   "When getting the sandboxed environement, one " should {
 
     "still be able to do dangerous things, because it's only the JsEngine which is sandboxed" in {
-      JsEngine.SandboxedJsEngine.sandboxed { box =>
+      JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         val dir = new java.io.File(s"/tmp/rudder-test-${System.currentTimeMillis}")
         val res = Full((dir).createNewFile())
         //but clean tmp after all :)
@@ -161,19 +164,19 @@ class TestJsEngine extends Specification {
     }
 
     "not be able to access FS with safeExec" in {
-      JsEngine.SandboxedJsEngine.sandboxed { box =>
+      JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         box.safeExec("write to fs")( Full((new java.io.File("/tmp/rudder-test-fromjsengine")).createNewFile()) )
       } must beFailure(".*access denied to.*/tmp/rudder-test-fromjsengine.*".r)
     }
 
     "be able to do simple operation with JS" in {
-      JsEngine.SandboxedJsEngine.sandboxed { box =>
+      JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         box.singleEval("'thestring'.substring(0,3)", JsRudderLibBinding.Crypt.bindings)
       } must beEqualTo(Full("the"))
     }
 
     "get a scripting error if the script is eval to null" in {
-      JsEngine.SandboxedJsEngine.sandboxed { box =>
+      JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         box.singleEval("null", JsRudderLibBinding.Crypt.bindings)
       } must beFailure(".*null.*".r)
     }
@@ -185,7 +188,7 @@ class TestJsEngine extends Specification {
         ".*(forced interrupted|access denied to).*".r
       }
 
-      JsEngine.SandboxedJsEngine.sandboxed { box =>
+      JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         box.singleEval("""(new java.io.File("/tmp/rudder-test-fromjsengine")).createNewFile();""", JsRudderLibBinding.Crypt.bindings)
       } must beFailure(failMsg)
     }
@@ -197,13 +200,13 @@ class TestJsEngine extends Specification {
         ".*(forced interrupted|access denied to).*".r
       }
 
-      JsEngine.SandboxedJsEngine.sandboxed { box =>
+      JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         box.singleEval("""java.lang.System.exit(0);""", JsRudderLibBinding.Crypt.bindings)
       } must beFailure(failMsg)
     }
 
     "not be able to loop for ever with JS" in {
-      JsEngine.SandboxedJsEngine.sandboxed { box =>
+      JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         box.singleEval("""while(true){}""", JsRudderLibBinding.Crypt.bindings)
       } must beFailure(".*force to kill.*".r)
     }

@@ -76,3 +76,11 @@ object NodeLogger extends Logger {
   }
 }
 
+/*
+ * A logger to log information about the JS script eval for directives
+ * parameter.s
+ */
+object JsDirectiveParamLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("jsDirectiveParam")
+}
+
