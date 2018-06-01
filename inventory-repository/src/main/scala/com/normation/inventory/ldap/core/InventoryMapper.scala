@@ -644,16 +644,17 @@ class InventoryMapper(
       case Linux(os,osFullName,osVersion,osServicePack,kernelVersion) =>
         val linux = dit.NODES.NODE.linuxModel(server.main.id)
         os match {
-          case Debian  => linux += (A_OS_NAME, A_OS_DEBIAN)
-          case Ubuntu  => linux += (A_OS_NAME, A_OS_UBUNTU)
-          case Redhat  => linux += (A_OS_NAME, A_OS_REDHAT)
-          case Centos  => linux += (A_OS_NAME, A_OS_CENTOS)
-          case Fedora  => linux += (A_OS_NAME, A_OS_FEDORA)
-          case Suse    => linux += (A_OS_NAME, A_OS_SUZE)
-          case Android => linux += (A_OS_NAME, A_OS_ANDROID)
-          case Oracle  => linux += (A_OS_NAME, A_OS_ORACLE)
+          case Debian     => linux += (A_OS_NAME, A_OS_DEBIAN)
+          case Ubuntu     => linux += (A_OS_NAME, A_OS_UBUNTU)
+          case Redhat     => linux += (A_OS_NAME, A_OS_REDHAT)
+          case Centos     => linux += (A_OS_NAME, A_OS_CENTOS)
+          case Fedora     => linux += (A_OS_NAME, A_OS_FEDORA)
+          case Suse       => linux += (A_OS_NAME, A_OS_SUZE)
+          case Android    => linux += (A_OS_NAME, A_OS_ANDROID)
+          case Oracle     => linux += (A_OS_NAME, A_OS_ORACLE)
           case Scientific => linux += (A_OS_NAME, A_OS_SCIENTIFIC)
-          case _       => linux += (A_OS_NAME, A_OS_UNKNOWN_LINUX)
+          case Slackware  => linux += (A_OS_NAME, A_OS_SLACKWARE)
+          case _          => linux += (A_OS_NAME, A_OS_UNKNOWN_LINUX)
         }
         linux
 
@@ -817,16 +818,17 @@ class InventoryMapper(
 
                         } else if(entry.isA(OC_LINUX_NODE)) {
                           val os = osName match {
-                            case A_OS_DEBIAN  => Debian
-                            case A_OS_UBUNTU  => Ubuntu
-                            case A_OS_REDHAT  => Redhat
-                            case A_OS_CENTOS  => Centos
-                            case A_OS_FEDORA  => Fedora
-                            case A_OS_SUZE    => Suse
-                            case A_OS_ORACLE  => Oracle
+                            case A_OS_DEBIAN     => Debian
+                            case A_OS_UBUNTU     => Ubuntu
+                            case A_OS_REDHAT     => Redhat
+                            case A_OS_CENTOS     => Centos
+                            case A_OS_FEDORA     => Fedora
+                            case A_OS_SUZE       => Suse
+                            case A_OS_ORACLE     => Oracle
                             case A_OS_SCIENTIFIC => Scientific
-                            case A_OS_ANDROID => Android
-                            case _            => UnknownLinuxType
+                            case A_OS_ANDROID    => Android
+                            case A_OS_SLACKWARE  => Slackware
+                            case _               => UnknownLinuxType
                           }
                           Full(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))
 
