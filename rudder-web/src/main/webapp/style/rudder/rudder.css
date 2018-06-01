@@ -1411,7 +1411,10 @@ p img {
 .portlet li {
    list-style-type: none;
 }
-
+table .innerDetails li{
+    word-break: break-all;
+    white-space: pre-wrap;
+}
 .portlet-header {
    padding: 5px 0 5px 15px;
    font-size: 1.4em;
