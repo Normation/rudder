@@ -226,4 +226,11 @@ class TestReportParsing extends Specification with Loggable {
 
   }
 
+
+  "Parsing Slackware" should {
+    "parse as slackware" in {
+      val os = parser.parse("fusion-report/slackinv.ocs").node.main.osDetails.os
+      os == Slackware
+    }
+  }
 }

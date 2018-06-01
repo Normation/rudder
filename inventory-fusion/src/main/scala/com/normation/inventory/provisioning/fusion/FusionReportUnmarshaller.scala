@@ -631,6 +631,7 @@ class FusionReportUnmarshaller(
           else if(x contains "android") Android
           else if(x contains "oracle"    ) Oracle
           else if(x contains "scientific") Scientific
+          else if(x contains "slackware") Slackware
           else                          UnknownLinuxType
 
         case("solaris", _) => SolarisOS
