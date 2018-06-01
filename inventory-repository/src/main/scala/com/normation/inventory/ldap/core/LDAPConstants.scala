@@ -209,6 +209,7 @@ object LDAPConstants {
   val A_OS_UNKNOWN_BSD = "Unknown BSD flavor"
   val A_OS_ORACLE = "Oracle"
   val A_OS_SCIENTIFIC = "Scientific"
+  val A_OS_SLACKWARE = "Slackware"
 
   /*
    * A bunch of name, just to be sur to use variable
