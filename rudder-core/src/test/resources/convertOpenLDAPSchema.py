@@ -60,7 +60,7 @@ def main(argv=None):
 	try:
 		try:
 			opts, args = getopt.getopt(argv[1:], "ho:v", ["help", "output="])
-		except getopt.error, msg:
+		except getopt.error as msg:
 			raise Usage(msg)
 	
 		# option processing
@@ -73,18 +73,18 @@ def main(argv=None):
 				output = value
 		
 		
-	except Usage, err:
+	except Usage as err:
 		print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
 		print >> sys.stderr, "\t for help use --help"
 		return 2
 	try:
 		infile = open(args[0], "r")
-	except Usage, err:
+	except Usage as err:
 		print >> sys.stderr, "Can't open file: " + str(err.msg)
 	if output != "":
 		try:
 			outfile = open(output, "w")
-		except Usage, err:
+		except Usage as err:
 			print >> sys.stderr, "Can't open output file: " + str(err.msg)
 	else:
 		outfile = sys.stdout
@@ -116,7 +116,7 @@ def main(argv=None):
 				else:
 					# The OID is a name. Replace string with the OID
 					repl = IDs[subattr[0]]
-				newline = string.replace(i, subattr[0], repl, 1)
+				newline = i.replace(subattr[0], repl, 1)
 			seclineoid = 0
 			
 		if re.match("attributetype ", i, re.IGNORECASE):
@@ -134,7 +134,7 @@ def main(argv=None):
 					else:
 						# The OID is a name. Replace string with the OID
 						repl = IDs[subattr[2]]
-					newline = string.replace(newline, subattr[2], repl, 1)
+					newline = newline.replace(subattr[2], repl, 1)
 				
 		if re.match("objectclass ", i, re.IGNORECASE):
 			newline = re.sub("object[cC]lass", "objectClasses:", i)
@@ -151,7 +151,7 @@ def main(argv=None):
 					else:
 						# The OID is a name. Replace string with the OID
 						repl = IDs[subattr[2]]
-					newline = string.replace(newline, subattr[2], repl, 1)
+					newline = newline.replace(subattr[2], repl, 1)
 
 		# Remove quoted syntax.
 		if re.search("SYNTAX\s'[\d.]+'", newline):
