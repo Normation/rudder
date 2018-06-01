@@ -79,6 +79,7 @@ import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.rule.category._
+import com.normation.rudder.services.ClearCacheServiceImpl
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
 import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.eventlog._
@@ -682,10 +683,21 @@ object RudderConfig extends Loggable {
 
   // System API
 
+  val clearCacheService = new ClearCacheServiceImpl(
+      nodeConfigurationHashRepo
+    , asyncDeploymentAgent
+    , eventLogRepository
+    , uuidGen
+    , clearableCache
+  )
+
+
   val systemApiService11 = new SystemApiService11(
-                                updateTechniqueLibrary
-                              , uuidGen
-                              , updateDynamicGroups
+      updateTechniqueLibrary
+    , clearCacheService
+    , asyncDeploymentAgent
+    , uuidGen
+    , updateDynamicGroups
   )
 
   private[this] val complianceAPIService = new ComplianceAPIService(

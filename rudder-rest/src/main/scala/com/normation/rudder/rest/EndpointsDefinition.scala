@@ -423,6 +423,15 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
       val (action, path) = POST / "system" / "action" / "reload"
     }
 
+  final case object PoliciesUpdate extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+      val description = "update all policies"
+      val (action, path) = POST / "system" / "action" / "policies" / "update"
+    }
+
+  final case object PoliciesRegenerate extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description = "regenerate all policies"
+    val (action, path) = POST / "system" / "action" / "policies" / "regenerate"
+  }
 
   def endpoints = ca.mrvisser.sealerate.values[SystemApi].toList.sortBy( _.z )
 }

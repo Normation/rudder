@@ -121,17 +121,17 @@ class RemoveNodeServiceImpl(
 
       val hookEnv =
         HookEnvPairs.build(
-            ("RUDDER_NODE_ID"              , nodeId.value)
-          , ("RUDDER_NODE_HOSTNAME"        , nodeInfo.hostname)
-          , ("RUDDER_NODE_POLICY_SERVER_ID", nodeInfo.policyServerId.value)
-          , ("RUDDER_AGENT_TYPE"           , nodeInfo.agentsName.headOption.map( _.agentType.id).getOrElse(""))
-          , ("RUDDER_NODE_ROLES"           , nodeInfo.serverRoles.map(_.value).mkString(","))
+            ("RUDDER_NODE_ID"                    , nodeId.value)
+          , ("RUDDER_NODE_HOSTNAME"              , nodeInfo.hostname)
+          , ("RUDDER_NODE_POLICY_SERVER_ID"      , nodeInfo.policyServerId.value)
+          , ("RUDDER_AGENT_TYPE"                 , nodeInfo.agentsName.headOption.map( _.agentType.id).getOrElse(""))
+          , ("RUDDER_NODE_ROLES"                 , nodeInfo.serverRoles.map(_.value).mkString(","))
           , ("RUDDER_POLICIES_DIRECTORY_CURRENT" , optNodePaths.map(_.baseFolder).getOrElse(""))
           , ("RUDDER_POLICIES_DIRECTORY_NEW"     , optNodePaths.map(_.newFolder).getOrElse(""))
           , ("RUDDER_POLICIES_DIRECTORY_ARCHIVE" , optNodePaths.map(_.backupFolder).getOrElse(""))
             // for compat in 4.1. Remove in 4.2
-          , ("RUDDER_NODEID"             , nodeId.value)
-          , ("RUDDER_NODE_POLICY_SERVER" , nodeInfo.policyServerId.value)
+          , ("RUDDER_NODEID"                     , nodeId.value)
+          , ("RUDDER_NODE_POLICY_SERVER"         , nodeInfo.policyServerId.value)
         )
 
       val preRun = RunHooks.syncRun(preHooks, hookEnv, systemEnv)

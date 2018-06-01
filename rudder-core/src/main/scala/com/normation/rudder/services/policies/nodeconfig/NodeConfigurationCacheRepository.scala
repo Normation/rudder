@@ -239,7 +239,7 @@ trait NodeConfigurationHashRepository {
   /**
    * Delete node config by its id
    */
-  def deleteNodeConfigurations(nodeIds:Set[NodeId]) :  Box[Set[NodeId]]
+  def deleteNodeConfigurations(nodeIds:Set[NodeId]) : Box[Set[NodeId]]
 
   /**
    * delete all node configuration
@@ -319,7 +319,7 @@ class LdapNodeConfigurationHashRepository(
   import net.liftweb.json.Serialization.{ read, write }
   implicit val formats = Serialization.formats(NoTypeHints) ++ net.liftweb.json.ext.JodaTimeSerializers.all
 
-  /*
+  /**
    * Logic: there is only one object that contains all node config cache.
    * Each node config cache is stored in one value of the "nodeConfig" attribute.
    * The serialisation is simple json.

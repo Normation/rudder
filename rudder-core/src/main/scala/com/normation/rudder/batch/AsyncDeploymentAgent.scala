@@ -37,7 +37,6 @@
 
 package com.normation.rudder.batch
 
-import net.liftweb.common._
 import net.liftweb.actor._
 import org.joda.time._
 import com.normation.inventory.domain.NodeId
@@ -51,10 +50,6 @@ import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import net.liftweb.common._
 import com.normation.eventlog.EventLogDetails
 import scala.xml.NodeSeq
-import com.normation.eventlog.ModificationId
-import com.normation.eventlog.ModificationId
-import com.normation.eventlog.ModificationId
-import com.normation.eventlog.ModificationId
 import com.normation.eventlog.ModificationId
 import java.io.File
 import com.normation.rudder.domain.logger.PolicyLogger
