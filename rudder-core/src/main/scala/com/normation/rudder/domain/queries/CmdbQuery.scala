@@ -57,6 +57,7 @@ import JsCmds._
 import JE._
 import net.liftweb.json._
 import JsonDSL._
+import com.jayway.jsonpath.JsonPath
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeProperty
@@ -95,7 +96,8 @@ case object NotRegex extends SpecialComparator { override val id = "notRegex" }
 
 sealed trait KeyValueComparator extends BaseComparator
 object KeyValueComparator {
-  final case object HasKey     extends KeyValueComparator { override val id = "hasKey"         }
+  final case object HasKey     extends KeyValueComparator { override val id = "hasKey"     }
+  final case object JsonSelect extends KeyValueComparator { override val id = "jsonSelect" }
 
   def values = ca.mrvisser.sealerate.values[KeyValueComparator]
 }
@@ -258,9 +260,22 @@ case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionType {
         } else {
           Failure(s"When looking for 'key=value', the '=' is mandatory. The left part is a key name, and the right part is the string to look for.")
         }
+      case KeyValueComparator.JsonSelect =>
+        val x = value.split(":")
+        if(x.size >= 1) { // remaining '=' will be considered part of the value
+          Full(value)
+        } else {
+          Failure(s"When looking for 'key=json path expression', we found zero ':', but at least one is mandatory. The left "+
+                  "part is a key name, and the right part is the JSON path expression (see https://github.com/json-path/JsonPath). For example: datacenter:world.europe.[?(@.city=='Paris')]")
+        }
       case Regex | NotRegex   => validateRegex(value)
       case _                  => Full(value)
     }
+  }
+
+
+  def matchJsonPath(key: String, path: Box[JsonPath])(p: NodeProperty): Boolean = {
+    (p.name == key) && path.flatMap(JsonSelect.exists(_, p.renderValue)).openOr(false)
   }
 
   val regexMatcher = (value: String) => new NodeInfoMatcher {
@@ -291,6 +306,12 @@ case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionType {
                                override def matches(node: NodeInfo): Boolean = !regex.matches(node)
                              }
       case KVC.HasKey     => NodeInfoMatcher((node: NodeInfo) => node.properties.exists(_.name == value))
+      case KVC.JsonSelect => new NodeInfoMatcher {
+                               val kv = splitInput(value, ":")
+                               val path = JsonSelect.compilePath(kv.value)
+                               val matcher = matchJsonPath(kv.key, path) _
+                               override def matches(node: NodeInfo): Boolean = node.properties.exists(matcher)
+                             }
       case _              => matches(Equals, value)
     }
   }
