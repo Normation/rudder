@@ -324,7 +324,7 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested directive archive restoration to commit %s".format(actor.name,archiveId.value)
     for {
       directivesArchiveId <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
-      eventLogged <- eventLogger.saveEventLog(modId, new ImportTechniqueLibraryArchive(actor,archiveId, reason))
+      eventLogged         <- eventLogger.saveEventLog(modId, new ImportTechniqueLibraryArchive(actor,archiveId, reason))
       commit              <- restoreCommitAtHead(commiter,commitMsg,archiveId,TechniqueLibraryArchive,modId)
     } yield
       archiveId

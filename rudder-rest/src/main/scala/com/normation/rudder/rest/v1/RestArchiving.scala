@@ -179,7 +179,7 @@ extends RestHelper {
   private[this] def restoreLatestArchive(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
       archives   <- list()
-      commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
+      commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       (date,tag) <- Box(archives.toList.sortWith { case ( (d1,_), (d2,_) ) => d1.isAfter(d2) }.headOption) ?~! "No archive is available"
       restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore latest archive required from REST API"),false)
     } yield {
@@ -195,7 +195,7 @@ extends RestHelper {
 
   private[this] def restoreLatestCommit(req:Req, restore: (PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
-      commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
+      commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       restored   <- restore(commiter,newModId,RestUtils.getActor(req),Some("Restore archive from latest commit on HEAD required from REST API"), false)
     } yield {
       restored
@@ -212,7 +212,7 @@ extends RestHelper {
     (for {
       valideDate <- tryo { GitTagDateTimeFormatter.parseDateTime(datetime) } ?~! "The given archive id is not a valid archive tag: %s".format(datetime)
       archives   <- list()
-      commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
+      commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       tag        <- Box(archives.get(valideDate)) ?~! "The archive with tag '%s' is not available. Available archives: %s".format(datetime,archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", "))
       restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
     } yield {
@@ -240,5 +240,4 @@ extends RestHelper {
         PlainTextResponse("OK")
     }
   }
-
 }
