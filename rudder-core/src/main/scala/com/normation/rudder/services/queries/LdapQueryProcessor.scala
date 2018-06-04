@@ -55,7 +55,6 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.LDAPNodeInfo
-import net.liftweb.json.JsonAST.JObject
 import org.slf4j.LoggerFactory
 
 /*
@@ -78,8 +77,6 @@ sealed trait RegexFilter    extends GeneralRegexFilter
 sealed trait NotRegexFilter extends GeneralRegexFilter
 final case class SimpleRegexFilter         (attributeName:String, regex:String) extends RegexFilter    with HashcodeCaching
 final case class SimpleNotRegexFilter      (attributeName:String, regex:String) extends NotRegexFilter with HashcodeCaching
-final case class NodePropertyRegexFilter   (attributeName:String, regex:String) extends RegexFilter    with HashcodeCaching
-final case class NodePropertyNotRegexFilter(attributeName:String, regex:String) extends NotRegexFilter with HashcodeCaching
 
 /*
  * An NodeQuery differ a little from a Query because its components are sorted in two ways:
@@ -103,7 +100,15 @@ case class LDAPNodeQuery(
   , composition       : CriterionComposition
     //that map MUST not contains node related filters
   , objectTypesFilters: Map[DnType, Map[String,Set[ExtendedFilter]]]
+  , nodeInfoFilters   : Seq[NodeInfoMatcher]
 ) extends HashcodeCaching
+
+final case class LdapQueryProcessorResult(
+    // list of entries from inventory matching the search
+    entries    : Seq[LDAPEntry]
+    // a post filter to run on node info
+  , nodeFilters: Seq[NodeInfoMatcher]
+)
 
 case class RequestLimits (
   val subRequestTimeLimit:Int,
@@ -149,8 +154,8 @@ class AcceptedNodesLDAPQueryProcessor(
     val debugId = if(logger.isDebugEnabled) Helpers.nextNum else 0L
 
     for {
-      inventoryEntries <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId)
-      ldapEntries      <- nodeInfoService.getLDAPNodeInfo(inventoryEntries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet)
+      res         <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId)
+      ldapEntries <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition)
     } yield {
 
       val inNodes = ldapEntries.map { case LDAPNodeInfo(nodeEntry, nodeInv, machineInv) =>
@@ -158,9 +163,9 @@ class AcceptedNodesLDAPQueryProcessor(
       }
 
       if(logger.isDebugEnabled) {
-        val filtered = inventoryEntries.map( _(A_NODE_UUID).get ).toSet -- inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }.toSet
+        val filtered = res.entries.map( _(A_NODE_UUID).get ).toSet -- inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }.toSet
         if(!filtered.isEmpty) {
-            logger.debug("[%s] [post-filter:rudderNode] %s results (%s not in ou=Nodes,cn=rudder-configuration)".format(debugId, inNodes.size, filtered.mkString(", ")))
+            logger.debug(s"[${debugId}] [post-filter:rudderNode] ${inNodes.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered.mkString(", ")}")
         }
       }
 
@@ -215,8 +220,8 @@ class PendingNodesLDAPQueryChecker(
       Full(Seq.empty[NodeId])
     } else {
       for {
-        entries <- checker.internalQueryProcessor(query, Seq("1.1"), Some(limitToNodeIds))
-        ids <- sequence(entries) { entry =>
+        res <- checker.internalQueryProcessor(query, Seq("1.1"), Some(limitToNodeIds))
+        ids <- sequence(res.entries) { entry =>
           checker.ldapMapper.nodeDn2OptNodeId(entry.dn) ?~! "Can not get node ID from dn %s".format(entry.dn)
         }
       } yield {
@@ -255,13 +260,13 @@ class InternalLDAPQueryProcessor(
       select:Seq[String] = Seq(),
       limitToNodeIds:Option[Seq[NodeId]] = None, //
       debugId: Long = 0L
-  ) : Box[Seq[LDAPEntry]] = {
+  ) : Box[LdapQueryProcessorResult] = {
 
     //normalize the query: remove duplicates, order elements (last one server)
     val normalizedQuery = normalize(query) match {
       case Full(q) => q
       case f:Failure => return f
-      case Empty => return Failure("Can not normalize query")
+      case Empty => return Failure("Can not normalize query. This is likely a bug, please report it.")
     }
 
     //log start query
@@ -316,7 +321,7 @@ class InternalLDAPQueryProcessor(
             val s = if(dnMapSet.isEmpty) Set[DN]() else (dnMapSet.head._2 /: dnMapSet)( _ intersect _._2 )
             if(s.isEmpty) {
               logger.debug("[%s] `-> early stop query (empty sub-query)".format(debugId))
-              return Full(Seq()) //there is no need to go farther, since it will lead to anding with empty set
+              return Full(LdapQueryProcessorResult(Nil, Nil)) //there is no need to go farther, since it will lead to ending with empty set
             }
             else s
         }
@@ -386,7 +391,7 @@ class InternalLDAPQueryProcessor(
       }
     }
 
-    res
+    res.map(entries => LdapQueryProcessorResult(entries, normalizedQuery.nodeInfoFilters))
   }
 
   /**
@@ -688,41 +693,12 @@ class InternalLDAPQueryProcessor(
         }
       }
 
-      /*
-       * Parse the value as json and write it back as wanted.
-       * Perf won't be amazing, but it's the only sane way
-       * to do it.
-       */
-      def normalizeJsonNodeProperty(value: String): Box[String] = {
-        import net.liftweb.json._
-        import net.liftweb.json.JsonDSL._
-
-        for {
-          j <- parseOpt(value) match {
-                 case Some(j:JObject) => Full(j)
-                 case _               => Failure("The node property can not be parsed as JSON")
-               }
-          n =  j \ "name"
-          v =  j \ "value"
-        } yield {
-         compactRender((( "name" -> n) ~ ("value" -> v)))
-        }
-      }
-
       specialFilter match {
         case SimpleRegexFilter(attr, regexText) =>
           regexMatch(attr, regexText, entries, x => Full(x))
 
         case SimpleNotRegexFilter(attr, regexText) =>
           regexNotMatch(attr, regexText, entries, x => Full(x))
-
-        case NodePropertyRegexFilter(attr, regexText) =>
-          //here, we need to put the value in expected {"name":"k","value":v} minified format (and only name & value field)
-          regexMatch(attr, regexText, entries, normalizeJsonNodeProperty)
-
-        case NodePropertyNotRegexFilter(attr, regexText) =>
-          //here, we need to put the value in expected {"name":"k","value":v} minified format (and only name & value field)
-          regexMatch(attr, regexText, entries,normalizeJsonNodeProperty)
 
         case x => Failure("Don't know how to post process query results for filter '%s'".format(x))
       }
@@ -771,50 +747,74 @@ class InternalLDAPQueryProcessor(
    * perhaps
    */
   private def normalize(query:Query) : Box[LDAPNodeQuery] = {
+    final case class LdapFilter(dnType: DnType, objectType: String, filter: ExtendedFilter)
+    // A filter that must be used in a nodeinfo
+    final case class NodeInfoFilter(criterion: NodeCriterionType, comparator: CriterionComparator, value: String)
 
-    def groupFilterByLdapRequest() = {
-      // Validate that we know the requested object type
-      if (objectTypes.isDefinedAt(query.returnType.value)) {
-        for {
-          // Compute in one go all data for a filter, fails if one filter fails to build
-          filtersWithQueryData <- sequence(query.criteria) {
-            case crit@CriterionLine(ot, a, comp, value) => {
-              // objectType may be overriden in the attribute (for node state).
-              val objectType =  a.overrideObjectType.getOrElse(ot.objectType)
-
-              // Validate that for each object type in criteria, we know it
-              if(objectTypes.isDefinedAt(objectType)) {
-                val tpe = if(objectType == "nodeAndPolicyServer") "node" else objectType
-
-                val filter : Box[ExtendedFilter] = comp match {
-                  case Regex => a.buildRegex(a.name,value)
-                  case NotRegex => a.buildNotRegex(a.name,value)
-                  case _ => Full(LDAPFilter(a.buildFilter(comp,value)))
-                }
-                // all data we need, _1 is the ldap dn, _2 the object type, _3 the filter
-                filter.map(f => (objectDnTypes(objectType),tpe, f))
-              } else {
-                Failure(s"The object type '${objectType}' is not know in criteria ${crit}")
-              }
-            }
-          }
-        } yield {
+    def groupFilterByLdapRequest(ldapFilters: Seq[LdapFilter]) = {
           // group 'filter'(_3) by objectType (_1), then by LDAPObjectType (_2)
-          filtersWithQueryData.groupBy(_._1).mapValues(_.groupBy(_._2).mapValues(_.map(_._3).toSet))
+      ldapFilters.groupBy(_.dnType).mapValues(_.groupBy(_.objectType).mapValues(_.map(_.filter).toSet))
+    }
+
+    def checkAndSplitFilterType(q: Query): Box[Seq[Either[LdapFilter, NodeInfoFilter]]] = {
+        // Compute in one go all data for a filter, fails if one filter fails to build
+      sequence(q.criteria) {
+        case crit@CriterionLine(ot, a, comp, value) => {
+          // objectType may be overriden in the attribute (for node state).
+          val objectType =  a.overrideObjectType.getOrElse(ot.objectType)
+
+          // Validate that for each object type in criteria, we know it
+          if(objectTypes.isDefinedAt(objectType)) {
+            val tpe = if(objectType == "nodeAndPolicyServer") "node" else objectType
+
+            //now, check if we have an LDAP filter or a Node filter
+            for {
+              validated <- a.cType.validate(value, comp.id)
+              res       <- a.cType match {
+                             case ldap: LDAPCriterionType =>
+                               for {
+                                 filter <- comp match {
+                                             case Regex    => ldap.buildRegex(a.name, value)
+                                             case NotRegex => ldap.buildNotRegex(a.name, value)
+                                             case _        => Full(LDAPFilter(ldap.buildFilter(a.name, comp, value)))
+                                           }
+                               } yield {
+                                 Left(LdapFilter(objectDnTypes(objectType),tpe, filter))
+                               }
+
+                             case node: NodeCriterionType =>
+                               Full(Right(NodeInfoFilter(node, comp, value)))
+                           }
+            } yield {
+              res
+            }
+          } else {
+            Failure(s"The object type '${objectType}' is not know in criteria ${crit}")
+          }
         }
-      } else {
-        Failure(s"The requested type '${query.returnType}' is not know")
       }
     }
 
     for {
-      groupedSetFilter <- groupFilterByLdapRequest()
+      // Validate that we know the requested object type
+      okQueryType      <- if (objectTypes.isDefinedAt(query.returnType.value)) Full("ok")
+                          else Failure(s"The requested type '${query.returnType}' is not known. This is likely a bug. Please report it")
+      buildFilters     <- checkAndSplitFilterType(query)
+      ldapFilters      =  buildFilters.collect { case Left (x) => x }
+      nodeInfoFilters  =  buildFilters.collect { case Right(x) => x }
+      groupedSetFilter =  groupFilterByLdapRequest(ldapFilters)
       // Get only filters applied to nodes (NodeDn and 'node' objectType)
       nodeFilters      =  groupedSetFilter.get(QueryNodeDn).flatMap ( _.get("node") )
       // Get the other filters, by only removing those with 'node' objectType ... maybe we could do a partition here, or even do it above
       otherFilters     =  groupedSetFilter.mapValues(_.filterKeys { _ != "node" }).filterNot( _._2.isEmpty)
     } yield {
-      LDAPNodeQuery(nodeFilters, query.composition, otherFilters)
+      // at that point, it may happen that nodeFilters and otherFilters are empty. In that case, we add a
+      // "get all nodes" query and all filters will be done in node info.
+
+      val mainFilters = if(groupedSetFilter.isEmpty) { Some(Set[ExtendedFilter](LDAPFilter(BuildFilter.ALL))) } else { nodeFilters }
+
+      val nodeInfos = nodeInfoFilters.map { case NodeInfoFilter(c, comp, value) => c.matches(comp, value)}
+      LDAPNodeQuery(mainFilters, query.composition, otherFilters, nodeInfos)
     }
   }
 

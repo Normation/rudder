@@ -48,7 +48,6 @@ import org.specs2.matcher.Matcher
 
 import scala.util.matching.Regex
 import com.normation.cfclerk.domain.Variable
-import sun.security.provider.PolicyFile
 
 /*
  * This class test the JsEngine.

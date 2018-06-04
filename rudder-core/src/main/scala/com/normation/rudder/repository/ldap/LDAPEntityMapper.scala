@@ -133,7 +133,9 @@ class LDAPEntityMapper(
       case _ =>
     }
 
-    entry +=! (A_NODE_PROPERTY, node.properties.map(x => compactRender(x.toJson)):_* )
+    // for node properties, we ALWAYS filter-out properties coming from inventory,
+    // because we don't want to store them there.
+    entry +=! (A_NODE_PROPERTY, node.properties.collect { case p if(p.provider != Some(NodeProperty.customPropertyProvider)) => compactRender(p.toJson)}:_* )
 
     node.nodeReportingConfiguration.heartbeatConfiguration match {
       case Some(heatbeatConfiguration) =>

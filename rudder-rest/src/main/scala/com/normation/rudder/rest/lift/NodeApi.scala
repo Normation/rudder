@@ -618,7 +618,7 @@ class NodeApiService8 (
     val modId = ModificationId(uuidGen.newUuid)
 
     for {
-      node           <- nodeInfoService.getNode(nodeId)
+      node           <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node ))
       newProperties  <- CompareProperties.updateProperties(node.properties, restNode.properties)
       updated        =  node.copy(properties = newProperties, policyMode = restNode.policyMode.getOrElse(node.policyMode), state=restNode.state.getOrElse(node.state))
       saved          <- if(updated == node) Full(node)

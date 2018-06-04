@@ -579,6 +579,30 @@ class TestQueryProcessor extends Loggable {
     testQueries(q1 :: q2 :: Nil)
   }
 
+  @Test def nodeStateQueries(): Unit = {
+
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"node", "attribute":"state", "comparator":"eq", "value":"initializing" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(7) :: Nil)
+
+    val q2 = TestQuery(
+      "q1",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"node", "attribute":"state", "comparator":"eq", "value":"enabled" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(0) :: s(1) :: s(2) :: s(3) :: s(4) :: s(5) :: s(6) :: Nil)
+
+    testQueries(q1 :: q2 :: Nil)
+  }
+
+
   @Test def nodeProperties(): Unit = {
     val q1 = TestQuery(
       "q1",
@@ -605,7 +629,7 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"hasKey", "value":"datacenter" }
       ] }
       """).openOrThrowException("For tests"),
-      s(2) :: s(3) :: Nil)
+      s(1) :: s(2) :: s(3) :: Nil) // s1 is in inventory custom property, s2 & s3 in node properties
 
     // same as "haskey"
     val q4 = TestQuery(
@@ -615,7 +639,7 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"datacenter=.*" }
       ] }
       """).openOrThrowException("For tests"),
-      s(2) :: s(3) :: Nil)
+      s(1) :: s(2) :: s(3) :: Nil)
 
     // kind of matching sub-keys
     val q5 = TestQuery(
@@ -647,41 +671,37 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(3) :: Nil)
 
-    testQueries(q1 :: q2 :: q3 :: q4 :: q5 ::  q6 :: q7 :: Nil)
-  }
-
-  @Test def nodePropertiesMissingEqualsReq(): Unit = {
-    // Failing request, see #10570
-    // if there is no "=", we must only find node with empty value for the key
-    val q1 = TestQuery(
-      "q1",
+    // the properties are in inventory
+    val q8 = TestQuery(
+      "q8",
       parser("""
       { "select":"node", "where":[
-        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"foo" }
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"datacenter=.*Paris.*" }
       ] }
       """).openOrThrowException("For tests"),
-      s(4) :: Nil)
+      s(1) :: Nil)
 
-     testQueries(q1 :: Nil)
+    testQueries(q1 :: q2 :: q3 :: q4 :: q5 ::  q6 :: q7 :: q8 :: Nil)
   }
 
   @Test def nodePropertiesFailingReq(): Unit = {
+    def forceParse(q: String) = parser(q).openOrThrowException("Parsing the request must be ok for that test")
     // Failing request, see #10570
-    val failingRegexRequest =
-      parser("""
+    val failingRegexRequests =
+      """
       { "select":"node", "where":[
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"f{o}o" }
-      ] }""")
-    failingRegexRequest match {
-      case Full(query) =>
-        val result =
-        queryProcessor.process(query) match {
-          case Full(_) => true
-          case _ => false
-        }
-        assertFalse("regex Query with wrong data for node properties should fail", result)
-      case eb:EmptyBox =>
-        throw new Exception("Failing regexp query is not a valid query")
+      ] }""" ::
+      // if there is no "=", we fails
+      """
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"eq", "value":"foo" }
+      ] }
+      """ :: Nil
+
+    val results = failingRegexRequests.map(q => (q, queryProcessor.process(forceParse(q))))
+    results.foreach { r =>
+      assertTrue(s"Regex Query with wrong data for node properties should fail: ${r._1}", r._2.isInstanceOf[Failure])
     }
   }
 
@@ -722,7 +742,7 @@ class TestQueryProcessor extends Loggable {
           format(name,found,ids),found.forall { f => ids.exists( f == _) })
 
       logger.debug("Testing with expected entries")
-      val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids)).openOrThrowException("For tests").map { entry =>
+      val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids)).openOrThrowException("For tests").entries.map { entry =>
         NodeId(entry("nodeId").get)
       }).distinct.sortBy( _.value )
       assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected entries (process)\n Found: %s\n Wants: %s".

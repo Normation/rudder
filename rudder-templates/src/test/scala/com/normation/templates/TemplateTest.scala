@@ -45,8 +45,6 @@ import org.antlr.stringtemplate._;
 import com.normation.stringtemplate.language._;
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import org.joda.time.DateTime
-import org.joda.time.format._
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TemplateTest {
