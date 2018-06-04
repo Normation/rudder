@@ -47,7 +47,6 @@ import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 import org.joda.time.DateTime
 import org.joda.time.format._
-import com.normation.stringtemplate.language.formatter._
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TemplateTest {
@@ -117,18 +116,8 @@ class TemplateTest {
   }
 
   @Test
-  def dateRenderingTest(): Unit = {
-    val vared = new StringTemplate("&date;format=\"cfengine_datetime\"&", classOf[NormationAmpersandTemplateLexer]);
-    val date =ISODateTimeFormat.dateTimeParser.parseDateTime("2010-01-24T21:28:32.309+01:00")
-
-    vared.setAttribute("date", date);
-    val dateRenderer = new DateRenderer()
-    vared.registerRenderer(classOf[DateTime], dateRenderer);
-    assertEquals("2010:01:24:09:28:32", vared.toString)
-  }
-
-  @Test
   def conditionTest(): Unit = {
+
     val hello = new StringTemplate("&if(CLIENTSLIST)&hello&endif&", classOf[NormationAmpersandTemplateLexer]);
     hello.setAttribute("CLIENTSLIST", true);
 

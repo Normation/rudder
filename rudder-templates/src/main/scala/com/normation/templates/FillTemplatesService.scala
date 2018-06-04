@@ -44,15 +44,10 @@ package com.normation.templates
  */
 
 import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
-import com.normation.stringtemplate.language.formatter.DateRenderer
-import com.normation.stringtemplate.language.formatter.LocalDateRenderer
-import com.normation.stringtemplate.language.formatter.LocalTimeRenderer
 import com.normation.utils.Control.bestEffort
 
 import org.antlr.stringtemplate.StringTemplate
-import org.joda.time.DateTime
-import org.joda.time.LocalDate
-import org.joda.time.LocalTime
+
 
 import net.liftweb.common._
 
@@ -91,9 +86,6 @@ class FillTemplatesService extends Loggable {
       template <- try {
                     //string template does not allows "." in path name, so we are force to use a templateGroup by policy template (versions have . in them)
                     val template = new StringTemplate(content, classOf[NormationAmpersandTemplateLexer])
-                    template.registerRenderer(classOf[DateTime], new DateRenderer())
-                    template.registerRenderer(classOf[LocalDate], new LocalDateRenderer())
-                    template.registerRenderer(classOf[LocalTime], new LocalTimeRenderer())
                     Full(template)
                   } catch {
                     case ex: Exception =>
