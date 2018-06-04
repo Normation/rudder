@@ -78,6 +78,7 @@ import scala.io.Codec
 import scala.util.{ Failure => FailTry }
 import scala.util.Success
 import scala.util.Try
+import com.normation.rudder.domain.logger.PolicyLogger
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -115,6 +116,8 @@ class Cf3PromisesFileWriterServiceImpl(
 
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
+
+  val policyLogger = PolicyLogger
 
   private[this] def writeNodePropertiesFile (agentNodeConfig: AgentNodeConfiguration) = {
 
@@ -282,16 +285,26 @@ class Cf3PromisesFileWriterServiceImpl(
     //interpret HookReturnCode as a Box
     import com.normation.rudder.hooks.HooksImplicits.hooksReturnCodeToBox
 
+    val readTemplateTime1 = DateTime.now.getMillis
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
       templates        <- readTemplateFromFileSystem(techniqueIds)
+
+      readTemplateTime2 = DateTime.now.getMillis
+      readTemplateDur   = readTemplateTime2 - readTemplateTime1
+      _                 = policyLogger.debug(s"Paths computed and templates read in ${readTemplateDur} ms")
+
       preparedPromises <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode) ?~!
                            s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
 
                          }
+      preparedPromisesTime = DateTime.now.getMillis
+      preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
+      _                    = policyLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
+
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             (for {
                               _ <- writePromises(prepared.paths, prepared.preparedTechniques)
@@ -301,17 +314,37 @@ class Cf3PromisesFileWriterServiceImpl(
                               "OK"
                             }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
                           }
+
+      promiseWrittenTime = DateTime.now.getMillis
+      promiseWrittenDur  = promiseWrittenTime - preparedPromisesTime
+      _                  = policyLogger.debug(s"Promises written in ${promiseWrittenDur} ms")
+
+
      propertiesWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                             writeNodePropertiesFile(agentNodeConfig) ?~!
                               s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
+
+      propertiesWrittenTime = DateTime.now.getMillis
+      propertiesWrittenDur  = propertiesWrittenTime - promiseWrittenTime
+      _                     = policyLogger.debug(s"Properties written in ${propertiesWrittenDur} ms")
+
 
      parametersWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                              writeRudderParameterFile(agentNodeConfig) ?~!
                               s"An error occured while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
 
+      parametersWrittenTime = DateTime.now.getMillis
+      parametersWrittenDur  = parametersWrittenTime - propertiesWrittenTime
+      _                     = policyLogger.debug(s"Parameters written in ${parametersWrittenDur} ms")
+
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
+
+      licensesCopiedTime = DateTime.now.getMillis
+      licensesCopiedDur  = licensesCopiedTime - parametersWrittenTime
+      _                  = policyLogger.debug(s"Licenses copied in ${licensesCopiedDur} ms")
+
       nodePreMvHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
       preMvHooks       <- parrallelSequence(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
@@ -336,7 +369,15 @@ class Cf3PromisesFileWriterServiceImpl(
                             HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
                           }
+
+      movedPromisesTime1 = DateTime.now.getMillis
+
       movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
+
+      movedPromisesTime2 = DateTime.now.getMillis
+      movedPromisesDur   = movedPromisesTime2 - movedPromisesTime1
+      _                  = policyLogger.debug(s"Policies moved to their final position in ${movedPromisesDur} ms")
+
       nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
       postMvHooks      <- parrallelSequence(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
