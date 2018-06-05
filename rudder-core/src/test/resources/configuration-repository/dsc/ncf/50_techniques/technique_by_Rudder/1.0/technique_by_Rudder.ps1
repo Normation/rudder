@@ -5,6 +5,8 @@ function Technique-By-Rudder {
       [string]$reportId,
       [parameter(Mandatory=$true)]
       [string]$techniqueName,
+      [parameter(Mandatory=$true)]
+      [string]$TechniqueParameter,
       [switch]$auditOnly
   )
 
