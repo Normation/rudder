@@ -684,6 +684,66 @@ class TestQueryProcessor extends Loggable {
     testQueries(q1 :: q2 :: q3 :: q4 :: q5 ::  q6 :: q7 :: q8 :: Nil)
   }
 
+  /*
+   * When using JsonPath on node properties to know if the node should be return or not, what we are
+   * actually looking for is is the resulting JSON select query is empty or not. If empty, the node
+   * does not have the property and is not in the group.
+   * It means that we are not forced to matches *leaves* or only one elements.
+   *
+   * Test will be focused on node 5 and 6.
+   *
+   */
+  @Test def nodePropertiesJsonPath(): Unit = {
+    val q1 = TestQuery(
+      "q1", // select nodes with user.accepted = true
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"jsonSelect", "value":"user:$.[?(@.accepted==true)]" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(5) :: Nil)
+
+    val q2 = TestQuery(
+      "q2", // city is exactly New York
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"jsonSelect", "value":"user:$.personal.address[?(@.city=='New York')]" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(5) :: Nil)
+
+    val q3 = TestQuery(
+      "q3", // state has a value (whatever it is)
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"jsonSelect", "value":"user:$.personal.address.city" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(5) :: s(6) :: Nil)
+
+    val q4 = TestQuery(
+      "q4", // phone number like .*256-.*
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"jsonSelect", "value":"user:$.personal.phones[?(@.number=~/.*123.*/)]" }
+      ] }
+      """
+      ).openOrThrowException("For tests"),
+      s(6) :: Nil)
+
+    val q5 = TestQuery(
+      "q5", // state is in [NY, CA, LA, TX]
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"jsonSelect", "value":"user:$.personal.address[?(@.state in ['NY', 'CA', 'LA', 'TX'])]" }
+      ] }
+      """
+      ).openOrThrowException("For tests"),
+      s(5) :: s(6) :: Nil)
+
+    testQueries(q1 :: q2 :: q3 :: q4 :: q5 :: Nil)
+  }
+
   @Test def nodePropertiesFailingReq(): Unit = {
     def forceParse(q: String) = parser(q).openOrThrowException("Parsing the request must be ok for that test")
     // Failing request, see #10570

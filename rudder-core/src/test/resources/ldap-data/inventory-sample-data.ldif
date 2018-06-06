@@ -75,6 +75,24 @@ cn: has machine with attributes
 isSystem: false
 isBroken: false
 createTimestamp: 20070101000000Z
+serializedNodeProperty: {"name":"user","value": {
+    "id": "xxxxxx",
+    "accepted": true,
+    "personal": {
+      "name": "Smith Jones",
+        "address": {
+            "streetaddress": "7 24th Street",
+            "city": "New York",
+            "state": "NY",
+            "postalcode": 10038
+        },
+        "phones": [
+          {"type":"home","number":"(541) 754-3010"},
+          {"type":"mobile","number":"(541) 754-9999"}
+        ]
+    }
+  }
+ }
 
 dn: nodeId=node6,ou=Nodes,cn=rudder-configuration
 objectClass: top
@@ -84,6 +102,24 @@ cn: has machine with physical elements
 isSystem: false
 isBroken: false
 createTimestamp: 20070101000000Z
+serializedNodeProperty: {"name":"user","value": {
+    "id": "yyyyy",
+    "accepted": false,
+    "personal": {
+      "name": "Alice All",
+        "address": {
+            "streetaddress": "10th on the big Street",
+            "city": "Los Angeles",
+            "state": "CA",
+            "postalcode": 90003
+        },
+        "phones": [
+          {"type":"home","number":"(111) 123-3010"},
+          {"type":"mobile","number":"(111) 256-9999"}
+        ]
+    }
+  }
+ }
 
 dn: nodeId=node7,ou=Nodes,cn=rudder-configuration
 objectClass: top
