@@ -30,7 +30,7 @@ def check_auth(f):
   @wraps(f)
   def decorated(*args, **kwargs):
     auth = get_auth()
-    if auth.status_code == 401:
+    if auth.status_code != 200:
       return auth
     return f(*args, **kwargs)
   return decorated
