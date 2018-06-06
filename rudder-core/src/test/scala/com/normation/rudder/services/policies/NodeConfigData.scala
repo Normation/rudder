@@ -890,7 +890,7 @@ class TestNodeConfiguration() {
      Seq(
          spec("expectedReportKey Directory create").toVariable(Seq("directory_create_/tmp/foo"))
        , spec("expectedReportKey File create").toVariable(Seq("file_create_/tmp/foo/bar"))
-       , spec("file_name").toVariable(Seq("\"foo"))
+       , spec("1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2").toVariable(Seq("\"foo"))
      ).map(v => (v.spec.name, v)).toMap
   }
   val ncf1 = {
