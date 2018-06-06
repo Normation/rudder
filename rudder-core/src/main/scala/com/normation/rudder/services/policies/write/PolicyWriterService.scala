@@ -725,8 +725,8 @@ class Cf3PromisesFileWriterServiceImpl(
     if (src.isDirectory()) {
       val dest = new File(backupFolder)
       if (dest.isDirectory) {
-        // force deletion of previous backup
-        FileUtils.forceDelete(dest)
+        // force deletion of previous backuup
+        FileUtils.deleteDirectory(dest)
       }
       FileUtils.moveDirectory(src, dest)
     }
@@ -747,13 +747,13 @@ class Cf3PromisesFileWriterServiceImpl(
 
       if (dest.isDirectory) {
         // force deletion of previous promises
-        FileUtils.forceDelete(dest)
+        FileUtils.deleteDirectory(dest)
       }
       FileUtils.moveDirectory(src, dest)
 
       // force deletion of dandling new promise folder
       if ( (src.getParentFile().isDirectory) && (src.getParent().endsWith("rules.new"))) {
-        FileUtils.forceDelete(src.getParentFile())
+        FileUtils.deleteDirectory(src.getParentFile())
       }
     } else {
       logger.error("Could not find freshly created promises at %s".format(sourceFolder))
