@@ -129,6 +129,12 @@ class TechniqueWriter (
     }
 
     def parameterSection(parameter : TechniqueParameter) : Seq[XmlNode] = {
+      // Here we translate technique parameters into Rudder variables
+      // ncf technique parameters ( having an id and a name, which is used inside the technique) were translated into Rudder variables spec
+      // (having a name, which acts as an id, and allow to do templating on techniques, and a description which is presented to users) with the following Rule
+      //  ncf Parameter | Rudder variable
+      //      id        |      name
+      //     name       |   description
       <INPUT>
         <NAME>{parameter.id.value.toUpperCase()}</NAME>
         <DESCRIPTION>{parameter.name.value}</DESCRIPTION>

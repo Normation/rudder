@@ -281,9 +281,23 @@ class BuildBundleSequence(
           policy.technique.generationMode match {
             case TechniqueGenerationMode.MultipleDirectivesWithParameters =>
               for {
-                varName <- policy.technique.rootSection.copyWithoutSystemVars.getAllVariables.map(_.name)
+                // Here we are looking for variables value from a Directive based on a ncf technique that has parameter
+                // ncf technique parameters ( having an id and a name, which is used inside the technique) were translated into Rudder variables spec
+                // (having a name, which acts as an id, and allow to do templating on techniques, and a description which is presented to users) with the following Rule
+                //  ncf Parameter | Rudder variable
+                //      id        |      name
+                //     name       |   description
+                // So here we only have Rudder variables, and we want to create a new object BundleParam, which name needs to be the value used inside the technique (so the tehcnique paramter name)
+                // And we will get the value in the Directive by looking for it with the name of the Variable (which is the id of the parameter)
+                //  ncf Parameter | Rudder variable | Bundle param
+                //      id        |      name       |     N/A
+                //     name       |   description   |     name = variable.description = parameter.name
+                //      N/A       |        N/A      |    value = values.get(variable.name) = values.get(parameter.id)
+                // We would definitely be happier if we add a way to describe them as Rudder technique parameter and not as variable
+
+                (varId,varName) <- policy.technique.rootSection.copyWithoutSystemVars.getAllVariables.map(v => (v.name,v.description))
               } yield {
-                val value = policy.expandedVars.get(varName).map(_.values.headOption.getOrElse("")).getOrElse("")
+                val value = policy.expandedVars.get(varId).map(_.values.headOption.getOrElse("")).getOrElse("")
                 BundleParam.DoubleQuote(value,varName)
               }
             case TechniqueGenerationMode.MergeDirectives | TechniqueGenerationMode.MultipleDirectives =>
