@@ -152,7 +152,7 @@ class ShowNodeDetailsFromNode(
     val user  =  CurrentUser.actor
 
     for {
-      oldNode <- nodeInfoService.getNode(nodeId)
+      oldNode <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node )) // we can't change the state of a missing node
       newNode =  oldNode.copy(state = nodeState)
       result  <- nodeRepo.updateNode(newNode, modId, user, None)
     } yield {
@@ -189,7 +189,7 @@ class ShowNodeDetailsFromNode(
     val newNodeInfo = nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))))
     boxNodeInfo = Full(Some(newNodeInfo))
     for {
-      oldNode <- nodeInfoService.getNode(nodeId)
+      oldNode <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node ))
       result  <- nodeRepo.updateNode(newNodeInfo.node, modId, user, None)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)

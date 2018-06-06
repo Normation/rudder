@@ -93,6 +93,7 @@ cn: has everything
 isSystem: false
 isBroken: false
 createTimestamp: 20070101000000Z
+state: initializing
 
 ###################################################################################################
 # Software #
@@ -154,7 +155,7 @@ inventoryDate: 20130515123456.948Z
 ipHostNumber: 192.168.56.100
 description: matchOnMe
 publicKey: "test"
-#description is the same as a logical 
+#description is the same as a logical
 #element of node3
 
 # Example of the same (almost) node, but not in ou=nodes
@@ -199,6 +200,8 @@ ipHostNumber: 192.168.56.101
 ipHostNumber: 127.0.0.1
 environmentVariable: {"name":"SHELL","value":"/bin/sh"}
 publicKey: "test"
+customProperty:{"name":"datacenter", "value":"Paris"}
+customProperty:{"name":"from_inv", "value":{ "key1":"custom prop value", "key2":"some more json"}}
 process: {"pid":1,"commandName":"init [2]","cpuUsage":0.0,"memory":0.2000000
  0298023224,"started":"2015-01-21 17:24","tty":"?","user":"root","virtualMem
  ory":10648}

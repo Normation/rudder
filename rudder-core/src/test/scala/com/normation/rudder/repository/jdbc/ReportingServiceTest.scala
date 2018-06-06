@@ -64,10 +64,8 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
-
 import doobie.implicits._
 import cats.implicits._
-
 import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.nodes.LDAPNodeInfo
@@ -81,6 +79,9 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.Technique
+import com.normation.rudder.domain.queries.CriterionComposition
+import com.normation.rudder.domain.queries.NodeInfoMatcher
+
 import scala.collection.SortedMap
 import com.normation.rudder.repository.ComplianceRepository
 
@@ -103,7 +104,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   val nodeInfoService = new NodeInfoService {
-    def getLDAPNodeInfo(nodeIds: Set[NodeId]) : Box[Set[LDAPNodeInfo]] = ???
+    def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : Box[Set[LDAPNodeInfo]] = ???
     def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???
     def getAllNodes() : Box[Map[NodeId, Node]] = ???

@@ -23,7 +23,7 @@ objectclass: top
 #######################################################
 ####################### WARNING #######################
 #######################################################
-# This OID is necessary for OpenLDAP -> OpenDS schema tool, 
+# This OID is necessary for OpenLDAP -> OpenDS schema tool,
 # but makes OpenLDAP crashes with a non-meaningfull error message
 # if cmdb.schema (where it is already declared) is included
 #######################################################
@@ -143,6 +143,12 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.210
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.211.0
+  NAME 'state'
+  DESC 'Define the state of an item '
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.211
   NAME 'isModified'
   DESC 'Define if the server is modified and should be processed as such or if it is up to date. Default to false if not specified'
@@ -270,7 +276,7 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.235
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
-### API principal and tokens 
+### API principal and tokens
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.250
   NAME 'apiToken'
   DESC 'The token used to authenticate an API principal'
@@ -283,6 +289,30 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.251
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
   EQUALITY generalizedTimeMatch
   ORDERING generalizedTimeOrderingMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.252
+  NAME 'expirationTimestamp'
+  DESC 'Date and time on which the token expires'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.253
+  NAME 'apiAcl'
+  DESC 'JSON serialization of ACL for an API token'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.254
+  NAME 'apiAccountKind'
+  DESC 'Kind of API account (public API, user-bounded, system)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.255
+  NAME 'apiAuthorizationKind'
+  DESC 'Kind of API account (public API, user-bounded, system)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.301
   NAME 'parameterName'
   DESC 'Name of parameter that matches [a-zA-Z0-9_]+'
@@ -337,22 +367,22 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.353
 #
 # Rudder mains objects:
 # * nodes and policy server
-# * node group categories 
-# * node groups 
+# * node group categories
+# * node groups
 # * library of active technique categories
 # * activeTechnique
 # * directive
 # * rules
-# 
+#
 ### nodes (simple and policy server) for Rudder ###
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.1
   NAME 'rudderNode'
   DESC 'The Node itself'
   SUP top
   STRUCTURAL
-  MUST ( nodeId $ cn $ isSystem $ isBroken)
+  MUST ( nodeId $ cn $ isSystem )
   MAY ( description $ serializedNodeProperty $ serializedAgentRunInterval $
-  serializedHeartbeatRunConfiguration $ policyMode ) )
+  serializedHeartbeatRunConfiguration $ policyMode $ state $ isBroken) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.2
   NAME 'rudderPolicyServer'
   DESC 'The Node representation of a policy server'
@@ -417,10 +447,10 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.30
   DESC 'A rule'
   SUP top
   STRUCTURAL
-  MUST ( ruleId  $ serial )
+  MUST ( ruleId )
   MAY ( cn $ description $ longDescription $
   isEnabled $ isSystem $
-  ruleTarget $
+  ruleTarget $ serial $
   directiveId $ tag $ serializedTags ) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.31
   NAME 'ruleCategory'
@@ -485,7 +515,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.110
   STRUCTURAL
   MUST ( cn )
   MAY ( description $ nodeConfig  ) )
-# 
+#
 # API Accounts
 #
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.106
@@ -495,8 +525,9 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.106
   STRUCTURAL
   MUST ( apiAccountId $ cn $ creationTimestamp $
   apiToken $ apiTokenCreationTimestamp)
-  MAY ( description  $ isEnabled ) )
-# 
+  MAY ( description  $ isEnabled $ apiAccountKind $
+  apiAuthorizationKind $ apiAcl $ expirationTimestamp ) )
+#
 # Parameters
 #
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.120

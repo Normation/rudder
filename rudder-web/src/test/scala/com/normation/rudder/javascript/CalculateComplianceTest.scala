@@ -37,7 +37,6 @@
 
 package com.normation.rudder.javascript
 
-import java.nio.charset.StandardCharsets
 
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.services.policies.JsEngine

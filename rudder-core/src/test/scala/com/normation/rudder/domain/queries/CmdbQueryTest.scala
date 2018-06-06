@@ -4,8 +4,6 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import net.liftweb.common._
-import com.normation.ldap.sdk._
-import BuildFilter._
 
 @RunWith(classOf[JUnitRunner])
 class CmdbQueryTest extends Specification {
@@ -34,16 +32,3 @@ class CmdbQueryTest extends Specification {
   }
 }
 
-@RunWith(classOf[JUnitRunner])
-class JsonQueryTest extends Specification {
-
-  "JsonComparator " should {
-    "Convert a search request to a valid json request on 2 attributes" in {
-      NodePropertyComparator("attribute").buildFilter("name.value",Equals,"value=value2") must beEqualTo(
-        OR( SUB("attribute","{\"name\":\"value\",\"value\":\"value2\"",null,null)
-          , SUB("attribute","{\"name\":\"value\",\"value\":value2"    ,null,null)
-        )
-      )
-    }
-  }
-}

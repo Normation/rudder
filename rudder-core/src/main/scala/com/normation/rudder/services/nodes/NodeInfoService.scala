@@ -43,7 +43,7 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.rudder.domain.NodeDit
 import net.liftweb.common._
-import com.normation.rudder.domain.nodes.{NodeInfo, Node}
+import com.normation.rudder.domain.nodes.{Node, NodeInfo}
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.unboundid.ldap.sdk._
@@ -55,6 +55,10 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.repository.CachedRepository
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
+import com.normation.rudder.domain.queries.And
+import com.normation.rudder.domain.queries.CriterionComposition
+import com.normation.rudder.domain.queries.NodeInfoMatcher
+import com.normation.rudder.domain.queries.Or
 
 /*
  * General logic for the cache implementation of NodeInfo.
@@ -97,9 +101,10 @@ final case class LDAPNodeInfo(
 trait NodeInfoService {
 
   /**
-   * Retrieve minimal information needed for the node info
+   * Retrieve minimal information needed for the node info, used (only) by the
+   * LDAP QueryProcessor.
    */
-  def getLDAPNodeInfo(nodeIds: Set[NodeId]) : Box[Set[LDAPNodeInfo]]
+  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : Box[Set[LDAPNodeInfo]]
 
   /**
    * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
@@ -107,14 +112,6 @@ trait NodeInfoService {
    * @return
    */
   def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]]
-
-  /**
-   * Get the node (not inventory).
-   * Most of the info are also in node info,
-   * but for some specific case (nodeProperties for ex),
-   * we need them.
-   */
-  def getNode(nodeId: NodeId): Box[Node]
 
   /**
    * Get all node infos.
@@ -468,22 +465,35 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
     Full(cache.mapValues(_._2.node))
   }
 
-  def getLDAPNodeInfo(nodeIds: Set[NodeId]): Box[Set[LDAPNodeInfo]] = {
-    if(nodeIds.size > 0) {
-      withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
-        Full(cache.collect { case(k, (x,_)) if(nodeIds.contains(k)) => x }.toSet)
-      }
-    } else {
-      Full(Set())
+  override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicats: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = {
+    def comp(a: Boolean, b: Boolean) = composition match {
+        case And => a && b
+        case Or  => a || b
+    }
+    // utliity to combine predicats according to comp
+    def combine(a: NodeInfoMatcher, b: NodeInfoMatcher) = new NodeInfoMatcher {
+      override def matches(node: NodeInfo): Boolean = comp(a.matches(node), b.matches(node))
+    }
+
+    // if there is no predicats (ie no specific filter on NodeInfo), we need to make the final
+    // filter be neutral to that part. The neutral element for "and" is true, and "false" for or.
+    // If we do have predicat, just compose them according to the composition operator. 
+    val p = (if(predicats.isEmpty) {
+        composition match {
+          case And => Seq(new NodeInfoMatcher { override def matches(node: NodeInfo): Boolean = true  } )
+          case Or  => Seq(new NodeInfoMatcher { override def matches(node: NodeInfo): Boolean = false } )
+        }
+      } else(predicats)
+    ).reduceLeft(combine)
+
+    withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
+      Full(cache.collect { case(k, (x,y)) if(comp(nodeIds.contains(k), p.matches(y))) => x }.toSet)
     }
   }
-  def getNode(nodeId: NodeId): Box[Node] = withUpToDateCache(s"${nodeId.value} node") { cache =>
-    Box(cache.get(nodeId).map( _._2.node)) ?~! s"Node with ID '${nodeId.value}' was not found"
-  }
+
   def getNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = withUpToDateCache(s"${nodeId.value} node info") { cache =>
     Full(cache.get(nodeId).map( _._2))
   }
-
 }
 
 /**
