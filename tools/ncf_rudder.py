@@ -209,11 +209,12 @@ def generate_rudder_reporting(technique):
 
     class_prefix = ncf.get_class_prefix(key_value, generic_method)
     method_reporting = '"dummy_report" usebundle => ' + ncf.generate_reporting_context(generic_method, method_call) 
-    
+    class_parameter  = ncf.generate_reporting_class_parameter(generic_method, method_call)
+
     if not "cfengine-community" in generic_method["agent_support"]:
 
       message = "'"+generic_method["name"]+"' method is not available on cfengine based agent, skip"
-      logger_call = ncf.get_logger_call(message, class_prefix)
+      logger_call = ncf.get_logger_call(message, class_prefix, class_parameter)
 
       content.append('    any::')
       content.append('    "dummy_report" usebundle => _classes_noop("'+class_prefix+'");')
@@ -226,7 +227,7 @@ def generate_rudder_reporting(technique):
       escaped_key_value = regex_quote.sub('\\"', key_value)
 
       message = generic_method['name'] + ' ' + escaped_key_value + ' if ' + method_call['class_context']
-      logger_rudder_call = ncf.get_logger_call(message, class_prefix)
+      logger_rudder_call = ncf.get_logger_call(message, class_prefix, class_parameter)
 
       # Always add an empty line for readability
       content.append('')

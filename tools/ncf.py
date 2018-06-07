@@ -513,8 +513,8 @@ def get_class_prefix(key_value, generic_method):
   key_value_canonified = regex.sub(repl, key_value)
   return generic_method["class_prefix"]+"_"+key_value_canonified
 
-def get_logger_call(message, class_prefix):
-  return '"dummy_report" usebundle => log_rudder("' + message + '", "' + class_prefix +'", "${class_prefix}", @{args})'.replace("&", "\\&")
+def get_logger_call(message, class_prefix, class_parameter):
+  return '"dummy_report" usebundle => log_rudder("' + message + '", "' + class_parameter + '", "' + class_prefix +'", "${class_prefix}", @{args})'.replace("&", "\\&")
 
 def canonify_class_context(class_context):
   """Transform a class context into a canonified one"""
@@ -599,10 +599,16 @@ def generate_technique_content(technique, methods):
 def generate_reporting_context(method_info, method_call):
   # regex to match quote characters not preceded by a backslash
   regex = re.compile(r'(?<!\\)"', flags=re.UNICODE )
-  class_parameter_id    = method_info["class_parameter_id"] - 1
   class_parameter_name  = regex.sub(r'\\"', method_info["name"])
-  class_parameter_value = regex.sub(r'\\"', method_call["args"][class_parameter_id])
+  class_parameter_value = generate_reporting_class_parameter(method_info, method_call)
   return '_method_reporting_context("'+class_parameter_name+'", "'+class_parameter_value+'")'
+
+def generate_reporting_class_parameter(method_info, method_call):
+  # regex to match quote characters not preceded by a backslash
+  regex = re.compile(r'(?<!\\)"', flags=re.UNICODE )
+  class_parameter_id    = method_info["class_parameter_id"] - 1
+  class_parameter_value = regex.sub(r'\\"', method_call["args"][class_parameter_id])
+  return class_parameter_value
 
 
 # FUNCTIONS called directly by the API code

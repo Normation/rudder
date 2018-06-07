@@ -68,10 +68,10 @@ bundle agent test
 
     # do the reporting part
     # 3, 4 should use old_class_prefix, other the new class_prefix
-    "report1" usebundle => log_rudder("${init.message}", "${init.old_class_prefix[1]}", "${init.class_prefix[1]}", "@{init.args_1}");
-    "report2" usebundle => log_rudder("${init.message}", "${init.old_class_prefix[2]}", "${init.class_prefix[2]}", "@{init.args_2}");
-    "report3" usebundle => log_rudder("${init.message}", "${init.old_class_prefix[3]}", "${init.class_prefix[3]}", "@{init.args_3}");
-    "report4" usebundle => log_rudder("${init.message}", "${init.old_class_prefix[4]}", "${init.class_prefix[4]}", "@{init.args_4}");
+    "report1" usebundle => log_rudder("${init.message}", "", "${init.old_class_prefix[1]}", "${init.class_prefix[1]}", "@{init.args_1}");
+    "report2" usebundle => log_rudder("${init.message}", "", "${init.old_class_prefix[2]}", "${init.class_prefix[2]}", "@{init.args_2}");
+    "report3" usebundle => log_rudder("${init.message}", "", "${init.old_class_prefix[3]}", "${init.class_prefix[3]}", "@{init.args_3}");
+    "report4" usebundle => log_rudder("${init.message}", "", "${init.old_class_prefix[4]}", "${init.class_prefix[4]}", "@{init.args_4}");
 
 }
 
