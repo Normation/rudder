@@ -27,6 +27,7 @@ import jinja2
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from distutils.version import StrictVersion
+import pkgutil
 
 try:
     import simplejson as json
@@ -66,6 +67,24 @@ def render(opts, args):
 
     if opts.strict:
         env.undefined = StrictUndefined
+
+    # Register customs
+    sys.path.append('/var/rudder/ncf/local/modules/templates/')
+
+    if pkgutil.find_loader('jinja2_custom') is None:
+        custom_filters = False
+    else:
+        custom_filters = True
+
+    if custom_filters:
+        import jinja2_custom
+        if hasattr(jinja2_custom, 'FILTERS'):
+            from jinja2_custom import FILTERS as CUSTOM_FILTERS
+            env.filters.update(CUSTOM_FILTERS)
+        if hasattr(jinja2_custom, 'TESTS'):
+            from jinja2_custom import TESTS as CUSTOM_TESTS
+            env.tests.update(CUSTOM_TESTS)
+    sys.path.pop()
 
     output = env.get_template(os.path.basename(template_path)).render(data)
 
