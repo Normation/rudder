@@ -243,12 +243,18 @@ class ClassicTechniqueWriter extends AgentSpecificTechniqueWriter {
   import ResultHelper._
   def writeAgentFile( technique : Technique, methods : Map[BundleName, GenericMethod] )  : Result[Option[String]] = Right(None)
   def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] )  : Result[NodeSeq] = {
-    // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true)
+    // We need to add reporting bundle if there is a method call that does not support cfengine (agent support does not contains both cfe agent)
+    val noAgentSupportReporting = technique.methodCalls.exists(  m =>
+                         methods.get(m.methodId).exists( gm =>
+                           ! (gm.agentSupport.contains(AgentType.CfeEnterprise) || (gm.agentSupport.contains(AgentType.CfeCommunity)))
+                         )
+                       )
+    // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
     val needReportingBundle = technique.methodCalls.exists(m => m.condition != "any" && m.condition != "cfengine-community" )
     val xml = <AGENT type="cfengine-community,cfengine-nova">
       <BUNDLES>
         <NAME>{technique.bundleName.value}</NAME>
-        {if (needReportingBundle) <NAME>{technique.bundleName.value}_rudder_reporting</NAME>}
+        {if (noAgentSupportReporting || needReportingBundle) <NAME>{technique.bundleName.value}_rudder_reporting</NAME>}
       </BUNDLES>
       <FILES>
         <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/${technique.bundleName.value}/${technique.bundleName.value}.cf"}>
