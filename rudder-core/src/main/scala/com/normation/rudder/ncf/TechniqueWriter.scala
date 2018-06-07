@@ -236,7 +236,7 @@ class ClassicTechniqueWriter extends AgentSpecificTechniqueWriter {
         <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/${technique.bundleName.value}/${technique.bundleName.value}.cf"}>
           <INCLUDED>true</INCLUDED>
         </FILE>
-        { if (needReportingBundle)
+        { if (noAgentSupportReporting || needReportingBundle)
           <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"}>
             <INCLUDED>true</INCLUDED>
           </FILE>
