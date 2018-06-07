@@ -49,6 +49,6 @@ bundle agent service_ensure_running(service_name)
                   if => "service_started_${canonified_service_name}_reached";
     "new classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                   if => "${class_prefix}_action_reached";
-    "report"      usebundle  => _log("Ensure that service ${service_name} is running", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"      usebundle  => _log_v3("Ensure that service ${service_name} is running", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

@@ -44,5 +44,5 @@ bundle agent package_install(package_name)
                              ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${class_prefix}_install_latest", "${class_prefix}");
 
-      "report"             usebundle => _log("Install package ${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Install package ${package_name}", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

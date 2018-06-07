@@ -49,5 +49,5 @@ bundle agent file_ensure_block_present(file, block)
                          ifvarclass => "file_block_present_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report" usebundle => _log("Insert text block ${block} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report" usebundle => _log_v3("Insert text block ${block} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

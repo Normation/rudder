@@ -54,6 +54,6 @@ bundle agent service_ensure_disabled_at_boot(service_name)
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
     "report"
-        usebundle => _log("Ensure service ${service_name} is disabled at boot", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Ensure service ${service_name} is disabled at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

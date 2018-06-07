@@ -49,5 +49,5 @@ bundle agent file_create(target)
                          ifvarclass => "file_present_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report" usebundle => _log("Presence of file ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report" usebundle => _log_v3("Presence of file ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

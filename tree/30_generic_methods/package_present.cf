@@ -59,6 +59,6 @@ bundle agent package_present(name, version, architecture, provider)
       "new result classes"     usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                               ifvarclass => "${class_prefix}_action_reached";
 
-      "report"                 usebundle => _log("${ncf_package.message}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"                 usebundle => _log_v3("${ncf_package.message}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args}),
                               ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 }

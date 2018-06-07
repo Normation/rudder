@@ -68,5 +68,5 @@ bundle agent file_check_hardlink(file_name_1, file_name_2)
 
     any::
       "report"
-        usebundle => _log("Check if ${file_name_1} and ${file_name_2} are the same", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Check if ${file_name_1} and ${file_name_2} are the same", "${file_name_1}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

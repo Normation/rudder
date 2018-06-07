@@ -49,6 +49,6 @@ bundle agent directory_create(target)
                          ifvarclass => "directory_present_${canonified_target}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report"             usebundle => _log("Create directory ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"             usebundle => _log_v3("Create directory ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

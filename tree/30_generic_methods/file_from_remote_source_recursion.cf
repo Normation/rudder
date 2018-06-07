@@ -75,9 +75,9 @@ bundle agent file_from_remote_source_recursion(source, destination, recursion)
     # directory (to apply recursion) or a file
     iteration_2.!is_dir_copy::
       "report"
-        usebundle    => _log("Copying file ${destination} from ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle    => _log_v3("Copying file ${destination} from ${source}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     iteration_2.is_dir_copy::
       "report"
-        usebundle    => _log("Copying ${destination} from ${source}, recursion level ${recursion}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle    => _log_v3("Copying ${destination} from ${source}, recursion level ${recursion}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

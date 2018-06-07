@@ -56,5 +56,5 @@ bundle agent file_ensure_key_value_option(file, key, value, separator, option)
                           ifvarclass => "file_key_value_present_${canonified_file}_reached";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
-      "report"             usebundle => _log("Ensure line in format key${separator}value in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Ensure line in format key${separator}value in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

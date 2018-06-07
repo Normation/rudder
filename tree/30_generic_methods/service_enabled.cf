@@ -81,7 +81,7 @@ bundle agent service_enabled(service_name)
       "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "report"
-        usebundle => _log("Ensure service ${service_name} is started at boot", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("Ensure service ${service_name} is started at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
 }

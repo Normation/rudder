@@ -43,5 +43,5 @@ bundle agent file_lines_absent(file, lines)
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log("Ensure line(s) '${lines}' absent from ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Ensure line(s) '${lines}' absent from ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -61,6 +61,6 @@ bundle agent file_check_symlinkto(symlink, target)
 
     any::
       "report"
-        usebundle => _log("Check if ${symlink} points to ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Check if ${symlink} points to ${target}", "${symlink}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

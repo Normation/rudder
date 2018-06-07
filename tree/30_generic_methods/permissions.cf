@@ -46,5 +46,5 @@ bundle agent permissions(path, mode, owner, group)
                              ifvarclass => "should_report";
       "new result classes"            usebundle => _classes_copy("${class_prefix}_permission_without_recursion", "${class_prefix}");
 
-      "report"                        usebundle => _log("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                        usebundle => _log_v3("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

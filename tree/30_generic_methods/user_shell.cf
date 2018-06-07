@@ -51,11 +51,11 @@ bundle agent user_shell(login, shell)
         "error" usebundle => _classes_failure("${class_prefix}");
 
         "report_error"
-          usebundle => _log("User ${login} does not exist. Setting user ${login} shell to ${shell}", "${old_class_prefix}", "${class_prefix}", @{args});
+          usebundle => _log_v3("User ${login} does not exist. Setting user ${login} shell to ${shell}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     args_defined::
       "report_success"
-        usebundle => _log("User ${login} shell set to ${shell}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("User ${login} shell set to ${shell}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
           ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
 }

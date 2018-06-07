@@ -65,5 +65,5 @@ bundle agent service_restart_if(service_name, trigger_class)
 
       "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
-      "report"                     usebundle  => _log("Restart service ${canonified_service_name} if '${trigger_class}' condtion defined", "service_restart_${canonified_service_name}", "${class_prefix}", @{args});
+      "report"                     usebundle  => _log_v3("Restart service ${canonified_service_name} if '${trigger_class}' condtion defined", "${service_name}", "service_restart_${canonified_service_name}", "${class_prefix}", @{args});
 }

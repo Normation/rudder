@@ -48,5 +48,5 @@ bundle agent permissions_dirs_recurse(path, mode, owner, group)
                              ifvarclass => "should_report";
       "new result classes"         usebundle => _classes_copy("${class_prefix}_permission_with_recursion", "${class_prefix}");
 
-      "report"                     usebundle => _log("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on dirs ${path} with ${recursion} recursion leve", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                     usebundle => _log_v3("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on dirs ${path} with ${recursion} recursion leve", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

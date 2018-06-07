@@ -71,5 +71,5 @@ bundle agent variable_dict_merge_tolerant(variable_prefix, variable_name, first_
 
     pass2::
       "report"
-        usebundle  => _log("Set the dict ${variable_prefix}.${variable_name} to the content of the tolerant merge of ${first_variable} and ${second_variable}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Set the dict ${variable_prefix}.${variable_name} to the content of the tolerant merge of ${first_variable} and ${second_variable}", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

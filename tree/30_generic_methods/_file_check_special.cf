@@ -24,7 +24,7 @@
 # @parameter file_type File type to check, can be "block device", "character device", "directory", "FIFO/pipe", "regular file", "socket", "symlink"
 # 
 # @class_prefix file_check_special
-# @class_parameter file_name 
+# @class_parameter file_name
 # This bundle will define a condition file_check_${file_type}_${file_name}_{ok, reached, kept} if the
 # file is a special file of type ${file_type}, or file_check_${file_type}_${file_name}_{not_ok, reached, not_kept, failed} if
 # the file is not a special file or does not exist
@@ -61,5 +61,5 @@ bundle agent file_check_special(file_name, file_type)
 
     any::
       "report"
-        usebundle => _log("Check if ${file_name} exists and is a ${file_type}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Check if ${file_name} exists and is a ${file_type}", "${file_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

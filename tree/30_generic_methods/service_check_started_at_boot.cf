@@ -50,5 +50,5 @@ bundle agent service_check_started_at_boot(service_name)
       "new result classes" usebundle => _classes_copy("${class_prefix}_check_enabled", "${class_prefix}"),
                           ifvarclass => "${class_prefix}_check_enabled_reached";
 
-      "reports"            usebundle => _log("Check if service ${service_name} is started at boot", "${old_class_prefix}", "${class_prefix}", @{args});
+      "reports"            usebundle => _log_v3("Check if service ${service_name} is started at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

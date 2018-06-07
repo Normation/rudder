@@ -58,17 +58,17 @@ bundle agent user_present(login)
       "error" usebundle => _classes_failure("${class_prefix}");
 
       "report_failure"
-        usebundle => _log("Default group ${login} already exists. User ${login} present", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Default group ${login} already exists. User ${login} present", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     !user_does_not_exist::
       "success" usebundle => _classes_success("${old_class_prefix}");
       "success" usebundle => _classes_success("${class_prefix}");
       "report_success"
-        usebundle => _log("User ${login} present", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("User ${login} present", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     args_defined::
       "report_success"
-        usebundle => _log("User ${login} present", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log_v3("User ${login} present", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
           ifvarclass => "((!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached))";
 }
 

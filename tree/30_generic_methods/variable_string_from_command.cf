@@ -86,7 +86,7 @@ bundle agent variable_string_from_command(variable_prefix, variable_name, comman
 
     pass3::
       "report"
-        usebundle  => _log("Set the string ${variable_prefix}.${variable_name} to the output of '${command}'", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Set the string ${variable_prefix}.${variable_name} to the output of '${command}'", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   reports:
     pass3.info.returned_zero::

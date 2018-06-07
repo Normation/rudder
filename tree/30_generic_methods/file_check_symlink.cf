@@ -55,5 +55,5 @@ bundle agent file_check_symlink(file_name)
 
     any::
       "report"
-        usebundle => _log("Check if ${file_name} is a symlink", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Check if ${file_name} is a symlink", "${file_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

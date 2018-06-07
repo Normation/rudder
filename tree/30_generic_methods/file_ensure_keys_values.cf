@@ -103,5 +103,5 @@ bundle agent file_ensure_keys_values(file, keys, separator)
                          ifvarclass => "file_keys_values_present_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-      "report"   usebundle => _log("Ensure lines in format key${separator}values into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Ensure lines in format key${separator}values into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

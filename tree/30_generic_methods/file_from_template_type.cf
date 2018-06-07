@@ -144,11 +144,11 @@ bundle agent file_from_template_type(source_template, destination, template_type
 
     is_jinja2.template_exists::
       "new result classes" usebundle => _classes_copy("${class_prefix}_file_from_template_jinja2", "${class_prefix}");
-      "report" usebundle => _log("Build file ${destination} from ${template_type} template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log_v3("Build file ${destination} from ${template_type} template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     !(is_jinja2.template_exists)::
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log("Build file ${destination} from ${template_type} type template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Build file ${destination} from ${template_type} type template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

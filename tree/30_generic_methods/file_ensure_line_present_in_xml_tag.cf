@@ -51,5 +51,5 @@ bundle agent file_ensure_line_present_in_xml_tag(file, tag, line)
                          ifvarclass => "file_line_present_in_xml_tag_${canonified_file}_reached";
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
-    "report"   usebundle => _log("Insert line(s) ${line} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"   usebundle => _log_v3("Insert line(s) ${line} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

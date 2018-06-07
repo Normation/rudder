@@ -135,5 +135,5 @@ bundle agent variable_string_from_math_expression(variable_prefix, variable_name
 
     any::
       "report"
-        usebundle  => _log("Set the string ${variable_prefix}.${variable_name} to the result of ${expression} formatted by '${format}'", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Set the string ${variable_prefix}.${variable_name} to the result of ${expression} formatted by '${format}'", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -48,5 +48,5 @@ bundle agent monitoring_template(template)
     "reenable_reporting_${old_class_prefix}" usebundle => enable_reporting,
       ifvarclass => "should_report";
     "new result classes" usebundle => _classes_copy_invert_kept_repaired(canonify("file_ensure_lines_present_/var/rudder/tmp/rudder_monitoring.csv"), "${old_class_prefix}");
-    "report" usebundle => _log("Host follows ${template} monitoring template", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report" usebundle => _log_v3("Host follows ${template} monitoring template", "${template}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

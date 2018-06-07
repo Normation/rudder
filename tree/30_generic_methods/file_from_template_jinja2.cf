@@ -230,7 +230,7 @@ bundle agent file_from_template_jinja2(source_template, destination)
                             ifvarclass => "${old_class_prefix}_reached";
       "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
-      "report"              usebundle  => _log("Build file ${destination} from jinja2 template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"              usebundle  => _log_v3("Build file ${destination} from jinja2 template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   reports:
     pass3::

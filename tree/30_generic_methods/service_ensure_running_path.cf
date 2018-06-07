@@ -54,7 +54,7 @@ bundle agent service_ensure_running_path(service_name, service_path)
     "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
                          ifvarclass => "${class_prefix}_action_reached";
     "report"
-        usebundle  => _log("Ensure that service ${service_name} is running", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Ensure that service ${service_name} is running", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 
 }

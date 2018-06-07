@@ -49,7 +49,7 @@ bundle agent group_present(group)
 
     pass2::
       "report"
-        usebundle => _log("Group ${group} present", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Group ${group} present", "${group}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
     !group_present.!windows.!aix::

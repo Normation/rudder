@@ -46,5 +46,5 @@ bundle agent service_restart(service_name)
                              ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${class_prefix}_restart_always", "${class_prefix}");
 
-      "report"             usebundle => _log("Restart service ${canonified_service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Restart service ${canonified_service_name}", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
