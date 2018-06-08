@@ -18,6 +18,12 @@
 #
 #####################################################################################
 
+# Script for jinja2 templating.
+# Needs package python-jinja2 persent on the system
+# Can be extended with extra filters and tests with script call jinja2_custom.py
+# loaded from /var/rudder/ncf/local/10_ncf_internals/modules/templates/
+# Source of this script need to be /var/rudder/configuration-repository/ncf/10_ncf_internals/modules/templates on the Rudder Server
+
 import sys
 import os
 import sys
@@ -69,12 +75,7 @@ def render(opts, args):
         env.undefined = StrictUndefined
 
     # Register customs
-    sys.path.append('/var/rudder/ncf/local/modules/templates/')
-
-    if pkgutil.find_loader('jinja2_custom') is None:
-        custom_filters = False
-    else:
-        custom_filters = True
+    custom_filters = pkgutil.find_loader('jinja2_custom') is not None
 
     if custom_filters:
         import jinja2_custom
