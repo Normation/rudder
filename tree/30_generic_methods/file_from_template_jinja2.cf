@@ -52,6 +52,9 @@
 # Note: You can add comments in the template, that will not be rendered in the output file with
 # `{# ... #}`.
 #
+# You can extend the Jinja2 templating engine by adding custom FILTERS and TESTS in the script
+# `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/templates/jinja2_custom.py`
+#
 # ##### Classes
 #
 # To display content based on conditions definition:

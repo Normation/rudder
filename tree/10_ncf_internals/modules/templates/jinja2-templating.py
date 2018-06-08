@@ -18,6 +18,12 @@
 #
 #####################################################################################
 
+# Script for jinja2 templating.
+# Needs package python-jinja2 persent on the system
+# Can be extended with extra filters and tests with script call jinja2_custom.py
+# loaded from /var/rudder/ncf/local/10_ncf_internals/modules/templates/
+# Source of this script need to be /var/rudder/configuration-repository/ncf/10_ncf_internals/modules/templates on the Rudder Server
+
 import sys
 import os
 from optparse import OptionParser
@@ -26,6 +32,7 @@ import jinja2
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from distutils.version import StrictVersion
+import pkgutil
 
 try:
     import simplejson as json
@@ -65,6 +72,19 @@ def render(opts, args):
 
     if opts.strict:
         env.undefined = StrictUndefined
+
+    # Register customs
+    custom_filters = pkgutil.find_loader('jinja2_custom') is not None
+
+    if custom_filters:
+        import jinja2_custom
+        if hasattr(jinja2_custom, 'FILTERS'):
+            from jinja2_custom import FILTERS as CUSTOM_FILTERS
+            env.filters.update(CUSTOM_FILTERS)
+        if hasattr(jinja2_custom, 'TESTS'):
+            from jinja2_custom import TESTS as CUSTOM_TESTS
+            env.tests.update(CUSTOM_TESTS)
+    sys.path.pop()
 
     output = env.get_template(os.path.basename(template_path)).render(data)
 
