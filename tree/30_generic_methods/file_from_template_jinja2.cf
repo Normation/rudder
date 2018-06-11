@@ -55,6 +55,21 @@
 # You can extend the Jinja2 templating engine by adding custom FILTERS and TESTS in the script
 # `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/templates/jinja2_custom.py`
 #
+# For instance, to add a filter to upperstring a string and a test if a number is odd, you can create
+# file `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/templates/jinja2_custom.py`
+# with the following content
+#
+# ```
+# def upperstring(input):
+#     return input.upper()
+#
+# def is_odd(n):
+#     return True if (n % 2) else False
+#
+# FILTERS = {'upperstring': upperstring}
+# TESTS = {'is_odd': is_odd}
+# ```
+#
 # ##### Classes
 #
 # To display content based on conditions definition:
