@@ -24,8 +24,6 @@ bundle agent initialization
 
   files:
       "${sys.workdir}/modules"
-        # We cannot use ${me.framework_path} as it is specific to ncf promises.cf and we should have
-        # a more general solution, in particular when calling ncf from an existing promises.cf
         copy_from         => local_dcp("${this.promise_dirname}/modules"),
         depth_search      => recurse("inf"),
         perms             => m("700"),
@@ -47,4 +45,21 @@ bundle agent initialization
       "${configuration.debug} File read from 50_techiques: ${inputs.techniques_files}";
       "${configuration.debug} File read from 60_services: ${inputs.services_files}";
 
+}
+
+# Copy additional modules from custom path
+# The content of the path will be copied in the workdir's module path
+# INFO: There is no purge in workdir's module path so you can add additionnal modules easily.
+# WARNING: If synchronizing content that exists in standard path, you will end up with
+# file changes at every run
+bundle agent additional_modules(path) {
+  files:
+      "${sys.workdir}/modules"
+        copy_from         => local_dcp("${path}/"),
+        depth_search      => recurse("inf"),
+        perms             => m("700"),
+        action            => immediate,
+        move_obstructions => "true",
+        classes           => classes_generic("ncf_internals_modules_update"),
+        comment           => "Update the ncf modules in CFEngine's workdir from custom path";
 }
