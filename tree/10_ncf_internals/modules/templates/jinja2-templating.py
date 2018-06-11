@@ -19,10 +19,11 @@
 #####################################################################################
 
 # Script for jinja2 templating.
-# Needs package python-jinja2 persent on the system
+# Needs package python-jinja2 present on the system. 
+# It will be copied into ${workdir}/modules by ncf initialization process.
 # Can be extended with extra filters and tests with script call jinja2_custom.py
-# loaded from /var/rudder/ncf/local/10_ncf_internals/modules/templates/
-# Source of this script need to be /var/rudder/configuration-repository/ncf/10_ncf_internals/modules/templates on the Rudder Server
+# loaded from /var/rudder/ncf/local/10_ncf_internals/modules/extensions/
+# Source of this script need to be /var/rudder/configuration-repository/ncf/10_ncf_internals/modules/extensions on the Rudder Server
 
 import sys
 import os
@@ -75,15 +76,16 @@ def render(opts, args):
         env.undefined = StrictUndefined
 
     # Register customs
+    sys.path.append(os.path.join(os.path.dirname(__file__), "..", "extensions"))
     custom_filters = pkgutil.find_loader('jinja2_custom') is not None
 
     if custom_filters:
-        import jinja2_custom
+        import jinja2_custom # pylint: disable=import-error
         if hasattr(jinja2_custom, 'FILTERS'):
-            from jinja2_custom import FILTERS as CUSTOM_FILTERS
+            from jinja2_custom import FILTERS as CUSTOM_FILTERS # pylint: disable=import-error
             env.filters.update(CUSTOM_FILTERS)
         if hasattr(jinja2_custom, 'TESTS'):
-            from jinja2_custom import TESTS as CUSTOM_TESTS
+            from jinja2_custom import TESTS as CUSTOM_TESTS # pylint: disable=import-error
             env.tests.update(CUSTOM_TESTS)
     sys.path.pop()
 
