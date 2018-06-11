@@ -56,21 +56,23 @@
 # `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/templates/jinja2_custom.py`
 #
 # For instance, to add a filter to upperstring a string and a test if a number is odd, you can create
-# file `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/templates/jinja2_custom.py`
-# with the following content
+# the file `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/extensions/jinja2_custom.py`
+# on your Rudder server with the following content:
 #
 # ```
 # def upperstring(input):
 #     return input.upper()
 #
-# def is_odd(n):
-#     return True if (n % 2) else False
+# def odd(value):
+#     return True if (value % 2) else False
 #
 # FILTERS = {'upperstring': upperstring}
-# TESTS = {'is_odd': is_odd}
+# TESTS = {'odd': odd}
 # ```
 #
-# ##### Classes
+# These filters and tests will be usable in your jinja templates automatically.
+#
+# ##### Conditions
 #
 # To display content based on conditions definition:
 #
@@ -85,6 +87,15 @@
 #
 # Note: You cannot use condition expressions here.
 #
+# You can also use other tests, for example other bilt-in ones or
+# those defined in `jinja2_custom.py`:
+#
+# ```jinja2
+# {% if vars.variable_prefix.my_number is odd  %}
+#    display if my_number is odd
+# {% endif %}
+# ```
+#
 # ##### Scalar variables
 #
 # Here is how to display a scalar variable value (integer, string, ...),
@@ -93,6 +104,15 @@
 # ```jinja2
 # {{ vars.variable_prefix.my_variable }}
 # ```
+#
+# You can also modify what is displayed by using filters. The built-in filters
+# can be extended in `jinja2_custom.py`:
+#
+# ```jinja2
+# {{ vars.variable_prefix.my_variable | upperstring }}
+# ```
+#
+# Will display the variable in uppercase.
 #
 # ##### Iteration
 #
@@ -140,7 +160,7 @@
 #
 # Use the following template:
 #
-# ```mustache
+# ```jinja2
 # {% for item in vars.variable_prefix.dict_name.hosts %}
 # {{ item }} is the current hosts value
 # {% endfor %}
