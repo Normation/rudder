@@ -169,7 +169,7 @@ class TechniqueAcceptationUpdater(
                                   mods.find(x => x._2 == VersionAdded || x._2 == VersionUpdated ) match {
                                     case None => //do nothing
                                       Full({})
-                                    case Some((version, _)) =>
+                                    case Some((version, mod)) =>
 
                                       //get the category for the technique
                                       val techniquesInfo = techniqueRepo.getTechniquesInfo()
@@ -180,22 +180,29 @@ class TechniqueAcceptationUpdater(
                                           //ignore ? => do nothing
                                           Full({})
                                         case Some(t) =>
-                                          val referenceId = t.head._2.id
+                                          //if the technique is system, we must not add it to UserTechniqueLib, the process
+                                          //must be handled by a dedicated action. Only update system techniques!
+                                          val isSystem = t.exists( _._2.isSystem == true) //isSystem should be consistant, but still
+                                          if(isSystem && mod == VersionAdded) {
+                                            logger.info(s"Not auto-adding system techniques '${name.value}' in user library. You will need to add it explicitly.")
+                                            Full({})
+                                          } else {
+                                            val referenceId = t.head._2.id
 
-                                          val referenceCats = techniquesInfo.techniquesCategory(referenceId).getIdPathFromRoot.map( techniquesInfo.allCategories(_) )
+                                            val referenceCats = techniquesInfo.techniquesCategory(referenceId).getIdPathFromRoot.map( techniquesInfo.allCategories(_) )
 
-                                          //now, for each category in reference library, look if it exists in target library, and recurse on children
-                                          //tail of cats, because if root, we want an empty list to return immediatly in findCategory
-                                          val parentCat = findCategory(referenceCats.tail.map(x => CategoryInfo(x.name, x.description)), techLib)
+                                            //now, for each category in reference library, look if it exists in target library, and recurse on children
+                                            //tail of cats, because if root, we want an empty list to return immediatly in findCategory
+                                            val parentCat = findCategory(referenceCats.tail.map(x => CategoryInfo(x.name, x.description)), techLib)
 
-                                          logger.info(s"Automatically adding technique '${name}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library")
-                                          rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason) match {
-                                            case eb: EmptyBox =>
-                                              eb ?~! s"Error when automatically activating technique '${name}'"
-                                            case Full(_) => //ok, nothing to do
-                                              Full({})
+                                            logger.info(s"Automatically adding technique '${name}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library")
+                                            rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason) match {
+                                              case eb: EmptyBox =>
+                                                eb ?~! s"Error when automatically activating technique '${name}'"
+                                              case Full(_) => //ok, nothing to do
+                                                Full({})
+                                            }
                                           }
-
                                       }
 
                                   }
