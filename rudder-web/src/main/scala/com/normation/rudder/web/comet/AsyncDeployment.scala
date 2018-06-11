@@ -92,22 +92,20 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   val deployementErrorMessage = """(.*)!errormessage!(.*)""".r
 
-  private[this] def statusIcon : NodeSeq = {
-
+  private[this] def statusBackground : String = {
     deploymentStatus.processing match {
       case IdleDeployer =>
         deploymentStatus.current match {
           case NoStatus =>
-            <span id="generation-status" class="label label-neutral"><span class="glyphicon glyphicon-question-sign"></span></span>
+            "bg-neutral"
           case _:SuccessStatus =>
-            <span id="generation-status" class="label label-success"><span class="fa fa-check"></span></span>
+            "bg-success"
           case _:ErrorStatus =>
-            <span id="generation-status" class="label label-danger"><span class="fa fa-times"></span></span>
+            "bg-error"
         }
       case _ =>
-          <span id="generation-status" class="label label-neutral"><i class="fa fa-refresh fa-spin"></i></span>
+        "bg-neutral"
     }
-
   }
 
   private[this] def lastStatus  = {
@@ -208,11 +206,11 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
   private[this] def layout = {
     <lift:authz role="deployment_read">
-      <li class="dropdown notifications-menu">
-        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+      <li class={"dropdown notifications-menu "++ statusBackground}>
+        <a href="#" class="dropdown-toggle"  data-toggle="dropdown">
           Status
           <i class="fa fa-heartbeat"></i>
-          {statusIcon}
+          <span id="generation-status" class="label"><span></span></span>
           <i class="fa fa-angle-down" style="margin-left:15px;"></i>
         </a>
         <ul class="dropdown-menu" role="menu">

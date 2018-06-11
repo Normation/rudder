@@ -671,6 +671,7 @@ a.sidebar-toggle{
   color: #fff !important;
   border-bottom-color: #d9534f;
 }
+
 .tw-bs .main-header .navbar .nav li.notifications-menu> a{
   color:#fff;
   height: 100%;
@@ -803,7 +804,58 @@ a.sidebar-toggle{
 }
 #generation-status{
   font-size: 14px;
+  border-radius: 50%;
+  padding: 3px;
 }
+/* ERROR */
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-error, .tw-bs .main-header .navbar .nav li.notifications-menu.bg-error #generation-status{
+  background-color:#dd4b39;
+}
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-error:hover #generation-status,.tw-bs .main-header .navbar .nav li.notifications-menu.bg-error.open #generation-status{
+  background-color:#c24339;
+}
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-error #generation-status > span:after{
+  display: inline-block;
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  content: "\f00d";
+}
+/* OK */
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-success, .tw-bs .main-header .navbar .nav li.notifications-menu.bg-success #generation-status{
+  background-color:#9bc832;
+}
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-success:hover #generation-status,.tw-bs .main-header .navbar .nav li.notifications-menu.bg-success.open #generation-status{
+  background-color:#8bb52c;
+}
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-success #generation-status > span:after{
+  display: inline-block;
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  content: "\f00c";
+}
+/* DEFAULT */
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-neutral, .tw-bs .main-header .navbar .nav li.notifications-menu.bg-neutral #generation-status{
+  background-color:#abacac;
+}
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-neutral:hover #generation-status,.tw-bs .main-header .navbar .nav li.notifications-menu.bg-neutral.open #generation-status{
+  background-color:#9a9b9b;
+}
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-neutral #generation-status > span:after{
+    position: relative;
+    top: 1px;
+    display: inline-block;
+    font-family: 'Glyphicons Halflings';
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    content: "\e085";
+}
+/* ---- */
 #generation-status.label-success{
   background-color: #9bc832 !important;
 }
