@@ -754,7 +754,7 @@ class InventoryMapper(
     }
     server.customProperties.foreach { cp =>
       import CustomPropertiesSerialization.Serialise
-      root +=! (A_CUSTOM_PROPERTY, cp.toJson)
+      root += (A_CUSTOM_PROPERTY, cp.toJson)
     }
 
     val tree = LDAPTree(root)
@@ -978,6 +978,7 @@ class InventoryMapper(
          , process
          , serverRoles = serverRoles
          , timezone = timezone
+         , customProperties = customProperties
          )
     }
   }
