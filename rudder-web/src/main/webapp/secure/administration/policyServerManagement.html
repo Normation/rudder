@@ -234,6 +234,91 @@
     <div id="agentPolicyMode" class="lift:administration.PropertiesManagement.agentPolicyMode"></div>
     <div id="complianceMode" class="lift:administration.PropertiesManagement.complianceMode"></div>
 
+    <div class="inner-portlet">
+      <div class="page-title">Unexpected reports interpretation</div>
+      <div class="portlet-content">
+        <div class="lift:administration.PropertiesManagement.unexpectedReportInterpretation" id="unexpectedReportInterpretation">
+        <div class="tw-bs">
+        <form class="lift:form.ajax form-horizontal tw-bs" >
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            The two following settings affect the interpretation given to some type of unexpected reports when computing compliance.
+
+            These options will take effects when the next reports are received from a node or if you "clear caches" below.
+          </div>
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            <dl>
+              <dt>Duplicated reports</dt>
+              <dd>
+                Due to the underlying protocol used to send compliance reports back to the policy server (syslog),
+                it may happen that some reports, for an unitary control point, are duplicated. In that case, compliance for
+                the corresponding element will be "unexpected": Rudder was awaiting one report, but it got two.
+                The risk to have a real error reported as a duplicated messages is very low, as messages need to have the
+                same timestamp and information message to be considered duplicated on a given node.
+                <br>That option will ignore the duplicated message in compliance computation and log an information level
+                message about that duplication. A double duplication will still be ignored but with a warning log, and more
+                duplicates will lead to an error log and an unexpected compliance.
+                <br/>It is safe to ignore duplicated reports and you should check that option.
+              </dd>
+            </dl>
+          </div>
+          <div class="wbBaseField">
+            <label class="threeCol textright" style="font-weight:bold;width: 20%;">Ignore duplicated compliance report:</label><input id="allowsDuplicate" type="checkbox">
+          </div>
+          <hr class="spacer"/>
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            <dl>
+              <dt>Unbounded reports by elements when a variable is used</dt>
+              <dd>
+                Rudder await exactly one compliance report for each configuration point of control. If it gets more than one,
+                the leftover reports will be considered as unexpected. This is not what one want in the case where:
+                <ul>
+                  <li>
+                    the point of control is parametrized by a variable,
+                  </li>
+                  <li>
+                    that variable is multivalued.
+                  </li>
+                </ul>
+                For example, if you build a technique in editor with the generic method "Variable iterator" to define a list of
+                packages and you use the resulting variable in "Package present" generic method for the "name" parameter,
+                it is normal and expected to get several compliance reports, one for each configuration value.
+                <br>
+                That option allows to increase the number of expected reports to the number of configuration values and so
+                it avoids to get and "unexpected" compliance in that case.
+                <br>Unless it is more important for you to get "unexpected" compliance than the actual compliance of each
+                configuration value, you should check that option.
+              </dd>
+            </dl>
+          </div>
+          <div class="wbBaseField">
+            <label class="threeCol textright" style="font-weight:bold;width: 20%;">Allows multiple reports for configuration based on a multivalued variable:</label><input id="unboundVarValues" type="checkbox">
+          </div>
+
+          <hr class="spacer"/>
+          <lift:authz role="administration_write">
+            <span class="tw-bs">
+               <input type="submit" value="[save]" id="unexpectedReportInterpretationFormSubmit"/>
+            </span>
+            <div id="unexpectedReportInterpretationFormMessage" class="pull-right control-label">
+              <span class="lift:Msg?unexpectedReportInterpretationFormMessage">[messages]</span>
+            </div>
+          </lift:authz>
+        </form>
+        </div>
+        </div>
+      </div>
+    </div>
+
+
     <div id="cfagentSchedule" class="lift:administration.PropertiesManagement.cfagentSchedule"></div>
 
     <div class="inner-portlet">
@@ -248,7 +333,7 @@
                </div>
                <p>
                  If enabled, prompt users to enter a message explaining the reason for each configuration change they make.<br/>
-                 These messages will be stored in each <a href="/secure/utilities/eventLogs">Event log</a> and as the commit message for the underlying git repository in 
+                 These messages will be stored in each <a href="/secure/utilities/eventLogs">Event log</a> and as the commit message for the underlying git repository in
                  <i><strong><span id="configurationRepoPath"></span></strong></i>
                </p>
              </div>
@@ -466,10 +551,10 @@
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
             <div>
-              In directive configuration page, we have the possibility to choose rules for the directive. The rule 
+              In directive configuration page, we have the possibility to choose rules for the directive. The rule
               are presented in a summary table which look alike the one in rule page. For performance on ascetic
-              reason, you may want to hide compliance and recent changes columns on that table. 
-              The column will still be displayed on the rule page. 
+              reason, you may want to hide compliance and recent changes columns on that table.
+              The column will still be displayed on the rule page.
             </div>
           </div>
           <div class="deca col-xs-12">
