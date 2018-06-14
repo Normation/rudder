@@ -486,14 +486,14 @@ case class MultivaluedSectionField(
   private def showAddAnother(): NodeSeq = {
     if (!readOnlySection) {
       <div class="directiveAddGroup tw-bs">{
-        SHtml.ajaxSubmit(
+        SHtml.ajaxButton(
             s"Add another '${name}'"
           , { () =>
               add()
               //refresh UI - all item of that group
               SetHtml(htmlId, this.content) & postModificationJS()
             }
-          , ("class" -> "btn btn-default")
+          , ("class" -> "btn new-icon btn-success btn-outline")
         )
       }</div>
     } else {
