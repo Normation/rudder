@@ -26,75 +26,11 @@
 # @parameter second_prefix      The second prefix of the source class to combine
 # @parameter destination_prefix The prefix of the destination class
 #
-# @class_prefix 
+# @class_prefix
 # @class_parameter destination_prefix
 
 bundle agent _classes_combine_two(first_prefix, second_prefix, destination_prefix)
 {
-  classes:
-      "first_reached"  expression => "${first_prefix}_reached";
-      "second_reached" expression => "${second_prefix}_reached";
-
-    destination_exists.first_reached.second_reached::
-      "${destination_prefix}_ok"               expression => "${first_prefix}_ok.${second_prefix}_ok",
-                                               scope => "namespace";
-
-      "${destination_prefix}_kept"             expression => "${first_prefix}_kept.${second_prefix}_kept",
-                                               scope => "namespace";
-
-      "promise_kept_${destination_prefix}"     expression => "${destination_prefix}_kept",
-                                               scope => "namespace";
-
-      "${destination_prefix}_repaired"         expression => "(${first_prefix}_ok.${second_prefix}_repaired)|(${first_prefix}_repaired.${second_prefix}_ok)",
-                                               scope => "namespace";
-
-      "promise_repaired_${destination_prefix}" expression => "${destination_prefix}_repaired",
-                                               scope => "namespace";
-
-      "${destination_prefix}_reached"          expression => "${first_prefix}_reached|${second_prefix}_reached",
-                                               scope => "namespace";
-
-      "${destination_prefix}_failed"           expression => "${first_prefix}_failed|${second_prefix}_failed",
-                                               scope => "namespace";
-
-      "repair_failed_${destination_prefix}"    expression => "${destination_prefix}_failed",
-                                               scope => "namespace";
-
-      "${destination_prefix}_denied"           expression => "${first_prefix}_denied|${second_prefix}_denied",
-                                               scope => "namespace";
-
-      "repair_denied_${destination_prefix}"    expression => "${destination_prefix}_denied",
-                                               scope => "namespace";
-
-      "${destination_prefix}_timeout"          expression => "${first_prefix}_timeout|${second_prefix}_timeout",
-                                               scope => "namespace";
-
-      "repair_timeout_${destination_prefix}"   expression => "${destination_prefix}_timeout",
-                                               scope => "namespace";
-
-      "${destination_prefix}_error"            expression => "${first_prefix}_error|${second_prefix}_error",
-                                               scope => "namespace";
-
-      "${destination_prefix}_not_ok"           expression => "!${destination_prefix}_ok",
-                                               scope => "namespace";
-
-      "${destination_prefix}_not_kept"         expression => "!${destination_prefix}_kept",
-                                               scope => "namespace";
-
-      "${destination_prefix}_not_repaired"     expression => "!${destination_prefix}_repaired",
-                                               scope => "namespace";
-
-  classes:
-    # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
-    # and it will always be evaluated to true otherwise
-    "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
-    "destination_not_empty"      not => strcmp("${destination_prefix}", "");
-    "destination_exists"         and => { "destination_defined", "destination_not_empty" };
-
-  methods:
-    first_reached.!second_reached::
-      "copy first"  usebundle => _classes_copy("${first_prefix}", "${destination_prefix}");
-
-    !first_reached.second_reached::
-      "copy second" usebundle => _classes_copy("${second_prefix}", "${destination_prefix}");
+    methods:
+        "combine" usebundle => ncf_classes_combine_two("${first_prefix}", "${second_prefix}", "${destination_prefix}");
 }
