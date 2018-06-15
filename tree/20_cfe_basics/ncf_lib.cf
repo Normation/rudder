@@ -423,7 +423,7 @@ body package_method ncf_generic_version
     package_add_command => "/usr/bin/pacman -S --noconfirm --noprogressbar --needed";
     package_delete_command => "/usr/bin/pacman -Rs --noconfirm";
     package_update_command => "/usr/bin/pacman -S --noconfirm --noprogressbar --needed";
-} 
+}
 
 # Same as apt_get from CFEngine lib with version in package name
 body package_method apt_get_version
@@ -480,7 +480,7 @@ bundle edit_line ncf_insert_block(block) {
 
 # Sets the RHS of configuration items with a given separator
 # supports keys that contains special characters (like *, ?)
-# This bundle will allow any quantity of spaces before the separator, but none 
+# This bundle will allow any quantity of spaces before the separator, but none
 # between the separator and the value
 bundle edit_line ncf_maintain_keys_values(v, sep) {
   vars:
@@ -583,14 +583,14 @@ bundle edit_line ncf_ensure_section_content(section_start, section_end, content)
       ".*"
         select_region => ncf_section_selector("${escaped_section_start}", "${escaped_section_end}"),
         ifvarclass => "has_$(csection)";
- 
+
   insert_lines:
       # Insert new, empty section if it doesn't exist already.
       "${section_start}
 ${section_end}"
         insert_type => "preserve_block",
         ifvarclass => "!has_$(csection)";
- 
+
       # Insert missing lines into the section
       "$(content)"
         select_region => ncf_section_selector("${escaped_section_start}", "${escaped_section_end}");
@@ -616,14 +616,14 @@ bundle edit_line ncf_ensure_section_content_type(section_start, section_end, con
       ".*"
         select_region => ncf_section_selector("${escaped_section_start}", "${escaped_section_end}"),
         ifvarclass => "has_$(csection)";
- 
+
   insert_lines:
       # Insert new, empty section if it doesn't exist already.
       "${section_start}
 ${section_end}"
         insert_type => "preserve_block",
         ifvarclass => "!has_$(csection)";
- 
+
       # Insert missing lines or block into the section
       "$(content)"
         insert_type => "${insert_type}",
@@ -826,7 +826,7 @@ body classes classes_generic_return_code_list_two(x, y, kept_return_codes, repai
 {
     kept_returncodes => { @{kept_return_codes} };
     repaired_returncodes => { @{repaired_return_codes} };
-  
+
   !has_promiser_stack::
     promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
     repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error" };
@@ -853,7 +853,7 @@ body classes classes_generic_return_boolean_list_two(x, y, boolean_prefix, true_
 {
     kept_returncodes => { @{true_return_codes} };
     repaired_returncodes => { @{false_return_codes} };
-  
+
   !has_promiser_stack::
     promise_repaired => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached", "${boolean_prefix}_false" };
     repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error" };
@@ -887,7 +887,7 @@ body classes classes_generic_two(x,y)
     promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
 
   has_promiser_stack::
-    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached", 
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached",
                           "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached" };
     repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
                        "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
@@ -916,6 +916,108 @@ body edit_defaults ncf_empty_select(select)
         empty_file_before_editing => "${select}";
         max_file_size             => "25M";
         edit_backup               => "timestamp";
+}
+
+# Combines classes from two specified prefixes
+# The worst outcome is kept (logical AND)
+bundle agent ncf_classes_combine_two(first_prefix, second_prefix, destination_prefix)
+{
+  classes:
+      "first_reached"  expression => "${first_prefix}_reached";
+      "second_reached" expression => "${second_prefix}_reached";
+
+    destination_exists.first_reached.second_reached::
+      "${destination_prefix}_ok"               expression => "${first_prefix}_ok.${second_prefix}_ok",
+                                               scope => "namespace";
+
+      "${destination_prefix}_kept"             expression => "${first_prefix}_kept.${second_prefix}_kept",
+                                               scope => "namespace";
+
+      "promise_kept_${destination_prefix}"     expression => "${destination_prefix}_kept",
+                                               scope => "namespace";
+
+      "${destination_prefix}_repaired"         expression => "(${first_prefix}_ok.${second_prefix}_repaired)|(${first_prefix}_repaired.${second_prefix}_ok)",
+                                               scope => "namespace";
+
+      "promise_repaired_${destination_prefix}" expression => "${destination_prefix}_repaired",
+                                               scope => "namespace";
+
+      "${destination_prefix}_reached"          expression => "${first_prefix}_reached|${second_prefix}_reached",
+                                               scope => "namespace";
+
+      "${destination_prefix}_failed"           expression => "${first_prefix}_failed|${second_prefix}_failed",
+                                               scope => "namespace";
+
+      "repair_failed_${destination_prefix}"    expression => "${destination_prefix}_failed",
+                                               scope => "namespace";
+
+      "${destination_prefix}_denied"           expression => "${first_prefix}_denied|${second_prefix}_denied",
+                                               scope => "namespace";
+
+      "repair_denied_${destination_prefix}"    expression => "${destination_prefix}_denied",
+                                               scope => "namespace";
+
+      "${destination_prefix}_timeout"          expression => "${first_prefix}_timeout|${second_prefix}_timeout",
+                                               scope => "namespace";
+
+      "repair_timeout_${destination_prefix}"   expression => "${destination_prefix}_timeout",
+                                               scope => "namespace";
+
+      "${destination_prefix}_error"            expression => "${first_prefix}_error|${second_prefix}_error",
+                                               scope => "namespace";
+
+      "${destination_prefix}_not_ok"           expression => "!${destination_prefix}_ok",
+                                               scope => "namespace";
+
+      "${destination_prefix}_not_kept"         expression => "!${destination_prefix}_kept",
+                                               scope => "namespace";
+
+      "${destination_prefix}_not_repaired"     expression => "!${destination_prefix}_repaired",
+                                               scope => "namespace";
+
+  classes:
+    # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
+    # and it will always be evaluated to true otherwise
+    "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
+    "destination_not_empty"      not => strcmp("${destination_prefix}", "");
+    "destination_exists"         and => { "destination_defined", "destination_not_empty" };
+
+  methods:
+    first_reached.!second_reached::
+      "copy first"  usebundle => _classes_copy("${first_prefix}", "${destination_prefix}");
+
+    !first_reached.second_reached::
+      "copy second" usebundle => _classes_copy("${second_prefix}", "${destination_prefix}");
+}
+
+# Copies classes with source_prefix into destination_prefix
+# This copies the whole class set
+bundle agent ncf_classes_copy(source_prefix, destination_prefix)
+{
+  vars:
+      "prefix" slist => { "promise_kept", "promise_repaired", "repair_failed", "repair_denied", "repair_timeout" };
+      "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept", "error" };
+
+    destination_exists::
+      # Copy result classes prefixes
+      "${prefix}_local_destination_prefix"
+        string     => "${prefix}_${destination_prefix}",
+        ifvarclass => "${prefix}_${source_prefix}",
+        classes    => always("${prefix}_${destination_prefix}");
+
+      # Copy result classes suffixes
+      "local_destination_prefix_${suffix}"
+        string     => "${destination_prefix}_${suffix}",
+        ifvarclass => "${source_prefix}_${suffix}",
+        classes    => always("${destination_prefix}_${suffix}");
+
+  classes:
+      # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
+      # and it will always be evaluated to true otherwise
+      "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
+      "destination_not_empty"      not => strcmp("${destination_prefix}", "");
+      "destination_exists"         and => { "destination_defined", "destination_not_empty" };
+
 }
 
 # defines ncf_services_${service}_${action}
@@ -987,6 +1089,10 @@ bundle agent ncf_services(service, action)
       "action_command"             string => "${svc_action_cmd[${action}]}";
       "method"                     string => "svcadm/svcs";
 
+    # Slackware
+    pass1.slackware::
+      "method" string => "/etc/rc.d";
+
     ###########################################################################
     # Boot actions
     ###########################################################################
@@ -1014,9 +1120,11 @@ bundle agent ncf_services(service, action)
       "method"                        string => "lsitab/chitab";
 
     # /etc/rcX.d/
-    pass1.is_boot_action.is_check_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.!chitab_utility_present::
+    pass1.is_boot_action.is_check_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.!chitab_utility_present.!slackware::
       "action_command" string => "${paths.path[test]} -f /etc/rc`/sbin/runlevel | ${paths.path[cut]} -d' ' -f2`.d/S??${service}";
       "method"         string => "/etc/rcX.d/";
+
+    # Slackware boot actions are not performed by command, they are implemented in the 'methods' promises
 
     ###########################################################################
     # Non-boot actions
@@ -1051,6 +1159,14 @@ bundle agent ncf_services(service, action)
       "action_command" string => "/etc/init.d/${service} status",
                    ifvarclass => "is_check_action";
       "method"         string => "/etc/init.d/";
+
+    # Slackware
+    pass1.slackware.!is_boot_action::
+     "action_command" string => "/etc/rc.d/rc.${service} ${action}",
+                    ifvarclass => "!is_check_action";
+    # is-active is mapped to "status"
+     "action_command" string => "/etc/rc.d/rc.${service} status",
+                    ifvarclass => "is_check_action";
 
     # windows
     # Implementation is done in services promises
@@ -1089,7 +1205,7 @@ bundle agent ncf_services(service, action)
     any::
       "is_process_action" expression => strcmp("is-active-process", "${action}");
 
-      "is_boot_action"  or => { 
+      "is_boot_action"  or => {
                                 strcmp("enable", "${action}"),
                                 strcmp("disable", "${action}"),
                                 strcmp("is-enabled", "${action}")
@@ -1114,7 +1230,7 @@ bundle agent ncf_services(service, action)
     #####
     # Actual command - for checks on non-windows systems
     #####
-    pass1.is_check_action.!windows.!is_process_action.method_found::
+    pass1.is_check_action.!windows.!is_process_action.method_found.!(slackware.is_boot_action)::
       "action_ok" expression => returnszero("${action_command} 2>&1 > /dev/null", "useshell");
 
     any::
@@ -1125,13 +1241,13 @@ bundle agent ncf_services(service, action)
   methods:
 
     #####
-    # Actual command - for actions on non-windows systems, non using systemd
+    # Actual command - for actions on non-windows systems, non using systemd, non-slackware
     #####
-    pass2.is_check_action.!windows.!is_process_action.method_found.action_ok::
+    pass2.is_check_action.!windows.!is_process_action.method_found.action_ok.!slackware::
       "force_success_class"    usebundle => _classes_success("${old_class_prefix}");
       "force_success_class"    usebundle => _classes_success("${class_prefix}");
 
-    pass2.is_check_action.!windows.!is_process_action.method_found.!action_ok::
+    pass2.is_check_action.!windows.!is_process_action.method_found.!action_ok.!slackware::
       "force_failure_class"    usebundle => _classes_failure("${old_class_prefix}");
       "force_failure_class"    usebundle => _classes_failure("${class_prefix}");
 
@@ -1151,7 +1267,9 @@ bundle agent ncf_services(service, action)
                               ifvarclass => "${old_class_prefix}_checked_ok";
       "force_success_process"  usebundle => _classes_success("${class_prefix}"),
                               ifvarclass => "${class_prefix}_checked_ok";
-
+    # Slackware boot actions
+    pass2.slackware.is_boot_action::
+      "action"  usebundle => slackware_boot_services("${service}", "${action}", "${old_class_prefix}", "${class_prefix}");
   processes:
 
     ###########################################################################
@@ -1199,7 +1317,7 @@ bundle agent ncf_services(service, action)
     # because of a CFEngine bug (https://dev.cfengine.com/issues/5840) that causes systemctl
     # to fail if it can't find /dev/tty, which is the case unless using no_output => true
     # It also avoids reporting on command_execution for all platforms
-    pass2.!is_check_action.!windows.!is_process_action.method_found::
+    pass2.!is_check_action.!windows.!is_process_action.method_found.!(slackware.is_boot_action)::
       "${action_command}"
         contain => in_shell_and_silent,
         classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
@@ -1251,9 +1369,7 @@ bundle edit_line ncf_remove_parameter_in_list(key, key_value_separator, paramete
   replace_patterns:
       "^(${escaped_key}\s*${key_value_separator}\s*${escaped_leading_char}.*)(${parameter_separator}+\s*${parameter_regex}|${parameter_regex}\s*${parameter_separator}+)(.*${escaped_closing_char})\s*$"
         replace_with => value("${match.1}${match.3}");
-
 }
-
 
 body replace_with ncf_add_parameter_with_separator(parameter, parameter_separator) {
  occurrences => "first";
@@ -1265,3 +1381,92 @@ body replace_with ncf_add_parameter_with_separator_and_enclosing_characters(para
  replace_value => "${match.1}${match.2}${match.3}${parameter_separator}${parameter}${match.4}";
 }
 
+bundle agent slackware_boot_services(service, action, old_class_prefix, class_prefix)
+{
+  vars:
+    "canon_service" string => canonify("${service}");
+
+  classes:
+
+    "action_enable" expression => strcmp("enable", ${action});
+    "action_disable" expression => strcmp("disable", ${action});
+    "action_is_enabled" expression => strcmp("is-enabled", ${action});
+
+  methods:
+
+    action_disable::
+      "chmod 644" usebundle => perm_on_file("/etc/rc.d/rc.${service}", "644", "${old_class_prefix}", "${class_prefix}");
+
+    action_enable::
+      "chmod 755" usebundle => perm_on_file("/etc/rc.d/rc.${service}", "755", "${old_class_prefix}", "${class_prefix}");
+      "block in init scripts" usebundle => service_block_rc_d("${service}", "${old_class_prefix}", "${class_prefix}");
+
+    action_is_enabled::
+      "enable dry run" usebundle => push_dry_run_mode("true");
+      "chmod 755" usebundle => perm_on_file("/etc/rc.d/rc.${service}", "755", "${canon_service}_init_script_execmod", "${canon_service}_init_script_execmod");
+      "block in init scripts" usebundle => service_block_rc_d("${service}", "${old_class_prefix}", "${class_prefix}"),
+                             ifvarclass => "${canon_service}_init_script_execmod_ok";
+      "ifnoexecmod, old" usebundle => _classes_copy("${canon_service}_init_script_execmod", "${old_class_prefix}"),
+                        ifvarclass => "${canon_service}_init_script_execmod_not_ok";
+      "ifnoexecmod, new" usebundle => _classes_copy("${canon_service}_init_script_execmod", "${class_prefix}"),
+                        ifvarclass => "${canon_service}_init_script_execmod_not_ok";
+      "disable dry run" usebundle => pop_dry_run_mode();
+}
+
+bundle agent perm_on_file(file, mod, old_class_prefix, class_prefix)
+{
+  vars:
+    "canonfile" string => canonify("${file}");
+
+  files:
+    "${file}"
+      perms => m("${mod}"),
+      classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+}
+
+bundle agent service_block_rc_d(service, old_class_prefix, new_class_prefix)
+{
+  vars:
+    "canon_service" string => canonify("${service}");
+
+  # When the dry run mode is enabled, the needed changes will not be applied, but the classes will be copied
+  files:
+    "/etc/rc.d/rc.local"
+    edit_line => edit_service_block_rc_d("${service}"),
+    classes => classes_generic("service_${canon_service}_block_in_rc_local");
+
+    "/etc/rc.d/rc.local_shutdown"
+    create => "true",
+    edit_line => edit_service_block_shutdown("${service}"),
+    classes => classes_generic("service_${canon_service}_block_in_rc_shutdown");
+
+    "/etc/rc.d/rc.M"
+    edit_line => edit_service_block_rc_d("${service}"),
+    classes => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+    ifvarclass => "service_${canon_service}_block_in_rc_local_not_ok";
+
+  methods:
+    "combine" usebundle => ncf_classes_combine_two("service_${canon_service}_block_in_rc_local", "service_${canon_service}_block_in_rc_shutdown", "service_${canon_service}_block_in_rc_both");
+    "old classes" usebundle => ncf_classes_copy("service_${canon_service}_block_in_rc_both", "${old_class_prefix}"),
+              ifvarclass => "service_${canon_service}_block_in_rc_both_ok";
+    "new classes" usebundle => ncf_classes_copy("service_${service}_block_in_rc_both", "${class_prefix}"),
+              ifvarclass => "service_${canon_service}_block_in_rc_both_ok";
+}
+
+bundle edit_line edit_service_block_rc_d(service, action)
+{
+  insert_lines:
+"if [ -x /etc/rc.d/rc.${service} ]; then
+  . /etc/rc.d/rc.${service} start
+fi"
+    insert_type =>"preserve_block";
+}
+
+bundle edit_line edit_service_block_shutdown(service)
+{
+  insert_lines:
+"if [ -x /etc/rc.d/rc.${service} ]; then
+  . /etc/rc.d/rc.${service} stop
+fi"
+  insert_type =>"preserve_block";
+}
