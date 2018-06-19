@@ -88,25 +88,23 @@ trait JsonTagExtractor[M[_]] extends JsonExctractorUtils[M] {
   import net.liftweb.json._
 
   def unserializeTags(value:String): Box[M[Tags]] = {
-
    parseOpt(value) match {
       case Some(json) => extractTags(json)
       case _ => Failure(s"Invalid JSON serialization for Tags ${value}")
     }
   }
 
+
   def convertToTag(jsonTag : JValue): Box[M[Tag]] = {
-      for {
-        tagName <- extractJsonString(jsonTag, "key", s => Full(TagName(s)))
-        tagValue <- extractJsonString(jsonTag, "value", s => Full(TagValue(s)))
-      } yield {
-        monad.apply2(tagName, tagValue)( (k,v) => Tag(k,v))
-      }
+    for {
+      tagName <- extractJsonString(jsonTag, "key", s => Full(TagName(s)))
+      tagValue <- extractJsonString(jsonTag, "value", s => Full(TagValue(s)))
+    } yield {
+      monad.apply2(tagName, tagValue)( (k,v) => Tag(k,v))
+    }
   }
 
   def extractTags(value:JValue): Box[M[Tags]] = {
-
     extractJsonArray(value)(convertToTag).map(monad.apply(_)(tags => Tags(tags.toSet))) ?~! s"Invalid JSON serialization for Tags ${value}"
   }
-
 }

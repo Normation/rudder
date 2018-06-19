@@ -63,18 +63,12 @@ import com.normation.rudder.web.rest.changeRequest.APIChangeRequestInfo
 import com.normation.rudder.web.rest.directive.RestDirective
 import com.normation.rudder.web.rest.group.RestGroup
 import com.normation.rudder.web.rest.node._
-import com.normation.rudder.web.rest.parameter.RestParameter
 import com.normation.rudder.web.rest.rule.RestRule
-import com.normation.rudder.web.services.ReasonBehavior.Disabled
-import com.normation.rudder.web.services.ReasonBehavior.Mandatory
-import com.normation.rudder.web.services.ReasonBehavior.Optionnal
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.utils.Control._
-
 import net.liftweb.common._
 import net.liftweb.http.Req
-import net.liftweb.json._
-import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.{JObject, _}
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.inventory.domain.AgentType
@@ -87,6 +81,7 @@ import com.normation.rudder.ncf.MethodCall
 import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.ncf.Parameter
 import com.normation.rudder.ncf.{ Technique => NcfTechnique }
+import com.normation.utils.Control
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -102,6 +97,7 @@ case class RestExtractorService (
   /*
    * Params Extractors
    */
+
   private[this] def extractOneValue[T] (params : Map[String,List[String]], key : String)( to : (String) => Box[T] = ( (value:String) => Full(value))) = {
     params.get(key) match {
       case None               => Full(None)
@@ -741,6 +737,29 @@ case class RestExtractorService (
     }
   }
 
+  // this extractTagsFromJson is exclusively used when updating TAG in the POST API request. We want to extract tags as a List
+  // of {key1,value1 ... keyN,valueN}
+
+ private[this] def extractTagsFromJson(value:JValue): Box[Option[Tags]] = {
+    implicit val formats = DefaultFormats
+    for {
+      jobjects <- Box(value.extractOpt[List[JObject]]) ?~! s"Invalid JSON serialization for Tags ${value}"
+      // be careful, we need to use JObject.obj to get the list even if there is duplicated keys,
+      // which would be removed with JObject.values
+      pairs    <- Control.sequence(jobjects) { o => Control.sequence(o.obj) { case JField(key, v) =>
+        v match {
+          case JString(s) if(s.nonEmpty) => Full((key, s))
+          case _                         => Failure(s"Cannot parse value '${v}' as a valid tag value for tag with name '${key}'")
+
+        }
+      }}
+    } yield {
+      val tags = pairs.flatten
+      Some(Tags(tags.map{case(k,v) => Tag(TagName(k),TagValue(v))}.toSet))
+    }
+  }
+
+
   def extractDirectiveFromJSON (json : JValue) : Box[RestDirective] = {
     for {
       name             <- (extractJsonString(json, "name", toMinimalSizeString(3)), extractJsonString(json, "displayName", toMinimalSizeString(3))) match {
@@ -758,7 +777,7 @@ case class RestExtractorService (
       techniqueName    <- extractJsonString(json, "techniqueName", x => Full(TechniqueName(x)))
       techniqueVersion <- extractJsonString(json, "techniqueVersion", x => Full(TechniqueVersion(x)))
       policyMode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault)
-      tags             <- extractTags(json \ "tags")  ?~! "Error when extracting Directive tags"
+      tags             <- extractTagsFromJson(json \ "tags")  ?~! "Error when extracting Directive tags"
     } yield {
       RestDirective(name,shortDescription,longDescription,enabled,parameters,priority,techniqueName,techniqueVersion,policyMode,tags)
     }
