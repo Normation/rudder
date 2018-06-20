@@ -33,7 +33,7 @@ import re
 
 rpm_cmd = os.environ.get('CFENGINE_TEST_RPM_CMD', "/bin/rpm")
 rpm_quiet_option = ["--quiet"]
-rpm_output_format = "Name=%{name}\nVersion=%{version}-%{release}\nArchitecture=%{arch}\n"
+rpm_output_format = "Name=%{name}\nVersion=%|EPOCH?{%{epoch}:}:{}|%{version}-%{release}\nArchitecture=%{arch}\n"
 
 zypper_cmd = os.environ.get('CFENGINE_TEST_ZYPPER_CMD', "/usr/bin/zypper")
 zypper_options = ["--quiet", "-n"]
