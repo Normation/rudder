@@ -103,8 +103,13 @@ def list_installed():
 
 
 def list_updates(online):
-    # Ignore everything.
-    sys.stdin.readlines()
+    for line in sys.stdin:
+        line = line.strip()
+        if line.startswith("options="):
+            option = line[len("options="):]
+            if option.startswith("enablerepo=") or option.startswith("disablerepo="):
+                global yum_options
+                yum_options += ["--" + option]
 
     online_flag = []
     if not online:
@@ -198,6 +203,12 @@ def package_arguments_builder(is_yum_install):
     multi_cmd_args = []     # List of lists of arguments
     old_name = ""
     for line in sys.stdin:
+        line = line.strip()
+        if line.startswith("options="):
+            option = line[len("options="):]
+            if option.startswith("enablerepo=") or option.startswith("disablerepo="):
+                global yum_options
+                yum_options += ["--" + option]
         if line.startswith("Name="):
             if name:
                 # Each new "Name=" triggers a new entry.
