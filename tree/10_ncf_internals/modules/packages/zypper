@@ -190,10 +190,10 @@ def one_package_argument(name, arch, version, is_zypper_install):
 
     version_suffix = ""
     if version:
-        version_suffix = "-" + version
+        version_suffix = "=" + version
 
     if archs:
-        args += [name + version_suffix + "." + arch for arch in archs]
+        args += [name + "." + arch + version_suffix  for arch in archs]
     else:
         args.append(name + version_suffix)
 
