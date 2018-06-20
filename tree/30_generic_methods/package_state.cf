@@ -82,7 +82,10 @@
 # This package provider uses *zypper*/*rpm* to manage packages on the system.
 # *rpm* will be used for all local actions, and *zypper* is only needed to manage update and
 # installation from a repository.
-# 
+#
+# Note: If the package version you want to install contains an epoch, you have to specify it
+# in the version in the `epoch:version` form, like reported by `zypper info`.
+#
 # ##### slackpkg
 #
 # This package provider uses Slackware's installpkg and upgradepkg tools to manage 
