@@ -34,9 +34,14 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
   vars:
 
       "c_old_class_prefix"     string => canonify("${old_class_prefix}");
+      # When ${class_prefix} itself contains ${class_prefix}, it uses the previous value when calling
+      # _rudder_common_reports_generic. We reset it at the beginning of the bundle execution
+      # to be able to test if class_prefix is actually defined.
+      "c_class_prefix"         string => "";
       "c_class_prefix"         string => canonify("${class_prefix}");
 
       "class_prefix_length"       int => string_length("${class_prefix}");
+
       "component_key"          string => "${class_parameter}";
 
   defaults:
@@ -51,7 +56,8 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
       # Note that if we don't use the full class_prefix, we fallback to the previous use case, where classes collision happen
       "class_prefix_null"    expression => strcmp("cf_null", "${class_prefix}");
       "class_prefix_empty"   expression => strcmp("", "${class_prefix}");
-      "class_prefix_defined" expression => "!class_prefix_null.!class_prefix_empty";
+      "class_prefix_unexpanded" expression => strcmp("", "${c_class_prefix}");
+      "class_prefix_defined" expression => "!class_prefix_null.!class_prefix_empty.!class_prefix_unexpanded";
 
       "class_prefix_size_ok" expression => isgreaterthan("1000", "${class_prefix_length}");
       "use_class_prefix"     expression => "class_prefix_defined.class_prefix_size_ok";
@@ -411,3 +417,4 @@ bundle agent enable_reporting {
   vars:
     "report_data.should_report" string => "true";
 }
+
