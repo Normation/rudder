@@ -98,17 +98,19 @@ bundle agent set_dry_run_mode(mode)
       "${configuration.debug} Enabling dry-run mode";
 }
 
+# Storage bundle for push/pop is named `dry_run_unique`
+#
+# It must never be called directly as it would trigger an error or reset
+# content based on CFEngine version.
 
-# Bundle that hold global values used by push_dry_run_mode and pop_dry_run_mode.
-# Do not call directly as this would reinitialize its content.
-# The content is automatically initialized by cfengine's first global pass on variables.
-bundle agent dry_run_unique
-{
+# This bundle initializes the context for push/pop
+# It is called in 10_ncf_internals/initialization.cf
+bundle agent dry_run_initialization {
   vars:
       # designed to be incremented when a global unique ID is needed
-      "value" string => "1";
+      "dry_run_unique.value" string => "1";
       # stack of dry_run modes
-      "stack" slist => {};
+      "dry_run_unique.stack" slist => {};
 }
 
 # Push current dry-run mode to the stack and set a new mode instead.
