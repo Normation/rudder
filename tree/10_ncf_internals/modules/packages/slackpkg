@@ -5,7 +5,6 @@ CMD="$1"
 DEFARCH=$(uname -m)
 REPO=''
 INPUTLIST=''
-SLACKPKG_CMD_PREFIX="slackpkg -dialog=off -batch=on -default_answer=yes"
 
 fatal() {
     echo "ErrorMessage=$*"
@@ -15,16 +14,16 @@ fatal() {
 parse_line() {
     INPUTP="$1"
 
-    echo "${INPUTP}" | awk -F= '{print "KEYWORD=" $1 "; VALUE=" $2;}' 2>/dev/null
+    KEYWORD=$(echo "${INPUTP}" | sed -e 's/=.*$//')
+    VALUE=$(echo "${INPUTP}" | sed -e 's/^.*=//')
 
     unset INPUTP
-
 }
 
 read_options() {
     while read -r INPUT ; do
         if [ -n "${INPUT}" ] ; then
-            eval `parse_line "${INPUT}"`
+            parse_line "${INPUT}"
             case "${KEYWORD}" in
                 File|Name)
                     VER=''
@@ -159,22 +158,22 @@ case "${CMD}" in
         get_package_data
         ;;
     list-installed)
-        ls -l /var/log/packages/ |sed -e 's/.* \([^ ]\+\)-\([_a-w0-9.?]\+\)-\(.*\)-.*/Name=\1\'$'\nVersion=\\2\\nArchitecture=\\3/'  
+        ls -1 /var/log/packages/ |sed -e 's/\([^ ]\+\)-\([_a-zA-Z0-9.?]\+\)-\(.*\)-/Name=\1\'$'\nVersion=\\2\\nArchitecture=\\3/'
         ;;
     list-updates-local|list-updates)
-        ${SLACKPKG_CMD_PREFIX} upgrade-all | sed -r 's!^(.+)-(.+)-(i[0-9]86|noarch|x86_64|x86|fw|npmjs)-(.*)$!Name=\1\nVersion=\2\nArchitecture=\3!g' | grep -vE "Total\ package|Do\ you\ wish\ to|Looking\ for|Checking\ local|^$"
+        slackpkg -dialog=off -batch=on upgrade-all | sed -r 's!^(.+)-(.+)-(i[0-9]86|noarch|x86_64|x86|fw|npmjs)-(.*)$!Name=\1\nVersion=\2\nArchitecture=\3!g' | grep -vE "Total\ package|Do\ you\ wish\ to|Looking\ for|Checking\ local|^$"
         ;;
     repo-install|file-install|remove)
         process_inputs "${CMD}" "${INPUTLIST}"
         case "${CMD}" in
             repo-install)
-                ${SLACKPKG_CMD_PREFIX} install ${PKG} 2>/dev/null >/dev/null
+                slackpkg -dialog=off -batch=on -default_answer=yes install ${PKG} 2>/dev/null >/dev/null
                 ;;
             file-install)
                 installpkg ${PKG} 2>/dev/null >/dev/null
                 ;;
             remove)
-                ${SLACKPKG_CMD_PREFIX} remove ${PKG} 2>/dev/null >/dev/null
+                slackpkg -dialog=off -batch=on -default_answer=yes remove ${PKG} 2>/dev/null >/dev/null
                 ;;
         esac
         RC=$?
