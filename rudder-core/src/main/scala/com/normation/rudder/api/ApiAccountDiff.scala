@@ -59,4 +59,5 @@ final case class ModifyApiAccountDiff(
   , modTokenGenerationDate : Option[SimpleDiff[DateTime]] = None
   , modExpirationDate      : Option[SimpleDiff[Option[DateTime]]] = None
   , modAccountKind         : Option[SimpleDiff[String]] = None
+  , modAccountAcl          : Option[SimpleDiff[List[ApiAclElement]]] = None
 ) extends ApiAccountDiff with HashcodeCaching

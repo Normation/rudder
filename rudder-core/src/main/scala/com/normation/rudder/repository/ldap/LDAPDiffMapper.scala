@@ -440,7 +440,22 @@ class LDAPDiffMapper(
                       kind.kind.name
                   }
                   Full(diff.copy(modAccountKind = Some(SimpleDiff(oldAuthType, mod.getAttribute().getValue()))))
+                case A_API_ACL =>
+                  val oldAcl = oldAccount.kind match {
+                    case PublicApi(ApiAuthorization.ACL(acl), _) =>
+                      acl
+                    case kind =>
+                      Nil
+                  }
 
+                  for {
+                    acl <- mapper.unserApiAcl(mod.getAttribute().getValue) match {
+                             case Left(error) => Failure(error)
+                             case Right(acl)  => Full(acl)
+                           }
+                  } yield {
+                    diff.copy(modAccountAcl = Some(SimpleDiff(oldAcl, acl)))
+                  }
 
                 case x => Failure("Unknown diff attribute: " + x)
               }

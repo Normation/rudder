@@ -561,23 +561,34 @@ case class RestDataSerializerImpl (
 
 }
 
+/*
+ * ACL
+ * Between front and backend, we exchange a JsonAcl list, where JsonAcl are *just*
+ * one path and one verb. The grouping is done in extractor
+ */
+final case class JsonApiAcl(path: String, verb: String)
+
 object ApiAccountSerialisation {
+
+  implicit val formats = Serialization.formats(NoTypeHints)
+
 
   implicit class Json(account: ApiAccount) {
 
-    val (expirationDate, authzType, aclList) :  (Option[String],Option[String],Option[List[String]]) = {
+    val (expirationDate, authzType, acl) :  (Option[String],Option[String],Option[List[JsonApiAcl]]) = {
       account.kind match {
         case User | System => (None,None,None)
         case PublicApiAccount(authz,expirationDate) =>
-          val aclList = authz match {
+          val acl = authz match {
             case NoAccess | RO | RW => None
-            case ACL(acls) => Some(acls.map(_.path.value))
+            case ACL(acls) => Some(acls.flatMap(x => x.actions.map(a => JsonApiAcl(x.path.value, a.name))))
           }
           ( expirationDate.map(DateFormaterService.getFormatedDate)
           , Some(authz.kind.name)
-          , aclList )
+          , acl )
       }
     }
+
     def toJson(): JObject = {
       ("id"                    -> account.id.value) ~
       ("name"                  -> account.name.value) ~
@@ -590,8 +601,7 @@ object ApiAccountSerialisation {
       ("expirationDate"        -> expirationDate) ~
       ("expirationDateDefined" -> expirationDate.isDefined ) ~
       ("authorizationType"     -> authzType ) ~
-      ("aclList"               -> aclList)
+      ("acl"               -> acl.map(x => Extraction.decompose(x)))
     }
-
   }
 }

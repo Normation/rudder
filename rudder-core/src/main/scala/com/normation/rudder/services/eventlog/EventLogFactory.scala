@@ -39,9 +39,7 @@ package com.normation.rudder.services.eventlog
 
 import scala.xml._
 import scala.xml.Text
-
 import org.joda.time.DateTime
-
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.eventlog._
@@ -56,8 +54,8 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.marshalling._
-
 import net.liftweb.util.Helpers._
+import org.joda.time.format.ISODateTimeFormat
 
 trait EventLogFactory {
 
@@ -780,7 +778,20 @@ class EventLogFactoryImpl(
           diff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
           diff.modToken.map(x => SimpleDiff.stringToXml(<token/>, x) ) ++
           diff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x ) ) ++
-          diff.modIsEnabled.map(x => SimpleDiff.booleanToXml(<enabled/>, x ) )
+          diff.modIsEnabled.map(x => SimpleDiff.booleanToXml(<enabled/>, x ) ) ++
+          diff.modTokenGenerationDate.map(x => SimpleDiff.toXml[DateTime](<tokenGenerationDate/>, x){ x =>
+            Text(x.toString(ISODateTimeFormat.dateTime()))
+          })++
+          diff.modExpirationDate.map(x => SimpleDiff.toXml[Option[DateTime]](<expirationDate/>, x){ x =>
+            x match {
+              case None    => NodeSeq.Empty
+              case Some(d) => Text(d.toString(ISODateTimeFormat.dateTime()))
+            }
+          }) ++
+          diff.modAccountKind.map(x => SimpleDiff.stringToXml(<accountKind/>, x)) ++
+          diff.modAccountAcl.map(x => SimpleDiff.toXml[List[ApiAclElement]](<acls/>, x){x =>
+            x.map(acl => <acl path={acl.path.value} actions={acl.actions.map(_.name).mkString(",")} />)
+          })
         }
       </apiAccount>)
     }

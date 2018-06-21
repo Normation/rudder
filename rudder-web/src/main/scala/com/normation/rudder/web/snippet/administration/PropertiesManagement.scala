@@ -1176,10 +1176,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             )
           } &
           "#unexpectedReportInterpretationFormSubmit " #> {
-              val x = SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"), ("disabled", "disabled"))
-              println(x)
-              x
-//              ++ Script(check())
+              SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"), ("disabled", "disabled"))
           }
         )
 

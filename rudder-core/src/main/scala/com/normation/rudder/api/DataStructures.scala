@@ -136,7 +136,7 @@ final object AclPath {
   final case class FullPath(segments: NonEmptyList[AclPathSegment]) extends AclPath {
     def parts = segments
   }
-  // only the root is given, and the path ends with "**". It can even be onlyl "**"
+  // only the root is given, and the path ends with "**". It can even be only "**"
   final case class Root(segments: List[AclPathSegment])              extends AclPath {
     def parts = NonEmptyList.ofInitLast(segments, AclPathSegment.DoubleWildcard)
   }

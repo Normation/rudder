@@ -43,14 +43,12 @@ import net.liftweb.common.Box._
 import net.liftweb.util.Helpers.tryo
 import org.joda.time.format.ISODateTimeFormat
 import org.eclipse.jgit.lib.PersonIdent
-
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.Control.sequence
 import com.normation.eventlog.ModificationId
-
 import com.normation.rudder.api._
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.policies._
@@ -71,6 +69,7 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.marshalling._
 import com.normation.rudder.services.marshalling.TestFileFormat
 import net.liftweb.json.JsonAST.JString
+import org.joda.time.DateTime
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -826,6 +825,8 @@ class EventLogDetailsServiceImpl(
   }
 
   def getApiAccountModifyDetails(xml:NodeSeq) : Box[ModifyApiAccountDiff] = {
+    import cats.implicits._
+
     for {
       entry              <- getEntryContent(xml)
       apiAccount         <- (entry \ XML_TAG_API_ACCOUNT).headOption ?~!
@@ -835,7 +836,25 @@ class EventLogDetailsServiceImpl(
       modToken           <- getFromToString((apiAccount \ "token").headOption)
       modDescription     <- getFromToString((apiAccount \ "description").headOption)
       modIsEnabled       <- getFromTo[Boolean]((apiAccount \ "enabled").headOption,
-                             { s => tryo { s.text.toBoolean } } )
+                              { s => tryo { s.text.toBoolean } } )
+      modTokenGenDate    <- getFromTo[DateTime]((apiAccount \ "tokenGenerationDate").headOption,
+                              { s => tryo { ISODateTimeFormat.dateTimeParser().parseDateTime(s.text) }} )
+      modExpirationDate  <- getFromTo[Option[DateTime]]((apiAccount \ "expirationDate").headOption,
+                              { s => Full(tryo { ISODateTimeFormat.dateTimeParser().parseDateTime(s.text) }.toOption) } )
+      modAccountKind     <- getFromToString((apiAccount \ "accountKind").headOption)
+      modAcls            <- getFromTo[List[ApiAclElement]]((apiAccount \ "acls").headOption,
+                              { s =>  ((s \ "acl").toList.traverse{x =>
+                                for {
+                                    path    <- AclPath.parse((x \ "@path").head.text)
+                                    actions <- (x \ "@actions").head.text.split(",").toList.traverse(HttpAction.parse _)
+                                } yield {
+                                    ApiAclElement(path, actions.toSet)
+                                }
+                              }) match {
+                                case Left(e)  => Failure(e)
+                                case Right(x) => Full(x)
+                              }
+                              } )
       fileFormatOk       <- TestFileFormat(apiAccount)
     } yield {
       ModifyApiAccountDiff(
@@ -844,6 +863,10 @@ class EventLogDetailsServiceImpl(
         , modToken = modToken
         , modDescription = modDescription
         , modIsEnabled = modIsEnabled
+        , modTokenGenerationDate = modTokenGenDate
+        , modExpirationDate      = modExpirationDate
+        , modAccountKind         = modAccountKind
+        , modAccountAcl          = modAcls
       )
     }
   }
