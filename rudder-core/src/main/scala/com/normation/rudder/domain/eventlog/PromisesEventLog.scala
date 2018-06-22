@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
+import com.normation.rudder.batch.StartDeploymentMessage
 import com.normation.utils.HashcodeCaching
 
 sealed trait PromiseEventLog extends EventLog { override final val eventLogCategory = DeploymentLogCategory }

@@ -43,7 +43,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.inventory.domain.NodeId
 
@@ -137,7 +137,7 @@ class RoParameterServiceImpl(
 class WoParameterServiceImpl(
     roParamService : RoParameterService
   , woParamRepo    : WoParameterRepository
-  , asyncDeploymentAgent : AsyncDeploymentAgent
+  , asyncDeploymentAgent : AsyncDeploymentActor
 ) extends WoParameterService with Loggable {
   /**
    * Save a parameter

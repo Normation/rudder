@@ -41,7 +41,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.appconfig.UpdateConfigService
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeState
@@ -76,7 +76,7 @@ import net.liftweb.json.JsonDSL._
 class SettingsApi(
     val restExtractorService: RestExtractorService
   , val configService       : ReadConfigService with UpdateConfigService
-  , val asyncDeploymentAgent: AsyncDeploymentAgent
+  , val asyncDeploymentAgent: AsyncDeploymentActor
   , val uuidGen             : StringUuidGenerator
 ) extends LiftApiModuleProvider[API] {
 

@@ -42,29 +42,36 @@ import org.joda.time._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.PromiseGenerationService
 import net.liftweb.http.ListenerManager
-import com.normation.eventlog.{EventActor,EventLog}
+import com.normation.eventlog.{EventActor, EventLog}
 import com.normation.rudder.domain.eventlog._
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import net.liftweb.common._
 import com.normation.eventlog.EventLogDetails
+
 import scala.xml.NodeSeq
 import com.normation.eventlog.ModificationId
 import java.io.File
+
+
 import com.normation.rudder.domain.logger.PolicyLogger
+
+sealed trait StartDeploymentMessage
 
 //ask for a new deployment - automatic deployment !
 //actor: the actor who asked for the deployment
-final case class AutomaticStartDeployment(modId: ModificationId, actor:EventActor) extends HashcodeCaching
+final case class AutomaticStartDeployment(modId: ModificationId, actor:EventActor) extends HashcodeCaching with StartDeploymentMessage
 
 //ask for a new deployment - manual deployment (human clicked on "regenerate now"
 //actor: the actor who asked for the deployment
-final case class ManualStartDeployment(modId: ModificationId, actor:EventActor, reason:String) extends HashcodeCaching
+final case class ManualStartDeployment(modId: ModificationId, actor:EventActor, reason:String) extends HashcodeCaching with StartDeploymentMessage
 
 /**
  * State of the deployment agent.
  */
+
+
 sealed trait DeployerState
 //not currently doing anything
 final case object IdleDeployer extends DeployerState with HashcodeCaching
@@ -79,6 +86,7 @@ final case class ProcessingAndPendingManual(asked: DateTime, current:Processing,
  * Status of the last deployment process
  */
 sealed trait CurrentDeploymentStatus
+
 //noting was done for now
 final case object NoStatus extends CurrentDeploymentStatus with HashcodeCaching
 //last status - success or error
@@ -91,13 +99,20 @@ final case class DeploymentStatus(
 ) extends HashcodeCaching
 
 /**
- * Asyn version of the deployment service.
+ * Async version of the deployment service.
  */
-final class AsyncDeploymentAgent(
+
+trait AsyncDeploymentAgent {
+
+  def launchDeployment(msg: StartDeploymentMessage) : Unit
+
+}
+
+final class AsyncDeploymentActor(
     deploymentService: PromiseGenerationService
   , eventLogger:EventLogDeploymentService
   , deploymentStatusSerialisation : DeploymentStatusSerialisation
-) extends LiftActor with ListenerManager {
+) extends LiftActor with ListenerManager with AsyncDeploymentAgent {
 
   deploymentManager =>
 
@@ -139,6 +154,10 @@ final class AsyncDeploymentAgent(
       case Full(status) => status
     }
   }
+
+  // this method is here for testing purpose.
+
+  override def launchDeployment(msg: StartDeploymentMessage): Unit = this ! msg
 
   /**
    * Manage what we send on other listener actors

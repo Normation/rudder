@@ -89,6 +89,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import org.joda.time.DateTime
+
 import scala.collection.SortedMap
 import scala.language.implicitConversions
 import com.normation.inventory.domain.Windows
@@ -110,7 +111,8 @@ import com.normation.cfclerk.services.impl.TechniqueRepositoryImpl
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
-import java.io.File
+import java.io.{File, IOException}
+
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
 import com.normation.rudder.domain.policies.FullOtherTarget
@@ -449,7 +451,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
   val directives = FullActiveTechniqueCategory(ActiveTechniqueCategoryId("root"), "root", "root", Nil, fat1 :: Nil)
 
-    /**
+  /**
    *   ************************************************************************
    *                         Some rules
    *   ************************************************************************
@@ -467,6 +469,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
  */
 
 class TestNodeConfiguration() {
+
   import com.normation.rudder.services.policies.NodeConfigData.{root, node1}
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set up root node configuration
@@ -481,15 +484,17 @@ class TestNodeConfiguration() {
 
   val abstractRoot = new File("/tmp/test-rudder-config-repo-" + DateTime.now.toString())
   abstractRoot.mkdirs()
+
   // config-repo will also be the git root, as a normal rudder
   val configurationRepositoryRoot = abstractRoot/"configuration-repository"
-
   //initialize config-repo content from our test/resources source
+
   FileUtils.copyDirectory( new File("src/test/resources/configuration-repository") , configurationRepositoryRoot)
 
   val EXPECTED_SHARE = configurationRepositoryRoot/"expected-share"
 
   val repo = new GitRepositoryProviderImpl(configurationRepositoryRoot.getAbsolutePath)
+
 
   val variableSpecParser = new VariableSpecParser
   val systemVariableServiceSpec = new SystemVariableSpecServiceImpl()

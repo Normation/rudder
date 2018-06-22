@@ -314,7 +314,6 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         , nodeContext = systemVariables
         , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
       )
-
     }
 
     "correctly write nothing (no quotes) when no groups" in {

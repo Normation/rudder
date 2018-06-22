@@ -39,7 +39,7 @@ package bootstrap.liftweb
 package checks
 
 import java.io.File
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.eventlog.RudderEventActor
@@ -51,7 +51,7 @@ import com.normation.rudder.batch.AutomaticStartDeployment
  * This needs to be achieved after all tasks that could modify configuration (ie: CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace)
  */
 class ResumePolicyUpdateRunning(
-    asyncGeneration : AsyncDeploymentAgent
+    asyncGeneration : AsyncDeploymentActor
   , uuidGen         : StringUuidGenerator
 ) extends BootstrapChecks {
 

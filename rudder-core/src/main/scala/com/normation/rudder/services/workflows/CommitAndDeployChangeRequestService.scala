@@ -40,7 +40,7 @@ package com.normation.rudder.services.workflows
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies._
@@ -105,7 +105,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   , woRuleRepository      : WoRuleRepository
   , roParameterRepository : RoParameterRepository
   , woParameterRepository : WoParameterRepository
-  , asyncDeploymentAgent  : AsyncDeploymentAgent
+  , asyncDeploymentAgent  : AsyncDeploymentActor
   , dependencyService     : DependencyAndDeletionService
   , workflowEnabled       : () => Box[Boolean]
   , xmlSerializer         : XmlSerializer

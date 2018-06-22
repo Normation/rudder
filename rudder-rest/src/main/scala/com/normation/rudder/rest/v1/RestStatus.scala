@@ -49,5 +49,4 @@ object RestStatus extends RestHelper {
   serve {
     case Get("api" :: "status" :: Nil, req) => PlainTextResponse("OK")
   }
-
 }

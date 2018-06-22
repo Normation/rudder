@@ -2,7 +2,7 @@ package com.normation.rudder.services
 
 import com.normation.eventlog.{EventActor, EventLog, EventLogDetails, ModificationId}
 import com.normation.rudder.repository.CachedRepository
-import com.normation.rudder.batch.{AsyncDeploymentAgent, AutomaticStartDeployment}
+import com.normation.rudder.batch.{AsyncDeploymentActor, AutomaticStartDeployment}
 import com.normation.rudder.domain.eventlog.ClearCacheEventLog
 import net.liftweb.common.{EmptyBox, Full, Loggable}
 import net.liftweb.http.S
@@ -32,7 +32,7 @@ trait ClearCacheService {
 
 class ClearCacheServiceImpl(
       nodeConfigurationService : NodeConfigurationHashRepository
-    , asyncDeploymentAgent     : AsyncDeploymentAgent
+    , asyncDeploymentAgent     : AsyncDeploymentActor
     , eventLogRepository       : EventLogRepository
     , uuidGen                  : StringUuidGenerator
     , clearableCache           : Seq[CachedRepository]

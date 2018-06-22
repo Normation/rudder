@@ -80,7 +80,7 @@ trait BoxSpecMatcher extends Specification with Loggable {
 
     def mustFullEq(res: T): MatchResult[Any] = matchRes( (x:T) => x === res)
 
-    def mustFull: MatchResult[Any] = matchRes( (x:T) => ok(s"Got a ${x}"))
+    def mustFull: MatchResult[Any] = matchRes((x:T) => ok(s"Got a ${x}"))
 
   }
 

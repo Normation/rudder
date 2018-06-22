@@ -52,7 +52,7 @@ import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.UserService
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes.CompareProperties
 import com.normation.rudder.domain.nodes.Node
@@ -607,7 +607,7 @@ class NodeApiService8 (
     nodeRepository  : WoNodeRepository
   , nodeInfoService : NodeInfoService
   , uuidGen         : StringUuidGenerator
-  , asyncRegenerate : AsyncDeploymentAgent
+  , asyncRegenerate : AsyncDeploymentActor
   , relayApiEndpoint: String
   , userService     : UserService
 ) extends Loggable {

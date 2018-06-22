@@ -225,7 +225,7 @@ class Boot extends Loggable {
 
     // Lift 3 add security rules. It's good! But we use a lot
     // of server side generated js and other things that make
-    // it extremelly impracticable for us.
+    // it extremely impracticable for us.
     // allows everything and do not log in prod mode problems
     LiftRules.securityRules = () => SecurityRules(
         https               = None

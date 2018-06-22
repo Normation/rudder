@@ -42,7 +42,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.domain.policies.ActiveTechnique
@@ -201,7 +201,7 @@ class DirectiveAPIService2 (
     readDirective        : RoDirectiveRepository
   , writeDirective       : WoDirectiveRepository
   , uuidGen              : StringUuidGenerator
-  , asyncDeploymentAgent : AsyncDeploymentAgent
+  , asyncDeploymentAgent : AsyncDeploymentActor
   , changeRequestService : ChangeRequestService
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService

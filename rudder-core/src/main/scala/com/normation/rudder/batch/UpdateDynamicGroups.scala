@@ -81,7 +81,7 @@ case class StartDynamicUpdate(id:Long, modId:ModificationId, started: DateTime, 
 class UpdateDynamicGroups(
     dynGroupService       : DynGroupService
   , dynGroupUpdaterService: DynGroupUpdaterService
-  , asyncDeploymentAgent  : AsyncDeploymentAgent
+  , asyncDeploymentAgent  : AsyncDeploymentActor
   , uuidGen               : StringUuidGenerator
   , updateInterval        : Int // in minutes
 ) {

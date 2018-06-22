@@ -84,7 +84,7 @@ trait LiftApiModuleProvider[A <: EndpointSchema] {
   /*
    * Helps debugging bad mapping between a shema and its implementation.
    * Will throw an exception at boot time in a schema / implem mismatch.
-   * In case you get it, look for the corresponding implementation how the
+   * In case you don't get it, look for the corresponding implementation how the
    * API / implem is done, or if the "def schema = ... " in implem is correct
    */
   {
@@ -189,7 +189,7 @@ class LiftHandler(
   }
 
 
-  // Get the lift objet that can be added in lift rooting logic
+  // Get the lift object that can be added in lift rooting logic
   def getLiftRestApi(): RestHelper = {
     val handlers = buildApi().map(h => Function.unlift(h))
     val liftApi = new RestHelper {

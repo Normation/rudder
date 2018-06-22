@@ -39,7 +39,7 @@ package com.normation.rudder.rest.v1
 
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.UserService
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.ManualStartDeployment
 import com.normation.rudder.rest.RestUtils
 import com.normation.utils.StringUuidGenerator
@@ -51,7 +51,7 @@ import net.liftweb.http.rest._
  *
  */
 class RestDeploy(
-    asyncDeploymentAgent: AsyncDeploymentAgent
+    asyncDeploymentAgent: AsyncDeploymentActor
   , uuidGen             : StringUuidGenerator
 ) ( implicit userService : UserService )
 extends RestHelper {

@@ -41,7 +41,7 @@ package checks
 import net.liftweb.common._
 import java.io.File
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.eventlog.RudderEventActor
@@ -53,7 +53,7 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
  */
 class CheckTechniqueLibraryReload(
     techniqueLibUpdater  : UpdateTechniqueLibrary
-  , asyncDeploymentAgent : AsyncDeploymentAgent
+  , asyncDeploymentAgent : AsyncDeploymentActor
   , uuidGen              : StringUuidGenerator
 ) extends BootstrapChecks {
 

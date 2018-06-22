@@ -44,13 +44,10 @@ import net.liftweb.http.LiftRulesMocker
 import net.liftweb.http.Req
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.mockweb.MockWeb
-import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
+import com.normation.utils.StringUuidGenerator
+import com.normation.cfclerk.services.{TechniquesLibraryUpdateNotification, TechniquesLibraryUpdateType, UpdateTechniqueLibrary}
+import com.normation.eventlog.{EventActor, EventLog, ModificationId}
 import net.liftweb.common.Box
-import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.domain.TechniqueName
 import net.liftweb.http.LiftResponse
 import net.liftweb.util.NamedPF
@@ -62,17 +59,28 @@ import com.normation.rudder.User
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
+import com.normation.rudder.batch.{AsyncDeploymentAgent, StartDeploymentMessage, UpdateDynamicGroups}
+import com.normation.rudder.repository._
 import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.rest.v1.RestStatus
+import com.normation.rudder.rest.lift.{LiftApiProcessingLogger, LiftHandler, SystemApiService11}
+import com.normation.rudder.services.ClearCacheService
+import com.normation.rudder.services.policies.TestNodeConfiguration
+import com.normation.rudder.services.user.PersonIdentService
+import org.eclipse.jgit.lib.PersonIdent
+import org.joda.time.DateTime
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
  *
- * Also responsible for setting up datas and mock services.
+ * Also responsible for setting up data and mock services.
  */
 object RestTestSetUp {
 
-  val uuidGen = new StringUuidGeneratorImpl()
+  val uuidGen = new StringUuidGenerator() {
+    override def newUuid: String = "Test Uuid"
+  }
+
   implicit val userService = new UserService {
     val user = new User{
       val account = RudderAccount.User("test-user", "pass")
@@ -80,15 +88,26 @@ object RestTestSetUp {
       def getApiAuthz = ApiAuthz.allAuthz
     }
     val getCurrentUser = user
-
   }
-  val reloadTechniques = new RestTechniqueReload(new UpdateTechniqueLibrary() {
-    def update(modId: ModificationId, actor:EventActor, reason: Option[String]) : Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
-      Full(Map())
-    }
-    def registerCallback(callback:TechniquesLibraryUpdateNotification) : Unit = {}
-  }, uuidGen)
 
+  // Instantiate Service needed to feed System API constructor
+
+  val fakeUpdatePTLibService = new UpdateTechniqueLibrary() {
+      def update(modId: ModificationId, actor:EventActor, reason: Option[String]) : Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
+        Full(Map())
+      }
+      def registerCallback(callback:TechniquesLibraryUpdateNotification) : Unit = {}
+    }
+
+  val fakeUpdateDynamicGroups = new UpdateDynamicGroups(null, null, null, null, 0) {
+    override def startManualUpdate: Unit = ()
+  }
+
+  val fakeAsyncDeployment =  new AsyncDeploymentAgent() {
+    override def launchDeployment(dest: StartDeploymentMessage): Unit = ()
+  }
+
+  val reloadTechniques = new RestTechniqueReload(fakeUpdatePTLibService, uuidGen)
   val restExtractorService =
   RestExtractorService (
       null //roRuleRepository
@@ -108,10 +127,115 @@ object RestTestSetUp {
   // TODO
   // all other apis
 
+  class FakeClearCacheService extends ClearCacheService {
+    override def action(actor: EventActor): Box[String] = null
+    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor): Box[Unit] = null
+  }
+
+
+
+  val fakeNotArchivedElements = NotArchivedElements(Seq[CategoryNotArchived](), Seq[ActiveTechniqueNotArchived](), Seq[DirectiveNotArchived]())
+  val fakePersonIdent = new PersonIdent("test-user", "test.user@normation.com")
+  val fakeGitCommitId = GitCommitId("6d6b2ceb46adeecd845ad0c0812fee07e2727104")
+  val fakeGitArchiveId = GitArchiveId(GitPath("fake/git/path"), fakeGitCommitId, fakePersonIdent)
+
+
+  class FakeItemArchiveManager extends ItemArchiveManager {
+
+    override def exportAll(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
+    : Box[(GitArchiveId, NotArchivedElements)] = Full((fakeGitArchiveId, fakeNotArchivedElements))
+    override def exportRules(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
+    : Box[GitArchiveId] = Full(fakeGitArchiveId)
+    override def exportTechniqueLibrary(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
+    : Box[(GitArchiveId, NotArchivedElements)] = Full((fakeGitArchiveId, fakeNotArchivedElements))
+    override def exportGroupLibrary(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
+    : Box[GitArchiveId] = Full(fakeGitArchiveId)
+    override def exportParameters(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
+    : Box[GitArchiveId] = Full(fakeGitArchiveId)
+
+
+    override def importAll(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
+    : Box[GitCommitId] = Full(fakeGitCommitId)
+    override def importRules(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
+    : Box[GitCommitId] = Full(fakeGitCommitId)
+    override def importTechniqueLibrary(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
+    : Box[GitCommitId] = Full(fakeGitCommitId)
+    override def importGroupLibrary(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
+    : Box[GitCommitId] = Full(fakeGitCommitId)
+    override def importParameters(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
+    : Box[GitCommitId] = Full(fakeGitCommitId)
+    override def rollback(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], rollbackedEvents: Seq[EventLog], target: EventLog, rollbackType: String, includeSystem: Boolean)
+    : Box[GitCommitId] = Full(fakeGitCommitId)
+
+    /**
+      * These methods are called by the Archive API to get the git archives.
+      * The API then provides the logic to transform the Box[Map][DateTime, GitArchiveId] into JSON
+      * Here, we want to make these methods returning fake archives for testing the API logic.
+      */
+
+
+    val fakeArchives = Map[DateTime, GitArchiveId](
+            new DateTime(42) -> fakeGitArchiveId
+    )
+
+    override def getFullArchiveTags: Box[Map[DateTime, GitArchiveId]] = Full(fakeArchives)
+
+    override def getGroupLibraryTags: Box[Map[DateTime, GitArchiveId]] = Full(fakeArchives)
+
+    override def getTechniqueLibraryTags: Box[Map[DateTime, GitArchiveId]] = Full(fakeArchives)
+
+    override def getRulesTags: Box[Map[DateTime, GitArchiveId]] = Full(fakeArchives)
+
+    override def getParametersTags: Box[Map[DateTime, GitArchiveId]] = Full(fakeArchives)
+  }
+
+
+  val fakeItemArchiveManager = new FakeItemArchiveManager
+  val fakeClearCacheService = new FakeClearCacheService
+  val fakePersonIndentService = new PersonIdentService {
+    override def getPersonIdentOrDefault(username: String): Box[PersonIdent] = Full(fakePersonIdent)
+  }
+  lazy val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
+  lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
+
+
+
+ val testNodeConfiguration = new TestNodeConfiguration()
+ val fakeRepo = testNodeConfiguration.repo
+
+
+  val apiService11 = new SystemApiService11(
+        fakeUpdatePTLibService
+      , fakeClearCacheService
+      , fakeAsyncDeployment
+      , uuidGen
+      , fakeUpdateDynamicGroups
+      , fakeItemArchiveManager
+      , fakePersonIndentService
+      , fakeRepo
+  )
+
+  val systemApi = new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11)
+  val authzToken = AuthzToken(EventActor("fakeToken"))
+  val systemStatusPath = "api" + systemApi.Status.schema.path
+
+  val ApiVersions = ApiVersion(11 , false) :: Nil
+
+  val rudderApi = {
+    //append to list all new format api to test it
+    val modules = List(new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11))
+    val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, apiAuthorizationLevelService.aclEnabled _), None)
+    modules.foreach { module =>
+      api.addModules(module.getLiftEndpoints)
+    }
+    api
+  }
+
   val liftRules = {
     val l = new LiftRules()
     l.statelessDispatch.append(RestStatus)
     l.statelessDispatch.append(reloadTechniques)
+    l.statelessDispatch.append(rudderApi.getLiftRestApi())
     //TODO: add all other rest classes here
     l
   }
@@ -155,6 +279,7 @@ object RestTestSetUp {
     mockReq
   }
   def GET(path: String) = mockRequest(path,"GET")
+  def POST(path: String) = mockRequest(path, "POST")
   def DELETE(path: String) = mockRequest(path,"DELETE")
 
   private[this] def mockJsonRequest (path : String, method : String, data : JValue) = {
@@ -174,6 +299,7 @@ object RestTestSetUp {
   def testGET[T](path: String)(tests: Req => MatchResult[T]) = {
     doReq(GET(path))(tests)
   }
+
   def testDELETE[T](path: String)(tests: Req => MatchResult[T]) = {
     doReq(DELETE(path))(tests)
   }
@@ -183,5 +309,12 @@ object RestTestSetUp {
   }
   def testPOST[T](path: String, json : JValue)(tests: Req => MatchResult[T]) = {
     doReq(jsonPOST(path, json))(tests)
+  }
+
+  //This is a method to call when testing POST endpoint without data to pass.
+  //Ex: reload techniques endpoints which reload all techniques.
+  //It has to be a POST because it executes an action on the server side even if it doesn't need additional data to do so.
+  def testEmptyPost[T](path: String)(tests: Req => MatchResult[T]): MatchResult[T] = {
+    doReq(POST(path))(tests)
   }
 }
