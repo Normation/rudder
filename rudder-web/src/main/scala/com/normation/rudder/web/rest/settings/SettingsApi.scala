@@ -67,6 +67,8 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.json.JsonAST._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization._
+import com.normation.rudder.services.reports.UnexpectedReportBehavior
+import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 
@@ -199,6 +201,8 @@ class SettingsAPI8(
       RestChangesGraphs ::
       RestJSEngine ::
       RestSendMetrics ::
+      RestChangeRequestUnexpectedAllowsDuplicate ::
+      RestChangeRequestUnexpectedUnboundVarValues ::
       Nil
     def apply(key : String) : Box[RestSetting[_]] = {
       allSettings.find { _.key == key } match {
@@ -493,6 +497,35 @@ class SettingsAPI8(
     val key = "enable_javascript_directives"
     def get = configService.rudder_featureSwitch_directiveScriptEngine()
     def set = (value : FeatureSwitch, _, _) => configService.set_rudder_featureSwitch_directiveScriptEngine(value)
+  }
+
+  trait RestChangeUnexpectedReportInterpretation extends RestBooleanSetting {
+    def prop: UnexpectedReportBehavior
+    def get = configService.rudder_compliance_unexpected_report_interpretation().map( _.isSet(prop))
+    def set = (value : Boolean, _, _) => {
+      for {
+        config  <- configService.rudder_compliance_unexpected_report_interpretation()
+        newConf =  if(value) {
+                     config.set(prop)
+                   } else {
+                     config.unset(prop)
+                   }
+        updated <- configService.set_rudder_compliance_unexpected_report_interpretation(newConf)
+      } yield {
+        updated
+      }
+    }
+  }
+
+  case object RestChangeRequestUnexpectedAllowsDuplicate extends RestChangeUnexpectedReportInterpretation {
+    val startPolicyGeneration = false
+    val key = "unexpected_allows_duplicate"
+    val prop = UnexpectedReportBehavior.AllowsDuplicate
+  }
+  case object RestChangeRequestUnexpectedUnboundVarValues extends RestChangeUnexpectedReportInterpretation {
+    val startPolicyGeneration = false
+    val key = "unexpected_unbound_var_values"
+    val prop = UnexpectedReportBehavior.UnboundVarValues
   }
 
   def startNewPolicyGeneration(actor : EventActor) = {

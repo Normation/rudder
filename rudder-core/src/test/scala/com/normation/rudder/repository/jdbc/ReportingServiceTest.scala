@@ -65,7 +65,6 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
-
 import scalaz.{Failure => _, _}
 import doobie.imports._
 import com.normation.BoxSpecMatcher
@@ -82,8 +81,10 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.Technique
+
 import scala.collection.SortedMap
 import com.normation.rudder.repository.ComplianceRepository
+import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 
 
 /**
@@ -316,6 +317,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     , directivesRepos
     , () => Full(compliance)
     , () => Full(GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always))
+    , () => Full(UnexpectedReportInterpretation(Set()))
   )
 
   sequential

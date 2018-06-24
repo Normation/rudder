@@ -44,6 +44,7 @@ import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import com.normation.eventlog.ModificationId
+
 import scala.xml.NodeSeq
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
@@ -58,6 +59,7 @@ import com.normation.rudder.reports.SyslogUDP
 import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.services.reports.UnexpectedReportBehavior
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
@@ -83,8 +85,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def disableInputs = {
     import com.normation.rudder.authorization.Edit
     //If user does not have the Edit("administration") right, all inputs are disabled
-    val disable = !CurrentUser.checkRights(Edit("administration"))
-    S.appendJs(JsRaw(s"""$$("input, select").attr("disabled",${disable})"""))
+    // else nothing is done because it enables what should not be.
+    if(!CurrentUser.checkRights(Edit("administration"))) {
+      S.appendJs(JsRaw(s"""$$("input, select").attr("disabled", "true")"""))
+    }
     NodeSeq.Empty
   }
 
@@ -103,6 +107,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "displayGraphsConfiguration" => displayGraphsConfiguration
     case "displayRuleColumnConfiguration" => displayRuleColumnConfiguration
     case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
+    case "unexpectedReportInterpretation" => unexpectedReportInterpretation
     case "onloadScript" => _ => disableInputs
   }
 
@@ -1087,6 +1092,65 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       case eb: EmptyBox =>
         ( "#directiveScriptEngine" #> {
           val fail = eb ?~ "there was an error while fetching value of property: 'directive script engine'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml
+  }
+
+  def unexpectedReportInterpretation = { xml : NodeSeq =>
+    import com.normation.rudder.services.reports.UnexpectedReportBehavior._
+
+    ( configService.rudder_compliance_unexpected_report_interpretation() match {
+      case Full(initialValue) =>
+
+        var initSavedValued = initialValue
+        var x = initialValue
+        def noModif() = x == initSavedValued
+        def check() = {
+          S.notice("unexpectedReportInterpretationFormMessage","")
+
+          Run(s"""$$("#unexpectedReportInterpretationFormSubmit").prop("disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_rudder_compliance_unexpected_report_interpretation(x)
+          S.notice("unexpectedReportInterpretationFormMessage", save match {
+            case Full(_)  =>
+              initSavedValued = x
+              // If we disable this feature we want to start policy generation because some data may be invalid
+              "'interpretation of unexpected compliance reports' property updated."
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'interpretation of unexpected compliance reports' property"
+          } )
+          check()
+        }
+
+        ( "#allowsDuplicate" #> {
+            SHtml.ajaxCheckbox(
+                x.isSet(AllowsDuplicate)
+              , (b : Boolean) => { if(b) { x = x.set(AllowsDuplicate) } else { x = x.unset(AllowsDuplicate) }; check}
+              , ("id","allowsDuplicate")
+            )
+          } &
+          "#unboundVarValues" #> {
+            SHtml.ajaxCheckbox(
+                x.isSet(UnboundVarValues)
+              , (b : Boolean) => { if(b) { x = x.set(UnboundVarValues) } else { x = x.unset(UnboundVarValues) }; check}
+              , ("id","unboundVarValues")
+            )
+          } &
+          "#unexpectedReportInterpretationFormSubmit " #> {
+              val x = SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"), ("disabled", "disabled"))
+              println(x)
+              x
+//              ++ Script(check())
+          }
+        )
+
+      case eb: EmptyBox =>
+        ( "#unexpectedReportInterpretation" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'interpretation of unexpected compliance reports'"
           logger.error(fail.messageChain)
           <div class="error">{fail.messageChain}</div>
         } )

@@ -66,6 +66,9 @@ class ExecutionBatchTest extends Specification {
 
   import ReportType._
 
+  val strictUnexpectedInterpretation = UnexpectedReportInterpretation(Set())
+  val executionTimestamp = new DateTime()
+
   def buildExpected(
       nodeIds: Seq[String]
     , ruleId : String
@@ -97,7 +100,7 @@ class ExecutionBatchTest extends Specification {
       val info = nodeExpectedReports(nodeId)
       val runInfo = ComputeCompliance(runTime, info, runTime.plusMinutes(5))
 
-      (nodeId, ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reportsParam))
+      (nodeId, ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reportsParam, strictUnexpectedInterpretation))
     })
 
     res.toMap
@@ -157,7 +160,6 @@ class ExecutionBatchTest extends Specification {
 
    //Test the component part
   "A component, with two different keys" should {
-    val executionTimestamp = new DateTime()
     val reports = Seq[ResultReports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
@@ -176,8 +178,8 @@ class ExecutionBatchTest extends Specification {
       , List("foo", "bar")
     )
 
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce)
-    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
 
     "return a component globally repaired " in {
       withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
@@ -210,9 +212,31 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
+  "A component, with a simple value and testing missing/no answer difference" should {
+    val missing = Seq[ResultReports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "other key", executionTimestamp, "message"),
+    )
+    val noAnswer = Seq[ResultReports]()
+
+    val expectedComponent = new ComponentExpectedReport(
+        "component"
+      , 2
+      , List("some key", "other key")
+      , List("some key", "other key")
+    )
+
+    "give a no answer if none report at all" in {
+      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, noAnswer, ReportType.NoAnswer, PolicyMode.Enforce, strictUnexpectedInterpretation)
+      res.compliance === ComplianceLevel(noAnswer = 2)
+    }
+    "give a missing if some reports present" in {
+      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, missing, ReportType.NoAnswer, PolicyMode.Enforce, strictUnexpectedInterpretation)
+      res.compliance === ComplianceLevel(success = 1, missing = 1)
+    }
+  }
+
   // Test the component part
   "A component, with a None keys" should {
-    val executionTimestamp = new DateTime()
     val reports = Seq[ResultReports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message")
@@ -230,8 +254,8 @@ class ExecutionBatchTest extends Specification {
       , List("None", "None")
       , List("None", "None")
     )
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce)
-    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
 
     "return a component with exact reporting" in {
       withGood.compliance === ComplianceLevel(repaired = 1, success = 1)
@@ -258,7 +282,6 @@ class ExecutionBatchTest extends Specification {
 
   // Test the component part
   "A component, with a cfengine keys" should {
-    val executionTimestamp = new DateTime()
     val reports = Seq[ResultReports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")
@@ -275,8 +298,8 @@ class ExecutionBatchTest extends Specification {
       , List("${sys.bla}", "${sys.foo}")
     )
 
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce)
-    val withBad   = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad   = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
 
     "return a component globally repaired " in {
       withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
@@ -287,14 +310,13 @@ class ExecutionBatchTest extends Specification {
     "return a component with both cfengine keys repaired " in {
       withGood.componentValues("${sys.bla}").messages.size === 1
     }
-    "with bad reports return a component with three key values" in {
-      withBad.componentValues.size === 3
+    "with bad reports return a component with 2 values and 3 messages" in {
+      (withBad.componentValues.size === 2) and withBad.compliance.total === 3
     }
   }
 
    // Test the component part
   "A component, with generation-time known keys" should {
-    val executionTimestamp = new DateTime()
     val reports = Seq[ResultReports](
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node2", executionTimestamp, "message"),
@@ -317,8 +339,8 @@ class ExecutionBatchTest extends Specification {
       , List("${rudder.node.hostname}", "${rudder.node.hostname}", "bar")
     )
 
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce)
-    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
 
     "return a component with the correct number of success and repaired" in {
       //be carefull, here the second success is for the same unexpanded as the repaire,
@@ -357,49 +379,114 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
+  "Shall we speak about unexpected" should {
+    // we asked for a value "foo" and a variable ${param}
+    val expectedComponent = new ComponentExpectedReport("component", 2
+      , List("foo", "${param}")
+      , List("foo", "${param}")
+    )
+
+    //syslog duplicated a message
+    val duplicated = Seq[ResultReports](
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "foo message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "foo message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "param expended", executionTimestamp, "param message")
+    )
+
+    val tooMuchDuplicated = Seq[ResultReports](
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "foo message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "foo message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "foo message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "foo message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "param expended", executionTimestamp, "param message")
+    )
+
+
+    // ${param} was an iterato on: foo, bar, baz
+    val unboundedVars = Seq[ResultReports](
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "foo message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "foo expanded"), // here foo should not be a duplicated because the message is different, which is likely the case in real life
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "bar expanded"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "baz", executionTimestamp, "baz expanded")
+    )
+
+
+    "when strict mode is set, duplicate messages lead to unexpected" in {
+      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, duplicated, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+      res.compliance === ComplianceLevel(success = 1, unexpected = 2) // 2 unexpected because the whole "foo" becomes unexpected
+    }
+    "when allow duplicated, duplicate messages is ignored" in {
+      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, duplicated, ReportType.Missing, PolicyMode.Enforce, UnexpectedReportInterpretation(Set(UnexpectedReportBehavior.AllowsDuplicate)))
+      res.compliance === ComplianceLevel(success = 2)
+    }
+    "when allow duplicated, duplicate messages is ignored but not for 4 duplications" in {
+      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, tooMuchDuplicated, ReportType.Missing, PolicyMode.Enforce, UnexpectedReportInterpretation(Set(UnexpectedReportBehavior.AllowsDuplicate)))
+      res.compliance === ComplianceLevel(success = 1, unexpected = 2)
+    }
+
+    "when on strict mode, out of bound vars are unexpected" in {
+      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, unboundedVars, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+      res.compliance === ComplianceLevel(success = 1, unexpected = 3)
+    }
+    "when on strict mode, out of bound vars are unexpected" in {
+      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, unboundedVars, ReportType.Missing, PolicyMode.Enforce, UnexpectedReportInterpretation(Set(UnexpectedReportBehavior.UnboundVarValues)))
+      res.compliance === ComplianceLevel(success = 4)
+    }
+
+  }
+
   "Compliance for cfengine vars and reports" should {
 
-    sealed trait Kind { def value: String ; def tpe: ReportType }
-    final case class Success   (value: String) extends Kind { val tpe = EnforceSuccess }
-    final case class Repaired  (value: String) extends Kind { val tpe = EnforceRepaired }
-    final case class Error     (value: String) extends Kind { val tpe = EnforceError }
-    final case class Missing   (value: String) extends Kind { val tpe = ReportType.Missing }
-    final case class Unexpected(value: String) extends Kind { val tpe = ReportType.Unexpected }
+    sealed trait Kind { def tpe: ReportType }
+    final case object Success    extends Kind { val tpe = EnforceSuccess }
+    final case object Repaired   extends Kind { val tpe = EnforceRepaired }
+    final case object Error      extends Kind { val tpe = EnforceError }
+    final case object Missing    extends Kind { val tpe = ReportType.Missing }
+    final case object Unexpected extends Kind { val tpe = ReportType.Unexpected }
 
-    def test(id: String, patterns: Seq[Kind], reports: Seq[Kind]) = {
-      val executionTimestamp = new DateTime()
+    /*
+     * Values are expected values with the corresponding status list
+     */
+    def test(
+        id: String
+      , patterns: Seq[(String, Seq[Kind])]
+      , reports: Seq[(String, Kind)]
+      , unexpectedNotValue: Seq[String] = Nil
+      , mode: UnexpectedReportInterpretation = strictUnexpectedInterpretation
+    ) = {
 
+      // expected components are the list of key for patterns
       val expectedComponent = {
-        val expectOnlySuccess = patterns.collect {
-          case Success(x) => x
-          case Repaired(x) => x
-        }
-        new ComponentExpectedReport("component", 2, expectOnlySuccess.toList, expectOnlySuccess.toList)
+        val values = patterns.map( _._1 )
+        new ComponentExpectedReport("component", 2, values.toList, values.toList)
       }
 
       val resultReports : Seq[ResultReports] = reports.map( x => x match {
-        case Success(v) => new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", v, executionTimestamp, "message")
-        case Repaired(v) => new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", v, executionTimestamp, "message")
-        case x => new ResultErrorReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", x.value, executionTimestamp, "message")
+        case (v, Success) => new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", v, executionTimestamp, "message")
+        case (v, Repaired)=> new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", v, executionTimestamp, "message")
+        case (v, x)       => new ResultErrorReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", v, executionTimestamp, "message")
       })
 
       val t1 = System.currentTimeMillis
-      val result = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, resultReports, ReportType.Missing, PolicyMode.Enforce)
+      val result = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, resultReports, ReportType.Missing, PolicyMode.Enforce, mode)
       val t2 = System.currentTimeMillis - t1
 
+      //distribute compliance on each pattern to be able to count them
+      val p = patterns.flatMap { case (x, seq) => seq.map(s => (x, s))} ++ unexpectedNotValue.map(u => (u, Unexpected))
+
       val compliance = ComplianceLevel(
-          success = patterns.collect { case x:Success => x }.size
-        , repaired = patterns.collect { case x:Repaired => x }.size
-        , error = patterns.collect { case x:Error => x }.size
-        , missing = patterns.collect { case x:Missing => x }.size
-        , unexpected = patterns.collect { case x:Unexpected => x }.size
+          success    = p.collect { case (x, Success   ) => x }.size
+        , repaired   = p.collect { case (x, Repaired  ) => x }.size
+        , error      = p.collect { case (x, Error     ) => x }.size
+        , missing    = p.collect { case (x, Missing   ) => x }.size
+        , unexpected = p.collect { case (x, Unexpected) => x }.size
       )
 
       s"[${id}] be OK with patterns ${patterns}" in {
-        ( (compliance === result.compliance) /: patterns) { case( example, nextPattern) =>
-          (example /: result.componentValues(nextPattern.value).messages) { case (newExample, nextMessage) =>
+        ( (result.compliance === compliance) /: p) { case( example, nextPattern) =>
+          (example /: result.componentValues(nextPattern._1).messages) { case (newExample, nextMessage) =>
             val msgCompliance = ComplianceLevel.compute(List( nextMessage.reportType))
-            val patternCompliance = ComplianceLevel.compute(List( nextPattern.tpe))
+            val patternCompliance = ComplianceLevel.compute(List( nextPattern._2.tpe))
             newExample and msgCompliance === patternCompliance
           }
         } and (t2 must be_<(200L)) //take less than these number of ms
@@ -417,45 +504,50 @@ class ExecutionBatchTest extends Specification {
      */
 
     test("order1"
-      , patterns = Success("/etc/foo.old.${sys.bla}") :: Repaired("/etc/foo.${sys.bla}") :: Nil
-      , reports  = Success("/etc/foo.old.txt") :: Repaired("/etc/foo.txt") :: Nil
+      , patterns = ("/etc/foo.old.${sys.bla}", Seq(Success)) :: ("/etc/foo.${sys.bla}", Seq(Repaired)) :: Nil
+      , reports  = ("/etc/foo.old.txt", Success) :: ("/etc/foo.txt", Repaired) :: Nil
     )
 
     test("order2"
-      , patterns = Success("/etc/foo.old.${sys.bla}") :: Repaired("/etc/foo.${sys.bla}") :: Nil
-      , reports  = Repaired("/etc/foo.txt") :: Success("/etc/foo.old.txt") :: Nil
+      , patterns = ("/etc/foo.old.${sys.bla}", Seq(Success)) :: ("/etc/foo.${sys.bla}", Seq(Repaired)) :: Nil
+      , reports  = ("/etc/foo.txt", Repaired) :: ("/etc/foo.old.txt", Success) :: Nil
     )
 
     test("order3"
-      , patterns = Repaired("/etc/foo.${sys.bla}") :: Success("/etc/foo.old.${sys.bla}") :: Nil
-      , reports  = Success("/etc/foo.old.txt") :: Repaired("/etc/foo.txt") :: Nil
+      , patterns = ("/etc/foo.${sys.bla}", Seq(Repaired)) :: ("/etc/foo.old.${sys.bla}", Seq(Success)) :: Nil
+      , reports  = ("/etc/foo.old.txt", Success) :: ("/etc/foo.txt", Repaired) :: Nil
     )
     test("order4"
-      , patterns = Repaired("/etc/foo.${sys.bla}") :: Success("/etc/foo.old.${sys.bla}") :: Nil
-      , reports  = Repaired("/etc/foo.txt") :: Success("/etc/foo.old.txt") :: Nil
+      , patterns = ("/etc/foo.${sys.bla}", Seq(Repaired)) :: ("/etc/foo.old.${sys.bla}", Seq(Success)) :: Nil
+      , reports  = ("/etc/foo.txt", Repaired) :: ("/etc/foo.old.txt", Success) :: Nil
     )
 
     //
     test("one var"
-      , patterns = Repaired("${sys.bla}") :: Success("bar") :: Nil
-      , reports  = Repaired("/var/cfengine") :: Success("bar") :: Nil
+      , patterns = ("${sys.bla}", Seq(Repaired)) :: ("bar", Seq(Success)) :: Nil
+      , reports  = ("/var/cfengine", Repaired) :: ("bar", Success) :: Nil
     )
 
     /*
-     * For the next three, the logic is that:
+     * For the next tests, the logic is that:
      * - we successfully matched the constant value;
      * - we successfully matched the cfengine value (taking at random the report type between
      *   success and repaired - but we have no way to decide ! Ok, and the random is more like
      *   "the first in the list", so it helps for the test)
-     * - have one unexpected, for the last message - and we don't have any way to decide if it
-     *   comes from a cfengine var or not !
+     * - have one unexpected, for the last message - and we try to match on key (a constant key
+     *   can not be the culprit, and we will chose a var more likely than an exotic key)
      */
-    // here, we have one unexpected report. We can't know if it is the success or the repaired, so
-    // by implementation, the last is taken as unexpected.
     // So, if you swap the order of the two "/var/cfengine" reports, the test will fail
+
+    test("only simple reports"
+      , patterns = ("foo", Seq(Repaired)) :: ("bar", Seq(Success)) :: Nil
+      , reports  = ("baz", Repaired) :: ("foo", Repaired) :: ("bar", Success) :: Nil
+      , unexpectedNotValue = Seq("baz")
+    )
+
     test("one var and simple reports"
-      , patterns = Repaired("${sys.bla}") :: Success("bar") :: Unexpected("/var/cfengine") :: Nil
-      , reports  = Repaired("/var/cfengine") :: Success("/var/cfengine") :: Success("bar") :: Nil
+      , patterns = ("${sys.bla}", Seq(Unexpected, Unexpected)) :: ("bar", Seq(Success)) :: Nil
+      , reports  = ("/var/cfengine", Repaired) :: ("/var/cfengine", Success) :: ("bar", Success) :: Nil
     )
 
     /*
@@ -467,13 +559,13 @@ class ExecutionBatchTest extends Specification {
      * of reports by expected component.
      */
     test("same patterns"
-      , patterns = Repaired("${sys.bla}") :: Success("${sys.foo}") :: Nil
-      , reports  = Repaired("/var/cfengine") :: Success("/var/cfengine") :: Nil
+      , patterns = ("${sys.bla}", Seq(Repaired)) :: ("${sys.foo}", Seq(Success)) :: Nil
+      , reports  = ("/var/cfengine", Repaired) :: ("/var/cfengine", Success) :: Nil
     )
 
     test("same patterns with unexpected"
-      , patterns = Repaired("${sys.bla}") :: Success("${sys.foo}") :: Unexpected("/var/cfengine") :: Nil
-      , reports  = Repaired("/var/cfengine") :: Success("/var/cfengine") :: Success("/var/cfengine") :: Nil
+      , patterns = ("${sys.bla}", Seq(Repaired)) :: ("${sys.foo}", Seq(Unexpected, Unexpected)) :: Nil
+      , reports  = ("/var/cfengine", Repaired) :: ("/var/cfengine", Success) :: ("/var/cfengine", Success) :: Nil
     )
 
     /*
@@ -481,68 +573,68 @@ class ExecutionBatchTest extends Specification {
      */
     test("lots of reports"
       , patterns =
-             Success("/var/cfengine")
-          :: Repaired("${sys.bla}")
-          :: Success("${sys.foo}")
-          :: Success("/etc/foo.old.${sys.bla}")
-          :: Repaired("/etc/foo.${sys.bla}")
-          :: Success("a${foo}b${bar}")
-          :: Success("a${foo}b")
-          :: Success("b${foo}b")
-          :: Success("b${foo}c")
-          :: Success("b${foo}d")
+             ("/var/cfengine", Seq(Success))
+          :: ("${sys.bla}", Seq(Repaired))
+          :: ("${sys.foo}", Seq(Success))
+          :: ("/etc/foo.old.${sys.bla}", Seq(Success))
+          :: ("/etc/foo.${sys.bla}", Seq(Repaired))
+          :: ("a${foo}b${bar}", Seq(Success))
+          :: ("a${foo}b", Seq(Success))
+          :: ("b${foo}b", Seq(Success))
+          :: ("b${foo}c", Seq(Success))
+          :: ("b${foo}d", Seq(Success))
           :: Nil
       , reports  =
-             Success("/var/cfengine")
-          :: Repaired("/var/cfengine")
-          :: Repaired("/etc/foo.txt")
-          :: Success("/etc/foo.old.txt")
-          :: Success("/var/cfengine")
-          :: Success("aXbX")
-          :: Success("aYb")
-          :: Success("bXb")
-          :: Success("bc")
-          :: Success("bZd")
+             ("/var/cfengine", Success)
+          :: ("/var/cfengine", Success)
+          :: ("/etc/foo.txt", Repaired)
+          :: ("/etc/foo.old.txt", Success)
+          :: ("/var/cfengine", Repaired)
+          :: ("aXbX", Success)
+          :: ("aYb", Success)
+          :: ("bXb", Success)
+          :: ("bc", Success)
+          :: ("bZd", Success)
           :: Nil
     )
 
     test("same report for simple and pattern"
-      , patterns = Success("/var/${sys.bla}") :: Success("/var/cfengine") :: Nil
-      , reports  = Success("/var/cfengine") :: Success("/var/cfengine") :: Nil
+      , patterns = ("/var/${sys.bla}", Seq(Success)) :: ("/var/cfengine", Seq(Success)) :: Nil
+      , reports  = ("/var/cfengine", Success) :: ("/var/cfengine", Success) :: Nil
     )
 
     // handle correctly ${boo}bar} vs ${foo}xxx} (ie matches only the variable part)
     test("matches only the variable part of variable"
-      , patterns = Repaired("${foo}xxx}") :: Success("$(bar)yyyy)")  :: Nil
-      , reports  = Success ("ayyyy)"    ) :: Repaired("bxxx}") :: Nil
+      , patterns = ("${foo}xxx}", Seq(Repaired)) :: ("$(bar)yyyy)", Seq(Success))  :: Nil
+      , reports  = ("ayyyy)", Success) :: ("bxxx}", Repaired) :: Nil
     )
 
     // there should be nothing special about "\" even if cfengine escape them
     test("""nothing special with \ when a ${var} is present"""
-      , patterns = Repaired("${foo}x\\x}") :: Nil
-      , reports  = Repaired("yx\\x}") :: Nil
+      , patterns = ("${foo}x\\x}", Seq(Repaired)) :: Nil
+      , reports  = ("yx\\x}", Repaired) :: Nil
     )
 
     test("""nothing special with \"""
-      , patterns = Repaired("x\\x}") :: Nil
-      , reports  = Repaired("x\\x}") :: Nil
+      , patterns = ("x\\x}", Seq(Repaired)) :: Nil
+      , reports  = ("x\\x}", Repaired) :: Nil
     )
 
     // we need to take care of the fact that ${const.dollar} is always replaced by cfengine
     test("consider regex special chars as normal chars"
-      , patterns = Repaired("[^foo$]") :: Success("(bar)") :: Success("""\D\p{Lower}""") :: Nil
-      , reports  = Repaired("[^foo$]") :: Success("(bar)") :: Success("""\D\p{Lower}""") :: Nil
+      , patterns = ("[^foo$]", Seq(Repaired)) :: ("(bar)", Seq(Success)) :: ("""\D\p{Lower}""", Seq(Success)) :: Nil
+      , reports  = ("[^foo$]", Repaired) :: ("(bar)", Success) :: ("""\D\p{Lower}""", Success) :: Nil
     )
 
     // we need to take care of the fact that ${const.dollar} is always replaced by cfengine
     test("correctly understand ${const.dollar}"
-      , patterns = Repaired("""[ ${const.dollar}(echo "enabled") = 'enabled' ]""") :: Success("/var/${const.dollar}cfengine") :: Nil
-      , reports  = Repaired("""[ $(echo "enabled") = 'enabled' ]""") :: Success("/var/$cfengine") :: Nil
+      , patterns = ("""[ ${const.dollar}(echo "enabled") = 'enabled' ]""", Seq(Repaired)) :: ("/var/${const.dollar}cfengine", Seq(Success)) :: Nil
+      , reports  = ("""[ $(echo "enabled") = 'enabled' ]""", Repaired) :: ("/var/$cfengine", Success) :: Nil
     )
-
   }
 
   val fullCompliance = GlobalComplianceMode(FullCompliance, 1)
+
   "A detailed execution Batch, with one component, cardinality one, one node" should {
 
     val param = (
@@ -909,7 +1001,6 @@ class ExecutionBatchTest extends Specification {
 
    // Test the component part - with NotApplicable
   "A component, with two keys and NotApplicable reports" should {
-    val executionTimestamp = new DateTime()
     val reports = Seq[ResultReports](
         new ResultNotApplicableReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
@@ -922,7 +1013,7 @@ class ExecutionBatchTest extends Specification {
       , List("/var/cfengine", "bar")
     )
 
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
 
     "return a component globally success " in {
       withGood.compliance === ComplianceLevel(success = 1, notApplicable = 1)
