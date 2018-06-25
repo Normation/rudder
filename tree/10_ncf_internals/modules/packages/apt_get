@@ -193,7 +193,7 @@ def list_updates(online):
         #                repository(ies)      arch (might be optional)
         #                       |               |
         #                    /--+-\   /---------+---------\
-                         "\s+[^[)]*(\s\[(?P<arch>[^]\s]+)\])?\).*", line)
+                         "(?:\s+\S+)*?(\s+\[(?P<arch>[^]\s]+)\])?\).*", line)
 
         if match is not None:
             sys.stdout.write("Name=" + match.group("name") + "\n")
@@ -307,12 +307,12 @@ def repo_install():
     if (not args):
         return 0
 
-    # Convert list of tuples into two lists so that first element of each 
+    # Convert list of tuples into two lists so that first element of each
     # tuple belongs to list 'a1' and the second one to list 'a2'.
     a1, a2 =  map(list, zip(*args))
 
     # For 'repo_insrtall' both 'a1' and 'a2' should be equal so we can operate
-    # on 'a1' elements only. 
+    # on 'a1' elements only.
     if a1:
         return subprocess_call(cmd_line + a1, stdout=NULLFILE)
     return 0
@@ -325,7 +325,7 @@ def remove():
     if (not args):
         return 0
 
-    # Convert list of tuples into two lists so that first element of each 
+    # Convert list of tuples into two lists so that first element of each
     # tuple belongs to list 'a1' and the second one to list 'a2'.
     #
     # In case of multi arch support elements of 'a1' list should not contain
@@ -335,7 +335,7 @@ def remove():
 
     # As there seems to be no unified method to remove packages matching
     # native OS architecture we are trying first to remove packages providing
-    # just a package name and if this call is failing we are trying 
+    # just a package name and if this call is failing we are trying
     # 'package_name:architecture' approach.
     ret = subprocess_call(cmd_line + a1, stdout=NULLFILE)
     if ret != 0 and a1 != a2:
