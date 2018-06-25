@@ -62,6 +62,7 @@ import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 import com.normation.rudder.reports._
 import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
+
 import scala.language.implicitConversions
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeState
@@ -69,6 +70,8 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.services.reports.UnexpectedReportBehavior
+import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 
@@ -190,6 +193,11 @@ trait ReadConfigService {
    */
   def rudder_node_onaccept_default_policy_mode(): Box[Option[PolicyMode]]
   def rudder_node_onaccept_default_state(): Box[NodeState]
+
+  /**
+   * What is the behavior to adopt regarding unexpected reports ?
+   */
+  def rudder_compliance_unexpected_report_interpretation(): Box[UnexpectedReportInterpretation]
 }
 
 /**
@@ -309,6 +317,7 @@ trait UpdateConfigService {
    */
   def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): Box[Unit]
   def set_rudder_node_onaccept_default_state(nodeState: NodeState): Box[Unit]
+  def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -347,6 +356,8 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.featureSwitch.directiveScriptEngine=enabled
        rudder.node.onaccept.default.state=enabled
        rudder.node.onaccept.default.policyMode=default
+       rudder.compliance.unexpectedReportAllowsDuplicate=true
+       rudder.compliance.unexpectedReportUnboundedVarValues=true
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -594,4 +605,21 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def rudder_node_onaccept_default_state(): Box[NodeState] = get("rudder_node_onaccept_default_policyMode")
   def set_rudder_node_onaccept_default_state(nodeState: NodeState): Box[Unit] = save("rudder_node_onaccept_default_policyMode", nodeState)
 
+  def rudder_compliance_unexpected_report_interpretation(): Box[UnexpectedReportInterpretation] = {
+    for {
+      duplicate <- get[Boolean]("rudder_compliance_unexpectedReportAllowsDuplicate")
+      iterators <- get[Boolean]("rudder_compliance_unexpectedReportUnboundedVarValues")
+    } yield {
+      UnexpectedReportInterpretation(
+        (if(duplicate) Set(UnexpectedReportBehavior.AllowsDuplicate) else Set() ) ++
+        (if(iterators) Set(UnexpectedReportBehavior.UnboundVarValues) else Set())
+      )
+    }
+  }
+  def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : Box[Unit] = {
+    for {
+      _ <- save("rudder_compliance_unexpectedReportAllowsDuplicate", mode.isSet(UnexpectedReportBehavior.AllowsDuplicate))
+      _ <- save("rudder_compliance_unexpectedReportUnboundedVarValues", mode.isSet(UnexpectedReportBehavior.UnboundVarValues))
+    } yield ()
+  }
 }

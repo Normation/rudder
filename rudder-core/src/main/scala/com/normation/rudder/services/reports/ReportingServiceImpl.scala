@@ -63,14 +63,15 @@ import com.normation.rudder.domain.nodes.NodeState
  * Just the composition of the two defaults implementation.
  */
 class ReportingServiceImpl(
-    val confExpectedRepo        : FindExpectedReportRepository
-  , val reportsRepository       : ReportsRepository
-  , val agentRunRepository      : RoReportsExecutionRepository
-  , val runIntervalService      : AgentRunIntervalService
-  , val nodeInfoService         : NodeInfoService
-  , val directivesRepo          : RoDirectiveRepository
-  , val getGlobalComplianceMode : () => Box[GlobalComplianceMode]
-  , val getGlobalPolicyMode     : () => Box[GlobalPolicyMode]
+    val confExpectedRepo           : FindExpectedReportRepository
+  , val reportsRepository          : ReportsRepository
+  , val agentRunRepository         : RoReportsExecutionRepository
+  , val runIntervalService         : AgentRunIntervalService
+  , val nodeInfoService            : NodeInfoService
+  , val directivesRepo             : RoDirectiveRepository
+  , val getGlobalComplianceMode    : () => Box[GlobalComplianceMode]
+  , val getGlobalPolicyMode        : () => Box[GlobalPolicyMode]
+  , val getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation]
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with DefaultFindRuleNodeStatusReports
 
 class CachedReportingServiceImpl(
@@ -301,14 +302,11 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
 trait DefaultFindRuleNodeStatusReports extends ReportingService {
 
-  def confExpectedRepo  : FindExpectedReportRepository
-  def reportsRepository : ReportsRepository
-  def agentRunRepository: RoReportsExecutionRepository
-  def runIntervalService: AgentRunIntervalService
-  def getGlobalComplianceMode : () => Box[GlobalComplianceMode]
-  def getGlobalPolicyMode     : () => Box[GlobalPolicyMode]
-  def nodeInfoService         : NodeInfoService
-  def directivesRepo          : RoDirectiveRepository
+  def confExpectedRepo           : FindExpectedReportRepository
+  def reportsRepository          : ReportsRepository
+  def agentRunRepository         : RoReportsExecutionRepository
+  def getGlobalComplianceMode    : () => Box[GlobalComplianceMode]
+  def getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation]
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, NodeStatusReport]] = {
     /*
@@ -343,6 +341,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     val t0 = System.currentTimeMillis
     for {
       complianceMode      <- getGlobalComplianceMode()
+      unexpectedMode      <- getUnexpectedInterpretation()
       // we want compliance on these nodes
       runInfos            <- getNodeRunInfos(nodeIds, complianceMode)
       t1                  =  System.currentTimeMillis
@@ -359,7 +358,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t2-t0}ms")
 
       // compute the status
-      nodeStatusReports   <- buildNodeStatusReports(runInfos, ruleIds, complianceMode.mode)
+      nodeStatusReports   <- buildNodeStatusReports(runInfos, ruleIds, complianceMode.mode, unexpectedMode)
 
       t2                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t2-t1}ms")
@@ -405,9 +404,10 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    * So runInfos.keySet == returnedMap.keySet holds.
    */
   private[this] def buildNodeStatusReports(
-      runInfos          : Map[NodeId, RunAndConfigInfo]
-    , ruleIds           : Set[RuleId]
-    , complianceModeName: ComplianceModeName
+      runInfos                : Map[NodeId, RunAndConfigInfo]
+    , ruleIds                 : Set[RuleId]
+    , complianceModeName      : ComplianceModeName
+    , unexpectedInterpretation: UnexpectedReportInterpretation
   ): Box[Map[NodeId, NodeStatusReport]] = {
 
     val t0 = System.currentTimeMillis
@@ -441,7 +441,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       val t2 = System.currentTimeMillis
       //we want to have nodeStatus for all asked node, not only the ones with reports
       val nodeStatusReports = runInfos.map { case (nodeId, runInfo) =>
-        val status = ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reports.getOrElse(nodeId, Seq()))
+        val status = ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reports.getOrElse(nodeId, Seq()), unexpectedInterpretation)
         (status.nodeId, status)
       }
       val t3 = System.currentTimeMillis
