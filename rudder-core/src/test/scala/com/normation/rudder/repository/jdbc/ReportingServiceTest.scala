@@ -84,6 +84,7 @@ import com.normation.rudder.domain.queries.NodeInfoMatcher
 
 import scala.collection.SortedMap
 import com.normation.rudder.repository.ComplianceRepository
+import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 
 
 /**
@@ -316,6 +317,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     , directivesRepos
     , () => Full(compliance)
     , () => Full(GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always))
+    , () => Full(UnexpectedReportInterpretation(Set()))
   )
 
   sequential
