@@ -46,5 +46,5 @@ bundle agent environment_variable_present(name, value)
       classes   => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "report"   usebundle => _log("Define environment variable ${name} to ${value}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"   usebundle => _log_v3("Define environment variable ${name} to ${value}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
