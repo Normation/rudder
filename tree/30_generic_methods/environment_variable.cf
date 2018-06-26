@@ -1,0 +1,50 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Define environment variable
+# @description Enforce an environment variable value. Caution, the new environment variable
+# will not be usable by the agent until it is restarted
+#
+# @parameter name Name of the environment variable
+# @parameter value Value of the environment variable
+# 
+# @class_prefix environment_variable_present
+# @class_parameter name
+# This bundle will define a class environment_variable_present_${name}_{kept,not_ok}
+
+bundle agent environment_variable_present(name, value)
+{
+  vars:
+    "old_class_prefix" string => canonify("environment_variable_present_${name}");
+    "promisers"         slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+    "class_prefix"     string => canonify(join("_", "promisers"));
+    "args"              slist => { "${name}" };
+
+    "array[${name}]" string => "${value}";
+
+
+
+  files:
+    "/etc/environment"
+      create    => "true",
+      edit_line => set_variable_values("environment_variable.array"),
+      classes   => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+    "report"   usebundle => _log("Define environment variable ${name} to ${value}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
