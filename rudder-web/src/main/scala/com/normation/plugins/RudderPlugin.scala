@@ -38,12 +38,12 @@
 package com.normation.plugins
 
 import scala.xml.NodeSeq
-
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.utils.HashcodeCaching
-import com.typesafe.config.{ Config, ConfigFactory }
-
-import bootstrap.liftweb.{ ClassPathResource, ConfigResource, FileSystemResource, RudderProperties }
+import com.typesafe.config.{Config, ConfigFactory}
+import bootstrap.liftweb.{ClassPathResource, ConfigResource, FileSystemResource, RudderProperties}
+import com.normation.rudder.rest.EndpointSchema
+import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import net.liftweb.sitemap.Menu
 
 case class PluginVersion(
@@ -119,6 +119,13 @@ trait RudderPluginDef {
    */
   def name : PluginName
 
+  /**
+   * Plugin short-name as a string. It can be used as an identifier
+   * if all your plugins come from Rudder (and so plugin name and
+   * plugin shortName are the same modulo "rudder-plugin-" prefix).
+   */
+  def shortName: String
+
   def displayName : String = name.value
 
   /**
@@ -148,6 +155,11 @@ trait RudderPluginDef {
    * com.normation.plugins.AlwaysEnabledPluginStatus
    */
   def status: PluginStatus
+
+  /*
+   * If the plugin contributes APIs, they must be declared here.
+   */
+  def apis: Option[LiftApiModuleProvider[_<: EndpointSchema]] = None
 
   /*
    * A visual representation of status/license information, with a

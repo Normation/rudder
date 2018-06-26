@@ -51,12 +51,18 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.eventlog.ModificationId
 import java.util.Locale
+
 import net.liftweb.http.rest.RestHelper
 import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource
 import java.net.URLConnection
+
+import com.normation.plugins.PluginName
+import com.normation.rudder.domain.logger.PluginLogger
+import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.{InfoApi => InfoApiDef}
 import com.normation.rudder.rest.lift.InfoApi
+import com.normation.rudder.rest.lift.LiftApiModuleProvider
 
 /*
  * Utilities about rights
@@ -73,6 +79,43 @@ object Boot {
   }
 }
 
+/*
+ * Configuration about plugins. Information will only be available
+ * after full boot, and it's why that object is not in RudderConfig.
+ * You can't use information from here in RudderConfig services without
+ * a system of callback or something like that.
+ *
+ * Plugins are stored by their plugin-fullname.
+ */
+object PluginsInfo {
+
+  private[this] var _plugins = Map[PluginName, RudderPluginDef]()
+
+  def registerPlugin(plugin: RudderPluginDef) = {
+    _plugins = _plugins + (plugin.name -> plugin)
+  }
+
+  def plugins = _plugins
+
+  def pluginApisDef: List[EndpointSchema] = {
+
+    def recApi(apis: List[EndpointSchema], plugins: List[RudderPluginDef]): List[EndpointSchema] = {
+      plugins match {
+        case Nil => apis
+        case plugin :: tail => plugin.apis match {
+          case None    => recApi(apis, tail)
+          case Some(x) => x.schemas match {
+            case s: EndpointSchema => recApi(s :: apis, tail)
+            case _ => recApi(apis, tail)
+          }
+        }
+      }
+    }
+    recApi(Nil, _plugins.values.toList)
+  }
+}
+
+
 ////////// rewrites rules to remove the version from resources urls //////////
 //////////
 object StaticResourceRewrite extends RestHelper {
@@ -86,7 +129,7 @@ object StaticResourceRewrite extends RestHelper {
  }
 
   //the resource directory we want to server that way
-  val resources = Set("javascript", "style", "images")
+  val resources = Set("javascript", "style", "images", "toserve")
   serve {
     case Get(prefix :: resource :: tail,  req) if(resources.contains(resource)) =>
       val resourcePath = req.uri.replaceFirst(prefix+"/", "")
@@ -439,10 +482,22 @@ class Boot extends Loggable {
     val pluginDefs = LiftSpringApplicationContext.springContext.getBeansOfType(classOf[RudderPluginDef]).values.asScala.toList
 
     pluginDefs.foreach { plugin =>
-      ApplicationLogger.info("Initializing plugin '%s' [%s]".format(plugin.name.value, plugin.id))
+      PluginLogger.info(s"Initializing plugin '${plugin.name.value}': ${plugin.version}")
+
+      // resources in src/main/resources/toserve/${plugin short-name} must be allowed for each plugin
+      ResourceServer.allow{
+        case base :: _  if(base == plugin.shortName) => true
+      }
       plugin.init
+
+      //add APIs
+      plugin.apis.foreach { (api:LiftApiModuleProvider[_]) =>
+        RudderConfig.rudderApi.addModules(api.getLiftEndpoints())
+      }
+
       //add the plugin packages to Lift package to look for packages
       LiftRules.addToPackages(plugin.basePackage)
+      PluginsInfo.registerPlugin(plugin)
     }
 
     pluginDefs

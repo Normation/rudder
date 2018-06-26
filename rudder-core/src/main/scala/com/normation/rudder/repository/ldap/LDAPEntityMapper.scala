@@ -792,7 +792,7 @@ class LDAPEntityMapper(
     ))
     write[JsonApiAcl](toSerialize)
   }
-  def unserApiAuthz(s: String): Either[String, List[ApiAclElement]] = {
+  def unserApiAcl(s: String): Either[String, List[ApiAclElement]] = {
     import cats.implicits._
     import net.liftweb.json._
     implicit val formats = net.liftweb.json.DefaultFormats
@@ -844,7 +844,7 @@ class LDAPEntityMapper(
                            case None    =>
                              logger.debug(s"API authorizations level kind for token '${name.value}' with id '${id.value}' is 'ACL' but it doesn't have any ACLs conigured")
                              Full(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
-                           case Some(s) => unserApiAuthz(s) match {
+                           case Some(s) => unserApiAcl(s) match {
                              case Right(x)  => Full(ApiAuthorization.ACL(x))
                              case Left(msg) => Failure(msg)
                            }

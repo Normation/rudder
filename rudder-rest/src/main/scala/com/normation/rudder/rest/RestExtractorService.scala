@@ -828,19 +828,16 @@ case class RestExtractorService (
   }
 
 
-  def extractApiACLFromJSON (json : JValue) : Box[ApiAclElement] = {
+  /*
+   * The ACL list which is exchange between
+   */
+  def extractApiACLFromJSON (json : JValue) : Box[(AclPath, HttpAction)] = {
     import com.normation.rudder.utils.Utils.eitherToBox
-    def extractAPIVerb(json : JValue) : Box[HttpAction] = {
-      json match {
-        case JString(v) => HttpAction.parse(v)
-        case s => Failure(s"Not a valid value for an http verb, expected a String, got ${compactRender(s)}")
-      }
-    }
     for {
-      path <- CompleteJson.extractJsonString(json, "path", AclPath.parse)
-      actions <- CompleteJson.extractJsonArray(json \ "verbs")(extractAPIVerb)
+      path   <- CompleteJson.extractJsonString(json, "path", AclPath.parse)
+      action <- CompleteJson.extractJsonString(json, "verb", HttpAction.parse)
     } yield {
-      ApiAclElement(path, actions.toSet)
+      (path, action)
     }
   }
 
@@ -856,7 +853,7 @@ case class RestExtractorService (
       expirationValue  <- extractJsonString(json, "expirationDate", DateFormaterService.parseDate)
       authType    <- extractJsonString(json, "authorizationType", ApiAuthorizationKind.parse)
 
-      aclList     <- extractJsonArray(json \ "aclList")(
+      acl     <- extractJsonArray(json \ "acl")(
                        // I need an option here, but this function does not need to return an option
                        // AndThern it to wrap the result in a option, then unwrap it with a getOrElse after it ran
                        (extractApiACLFromJSON _ ).andThen(_.map(Some(_)))
@@ -868,7 +865,13 @@ case class RestExtractorService (
         case Some(ApiAuthorizationKind.None) => Some(ApiAuthz.None)
         case Some(ApiAuthorizationKind.RO) => Some(ApiAuthz.RO)
         case Some(ApiAuthorizationKind.RW) => Some(ApiAuthz.RW)
-        case Some(ApiAuthorizationKind.ACL) => Some(ApiAuthz.ACL(aclList))
+        case Some(ApiAuthorizationKind.ACL) => {
+          //group by path to get ApiAclElements
+          val acls = acl.groupBy(_._1).map { case (p, seq) =>
+            ApiAclElement(p, seq.map(_._2).toSet)
+          }.toList
+          Some(ApiAuthz.ACL(acls))
+        }
       }
       val expiration = expirationDefined match {
         case None => None

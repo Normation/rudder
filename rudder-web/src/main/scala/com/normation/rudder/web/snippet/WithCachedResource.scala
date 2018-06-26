@@ -37,11 +37,14 @@
 
 package com.normation.rudder.web.snippet
 
+import bootstrap.liftweb.PluginsInfo
+import com.normation.plugins.PluginName
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.Full
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.LiftRules
+
 import scala.xml.Elem
 import scala.xml.MetaData
 import scala.xml.NodeSeq
@@ -63,28 +66,8 @@ object WithCachedResource extends DispatchSnippet {
     case _ =>  render
   }
 
-  def render(xhtml: NodeSeq): NodeSeq = {
-    xhtml flatMap (_ match {
-     case e: Elem if e.label == "link" =>
-        attrStr(e.attributes, "href").map { href =>
-          e.copy(attributes =
-            MetaData.update(e.attributes,
-                            e.scope,
-                            new UnprefixedAttribute("href", LiftRules.attachResourceId(href), Null))
-          )
-        } openOr e
-     case e: Elem if(e.label == "script" || e.label == "img") =>
-        attrStr(e.attributes, "src") map { src =>
-          e.copy(attributes =
-             MetaData.update(e.attributes,
-                             e.scope,
-                             new UnprefixedAttribute("src", LiftRules.attachResourceId(src), Null))
-          )
-        } openOr e
-     case e => e
-    })
-  }
 
+  val pluginResourceRegex = """/?toserve/([\w-]+)/.+""".r
 
   private def attrStr(attrs: MetaData, attr: String): Box[String] = (attrs.get(attr) match {
     case None => Empty
@@ -95,4 +78,39 @@ object WithCachedResource extends DispatchSnippet {
     case Some(Nil) => Empty
     case Some(x) => Full(x.toString)
   })
+
+  /**
+   * We may need to prefix / postfix url in case of plugin.
+   * For that, we check if the class is a know plugin and
+   * store relevant postfix ("?pluginversion")
+   */
+  def updateUrl(e: Elem, attrName: String): Box[Elem] = {
+    attrStr(e.attributes, attrName).map { path =>
+      val postfix = path match {
+        case pluginResourceRegex(pluginShortName) =>
+          PluginsInfo.plugins.get(PluginName("rudder-plugin-"+pluginShortName)).map { info =>
+            //append "?version" to URL
+            "?" + info.version.toString
+          }.getOrElse("")
+        case x =>
+          ""
+      }
+
+      e.copy(attributes = MetaData.update(
+          e.attributes
+        , e.scope
+        , new UnprefixedAttribute(attrName, LiftRules.attachResourceId(path)+postfix, Null)
+      ))
+    }
+  }
+
+  def render(xhtml: NodeSeq): NodeSeq = {
+    xhtml flatMap (_ match {
+     case e: Elem if e.label == "link" =>
+       updateUrl(e, "href") openOr e
+     case e: Elem if(e.label == "script" || e.label == "img") =>
+       updateUrl(e, "src")  openOr e
+     case e => e
+    })
+  }
 }

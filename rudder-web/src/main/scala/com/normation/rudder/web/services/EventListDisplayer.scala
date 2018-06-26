@@ -64,6 +64,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import com.normation.rudder.services.eventlog.RollbackInfo
 import com.normation.rudder.domain.workflows.ChangeRequestId
+
 import scala.util.Try
 import scala.util.Success
 import scala.util.{Failure => Catch}
@@ -80,6 +81,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import org.joda.time.format.DateTimeFormat
 import com.normation.rudder.web.model.LinkUtil
+import org.joda.time.format.ISODateTimeFormat
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -1027,6 +1029,7 @@ class EventListDisplayer(
       case mod:ModifyAPIAccountEventLog =>
         "*" #> { logDetailsService.getApiAccountModifyDetails(mod.details) match {
           case Full(apiAccountDiff) =>
+
               <div class="evloglmargin">
               { addRestoreAction }
               { generatedByChangeRequest }
@@ -1038,7 +1041,16 @@ class EventListDisplayer(
                   "#name" #> mapSimpleDiff(apiAccountDiff.modName) &
                   "#token" #>  mapSimpleDiff(apiAccountDiff.modToken) &
                   "#description *" #> mapSimpleDiff(apiAccountDiff.modDescription) &
-                  "#isEnabled *" #> mapSimpleDiff(apiAccountDiff.modIsEnabled)
+                  "#isEnabled *" #> mapSimpleDiff(apiAccountDiff.modIsEnabled) &
+                  "#tokenGenerationDate *" #> mapSimpleDiff(apiAccountDiff.modTokenGenerationDate) &
+                  "#expirationDate *" #> mapSimpleDiffT[Option[DateTime]](apiAccountDiff.modExpirationDate, _.fold("")(_.toString(ISODateTimeFormat.dateTime()))
+                  ) &
+                  "#accountKind *" #> mapSimpleDiff(apiAccountDiff.modAccountKind) &
+                  //make list of ACL unsderstandable
+                  "#acls *" #> mapSimpleDiff(apiAccountDiff.modAccountAcl.map(o => {
+                                 val f = (l: List[ApiAclElement]) => l.sortBy(_.path.value).map(x => s"[${x.actions.map(_.name.toUpperCase()).mkString(",")}] ${x.path.value}").mkString(" | ")
+                                 SimpleDiff(f(o.oldValue), f(o.newValue))
+                               }))
                 )(apiAccountModDetailsXML)
                 }
               { reasonHtml }
@@ -1319,10 +1331,13 @@ class EventListDisplayer(
       "#tokenGenerationDate" #> DateFormaterService.getFormatedDate(apiAccount.tokenGenerationDate)
   )(xml)
 
- private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]]) = opt.map { diff =>
-   ".diffOldValue *" #> diff.oldValue.toString &
-   ".diffNewValue *" #> diff.newValue.toString
+
+ private[this] def mapSimpleDiffT[T](opt:Option[SimpleDiff[T]], t: T => String) = opt.map { diff =>
+   ".diffOldValue *" #> t(diff.oldValue) &
+   ".diffNewValue *" #> t(diff.newValue)
   }
+
+ private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]]) = mapSimpleDiffT(opt, (x:T) => x.toString)
 
  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]], id: DirectiveId) = opt.map { diff =>
    ".diffOldValue *" #> diff.oldValue.toString &
@@ -1439,8 +1454,24 @@ class EventListDisplayer(
         <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
         <li><b>Creation date:&nbsp;</b><value id="creationDate"/></li>
         <li><b>Token Generation date:&nbsp;</b><value id="tokenGenerationDate"/></li>
+        <li><b>Token Expiration date:&nbsp;</b><value id="expirationDate"/></li>
+        <li><b>Account Kind:&nbsp;</b><value id="accountKind"/></li>
+        <li><b>ACLs:&nbsp;</b><value id="acls"/></li>
       </ul>
     </div>
+
+  private[this] val apiAccountModDetailsXML =
+    <xml:group>
+      {liModDetailsXML("name", "Name")}
+      {liModDetailsXML("token", "Token")}
+      {liModDetailsXML("description", "Description")}
+      {liModDetailsXML("isEnabled", "Enabled")}
+      {liModDetailsXML("tokenGenerationDate", "Token Generation Date")}
+      {liModDetailsXML("expirationDate", "Token Expiration Date")}
+      {liModDetailsXML("accountKind", "Account Kind")}
+      {liModDetailsXML("acls", "ACL list")}
+    </xml:group>
+
 
   private[this] def liModDetailsXML(id:String, name:String) = (
       <div id={id}>
@@ -1504,13 +1535,6 @@ class EventListDisplayer(
       {liModDetailsXML("overridable", "Overridable")}
     </xml:group>
 
-  private[this] val apiAccountModDetailsXML =
-    <xml:group>
-      {liModDetailsXML("name", "Name")}
-      {liModDetailsXML("token", "Token")}
-      {liModDetailsXML("description", "Description")}
-      {liModDetailsXML("isEnabled", "Enabled")}
-    </xml:group>
 
   private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int) = {
     val rollbackedEvents = rollbackInfo.rollbacked
