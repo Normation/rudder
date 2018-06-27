@@ -260,17 +260,17 @@ trait PromiseGenerationService extends Loggable {
       import scala.concurrent.ExecutionContext.Implicits.global
       Future { invalidateComplianceCache(updatedNodeConfigs.keySet) }
 
-      logger.debug("Timing summary:")
-      logger.debug("Run pre-gen scripts hooks : %10s ms".format(timeRunPreGenHooks))
-      logger.debug("Run pre-gen modules hooks : %10s ms".format(timeCodePreGenHooks))
-      logger.debug("Fetch all information     : %10s ms".format(timeFetchAll))
-      logger.debug("Historize names           : %10s ms".format(timeHistorize))
-      logger.debug("Build current rule values : %10s ms".format(timeRuleVal))
-      logger.debug("Build target configuration: %10s ms".format(timeBuildConfig))
-      logger.debug("Write node configurations : %10s ms".format(timeWriteNodeConfig))
-      logger.debug("Save expected reports     : %10s ms".format(timeSetExpectedReport))
-      logger.debug("Run post generation hooks : %10s ms".format(timeRunPostGenHooks))
-      logger.debug("Number of nodes updated   : %10s   ".format(updatedNodeIds.size))
+      PolicyLogger.info("Timing summary:")
+      PolicyLogger.info("Run pre-gen scripts hooks : %10s ms".format(timeRunPreGenHooks))
+      PolicyLogger.info("Run pre-gen modules hooks : %10s ms".format(timeCodePreGenHooks))
+      PolicyLogger.info("Fetch all information     : %10s ms".format(timeFetchAll))
+      PolicyLogger.info("Historize names           : %10s ms".format(timeHistorize))
+      PolicyLogger.info("Build current rule values : %10s ms".format(timeRuleVal))
+      PolicyLogger.info("Build target configuration: %10s ms".format(timeBuildConfig))
+      PolicyLogger.info("Write node configurations : %10s ms".format(timeWriteNodeConfig))
+      PolicyLogger.info("Save expected reports     : %10s ms".format(timeSetExpectedReport))
+      PolicyLogger.info("Run post generation hooks : %10s ms".format(timeRunPostGenHooks))
+      PolicyLogger.info("Number of nodes updated   : %10s   ".format(updatedNodeIds.size))
 
       writtenNodeConfigs.map( _.nodeInfo.id )
     }
