@@ -126,3 +126,11 @@ case class TechniqueTemplateCopyInfo(
 ) extends HashcodeCaching {
   override def toString() = s"Promise template ${id.name}; destination ${destination}"
 }
+
+case class TechniqueResourceCopyInfo(
+                                      id         : TechniqueResourceId
+                                      , destination: String
+                                      , content    : String //template resource as a file
+                                    ) extends HashcodeCaching {
+  override def toString() = s"Promise resource ${id.name}; destination ${destination}"
+}
