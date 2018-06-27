@@ -292,6 +292,7 @@ class Cf3PromisesFileWriterServiceImpl(
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
       templates        <- readTemplateFromFileSystem(techniqueIds)
+      resources        <- readResourcesFromFileSystem(techniqueIds)
 
       readTemplateTime2 = DateTime.now.getMillis
       readTemplateDur   = readTemplateTime2 - readTemplateTime1
@@ -312,7 +313,7 @@ class Cf3PromisesFileWriterServiceImpl(
 
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             (for {
-                              _ <- writePromises(prepared.paths, prepared.preparedTechniques)
+                              _ <- writePromises(prepared.paths, prepared.preparedTechniques, resources)
                               _ <- writeAllAgentSpecificFiles.write(prepared)
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
@@ -509,27 +510,43 @@ class Cf3PromisesFileWriterServiceImpl(
     res
   }
 
-  private[this] def writePromises(
-      paths             : NodePromisesPaths
-    , preparedTechniques: Seq[PreparedTechnique]
-  ) : Box[NodePromisesPaths] = {
-    // write the promises of the current machine and set correct permission
-    for {
-      _ <- sequence(preparedTechniques) { preparedTechnique =>
-             for {
-               templates <-  sequence(preparedTechnique.templatesToProcess.toSeq) { template =>
-                               writePromisesFiles(template, preparedTechnique.environmentVariables , paths.newFolder)
-                             }
-               files     <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
-                              copyResourceFile(file, paths.newFolder)
-                            }
-             } yield {
-               "OK"
-             }
-           }
+  /*
+   * We are returning a map where keys are (TechniqueResourceId, AgentType) because
+   * for a given resource IDs, you can have different out path for different agent.
+   */
+  private[this] def readResourcesFromFileSystem(
+     techniqueIds: Set[TechniqueId]
+  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[TechniqueResourceId, TechniqueResourceCopyInfo]] = {
+
+    val staticResourceToRead = for {
+      technique      <- techniqueRepository.getByIds(techniqueIds.toSeq)
+      staticResource <- technique.agentConfigs.flatMap(cfg => cfg.files.map(t => (t.id, t.outPath)))
     } yield {
-      paths
+      staticResource
     }
+
+    val now = System.currentTimeMillis()
+
+    val res = (parrallelSequence(staticResourceToRead) { case (templateId, templateOutPath) =>
+      for {
+        copyInfo <- techniqueRepository.getFileContent(templateId) { optInputStream =>
+          optInputStream match {
+            case None =>
+              Failure(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.")
+            case Some(inputStream) =>
+              logger.trace(s"Loading template: ${templateId}")
+              //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
+              val content = IOUtils.toString(inputStream, Codec.UTF8.charSet)
+              Full(TechniqueResourceCopyInfo(templateId, templateOutPath, content))
+          }
+        }
+      } yield {
+        (copyInfo.id, copyInfo)
+      }
+    }).map( _.toMap)
+
+    logger.debug(s"${staticResourceToRead.size} techniques resources read in ${System.currentTimeMillis-now} ms")
+    res
   }
 
   // just write an empty file for now
@@ -580,6 +597,29 @@ class Cf3PromisesFileWriterServiceImpl(
     prettyRender(JObject(systemVars))
   }
 
+  private[this] def writePromises(
+      paths             : NodePromisesPaths
+    , preparedTechniques: Seq[PreparedTechnique]
+    , resources         : Map[TechniqueResourceId, TechniqueResourceCopyInfo]
+  ) : Box[NodePromisesPaths] = {
+    // write the promises of the current machine and set correct permission
+    for {
+      _ <- sequence(preparedTechniques) { preparedTechnique =>
+             for {
+               templates <-  sequence(preparedTechnique.templatesToProcess.toSeq) { template =>
+                               writePromisesFiles(template, preparedTechnique.environmentVariables , paths.newFolder)
+                             }
+               files     <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
+                              copyResourceFile(file, paths.newFolder, resources)
+                            }
+             } yield {
+               "OK"
+             }
+           }
+    } yield {
+      paths
+    }
+  }
 
   /**
    * For agent needing it, copy licences to the correct path
@@ -671,21 +711,22 @@ class Cf3PromisesFileWriterServiceImpl(
   /**
    * Copy a resource file from a technique to the node promises directory
    */
-  private[this] def copyResourceFile(file: TechniqueFile, rulePath: String): Box[String] = {
+  private[this] def copyResourceFile(
+        file     : TechniqueFile
+      , rulePath : String
+      , resources: Map[TechniqueResourceId, TechniqueResourceCopyInfo]
+  ): Box[String] = {
     val destination = new File(rulePath+"/"+file.outPath)
 
-    techniqueRepository.getFileContent(file.id) { optStream =>
-      optStream match {
-        case None => Failure(s"Can not open the technique resource file ${file.id} for reading")
-        case Some(s) =>
-          try {
-            FileUtils.copyInputStreamToFile(s, destination)
-            Full(destination.getAbsolutePath)
-          } catch {
-            case ex: Exception => Failure(s"Error when copying technique resoure file '${file.id}' to '${destination.getAbsolutePath}')", Full(ex), Empty)
-          }
-      }
-
+    resources.get(file.id) match {
+      case None    => Failure(s"Can not open the technique resource file ${file.id} for reading")
+      case Some(s) =>
+        try {
+          FileUtils.writeStringToFile(destination, s.content, Codec.UTF8.charSet)
+          Full(destination.getAbsolutePath)
+        } catch {
+          case ex: Exception => Failure(s"Error when copying technique resoure file '${file.id}' to '${destination.getAbsolutePath}')", Full(ex), Empty)
+        }
     }
   }
 
