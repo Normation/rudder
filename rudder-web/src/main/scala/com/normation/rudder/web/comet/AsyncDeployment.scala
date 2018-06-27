@@ -104,7 +104,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             "bg-error"
         }
       case _ =>
-        "bg-neutral"
+        "bg-refresh"
     }
   }
 
