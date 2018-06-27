@@ -293,6 +293,7 @@ class PolicyWriterServiceImpl(
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
       templates        <- readTemplateFromFileSystem(techniqueIds)
+      resources        <- readResourcesFromFileSystem(techniqueIds)
 
       readTemplateTime2 = DateTime.now.getMillis
       readTemplateDur   = readTemplateTime2 - readTemplateTime1
@@ -313,7 +314,7 @@ class PolicyWriterServiceImpl(
 
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             (for {
-                              _ <- writePromises(prepared.paths, prepared.preparedTechniques)
+                              _ <- writePromises(prepared.paths, prepared.preparedTechniques, resources)
                               _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
@@ -510,9 +511,11 @@ class PolicyWriterServiceImpl(
     res
   }
 
+
   private[this] def writePromises(
       paths             : NodePromisesPaths
     , preparedTechniques: Seq[PreparedTechnique]
+    , resources         : Map[TechniqueResourceId, TechniqueResourceCopyInfo]
   ) : Box[NodePromisesPaths] = {
     // write the promises of the current machine and set correct permission
     for {
@@ -522,7 +525,7 @@ class PolicyWriterServiceImpl(
                                writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
                files     <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
-                              copyResourceFile(file, paths.newFolder, preparedTechnique.reportIdToReplace)
+                              copyResourceFile(file, paths.newFolder, preparedTechnique.reportIdToReplace, resources)
                             }
              } yield {
                "OK"
@@ -531,6 +534,45 @@ class PolicyWriterServiceImpl(
     } yield {
       paths
     }
+  }
+
+  /*
+   * We are returning a map where keys are (TechniqueResourceId, AgentType) because
+   * for a given resource IDs, you can have different out path for different agent.
+   */
+  private[this] def readResourcesFromFileSystem(
+     techniqueIds: Set[TechniqueId]
+  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[TechniqueResourceId, TechniqueResourceCopyInfo]] = {
+
+    val staticResourceToRead = for {
+      technique      <- techniqueRepository.getByIds(techniqueIds.toSeq)
+      staticResource <- technique.agentConfigs.flatMap(cfg => cfg.files.map(t => (t.id, t.outPath)))
+    } yield {
+      staticResource
+    }
+
+    val now = System.currentTimeMillis()
+
+    val res = (parrallelSequence(staticResourceToRead) { case (templateId, templateOutPath) =>
+      for {
+        copyInfo <- techniqueRepository.getFileContent(templateId) { optInputStream =>
+          optInputStream match {
+            case None =>
+              Failure(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.")
+            case Some(inputStream) =>
+              logger.trace(s"Loading template: ${templateId}")
+              //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
+              val content = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
+              Full(TechniqueResourceCopyInfo(templateId, templateOutPath, content))
+          }
+        }
+      } yield {
+        (copyInfo.id, copyInfo)
+      }
+    }).map( _.toMap)
+
+    logger.debug(s"${staticResourceToRead.size} techniques resources read in ${System.currentTimeMillis-now} ms")
+    res
   }
 
   // just write an empty file for now
@@ -676,6 +718,7 @@ class PolicyWriterServiceImpl(
       file             : TechniqueFile
     , rulePath         : String
     , reportIdToReplace: Option[PolicyId]
+    , resources        : Map[TechniqueResourceId, TechniqueResourceCopyInfo]
   ): Box[String] = {
     val destination = {
       val out = reportIdToReplace match {
@@ -685,18 +728,15 @@ class PolicyWriterServiceImpl(
       new File(rulePath+"/"+out)
     }
 
-    techniqueRepository.getFileContent(file.id) { optStream =>
-      optStream match {
-        case None => Failure(s"Can not open the technique resource file ${file.id} for reading")
-        case Some(s) =>
-          try {
-            FileUtils.copyInputStreamToFile(s, destination)
-            Full(destination.getAbsolutePath)
-          } catch {
-            case ex: Exception => Failure(s"Error when copying technique resoure file '${file.id}' to '${destination.getAbsolutePath}')", Full(ex), Empty)
-          }
-      }
-
+    resources.get(file.id) match {
+      case None    => Failure(s"Can not open the technique resource file ${file.id} for reading")
+      case Some(s) =>
+        try {
+          FileUtils.writeStringToFile(destination, s.content, StandardCharsets.UTF_8)
+          Full(destination.getAbsolutePath)
+        } catch {
+          case ex: Exception => Failure(s"Error when copying technique resoure file '${file.id}' to '${destination.getAbsolutePath}')", Full(ex), Empty)
+        }
     }
   }
 
