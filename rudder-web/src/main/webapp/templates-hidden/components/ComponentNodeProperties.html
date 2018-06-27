@@ -40,7 +40,7 @@
            </div>
          </div>
           <lift:authz role="node_write">
-          <hr class="spacer"></hr>
+          <hr class="spacer">
           <div class="col-lg-7 col-md-8 col-xs-12">
             <label for="newPropName">Add node property</label>
             <form name="newPropForm">
@@ -53,8 +53,17 @@
                   <td>
                     <span class="input-group-addon addon-json">=</span>
                   </td>
-                  <td class="form-group" ng-class="{'has-error': newPropForm.newPropValue.$error.required && newPropForm.newPropValue.$dirty}">
+                  <td class="form-group" ng-class="{'has-error': (newPropForm.newPropValue.$error.required && newPropForm.newPropValue.$dirty) || !isValid}">
                     <textarea placeholder="Value" msd-elastic name="newPropValue" class="form-control input-sm input-value" required ng-model="newProperty.value"></textarea>
+                  </td>
+                  <td class="json-check-col">
+                    <div>
+                      <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{{checkJson ? "JSON" : "String"}} <span class="caret"></span></button>
+                      <ul class="dropdown-menu">
+                        <li><a ng-click="checkJson = false">String</a></li>
+                        <li><a ng-click="checkJson = true" > JSON </a></li>
+                      </ul>
+                    </div>
                   </td>
                   <td>
                     <button type="button" ng-click="addProperty()" class="btn btn-success btn-sm" ng-disabled="newPropForm.$invalid">
@@ -67,6 +76,7 @@
             </form>
             <div class="text-danger" ng-show="newPropForm.newPropName.$error.required && newPropForm.newPropName.$dirty">Name is required</div>
             <div class="text-danger" ng-show="alreadyUsed">This name is already used by another property</div>
+            <div class="text-danger" ng-show="!isValid">JSON check is enabled, but the value format is invalid.</div>
             <div class="alert alert-danger errorSaving" ng-show="errorSaving">
               <i class="fa fa-exclamation-triangle" style="margin-right:6px"></i>
               An error occured while saving this new property : <b>{{errorSaving}}</b>

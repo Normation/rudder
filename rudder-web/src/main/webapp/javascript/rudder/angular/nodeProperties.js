@@ -48,6 +48,8 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
   $scope.alreadyUsed      = false;
   $scope.errorSaving      = false;
   $scope.errorDeleting    = false;
+  $scope.checkJson        = false;
+  $scope.isValid          = true ;
 
   $scope.resetNewProperty = function(){
     $scope.newProperty = {'name':"", 'value':""};
@@ -98,30 +100,35 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
     }
     var propertyToSave = angular.copy($scope.newProperty)
     var newValue = propertyToSave.value
-    try {
-      newValue = JSON.parse(propertyToSave.value)
-    } catch(e) {
-      // Do nothing if error we keep the current value
-    }
-    propertyToSave.value = newValue
-    var data = {
-        "properties": [ propertyToSave ]
-      , 'reason' : "Add property '"+$scope.newProperty.name+"' to Node '"+currentNodeId+"'"
-    };
-    $http.post($scope.urlAPI, data).then(function successCallback(response) {
-      $scope.errorSaving = false;
-      //Check if new property's name is already used or not.
-      $scope.alreadyUsed = $scope.properties.some(checkNameUnicity);
-      if(!$scope.alreadyUsed){
-        $scope.properties.push(propertyToSave);
-        $scope.resetNewProperty();
-        $('#newPropPopup').bsModal('hide');
-        $scope.newPropForm.$setPristine();
+    $scope.isValid = true;
+    if($scope.checkJson){
+      try {
+        newValue = JSON.parse(propertyToSave.value)
+      } catch(e) {
+        $scope.isValid = false;
       }
-    }, function errorCallback(response) {
-      $scope.errorSaving = response.data.errorDetails;
-      return response.status==200;
-    });
+    }
+    if($scope.isValid){
+      propertyToSave.value = newValue
+      var data = {
+          "properties": [ propertyToSave ]
+        , 'reason' : "Add property '"+$scope.newProperty.name+"' to Node '"+currentNodeId+"'"
+      };
+      $http.post($scope.urlAPI, data).then(function successCallback(response) {
+        $scope.errorSaving = false;
+        //Check if new property's name is already used or not.
+        $scope.alreadyUsed = $scope.properties.some(checkNameUnicity);
+        if(!$scope.alreadyUsed){
+          $scope.properties.push(propertyToSave);
+          $scope.resetNewProperty();
+          $('#newPropPopup').bsModal('hide');
+          $scope.newPropForm.$setPristine();
+        }
+      }, function errorCallback(response) {
+        $scope.errorSaving = response.data.errorDetails;
+        return response.status==200;
+      });
+    }
   };
   $scope.popupDeletion = function(prop,index) {
     $scope.deletedProperty.name = prop;
