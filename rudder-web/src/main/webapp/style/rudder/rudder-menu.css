@@ -868,6 +868,23 @@ ul.graph-legend > li.legend:hover{
     -webkit-font-smoothing: antialiased;
     content: "\e085";
 }
+/* REFRESH */
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-refresh, .tw-bs .main-header .navbar .nav li.notifications-menu.bg-refresh #generation-status{
+  background-color:#abacac;
+}
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-refresh:hover #generation-status,.tw-bs .main-header .navbar .nav li.notifications-menu.bg-refresh.open #generation-status{
+  background-color:#9a9b9b;
+}
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-refresh #generation-status > span:after{
+  display: inline-block;
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  content: "\f021";
+  -webkit-animation: fa-spin 2s infinite linear;
+  animation: fa-spin 2s infinite linear;
+}
 /* ---- */
 #generation-status.label-success{
   background-color: #9bc832 !important;
