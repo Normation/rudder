@@ -52,16 +52,23 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import com.normation.plugins.SnippetExtensionKey
+import com.normation.plugins.SpringExtendableSnippet
+import com.normation.rudder.domain.logger.ApplicationLogger
 
-class UserInformation extends DispatchSnippet with Loggable {
+import scala.xml.NodeSeq
+
+class UserInformation extends DispatchSnippet with SpringExtendableSnippet[UserInformation] {
+
+  val extendsAt = SnippetExtensionKey(classOf[UserInformation].getSimpleName)
 
   private[this] val eventLogger = RudderConfig.eventLogRepository
   private[this] val uuidGen     = RudderConfig.stringUuidGenerator
 
-  def dispatch = {
-    case "userCredentials" =>  userCredentials
-    case "logout" => logout
-  }
+  override def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
+      "userCredentials" -> ((xml:NodeSeq) => userCredentials(xml))
+    , "logout"          -> ((xml:NodeSeq) => logout(xml))
+  )
 
   def userCredentials = {
     CurrentUser.get match {
@@ -71,7 +78,7 @@ class UserInformation extends DispatchSnippet with Loggable {
           SecurityContextHolder.clearContext()
           session.destroySession()
         }
-        "#infosUser *" #> <p class="error">Error when trying to fetch user details.</p>
+        "#user-menu *" #> <p class="error">Error when trying to fetch user details.</p>
     }
   }
 
@@ -81,7 +88,7 @@ class UserInformation extends DispatchSnippet with Loggable {
         case Full(session) => //we have a session, try to know who is login out
           SecurityContextHolder.getContext.getAuthentication match {
             case null => //impossible to know who is login out
-              logger.info("Logout called for a null authentication, can not log user logout")
+              ApplicationLogger.debug("Logout called for a null authentication, can not log user out")
             case auth => auth.getPrincipal() match {
               case u:UserDetails =>
                 eventLogger.saveEventLog(
@@ -96,13 +103,13 @@ class UserInformation extends DispatchSnippet with Loggable {
                     )
                 )
               case x => //impossible to know who is login out
-                logger.info("Logout called with unexpected UserDetails, can not log user logout. Details: " + x)
+                ApplicationLogger.debug("Logout called with unexpected UserDetails, can not log user logout. Details: " + x)
             }
           }
           SecurityContextHolder.clearContext()
           session.destroySession()
         case e:EmptyBox => //no session ? Strange, but ok, nobody is login
-          logger.info("Logout called for a non existing session, nothing more done")
+          ApplicationLogger.debug("Logout called for a non existing session, nothing more done")
       }
       JsCmds.RedirectTo("/")
     }, ("class", "btn btn-danger"))

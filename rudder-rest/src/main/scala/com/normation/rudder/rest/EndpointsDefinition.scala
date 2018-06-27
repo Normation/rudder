@@ -312,24 +312,6 @@ object SettingsApi extends ApiModuleProvider[SettingsApi] {
   def endpoints = ca.mrvisser.sealerate.values[SettingsApi].toList.sortBy( _.z )
 }
 
-sealed trait UserApi extends EndpointSchema with InternalApi with SortIndex
-object UserApi extends ApiModuleProvider[UserApi] {
-  final case object GetApiToken extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
-    val description = "Get information about user personal API token"
-    val (action, path)  = GET / "user" / "api" / "token"
-  }
-  final case object CreateApiToken extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
-    val description = "Create user personal API token"
-    val (action, path)  = PUT / "user" / "api" / "token"
-  }
-  final case object DeleteApiToken extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
-    val description = "Delete user personal API token"
-    val (action, path)  = DELETE / "user" / "api" / "token"
-  }
-
-  def endpoints = ca.mrvisser.sealerate.values[UserApi].toList.sortBy( _.z )
-}
-
 sealed trait TechniqueApi extends EndpointSchema with GeneralApi with SortIndex
 object TechniqueApi extends ApiModuleProvider[TechniqueApi] {
 
@@ -418,6 +400,36 @@ object InfoApi extends ApiModuleProvider[InfoApi] {
 }
 
 /*
+ * This API definition need to be in Rudder core because it defines spicific
+ * User API rights, which is a special thing. The actual implementation will
+ * be defined in the API Authorization plugin.
+ * Note that these endpoint don't have token ID has parameter because an user can only manage
+ * its own token, and Rudder will make the mapping server side.
+ */
+sealed trait UserApi extends EndpointSchema with InternalApi with SortIndex
+object UserApi extends ApiModuleProvider[UserApi] {
+  final case object GetApiToken extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
+    val description = "Get information about user personal UserApi token"
+    val (action, path)  = GET / "user" / "api" / "token"
+  }
+  final case object CreateApiToken extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
+    val description = "Create user personal UserApi token"
+    val (action, path)  = PUT / "user" / "api" / "token"
+  }
+  final case object DeleteApiToken extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
+    val description = "Delete user personal UserApi token"
+    val (action, path)  = DELETE / "user" / "api" / "token"
+  }
+
+  final case object UpdateApiToken extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
+    val description = "Update user personal UserApi token"
+    val (action, path)  = POST / "user" / "api" / "token"
+  }
+
+  def endpoints = ca.mrvisser.sealerate.values[UserApi].toList.sortBy( _.z )
+}
+
+/*
  * All API.
  */
 object AllApi {
@@ -433,6 +445,7 @@ object AllApi {
     TechniqueApi.endpoints :::
     RuleApi.endpoints :::
     InfoApi.endpoints :::
+    // UserApi is not declared here, it will be contributed by plugin
     Nil
 }
 
