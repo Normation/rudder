@@ -1076,6 +1076,23 @@ a.sidebar-toggle{
   border-radius:0;
   height: 32px;
 }
+#addPropTable td.json-check-col{
+  width: 80px;
+  background-color:#f4f4f4;
+}
+#addPropTable td.json-check-col > div{
+  position:relative;
+}
+#addPropTable td.json-check-col button{
+  height: 33px;
+  width:100%;
+  border-radius:0px;
+  border-left:none;
+}
+#addPropTable #json-check{
+    position:relative;
+    top:2px;
+}
 #addPropTable tbody > tr > td:nth-child(3) > .form-control{
   border-left-width:1px;
   border-radius:0;
