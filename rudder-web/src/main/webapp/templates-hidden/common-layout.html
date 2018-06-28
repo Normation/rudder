@@ -16,25 +16,25 @@
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/angular/angular-filemanager.min.css" media="screen" />
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/jstree/style.css" media="screen" />
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-jquery-ui.css" />
-    
+
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/font-awesome/font-awesome-4.6.3.min.css"/>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/ionicons-2.0.1/css/ionicons.min.css">
-    
+
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder.css" media="screen" />
-    
+
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/bootstrap/tw-bs-bootstrap-3.3.7.css" media="screen" />
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/bootstrap/bootstrap-toggle-2.2.2.min.css" media="screen" />
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-progress-bar.css" media="screen" />
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-bootstrap.css" media="screen" />
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-quicksearch.css" media="screen" />
-    
+
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/AdminLTE/AdminLTE.min.css"/>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-menu.css"/>
 
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/utils/WeakMap.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/utils/MutationObserver.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/jquery/jquery-3.1.0.min.js"></script>
-    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/jquery/jquery.corner.js"></script> 
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/jquery/jquery.corner.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/jquery/jquery-ui.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/jquery/jstree/jquery.jstree.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/jquery/datatables/datatables.min.js"></script>
@@ -117,8 +117,8 @@
             <span class="sr-only">Toggle navigation</span>
           </a>
           <!-- Quick Search-->
-         <div data-lift="QuickSearchNode.render"  class="sidebar-form topbar-search-form" > 
-  
+         <div data-lift="QuickSearchNode.render"  class="sidebar-form topbar-search-form" >
+
             <div ng-app="quicksearch" id="quicksearch" ng-controller="QuicksearchCtrl" class="input-group">
             <script type="text/ng-template" id="quicksearch.html">
               <div class="angucomplete-holder" ng-class="{'angucomplete-dropdown-visible': showDropdown};">
@@ -279,7 +279,7 @@
                   </li>
                 </ul>
           </script>
-  
+
               <div id="angucomplete-ie8-quicksearch"
                    angucomplete-alt=""
                    placeholder="Search anything"
@@ -297,7 +297,7 @@
               </div>
             </div>
           </div>
- 
+
           <div class="navbar-custom-menu">
             <ul class="nav navbar-nav">
             <!-- Change request  -->
@@ -311,12 +311,10 @@
                 </a>
               </li>
               <!-- User -->
-              <li class="user user-menu">
-                <a href="#">
-                  <span data-lift="UserInformation.userCredentials">
-                    <span class="hidden-xs glyphicon glyphicon-user"></span>
-                    <span id="openerAccount">[User name]</span>
-                  </span>
+              <li id="user-menu" class="user user-menu" data-lift="UserInformation.userCredentials">
+                <a href="#" id="user-menu-action">
+                  <span class="hidden-xs glyphicon glyphicon-user"></span>
+                  <span id="openerAccount">[User name]</span>
                 </a>
               </li>
               <!-- Log out -->
@@ -372,7 +370,7 @@
               </div><!-- /.modal-content -->
           </div><!-- /.modal-dialog -->
       </div><!-- /.modal -->
-      
+
       <div class="modal fade" id="ModalLogOut" tabindex="-1" role="dialog">
         <div class="modal-backdrop fade in" style="height: 100%;"></div>
           <div class="modal-dialog" role="document">
@@ -386,10 +384,10 @@
             </div>
             <div class="modal-body">
               <h4 class="row text-center">
-                 You are about to log out   
+                 You are about to log out
               </h4>
               <h5 class="row text-center">
-                 Do you want to proceed?   
+                 Do you want to proceed?
               </h5>
             </div>
             <div class="modal-footer">
@@ -412,7 +410,7 @@
           <!-- Here come the content bound by <lift:surround at="content"> -->
           </div>
         </lift:Authz.whenhasrights>
-  
+
         <lift:Authz.whennorights>
           <div class="portlet"><div class="portlet-content"><div class="callout-fade callout-warning" style="padding: 30px; text-align:center">
           You don't have sufficient authorization rights to access this content. Please contact your administrator to have more information.
@@ -420,8 +418,8 @@
         </lift:Authz.whennorights>
       </div>
     </div>
-    
-    <div class="tw-bs">   
+
+    <div class="tw-bs">
       <div id="successConfirmationDialog" class="modal fade" data-keyboard="true" tabindex="-1">
         <div class="modal-backdrop fade in" style="height: 100%;"></div>
         <div class="modal-dialog"><div class="modal-content">
