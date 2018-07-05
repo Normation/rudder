@@ -382,11 +382,19 @@ object DisplayNode extends Loggable {
           <b>Manufacturer:</b> {sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}<br/>
           <b>Total physical memory (RAM):</b> {sm.node.ram.map( _.toStringMo).getOrElse("-")}<br/>
           <b>Total swap space:</b> {sm.node.swap.map( _.toStringMo).getOrElse("-")}<br/>
-          <b>Motherboard UUID:</b> {sm.machine.map(_.id.value).getOrElse("-")}<br/>
           <b>System Serial Number:</b> {sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}<br/>
           <b>Time Zone:</b> {sm.node.timezone.map(x =>
               if(x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})"
             ).getOrElse("unknown")}<br/>
+          { sm.machine.map( _.id.value).map( machineId =>
+              <div>
+                <a href="#" onclick={s"$$('#${machineId}').toggle(300); return false;"}>(Display Rudder Machine ID)</a>
+                <div style="width=100%; overflow:auto;">
+                  <pre id={s"${machineId}"} class="display-keys" style="display:none;">{machineId}</pre>
+                </div>{Script(OnLoad(JsRaw(s"""createTooltip();""")))}
+              </div>
+            ).getOrElse(<span class="error">Machine Information are missing for that node</span>)
+          }
         </div>
 
       <h4 class="tablemargin">Operating system details</h4>
