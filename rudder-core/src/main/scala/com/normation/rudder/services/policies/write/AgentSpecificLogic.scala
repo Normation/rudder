@@ -42,9 +42,9 @@ import com.normation.inventory.domain.AgentType
 import com.normation.utils.Control.sequence
 import net.liftweb.common.Full
 import net.liftweb.common.Failure
-import com.normation.inventory.domain.OsDetails
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.Bsd
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.policies.NodeRunHook
 
 /*
@@ -79,7 +79,7 @@ trait AgentFormatBundleVariables {
 
 // does that implementation knows something about the current agent type
 trait AgentSpecificGenerationHandle {
-  def handle(agentType: AgentType, os: OsDetails): Boolean
+  def handle(agentNodeProps: AgentNodeProperties): Boolean
 }
 
 // specific generic (i.e non bundle order linked) system variable
@@ -120,10 +120,18 @@ class AgentRegister {
    * Find the first agent matching the required agentType/osDetail and apply f on it.
    * If none is found, return a failure.
    */
-  def findMap[T](agentType: AgentType, osDetails: OsDetails)(f: AgentSpecificGeneration => Box[T]) = {
-    pipeline.find(handler => handler.handle(agentType, osDetails)) match {
-      case None    => Failure(s"We were unable to find how to create directive sequences for Agent type ${agentType.toString()} on '${osDetails.fullName}'. " +
-                            "Perhaps you are missing the corresponding plugin. If not, please report a bug")
+  def findMap[T](agentNodeProps: AgentNodeProperties)(f: AgentSpecificGeneration => Box[T]) = {
+    pipeline.find(handler => handler.handle(agentNodeProps)) match {
+      case None    =>
+        val msg = if(agentNodeProps.isPolicyServer) {
+          s"""We could not generate policies for server '${agentNodeProps.osDetails.fullName}', therefore making updates """ +
+          s"""for nodes behind it unavailable. Maybe you are missing 'scale out' plugin?"""
+        } else {
+          s"""We could not generate policies for node '${agentNodeProps.osDetails.fullName}' based on """ +
+          s"""'${agentNodeProps.agentType.toString()}' agent. Maybe you are missing a dedicated plugin ?"""
+        }
+        Failure(msg)
+
       case Some(h) => f(h)
     }
   }
@@ -133,9 +141,9 @@ class AgentRegister {
    * Exec default on other cases.
    *
    */
-  def traverseMap[T](agentType: AgentType, osDetails: OsDetails)(default: () => Box[List[T]], f: AgentSpecificGeneration => Box[List[T]]): Box[List[T]] = {
+  def traverseMap[T](agentNodeProps: AgentNodeProperties)(default: () => Box[List[T]], f: AgentSpecificGeneration => Box[List[T]]): Box[List[T]] = {
     (sequence(pipeline) { handler =>
-      if(handler.handle(agentType, osDetails)) {
+      if(handler.handle(agentNodeProps)) {
         f(handler)
       } else {
         default()
@@ -151,21 +159,20 @@ class WriteAllAgentSpecificFiles(agentRegister: AgentRegister) extends WriteAgen
 
 
   override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
-    agentRegister.traverseMap(cfg.agentType, cfg.os)( () => Full(Nil), _.write(cfg))
+    agentRegister.traverseMap(cfg.agentNodeProps)( () => Full(Nil), _.write(cfg))
   }
 
   import BuildBundleSequence.{InputFile, TechniqueBundles, BundleSequenceVariables}
   def getBundleVariables(
-      agentType   : AgentType
-    , osDetails   : OsDetails
-    , systemInputs: List[InputFile]
-    , sytemBundles: List[TechniqueBundles]
-    , userInputs  : List[InputFile]
-    , userBundles : List[TechniqueBundles]
-    , runHooks    : List[NodeRunHook]
+      agentNodeProps: AgentNodeProperties
+    , systemInputs  : List[InputFile]
+    , sytemBundles  : List[TechniqueBundles]
+    , userInputs    : List[InputFile]
+    , userBundles   : List[TechniqueBundles]
+    , runHooks      : List[NodeRunHook]
   ) : Box[BundleSequenceVariables] = {
     //we only choose the first matching agent for that
-    agentRegister.findMap(agentType, osDetails)( a => Full(a.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles, runHooks)))
+    agentRegister.findMap(agentNodeProps)( a => Full(a.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles, runHooks)))
   }
 }
 
@@ -182,15 +189,18 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
   /**
    * This version only handle open source unix-like (*linux, *bsd) for
    * the community version of CFEngine. Plugins are needed for other
-   * flavors (anything with CFEngine enterprise, AIX, Solaris, etc)
+   * flavors (anything with CFEngine enterprise, AIX, Solaris, etc).
+   * The node must be a simple node or the root policy server.
    */
-  override def handle(agentType: AgentType, os: OsDetails): Boolean = {
-    (agentType, os) match {
-      case (AgentType.CfeCommunity, _: Linux) => true
-      case (AgentType.CfeCommunity, _: Bsd  ) => true
-      // for now AIX, Windows, Solaris and UnknownOS goes there.
-      case _                                  => false
-    }
+  override def handle(agentNodeProps: AgentNodeProperties): Boolean = {
+    (!agentNodeProps.isPolicyServer || agentNodeProps.nodeId == Constants.ROOT_POLICY_SERVER_ID) && (
+      (agentNodeProps.agentType, agentNodeProps.osDetails) match {
+        case (AgentType.CfeCommunity, _: Linux) => true
+        case (AgentType.CfeCommunity, _: Bsd  ) => true
+        // for now AIX, Windows, Solaris and UnknownOS goes there.
+        case _                                  => false
+      }
+    )
   }
 
   override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
