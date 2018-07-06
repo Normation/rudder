@@ -84,6 +84,7 @@ trait DefaultPluginDef extends RudderPluginDef {
   }
 
   override lazy val name = PluginName(buildConf.getString("plugin-fullname"))
+  override lazy val shortName = buildConf.getString("plugin-name")
   override lazy val displayName = buildConf.getString("plugin-title-description")
   override lazy val version = {
     val versionString = buildConf.getString("plugin-version")
