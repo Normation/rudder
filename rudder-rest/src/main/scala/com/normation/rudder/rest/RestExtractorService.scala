@@ -948,47 +948,47 @@ case class RestExtractorService (
     }
   }
 
-   def extractInt[T](key : String) (req : Req)(fun : BigInt => Box[T]) : Box[Option[T]]  = {
-     req.json match {
-       case Full(json) => json \ key match {
-         case JInt(value) => fun(value).map(Some(_))
-         case JNothing => Full(None)
-         case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
-       }
-       case _ =>
-         req.params.get(key) match {
-           case None => Full(None)
-           case Some(head :: Nil) => try {
-             fun(head.toLong).map(Some(_))
-           } catch {
-             case e : Throwable =>
-               Failure(s"Parsing request parameter '${key}' as an integer failed, current value is '${head}'. Error message is: '${e.getMessage}'.")
-           }
-           case Some(list) => Failure(s"${list.size} values defined for 'id' parameter, only one needs to be defined")
-         }
-     }
-   }
+  def extractInt[T](key : String) (req : Req)(fun : BigInt => Box[T]) : Box[Option[T]]  = {
+    req.json match {
+      case Full(json) => json \ key match {
+        case JInt(value) => fun(value).map(Some(_))
+        case JNothing => Full(None)
+        case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
+      }
+      case _ =>
+        req.params.get(key) match {
+          case None => Full(None)
+          case Some(head :: Nil) => try {
+            fun(head.toLong).map(Some(_))
+          } catch {
+            case e : Throwable =>
+              Failure(s"Parsing request parameter '${key}' as an integer failed, current value is '${head}'. Error message is: '${e.getMessage}'.")
+          }
+          case Some(list) => Failure(s"${list.size} values defined for 'id' parameter, only one needs to be defined")
+        }
+    }
+  }
 
-     def extractBoolean[T](key : String) (req : Req)(fun : Boolean => T) : Box[Option[T]]  = {
-     req.json match {
-       case Full(json) => json \ key match {
-         case JBool(value) => Full(Some(fun(value)))
-         case JNothing => Full(None)
-         case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
-       }
-       case _ =>
-         req.params.get(key) match {
-           case None => Full(None)
-           case Some(head :: Nil) => try {
-             Full(Some(fun(head.toBoolean)))
-           } catch {
-             case e : Throwable =>
-               Failure(s"Parsing request parameter '${key}' as a boolean failed, current value is '${head}'. Error message is: '${e.getMessage}'.")
-           }
-           case Some(list) => Failure(s"${list.size} values defined for 'id' parameter, only one needs to be defined")
-         }
-     }
-   }
+  def extractBoolean[T](key : String) (req : Req)(fun : Boolean => T) : Box[Option[T]]  = {
+    req.json match {
+      case Full(json) => json \ key match {
+        case JBool(value) => Full(Some(fun(value)))
+        case JNothing => Full(None)
+        case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
+      }
+      case _ =>
+        req.params.get(key) match {
+          case None => Full(None)
+          case Some(head :: Nil) => try {
+            Full(Some(fun(head.toBoolean)))
+          } catch {
+            case e : Throwable =>
+              Failure(s"Parsing request parameter '${key}' as a boolean failed, current value is '${head}'. Error message is: '${e.getMessage}'.")
+          }
+          case Some(list) => Failure(s"${list.size} values defined for 'id' parameter, only one needs to be defined")
+        }
+    }
+  }
 
   def extractMap[T,U](key : String)(req : Req)
     ( keyFun : String => T
