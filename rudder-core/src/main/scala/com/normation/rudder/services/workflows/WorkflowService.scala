@@ -44,9 +44,32 @@ import com.normation.rudder.repository._
 import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
 import com.normation.rudder.services.eventlog.WorkflowEventLogService
 import com.normation.rudder.batch.AsyncWorkflowInfo
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.PluginLogger
 
 
 case object WorkflowUpdate
+
+/*
+ * This service allows to know if the change validation service is set
+ */
+trait WorkflowLevelService {
+  def workflowEnabled: Boolean
+  def name: String
+}
+
+// and default implementation is: no
+class DefaultWorkflowLevel() extends WorkflowLevelService {
+  private[this] var level: Option[WorkflowLevelService] = None
+  def overrideLevel(l: WorkflowLevelService): Unit = {
+    PluginLogger.info(s"Update Validation Workflow level to '${l.name}'")
+    level = Some(l)
+  }
+  override def workflowEnabled: Boolean = level.map( _.workflowEnabled ).getOrElse(false)
+
+  override def name: String = level.map( _.name ).getOrElse("Default implementation (RO/RW authorization)")
+}
+
 /**
  * That service allows to glue Rudder with the
  * workflows engine.
@@ -54,6 +77,9 @@ case object WorkflowUpdate
  * and to be notified when one of them reach the end.
  */
 trait WorkflowService {
+
+  // each kind of workflow has a name for identification in logs.
+  def name: String
 
   /**
    * Start a new workflow process with the given
@@ -96,38 +122,6 @@ trait WorkflowService {
   def isPending(currentStep:WorkflowNodeId): Boolean
 }
 
-/**
- * A proxy workflow service based on a runtime choice
- */
-class EitherWorkflowService(cond: () => Box[Boolean], whenTrue: WorkflowService, whenFalse: WorkflowService) extends WorkflowService {
-
-  //TODO: handle ERRORS for config!
-
-  def current: WorkflowService = if(cond().getOrElse(false)) whenTrue else whenFalse
-
-  def startWorkflow(changeRequestId: ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId] =
-    if(cond().getOrElse(false)) whenTrue.startWorkflow(changeRequestId, actor, reason) else whenFalse.startWorkflow(changeRequestId, actor, reason)
-  def openSteps :List[WorkflowNodeId] =
-    if(cond().getOrElse(false)) whenTrue.openSteps else whenFalse.openSteps
-  def closedSteps :List[WorkflowNodeId] =
-    if(cond().getOrElse(false)) whenTrue.closedSteps else whenFalse.closedSteps
-  def stepsValue :List[WorkflowNodeId] =
-    if(cond().getOrElse(false)) whenTrue.stepsValue else whenFalse.stepsValue
-  def findNextSteps(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean) : WorkflowAction =
-    if(cond().getOrElse(false)) whenTrue.findNextSteps(currentUserRights, currentStep, isCreator) else whenFalse.findNextSteps(currentUserRights, currentStep, isCreator)
-  def findBackSteps(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean) : Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])] =
-    if(cond().getOrElse(false)) whenTrue.findBackSteps(currentUserRights, currentStep, isCreator) else whenFalse.findBackSteps(currentUserRights, currentStep, isCreator)
-  def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] =
-    if(cond().getOrElse(false)) whenTrue.findStep(changeRequestId) else whenFalse.findStep(changeRequestId)
-  def getAllChangeRequestsStep() : Box[Map[ChangeRequestId,WorkflowNodeId]] =
-    if(cond().getOrElse(false)) whenTrue.getAllChangeRequestsStep else whenFalse.getAllChangeRequestsStep
-  def isEditable(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Boolean =
-    if(cond().getOrElse(false)) whenTrue.isEditable(currentUserRights, currentStep, isCreator) else whenFalse.isEditable(currentUserRights, currentStep, isCreator)
-  def isPending(currentStep:WorkflowNodeId): Boolean =
-    if(cond().getOrElse(false)) whenTrue.isPending(currentStep) else whenFalse.isPending(currentStep)
-}
-
-
 case class WorkflowAction(
     name:String
   , actions:Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]
@@ -140,6 +134,50 @@ object WorkflowAction {
 }
 
 /**
+ * A facade, use to hide the real workflow service.
+ * Must be initialized with a non-null workflow service.
+ */
+class FacadeWorkflowService(private var workflowService: WorkflowService) extends WorkflowService {
+
+  // one can change the workflow service, and the action is log
+  def updateWorkflowService(wf: WorkflowService): Unit = {
+    ApplicationLogger.info(s"Setting a new changes validation workflow: '${wf.name}'")
+    this.workflowService = wf
+  }
+
+  // allow to recover current workflow server
+  def getCurrentWorkflowService = workflowService
+
+  ///// below are all the forwards, nothing interesting at all /////
+  override def name: String = //we are totaly tranparent, the name is the name of the backend workflow service
+    workflowService.name
+  override def startWorkflow(changeRequestId: ChangeRequestId, actor: EventActor, reason: Option[String]): Box[WorkflowNodeId] =
+    workflowService.startWorkflow(changeRequestId, actor, reason)
+  override def openSteps: List[WorkflowNodeId] =
+    workflowService.openSteps
+  override def closedSteps: List[WorkflowNodeId] =
+    workflowService.closedSteps
+  override def stepsValue: List[WorkflowNodeId] =
+    workflowService.stepsValue
+  override def findNextSteps(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): WorkflowAction =
+    workflowService.findNextSteps(currentUserRights, currentStep, isCreator)
+  override def findBackSteps(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => Box[WorkflowNodeId])] =
+    workflowService.findBackSteps(currentUserRights, currentStep, isCreator)
+  override def findStep(changeRequestId: ChangeRequestId): Box[WorkflowNodeId] =
+    workflowService.findStep(changeRequestId)
+  override def getAllChangeRequestsStep(): Box[Map[ChangeRequestId, WorkflowNodeId]] =
+    workflowService.getAllChangeRequestsStep()
+  override def isEditable(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Boolean =
+    workflowService.isEditable(currentUserRights, currentStep, isCreator)
+  override def isPending(currentStep: WorkflowNodeId): Boolean =
+    workflowService.isPending(currentStep)
+}
+
+object FacadeWorkflowService {
+  def apply(wf: WorkflowService): FacadeWorkflowService = new FacadeWorkflowService(wf)
+}
+
+/**
  * The simplest workflow ever, that doesn't wait for approval
  * It has only one state : Deployed
  */
@@ -149,6 +187,8 @@ class NoWorkflowServiceImpl(
 ) extends WorkflowService with Loggable {
 
   val noWorfkflow = WorkflowNodeId("No Workflow")
+
+  val name = "no-changes-validation-workflow"
 
   def findNextSteps(
       currentUserRights : Seq[String]
@@ -200,205 +240,3 @@ class NoWorkflowServiceImpl(
 
   def isPending(currentStep:WorkflowNodeId): Boolean = false
 }
-
-class TwoValidationStepsWorkflowServiceImpl(
-    workflowLogger : WorkflowEventLogService
-  , commit         : CommitAndDeployChangeRequestService
-  , roWorkflowRepo : RoWorkflowRepository
-  , woWorkflowRepo : WoWorkflowRepository
-  , workflowComet  : AsyncWorkflowInfo
-  , selfValidation : () => Box[Boolean]
-  , selfDeployment : () => Box[Boolean]
-) extends WorkflowService with Loggable {
-
-  case object Validation extends WorkflowNode {
-    val id = WorkflowNodeId("Pending validation")
-  }
-
-  case object Deployment extends WorkflowNode {
-    val id = WorkflowNodeId("Pending deployment")
-  }
-
-  case object Deployed extends WorkflowNode {
-    val id = WorkflowNodeId("Deployed")
-  }
-
-  case object Cancelled extends WorkflowNode {
-    val id = WorkflowNodeId("Cancelled")
-  }
-
-  val steps:List[WorkflowNode] = List(Validation,Deployment,Deployed,Cancelled)
-
-  def getItemsInStep(stepId: WorkflowNodeId) : Box[Seq[ChangeRequestId]] = roWorkflowRepo.getAllByState(stepId)
-
-  val openSteps : List[WorkflowNodeId] = List(Validation.id,Deployment.id)
-  val closedSteps : List[WorkflowNodeId] = List(Cancelled.id,Deployed.id)
-  val stepsValue = steps.map(_.id)
-
-  def findNextSteps(
-      currentUserRights : Seq[String]
-    , currentStep       : WorkflowNodeId
-    , isCreator         : Boolean
-  ) : WorkflowAction = {
-    val authorizedRoles = currentUserRights.filter(role => (role == "validator" || role == "deployer"))
-    //TODO: manage error for config !
-    val canValid  = selfValidation().getOrElse(false) || !isCreator
-    val canDeploy = selfDeployment().getOrElse(false) || !isCreator
-    currentStep match {
-      case Validation.id =>
-        val validatorActions =
-          if (authorizedRoles.contains("validator") && canValid)
-            Seq((Deployment.id,stepValidationToDeployment _)) ++ {
-            if(authorizedRoles.contains("deployer") && canDeploy)
-              Seq((Deployed.id,stepValidationToDeployed _))
-              else Seq()
-             }
-          else Seq()
-        WorkflowAction("Validate",validatorActions )
-
-
-      case Deployment.id =>
-        val actions =
-          if(authorizedRoles.contains("deployer") && canDeploy)
-            Seq((Deployed.id,stepDeploymentToDeployed _))
-          else Seq()
-        WorkflowAction("Deploy",actions)
-      case Deployed.id   => NoWorkflowAction
-      case Cancelled.id  => NoWorkflowAction
-      case WorkflowNodeId(x) =>
-        logger.warn(s"An unknow workflow state was reached with ID: '${x}'. It is likely to be a bug, please report it")
-        NoWorkflowAction
-    }
-  }
-
-  def findBackSteps(
-      currentUserRights : Seq[String]
-    , currentStep       : WorkflowNodeId
-    , isCreator         : Boolean
-  ) : Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])] = {
-    val authorizedRoles = currentUserRights.filter(role => (role == "validator" || role == "deployer"))
-    //TODO: manage error for config !
-    val canValid  = selfValidation().getOrElse(false) || !isCreator
-    val canDeploy = selfDeployment().getOrElse(false) || !isCreator
-    currentStep match {
-      case Validation.id =>
-        if (authorizedRoles.contains("validator") && canValid) Seq((Cancelled.id,stepValidationToCancelled _)) else Seq()
-      case Deployment.id => if (authorizedRoles.contains("deployer") && canDeploy)  Seq((Cancelled.id,stepDeploymentToCancelled _)) else Seq()
-      case Deployed.id   => Seq()
-      case Cancelled.id  => Seq()
-      case WorkflowNodeId(x) =>
-        logger.warn(s"An unknow workflow state was reached with ID: '${x}'. It is likely to be a bug, please report it")
-        Seq()
-    }
-  }
-
-  def isEditable(currentUserRights:Seq[String],currentStep:WorkflowNodeId, isCreator : Boolean): Boolean = {
-    val authorizedRoles = currentUserRights.filter(role => (role == "validator" || role == "deployer"))
-    currentStep match {
-      case Validation.id => authorizedRoles.contains("validator") || isCreator
-      case Deployment.id => authorizedRoles.contains("deployer")
-      case Deployed.id   => false
-      case Cancelled.id  => false
-      case WorkflowNodeId(x) =>
-        logger.warn(s"An unknow workflow state was reached with ID: '${x}'. It is likely to be a bug, please report it")
-        false
-    }
-  }
-
-  def isPending(currentStep:WorkflowNodeId): Boolean = {
-    currentStep match {
-      case Validation.id => true
-      case Deployment.id => true
-      case Deployed.id   => false
-      case Cancelled.id  => false
-      case WorkflowNodeId(x) =>
-        logger.warn(s"An unknow workflow state was reached with ID: '${x}'. It is likely to be a bug, please report it")
-        false
-    }
-  }
-  def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] = {
-    roWorkflowRepo.getStateOfChangeRequest(changeRequestId)
-  }
-
-
-  def getAllChangeRequestsStep : Box[Map[ChangeRequestId,WorkflowNodeId]] = {
-    roWorkflowRepo.getAllChangeRequestsState
-  }
-
-  private[this] def changeStep(
-      from           : WorkflowNode
-    , to             : WorkflowNode
-    , changeRequestId: ChangeRequestId
-    , actor          : EventActor
-    , reason         : Option[String]
-  ) : Box[WorkflowNodeId] = {
-    (for {
-      state <- woWorkflowRepo.updateState(changeRequestId,from.id, to.id)
-      workflowStep = WorkflowStepChange(changeRequestId,from.id,to.id)
-      log   <- workflowLogger.saveEventLog(workflowStep,actor,reason)
-    } yield {
-      workflowComet ! WorkflowUpdate
-      state
-    }) match {
-      case Full(state) => Full(state)
-      case e:Failure => logger.error(s"Error when changing step in workflow for Change Request ${changeRequestId.value} : ${e.msg}")
-                        e
-      case Empty => logger.error(s"Error when changing step in workflow for Change Request ${changeRequestId.value} : no reason given")
-                    Empty
-    }
-  }
-
-  private[this] def toFailure(from: WorkflowNode, changeRequestId: ChangeRequestId, actor: EventActor, reason: Option[String]) : Box[WorkflowNodeId] = {
-    changeStep(from, Cancelled,changeRequestId,actor,reason)
-  }
-
-  def startWorkflow(changeRequestId: ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId] = {
-    logger.debug("start workflow")
-    for {
-      workflow <- woWorkflowRepo.createWorkflow(changeRequestId, Validation.id)
-    } yield {
-      workflowComet ! WorkflowUpdate
-      workflow
-    }
-  }
-
-  private[this]  def onSuccessWorkflow(from: WorkflowNode, changeRequestId: ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId] = {
-    logger.debug("update")
-    for {
-      save  <- commit.save(changeRequestId, actor, reason)
-      state <- changeStep(from,Deployed,changeRequestId,actor,reason)
-    } yield {
-      state
-    }
-
-  }
-
-  //allowed workflow steps
-
-
-  private[this] def stepValidationToDeployment(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId] = {
-    changeStep(Validation, Deployment,changeRequestId, actor, reason)
-  }
-
-
-  private[this] def stepValidationToDeployed(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId] = {
-    onSuccessWorkflow(Validation, changeRequestId, actor, reason)
-  }
-
-  private[this] def stepValidationToCancelled(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId] = {
-    toFailure(Validation, changeRequestId, actor, reason)
-  }
-
-  private[this] def stepDeploymentToDeployed(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId] = {
-    onSuccessWorkflow(Deployment, changeRequestId, actor, reason)
-  }
-
-
-  private[this] def stepDeploymentToCancelled(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId] = {
-    toFailure(Deployment, changeRequestId, actor, reason)
-  }
-
-
-}
-
-
