@@ -18,16 +18,29 @@
 
 # @name Condition from expression
 # @description Create a new condition class
-# @documentation This bundle will define a class `condition_from_expression_${condition_prefix}_{kept,ok,reached}`
-#
-# This bundle will additionally produce a `${condition_prefix}_true` or a `${condition_prefix}_false` condition depending on the result on the expression:
+# @documentation This method evaluates an expression, and produces a `${condition_prefix}_true` or a `${condition_prefix}_false` condition depending on the result on the expression:
 #
 # * If the expression results in a "defined" state, this will produce a kept outcome class and a `${condition_prefix}_true` condition
 # * If the expression results in an "undefined" state, this will produce a kept outcome class and a `${condition_prefix}_false` condition
 #
 # Calling this method with a condition expression transforms a complex expression into a single class condition.
 #
-# The created condition (class in cfengine speaking) is global to the agent.
+# The created condition is global to the agent.
+#
+# #### Example
+#
+# If you want to check if a condition evaluates to true, like checking that you are on Monday, 2am, on RedHat systems, you can use the following policy
+#
+# ```
+# condition_from_expression("backup_time", "Monday.redhat.Hr02")
+# ```
+#
+# * If the system is a RedHat like system, on Monday, at 2am, then it will define the following conditions
+# `backup_time_true`, `condition_from_expression_backup_time_kept`, `condition_from_expression_backup_time_reached`
+# * If the system not a RedHat like system, or it's not Monday, or it's not 2am, then it will define the following conditions
+# `backup_time_false`, `condition_from_expression_backup_time_kept`, `condition_from_expression_backup_time_reached`
+# * If the condition is invalid (cannot be parsed), it will define only
+# `condition_from_expression_backup_time_kept`, `condition_from_expression_backup_time_reached`
 #
 # @parameter condition_prefix     The condition prefix
 # @parameter condition_expression The expression evaluated to create the condition (use 'any' to always evaluate to true)
