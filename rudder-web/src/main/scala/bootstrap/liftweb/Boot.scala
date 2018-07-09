@@ -59,6 +59,7 @@ import java.net.URLConnection
 
 import com.normation.plugins.PluginName
 import com.normation.rudder.domain.logger.PluginLogger
+import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.{InfoApi => InfoApiDef}
 import com.normation.rudder.rest.lift.InfoApi
@@ -105,7 +106,7 @@ object PluginsInfo {
         case plugin :: tail => plugin.apis match {
           case None    => recApi(apis, tail)
           case Some(x) => x.schemas match {
-            case s: EndpointSchema => recApi(s :: apis, tail)
+            case p: ApiModuleProvider[_] => recApi(p.endpoints ::: apis, tail)
             case _ => recApi(apis, tail)
           }
         }
@@ -495,6 +496,7 @@ class Boot extends Loggable {
         RudderConfig.rudderApi.addModules(api.getLiftEndpoints())
       }
 
+      //add the plugin packages to Lift package to look for packages and add API information for other services
       //add the plugin packages to Lift package to look for packages
       LiftRules.addToPackages(plugin.basePackage)
       PluginsInfo.registerPlugin(plugin)
