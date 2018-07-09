@@ -27,8 +27,8 @@
   <SECTIONS>
     <SECTION component="true" multivalued="true" name="Command execution">
       <REPORTKEYS>
-        <VALUE>Write-Host &quot;test&quot;</VALUE>
-        <VALUE>/bin/echo &quot;test&quot;</VALUE>
+        <VALUE>Write-Host &quot;testing special characters ` è &amp;é 'à é &quot;</VALUE>
+        <VALUE>/bin/echo &quot;testing special characters ` è &amp;é 'à é &quot;</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION component="true" multivalued="true" name="Package install">

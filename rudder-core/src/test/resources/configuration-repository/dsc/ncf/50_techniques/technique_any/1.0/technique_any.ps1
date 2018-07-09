@@ -1,4 +1,4 @@
-function Technique-Any {
+﻿function Technique-Any {
   [CmdletBinding()]
   param (
       [parameter(Mandatory=$true)]
