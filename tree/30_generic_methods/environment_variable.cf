@@ -42,7 +42,7 @@ bundle agent environment_variable_present(name, value)
   files:
     "/etc/environment"
       create    => "true",
-      edit_line => set_variable_values("environment_variable.array"),
+      edit_line => set_variable_values("environment_variable_present.array"),
       classes   => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
