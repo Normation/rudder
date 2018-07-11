@@ -391,9 +391,15 @@ class DSCTechniqueWriter(
                 ) ( e =>
                   IOError(s"Could not find dsc Technique '${technique.name}' in path ${basePath}/${techniquePath}", Some(e))
                 )
+      // Powershell files needs to have a BOM added at the beginning of all files when using UTF8 enoding
+      // See https://docs.microsoft.com/en-us/windows/desktop/intl/using-byte-order-marks
+      contentWithBom : List[Byte] =
+        // Bom, three bytes: EF BB BF https://en.wikipedia.org/wiki/Byte_order_mark
+        239.toByte :: 187.toByte :: 191.toByte  ::
+        content.getBytes(StandardCharsets.UTF_8).toList
       files <-  execute {
                   Files.createDirectories(path.getParent)
-                  Files.write(path, content.getBytes(StandardCharsets.UTF_8))
+                  Files.write(path, contentWithBom.toArray)
                 } ( e =>
                   IOError(s"Could not write dsc Technique file '${technique.name}' in path ${basePath}/${techniquePath}",Some(e))
                 )
