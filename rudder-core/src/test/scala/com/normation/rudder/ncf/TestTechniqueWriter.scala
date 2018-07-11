@@ -136,7 +136,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
         ) ::
         MethodCall(
             BundleName("command_execution")
-          , Map((ParameterId("command"),"Write-Host \"test\""))
+          , Map((ParameterId("command"),"Write-Host \"testing special characters ` è &é 'à é \""))
           , "windows"
         ) ::
         MethodCall(
@@ -151,7 +151,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
         ) ::
         MethodCall(
             BundleName("command_execution")
-          , Map((ParameterId("command"),"/bin/echo \"test\""))
+          , Map((ParameterId("command"),"/bin/echo \"testing special characters ` è &é 'à é \""))
           , "cfengine-community"
         ) ::
         MethodCall(
