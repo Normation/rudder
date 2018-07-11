@@ -69,7 +69,7 @@
                 <option value="ro">Read only</option>
                 <option value="rw">Full access</option>
                 <option ng-disabled="!aclPlugin" value="acl"> Custom ACL {{ aclPlugin ? "" : "(Need plugin)"}}</option>
-              </select> 
+              </select>
             </div>
             <button class="btn btn-box-tool btn-blue pull-right space-top space-bottom" ng-click="getAccounts()">Refresh <span class="fa fa-refresh"></span></button>
           </div>
@@ -136,7 +136,7 @@
                             <label for="newAccount-description">Description</label>
                             <textarea id="newAccount-description" class="form-control vresize float-inherit" ng-model="myNewAccount.description"></textarea>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="newAccount-expiration">Expiration date</label>
                             <toggle on="Enabled" off="Disabled" ng-model="myNewAccount.expirationDateDefined" onstyle="btn-blue" offstyle="btn-grey" ></toggle>
