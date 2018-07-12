@@ -704,10 +704,13 @@ $scope.onImportFileChange = function (fileEl) {
     switch($scope.filter.compatibility){
       case "dsc":
         agentTypeFilter = method.agent_support.some(function(agent){return agent === "dsc"});
+        break;
       case "classic":
         agentTypeFilter = method.agent_support.some(function(agent){return agent === "cfengine-community"});
+        break;
       case "all":
         agentTypeFilter = true;
+        break;
     }
     return agentTypeFilter && deprecatedFilter;
   }
