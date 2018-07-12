@@ -58,14 +58,11 @@ accountManagement.directive('validEmpty', function() {
 /*
  * This module expects the following JS variables to be defined:
  * - apiPath: context path to use
- * - rudderApis: an object with the description of all Rudder apis // only non null if the API authz plugin is present
  */
 accountManagement.controller('AccountCtrl', function ($scope, $http, DTOptionsBuilder, DTColumnDefBuilder) {
 
   $scope.aclPlugin = false;
   $scope.authFilter = undefined;
-  // all rudder defined apis
-  $scope.rudderApis = rudderApis;
 
   // currently updated api account
   $scope.myNewAccount = undefined;
