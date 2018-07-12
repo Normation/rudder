@@ -552,6 +552,7 @@ def generate_technique_content(technique, methods):
   content.append('  methods:')
 
   # Handle method calls
+  report_unique_id = 0
   for method_call in technique["method_calls"]:
     method_name = method_call["method_name"]
     method_info = methods[method_name]
@@ -582,7 +583,8 @@ def generate_technique_content(technique, methods):
       promiser = "method_call"
 
     # Set bundle context, first escape paramters
-    content.append('    "'+promiser+'_context" usebundle => '+ generate_reporting_context(method_info, method_call) + ";")
+    content.append('    "'+promiser+'_context_' + str(report_unique_id) + '" usebundle => '+ generate_reporting_context(method_info, method_call) + ";")
+    report_unique_id += 1
 
     # Append method call
     content.append('    "'+promiser+'" usebundle => '+method_name+'('+arg_value+'),')

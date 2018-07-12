@@ -198,6 +198,8 @@ def generate_rudder_reporting(technique):
   content.append('')
   content.append('  methods:')
 
+  report_unique_id = 0
+
   for method_call in technique["method_calls"]:
 
     method_name = method_call['method_name']
@@ -208,7 +210,8 @@ def generate_rudder_reporting(technique):
     key_value = ncf.get_key_value(method_call, generic_method)
 
     class_prefix = ncf.get_class_prefix(key_value, generic_method)
-    method_reporting = '"dummy_report" usebundle => ' + ncf.generate_reporting_context(generic_method, method_call) 
+    method_reporting = '"dummy_report_' + str(report_unique_id) + '" usebundle => ' + ncf.generate_reporting_context(generic_method, method_call) 
+    report_unique_id += 1
     class_parameter  = ncf.generate_reporting_class_parameter(generic_method, method_call)
 
     if not "cfengine-community" in generic_method["agent_support"]:
