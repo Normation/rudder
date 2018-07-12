@@ -100,7 +100,7 @@
                 </td>
                 <td>
                   <button class='btn btn-default' ng-click="popupCreation(account, $index)"><span class="fa fa-pencil"></span></button>
-                  <toggle on="Enabled" off="Disabled" ng-model="account.enabled" onstyle="btn-success" offstyle="btn-grey" ng-change="saveAccount(account,false)" ></toggle>
+                  <toggle on="Enabled" off="Disabled" ng-model="account.enabled" onstyle="btn-success" offstyle="btn-grey" ng-change="saveAccount(account,$index,false)" ></toggle>
                   <button class='btn btn-danger delete-button' ng-click="popupDeletion(account,deleteAccount,'Delete');"><span class="fa fa-times-circle"></span></button>
                 </td>
               </tr>

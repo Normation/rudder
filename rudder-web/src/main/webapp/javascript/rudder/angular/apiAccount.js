@@ -169,7 +169,7 @@ accountManagement.controller('AccountCtrl', function ($scope, $http, DTOptionsBu
    }
  }
 
- $scope.saveAccount = function(account,isPopup) {
+ $scope.saveAccount = function(account,index,isPopup) {
    if (isPopup)  {
      $scope.errorPopup = undefined;
    } else {
@@ -195,7 +195,7 @@ accountManagement.controller('AccountCtrl', function ($scope, $http, DTOptionsBu
      $http.post(apiPath + '/'+account.token,account).
        success(function(data, status, headers, config) {
          var newAccount = data.data.accounts[0];
-         $scope.accounts[$scope.myNewAccount.index] = newAccount
+         $scope.accounts[index] = newAccount
          //$.extend($scope.myNewAccount, newAccount);
          $scope.myNewAccount = undefined;
          $('#newAccountPopup').bsModal('hide');
