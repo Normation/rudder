@@ -46,9 +46,9 @@ def check_authentication_from_rudder(auth_request):
   try:
     # We skip ssl certificate verification, since rudder and ncf-api are on the same domain and same virtualhost
     if "X-API-TOKEN" in auth_request.headers:
-        auth_result = requests.get('http://localhost/rudder/api/authentication?acl=' + acl, headers =  {"X-api-Token": auth_request.headers.get('X-API-TOKEN')} , verify = False)
+        auth_result = requests.get('https://localhost/rudder/api/authentication?acl=' + acl, headers =  {"X-api-Token": auth_request.headers.get('X-API-TOKEN')} , verify = False)
     else:
-      auth_result = requests.get('http://localhost/rudder/authentication?acl=' + acl, cookies =  auth_request.cookies, verify = False)
+      auth_result = requests.get('https://localhost/rudder/authentication?acl=' + acl, cookies =  auth_request.cookies, verify = False)
 
     if auth_result.status_code == 200 or auth_result.status_code == 401 or auth_result.status_code == 403:
       auth_response = auth_result.json()
