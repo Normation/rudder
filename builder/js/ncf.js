@@ -969,12 +969,16 @@ $scope.onImportFileChange = function (fileEl) {
   // selected technique is correct if:
   // * There is at least one method call
   $scope.checkSelectedTechnique = function() {
-     var res = $scope.selectedTechnique.method_calls.length === 0;
-     if ($scope.selectedTechnique.isClone) {
-       return res
-     } else {
-       return res ||  $scope.isUnchanged($scope.selectedTechnique)
-     }
+    if (typeof($scope.selectedTechnique.method_calls) !== 'undefined') {
+      var res = $scope.selectedTechnique.method_calls.length === 0;
+      if ($scope.selectedTechnique.isClone) {
+        return res
+      } else {
+        return res ||  $scope.isUnchanged($scope.selectedTechnique)
+      }
+    } else {
+      return false;
+    }
   }
 
   // Technique actions
