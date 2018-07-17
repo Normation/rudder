@@ -65,7 +65,8 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       checkPolicyServer _ ::
       checkOS _ ::
       checkKernelVersion _ ::
-      checkAgent _ ::
+      checkAgentType _ ::
+      checkSecurityToken _ ::
       Nil
 
     pipeline(checks, report) { (check,currentReport) =>
@@ -96,11 +97,11 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     }
   }
 
-  private[this] def checkInRudderTag(xml:NodeSeq,tag : String)= {
+  private[this] def checkInRudderTag(xml:NodeSeq,tag : String) : Box[String] = {
     checkNodeSeq(xml,"RUDDER",false,Some(tag))
   }
 
-  private[this] def checkInAgentTag(xml:NodeSeq,tag : String)= {
+  private[this] def checkInAgentTag(xml:NodeSeq,tag : String) : Box[String] = {
     checkNodeSeq(xml,"AGENT",false,Some(tag))
   }
 
@@ -221,16 +222,27 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   }
 
 
-  private[this] def checkAgent(report:NodeSeq) : Box[NodeSeq] = {
+  private[this] def checkAgentType(report:NodeSeq) : Box[NodeSeq] = {
     val agentTag = "AGENT_NAME"
     val tag = "AGENTNAME"
     for {
       tagHere <- {
         checkInAgentTag(report,agentTag) match {
           case full : Full[String] => full
-          case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing Missing agent name attribute ${tag} in report. This attribute is mandatory and must contains node local administrator login."
+          case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing agent name attribute ${agentTag} in report. This attribute is mandatory and must contains agent type."
         }
       }
+    } yield {
+      report
+    }
+  }
+
+  // since Rudder 4.3, a security token is mandatory
+  private[this] def checkSecurityToken(report:NodeSeq) : Box[NodeSeq] = {
+    for {
+      tagHere <- checkInAgentTag(report, "CFENGINE_KEY").or(checkInAgentTag(report, "AGENT_CERT")) ?~! (
+                             "Missing security token attribute (RUDDER/AGENT/CFENGINE_KEY or RUDDER/AGENT/AGENT_CERT) " +
+                             "in report. This attribute is mandatory and must contains agent certificate or public key.")
     } yield {
       report
     }

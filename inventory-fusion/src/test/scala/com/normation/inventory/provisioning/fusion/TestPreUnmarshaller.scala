@@ -40,12 +40,15 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import net.liftweb.common._
+
 import scala.xml.XML
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import com.normation.inventory.services.provisioning.PreUnmarshall
 import java.io.InputStream
+
 import org.xml.sax.SAXParseException
+
 import scala.xml.NodeSeq
 
 /**
@@ -92,7 +95,7 @@ class TestPreUnmarshaller extends Specification {
   }
   val post = new PreUnmarshallCheckConsistency
 
-  "Post inventory check should be ok" should {
+  "Pre inventory check should be ok" should {
      "With a valid inventory on Linux" in {
         val linux = post.check("fusion-report/signed_inventory.ocs")
         linux.toOption must not beNone
@@ -104,11 +107,19 @@ class TestPreUnmarshaller extends Specification {
     }
   }
 
-  "Post inventory check should fail" should {
+  "Pre inventory check should fail" should {
      "When there is no fqdn defined" in {
         val noFQDN = post.check("fusion-report/centos.no_rudder_extension.no_fqdn")
         noFQDN.toOption must beNone
      }
+
+    "When there is no security token defined" in {
+      val noSecurityToken = post.check("fusion-report/debian-no-security-token.ocs")
+      (noSecurityToken match {
+        case Failure(m, _, _) => m
+        case _                => "not the expected error"
+      }) must beMatching("""\QMissing security token attribute (RUDDER/AGENT/CFENGINE_KEY or RUDDER/AGENT/AGENT_CERT)\E.*""".r)
+    }
   }
 
   "A report without OS/NAME but with KERNEL_NAME" should { "work" in {
