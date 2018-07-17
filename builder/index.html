@@ -72,7 +72,7 @@
           </div>
           <div class="modal-footer">
             <button class="btn btn-default pull-left" ng-click="cancel()">Cancel</button>
-            <button class="btn btn-default btn-delete" ng-click="confirm()">{{actionName}}</button>
+            <button class="btn btn-default btn-danger" ng-click="confirm()">{{actionName}}</button>
           </div>
         </script>
         <script id="template/cloneModal.html" type="text/ng-template">
@@ -139,7 +139,7 @@
                     <thead>
                         <tr>
                             <th colspan=2 style="border:none;">
-                                <button ng-click="newTechnique()" class="btn btn-xs btn-success" style="height:30px;"><span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>Create</button>
+				<button ng-click="newTechnique()" class="btn btn-xs btn-success new-icon" style="height:30px;">Create</button>
                                 <label class="btn btn-xs btn-default" style="height:30px;line-height:30px;margin-left:10px;" for="btn-import">
                                     <span class="glyphicon glyphicon-upload" style="margin-right:5px"></span>Import
                                     <input id="btn-import" type="file" onchange="angular.element(this).scope().onImportFileChange(this)" class="hidden">
@@ -188,17 +188,15 @@
                 <p>Create a new technique or edit one  from the list on the left.</p>
                 <p>Define target configuration using the generic methods from the list on the right as building blocks.</p>
                 <p>
-                  <a class="btn btn-success btn-lg" ng-click="newTechnique()" role="button">
-                    <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px; top: 3px"></span>Create Technique
-                  </a>
-               </p>
+                  <a class="btn btn-success btn-lg new-icon" ng-click="newTechnique()" role="button">Create Technique</a>
+                </p>
              </div>
             <div ng-if="selectedTechnique" >
               <div id="editform-container">
                     <div class="title">Technique</div>
                     <h3 id="technique-name">{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
                       <div class="btn-technique">
-                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-delete" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete</a>
+                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-danger" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete</a>
                         <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone</a>
                         <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="exportTechnique(selectedTechnique)">Export</a>
                       </div>
@@ -368,10 +366,9 @@
             </div>
             </form>
             <div ng-if="selectedTechnique" class="col-md-5 col-md-offset-2 col-xs-12 col-xs-offset-0 fixed-footer">
-                <div ng-click="openMethods()"  class="btn btn-default pull-left" ng-class="{'active': selectedMethod === undefined }">
-                    <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
+                <button ng-click="openMethods()" class="btn btn-success btn-outline new-icon pull-left">
                     Add methods
-                </div>
+                </button>
                 <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving" class="btn btn-success pull-right btn-save" ng-class="{saving : saving}" ng-click="saveTechnique()">
                   <span class="glyphicon glyphicon-cog saving"></span>
                   Save
