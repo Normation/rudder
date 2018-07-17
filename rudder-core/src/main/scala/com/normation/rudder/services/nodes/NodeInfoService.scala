@@ -195,6 +195,14 @@ object NodeInfoService {
  * For test, we need a way to split the cache part from its retrieval.
  */
 
+// our cache is modelized with a Map of entries, their last modification timestamp, and the corresponding entryCSN
+final case class LocalNodeInfoCache(
+    nodeInfos       : Map[NodeId, (LDAPNodeInfo, NodeInfo)]
+  , lastModTime     : DateTime
+  , lastModEntryCSN : Seq[String]
+)
+
+
 trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRepository {
   import NodeInfoService._
 
@@ -211,7 +219,11 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
    * Compare if cache is up to date (based on internal state of the cache)
    */
   def isUpToDate(): Boolean = {
-    checkUpToDate(lastModificationTime)
+    nodeCache match {
+      case Some(cache) => checkUpToDate(cache.lastModTime, cache.lastModEntryCSN)
+      case None        => checkUpToDate(new DateTime(0), Seq())
+    }
+
   }
 
   /**
@@ -220,7 +232,7 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
    * Entries may be any entry relevant for our cache, in particular,
    * some attention must be provided to deleted entries.
    */
-  protected[this] def checkUpToDate(lastKnowModification: DateTime): Boolean
+  protected[this] def checkUpToDate(lastKnowModification: DateTime, lastModEntryCSN: Seq[String]): Boolean
 
   /**
    * This method must return only and all entries under:
@@ -234,10 +246,10 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
   /*
    * Our cache
    */
-  private[this] var nodeCache = Option.empty[Map[NodeId, (LDAPNodeInfo, NodeInfo)]]
-  private[this] var lastModificationTime = new DateTime(0)
+  private[this] var nodeCache = Option.empty[LocalNodeInfoCache]
 
-  private[this] val searchAttributes = nodeInfoAttributes :+ A_MOD_TIMESTAMP
+  // we need modifyTimestamp to search for update and entryCSN to remove already processed entries
+  private[this] val searchAttributes = nodeInfoAttributes :+ A_MOD_TIMESTAMP :+ "entryCSN"
 
   /**
    * That's the method that do all the logic
@@ -247,7 +259,7 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
      * Get all relevant info from backend along with the
      * date of the last modification
      */
-    def getDataFromBackend(lastKnowModification: DateTime): Box[(Map[NodeId, (LDAPNodeInfo, NodeInfo)], DateTime)] = {
+    def getDataFromBackend(lastKnowModification: DateTime): Box[LocalNodeInfoCache] = {
       import scala.collection.mutable.{Map => MutMap}
 
       //some map of things - mutable, yes
@@ -257,32 +269,39 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
 
       val t0 = System.currentTimeMillis
 
+      // two vars to keep track of the new last modification time and entries csn
       var lastModif = lastKnowModification
+      val entriesCSN = scala.collection.mutable.Buffer[String]()
+
 
       ldap.flatMap { con =>
 
         val deletedNodes = con.search(
             removedDit.NODES.dn
           , One
-          , AND(IS(OC_NODE), GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification.withMillis(0)).toString))
+          , AND(IS(OC_NODE), GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString))
           , A_MOD_TIMESTAMP
         )
 
-        val allEntries = getNodeInfoEntries(con, searchAttributes, AcceptedInventory)
+        val allActiveEntries = getNodeInfoEntries(con, searchAttributes, AcceptedInventory)
 
         //look for the maxed timestamp
-        (deletedNodes ++ allEntries).foreach { e =>
+        (deletedNodes ++ allActiveEntries).foreach { e =>
           e.getAsGTime(A_MOD_TIMESTAMP) match {
             case None    => //nothing
             case Some(x) =>
               if(x.dateTime.isAfter(lastModif)) {
                 lastModif = x.dateTime
+                entriesCSN.clear()
+              }
+              if(x.dateTime == lastModif) {
+                e("entryCSN").map(csn => entriesCSN.append(csn))
               }
           }
         }
 
         // now, create the nodeInfo
-        allEntries.foreach { e =>
+        allActiveEntries.foreach { e =>
           if(e.isA(OC_MACHINE)) {
             machineInventories += (e.dn.toString -> e)
           } else if(e.isA(OC_NODE)) {
@@ -332,7 +351,7 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
           logger.error(msg)
           Failure(msg)
         } else {
-          Full((res, lastModif))
+          Full(LocalNodeInfoCache(res, lastModif, entriesCSN))
         }
       }
     }
@@ -343,22 +362,21 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
 
     val boxInfo = (if(nodeCache.isEmpty || !isUpToDate()) {
 
-      getDataFromBackend(lastModificationTime) match {
-        case Full((info, lastModif)) =>
-          logger.debug(s"NodeInfo cache is not up to date, last modification time: '${lastModif}', last cache update:"+
-                       s" '${lastModificationTime}' => reseting cache with ${info.size} entries")
-          logger.trace(s"NodeInfo cache updated entries: [${info.keySet.map{ _.value }.mkString(", ")}]")
-          nodeCache = Some(info)
-          lastModificationTime = lastModif
-          Full(info)
+      val lastUpdate = nodeCache.map(_.lastModTime).getOrElse(new DateTime(0))
+      getDataFromBackend(lastUpdate) match {
+        case Full(newCache) =>
+          logger.debug(s"NodeInfo cache is not up to date, last modification time: '${newCache.lastModTime}', last cache update:"+
+                       s" '${lastUpdate}' => reseting cache with ${newCache.nodeInfos.size} entries")
+          logger.trace(s"NodeInfo cache updated entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]")
+          nodeCache = Some(newCache)
+          Full(newCache.nodeInfos)
         case eb: EmptyBox =>
           nodeCache = None
-          lastModificationTime = new DateTime(0)
           eb ?~! "Could not get node information from database"
       }
     } else {
-      logger.debug(s"NodeInfo cache is up to date, last modification time: '${lastModificationTime}'")
-      Full(nodeCache.get) //get is ok because in a synchronized block with a test on isEmpty
+      logger.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}")
+      Full(nodeCache.get.nodeInfos) //get is ok because in a synchronized block with a test on isEmpty
     })
 
     val res = for {
@@ -462,7 +480,6 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
    * the result
    */
   override def clearCache(): Unit = this.synchronized {
-    this.lastModificationTime = new DateTime(0)
     this.nodeCache = None
   }
 
@@ -521,7 +538,7 @@ class NaiveNodeInfoServiceCachedImpl(
   , override val inventoryMapper: InventoryMapper
 ) extends NodeInfoServiceCached with Loggable  {
 
-  override def checkUpToDate(lastKnowModification: DateTime): Boolean = {
+  override def checkUpToDate(lastKnowModification: DateTime, lastModEntryCSN: Seq[String]): Boolean = {
     false //yes naive
   }
 
@@ -577,6 +594,14 @@ class NodeInfoServiceCachedImpl(
    * Moreover, it is less costly to only do one search and post-filter result
    * than to do 2.
    *
+   * We also need to filter out entry in the previous last modify set to not
+   * have them always matching. The reason is that modifyTimestamp is on
+   * second. But we can have several modify in a second. If we get our
+   * lastModificationTimestamp in just before the second modification, that
+   * modification will be ignore forever (or at least until an other modification
+   * happens - see ticket https://www.rudder-project.org/redmine/issues/12988)
+   * The filter is based on entryCSN, which is sure to be unique (by def).
+   *
    * Finally, we limit the result to one, because here, we just need to know if
    * some update exists, not WHAT they are, nor the MOST RECENT one. Just that
    * at least one exists.
@@ -589,7 +614,7 @@ class NodeInfoServiceCachedImpl(
    *   (with a vagrant VM on the same host (so, almost no network), it takes from client to server and
    *   back ~10ms on a dev machine.
    */
-  override def checkUpToDate(lastKnowModification: DateTime): Boolean = {
+  override def checkUpToDate(lastKnowModification: DateTime, lastModEntryCSN: Seq[String]): Boolean = {
     val n0 = System.currentTimeMillis
     val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub, DereferencePolicy.NEVER, 1, 0, false
         , AND(
@@ -602,7 +627,8 @@ class NodeInfoServiceCachedImpl(
                   // ou=Nodes,cn=rudder-configuration - the objectClass is used only here
                 , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
               )
-            , GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification.plusMillis(1)).toString)
+            , GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString)
+            , NOT(OR(lastModEntryCSN.map(csn => EQ("entryCSN", csn)):_*))
           )
         , "1.1"
       )
