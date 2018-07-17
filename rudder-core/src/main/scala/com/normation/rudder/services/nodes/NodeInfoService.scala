@@ -55,6 +55,7 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.repository.CachedRepository
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.NodeInfoMatcher
@@ -258,12 +259,12 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
 
       var lastModif = lastKnowModification
 
-      ldap.map { con =>
+      ldap.flatMap { con =>
 
         val deletedNodes = con.search(
             removedDit.NODES.dn
           , One
-          , AND(IS(OC_NODE), GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification.plusMillis(1)).toString))
+          , AND(IS(OC_NODE), GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification.withMillis(0)).toString))
           , A_MOD_TIMESTAMP
         )
 
@@ -321,7 +322,18 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
             (nodeInfo.id, (ldapNode,nodeInfo))
           }
         }.toMap
-        (res, lastModif)
+
+        // here, we must ensure that root ID is on the list, else chaos ensue.
+        // If root is missing, invalidate the case
+        if(res.get(Constants.ROOT_POLICY_SERVER_ID).isEmpty) {
+          val msg = "'root' node is missing from the list of nodes. Rudder can not work in that state. We clear the cache now to try" +
+                    "to auto-correct the problem. If it persists, try to run 'rudder agent inventory && rudder agent run' " +
+                    "from the root server and check /var/log/rudder/webapp/ logs for additionnal information."
+          logger.error(msg)
+          Failure(msg)
+        } else {
+          Full((res, lastModif))
+        }
       }
     }
 
@@ -334,7 +346,7 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
       getDataFromBackend(lastModificationTime) match {
         case Full((info, lastModif)) =>
           logger.debug(s"NodeInfo cache is not up to date, last modification time: '${lastModif}', last cache update:"+
-                       " '${lastModificationTime}' => reseting cache with ${info.size} entries")
+                       s" '${lastModificationTime}' => reseting cache with ${info.size} entries")
           logger.trace(s"NodeInfo cache updated entries: [${info.keySet.map{ _.value }.mkString(", ")}]")
           nodeCache = Some(info)
           lastModificationTime = lastModif
@@ -392,7 +404,7 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
                           } yield {
                             machineEntry
                           }
-          for {
+        for {
           nodeInfo <- ldapMapper.convertEntriesToSpecialNodeInfos(nodeEntry, machineInfo)
         } yield {
           (nodeInfo.id, nodeInfo)
@@ -477,7 +489,7 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
 
     // if there is no predicats (ie no specific filter on NodeInfo), we need to make the final
     // filter be neutral to that part. The neutral element for "and" is true, and "false" for or.
-    // If we do have predicat, just compose them according to the composition operator. 
+    // If we do have predicat, just compose them according to the composition operator.
     val p = (if(predicats.isEmpty) {
         composition match {
           case And => Seq(new NodeInfoMatcher { override def matches(node: NodeInfo): Boolean = true  } )
