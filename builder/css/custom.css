@@ -79,6 +79,37 @@ hr {
     color: #eeeeee;   
 }
 
+.btn.new-icon:after{
+  content: "\e081";
+  position: relative;
+  top: 3px;
+  display: inline-block;
+  font-family: 'Glyphicons Halflings';
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  text-rendering: auto;
+  margin-left: 7px;
+}
+.btn.btn-success{
+  background-color: #9bc832;
+  border-color: #8fb92a;
+}
+.btn.btn-success:hover, .btn.btn-success:focus:hover {
+  background-color: #85b711;
+  border-color: #79a90a;
+}
+.btn.btn-success.btn-outline{
+  background-color: #fff !important;
+  color: #8fb92a !important;
+  border-color: #8fb92a !important;
+}
+.btn.btn-success.btn-outline:hover{
+  background-color: #8fb92a !important;
+  color: #fff !important;
+  transition-property: background-color, color;
+  transition-duration: .2s;
+}
 
 .dropdown-menu {
     border:0;
