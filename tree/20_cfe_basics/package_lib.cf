@@ -120,8 +120,10 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "version_description" string => "in version ${version}";
     
     # Log message
-    any::
+    !(!state_present.version_latest)::
       "message" string => "${state_description} of package ${name}${architecture_description}${version_description}";
+    !state_present.version_latest::
+      "message" string => "${state_description} of package ${name}${architecture_description}${version_description} is not supported and";
 
   defaults:
       "version"      string => "any", if_match_regex => "";
