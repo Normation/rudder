@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name Presence of a file
+# @name File present
 # @description Create a file if it doesn't exist
 #
 # @parameter target     File to create (absolute path on the target node)
