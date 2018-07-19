@@ -52,7 +52,7 @@ import com.normation.rudder.domain.logger.ScheduledJobLogger
  */
 class CheckInventoryUpdate(
     nodeInfoCacheImpl   : NodeInfoServiceCachedImpl
-  , asyncDeploymentAgent: AsyncDeploymentAgent
+  , asyncDeploymentAgent: AsyncDeploymentActor
   , uuidGen             : StringUuidGenerator
   , updateInterval      : FiniteDuration
 ) {

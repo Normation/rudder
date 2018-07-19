@@ -63,6 +63,7 @@ object ZipUtils {
    * A zippable without a file content is considered to
    * be a directory
    */
+
   def zip(zipout:OutputStream, toAdds:Seq[Zippable]) : Box[Unit] = {
     var zout:ZipOutputStream = null
     try {
@@ -89,7 +90,7 @@ object ZipUtils {
     } catch {
       case e:Exception => Failure("Error when trying to zip file", Full(e), Empty)
     } finally {
-      if(null != zout) zout.close
+      if (null != zout) zout.close
     }
   }
 

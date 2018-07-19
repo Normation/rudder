@@ -60,7 +60,7 @@ final case class StartLibUpdate(actor: EventActor)
  */
 class CheckTechniqueLibrary(
     policyPackageUpdater: UpdateTechniqueLibrary
-  , asyncDeploymentAgent: AsyncDeploymentAgent
+  , asyncDeploymentAgent: AsyncDeploymentActor
   , uuidGen             : StringUuidGenerator
   , updateInterval      : Int // in minutes
 ) {

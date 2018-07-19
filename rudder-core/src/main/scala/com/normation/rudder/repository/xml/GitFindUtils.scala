@@ -144,7 +144,6 @@ object GitFindUtils extends Loggable {
   */
   def getZip(db:Repository, revTreeId:ObjectId, onlyUnderPaths: List[String] = Nil) : Box[Array[Byte]] = {
     val directories = scala.collection.mutable.Set[String]()
-
     val zipEntries = scala.collection.mutable.Buffer[Zippable]()
     try {
       val tw = new TreeWalk(db)

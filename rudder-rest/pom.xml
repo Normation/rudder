@@ -138,6 +138,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${lift-version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.normation.rudder</groupId>
+      <artifactId>rudder-core</artifactId>
+      <version>${rudder-version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
     <!-- YAML parser, for REST API test -->
     <dependency>
       <groupId>org.yaml</groupId>

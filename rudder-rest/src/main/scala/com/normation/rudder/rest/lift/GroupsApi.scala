@@ -40,7 +40,7 @@ package com.normation.rudder.rest.lift
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.UserService
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.repository.RoNodeGroupRepository
@@ -277,7 +277,7 @@ class GroupApiService2 (
     readGroup            : RoNodeGroupRepository
   , writeGroup           : WoNodeGroupRepository
   , uuidGen              : StringUuidGenerator
-  , asyncDeploymentAgent : AsyncDeploymentAgent
+  , asyncDeploymentAgent : AsyncDeploymentActor
   , changeRequestService : ChangeRequestService
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService

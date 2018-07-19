@@ -50,10 +50,8 @@ class RestAuthentication(
 ) extends RestHelper with Loggable {
 
   serve {
-
     case Get("api" :: "authentication" :: Nil | "authentication" :: Nil,  req) => {
       val session = LiftSession(req)
-
       val currentUser = userService.getCurrentUser
       //the result depends upon the "acl" param value, defaulted to "non read" (write).
       val (message, status) = req.param("acl").openOr("write").toLowerCase match {

@@ -53,7 +53,7 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 
 /**
@@ -68,7 +68,7 @@ class CheckInitUserTemplateLibrary(
   , roDirectiveRepos   : RoDirectiveRepository
   , woDirectiveRepos   : WoDirectiveRepository
   , uuidGen            : StringUuidGenerator
-  , asyncDeploymentAgent: AsyncDeploymentAgent
+  , asyncDeploymentAgent: AsyncDeploymentActor
 ) extends BootstrapChecks {
 
   override val description = "Check initialization of User Technique Library"

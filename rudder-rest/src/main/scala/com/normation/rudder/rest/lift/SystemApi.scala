@@ -5,13 +5,11 @@ import com.normation.rudder.rest.RestUtils.{getActor, toJsonError, toJsonRespons
 import net.liftweb.json.JsonDSL._
 import com.normation.eventlog.{EventActor, ModificationId}
 import com.normation.cfclerk.services.{GitRepositoryProvider, UpdateTechniqueLibrary}
-import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.batch.ManualStartDeployment
+import com.normation.rudder.batch.{AsyncDeploymentAgent, ManualStartDeployment, UpdateDynamicGroups}
 import com.normation.rudder.UserService
-import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.repository.xml.{GitFindUtils, GitTagDateTimeFormatter}
 import com.normation.rudder.repository.{GitArchiveId, GitCommitId, ItemArchiveManager}
-import com.normation.rudder.services.ClearCacheServiceImpl
+import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
@@ -123,7 +121,7 @@ class SystemApi(
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      apiv11service.updatePolicies(req, params)
+      apiv11service.regeneratePolicies(req, params)
     }
   }
 
@@ -349,7 +347,7 @@ class SystemApi(
 
 class SystemApiService11(
     updatePTLibService      : UpdateTechniqueLibrary
-  , clearCacheService       : ClearCacheServiceImpl
+  , clearCacheService       : ClearCacheService
   , asyncDeploymentAgent    : AsyncDeploymentAgent
   , uuidGen                 : StringUuidGenerator
   , updateDynamicGroups     : UpdateDynamicGroups
@@ -378,7 +376,7 @@ class SystemApiService11(
 
   //For now we are not able to give information about the group reload process.
   //We still send OK instead to inform the endpoint has correctly triggered.
-  private[this] def reloadDyngroupsWrapper(): Either[String, JField] = {
+  private[this] def reloadDyngroupsWrapper() : Either[String, JField] = {
     updateDynamicGroups.startManualUpdate
     Right(JField("dynamicGroups", "Started"))
   }
@@ -490,7 +488,6 @@ class SystemApiService11(
 
   private[this] def getZip(commitId:String, paths:List[String], archiveType: String) : Either[String, (Array[Byte], List[(String, String)])] = {
     val rw = new RevWalk(repo.db)
-
     (for {
       revCommit <- try {
         val id = repo.db.resolve(commitId)
@@ -521,7 +518,7 @@ class SystemApiService11(
     }
   }
 
-  def getGroupsZipArchive(params: DefaultParams, commitId: String): LiftResponse = {
+  def getGroupsZipArchive(params: DefaultParams,  commitId: String): LiftResponse = {
     implicit val action = "getGroupsZipArchive"
     implicit val prettify = params.prettify
 
@@ -693,10 +690,10 @@ class SystemApiService11(
 
   def restoreGroupsLatestCommit(req: Req, params: DefaultParams) : LiftResponse = {
 
-    implicit val action = "restoreGroupsLatestcommit"
+    implicit val action = "restoreGroupsLatestCommit"
     implicit val prettify = params.prettify
 
-    restoreLatestCommit(req, itemArchiveManager.importHeadGroupLibrary, "groups")match {
+    restoreLatestCommit(req, itemArchiveManager.importHeadGroupLibrary, "groups") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -715,10 +712,10 @@ class SystemApiService11(
 
   def restoreRulesLatestCommit(req: Req, params: DefaultParams) : LiftResponse = {
 
-    implicit val action = "restoreRulesLatestcommit"
+    implicit val action = "restoreRulesLatestCommit"
     implicit val prettify = params.prettify
 
-    restoreLatestCommit(req, itemArchiveManager.importHeadRules, "rules")match {
+    restoreLatestCommit(req, itemArchiveManager.importHeadRules, "rules") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -726,10 +723,10 @@ class SystemApiService11(
 
   def restoreFullLatestCommit(req: Req, params: DefaultParams) : LiftResponse = {
 
-    implicit val action = "restoreFullLatestcommit"
+    implicit val action = "restoreFullLatestCommit"
     implicit val prettify = params.prettify
 
-    restoreLatestCommit(req, itemArchiveManager.importHeadAll, "full")match {
+    restoreLatestCommit(req, itemArchiveManager.importHeadAll, "full") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -827,8 +824,9 @@ class SystemApiService11(
 
     implicit val action = "updatePolicies"
     implicit val prettify = params.prettify
+    val dest = ManualStartDeployment(newModId, getActor(req), "Policy update asked by REST request")
 
-    asyncDeploymentAgent ! ManualStartDeployment(newModId, getActor(req), "Policy update asked by REST request")
+    asyncDeploymentAgent.launchDeployment(dest)
     toJsonResponse(None, "policies" -> "Started")
   }
 
@@ -836,8 +834,10 @@ class SystemApiService11(
 
     implicit val action = "regeneratePolicies"
     implicit val prettify = params.prettify
+    val dest = ManualStartDeployment(newModId, getActor(req), "Policy regenerate asked by REST request")
 
     clearCacheService.action(getActor(req))
+    asyncDeploymentAgent.launchDeployment(dest)
     toJsonResponse(None, "policies" -> "Started")
   }
 }

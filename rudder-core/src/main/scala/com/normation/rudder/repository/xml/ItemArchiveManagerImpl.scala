@@ -49,7 +49,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import org.eclipse.jgit.api._
@@ -87,7 +87,7 @@ class ItemArchiveManagerImpl(
   , importGroupLibrary                : ImportGroupLibrary
   , importRuleCategoryLibrary         : ImportRuleCategoryLibrary
   , eventLogger                       : EventLogRepository
-  , asyncDeploymentAgent              : AsyncDeploymentAgent
+  , asyncDeploymentAgent              : AsyncDeploymentActor
   , gitModificationRepo               : GitModificationRepository
   , updateDynamicGroups               : UpdateDynamicGroups
 ) extends

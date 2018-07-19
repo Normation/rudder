@@ -455,9 +455,8 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
 
   final case object RestoreFullLatestArchive extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
     val description =  "restore all latest archive"
-    val (action, path) = POST / "system" / "archives" / "latestArchive"/ "restore"
+    val (action, path) = POST / "system" / "archives" / "full" / "latestArchive"/ "restore"
   }
-
 
   final case object RestoreGroupsLatestCommit extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
     val description =  "restore groups latest commit"
@@ -514,7 +513,7 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
 
   final case object ArchiveRuleDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = zz
     val description = "restore a rule archive based on its date time id"
-    val (action, path) = POST / "system" / "archives" / "group" / "restore" / "{dateTime}"
+    val (action, path) = POST / "system" / "archives" / "rule" / "restore" / "{dateTime}"
   }
 
   final case object ArchiveFullDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = zz

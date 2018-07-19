@@ -382,7 +382,7 @@ object RudderConfig extends Loggable {
   val directiveEditorService: DirectiveEditorService = directiveEditorServiceImpl
   val userPropertyService: UserPropertyService = userPropertyServiceImpl
   val eventListDisplayer: EventListDisplayer = eventListDisplayerImpl
-  val asyncDeploymentAgent: AsyncDeploymentAgent = asyncDeploymentAgentImpl
+  val asyncDeploymentAgent: AsyncDeploymentActor = asyncDeploymentAgentImpl
   val policyServerManagementService: PolicyServerManagementService = psMngtService
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
   val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
@@ -476,7 +476,7 @@ object RudderConfig extends Loggable {
     , globalParameterUnserialisation
     , ruleCategoryUnserialisation
   )
-  val workflowEventLogService =    new WorkflowEventLogServiceImpl(eventLogRepository,uuidGen)
+  val workflowEventLogService = new WorkflowEventLogServiceImpl(eventLogRepository,uuidGen)
   val diffService: DiffService = new DiffServiceImpl()
   val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
     new CommitAndDeployChangeRequestServiceImpl(
@@ -1401,9 +1401,9 @@ object RudderConfig extends Loggable {
       , HOOKS_IGNORE_SUFFIXES
   )}
 
-  private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentAgent = {
+  private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentActor = {
 
-    val agent = new AsyncDeploymentAgent(
+    val agent = new AsyncDeploymentActor(
         deploymentService
       , eventLogDeploymentServiceImpl
       , deploymentStatusSerialisation

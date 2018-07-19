@@ -38,7 +38,7 @@
 package com.normation.rudder.services.policies
 
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.eventlog.ReloadTechniqueLibrary
@@ -52,7 +52,7 @@ import com.normation.rudder.repository.EventLogRepository
 class DeployOnTechniqueCallback(
     override val name   : String
   , override val order  : Int
-  , asyncDeploymentAgent: AsyncDeploymentAgent
+  , asyncDeploymentAgent: AsyncDeploymentActor
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
   override def updatedTechniques(techniqueIds:Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {

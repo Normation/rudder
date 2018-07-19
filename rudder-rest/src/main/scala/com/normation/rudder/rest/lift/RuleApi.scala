@@ -40,7 +40,7 @@ package com.normation.rudder.rest.lift
 import com.normation.eventlog.EventActor
 import com.normation.eventlog._
 import com.normation.rudder.UserService
-import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
 import com.normation.rudder.domain.policies.DeleteRuleDiff
@@ -273,7 +273,7 @@ class RuleApiService2 (
     readRule             : RoRuleRepository
   , writeRule            : WoRuleRepository
   , uuidGen              : StringUuidGenerator
-  , asyncDeploymentAgent : AsyncDeploymentAgent
+  , asyncDeploymentAgent : AsyncDeploymentActor
   , changeRequestService : ChangeRequestService
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService
