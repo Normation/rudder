@@ -82,8 +82,9 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
 # 
 #
 # Create and send a report to the server
-# This bundle takes 6 parameters :
+# This bundle takes 7 parameters :
 # technique_name : the name of the technique, human readable
+# class_prefix   : the class_prefix (to ensure reports)
 # status         : the status of the Component, among the following values
 #    result_success
 #    result_error
@@ -98,7 +99,7 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
 # component_key  : the value of the component reference variable (or None if undefined)
 # message        : An explanation message understandable by a human
 # Warning, any modification here should also be ported to _rudder_common_report_hooks
-bundle agent _rudder_common_report(technique_name, status, identifier, component_name, component_key, message)
+bundle agent _rudder_common_report(technique_name, class_prefix, status, identifier, component_name, component_key, message)
 {
   # We cannot allow for empty component_name
   defaults:
@@ -124,7 +125,8 @@ bundle agent _rudder_common_report(technique_name, status, identifier, component
 
   reports:
     !changes_only|send_reports::
-      "@@${technique_name}@@${status}@@${identifier}@@${component_name}@@${component_key}@@${g.execRun}##${g.uuid}@#${message}";
+      "@@${technique_name}@@${status}@@${identifier}@@${component_name}@@${component_key}@@${g.execRun}##${g.uuid}@#${message}"
+        comment => "Sending report from class_prefix ${class_prefix}";
 }
 
 #
@@ -158,54 +160,54 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
 
     !report::
       "na"
-        usebundle  => _rudder_common_report("${technique_name}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "success"
-        usebundle  => _rudder_common_report("${technique_name}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "repaired"
-        usebundle  => _rudder_common_report("${technique_name}", "log_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
         ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
 
       "error"
-        usebundle  => _rudder_common_report("${technique_name}", "log_warn", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_warn", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
         ifvarclass => "${class_prefix}_error";
 
 
     report.!(dry_run|global_dry_run)::
       "na"
-        usebundle  => _rudder_common_report("${technique_name}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "success"
-        usebundle  => _rudder_common_report("${technique_name}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "repaired"
-        usebundle  => _rudder_common_report("${technique_name}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
         ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
 
       "error"
-        usebundle  => _rudder_common_report("${technique_name}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
         ifvarclass => "${class_prefix}_error";
 
     report.(dry_run|global_dry_run)::
       "na"
-        usebundle  => _rudder_common_report("${technique_name}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "success"
-        usebundle  => _rudder_common_report("${technique_name}", "audit_compliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_compliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "noncompliant"
-        usebundle  => _rudder_common_report("${technique_name}", "audit_noncompliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not correct"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_noncompliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not correct"),
         ifvarclass => "${class_prefix}_error.!${class_prefix}_repaired";
 
       "unexpected error"
-        usebundle  => _rudder_common_report("${technique_name}", "audit_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired but should have been run in dry-run mode"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired but should have been run in dry-run mode"),
         ifvarclass => "${class_prefix}_repaired";
 }
 
@@ -242,32 +244,32 @@ bundle agent _rudder_common_reports_generic_hooks(technique_name, class_prefix, 
   methods:
     is_enforce::
       "na"
-        usebundle  => _rudder_common_report("${technique_name}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "success"
-        usebundle  => _rudder_common_report("${technique_name}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "repaired"
-        usebundle  => _rudder_common_report("${technique_name}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
         ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
 
       "error"
-        usebundle  => _rudder_common_report("${technique_name}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
         ifvarclass => "${class_prefix}_error";
 
     !is_enforce::
       "na"
-        usebundle  => _rudder_common_report("${technique_name}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "success"
-        usebundle  => _rudder_common_report("${technique_name}", "audit_compliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_compliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
         ifvarclass => "(${class_prefix}_kept|${class_prefix}_repaired).!${class_prefix}_error";
 
       "noncompliant"
-        usebundle  => _rudder_common_report("${technique_name}", "audit_noncompliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not correct"),
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_noncompliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not correct"),
         ifvarclass => "${class_prefix}_error";
 }
 
