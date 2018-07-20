@@ -168,18 +168,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
   }
 
-  private[this] def currentStatus : NodeSeq = {
-    <lift:authz role="deployment_write"> {
-      SHtml.a( {
-        () =>
-          asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor, "User requested a manual policy update") //TODO: let the user fill the cause
-          Noop
-      }
-      , Text("Update policies")
-      )
-    }
-    </lift:authz>
-  }
   private[this] def fullPolicyGeneration : NodeSeq = {
     <lift:authz role="deployment_write"> {
       SHtml.ajaxButton(
@@ -215,9 +203,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         </a>
         <ul class="dropdown-menu" role="menu">
           {lastStatus}
-          <li class="footer">
-            {currentStatus}
-          </li>
           <li class="footer">
             {showGeneratePoliciesPopup}
           </li>
