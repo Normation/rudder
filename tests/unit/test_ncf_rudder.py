@@ -14,9 +14,6 @@ class TestNcfRudder(unittest.TestCase):
 
   def setUp(self):
     self.maxDiff = None
-    self.test_expected_reports_csv_file = os.path.realpath('test_expected_reports.csv')
-    with open(self.test_expected_reports_csv_file) as fd:
-      self.test_expected_reports_csv_content = fd.read()
     
     self.test_technique_file = os.path.realpath('test_technique.cf')
     with open(self.test_technique_file) as fd:
@@ -58,13 +55,6 @@ class TestNcfRudder(unittest.TestCase):
     method_with_quote_calls = ncf.parse_technique_methods(self.test_technique_with_quote_file)
     self.technique_with_quote_metadata['method_calls'] = method_with_quote_calls
 
-    self.test_expected_reports_with_quote_csv_file = os.path.realpath('test_expected_reports_with_quote.csv')
-    self.test_expected_reports_with_quote_csv_content = open(self.test_expected_reports_with_quote_csv_file).read()
-
-  def test_expected_reports_from_technique(self):
-    expected_reports_string = ncf_rudder.get_technique_expected_reports(self.technique_metadata)
-    self.assertEqual(expected_reports_string, self.test_expected_reports_csv_content)
-
   def test_rudder_reporting_from_technique(self):
     """The rudder-reporting.cf content generated from a ncf technique must match the reporting we expect for our technique"""
     rudder_reporting_string = ncf_rudder.generate_rudder_reporting(self.technique_metadata)
@@ -88,12 +78,6 @@ class TestNcfRudder(unittest.TestCase):
     ncf_rudder.write_technique_for_rudder(root_path, self.any_technique_metadata)
     result = not os.path.exists(os.path.realpath(os.path.join(root_path, 'bla', '0.1', "rudder_reporting.cf")))
     self.assertTrue(result)
-
-
-  # Testing Techniques with quotes
-  def test_expected_reports_with_quote(self):
-    expected_reports_string = ncf_rudder.get_technique_expected_reports(self.technique_with_quote_metadata)
-    self.assertEquals(expected_reports_string, self.test_expected_reports_with_quote_csv_content)
 
   def test_rudder_reporting_content(self):
 

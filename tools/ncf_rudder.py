@@ -54,27 +54,6 @@ def write_one_technique_for_rudder(destination_path, bundle_name):
     sys.stderr.write(traceback.format_exc())
     exit(1)
 
-def canonify_expected_reports(expected_reports, dest):
-
-  # Open file containing original expected_reports
-  source_file = codecs.open(expected_reports, encoding="utf-8")
-
-  # Create destination file
-  dest_file = codecs.open(dest, 'w', encoding="utf-8")
-  
-  # Iterate over each line (this does *not* read the whole file into memory)
-  for line in source_file:
-    # Just output comments as they are
-    if re.match("^\s*#", line, flags=re.UNICODE):
-      dest_file.write(line)
-      continue
-
-    # Replace the second field with a canonified version of itself (a la CFEngine)
-    fields = line.strip().split(";;")
-    fields[1] = ncf.canonify(fields[1])
-    dest_file.write(";;".join(fields) + "\n")
-
-
 # OTHER FUNCTIONS
 #################
 
@@ -122,18 +101,8 @@ def write_technique_for_rudder(root_path, technique):
   generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
   include_rudder_reporting = not all(method_call['class_context'] == 'any' and 
                                      "cfengine-community" in generic_methods[method_call['method_name']]["agent_support"] for method_call in technique["method_calls"])
-  write_expected_reports_file(path,technique)
   if include_rudder_reporting:
     write_rudder_reporting_file(path,technique)
-
-
-def write_expected_reports_file(path,technique):
-  """ write expected_reports.csv file from a technique, to a path """
-  file = codecs.open(os.path.realpath(os.path.join(path, "expected_reports.csv")), "w", encoding="utf-8")
-  content = get_technique_expected_reports(technique)
-  file.write(content)
-  file.close()
-
 
 def write_rudder_reporting_file(path,technique):
   """ write rudder_reporting.st file from a technique, to a path """
@@ -141,38 +110,6 @@ def write_rudder_reporting_file(path,technique):
   content = generate_rudder_reporting(technique)
   file.write(content)
   file.close()
-
-def get_technique_expected_reports(technique_metadata):
-  """Generates technique expected reports from technique metadata"""
-  # Get all generic methods
-  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')["data"]['generic_methods']
-
-  # Content start with a header
-  content = ["""# This file contains one line per report expected by Rudder from this technique
-# Format: technique_name;;class_prefix_${key};;@@RUDDER_ID@@;;component name;;component key"""]
-  
-  technique_name = technique_metadata['bundle_name']
-  for method_call in technique_metadata["method_calls"]:
-    # Expected reports for Rudder should not include any "meta" bundle calls (any beginning with _)
-    if method_call['method_name'].startswith("_"):
-      continue
-
-    method_name = method_call['method_name']
-    generic_method = generic_methods[method_name]
-
-    component = generic_method['name']
-    key_value = method_call["args"][generic_method["class_parameter_id"]-1]
-    class_prefix = (generic_method["class_prefix"]+"_"+key_value).replace("\\'", "\'").replace('\\"', '\"')
-
-    line = technique_name+";;"+class_prefix+";;@@RUDDER_ID@@;;"+component+";;"+key_value
-    
-    content.append(line)
-
-  # Join all lines + last line
-  result = "\n".join(content)+"\n"
-  return result
-
-
 
 def get_path_for_technique(root_path, technique_metadata):
   """ Generate path where file about a technique needs to be created"""
@@ -263,7 +200,6 @@ def usage():
   sys.stderr.write("Can't parse parameters\n")
   print("Usage: ncf_rudder <command> [arguments]")
   print("Available commands:")
-  print(" - canonify_expected_reports <source file> <destination file>")
   print(" - rudderify_techniques <destination path>")
   print(" - rudderify_technique <destination path> <bundle_name>")
 
@@ -274,9 +210,7 @@ if __name__ == '__main__':
     usage()
     exit(1)
 
-  if sys.argv[1] == "canonify_expected_reports":
-    canonify_expected_reports(sys.argv[2], sys.argv[3])
-  elif sys.argv[1] == "rudderify_techniques":
+  if sys.argv[1] == "rudderify_techniques":
     write_all_techniques_for_rudder(sys.argv[2])
   elif sys.argv[1] == "rudderify_technique":
     write_one_technique_for_rudder(sys.argv[2],sys.argv[3])
