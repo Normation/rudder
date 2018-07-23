@@ -388,10 +388,7 @@ object DisplayNode extends Loggable {
             ).getOrElse("unknown")}<br/>
           { sm.machine.map( _.id.value).map( machineId =>
               <div>
-                <a href="#" onclick={s"$$('#${machineId}').toggle(300); return false;"}>(Display Rudder Machine ID)</a>
-                <div style="width=100%; overflow:auto;">
-                  <pre id={s"${machineId}"} class="display-keys" style="display:none;">{machineId}</pre>
-                </div>{Script(OnLoad(JsRaw(s"""createTooltip();""")))}
+                <b>Rudder Machine ID:</b> {machineId} <br/>
               </div>
             ).getOrElse(<span class="error">Machine Information are missing for that node</span>)
           }
