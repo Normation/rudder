@@ -40,6 +40,7 @@ package bootstrap.liftweb
 import java.io.File
 import java.util.Collection
 
+import bootstrap.liftweb.RudderProperties.config
 import com.github.ghik.silencer.silent
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
@@ -128,7 +129,7 @@ class AppConfigAuth extends ApplicationContextAware {
   def setApplicationContext(applicationContext: ApplicationContext): Unit = {
     //prepare specific properties for new context
     import scala.collection.JavaConverters._
-    RudderProperties.authenticationMethods.foreach { x =>
+    RudderConfig.authenticationProviders.authenticationMethods.foreach { x =>
       try {
         // try to load all the specific properties of that auth type
         // so that they are available from Spring
@@ -158,7 +159,7 @@ class AppConfigAuth extends ApplicationContextAware {
       case _ => //nothing
     }
 
-    val configuredAuthProviders = RudderProperties.authenticationMethods.filter( _.name != "rootAdmin")
+    val configuredAuthProviders = RudderConfig.authenticationProviders.authenticationMethods.filter( _.name != "rootAdmin")
     logger.info(s"Loaded authentication provider(s): [${configuredAuthProviders.map(_.name).mkString(", ")}]")
 
     val ctx = new ClassPathXmlApplicationContext(applicationContext)
@@ -176,7 +177,7 @@ class AppConfigAuth extends ApplicationContextAware {
    * log-in into Rudder.
    */
   @Bean(name = Array("org.springframework.security.authenticationManager"))
-  def authenticationManager = new ProviderManager(RudderProperties.authenticationMethods.map { x =>
+  def authenticationManager = new ProviderManager(RudderConfig.authenticationProviders.authenticationMethods.map { x =>
       appCtx.getBean(x.springBean, classOf[AuthenticationProvider])
   }.asJava)
 
@@ -371,6 +372,73 @@ final object RudderAuthType {
 
     val apiRudderRights = new Rights(AuthorizationType.NoRights)
     val apiRudderRole: Set[Role] = Set(Role.NoRights)
+  }
+}
+
+/**
+ * This is the class that defines the authentication methods.
+ * Without the plugin, by default only "file" is known.
+ */
+trait AuthBackendsProvider {
+  def authenticationBackends: Set[String]
+  def name: String
+}
+
+// and default implementation: provides 'file', 'rootAdmin'
+class DefaultAuthBackendProviders() extends AuthBackendsProvider {
+
+  override def authenticationBackends = Set("file", "rootAdmin")
+
+  private[this] var backends = authenticationBackends
+
+  def addProvider(p: AuthBackendsProvider): Unit = {
+    ApplicationLogger.info(s"Add backend providers '${p.name}'")
+    backends = backends ++ p.authenticationBackends
+  }
+
+  override def name: String = s"Default authentication backends provider: '${authenticationBackends.mkString("','")}"
+
+  //some logic for the authentication providers
+  val authenticationMethods: Seq[AuthenticationMethods] = {
+    val names = {
+      val n = try {
+        //config.getString can't be null by contract
+        config.getString("rudder.auth.provider").split(",").toSeq.map( _.trim).collect { case s if(s.size > 0) => s}
+      } catch {
+        //if the property is missing, use the default "file" value
+        //it can be a migration.
+        case ex: ConfigException.Missing =>  Seq("file")
+      }
+
+      // but we need to filter names to only try to configure the one known as backends.
+      val (ok, nok) = n.partition(backends.contains(_))
+      nok.foreach( missing =>
+        ApplicationLogger.warn(s"Required authentication method '${missing}' in property 'rudder.auth.provider' is not know by Rudder. Perhaps you are missing a plugin?")
+      )
+      ok
+    }
+
+    //always add "rootAdmin" has the first method
+    //and de-duplicate methods
+    val auths = ("rootAdmin" +: names).distinct.map(AuthenticationMethods(_))
+
+    //for each methods, check that the provider file is present, or log an error and
+    //disable that provider
+    auths.flatMap { a =>
+      if(a.name == "rootAdmin") {
+        Some(a)
+      } else {
+        //try to instantiate
+        val cpr = new org.springframework.core.io.ClassPathResource(a.path)
+        if(cpr.exists) {
+          Some(a)
+        } else {
+          ApplicationLogger.error(s"The authentication provider '${a.name}' will not be loaded because the spring ressource file '${a.configFile}' was not found")
+          None
+        }
+      }
+    }
+
   }
 }
 

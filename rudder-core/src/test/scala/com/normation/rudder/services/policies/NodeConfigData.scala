@@ -111,7 +111,7 @@ import com.normation.cfclerk.services.impl.TechniqueRepositoryImpl
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
-import java.io.{File, IOException}
+import java.io.File
 
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl

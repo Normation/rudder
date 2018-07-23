@@ -112,7 +112,6 @@ import com.normation.templates.FillTemplatesService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.typesafe.config.Config
-import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common.Loggable
 import net.liftweb.common._
@@ -176,40 +175,6 @@ object RudderProperties {
       case ClassPathResource(name) => ConfigFactory.load(name)
       case FileSystemResource(file) => ConfigFactory.load(ConfigFactory.parseFile(file))
     }).withFallback(ConfigFactory.parseString(migrationConfig))
-  }
-
-  //some logic for the authentication providers
-  val authenticationMethods: Seq[AuthenticationMethods] = {
-    val names = try {
-      //config.getString can't be null by contract
-      config.getString("rudder.auth.provider").split(",").toSeq.map( _.trim).collect { case s if(s.size > 0) => s}
-    } catch {
-      //if the property is missing, use the default "file" value
-      //it can be a migration.
-      case ex: ConfigException.Missing =>  Seq("file")
-    }
-
-    //always add "rootAdmin" has the first method
-    //and de-duplicate methods
-    val auths = ("rootAdmin" +: names).distinct.map(AuthenticationMethods(_))
-
-    //for each methods, check that the provider file is present, or log an error and
-    //disable that provider
-    auths.flatMap { a =>
-      if(a.name == "rootAdmin") {
-        Some(a)
-      } else {
-        //try to instantiate
-        val cpr = new org.springframework.core.io.ClassPathResource(a.path)
-        if(cpr.exists) {
-          Some(a)
-        } else {
-          ApplicationLogger.error(s"The authentication provider '${a.name}' will not be loaded because the spring ressource file '${a.configFile}' was not found")
-          None
-        }
-      }
-    }
-
   }
 
 }
@@ -435,6 +400,9 @@ object RudderConfig extends Loggable {
   val changeRequestMapper = new ChangeRequestMapper(changeRequestChangesUnserialisation, changeRequestChangesSerialisation)
 
   lazy val workflowLevelService = new DefaultWorkflowLevel()
+
+  lazy val authenticationProviders = new DefaultAuthBackendProviders()
+
 
   val roChangeRequestRepository : RoChangeRequestRepository = {
     //a runtime checking of the workflow to use
