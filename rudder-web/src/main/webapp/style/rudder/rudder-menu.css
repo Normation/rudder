@@ -836,7 +836,10 @@ a.sidebar-toggle{
 .tw-bs .main-header .navbar .nav li.notifications-menu.bg-success, .tw-bs .main-header .navbar .nav li.notifications-menu.bg-success #generation-status{
   background-color:#9bc832;
 }
-.tw-bs .main-header .navbar .nav li.notifications-menu.bg-success:hover #generation-status,.tw-bs .main-header .navbar .nav li.notifications-menu.bg-success.open #generation-status{
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-success:hover #generation-status,
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-success a:active #generation-status,
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-success a:focus #generation-status,
+.tw-bs .main-header .navbar .nav li.notifications-menu.bg-success.open #generation-status{
   background-color:#8bb52c;
 }
 .tw-bs .main-header .navbar .nav li.notifications-menu.bg-success #generation-status > span:after{
