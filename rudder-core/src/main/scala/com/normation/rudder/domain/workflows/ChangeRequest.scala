@@ -143,7 +143,6 @@ final case class ConfigurationChangeRequest(
   , nodeGroups  : Map[NodeGroupId, NodeGroupChanges]
   , rules       : Map[RuleId, RuleChanges]
   , globalParams: Map[ParameterName, GlobalParameterChanges]
-  // ... TODO: complete for groups and rules
 ) extends ChangeRequest {
   val owner = {
 

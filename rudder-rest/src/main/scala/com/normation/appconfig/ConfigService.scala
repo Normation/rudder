@@ -74,6 +74,7 @@ import com.normation.rudder.services.reports.UnexpectedReportBehavior
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
+import com.normation.rudder.services.workflows.WorkflowLevelService
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -320,7 +321,12 @@ trait UpdateConfigService {
   def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : Box[Unit]
 }
 
-class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
+class LDAPBasedConfigService(
+    configFile    : Config
+  , repos         : ConfigRepository
+  , workflowUpdate: AsyncWorkflowInfo
+  , workflowLevel : WorkflowLevelService
+) extends ReadConfigService with UpdateConfigService with Loggable {
 
   /**
    * Create a cache for values that should never fail
@@ -463,12 +469,22 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def set_rudder_ui_changeMessage_explanation(value: String): Box[Unit] = save("rudder_ui_changeMessage_explanation", value)
 
   ///// workflows /////
-  def rudder_workflow_enabled() = get("rudder_workflow_enabled")
+  def rudder_workflow_enabled() = {
+    if(workflowLevel.workflowEnabled) {
+      get("rudder_workflow_enabled")
+    } else {
+      Full(false)
+    }
+  }
   def rudder_workflow_self_validation() = get("rudder_workflow_self_validation")
   def rudder_workflow_self_deployment() = get("rudder_workflow_self_deployment")
   def set_rudder_workflow_enabled(value: Boolean): Box[Unit] = {
-    save("rudder_workflow_enabled", value)
-    Full(workflowUpdate ! WorkflowUpdate)
+    if(workflowLevel.workflowEnabled) {
+      save("rudder_workflow_enabled", value)
+      Full(workflowUpdate ! WorkflowUpdate)
+    } else {
+      Failure("You can't change the change validation workflow type. Perhaps are you missing the 'changes validation' plugin?")
+    }
   }
   def set_rudder_workflow_self_validation(value: Boolean): Box[Unit] = save("rudder_workflow_self_validation", value)
   def set_rudder_workflow_self_deployment(value: Boolean): Box[Unit] = save("rudder_workflow_self_deployment", value)

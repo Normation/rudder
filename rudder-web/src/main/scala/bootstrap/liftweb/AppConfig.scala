@@ -434,6 +434,8 @@ object RudderConfig extends Loggable {
 
   val changeRequestMapper = new ChangeRequestMapper(changeRequestChangesUnserialisation, changeRequestChangesSerialisation)
 
+  lazy val workflowLevelService = new DefaultWorkflowLevel()
+
   val roChangeRequestRepository : RoChangeRequestRepository = {
     //a runtime checking of the workflow to use
     new EitherRoChangeRequestRepository(
@@ -499,24 +501,12 @@ object RudderConfig extends Loggable {
       , sectionSpecParser
     )
   lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
-  val workflowService: WorkflowService = {
-    new EitherWorkflowService(
-        configService.rudder_workflow_enabled _
-      , new TwoValidationStepsWorkflowServiceImpl(
-            workflowEventLogService
-          , commitAndDeployChangeRequest
-          , roWorkflowRepository
-          , woWorkflowRepository
-          , asyncWorkflowInfo
-          , configService.rudder_workflow_self_validation _
-          , configService.rudder_workflow_self_deployment _
-        )
-      , new NoWorkflowServiceImpl(
-            commitAndDeployChangeRequest
-          , inMemoryChangeRequestRepository
-        )
+  lazy val workflowService: FacadeWorkflowService = FacadeWorkflowService(
+    new NoWorkflowServiceImpl(
+        commitAndDeployChangeRequest
+      , inMemoryChangeRequestRepository
     )
-  }
+  )
 
   val changeRequestService: ChangeRequestService = new ChangeRequestServiceImpl (
       roChangeRequestRepository
@@ -765,6 +755,7 @@ object RudderConfig extends Loggable {
         config
       , new LdapConfigRepository(rudderDit, rwLdap, ldapEntityMapper, eventLogRepository, stringUuidGenerator)
       , asyncWorkflowInfo
+      , workflowLevelService
     )
   }
 
@@ -860,7 +851,7 @@ object RudderConfig extends Loggable {
     new APIAccountSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val propertySerialization: GlobalPropertySerialisation =
     new GlobalPropertySerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
-  private[this] lazy val changeRequestChangesSerialisation : ChangeRequestChangesSerialisation =
+  lazy val changeRequestChangesSerialisation : ChangeRequestChangesSerialisation =
     new ChangeRequestChangesSerialisationImpl(
         Constants.XML_CURRENT_FILE_FORMAT.toString
       , nodeGroupSerialisation
