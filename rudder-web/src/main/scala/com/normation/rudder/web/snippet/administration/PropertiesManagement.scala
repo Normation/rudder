@@ -1143,8 +1143,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         var x = initialValue
         def noModif() = x == initSavedValued
         def check() = {
-          S.notice("unexpectedReportInterpretationFormMessage","")
-
+          if(!noModif()){
+            S.notice("unexpectedReportInterpretationFormMessage","")
+          }
           Run(s"""$$("#unexpectedReportInterpretationFormSubmit").prop("disabled",${noModif()});""")
         }
 

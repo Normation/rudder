@@ -102,33 +102,27 @@
     </div>
     <div class="inner-portlet">
       <h3 class="page-title">Relay synchronization method</h3>
-        <div class="tw-bs">
-          <div class="col-lg-12 callout-fade callout-warning">
-            <div class="marker">
-              <span class="glyphicon glyphicon-info-sign"></span>
-            </div>
-            <p>
-              Configure the method used to synchronize files between Relay servers and the Rudder server.
-            </p>
-            <p>
-              The <b>classic</b> method doesn't require any setup and use the standard protocol. However, it does not scale beyond 1000 nodes per relay.
-            </p>
-            <p>
-              The <b>rsync</b> method triggers <i>rsync</i> synchronization between each Relay and the Rudder server, for the selected resources (policies and/or shared files). It is more efficient, but you need to manually set up rsync on the Relay servers, and proceed with the SSH key exchange. Note that ressources not selected below won't be synchronized.
-            </p>
-            <p>
-              Finally, the <b>manual</b> method disable all synchronization of policies and shared files between the Relay servers and the Rudder server; you will need to manually set up a transfer method.
-            </p>
-
+        <div class="col-lg-12 callout-fade callout-warning">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
           </div>
+          <p>
+            Configure the method used to synchronize files between Relay servers and the Rudder server.
+          </p>
+          <p>
+            The <b>classic</b> method doesn't require any setup and use the standard protocol. However, it does not scale beyond 1000 nodes per relay.
+          </p>
+          <p>
+            The <b>rsync</b> method triggers <i>rsync</i> synchronization between each Relay and the Rudder server, for the selected resources (policies and/or shared files). It is more efficient, but you need to manually set up rsync on the Relay servers, and proceed with the SSH key exchange. Note that ressources not selected below won't be synchronized.
+          </p>
+          <p>
+            Finally, the <b>manual</b> method disable all synchronization of policies and shared files between the Relay servers and the Rudder server; you will need to manually set up a transfer method.
+          </p>
         </div>
-
 
         <div class="lift:administration.PropertiesManagement.relaySynchronizationMethod" id="relaySynchronizationMethodForm">
           <form class="lift:form.ajax">
-            <div class="tw-bs">
-              <label>Synchronization method from Relay servers</label>
-            </div>
+            <label>Synchronization method from Relay servers</label>
             <div id="relaySyncMethod"></div>
 
             <div id="relayRsyncSynchronizeFiles">
@@ -166,9 +160,7 @@
 	          </ul>
             </div>
             <lift:authz role="administration_write">
-              <span class="tw-bs">
-                <input type="submit" value="[save]" id="relaySynchronizationSubmit"/>
-              </span>
+              <input type="submit" value="[save]" id="relaySynchronizationSubmit"/>
               <span class="lift:Msg?id=updateRelaySynchronization">[messages]</span>
             </lift:authz>
           </form>
@@ -250,8 +242,7 @@
       <div class="page-title">Unexpected reports interpretation</div>
       <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.unexpectedReportInterpretation" id="unexpectedReportInterpretation">
-        <div class="tw-bs">
-        <form class="lift:form.ajax form-horizontal tw-bs" >
+        <form class="lift:form.ajax form-horizontal" >
           <div class="col-lg-12 callout-fade callout-warning">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
@@ -264,68 +255,93 @@
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
-            <dl>
-              <dt>Duplicated reports</dt>
-              <dd>
-                Due to the underlying protocol used to send compliance reports back to the policy server (syslog),
-                it may happen that some reports, for an unitary control point, are duplicated. In that case, compliance for
-                the corresponding element will be "unexpected": Rudder was awaiting one report, but it got two.
-                The risk to have a real error reported as a duplicated messages is very low, as messages need to have the
-                same timestamp and information message to be considered duplicated on a given node.
-                <br>That option will ignore the duplicated message in compliance computation and log an information level
-                message about that duplication. A double duplication will still be ignored but with a warning log, and more
-                duplicates will lead to an error log and an unexpected compliance.
-                <br/>It is safe to ignore duplicated reports and you should check that option.
-              </dd>
-            </dl>
-          </div>
-          <div class="wbBaseField">
-            <label class="threeCol textright" style="font-weight:bold;width: 20%;">Ignore duplicated compliance report:</label><input id="allowsDuplicate" type="checkbox">
-          </div>
-          <hr class="spacer"/>
+            <p><b>Duplicated reports</b></p>
+            <p>
+              Due to the underlying protocol used to send compliance reports back to the policy server (syslog),
+              it may happen that some reports, for an unitary control point, are duplicated. In that case, compliance for
+              the corresponding element will be "unexpected": Rudder was awaiting one report, but it got two.
+              The risk to have a real error reported as a duplicated messages is very low, as messages need to have the
+              same timestamp and information message to be considered duplicated on a given node.
+            </p>
+            <p>
+              That option will ignore the duplicated message in compliance computation and log an information level
+              message about that duplication. A double duplication will still be ignored but with a warning log, and more
+              duplicates will lead to an error log and an unexpected compliance.
+            <p>
+              It is safe to ignore duplicated reports and you should check that option.
+            </p>
+        </div>
+
+          <ul>
+            <li class="rudder-form">
+              <div class="input-group">
+                <label class="input-group-addon" for="allowsDuplicate">
+                  <input id="allowsDuplicate" type="checkbox">
+                  <label for="allowsDuplicate" class="label-radio">
+                    <span class="ion ion-checkmark-round"></span>
+                  </label>
+                  <span class="ion ion-checkmark-round check-icon"></span>
+                </label>
+                <label class="form-control" for="allowsDuplicate">
+                  Ignore duplicated compliance report
+                </label>
+              </div>
+            </li>
+          </ul>
+
           <div class="col-lg-12 callout-fade callout-warning">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
-            <dl>
-              <dt>Unbounded reports by elements when a variable is used</dt>
-              <dd>
-                Rudder await exactly one compliance report for each configuration point of control. If it gets more than one,
-                the leftover reports will be considered as unexpected. This is not what one want in the case where:
-                <ul>
-                  <li>
-                    the point of control is parametrized by a variable,
-                  </li>
-                  <li>
-                    that variable is multivalued.
-                  </li>
-                </ul>
-                For example, if you build a technique in editor with the generic method "Variable iterator" to define a list of
-                packages and you use the resulting variable in "Package present" generic method for the "name" parameter,
-                it is normal and expected to get several compliance reports, one for each configuration value.
-                <br>
-                That option allows to increase the number of expected reports to the number of configuration values and so
-                it avoids to get and "unexpected" compliance in that case.
-                <br>Unless it is more important for you to get "unexpected" compliance than the actual compliance of each
-                configuration value, you should check that option.
-              </dd>
-            </dl>
-          </div>
-          <div class="wbBaseField">
-            <label class="threeCol textright" style="font-weight:bold;width: 20%;">Allows multiple reports for configuration based on a multivalued variable:</label><input id="unboundVarValues" type="checkbox">
+            <p><b>Unbounded reports by elements when a variable is used</b></p>
+            <p>
+              Rudder await exactly one compliance report for each configuration point of control. If it gets more than one,
+              the leftover reports will be considered as unexpected. This is not what one want in the case where:
+              <ul>
+                <li>
+                  the point of control is parametrized by a variable,
+                </li>
+                <li>
+                  that variable is multivalued.
+                </li>
+              </ul>
+            </p>
+            <p>
+              For example, if you build a technique in editor with the generic method "Variable iterator" to define a list of
+              packages and you use the resulting variable in "Package present" generic method for the "name" parameter,
+              it is normal and expected to get several compliance reports, one for each configuration value.
+            </p>
+            <p>
+              That option allows to increase the number of expected reports to the number of configuration values and so
+              it avoids to get and "unexpected" compliance in that case.
+            </p>
+            <p>
+              Unless it is more important for you to get "unexpected" compliance than the actual compliance of each
+              configuration value, you should check that option.
+            </p>
           </div>
 
-          <hr class="spacer"/>
+          <ul>
+            <li class="rudder-form">
+              <div class="input-group">
+                <label class="input-group-addon" for="unboundVarValues">
+                  <input id="unboundVarValues" type="checkbox">
+                  <label for="unboundVarValues" class="label-radio">
+                    <span class="ion ion-checkmark-round"></span>
+                  </label>
+                  <span class="ion ion-checkmark-round check-icon"></span>
+                </label>
+                <label class="form-control" for="unboundVarValues">
+                  Allows multiple reports for configuration based on a multivalued variable:
+                </label>
+              </div>
+            </li>
+          </ul>
           <lift:authz role="administration_write">
-            <span class="tw-bs">
-               <input type="submit" value="[save]" id="unexpectedReportInterpretationFormSubmit"/>
-            </span>
-            <div id="unexpectedReportInterpretationFormMessage" class="pull-right control-label">
-              <span class="lift:Msg?unexpectedReportInterpretationFormMessage">[messages]</span>
-            </div>
+            <input type="submit" value="[save]" id="unexpectedReportInterpretationFormSubmit"/>
+            <span class="lift:Msg?id=unexpectedReportInterpretationFormMessage">[messages]</span>
           </lift:authz>
         </form>
-        </div>
 
     <div class="inner-portlet">
       <h3 class="page-title">Set default settings value on node acceptation</h3>
@@ -631,7 +647,7 @@
 
     <div class="inner-portlet">
       <div class="page-title">Display compliance and recent changes columns on rule summary</div>
-      <div class="portlet-content tw-bs">
+      <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.displayRuleColumnConfiguration" id="displayColumns">
           <div class="col-xs-12 callout-fade callout-warning">
             <div class="marker">
