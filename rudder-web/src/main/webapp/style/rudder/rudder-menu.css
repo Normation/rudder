@@ -511,6 +511,16 @@ a.sidebar-toggle{
 .ui-widget-content,.portlet-content{
   border-radius:4px;
 }
+
+.ui-widget-content a {
+  color: #3c8dbc;
+  text-decoration: none;
+  transition-duration:.2s;
+}
+.ui-widget-content a:hover {
+  color: #72afd2;
+}
+
 .inner-portlet #auditMode h3 {
   width: 100%;
 }
