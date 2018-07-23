@@ -50,11 +50,10 @@ class Authz extends DispatchSnippet with Loggable {
 
 
   def dispatch = {
-    case "render" => testRight
-    case "whennorights" => whenNoRights
+    case "render"        => testRight
+    case "whennorights"  => whenNoRights
     case "whenhasrights" => whenHasRights
   }
-
 
   /*
    * Check if no authorizations are defined for the

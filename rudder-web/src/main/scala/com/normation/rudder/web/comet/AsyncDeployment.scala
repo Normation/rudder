@@ -46,7 +46,6 @@ import JsCmds._
 import com.normation.rudder.batch._
 import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.DateTime
-import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
 import com.normation.rudder.web.model.CurrentUser
@@ -54,7 +53,6 @@ import com.normation.rudder.web.model.CurrentUser
 class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   private[this] val asyncDeploymentAgent      = RudderConfig.asyncDeploymentAgent
-  private[this] val uuidGen                   = RudderConfig.stringUuidGenerator
 
   //current states of the deployment
   private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)

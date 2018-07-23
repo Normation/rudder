@@ -104,7 +104,6 @@
 
   </head>
   <body data-lift="CommonLayout.display" class="skin-yellow sidebar-mini">
-
     <div class="tw-bs">
     <div class="wrapper">
       <header class="main-header">
@@ -299,11 +298,9 @@
           </div>
 
           <div class="navbar-custom-menu">
-            <ul class="nav navbar-nav">
-            <!-- Change request  -->
-            <li class="lift:comet?type=WorkflowInformation" name="workflowInfo" ></li>
-            <!-- Promise Generation -->
-            <li class="lift:comet?type=AsyncDeployment" name="deploymentStatus"></li>
+            <ul class="nav navbar-nav" id="rudder-navbar">
+              <!-- Promise Generation -->
+              <li class="lift:comet?type=AsyncDeployment" name="deploymentStatus"></li>
               <li class="tasks-menu">
                 <a target="_blank" href="/rudder-doc">
                   <i class="fa fa-book"></i>
