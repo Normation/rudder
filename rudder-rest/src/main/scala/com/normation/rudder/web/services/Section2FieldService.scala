@@ -68,8 +68,6 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     val variableSpecs = vars.map(v => (v.spec.name -> v.spec)).toMap
     val sections = policy.rootSection.copyWithoutSystemVars
 
-    val providesExpectedReports = policy.providesExpectedReports
-
     //a policy is a new one if we don't have any saved values
     //Don't forget that we may have empty saved value.
     val isNewPolicy = valuesByName.size < 1 || valuesByName.forall { case (n,vals) => vals.size < 1 }
@@ -87,7 +85,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     //create the fields "used" mapping
     val sectionField = createSectionField(sections, valuesByName, isNewPolicy, bounds)
 
-    Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs, providesExpectedReports))
+    Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs))
   }
 
   //bound used section fields to

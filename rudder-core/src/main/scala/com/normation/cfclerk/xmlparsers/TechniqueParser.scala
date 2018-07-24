@@ -55,7 +55,7 @@ class TechniqueParser(
   , systemVariableSpecService    : SystemVariableSpecService
 ) extends Loggable {
 
-  def parseXml(xml: Node, id: TechniqueId, expectedReportCsvExists: Boolean): Technique = {
+  def parseXml(xml: Node, id: TechniqueId): Technique = {
     def nonEmpty(s: String) = if(null == s || s == "") None else Some(s)
 
     //check that xml is <TECHNIQUE> and has a name attribute
@@ -80,10 +80,12 @@ class TechniqueParser(
 
           val isSystem = ((xml \ TECHNIQUE_IS_SYSTEM).text.equalsIgnoreCase("true"))
 
-          val useMethodReporting = nonEmpty((xml \ TECHNIQUE_USE_METHOD_REPORTING).text).map(_.equalsIgnoreCase("true")).getOrElse(expectedReportCsvExists)
+          // This parameter defines if the technique reporting is made by generic methods called by the technique
+          // or if the technique should compute the reporting by itself
+          // By default Techniques will not use reporting based on methods, since almost all core techniques have custom reporting
+          // ncf/technique editor Techniques will define that parameter to true, since they rely on method reporting
+          val useMethodReporting = nonEmpty((xml \ TECHNIQUE_USE_METHOD_REPORTING).text).map(_.equalsIgnoreCase("true")).getOrElse(false)
 
-          //the technique provides its expected reports if at least one section has a variable of type REPORT_KEYS
-          val providesExpectedReports = expectedReportCsvExists
 
           val deprecationInfo = parseDeprecrationInfo(xml)
 
@@ -124,7 +126,6 @@ class TechniqueParser(
             , isMultiInstance
             , longDescription
             , isSystem
-            , providesExpectedReports
             , generationMode
             , useMethodReporting
           )

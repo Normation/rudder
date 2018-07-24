@@ -567,14 +567,7 @@ case class DirectiveEditor(
   , val description            : String
   , val sectionField           : SectionField
   , val variableSpecs          : Map[String, VariableSpec]
-  , val providesExpectedReports: Boolean
   )  extends HashcodeCaching {
-
-  // We do not remove duplicate in case of meta-technique
-  def removeDuplicateSections : Unit = providesExpectedReports match {
-    case true => Unit
-    case false => sectionField.removeDuplicateSections
-  }
 
   /**
    * Get the map of (varname, list(values)),

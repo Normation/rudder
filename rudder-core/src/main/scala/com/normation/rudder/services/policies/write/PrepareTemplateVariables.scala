@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies.write
 
-import scala.io.Codec
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
 import com.normation.cfclerk.domain.SystemVariableSpec
@@ -56,7 +55,6 @@ import com.normation.utils.Control.bestEffort
 import net.liftweb.common._
 import org.joda.time.DateTime
 
-import scala.io.Codec
 import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.rudder.services.policies.ParameterEntry
@@ -155,22 +153,11 @@ class PrepareTemplateVariablesImpl(
                           )
     } yield {
 
-      // we only need to generate expected_reports.csv for CFEngine-like agent
-      val csv = ExpectedReportsCsv(agentNodeConfig.agentType match {
-        case AgentType.CfeCommunity | AgentType.CfeEnterprise =>
-          logger.trace(s"${nodeId.value}: creating lines for expected reports CSV files")
-          prepareReportingDataForMetaTechnique(agentNodeConfig.config.policies, rudderIdCsvTag)
-        case _ => // DSC_AGENT or other
-          logger.trace(s"${nodeId.value}: not creating lines for expected reports CSV files - agent type '${agentNodeConfig.agentType.id}' does not need them")
-          Seq()
-      })
-
       AgentNodeWritableConfiguration(
           agentNodeConfig.agentType
         , agentNodeConfig.config.nodeInfo.osDetails
         , agentNodeConfig.paths
         , preparedTemplate
-        , csv
         , allSystemVars
       )
     }
@@ -281,32 +268,6 @@ class PrepareTemplateVariablesImpl(
         , v.spec.isSystem
       ) }
     }
-  }
-
-  /**
-   * From a container, containing meta technique, fetch the csv included, and add the Rudder UUID within, and return the new lines
-   */
-  private[this] def prepareReportingDataForMetaTechnique(policies: List[Policy], rudderTag: String): List[String] = {
-    policies.flatMap { p => p.technique.providesExpectedReports match {
-      case true =>
-        val rudderId = p.id.getReportId
-        val csv = techniqueRepository.getReportingDetailsContent[Seq[String]](p.technique.id) { optInputStream =>
-            optInputStream match {
-              case None => throw new RuntimeException(s"Error when trying to open reports descriptor `expected_reports.csv` for technique ${p.technique}." +
-                                                      s"Check that the report descriptor exist and is correctly commited in Git, or that the metadata for the technique are corrects.")
-              case Some(inputStream) =>
-                scala.io.Source.fromInputStream(inputStream)(Codec.UTF8).getLines().map{ case line =>
-                  line.trim.startsWith("#") match {
-                    case true  => line
-                    case false => line.replaceAll(rudderTag, rudderId)
-                  }
-                }.toList
-            }
-        }
-        csv
-      case false =>
-        Nil
-    }}
   }
 
 }

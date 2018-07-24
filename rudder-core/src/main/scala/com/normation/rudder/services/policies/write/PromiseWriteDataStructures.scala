@@ -81,7 +81,6 @@ final case class AgentNodeWritableConfiguration(
   , os                : OsDetails
   , paths             : NodePromisesPaths
   , preparedTechniques: Seq[PreparedTechnique]
-  , expectedReportsCsv: ExpectedReportsCsv
   , systemVariables   : Map[String, Variable]
 )
 
@@ -96,12 +95,6 @@ case class NodePromisesPaths(
   , newFolder   : String //poclicies are temporarly store in a policyName.new directory
   , backupFolder: String
 ) extends HashcodeCaching
-
-/**
- * A class that store the list of expected reports as lines
- * of the "expected reports csv" file to write for a node/agent.
- */
-case class ExpectedReportsCsv(lines: Seq[String])
 
 /**
  * A class that store a list of "prepared template", i.e templates with

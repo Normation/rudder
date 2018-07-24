@@ -535,8 +535,6 @@ class DirectiveEditForm(
   }
 
   private[this] def onSubmitSave(): JsCmd = {
-    parameterEditor.removeDuplicateSections
-
     checkVariables()
 
     if (formTracker.hasErrors) {

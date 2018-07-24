@@ -1054,76 +1054,39 @@ object RuleExpectedReportBuilder extends Loggable {
     }
 
     /*
-     * We have two separate paths:
-     * - if the technique is standart, we keep the complex old path
-     * - if it is a meta technique, we take the easy paths
+     * We can have several components, one by section.
+     * If there is no component for that policy, the policy is autobounded to DEFAULT_COMPONENT_KEY
      */
-    technique.providesExpectedReports match {
-      case false =>
-        // this is the old path
-            /*
-             * We can have several components, one by section.
-             * If there is no component for that policy, the policy is autobounded to DEFAULT_COMPONENT_KEY
-             */
-            val allComponents = technique.rootSection.getAllSections.flatMap { section =>
-              if(section.isComponent) {
-                section.componentKey match {
-                  case None =>
-                    //a section that is a component without componentKey variable: card=1, value="None"
-                    Some(ComponentExpectedReport(section.name, List(DEFAULT_COMPONENT_KEY), List(DEFAULT_COMPONENT_KEY)))
-                  case Some(varName) =>
-                    //a section with a componentKey variable: card=variable card
-                    val values           = vars.expandedVars.get(varName).map( _.values.toList).getOrElse(Nil)
-                    val unexpandedValues = vars.originalVars.get(varName).map( _.values.toList).getOrElse(Nil)
-                    if (values.size != unexpandedValues.size)
-                      logger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
-                          section.componentKey, directiveId.value, values, unexpandedValues ))
-                    Some(ComponentExpectedReport(section.name, values, unexpandedValues))
-                }
-              } else {
-                None
-              }
-            }.toList
+    val allComponents = technique.rootSection.getAllSections.flatMap { section =>
+      if(section.isComponent) {
+        section.componentKey match {
+          case None =>
+            //a section that is a component without componentKey variable: card=1, value="None"
+            Some(ComponentExpectedReport(section.name, List(DEFAULT_COMPONENT_KEY), List(DEFAULT_COMPONENT_KEY)))
+          case Some(varName) =>
+            //a section with a componentKey variable: card=variable card
+            val values           = vars.expandedVars.get(varName).map( _.values.toList).getOrElse(Nil)
+            val unexpandedValues = vars.originalVars.get(varName).map( _.values.toList).getOrElse(Nil)
+            if (values.size != unexpandedValues.size)
+              logger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
+                  section.componentKey, directiveId.value, values, unexpandedValues ))
+            Some(ComponentExpectedReport(section.name, values, unexpandedValues))
+        }
+      } else {
+        None
+      }
+    }.toList
 
-            if(allComponents.size < 1) {
-              //that log is outputed one time for each directive for each node using a technique, it's far too
-              //verbose on debug.
-              logger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
-                technique.id, directiveId))
+    if(allComponents.size < 1) {
+      //that log is outputed one time for each directive for each node using a technique, it's far too
+      //verbose on debug.
+      logger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
+        technique.id, directiveId))
 
-              val trackingVarCard = getTrackingVariableCardinality
-              List(ComponentExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))
-            } else {
-              allComponents
-            }
-      case true =>
-        // this is easy, everything is in the ParsedPolicyDraft; the components contains only one value, the
-        // one that we want
-        val allComponents = technique.rootSection.getAllSections.flatMap { section =>
-          if (section.isComponent) {
-            section.componentKey match {
-              case None =>
-                logger.error(s"We don't have defined reports keys for section ${section.name} that should provide predefined values")
-                None
-              case Some(name) =>
-                (vars.expandedVars.get(name), vars.originalVars.get(name)) match {
-                  case (Some(expandedValues), Some(originalValues)) if expandedValues.values.size == originalValues.values.size =>
-                    Some(ComponentExpectedReport(section.name, expandedValues.values.toList, originalValues.values.toList))
-
-                  case (Some(expandedValues), Some(originalValues)) if expandedValues.values.size != originalValues.values.size =>
-                    logger.error(s"In section ${section.name}, the original values and the expanded values don't have the same size. Orignal values are ${originalValues.values}, expanded are ${expandedValues.values}")
-                    None
-
-                  case _ =>
-                    logger.error(s"The reports keys for section ${section.name} do not exist")
-                    None
-                }
-            }
-          } else {
-            None
-          }
-        }.toList
-        allComponents
+      val trackingVarCard = getTrackingVariableCardinality
+      List(ComponentExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))
+    } else {
+      allComponents
     }
 
   }

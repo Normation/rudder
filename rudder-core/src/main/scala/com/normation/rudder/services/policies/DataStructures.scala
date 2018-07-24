@@ -282,7 +282,6 @@ final case class PolicyTechnique(
   , systemVariableSpecs    : Set[SystemVariableSpec]
   , isMultiInstance        : Boolean = false // true if we can have several instance of this policy
   , isSystem               : Boolean = false
-  , providesExpectedReports: Boolean = false //does that Technique comes with a template file (csv) of expected reports ?
   , generationMode         : TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives
   , useMethodReporting     : Boolean = false
 ) extends HashcodeCaching {
@@ -304,7 +303,6 @@ final object PolicyTechnique {
         , systemVariableSpecs    = technique.systemVariableSpecs
         , isMultiInstance        = technique.isMultiInstance
         , isSystem               = technique.isSystem
-        , providesExpectedReports= technique.providesExpectedReports
         , generationMode         = technique.generationMode
         , useMethodReporting     = technique.useMethodReporting
       ))

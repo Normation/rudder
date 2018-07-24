@@ -86,7 +86,6 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import org.joda.time.DateTime
 
@@ -99,29 +98,22 @@ import com.normation.inventory.domain.Certificate
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
-import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.services.impl.GitTechniqueReader
 import com.normation.cfclerk.xmlparsers.TechniqueParser
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.cfclerk.services.impl.SimpleGitRevisionProvider
 import com.normation.cfclerk.services.impl.TechniqueRepositoryImpl
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
-import java.io.{File, IOException}
+import java.io.File
 
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
 import com.normation.rudder.domain.policies.FullOtherTarget
 import com.normation.rudder.domain.policies.PolicyServerTarget
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.policies.AllTargetExceptPolicyServers
 import com.normation.rudder.domain.policies.AllTarget
 import com.normation.rudder.reports.SyslogUDP
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.eventlog.EventActor
 import net.liftweb.common.Full
 import net.liftweb.common.Box
@@ -509,7 +501,6 @@ class TestNodeConfiguration() {
               , repo
               , "metadata.xml"
               , "category.xml"
-              , "expected_reports.csv"
               , Some("techniques")
               , "default-directive-names.conf"
             )
