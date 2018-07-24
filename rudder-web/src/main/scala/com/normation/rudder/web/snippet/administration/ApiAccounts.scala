@@ -44,11 +44,10 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.Script
 import net.liftweb.http.js.JsCmds.jsExpToJsCmd
 import bootstrap.liftweb.RudderConfig
-import com.normation.plugins.{SnippetExtensionKey, SpringExtendableSnippet}
+import com.normation.plugins.DefaultExtendableSnippet
 
 
-class ApiAccounts extends DispatchSnippet with SpringExtendableSnippet[ApiAccounts] {
-  def extendsAt = SnippetExtensionKey(classOf[ApiAccounts].getSimpleName)
+class ApiAccounts extends DispatchSnippet with DefaultExtendableSnippet[ApiAccounts] {
 
   private[this] val relativePath = RudderConfig.restApiAccounts.relativePath.mkString("/","/","")
 

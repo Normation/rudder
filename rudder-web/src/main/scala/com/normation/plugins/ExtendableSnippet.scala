@@ -38,24 +38,31 @@
 package com.normation.plugins
 
 import net.liftweb.http._
+
 import scala.xml.NodeSeq
 import com.normation.utils.HashcodeCaching
-
-
+import scala.reflect.ClassTag
 
 case class SnippetExtensionKey(value:String) extends HashcodeCaching
-
 
 /**
  * A default implement for extension point with only
  * one map contribution for before/after snippet dispatch.
+ *
+ * BE CAREFUL: a SnippetExtensionPoint IS NOT a snippet.
+ * It's just a class with a pur method that will be used to compose
+ * in a snippet.
+ * Its instanciation is not managed by lift.
+ * It does not have access to traditionnal lift magic available for snippets.
+ *
  */
 trait SnippetExtensionPoint[T] {
+  val ttag: ClassTag[T]
 
   /**
    * The key for plugin to extends that snippet.
    */
-  def extendsAt : SnippetExtensionKey
+  def extendsAt = SnippetExtensionKey(ttag.runtimeClass.getSimpleName)
 
   /**
    * Here, we are rather strict on what we want : a T that is also extendable
@@ -100,7 +107,7 @@ trait ExtendableSnippet[T] extends DispatchSnippet {
   //reminder:
   //type DispatchIt = PartialFunction[String, NodeSeq => NodeSeq]
 
-  def extendsAt : SnippetExtensionKey
+  def extendsAt = SnippetExtensionKey(self.getClass.getSimpleName)
 
   def mainDispatch : Map[String, NodeSeq => NodeSeq]
 

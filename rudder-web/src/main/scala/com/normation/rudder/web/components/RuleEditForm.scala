@@ -39,8 +39,7 @@ package com.normation.rudder.web.components
 
 import scala.xml.NodeSeq
 import scala.xml.Text
-import com.normation.plugins.SnippetExtensionKey
-import com.normation.plugins.SpringExtendableSnippet
+import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Directive
@@ -127,7 +126,7 @@ class RuleEditForm(
   //there are call by name to have the context matching their execution when called,
   , onFailureCallback : () => JsCmd = { () => Noop }
   , onCloneCallback   : (Rule) => JsCmd = { (r:Rule) => Noop }
-) extends DispatchSnippet with SpringExtendableSnippet[RuleEditForm] with Loggable {
+) extends DispatchSnippet with DefaultExtendableSnippet[RuleEditForm] with Loggable {
   import RuleEditForm._
 
   private[this] val htmlId_save = htmlId_rule + "Save"
@@ -147,7 +146,6 @@ class RuleEditForm(
   private[this] val linkUtil            = RudderConfig.linkUtil
 
   //////////////////////////// public methods ////////////////////////////
-  val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
 
   def mainDispatch = Map(
       "showForm"          -> { _:NodeSeq => showForm() }

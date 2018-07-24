@@ -40,10 +40,7 @@ package com.normation.rudder.services.workflows
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.workflows._
 import net.liftweb.common._
-import com.normation.rudder.repository._
 import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
-import com.normation.rudder.services.eventlog.WorkflowEventLogService
-import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
 

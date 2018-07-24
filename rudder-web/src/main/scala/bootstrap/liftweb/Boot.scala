@@ -57,6 +57,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource
 import java.net.URLConnection
 
+import com.normation.plugins.RudderPluginModule
 import com.normation.plugins.PluginName
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.ApiModuleProvider
@@ -64,6 +65,7 @@ import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.{InfoApi => InfoApiDef}
 import com.normation.rudder.rest.lift.InfoApi
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
+import org.reflections.Reflections
 
 /*
  * Utilities about rights
@@ -478,9 +480,12 @@ class Boot extends Loggable {
   }
 
   private[this] def initPlugins(): List[RudderPluginDef] = {
-    //LiftSpringApplicationContext.springContext.refresh
     import scala.collection.JavaConverters._
-    val pluginDefs = LiftSpringApplicationContext.springContext.getBeansOfType(classOf[RudderPluginDef]).values.asScala.toList
+
+    val reflections = new Reflections("bootstrap.rudder.plugin")
+    val modules = reflections.getSubTypesOf(classOf[RudderPluginModule]).asScala.map(c => c.getField("MODULE$").get(null).asInstanceOf[RudderPluginModule])
+
+    val pluginDefs = modules.toList.map(_.pluginDef)
 
     pluginDefs.foreach { plugin =>
       PluginLogger.info(s"Initializing plugin '${plugin.name.value}': ${plugin.version}")

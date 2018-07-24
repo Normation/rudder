@@ -52,15 +52,12 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
-import com.normation.plugins.SnippetExtensionKey
-import com.normation.plugins.SpringExtendableSnippet
+import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.domain.logger.ApplicationLogger
 
 import scala.xml.NodeSeq
 
-class UserInformation extends DispatchSnippet with SpringExtendableSnippet[UserInformation] {
-
-  val extendsAt = SnippetExtensionKey(classOf[UserInformation].getSimpleName)
+class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[UserInformation] {
 
   private[this] val eventLogger = RudderConfig.eventLogRepository
   private[this] val uuidGen     = RudderConfig.stringUuidGenerator

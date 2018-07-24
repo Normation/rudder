@@ -37,8 +37,7 @@
 
 package com.normation.rudder.web.components
 
-import com.normation.plugins.SpringExtendableSnippet
-import com.normation.plugins.SnippetExtensionKey
+import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.queries.Query
@@ -93,7 +92,7 @@ class NodeGroupForm(
   , workflowEnabled   : Boolean
   , onSuccessCallback : (Either[(NodeGroup, NodeGroupCategoryId), ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
-) extends DispatchSnippet with SpringExtendableSnippet[NodeGroupForm] with Loggable {
+) extends DispatchSnippet with DefaultExtendableSnippet[NodeGroupForm] with Loggable {
   import NodeGroupForm._
 
   private[this] val nodeInfoService            = RudderConfig.nodeInfoService
@@ -124,8 +123,6 @@ class NodeGroupForm(
   }
 
   setSearchNodeComponent
-
-  def extendsAt = SnippetExtensionKey(classOf[NodeGroupForm].getSimpleName)
 
   def mainDispatch = Map(
     "showForm" -> { _:NodeSeq => showForm() },

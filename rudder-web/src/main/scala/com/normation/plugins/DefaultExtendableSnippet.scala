@@ -37,24 +37,25 @@
 
 package com.normation.plugins
 
+import bootstrap.liftweb.RudderConfig
 
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
-
+import com.normation.rudder.domain.logger.PluginLogger
 
 /**
- * A version of the PlugableSnippet that
- * uses Spring IoC to get it's plugins
+ * Default implementation of extendable snippet that use RuddercConfig to get the extension
  */
-trait SpringExtendableSnippet[T] extends ExtendableSnippet[T] {
+trait DefaultExtendableSnippet[T] extends ExtendableSnippet[T] {
   self:T =>
 
-  private[this] def extensionRegister = inject[SnippetExtensionRegister]
+  private[this] def extensionRegister = RudderConfig.snippetExtensionRegister
 
   override def beforeSnippetExtensionSeq : Seq[SnippetExtensionPoint[T]] = {
+    PluginLogger.trace(s"Looking for pre-extension for snippet '${extendsAt.value}'")
     extensionRegister.getBeforeRenderExtension(this.extendsAt)
   }
 
   override def afterSnippetExtensionSeq : Seq[SnippetExtensionPoint[T]] = {
+    PluginLogger.trace(s"Looking for post-extension for snippet '${extendsAt.value}'")
     extensionRegister.getAfterRenderExtension(this.extendsAt)
   }
 

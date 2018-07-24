@@ -1,15 +1,13 @@
 package com.normation.rudder.web.snippet
 
 import net.liftweb.http.DispatchSnippet
-import com.normation.plugins.SpringExtendableSnippet
-import com.normation.plugins.SnippetExtensionKey
+import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.web.model.CurrentUser
 
 import scala.xml.NodeSeq
 
-class CommonLayout extends DispatchSnippet with SpringExtendableSnippet[CommonLayout] {
-  def extendsAt = SnippetExtensionKey(classOf[CommonLayout].getSimpleName)
+class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonLayout] {
 
   def mainDispatch = Map(
     "display" -> init

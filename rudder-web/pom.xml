@@ -53,7 +53,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <releases><enabled>false</enabled></releases>
     </repository>
   </repositories>
-  
+
   <build>
     <resources>
       <resource>
@@ -71,7 +71,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         </includes>
       </resource>
     </resources>
-    
+
     <plugins>
        <!-- this is needed to have Rudder plugins access rudder-web in jar format -->
        <plugin>
@@ -120,13 +120,20 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       </plugin>
     </plugins>
   </build>
-  
+
   <properties>
     <!-- seriously, maven...  http://stackoverflow.com/questions/13228472/how-to-acces-maven-build-timestamp-for-resource-filtering#13228882 -->
     <build-timestamp>${maven.build.timestamp}</build-timestamp>
   </properties>
 
   <dependencies>
+
+    <dependency>
+      <groupId>org.reflections</groupId>
+      <artifactId>reflections</artifactId>
+      <version>0.9.11</version>
+    </dependency>
+
     <dependency>
       <groupId>com.typesafe</groupId>
       <artifactId>config</artifactId>
@@ -157,14 +164,14 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
     </dependency>
-    
+
     <!-- Doing HTTP requests -->
     <dependency>
       <groupId>org.scalaj</groupId>
       <artifactId>scalaj-http_${scala-binary-version}</artifactId>
       <version>2.3.0</version>
-    </dependency> 
-    
+    </dependency>
+
     <!-- Authentication -->
     <!-- spring dep needed so that the correct version is resolved -->
     <!-- Spring Framework Project libraries -->

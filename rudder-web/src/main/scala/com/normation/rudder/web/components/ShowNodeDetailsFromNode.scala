@@ -57,8 +57,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JsExp
 import net.liftweb.util.Helpers._
-import com.normation.plugins.SnippetExtensionKey
-import com.normation.plugins.SpringExtendableSnippet
+import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.web.model.JsNodeId
@@ -81,7 +80,7 @@ object ShowNodeDetailsFromNode {
 class ShowNodeDetailsFromNode(
     val nodeId : NodeId
   , groupLib   : FullNodeGroupCategory
-) extends DispatchSnippet with SpringExtendableSnippet[ShowNodeDetailsFromNode] with Loggable {
+) extends DispatchSnippet with DefaultExtendableSnippet[ShowNodeDetailsFromNode] with Loggable {
   import ShowNodeDetailsFromNode._
 
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
@@ -94,9 +93,7 @@ class ShowNodeDetailsFromNode(
   private[this] val configService        = RudderConfig.configService
   private[this] var boxNodeInfo          = nodeInfoService.getNodeInfo(nodeId)
 
-  def extendsAt = SnippetExtensionKey(classOf[ShowNodeDetailsFromNode].getSimpleName)
-
-   def complianceModeEditForm(nodeInfo : NodeInfo) = {
+  def complianceModeEditForm(nodeInfo : NodeInfo) = {
     val (globalMode, nodeMode) = {
       val modes = getHeartBeat(nodeInfo)
       (modes.map(_._1),modes.map(_._2))

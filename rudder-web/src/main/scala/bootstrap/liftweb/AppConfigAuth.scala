@@ -106,9 +106,8 @@ import scala.collection.JavaConverters.asJavaCollectionConverter
  *  <user name="name2" password="p2" />
  * </authentication>
  *
- * Note that the main Spring application entry point is bootstrap.liftweb.AppConfig
- * which import AppConfigAuth which itself import generic security context and
- * dedicated authentication methods.
+ * Note that the main Spring application entry point is bootstrap.liftweb.AppConfigAuth
+ * which itself import generic security context and dedicated authentication methods.
  */
 @Configuration
 @ImportResource(Array("classpath:applicationContext-security.xml"))

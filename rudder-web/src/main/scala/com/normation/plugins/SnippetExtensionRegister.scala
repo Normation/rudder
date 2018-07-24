@@ -37,7 +37,6 @@
 
 package com.normation.plugins
 
-import net.liftweb.common.Loggable
 import com.normation.rudder.domain.logger.ApplicationLogger
 
 /**
@@ -72,7 +71,9 @@ trait SnippetExtensionRegister {
  * after, thanks to the "register" method.
  * In the future, extension should be orderable and overridable.
  */
-class SnippetExtensionRegisterImpl extends SnippetExtensionRegister with Loggable {
+class SnippetExtensionRegisterImpl extends SnippetExtensionRegister {
+
+  private[this] val extendsBefore  = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[_]]]
 
   private[this] val extendsAfter  = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[_]]]
 
@@ -88,8 +89,6 @@ class SnippetExtensionRegisterImpl extends SnippetExtensionRegister with Loggabl
       case Some(exts) => extendsAfter += (extension.extendsAt ->  (extension +: exts) )
     }
   }
-
-  private[this] val extendsBefore  = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[_]]]
 
   /**
    * register the given extension. The extension is added
