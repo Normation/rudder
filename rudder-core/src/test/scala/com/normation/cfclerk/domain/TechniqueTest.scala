@@ -57,7 +57,7 @@ class TechniqueTest extends Specification {
 
   val id = TechniqueId(TechniqueName("foo"), TechniqueVersion("1.0"))
 
-  val technique = techniqueParser.parseXml(readFile("testTechnique.xml"), id, true)
+  val technique = techniqueParser.parseXml(readFile("testTechnique.xml"), id)
 
 
   "Compatible OS and Agents" should {
@@ -86,10 +86,6 @@ class TechniqueTest extends Specification {
 
     "not be multiinstance" in {
       technique.isMultiInstance === false
-    }
-
-    "provides a template file for its expected reports" in {
-      technique.providesExpectedReports == true
     }
 
     "have bundle list: 'bundle1,bundle2' for each agent" in {

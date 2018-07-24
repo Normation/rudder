@@ -124,7 +124,6 @@ class RuleValServiceTest extends Specification {
       , false
       , ""
       , false
-      , true
     )
 
     val technique = makeMetaTechnique(techniqueId)

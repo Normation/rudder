@@ -73,7 +73,6 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
   override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
   override def getTemplateContent[T](id: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
   override def getFileContent[T](id: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
-  override def getReportingDetailsContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
   override def getAll(): Map[TechniqueId, Technique] = { policyMap }
 
   override def get(policyName: TechniqueId): Option[Technique] = {

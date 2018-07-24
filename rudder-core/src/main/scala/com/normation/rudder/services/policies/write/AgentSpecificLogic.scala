@@ -194,8 +194,6 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
   }
 
   override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
-    // We believe that expectedReports.csv is not used anymore on agent but still for expecter report generation.
-    // This is the first step to check that our hypothesis is ok before removing totally: https://www.rudder-project.org/redmine/issues/12225
     Full(Nil)
   }
 

@@ -156,7 +156,6 @@ object BuildBundleSequence {
       // pack here.
     , post                   : List[Bundle]
     , isSystem               : Boolean
-    , providesExpectedReports: Boolean
     , policyMode             : PolicyMode
     , enableMethodReporting  : Boolean
   ) {
@@ -321,7 +320,7 @@ class BuildBundleSequence(
         case _ =>
           techniqueBundles
       }
-      TechniqueBundles(name, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policy.technique.providesExpectedReports, policyMode, policy.technique.useMethodReporting)
+      TechniqueBundles(name, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policyMode, policy.technique.useMethodReporting)
     }
   }
 
@@ -398,7 +397,7 @@ object CfengineBundleVariables {
     private[this] val audit   = Bundle(None, BundleName("""set_dry_run_mode("true")"""), Nil)
     private[this] val enforce = Bundle(None, BundleName("""set_dry_run_mode("false")"""), Nil)
     val dryRun = TechniqueId(TechniqueName("remove_dry_run_mode"), TechniqueVersion("1.0"))
-    private[this] val cleanup = TechniqueBundles(Directive(dryRun.name.value), dryRun, Nil, enforce :: Nil, Nil, false, false, PolicyMode.Enforce, false)
+    private[this] val cleanup = TechniqueBundles(Directive(dryRun.name.value), dryRun, Nil, enforce :: Nil, Nil, false, PolicyMode.Enforce, false)
   }
 
   /*

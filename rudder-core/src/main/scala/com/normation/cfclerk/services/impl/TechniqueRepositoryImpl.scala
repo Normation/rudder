@@ -140,9 +140,6 @@ class TechniqueRepositoryImpl(
   override def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T =
     techniqueReader.getResourceContent(techniqueResourceId, Some(TechniqueTemplate.templateExtension))(useIt)
 
-  override def getReportingDetailsContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T =
-    techniqueReader.getReportingDetailsContent(techniqueId)(useIt)
-
   /**
    * Return all the policies available
    * @return

@@ -179,7 +179,6 @@ case class Technique(
   , isMultiInstance        : Boolean = false // true if we can have several instance of this policy
   , longDescription        : String = ""
   , isSystem               : Boolean = false
-  , providesExpectedReports: Boolean = false //does that Technique comes with a template file (csv) of expected reports ?
   , generationMode         : TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives
   , useMethodReporting     : Boolean = false
 ) extends HashcodeCaching {

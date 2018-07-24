@@ -66,11 +66,6 @@ trait TechniqueRepository {
    */
   def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T
 
-  /**
-   * Retrieve the reporting descriptor file content
-   */
-  def getReportingDetailsContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T
-
 
   /*
    * Return the full information about technique.

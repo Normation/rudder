@@ -63,7 +63,7 @@ class PrepareTemplateVariableTest extends Specification {
     , ("""Nodes only/Name resolution version "3.0" and counting"""                        , Bundle(None, BundleName("check_dns_configuration"), Nil))
     , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle(None, BundleName("check_apt_package_installation"), Nil))
     , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle(None, BundleName("check_apt_package_installation2"), Nil))
-  ).map { case(x,y) => TechniqueBundles(Directive(x), TID("not-used-here"), Nil, y::Nil, Nil, false, false, PolicyMode.Enforce, false) }
+  ).map { case(x,y) => TechniqueBundles(Directive(x), TID("not-used-here"), Nil, y::Nil, Nil, false, PolicyMode.Enforce, false) }
 
 val fillTemplate = new FillTemplatesService()
 

@@ -95,21 +95,6 @@ trait TechniqueReader {
    */
   def getMetadataContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => T) : T
 
-  /**
-   * Read the content of the descriptor file of a meta technique, if the technique
-   * is known by that TechniqueReader
-   * If the technique exists, then a Some(input stream), open at the
-   * beginning of the template is given to the caller.
-   * If not, a None is given.
-   * The implementation must take care of correct closing of the input
-   * stream and any I/O exception.
-   */
-  def getReportingDetailsContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => T) : T
-
-  /**
-   * Check if the file expected_reports.csv exists for the technique
-   */
-  def checkreportingDescriptorExistence(techniqueId: TechniqueId) : Boolean
 
   /**
    * Read the content of a resource, if the resources is known by that
