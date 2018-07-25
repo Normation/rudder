@@ -79,7 +79,7 @@ import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.rule.category._
-import com.normation.rudder.services.ClearCacheServiceImpl
+import com.normation.rudder.services.{ClearCacheServiceImpl, ScriptLauncher}
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
 import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.eventlog._
@@ -683,6 +683,7 @@ object RudderConfig extends Loggable {
 
   val systemApiService11 = new SystemApiService11(
       updateTechniqueLibrary
+    , new ScriptLauncher("/opt/rudder/bin/support-info", "/tmp/support-info-server.tar.gz")
     , clearCacheService
     , asyncDeploymentAgent
     , uuidGen
