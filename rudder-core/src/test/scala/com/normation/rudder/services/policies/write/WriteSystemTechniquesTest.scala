@@ -368,7 +368,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     "correctly get the expected policy files" in {
       val (rootPath, writter) = getPromiseWritter("cfe-node")
       // Actually write the promise files for the root node
-      val writen = writter.writeTemplate(
+      val written = writter.writeTemplate(
             root.id
           , Set(root.id, cfeNode.id)
           , Map(root.id -> rnc, cfeNode.id -> cfeNC)
@@ -376,7 +376,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
           , Map(), globalPolicyMode, DateTime.now
       )
 
-      (writen mustFull) and
+      (written mustFull) and
       compareWith(rootPath.getParentFile/cfeNode.id.value, "node-cfe-with-two-directives",
            """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
         :: """.*add:default:==:.*"""                               //rpm reports

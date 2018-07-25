@@ -124,11 +124,11 @@ class AgentRegister {
     pipeline.find(handler => handler.handle(agentNodeProps)) match {
       case None    =>
         val msg = if(agentNodeProps.isPolicyServer) {
-          s"""We could not generate policies for server '${agentNodeProps.osDetails.fullName}', therefore making updates """ +
+          s"""We could not generate policies for server '${agentNodeProps.nodeId.value}', therefore making updates """ +
           s"""for nodes behind it unavailable. Maybe you are missing 'scale out' plugin?"""
         } else {
-          s"""We could not generate policies for node '${agentNodeProps.osDetails.fullName}' based on """ +
-          s"""'${agentNodeProps.agentType.toString()}' agent. Maybe you are missing a dedicated plugin ?"""
+          s"""We could not generate policies for node '${agentNodeProps.nodeId.value}' based on """ +
+          s"""'${agentNodeProps.agentType.toString()}' agent and '${agentNodeProps.osDetails.fullName}' system. Maybe you are missing a dedicated plugin ?"""
         }
         Failure(msg)
 

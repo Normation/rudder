@@ -178,8 +178,7 @@ bundle common va
       "root_server" expression => strcmp("root","${rudder_roles.uuid}");
 
     # static definition of the machine roles
-  classes: 
-    "policy_server" expression => "any";
+# This node doesn't have any specific role
 
 }
 
@@ -874,8 +873,8 @@ body agent control
 
 body executor control
 {
-        splaytime => "0";
-        schedule         => {  "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55"  };
+        splaytime => "4";
+        schedule         => { "Min01", "Min06", "Min11", "Min16", "Min21", "Min26", "Min31", "Min36", "Min41", "Min46", "Min51", "Min56" };
         executorfacility => "LOG_DAEMON";
 
    windows::

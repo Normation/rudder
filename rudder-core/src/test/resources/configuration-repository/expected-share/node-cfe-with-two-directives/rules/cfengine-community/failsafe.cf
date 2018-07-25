@@ -106,8 +106,7 @@ bundle common g
       "execRun"                  string => execresult("/bin/date -u \"+%Y-%m-%d %T+00:00\"", "noshell");
 
 # definition of the node roles
-    classes: 
-      "policy_server" expression => "any";
+  # This node doesn't have any specific role
 }
 
 bundle common rudder_roles

@@ -35,13 +35,19 @@
 bundle common rudder_groups {
 
   vars:
-      "by_uuid[special:all]"  string => "special:all",
-                                meta => { "inventory", "attribute_name=rudder_groups" };
+      "by_uuid[special:all_exceptPolicyServers]"  string => "special:all_exceptPolicyServers",
+                                                    meta => { "inventory", "attribute_name=rudder_groups" };
+      "by_uuid[special:all]"                      string => "special:all",
+                                                    meta => { "inventory", "attribute_name=rudder_groups" };
 
   classes:
-      "group_special_all"  expression => "any",
-                                 meta => { "inventory", "attribute_name=rudder_groups" };
-      "group_special_all"  expression => "any",
-                                 meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_special_all_exceptpolicyservers"  expression => "any",
+                                                     meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_special_all_exceptpolicyservers"  expression => "any",
+                                                     meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_special_all"                      expression => "any",
+                                                     meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_special_all"                      expression => "any",
+                                                     meta => { "inventory", "attribute_name=rudder_groups" };
 
 }

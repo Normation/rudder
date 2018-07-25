@@ -196,7 +196,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , ""
     , NodeState.Enabled
     , false
-    , true //is draft server
+    , false
     , DateTime.now
     , emptyNodeReportingConfiguration
     , Seq()
