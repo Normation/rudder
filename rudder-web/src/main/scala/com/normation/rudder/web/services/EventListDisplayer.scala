@@ -365,14 +365,14 @@ class EventListDisplayer(
         <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
         <b>{"Are you sure you want to restore configuration policy %s this change".format(action.name)}</b>
       </p>
-      <span class="tw-bs"> {
-        SHtml.ajaxButton(
+      <span>{
+       SHtml.ajaxButton(
           "Cancel"
         ,  () =>  cancel
         , ("class","btn btn-default")
         )
       }</span>
-      <span class="tw-bs"> {
+      <span> {
         SHtml.ajaxButton(
           "Confirm"
         , () => {
@@ -438,7 +438,7 @@ class EventListDisplayer(
             }
             </ul>
             <span class="alignRollback"> this change </span>
-            <span class="tw-bs">
+            <span>
             { SHtml.ajaxSubmit(
                   "Restore"
                 , () => showConfirmationDialog(rollbackAction,commiter)

@@ -169,7 +169,7 @@ trait RudderPluginDef {
     import net.liftweb.util.Helpers._
 
     val info = (
-      <div class="tw-bs"><div id="license-information" style="padding:5px; margin: 5px;" class="bs-callout">
+      <div><div id="license-information" style="padding:5px; margin: 5px;" class="bs-callout">
         <h4>License information</h4>
         <p>This binary version of this plugin is suject to license with the following information:</p>
         <div id="license-information-details"/>

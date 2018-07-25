@@ -41,9 +41,7 @@
               <div data-lift="node.SearchNodes.showQuery"></div>
             </div>
             <lift:authz role="group_write">
-              <div class="tw-bs">
-                <div data-lift="node.SearchNodes.createGroup"></div>
-              </div>
+              <div data-lift="node.SearchNodes.createGroup"></div>
             </lift:authz>
           </div>
         </div>
@@ -51,14 +49,11 @@
     </div>
   </div>
 </div>
-
-<div class="tw-bs">
-    <div id="createGroupPopup" class="modal fade" data-keyboard="true" tabindex="-1">
-    <lift:ignore>
-      This div gets the content of the createCategoryOrGroup injected within
-    </lift:ignore>
-    <div id="createGroupContainer">
-    </div>
-    </div>
+<div id="createGroupPopup" class="modal fade" data-keyboard="true" tabindex="-1">
+  <lift:ignore>
+    This div gets the content of the createCategoryOrGroup injected within
+  </lift:ignore>
+  <div id="createGroupContainer"></div>
 </div>
+
 </lift:surround>

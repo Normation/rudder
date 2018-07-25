@@ -36,7 +36,7 @@
   </style>
   <script data-lift="with-cached-resource" src="/javascript/rudder/angular/apiAccount.js" ></script>
 </head>
-<div class="portlet tw-bs" ng-app="accountManagement" id="accountManagement" data-lift="administration.ApiAccounts.body">
+<div class="portlet" ng-app="accountManagement" id="accountManagement" data-lift="administration.ApiAccounts.body">
   <div class="portlet-content" ng-cloak>
     <div class="inner-portlet">
       <div class="page-title">Configure allowed accounts</div>
@@ -53,7 +53,7 @@
             </p>
           </div>
         </div>
-        <div ng-controller="AccountCtrl" class="tw-bs">
+        <div ng-controller="AccountCtrl">
           <div ng-show="errorTable" style="width:100%; text-align:center; color:red" ng-cloak> {{errorTable.errorDetails}} </div>
           <div class="clearfix">
             <lift:authz role="administration_write">
@@ -111,86 +111,84 @@
           </div>
 
           <!-- pop-ups -->
-          <div class="tw-bs">
-            <div class="modal fade" id="newAccountPopup" tabindex="-1" role="dialog">
-              <div class="modal-backdrop fade in" style="height: 100%;"></div>
-              <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <div class="close" data-dismiss="modal">
-                      <span aria-hidden="true">&times;</span>
-                      <span class="sr-only">Close</span>
-                    </div>
-                    <h4 class="modal-title">
-                      {{formTitle(myNewAccount)}}
-                    </h4>
+          <div class="modal fade" id="newAccountPopup" tabindex="-1" role="dialog">
+            <div class="modal-backdrop fade in" style="height: 100%;"></div>
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <div class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                    <span class="sr-only">Close</span>
                   </div>
-                  <div class="modal-body">
-                    <form name="newAccount">
-                        <div class="form-group" class="" ng-class="{'has-error': newAccount.$invalid && !newAccount.$pristine}">
-                            <label for="newAccount-name"><b>Name</b></label>
-                            <input id="newAccount-name" type="text" class="form-control float-inherit" valid-empty="valid-empty" ng-model="myNewAccount.name" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()">
-                            <div ng-show="errorPopup" class="text-danger">{{errorPopup.errorDetails}}</div>
-                        </div>
-                        <div class="form-group">
-                            <label for="newAccount-description">Description</label>
-                            <textarea id="newAccount-description" class="form-control vresize float-inherit" ng-model="myNewAccount.description"></textarea>
-                        </div>
+                  <h4 class="modal-title">
+                    {{formTitle(myNewAccount)}}
+                  </h4>
+                </div>
+                <div class="modal-body">
+                  <form name="newAccount">
+                      <div class="form-group" class="" ng-class="{'has-error': newAccount.$invalid && !newAccount.$pristine}">
+                          <label for="newAccount-name"><b>Name</b></label>
+                          <input id="newAccount-name" type="text" class="form-control float-inherit" valid-empty="valid-empty" ng-model="myNewAccount.name" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()">
+                          <div ng-show="errorPopup" class="text-danger">{{errorPopup.errorDetails}}</div>
+                      </div>
+                      <div class="form-group">
+                          <label for="newAccount-description">Description</label>
+                          <textarea id="newAccount-description" class="form-control vresize float-inherit" ng-model="myNewAccount.description"></textarea>
+                      </div>
 
-                        <div class="form-group">
-                            <label for="newAccount-expiration">Expiration date</label>
-                            <toggle on="Enabled" off="Disabled" ng-model="myNewAccount.expirationDateDefined" onstyle="btn-blue" offstyle="btn-grey" ></toggle>
-                            <input id="newAccount-expiration" ng-disabled="!(myNewAccount.expirationDateDefined)" type="text" ng-model="myNewAccount.expirationDate" class="form-control vresize float-inherit"/>
-                        </div>
-                        <div class="form-group">
-                            <label for="newAccount-access">Access level</label>
-                            <select id="newAccount-access" class="form-control vresize float-inherit" ng-model="myNewAccount.authorizationType">
-                              <option value="none">No access</option>
-                              <option value="ro">Read only</option>
-                              <option value="rw">Full access</option>
-                              <option ng-disabled="!aclPlugin" value="acl"> Custom ACL {{ aclPlugin ? "" : "(Need plugin)"}}</option>
-                            </select>
-                        </div>
-                    </form>
-                  </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="newAccount.$setPristine();">Close</button>
-                    <input type="submit" class="btn btn-success" ng-disabled="newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" value="{{defineActionName(formTitle(myNewAccount))}}">
-                  </div>
+                      <div class="form-group">
+                          <label for="newAccount-expiration">Expiration date</label>
+                          <toggle on="Enabled" off="Disabled" ng-model="myNewAccount.expirationDateDefined" onstyle="btn-blue" offstyle="btn-grey" ></toggle>
+                          <input id="newAccount-expiration" ng-disabled="!(myNewAccount.expirationDateDefined)" type="text" ng-model="myNewAccount.expirationDate" class="form-control vresize float-inherit"/>
+                      </div>
+                      <div class="form-group">
+                          <label for="newAccount-access">Access level</label>
+                          <select id="newAccount-access" class="form-control vresize float-inherit" ng-model="myNewAccount.authorizationType">
+                            <option value="none">No access</option>
+                            <option value="ro">Read only</option>
+                            <option value="rw">Full access</option>
+                            <option ng-disabled="!aclPlugin" value="acl"> Custom ACL {{ aclPlugin ? "" : "(Need plugin)"}}</option>
+                          </select>
+                      </div>
+                  </form>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="newAccount.$setPristine();">Close</button>
+                  <input type="submit" class="btn btn-success" ng-disabled="newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" value="{{defineActionName(formTitle(myNewAccount))}}">
                 </div>
               </div>
             </div>
+          </div>
 
-            <div class="modal fade" id="oldAccountPopup" tabindex="-1" role="dialog">
-              <div class="modal-backdrop fade in" style="height: 100%;"></div>
-              <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <div class="close" data-dismiss="modal">
-                      <span aria-hidden="true">&times;</span>
-                      <span class="sr-only">Close</span>
-                    </div>
-                    <h4 class="modal-title">
-                      {{myOldAccount.actionName}} API Account '{{myOldAccount.name}}'
-                    </h4>
+          <div class="modal fade" id="oldAccountPopup" tabindex="-1" role="dialog">
+            <div class="modal-backdrop fade in" style="height: 100%;"></div>
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <div class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                    <span class="sr-only">Close</span>
                   </div>
-                  <div class="modal-body">
-                    <div class="row">
-                      <div class="col-lg-12 col-sm-12 col-xs-12">
-                        <h4 class="text-center" id="areYouSure">
-                          You are about to {{myOldAccount.actionName.toLowerCase()}} an API Account.
-                        </h4>
-                      </div>
-                    </div>
-                    <div class="alert alert-warning text-center space-top" role="alert">
-                      <span aria-hidden="true" class="glyphicon glyphicon-exclamation-sign"></span>
-                      <span>If you continue, any scripts using this will no longer be able to connect to Rudder's API.</span>
+                  <h4 class="modal-title">
+                    {{myOldAccount.actionName}} API Account '{{myOldAccount.name}}'
+                  </h4>
+                </div>
+                <div class="modal-body">
+                  <div class="row">
+                    <div class="col-lg-12 col-sm-12 col-xs-12">
+                      <h4 class="text-center" id="areYouSure">
+                        You are about to {{myOldAccount.actionName.toLowerCase()}} an API Account.
+                      </h4>
                     </div>
                   </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <button id="dialogRemoveButton" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index)" class="btn" ng-class="{'btn btn-danger':myOldAccount.actionName=='Delete' , 'btn btn-primary':myOldAccount.actionName!='Delete'}">{{myOldAccount.actionName.split(' ')[0]}}</button>
+                  <div class="alert alert-warning text-center space-top" role="alert">
+                    <span aria-hidden="true" class="glyphicon glyphicon-exclamation-sign"></span>
+                    <span>If you continue, any scripts using this will no longer be able to connect to Rudder's API.</span>
                   </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                  <button id="dialogRemoveButton" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index)" class="btn" ng-class="{'btn btn-danger':myOldAccount.actionName=='Delete' , 'btn btn-primary':myOldAccount.actionName!='Delete'}">{{myOldAccount.actionName.split(' ')[0]}}</button>
                 </div>
               </div>
             </div>

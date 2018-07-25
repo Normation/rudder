@@ -276,7 +276,7 @@ class ReportDisplayer(
         )
     }
 
-    <div class="tw-bs">
+    <div>
       <div id="node-compliance-intro" class={updatedBackground}>
         <p>{explainCompliance(report.runInfo)}</p>{
           specialPolicyModeError ++
@@ -288,7 +288,7 @@ class ReportDisplayer(
   private[this] def displayReports(node : NodeInfo) : NodeSeq = {
     val boxXml = (
       if(node.state == NodeState.Ignored) {
-        Full(<div class="tw-bs"><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>)
+        Full(<div><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>)
       } else {
       for {
         report       <- reportingService.findNodeStatusReport(node.id)

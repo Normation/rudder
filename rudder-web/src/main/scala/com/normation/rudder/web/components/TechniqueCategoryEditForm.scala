@@ -83,7 +83,7 @@ class TechniqueCategoryEditForm(
       <div class="section-title">Category details</div>
         {categoryDetailsForm}
     </div>
-    <div class="tw-bs">
+    <div>
     <div id="removeCategoryActionDialog" class="modal fade" data-keyboard="true" tabindex="-1">
     <div class="modal-backdrop fade in" style="height: 100%;"></div>
     <div class="modal-dialog">
@@ -186,7 +186,7 @@ class TechniqueCategoryEditForm(
         <hr class="spacer"/>
         <update-description></update-description>
         <hr class="spacer"/>
-        <div class="spacerscala tw-bs">
+        <div class="spacerscala">
           <update-submit></update-submit>
           <update-delete></update-delete>
         </div>

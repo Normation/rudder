@@ -72,7 +72,7 @@ label.rule-info + div{
 .new-icon.category:before{
   content:"Add category";
 }
-.tw-bs .btn.btn-box-tool{
+.content-wrapper .btn.btn-box-tool{
   padding-left:2px;
   padding-right:2px;
 }

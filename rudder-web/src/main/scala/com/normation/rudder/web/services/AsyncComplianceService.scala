@@ -172,7 +172,7 @@ class AsyncComplianceService (
                   case None =>
                     s"""
                     $$("#compliance-bar-${value}").parent().css("text-decoration", "none");
-                    $$("#compliance-bar-${value}").html('<div class="tw-bs"><span class="text-center text-muted">no data available</span></div>');
+                    $$("#compliance-bar-${value}").html('<div><span class="text-center text-muted">no data available</span></div>');
                     """
                   case Some(compliance) =>
                     val array = compliance.toJsArray.toJsCmd

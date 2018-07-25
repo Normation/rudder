@@ -37,225 +37,224 @@
 
 <div data-lift="configuration.DirectiveManagement.head"></div>
 
-<div class="tw-bs no-background">
-  <div class="row col-small-padding">
-    <div class="col-xs-12 col-sm-30">
-      <div class="box">
-        <div class="box-header with-border">
-          <h3 class="box-title"><i class="fa fa-filter" aria-hidden="true"></i>Filters</h3>
-          <div class="box-tools pull-right">
-            <button class="btn btn-box-tool" data-widget="collapse" id="showFiltersDirective"><i class="fa fa-chevron-down"></i></button>
-          </div>
+
+<div class="row col-small-padding">
+  <div class="col-xs-12 col-sm-30">
+    <div class="box">
+      <div class="box-header with-border">
+        <h3 class="box-title"><i class="fa fa-filter" aria-hidden="true"></i>Filters</h3>
+        <div class="box-tools pull-right">
+          <button class="btn btn-box-tool" data-widget="collapse" id="showFiltersDirective"><i class="fa fa-chevron-down"></i></button>
         </div>
-        <div class="box-body">
-          <div id="directiveFilter" ng-controller="filterTagCtrl" ng-cloak>
-            <div class="tree">
-              <div class="filter-tree">
-                <div class="input-group search-addon">
-                  <div class="input-group-btn">
-                    <button type="button" class="btn btn-sm btn-default" aria-label="Bold" onclick="toggleTree('#activeTechniquesTree', this);">
-                      <span class="fa fa-folder fa-folder-open"></span>
+      </div>
+      <div class="box-body">
+        <div id="directiveFilter" ng-controller="filterTagCtrl" ng-cloak>
+          <div class="tree">
+            <div class="filter-tree">
+              <div class="input-group search-addon">
+                <div class="input-group-btn">
+                  <button type="button" class="btn btn-sm btn-default" aria-label="Bold" onclick="toggleTree('#activeTechniquesTree', this);">
+                    <span class="fa fa-folder fa-folder-open"></span>
+                  </button>
+                </div>
+                <input class="form-control input-sm" placeholder="Filter" id="treeSearch" ng-model="searchStr" ng-keydown="refuseEnter($event)" ng-keyup="searchTree('#activeTechniquesTree')">
+                <div class="input-group-btn">
+                  <button type="button" class="btn btn-default btn-sm" aria-label="Bold" ng-click="clearSearchFieldTree('#activeTechniquesTree');" >
+                    <span class="fa fa-times"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="clearfix "></div>
+          <div id="showFiltersDirective" class="filters">
+            <div class="filters-container">
+              <form class="filterTag">
+                <div id="form-tag">
+                  <div class="form-group">
+                    <label>Tags</label>
+                    <div class="input-group">
+                      <div id="directiveFilterKeyInput" angucomplete-alt="" placeholder="key" minlength="1" maxlength="100"
+                        pause="500" selected-object="selectTag" remote-url="{{contextPath}}/secure/api/completion/tags/directive/key/"
+                        remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-key"
+                        match-class="highlight" input-changed="updateTag" override-suggestions="true">
+                      </div>
+                      <span class="input-group-addon addon-json">=</span>
+                      <div id="directiveFilterValueInput" angucomplete-alt="" placeholder="value" minlength="1" maxlength="100"
+                        pause="500" selected-object="selectValue" remote-url="{{contextPath}}/secure/api/completion/tags/directive/value/{{newTag.key}}/"
+                        remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-value" match-class="highlight"
+                        input-changed="updateValue" override-suggestions="true">
+                      </div>
+                      <span class="input-group-btn">
+                        <button type="button" class="btn btn-success btn-sm" ng-disabled="isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)" ng-click="addTag(newTag)"><span class="fa fa-plus"></span></button>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="only-tags">
+                    <button class="btn btn-default btn-xs pull-right" ng-click="clearAllTags()" ng-hide="tags.length==0">
+                      Clear all tags
+                      <i class="fa fa-trash" aria-hidden="true"></i>
                     </button>
                   </div>
-                  <input class="form-control input-sm" placeholder="Filter" id="treeSearch" ng-model="searchStr" ng-keydown="refuseEnter($event)" ng-keyup="searchTree('#activeTechniquesTree')">
-                  <div class="input-group-btn">
-                    <button type="button" class="btn btn-default btn-sm" aria-label="Bold" ng-click="clearSearchFieldTree('#activeTechniquesTree');" >
+                </div>
+                <div class="tags-container" ng-show="tags.length>0">
+                  <div class="btn-group btn-group-xs" role="group"  ng-repeat="tag in tags track by $index">
+                    <button class="btn btn-default tag" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag(tag, 'directiveFilterKeyInput', 'directiveFilterValueInput')" >
+                      <span class="tag-key">
+                        <span ng-show="tag.key!=''">{{tag.key}}</span>
+                        <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i>
+                      </span>
+                      <span class="tag-separator">=</span>
+                      <span class="tag-value">
+                        <span ng-show="tag.value!=''">{{tag.value}}</span>
+                        <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.value==''"></i>
+                      </span>
+                    </button>
+                    <button type="button" class="btn btn-default" ng-click="removeTag($index)">
                       <span class="fa fa-times"></span>
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div class="clearfix "></div>
-            <div id="showFiltersDirective" class="filters">
-              <div class="filters-container">
-                <form class="filterTag">
-                  <div id="form-tag">
-                    <div class="form-group">
-                      <label>Tags</label>
-                      <div class="input-group">
-                        <div id="directiveFilterKeyInput" angucomplete-alt="" placeholder="key" minlength="1" maxlength="100"
-                          pause="500" selected-object="selectTag" remote-url="{{contextPath}}/secure/api/completion/tags/directive/key/"
-                          remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-key"
-                          match-class="highlight" input-changed="updateTag" override-suggestions="true">
-                        </div>
-                        <span class="input-group-addon addon-json">=</span>
-                        <div id="directiveFilterValueInput" angucomplete-alt="" placeholder="value" minlength="1" maxlength="100"
-                          pause="500" selected-object="selectValue" remote-url="{{contextPath}}/secure/api/completion/tags/directive/value/{{newTag.key}}/"
-                          remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-value" match-class="highlight"
-                          input-changed="updateValue" override-suggestions="true">
-                        </div>
-                        <span class="input-group-btn">
-                          <button type="button" class="btn btn-success btn-sm" ng-disabled="isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)" ng-click="addTag(newTag)"><span class="fa fa-plus"></span></button>
-                        </span>
-                      </div>
-                    </div>
-                    <div class="only-tags">
-                      <button class="btn btn-default btn-xs pull-right" ng-click="clearAllTags()" ng-hide="tags.length==0">
-                        Clear all tags
-                        <i class="fa fa-trash" aria-hidden="true"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="tags-container" ng-show="tags.length>0">
-                    <div class="btn-group btn-group-xs" role="group"  ng-repeat="tag in tags track by $index">
-                      <button class="btn btn-default tag" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag(tag, 'directiveFilterKeyInput', 'directiveFilterValueInput')" >
-                        <span class="tag-key">
-                          <span ng-show="tag.key!=''">{{tag.key}}</span>
-                          <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i>
-                        </span>
-                        <span class="tag-separator">=</span>
-                        <span class="tag-value">
-                          <span ng-show="tag.value!=''">{{tag.value}}</span>
-                          <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.value==''"></i>
-                        </span>
-                      </button>
-                      <button type="button" class="btn btn-default" ng-click="removeTag($index)">
-                        <span class="fa fa-times"></span>
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
+              </form>
             </div>
           </div>
         </div>
       </div>
-      <div class="box" id="boxDirectiveTree">
-        <div class="box-header with-border spacing">
-          <h3 class="box-title"><i class="fa fa-list" aria-hidden="true"></i>Directive library</h3>
-          <div class="box-tools pull-right">
-            <lift:authz role="technique_write">
-              <a class="new-icon no-icon btn btn-success btn-sm tech" href="/secure/utilities/techniqueEditor"></a>
-            </lift:authz>
-            <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-chevron-down"></i></button>
+    </div>
+    <div class="box" id="boxDirectiveTree">
+      <div class="box-header with-border spacing">
+        <h3 class="box-title"><i class="fa fa-list" aria-hidden="true"></i>Directive library</h3>
+        <div class="box-tools pull-right">
+          <lift:authz role="technique_write">
+            <a class="new-icon no-icon btn btn-success btn-sm tech" href="/secure/utilities/techniqueEditor"></a>
+          </lift:authz>
+          <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-chevron-down"></i></button>
+        </div>
+      </div><!-- /.box-header -->
+      <div class="box-body" style="padding-top:0;padding-bottom:0;">
+        <div id="activeTechniquesTree_alert" style="display:none">
+          <div class="alert alert-warning">
+            <i class="fa fa-exclamation-triangle"></i>
+            No directives match your filter.
           </div>
-        </div><!-- /.box-header -->
-        <div class="box-body" style="padding-top:0;padding-bottom:0;">
-          <div id="activeTechniquesTree_alert" style="display:none">
-            <div class="alert alert-warning">
-              <i class="fa fa-exclamation-triangle"></i>
-              No directives match your filter.
+        </div>
+        <hr class="separator-filter-tree">
+        <div data-lift="configuration.DirectiveManagement.userLibrary" ></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="directiveDetails" class="col-xs-12 col-sm-70">
+    <div data-lift="configuration.DirectiveManagement.techniqueDetails">
+      <div id="techniqueDetails" ng-app="techniqueDetails">
+        <div class="box">
+          <div class="box-header with-border">
+            <h3 class="box-title"><i aria-hidden="true" class="fa fa-cog"></i><span id="info-title">Technique <b id="techniqueName"></b></span></h3>
+          </div>
+          <div id="details" class="col-xs-12">
+            <div class="box-body">
+              <div id="directiveIntro">
+                The Directive <b class="directive">[Directive]</b> is based on following Technique:
+              </div>
+              <div>
+                <h4 style="margin-top:0;">Description</h4>
+                <span ng-non-bindable id="techniqueDescription">[technique.description]</span>
+              </div>
+              <div class="groupDiv">
+                <h4>Characteristics</h4>
+                <ul>
+                  <li ng-non-bindable id="techniqueLongDescription">[technique.longDescription]</li>
+                  <li ng-non-bindable id="isSingle">[Unique Technique]</li>
+                </ul>
+              </div>
+              <div id="techniqueVersion" ng-controller="techniqueVersion">
+                <h4>Available versions</h4>
+                <table id="versionTable">
+                  <thead>
+                    <tr>
+                      <th colspan="2">Version</th>
+                      <th>Instances</th>
+                      <th colspan="2">Agent type</th>
+                      <th>Last updated on</th>
+                      <lift:authz role="directive_write">
+                        <th>Use this version</th>
+                      </lift:authz>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="technique in techniques" ng-hide="display(technique)">
+                      <td>
+                        {{technique.version}}
+                      </td>
+                      <td>
+                        <span ng-if="technique.isDeprecated" class="glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="Deprecated: {{technique.deprecationMessage}}"></span>
+                      </td>
+                      <td>
+                        {{technique.multiVersionSupport}}<span class="fa fa-question-circle bsTooltip multiversion-icon" data-toggle="tooltip" data-placement="top" data-html="true" title="{{technique.mvsMessage}}"></span>
+                      </td>
+                      <td>
+                        <span ng-if="technique.classicSupport" class="fa fa-gear bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="This Technique version is compatible with the <b>classic</b> agent."></span>
+                      </td>
+                      <td>
+                        <span ng-if="technique.dscSupport" class="dsc-icon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="This Technique version is compatible with the <b class='dsc'>DSC</b> agent."></span>
+                      </td>
+                      <td>
+                        {{technique.acceptationDate}}
+                      </td>
+                      <lift:authz role="directive_write">
+                        <td>
+                          <button type="button" ng-click="technique.action()" class="btn btn-success new-icon btn-xs">Create Directive</button>
+                        </td>
+                      </lift:authz>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="checkbox-group">
+                  <input id="displayDeprecation" type="checkbox" ng-model="displayDeprecated"/>
+                  <label for="displayDeprecation">Display deprecated Technique versions</label>
+                </div>
+                <lift:authz role="directive_write">
+                  <div class="space-top">
+                    <button type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" class="btn btn-success new-icon">Create with latest version</button>
+                  </div>
+                </lift:authz>
+              </div>
             </div>
           </div>
-          <hr class="separator-filter-tree">
-          <div data-lift="configuration.DirectiveManagement.userLibrary" ></div>
         </div>
       </div>
     </div>
 
-    <div id="directiveDetails" class="col-xs-12 col-sm-70">
-      <div data-lift="configuration.DirectiveManagement.techniqueDetails">
-        <div id="techniqueDetails" ng-app="techniqueDetails">
-          <div class="box">
-            <div class="box-header with-border">
-              <h3 class="box-title"><i aria-hidden="true" class="fa fa-cog"></i><span id="info-title">Technique <b id="techniqueName"></b></span></h3>
-            </div>
-            <div id="details" class="col-xs-12">
-              <div class="box-body">
-                <div id="directiveIntro">
-                  The Directive <b class="directive">[Directive]</b> is based on following Technique:
-                </div>
-                <div>
-                  <h4 style="margin-top:0;">Description</h4>
-                  <span ng-non-bindable id="techniqueDescription">[technique.description]</span>
-                </div>
-                <div class="groupDiv">
-                  <h4>Characteristics</h4>
-                  <ul>
-                    <li ng-non-bindable id="techniqueLongDescription">[technique.longDescription]</li>
-                    <li ng-non-bindable id="isSingle">[Unique Technique]</li>
-                  </ul>
-                </div>
-                <div id="techniqueVersion" ng-controller="techniqueVersion">
-                  <h4>Available versions</h4>
-                  <table id="versionTable">
-                    <thead>
-                      <tr>
-                        <th colspan="2">Version</th>
-                        <th>Instances</th>
-                        <th colspan="2">Agent type</th>
-                        <th>Last updated on</th>
-                        <lift:authz role="directive_write">
-                          <th>Use this version</th>
-                        </lift:authz>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr ng-repeat="technique in techniques" ng-hide="display(technique)">
-                        <td>
-                          {{technique.version}}
-                        </td>
-                        <td>
-                          <span ng-if="technique.isDeprecated" class="glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="Deprecated: {{technique.deprecationMessage}}"></span>
-                        </td>
-                        <td>
-                          {{technique.multiVersionSupport}}<span class="fa fa-question-circle bsTooltip multiversion-icon" data-toggle="tooltip" data-placement="top" data-html="true" title="{{technique.mvsMessage}}"></span>
-                        </td>
-                        <td>
-                          <span ng-if="technique.classicSupport" class="fa fa-gear bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="This Technique version is compatible with the <b>classic</b> agent."></span>
-                        </td>
-                        <td>
-                          <span ng-if="technique.dscSupport" class="dsc-icon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="This Technique version is compatible with the <b class='dsc'>DSC</b> agent."></span>
-                        </td>
-                        <td>
-                          {{technique.acceptationDate}}
-                        </td>
-                        <lift:authz role="directive_write">
-                          <td>
-                            <button type="button" ng-click="technique.action()" class="btn btn-success new-icon btn-xs">Create Directive</button>
-                          </td>
-                        </lift:authz>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div class="checkbox-group">
-                    <input id="displayDeprecation" type="checkbox" ng-model="displayDeprecated"/>
-                    <label for="displayDeprecation">Display deprecated Technique versions</label>
-                  </div>
-                  <lift:authz role="directive_write">
-                    <div class="space-top">
-                      <button type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" class="btn btn-success new-icon">Create with latest version</button>
-                    </div>
-                  </lift:authz>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="directiveDetails">
-        <div data-lift="configuration.DirectiveManagement.showDirectiveDetails" ></div>
-      </div>
+    <div class="directiveDetails">
+      <div data-lift="configuration.DirectiveManagement.showDirectiveDetails" ></div>
     </div>
   </div>
-  <div id="createDirectivePopup" class="nodisplay">
-    <lift:ignore>
-      This div gets the content of the createDirective injected within
-    </lift:ignore>
-  </div>
+</div>
+<div id="createDirectivePopup" class="nodisplay">
+  <lift:ignore>
+    This div gets the content of the createDirective injected within
+  </lift:ignore>
+</div>
 
-  <div id="finishMigrationPopup" class="modal fade" data-keyboard="true" tabindex="-1">
-    <div class="modal-backdrop fade in" style="height: 100%;"></div>
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h4>Finish migration to a new version</h4>
-        </div>
-        <div class="modal-body">
-          <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">Edit and save the form!</h4>
-          <p class="col-lg-12 col-sm-12 col-xs-12">
-            To finish the Directive migration to the new version, you have to edit and save the Directive parameters.
-          </p>
-          <p class="col-lg-12 col-sm-12 col-xs-12">
-            You can cancel the migration by reloading the page or choosing an other Directive in the tree
-            without saving the form.
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        </div>
+<div id="finishMigrationPopup" class="modal fade" data-keyboard="true" tabindex="-1">
+  <div class="modal-backdrop fade in" style="height: 100%;"></div>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4>Finish migration to a new version</h4>
+      </div>
+      <div class="modal-body">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">Edit and save the form!</h4>
+        <p class="col-lg-12 col-sm-12 col-xs-12">
+          To finish the Directive migration to the new version, you have to edit and save the Directive parameters.
+        </p>
+        <p class="col-lg-12 col-sm-12 col-xs-12">
+          You can cancel the migration by reloading the page or choosing an other Directive in the tree
+          without saving the form.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
       </div>
     </div>
   </div>

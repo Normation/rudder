@@ -271,7 +271,7 @@ class ShowNodeDetailsFromNode(
     val id = JsNodeId(node.id)
     ("#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
       "#node_groupTree" #>
-        <div id={groupTreeId} class="tw-bs">
+        <div id={groupTreeId}>
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>
         </div> &
       "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some((node, globalMode)), Some(node.creationDate),  AcceptedInventory, isDisplayingInPopup = withinPopup) &

@@ -24,12 +24,10 @@
         <div class="tabInform">
           <p>Click on a node name to view detailed inventory information.</p>
 
-          <p>Click on <span class="tw-bs"><i class="glyphicon glyphicon-search"></i></span> to list Rules that would be applied to this node if you accept it.</p>
+          <p>Click on <i class="glyphicon glyphicon-search"></i>to list Rules that would be applied to this node if you accept it.</p>
 
         </div>
-        <div class="tw-bs">
-          <lift:Msgs>[error]</lift:Msgs>
-        </div>
+        <lift:Msgs>[error]</lift:Msgs>
         <div  data-lift="lazy-load">
           <div data-lift="node.AcceptNode.list">
             <pending-selectall></pending-selectall>
@@ -37,12 +35,10 @@
             <pending-servers></pending-servers>
             <div id="acceptNodeGrid_paginate_area" class="nodisplay"></div>
             <lift:authz role="node_write">
-              <div class="tw-bs">
                 <div class="col-xs-12">
-                <pending-accept></pending-accept>
-                <pending-refuse></pending-refuse>
+                  <pending-accept></pending-accept>
+                  <pending-refuse></pending-refuse>
                 </div>
-              </div>
               <hr class="spacer"/>
             </lift:authz>
             <pending-errors></pending-errors>

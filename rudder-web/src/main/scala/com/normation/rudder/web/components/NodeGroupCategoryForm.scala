@@ -116,7 +116,7 @@ class NodeGroupCategoryForm(
        </div>
         <hr class="spacer"/>
         <lift:authz role="node_write">
-        <div class="margins tw-bs space-top"><directive-save></directive-save> <directive-delete></directive-delete></div>
+        <div class="margins space-top"><directive-save></directive-save> <directive-delete></directive-delete></div>
         </lift:authz>
       </div>
    )
@@ -155,7 +155,7 @@ class NodeGroupCategoryForm(
     if(parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
       (
        <button id="removeButton" class="btn btn-danger">Delete</button>
-        <div class="tw-bs">
+        <div>
             <div id="removeActionDialog" class="modal fade" data-keyboard="true" tabindex="-1">
                 <div class="modal-backdrop fade in" style="height: 100%;"></div>
                 <div class="modal-dialog">

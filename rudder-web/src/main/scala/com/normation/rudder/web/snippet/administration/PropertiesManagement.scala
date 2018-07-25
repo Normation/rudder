@@ -448,7 +448,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Full(_) =>
             val tooltipid = Helpers.nextFuncName
             <span class="tooltipable" tooltipid={tooltipid} title="">
-              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+              <span><span class="glyphicon glyphicon-info-sign info"></span></span>
             </span>
             <div class="tooltipContent" id={tooltipid}>
               If this is checked, when rsync synchronization method is used, folder /var/rudder/share will be synchronized using rsync.
@@ -477,7 +477,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Full(_) =>
             val tooltipid = Helpers.nextFuncName
             <span class="tooltipable" tooltipid={tooltipid} title="">
-              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
+              <span><span class="glyphicon glyphicon-info-sign info"></span></span>
             </span>
             <div class="tooltipContent" id={tooltipid}>
               If this is checked, when rsync synchronization method is used, folder /var/rudder/configuration-repository/shared-files will be synchronized using rsync.

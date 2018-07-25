@@ -69,7 +69,7 @@
       </div>
     </div>
     <lift:authz role="rule_edit">
-      <div class="fixed-footer rule-footer tw-bs">
+      <div class="fixed-footer rule-footer">
         <div id="removeAction" style="float:left"></div>
         <div id="desactivateAction" style="float:left; margin-left:20px;"></div>
         <button id="clone">[Clone]</button>
@@ -87,7 +87,7 @@
   <div id="ruleInfoSection" class="unfoldedSection" onclick="$('#ruleInfo').toggle(400); $('#ruleInfoSection').toggleClass('foldedSection');$('#ruleInfoSection').toggleClass('unfoldedSection');">
     <div class="section-title">Summary</div>
   </div>
-  <div id="ruleInfo" class="tw-bs">
+  <div id="ruleInfo">
     <div class="row wbBaseField form-group">
       <label class="col-xs-12 rule-info">Name</label>
       <div class="col-xs-12">
@@ -131,7 +131,7 @@
 <component-form>
 <div class="object-details">
 
-  <div id="pendingChangeRequestNotification" class="tw-bs">
+  <div id="pendingChangeRequestNotification">
     <div class="callout-fade callout-warning">
       <div class="marker"><span class="glyphicon glyphicon-info-sign"></span></div>
       The following pending change requests affect this Rule, you should check that your modification is not already pending:
@@ -142,7 +142,7 @@
   <div id="notifications"></div>
   <div class="section-title spacing-title">General information</div>
 
-  <div class="groupedEditZone tw-bs">
+  <div class="groupedEditZone">
     <div class="row">
       <div class="col-md-6 col-xs-12">
         <div id="nameField">
@@ -165,7 +165,7 @@
     </div>
   </div>
 
-  <div class="groupedEditZone tw-bs">
+  <div class="groupedEditZone">
     <div class="section-title spacing-title">
       Directives
       <lift:authz role="directive_write"><a class="title-link" href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz>
