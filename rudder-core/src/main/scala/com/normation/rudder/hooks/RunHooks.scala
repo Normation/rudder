@@ -170,7 +170,7 @@ object RunHooks {
   def asyncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs): Future[HookReturnCode] = {
     /*
      * We can not use Future.fold, because it execute all scripts
-     * in parallele and then combine their results. Our semantic
+     * in parallel and then combine their results. Our semantic
      * is execute script one after the other, combining at each
      * step.
      * But we still want the whole operation to be non-bloking.
