@@ -40,11 +40,11 @@ package com.normation.rudder.web.snippet.administration
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.util.Helpers._
+
 import scala.xml.NodeSeq
 import com.normation.plugins.RudderPluginDef
-import scala.collection.JavaConverters._
-import bootstrap.liftweb.LiftSpringApplicationContext
-import com.normation.plugins._
+
+import bootstrap.liftweb.PluginsInfo
 
 class PluginManagement extends DispatchSnippet with Loggable {
 
@@ -55,7 +55,7 @@ class PluginManagement extends DispatchSnippet with Loggable {
 
   def display(xml:NodeSeq) : NodeSeq = {
     (
-      ".portlet *" #> LiftSpringApplicationContext.springContext.getBeansOfType(classOf[RudderPluginDef]).asScala.map { case(name,pluginDef) =>
+    ".portlet *" #> PluginsInfo.plugins.map { case(name,pluginDef) =>
         displayPlugin(pluginDef) _
       }
     ).apply(xml)

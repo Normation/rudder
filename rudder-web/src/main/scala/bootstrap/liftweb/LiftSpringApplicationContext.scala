@@ -37,13 +37,22 @@
 
 package bootstrap.liftweb
 
-import com.normation.spring.ScalaWebApplicationContext
-
-
-//our Lift / Spring registry
+import org.springframework.web.context.WebApplicationContext
 
 /**
  * The application spring application context for our application.
  * It is initialized in LiftInitContextListener
  */
-object LiftSpringApplicationContext extends ScalaWebApplicationContext {}
+object LiftSpringApplicationContext {
+  private var _springContext:Option[WebApplicationContext] = None
+
+  def springContext: WebApplicationContext = _springContext.getOrElse(sys.error("No application context has been defined yet"))
+
+  def setToNewContext(webContext:WebApplicationContext) : Unit = {
+    webContext match {
+      case null => sys.error("Error when getting the application context from the web context. Missing ContextLoaderListener.")
+      case c => _springContext = Some(c)
+    }
+  }
+}
+

@@ -256,3 +256,13 @@ trait RudderPluginDef {
 
 }
 
+
+/*
+ * The plugin modules: it provides a pluginDef.
+ * Given the plombing, it must:
+ * - be an object
+ * - be in package bootstrap.rudder.plugin
+ */
+trait RudderPluginModule {
+  def pluginDef: RudderPluginDef
+}

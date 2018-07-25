@@ -50,6 +50,8 @@ import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.services.core._
 import com.normation.ldap.sdk._
+import com.normation.plugins.SnippetExtensionRegister
+import com.normation.plugins.SnippetExtensionRegisterImpl
 import com.normation.rudder.UserService
 import com.normation.rudder.api._
 import com.normation.rudder.appconfig._
@@ -116,9 +118,6 @@ import com.typesafe.config.ConfigFactory
 import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Import
 
 import scala.concurrent.duration._
 import scala.util.Try
@@ -181,8 +180,7 @@ object RudderProperties {
 
 /**
  * Static initialization of Rudder services.
- * This is not a cake-pattern, more an ad-hoc replacement
- * for Spring AppConfig, which is so slow.
+ * This is not a cake-pattern, just a plain object with load of lazy vals.
  */
 object RudderConfig extends Loggable {
   import RudderProperties.config
@@ -1690,9 +1688,8 @@ object RudderConfig extends Loggable {
     , nodeInfoServiceImpl
     , RUDDER_BATCH_REPORTS_LOGINTERVAL )
 
-//  ////////////////////// Snippet plugins & extension register //////////////////////
-//  import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }
-//  private[this] lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
+  ////////////////////// Snippet plugins & extension register //////////////////////
+  lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
 
   /*
    * Agent runs: we use a cache for them.
@@ -1728,20 +1725,5 @@ object RudderConfig extends Loggable {
   }
 
  val aggregateReportScheduler = new FindNewReportsExecution(executionService,RUDDER_REPORTS_EXECUTION_INTERVAL)
-
-}
-
-/**
- * Spring configuration for services
- */
-@Configuration
-@Import(Array(classOf[AppConfigAuth]))
-class AppConfig extends Loggable {
-
-  ////////////////////// Snippet plugins & extension register //////////////////////
-  import com.normation.plugins.SnippetExtensionRegister
-  import com.normation.plugins.SnippetExtensionRegisterImpl
-  @Bean
-  def snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
 
 }

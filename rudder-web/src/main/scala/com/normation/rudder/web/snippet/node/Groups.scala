@@ -39,8 +39,7 @@ package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.eventlog.ModificationId
-import com.normation.plugins.SnippetExtensionKey
-import com.normation.plugins.SpringExtendableSnippet
+import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -79,7 +78,7 @@ object Groups {
 
 }
 
-class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with Loggable {
+class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with Loggable {
   import Groups._
 
   private[this] val getFullGroupLibrary   = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
@@ -110,8 +109,6 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     }
 
   }
-
-  def extendsAt = SnippetExtensionKey(classOf[Groups].getSimpleName)
 
   //the current nodeGroupCategoryForm component
   private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm]

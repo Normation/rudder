@@ -41,20 +41,17 @@ import com.normation.rudder.domain.policies._
 import net.liftweb.http.LocalSnippet
 import net.liftweb.common._
 import net.liftweb.http.SHtml
+
 import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import JE._
-import com.normation.rudder.web.components.{
-  RuleEditForm,
-
-  RuleGrid
-}
+import com.normation.rudder.web.components.{RuleEditForm, RuleGrid}
 import com.normation.rudder.domain.policies.Rule
-import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 import bootstrap.liftweb.RudderConfig
+import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.web.components.RuleDisplayer
 import com.normation.rudder.web.components.DisplayColumn
 
@@ -64,7 +61,7 @@ import com.normation.rudder.web.components.DisplayColumn
  * remove or edit them,
  * and add new ones.
  */
-class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleManagement] with Loggable {
+class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleManagement] with Loggable {
   import RuleManagement._
 
   private[this] val ruleRepository       = RudderConfig.roRuleRepository
@@ -72,8 +69,6 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
   //the popup component
   private[this] val currentRuleForm = new LocalSnippet[RuleEditForm]
   private[this] val currentRuleDisplayer = new LocalSnippet[RuleDisplayer]
-
-  val extendsAt = SnippetExtensionKey(classOf[RuleManagement].getSimpleName)
 
   override def mainDispatch = {
     RudderConfig.configService.rudder_workflow_enabled match {
