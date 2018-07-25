@@ -557,7 +557,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             val dirEditForm = createForm(directive.copy(techniqueVersion = version), Some(directive), technique, None)
             currentDirectiveSettingForm.set(Full(dirEditForm))
             dirEditForm.addFormMsg(
-              <div class="tw-bs" style="margin: 40px">
+              <div style="margin: 40px">
                 <h4 class="text-danger"><u>Important information: directive migration towards version {version} of '{technique.name}'</u></h4>
                 <div class="bs-callout bs-callout-danger text-left">
                 <p>This directive was linked to version '{directive.techniqueVersion}' of the Technique which is not available anymore. It was automatically

@@ -18,7 +18,7 @@
 #groupParametersTab .section-title{
   margin: 15px 13px 8px 8px;
 }
-.toggle-caret,.tw-bs .toggle-caret,.tw-bs label.toggle-caret{
+.toggle-caret,.content-wrapper .toggle-caret,.content-wrapper label.toggle-caret{
   display:block;
   text-decoration:none !important;
 }

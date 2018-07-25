@@ -227,7 +227,7 @@ class RuleDisplayer (
                 <div class="box-body">
                   <div class="row">
                     <div class="col-xs-12">
-                      <div id="showFiltersRules" ng-controller="filterTagCtrl" ng-init="initRule()" class="filters tw-bs" ng-cloak="">
+                      <div id="showFiltersRules" ng-controller="filterTagCtrl" ng-init="initRule()" class="filters" ng-cloak="">
                         <div class="filters-container">
                           <div class="filterTag">
                             <div class="input-group search-addon">

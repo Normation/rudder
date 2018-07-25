@@ -352,7 +352,7 @@ object DisplayNode extends Loggable {
     val deleteButton : NodeSeq= {
       sm.node.main.status match {
         case AcceptedInventory =>
-          <div class="tw-bs">
+          <div>
               <div id={deleteNodePopupHtmlId}  class="modal fade" data-keyboard="true" tabindex="-1" />
               <div id={errorPopupHtmlId}  class="modal fade" data-keyboard="true" tabindex="-1" />
               <div id={successPopupHtmlId}  class="modal fade" data-keyboard="true" tabindex="-1" />
@@ -360,7 +360,7 @@ object DisplayNode extends Loggable {
           <lift:authz role="node_write">
             {
               if(!isRootNode(sm.node.main.id)) {
-                <div class="tw-bs">
+                <div>
                   <div class="col-xs-12">
                     { showDeleteButton(sm.node.main.id) }
                   </div>
@@ -407,14 +407,13 @@ object DisplayNode extends Loggable {
       <h4 class="tablemargin">Rudder information</h4>
         <div class="tablepadding">
          { nodeAndGlobalMode match {
-           case Some((n, _)) => <b>Rudder node state: </b><span class="tw-bs">
-                                   <span class="rudder-label label-sm label-state">{getNodeState(n.state)}</span></span><br/>
+           case Some((n, _)) => <b>Rudder node state: </b><span class="rudder-label label-sm label-state">{getNodeState(n.state)}</span><br/>
            case None         => NodeSeq.Empty
          } }
          { nodePolicyMode match {
            case None => NodeSeq.Empty
            case Some((mode,explanation)) =>
-            <b>Node policy mode :</b><span id="badge-apm" class="tw-bs"></span><br/>  ++
+            <b>Node policy mode :</b><span id="badge-apm"></span><br/>  ++
             Script(OnLoad(JsRaw(s"""
               $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));
               $$('.rudder-label').bsTooltip();
@@ -435,13 +434,13 @@ object DisplayNode extends Loggable {
             sm.node.agents.headOption match {
               case Some(agent) =>
                 val checked = (sm.node.main.status, sm.node.main.keyStatus) match {
-                  case (AcceptedInventory, CertifiedKey) => <span class="tw-bs">
+                  case (AcceptedInventory, CertifiedKey) => <span>
                                                               <span class="glyphicon glyphicon-ok text-success tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
                                                               <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
                                                                 Inventories for this Node must be signed with this key
                                                               </span>
                                                             </span>
-                  case (AcceptedInventory, UndefinedKey) => <span class="tw-bs">
+                  case (AcceptedInventory, UndefinedKey) => <span>
                                                               <span class="glyphicon glyphicon-ok tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
                                                               <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
                                                                 Inventories for this Node are not signed
@@ -572,17 +571,13 @@ object DisplayNode extends Loggable {
     <div id={htmlId(jsId,"sd_"+eltName +"_")} class="sInventory overflow_auto" style="display:none;">{
       optSeq match {
         case Empty =>
-          <div class="tw-bs">
-            <div class="col-xs-12 alert alert-warning">
-              <span>No matching components detected on this node</span>
-            </div>
+          <div class="col-xs-12 alert alert-warning">
+            <span>No matching components detected on this node</span>
           </div>
         case Failure(m,_,_) => <span class="error">Error when trying to fetch file systems. Reported message: {m}</span>
         case Full(seq) if (seq.isEmpty && eltName != "soft") =>
-          <div class="tw-bs">
-            <div class="col-xs-12 alert alert-warning">
-              <span>No matching components detected on this node</span>
-            </div>
+          <div class="col-xs-12 alert alert-warning">
+            <span>No matching components detected on this node</span>
           </div>
         case Full(seq) =>
           <table cellspacing="0" id={htmlId(jsId,eltName+"_")} class="tablewidth">

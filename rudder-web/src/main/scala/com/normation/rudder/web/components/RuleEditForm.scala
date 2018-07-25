@@ -264,7 +264,7 @@ class RuleEditForm(
       "#longDescriptionField" #> crLongDescription.toForm_! &
       "#tagField" #> tagsEditForm.tagsForm("ruleTags", "ruleEditTagsApp", updateTag, true) &
       "#selectPiField" #> {
-        <div id={htmlId_activeTechniquesTree} class="tw-bs">{
+        <div id={htmlId_activeTechniquesTree}>{
           <ul>{
             DisplayDirectiveTree.displayTree(
                 directiveLib
@@ -282,7 +282,7 @@ class RuleEditForm(
           }</ul>
         }</div> } &
       "#selectGroupField" #> {
-        <div id={htmlId_groupTree} class="tw-bs">
+        <div id={htmlId_groupTree}>
           <ul>{DisplayNodeGroupTree.displayTree(
               groupLib
             , None

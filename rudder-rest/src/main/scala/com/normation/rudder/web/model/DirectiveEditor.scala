@@ -172,15 +172,15 @@ trait DirectiveField extends BaseField with SectionChildField {
       NodeSeq.Empty
     } else {
       val tooltipid = Helpers.nextFuncName
-      <span class="tw-bs" ><span tooltipid={tooltipid} class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span></span>
+      <span tooltipid={tooltipid} class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
       <div class="tooltipContent" id={tooltipid}>{tooltip}</div>
     }
   }
 
   def display(value: NodeSeq) : NodeSeq = {
     <tr>
-      <td class="tw-bs" colspan="2">
-      <span>{ if (optional) displayName else <b>{ displayName}</b> } {tooltipElem} {if (optional) <span class="tw-bs"> - <small class="greyscala">Optional</small></span>}</span>
+      <td colspan="2">
+      <span>{ if (optional) displayName else <b>{ displayName}</b> } {tooltipElem} {if (optional) <span> - <small class="greyscala">Optional</small></span>}</span>
       </td>
       <td class="directiveVarValue">{ value }</td>
     </tr>
@@ -485,7 +485,7 @@ case class MultivaluedSectionField(
 
   private def showAddAnother(): NodeSeq = {
     if (!readOnlySection) {
-      <div class="directiveAddGroup tw-bs">{
+      <div class="directiveAddGroup">{
         SHtml.ajaxSubmit(
             s"Add another '${name}'"
           , { () =>
@@ -507,7 +507,7 @@ case class MultivaluedSectionField(
         { section.childFields map (f => f.toFormNodeSeq) }
       </tbody>
     </table>
-    <div class="textright directiveDeleteGroup tw-bs">{
+    <div class="textright directiveDeleteGroup">{
       if (!readOnlySection) {
         val attr = (if (size > 1) ("" -> "") else ("disabled" -> "true")) :: ("class" -> "btn btn-danger") :: Nil
         SHtml.ajaxSubmit(s"Delete '${name} #${i+1}'", { () =>

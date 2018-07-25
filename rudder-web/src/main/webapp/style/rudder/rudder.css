@@ -445,7 +445,7 @@ Tableau
   border-left: 1px solid #B4B3A8;
 }
 
-#grid_rules_grid_zone .tw-bs a{
+#grid_rules_grid_zone .content-wrapper a{
   color:#333;
 }
 #acceptNodeGrid_wrapper {
@@ -714,7 +714,7 @@ table.noMarginGrid {
   width:auto !important;
   white-space: normal;
 }
-#reportsGrid td .tw-bs .progress-bar {
+#reportsGrid td .content-wrapper .progress-bar {
   float: inherit;
   display: inline-block;
 }
@@ -1188,12 +1188,6 @@ div.hierarchySpacer {
    margin:0;
    padding: 0;
    list-style: none;
-}
-body {
-   font-size: 12px;
-   font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
-   background-color: #2e2d2d;
-   height:100%;
 }
 
 html {
@@ -2048,7 +2042,7 @@ td.Repaired{
   background-color: #F5DD4D;
   color: #333;
 }
-td.details,.tw-bs td.details{
+td.details,.content-wrapper td.details{
   border:none;
   padding:0;
 }
@@ -2398,7 +2392,7 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
 }
 
 
-form .tw-bs input {
+form .content-wrapper input {
   width: auto;
 }
 
@@ -2586,7 +2580,7 @@ label span.text-fit{
   position: relative;
   top: 1px;
 }
-.jstree.tw-bs {
+.jstree.content-wrapper {
 	font-size : 12px;
 } 
 

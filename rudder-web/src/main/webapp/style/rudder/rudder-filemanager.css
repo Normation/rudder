@@ -126,10 +126,10 @@ angular-filemanager .iconset .thumbnail.selected, .table-files.selected{
   border-color:#c8c8c8;
   text-decoration:none;
 }
-.tw-bs .filemanager-window .table-files a{
+.content-wrapper .filemanager-window .table-files a{
 	color:#555;
 }
-.tw-bs .filemanager-window .table-files .sortorder:after{
+.content-wrapper .filemanager-window .table-files .sortorder:after{
 	color: #f08004;
 }
 .table-files .selected, angular-filemanager .iconset .thumbnail.selected{
@@ -157,48 +157,48 @@ angular-filemanager .modal .modal-header .close:hover{
   opacity: 1
 }
 /* Searchbar */
-.tw-bs .filemanager-window .navbar-form input.form-control {
+.content-wrapper .filemanager-window .navbar-form input.form-control {
   border-right-color: #d0d0d0;
   margin: 0px 4px;
 }
 /* dropdown menu item icon */ 
-.tw-bs .filemanager-window .dropdown-menu>li>a>.glyphicon {
+.content-wrapper .filemanager-window .dropdown-menu>li>a>.glyphicon {
   top: 2px;
   color: #555;
 }
 /* file tree */
-.tw-bs a .sidebar.file-tree{
+.content-wrapper a .sidebar.file-tree{
   padding: 10px 15px 10px 0px;
   margin-top: 0;
   background-color: #f5f5f5;
   border:none;
   border-right: 1px solid #dddddd;
 }
-.tw-bs .filemanager-window .nav-sidebar>li.active>a,.tw-bs .filemanager-window .nav-sidebar>li.active>a > .glyphicon,.tw-bs .filemanager-window .nav > li > a:focus .glyphicon {
+.content-wrapper .filemanager-window .nav-sidebar>li.active>a,.content-wrapper .filemanager-window .nav-sidebar>li.active>a > .glyphicon,.content-wrapper .filemanager-window .nav > li > a:focus .glyphicon {
   color: #333;
 }
-.tw-bs .filemanager-window .nav-sidebar>li>a, .tw-bs .filemanager-window .nav-sidebar>li.active>a > .glyphicon {
+.content-wrapper .filemanager-window .nav-sidebar>li>a, .content-wrapper .filemanager-window .nav-sidebar>li.active>a > .glyphicon {
     color: #555;
     transition-duration: .2s;
 }
-.tw-bs .filemanager-window .nav-sidebar>li.active>a:hover,.tw-bs .filemanager-window .nav-sidebar>li.active>a:hover .glyphicon {
+.content-wrapper .filemanager-window .nav-sidebar>li.active>a:hover,.content-wrapper .filemanager-window .nav-sidebar>li.active>a:hover .glyphicon {
   color: #333;
 }
-.tw-bs .filemanager-window .nav-sidebar>li.active>a:hover > .glyphicon:nth-child(2) {
+.content-wrapper .filemanager-window .nav-sidebar>li.active>a:hover > .glyphicon:nth-child(2) {
   top : -2px;
 }
-.tw-bs .filemanager-window .modal .modal-body{
+.content-wrapper .filemanager-window .modal .modal-body{
   background-color: #f5f5f5;
 }
-.tw-bs .filemanager-window .modal .modal-footer{
+.content-wrapper .filemanager-window .modal .modal-footer{
   background-color: #fff;
 }
 /* table */
-.tw-bs .filemanager-window table a{
+.content-wrapper .filemanager-window table a{
   text-decoration:none;
 }
 /* toolbar */
-.tw-bs .filemanager-window .fileManager-actions{
+.content-wrapper .filemanager-window .fileManager-actions{
   border-top: 1px solid #dddddd;
   padding: 7px;
   text-align: right;
@@ -207,74 +207,74 @@ angular-filemanager .modal .modal-header .close:hover{
   height: auto;
   bottom: 0;
 }
-.tw-bs .filemanager-window .fileManager-actions > .btn{
+.content-wrapper .filemanager-window .fileManager-actions > .btn{
     margin-left: 20px;
 }
-.tw-bs .filemanager-window .fileManager-actions .currentPath{
+.content-wrapper .filemanager-window .fileManager-actions .currentPath{
   color:#555;
 }
 
 /* DIRECTIVE PAGE */
-.tw-bs .input-group-btn:last-child > .btn.browserFile{
+.content-wrapper .input-group-btn:last-child > .btn.browserFile{
 	margin-left: -3px;
 	transition-duration : .2s;
   background-color: #f0f0f0;
 }
 
-.tw-bs .input-group-btn:last-child > .btn.browserFile > .glyphicon{
+.content-wrapper .input-group-btn:last-child > .btn.browserFile > .glyphicon{
   color : #555;
   top: -1px;
   transition-duration : .2s;
 }
-.tw-bs .input-group-btn:last-child > .btn.browserFile:hover > .glyphicon{
+.content-wrapper .input-group-btn:last-child > .btn.browserFile:hover > .glyphicon{
   color : #333;
 }
 /* FILE TREE */
-.tw-bs .filemanager-window .nav-sidebar>li>div>a {
+.content-wrapper .filemanager-window .nav-sidebar>li>div>a {
   color: #7a7a7a;
   padding: 7px 0 7px 16px;
   text-decoration : none;
 }
-.tw-bs .filemanager-window .nav-sidebar>li.active>div>a {
+.content-wrapper .filemanager-window .nav-sidebar>li.active>div>a {
   color: #f08004;
 }
 
-.tw-bs .filemanager-window .navbar-inverse .navbar-collapse, .tw-bs .filemanager-window .navbar-inverse .navbar-form{
+.content-wrapper .filemanager-window .navbar-inverse .navbar-collapse, .content-wrapper .filemanager-window .navbar-inverse .navbar-form{
   border: none;
   box-shadow: none;
 }
 /* FIX BOOTSTRAP AFTER-BEFORE ELEMENTS */
-.tw-bs .filemanager-window .clearfix:before,
-.tw-bs .filemanager-window .clearfix:after,
-.tw-bs .filemanager-window .dl-horizontal dd:before,
-.tw-bs .filemanager-window .dl-horizontal dd:after,
-.tw-bs .filemanager-window .container:before,
-.tw-bs .filemanager-window .container:after,
-.tw-bs .filemanager-window .container-fluid:before,
-.tw-bs .filemanager-window .container-fluid:after,
-.tw-bs .filemanager-window .row:before,
-.tw-bs .filemanager-window .row:after,
-.tw-bs .filemanager-window .form-horizontal .form-group:before,
-.tw-bs .filemanager-window .form-horizontal .form-group:after,
-.tw-bs .filemanager-window .btn-toolbar:before,
-.tw-bs .filemanager-window .btn-toolbar:after,
-.tw-bs .filemanager-window .btn-group-vertical > .btn-group:before,
-.tw-bs .filemanager-window .btn-group-vertical > .btn-group:after,
-.tw-bs .filemanager-window .nav:before, .tw-bs .nav:after,
-.tw-bs .filemanager-window .navbar:before,
-.tw-bs .filemanager-window .navbar:after,
-.tw-bs .filemanager-window .navbar-header:before,
-.tw-bs .filemanager-window .navbar-header:after,
-.tw-bs .filemanager-window .navbar-collapse:before,
-.tw-bs .filemanager-window .navbar-collapse:after,
-.tw-bs .filemanager-window .pager:before,
-.tw-bs .filemanager-window .pager:after,
-.tw-bs .filemanager-window .panel-body:before,
-.tw-bs .filemanager-window .panel-body:after,
-.tw-bs .filemanager-window .modal-header:before,
-.tw-bs .filemanager-window .modal-header:after,
-.tw-bs .filemanager-window .modal-footer:before,
-.tw-bs .filemanager-window .modal-footer:after {
+.content-wrapper .filemanager-window .clearfix:before,
+.content-wrapper .filemanager-window .clearfix:after,
+.content-wrapper .filemanager-window .dl-horizontal dd:before,
+.content-wrapper .filemanager-window .dl-horizontal dd:after,
+.content-wrapper .filemanager-window .container:before,
+.content-wrapper .filemanager-window .container:after,
+.content-wrapper .filemanager-window .container-fluid:before,
+.content-wrapper .filemanager-window .container-fluid:after,
+.content-wrapper .filemanager-window .row:before,
+.content-wrapper .filemanager-window .row:after,
+.content-wrapper .filemanager-window .form-horizontal .form-group:before,
+.content-wrapper .filemanager-window .form-horizontal .form-group:after,
+.content-wrapper .filemanager-window .btn-toolbar:before,
+.content-wrapper .filemanager-window .btn-toolbar:after,
+.content-wrapper .filemanager-window .btn-group-vertical > .btn-group:before,
+.content-wrapper .filemanager-window .btn-group-vertical > .btn-group:after,
+.content-wrapper .filemanager-window .nav:before, .content-wrapper .nav:after,
+.content-wrapper .filemanager-window .navbar:before,
+.content-wrapper .filemanager-window .navbar:after,
+.content-wrapper .filemanager-window .navbar-header:before,
+.content-wrapper .filemanager-window .navbar-header:after,
+.content-wrapper .filemanager-window .navbar-collapse:before,
+.content-wrapper .filemanager-window .navbar-collapse:after,
+.content-wrapper .filemanager-window .pager:before,
+.content-wrapper .filemanager-window .pager:after,
+.content-wrapper .filemanager-window .panel-body:before,
+.content-wrapper .filemanager-window .panel-body:after,
+.content-wrapper .filemanager-window .modal-header:before,
+.content-wrapper .filemanager-window .modal-header:after,
+.content-wrapper .filemanager-window .modal-footer:before,
+.content-wrapper .filemanager-window .modal-footer:after {
     display: block;
 }
 /* ANIMATIONS */

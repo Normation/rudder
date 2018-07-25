@@ -304,7 +304,7 @@ animation: opacity-1 .2s linear forwards;
 	#login-page form .group-user.has-error{
 		margin-bottom: 15px;
 	}
-	.tw-bs .col-lg-offset-45 {
+	.col-lg-offset-45 {
     margin-left: 37.5%;
   }
 }	

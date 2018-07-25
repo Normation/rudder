@@ -72,7 +72,7 @@ object TextField {
       // Html template
     def textInput = ChooseTemplate(List("templates-hidden", "components", "directiveInput") , s"input-$kind")
 
-    val css: CssSel =  ".tw-bs [id]" #> id &
+    val css: CssSel =  ".directive-input-group [id]" #> id &
     ".text-section [id]" #>  (id+"-controller")
     css(textInput)
   }
@@ -280,7 +280,7 @@ class SelectOneField(val id: String, valueslabels: Seq[ValueLabel]) extends Dire
 
   def radios = {
     val choiceHolder: ChoiceHolder[String] = SHtml.radio(valueslabels.map(_.value), Full(toClient), { x => parseClient(x) })
-    Full(<div class="tw-bs">{
+    Full(<div>{
       choiceHolder.flatMap {
         c =>
           ( <div class="radio">
@@ -834,7 +834,7 @@ object PasswordField {
       // Html template
     def agentScheduleTemplate = ChooseTemplate(List("templates-hidden", "components", "passwordInput"), "password-input")
 
-    val css: CssSel =  ".tw-bs [id]" #> id &
+    val css: CssSel =  ".directive-input-group [id]" #> id &
     ".password-section [id]" #>  (id+"-controller")
 
     css(agentScheduleTemplate)
@@ -900,7 +900,7 @@ object FileField {
       // Html template
     def xml = ChooseTemplate(List("templates-hidden", "components", "directiveInput"), s"input-$kind")
 
-    val css: CssSel =  ".tw-bs [id]" #> id  &
+    val css: CssSel =  ".directive-input-group [id]" #> id  &
     "#fileInput [id]" #>  (id+"-fileInput") &
     "#browserFile [onclick]" #> ("showFileManager('"+id+"')") &
     "#browserFile [id]"  #> (id+"-browserFile")

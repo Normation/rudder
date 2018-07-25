@@ -39,37 +39,37 @@
 /*
  * Colours for our progress bars
  */
-.tw-bs .progress-bar-reportsdisabled {
+.content-wrapper .progress-bar-reportsdisabled {
   background-color: #b4b4b4;
 }
-.tw-bs .progress-bar-success {
+.content-wrapper .progress-bar-success {
   background-color: #9bc832;
 }
-.tw-bs .progress-bar-error {
+.content-wrapper .progress-bar-error {
   background-color: #c9302c;
 }
-.tw-bs .progress-bar-pending {
+.content-wrapper .progress-bar-pending {
   background-color: #5bc0de;
 }
-.tw-bs .progress-bar-no-report {
+.content-wrapper .progress-bar-no-report {
   background-color: #848484;
 }
-.tw-bs .progress-bar-unknown {
+.content-wrapper .progress-bar-unknown {
   background-color: #c9302c;
 }
-.tw-bs .progress-bar-missing {
+.content-wrapper .progress-bar-missing {
   background-color: #FF9147;
 }
-.tw-bs .progress-bar-audit-compliant {
+.content-wrapper .progress-bar-audit-compliant {
   background-color: #9bc832;
 }
-.tw-bs .progress-bar-audit-noncompliant {
+.content-wrapper .progress-bar-audit-noncompliant {
   background-color: #ff7125;
 }
-.tw-bs .progress-bar-audit-notapplicable {
+.content-wrapper .progress-bar-audit-notapplicable {
   background-color: #8dcd8d;
 }
-.tw-bs .progress-bar-audit-error {
+.content-wrapper .progress-bar-audit-error {
   background-color: #c9302c;
 }
 

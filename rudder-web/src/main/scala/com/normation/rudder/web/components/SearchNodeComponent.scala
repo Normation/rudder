@@ -101,8 +101,8 @@ class SearchNodeComponent(
     <td class="attributeName"></td>
     <td class="comparator"></td>
     <td class="inputValue"></td>
-    <td class="removeLine tw-bs"></td>
-    <td class="last addLine tw-bs"></td>
+    <td class="removeLine"></td>
+    <td class="last addLine"></td>
   </tr>
   }
   private[this] def content = {

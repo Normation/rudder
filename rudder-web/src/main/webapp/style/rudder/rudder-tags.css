@@ -42,17 +42,17 @@
   padding: 2px 8px 0px 8px;
   font-size: 16px;
 }
-.tw-bs .btn.updateTable:focus{
+.content-wrapper .btn.updateTable:focus{
   background-color: #f4f4f4;
   border-color:#ccc;
   color:#3694d1;
 }
-.tw-bs .btn.updateTable:focus:hover{
+.content-wrapper .btn.updateTable:focus:hover{
   color:#3694d1;
   background-color: #e6e6e6;
   border-color: #adadad;
 }
-.tw-bs .btn-success[disabled]:hover{
+.content-wrapper .btn-success[disabled]:hover{
   background-color: #9bc832;
   border-color: #8fb92a;
 }
@@ -369,7 +369,7 @@ hr.separator-filter-tree{
 .nav-tabs-filter + .tab-content > .tab-filter.no-padding-bottom{
   padding-bottom:0;
 }
-.tw-bs .nav-tabs-filter > li > a.toggleTabFilter{
+.content-wrapper .nav-tabs-filter > li > a.toggleTabFilter{
   background-color: #f4f4f4 !important;
   border:1px solid #cccccc !important;
   color:#555 !important;
@@ -378,10 +378,10 @@ hr.separator-filter-tree{
   position: relative;
   margin-right: 5px;
 }
-.tw-bs .nav-tabs > li > a.toggleTabFilter:hover{
+.content-wrapper .nav-tabs > li > a.toggleTabFilter:hover{
   color:#333 !important;
 }
-.tw-bs .nav-tabs > li > a.toggleTabFilter >span.fa{
+.content-wrapper .nav-tabs > li > a.toggleTabFilter >span.fa{
   position: absolute;
   right: 8px;
   top: 10px;

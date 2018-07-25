@@ -119,7 +119,7 @@ class RuleCompliance (
     <div id="recentChangesSection" class="unfoldedSection" onclick="$('#recentChanges').toggle(400); $('#recentChangesSection').toggleClass('foldedSection');$('#recentChangesSection').toggleClass('unfoldedSection');">
       <div class="section-title">Recent changes</div>
     </div>
-    <div id="recentChanges" class="tw-bs">
+    <div id="recentChanges">
       <div class="alert alert-info " style="font-size: 14px">
         <div style="width:90%;display:inline-block;">
         <span class="glyphicon glyphicon-info-sign"></span>
@@ -134,7 +134,7 @@ class RuleCompliance (
       <canvas id="changesChart" >  </canvas>
       </div>
       </div>
-      <div class="tw-bs"><h5>Changes during period <b id="selectedPeriod"> --- </b> (selected in graph above)</h5></div>
+      <div><h5>Changes during period <b id="selectedPeriod"> --- </b> (selected in graph above)</h5></div>
 
       <table id="changesGrid" cellspacing="0">  </table>  ++
     Script(After(TimeSpan(0), JsRaw(s"""

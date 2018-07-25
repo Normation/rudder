@@ -416,7 +416,7 @@ class DirectiveEditForm(
       override val displayHtml =
         <div>
           <b>Priority</b>
-          <span class="tw-bs">
+          <span>
             <span tooltipid="priorityId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
             <div class="tooltipContent" id="priorityId">
               <h4> Priority </h4>
@@ -477,7 +477,7 @@ class DirectiveEditForm(
       override val displayHtml =
         <div>
           <b>Policy mode</b>
-          <span class="tw-bs">
+          <span>
             <span tooltipid="policyModeId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
             <div class="tooltipContent" id="policyModeId">
               <h4>Policy mode</h4>

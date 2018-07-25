@@ -92,7 +92,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         ".description *" #> <span><ul class="evlogviewpad"><li><b>Description:</b> {Text(param.description)}</li></ul></span> &
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".overridable *" #> param.overridable &
-        ".change *" #> <div class="tw-bs">{
+        ".change *" #> <div>{
                        ajaxButton("Edit", () => showPopup("save", Some(param), workflowEnabled), ("class", "btn btn-default btn-xs"), ("style", "min-width:50px;")) ++
                        ajaxButton("Delete", () => showPopup("delete", Some(param), workflowEnabled), ("class", "btn btn-danger btn-xs"), ("style", "margin-left:5px;min-width:0px;"))
                        }</div>
@@ -104,7 +104,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   private[this] def dataTableXml(gridName:String) = {
     <div id={gridContainer}>
       <div id="actions_zone">
-        <div class="createParameter tw-bs"/>
+        <div class="createParameter"/>
       </div>
       <table id={gridName} class="display" cellspacing="0">
         <thead>

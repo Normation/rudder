@@ -370,7 +370,6 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         // Append the content to the row
         $(nTd).empty();
         $(nTd).prepend(elem);
-        $(nTd).addClass('tw-bs');
         var badge = createBadgeAgentPolicyMode('rule',data.policyMode, data.explanation);
         $(nTd).prepend(badge);
       }
@@ -443,7 +442,6 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
     , "bSortable" : false
     , "sClass" : "parametersTd"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).addClass('tw-bs');
         var data = oData;
         var elem = $("<buton></button>");
         elem.button();
@@ -568,7 +566,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
     , "mDataProp": "rule"
     , "sTitle": "Rule"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).addClass("listopen tw-bs");
+        $(nTd).addClass("listopen");
         $(nTd).empty();
         $(nTd).text(oData.rule);
         if (! oData.isSystem) {
@@ -666,7 +664,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
         "mDataProp": "directive"
       , "sTitle": "Directive"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-          $(nTd).addClass("listopen tw-bs");
+          $(nTd).addClass("listopen");
           var tooltipIcon = $("<i>");
           tooltipIcon.addClass("fa fa-question-circle icon-info tooltipable");
           var tooltipId = oData.jsid+"-tooltip";
@@ -708,7 +706,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
     "mDataProp": "rule"
   , "sTitle"   : "Rule"
   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      $(nTd).addClass("listopen tw-bs");
+      $(nTd).addClass("listopen");
       $(nTd).text(oData.rule);
       if (! oData.isSystem) {
         var editLink = $("<a />");
@@ -768,7 +766,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).empty();
         $(nTd).append(document.createTextNode(oData.directive));
-        $(nTd).addClass("listopen tw-bs");
+        $(nTd).addClass("listopen");
         var tooltipIcon = $("<i>");
         tooltipIcon.addClass("fa fa-question-circle icon-info");
         var tooltipId = oData.jsid+"-tooltip";
@@ -852,7 +850,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
     , "mDataProp": "node"
     , "sTitle": "Node"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).addClass("listopen tw-bs");
+        $(nTd).addClass("listopen");
         var editLink = $("<a />");
         editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}');
         var editIcon = $("<i>");
@@ -1105,7 +1103,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         if(oData.state != "enabled") {
           state = '<span class="rudder-label label-state label-sm" style="margin-left: 5px;">'+oData.state+'</span>'
         }
-        var el = '<span class="tw-bs">'+sData+state+'</span>';
+        var el = '<span>'+sData+state+'</span>';
         var nodeLink = $(el);
         link.append(nodeLink);
         var icon = $("<i>");
@@ -1136,7 +1134,6 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "sTitle": "Policy Mode"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).empty();
-        $(nTd).addClass('tw-bs');
         $(nTd).prepend(createTextAgentPolicyMode(true,oData.agentPolicyMode,oData.explanation));
       }
   } , {
@@ -1591,7 +1588,7 @@ function buildComplianceBar(compliance, minPxSize) {
     content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+complianceBars[6].width+'" title="No report: '+tooltip+'%">'+complianceBars[6].value+'</div>');
   }
 
-  var container = $('<div class="tw-bs"></div>');
+  var container = $('<div></div>');
   container.append(content);
 
   $(window).on('resize',function(){
@@ -1826,7 +1823,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   $('.dataTables_filter input').attr("placeholder", "Filter");
 
-  $('.tw-bs .modal .dataTables_filter input').addClass("form-control");
+  $('.modal .dataTables_filter input').addClass("form-control");
   $('#grid_remove_popup_grid').parent().addClass("table-responsive");
   $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
 
