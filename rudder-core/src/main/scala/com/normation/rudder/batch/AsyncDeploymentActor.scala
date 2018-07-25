@@ -369,7 +369,11 @@ final class AsyncDeploymentActor(
 
           result match {
             case Full(_) => // nothing to report
-            case m: Failure => logger.error(s"Error when updating policy, reason ${m.messageChain}")
+            case m: Failure =>
+              logger.error(s"Error when updating policy, reason was: ${m.messageChain}")
+              m.rootExceptionCause.foreach { ex =>
+                logger.error("Root exception was: " + ex.getMessage)
+              }
             case Empty => logger.error("Error when updating policy (no reason given)")
           }
 

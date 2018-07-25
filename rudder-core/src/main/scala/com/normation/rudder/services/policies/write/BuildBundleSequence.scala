@@ -50,7 +50,6 @@ import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.inventory.domain.OsDetails
 import com.normation.rudder.services.policies.Policy
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.rudder.services.policies.PolicyId
@@ -188,16 +187,14 @@ class BuildBundleSequence(
    * declined from the same (multi-instance) technique.
    */
   def prepareBundleVars(
-      nodeId          : NodeId
-    , agentType       : AgentType
-    , osDetails       : OsDetails
+      agentNodeProps  : AgentNodeProperties
     , nodePolicyMode  : Option[PolicyMode]
     , globalPolicyMode: GlobalPolicyMode
     , policies        : List[Policy]
     , runHooks        : List[NodeRunHook]
   ): Box[List[SystemVariable]] = {
 
-    logger.trace(s"Preparing bundle list and input list for node : ${nodeId.value}")
+    logger.trace(s"Preparing bundle list and input list for node : ${agentNodeProps.nodeId.value}")
 
     // Fetch the policies configured and sort them according to (rules, directives)
 
@@ -225,11 +222,11 @@ class BuildBundleSequence(
     // get the output string for each bundle variables, agent dependant
     for {
       // - build techniques bundles from the sorted list of techniques
-      techniquesBundles          <- sequence(sortedPolicies)(buildTechniqueBundles(nodeId, agentType, globalPolicyMode, nodePolicyMode))
+      techniquesBundles          <- sequence(sortedPolicies)(buildTechniqueBundles(agentNodeProps.nodeId, agentNodeProps.agentType, globalPolicyMode, nodePolicyMode))
       //split system and user directive (technique)
       (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
-      bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentType, osDetails, systemInputFiles, systemBundle, userInputFiles, userBundle, runHooks) ?~!
-                                    s"Error for node '${nodeId.value}' bundle creation"
+      bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentNodeProps, systemInputFiles, systemBundle, userInputFiles, userBundle, runHooks) ?~!
+                                    s"Error for node '${agentNodeProps.nodeId.value}' bundle creation"
     } yield {
       // map to correct variables
       List(

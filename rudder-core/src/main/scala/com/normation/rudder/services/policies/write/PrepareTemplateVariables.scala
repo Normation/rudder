@@ -61,7 +61,6 @@ import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.Policy
 import com.normation.utils.Control.sequence
 import com.normation.cfclerk.domain.TechniqueGenerationMode
-import com.normation.inventory.domain.OsDetails
 import com.normation.utils.Control
 
 trait PrepareTemplateVariables {
@@ -123,10 +122,15 @@ class PrepareTemplateVariablesImpl(
 
     ).map(x => (x.spec.name, x)).toMap
 
+    val agentNodeProps = AgentNodeProperties(
+        nodeId
+      , agentNodeConfig.agentType
+      , agentNodeConfig.config.nodeInfo.osDetails
+      , agentNodeConfig.config.nodeInfo.isPolicyServer
+      , agentNodeConfig.config.nodeInfo.serverRoles
+    )
     val boxBundleVars = buildBundleSequence.prepareBundleVars(
-                            nodeId
-                          , agentNodeConfig.agentType
-                          , agentNodeConfig.config.nodeInfo.osDetails
+                            agentNodeProps
                           , agentNodeConfig.config.nodeInfo.policyMode
                           , globalPolicyMode
                           , agentNodeConfig.config.policies
@@ -136,15 +140,13 @@ class PrepareTemplateVariablesImpl(
     for {
       bundleVars       <- boxBundleVars
       parameters       <- Control.sequence(agentNodeConfig.config.parameters.toSeq) { x =>
-                            agentRegister.findMap(agentNodeConfig.agentType, agentNodeConfig.config.nodeInfo.osDetails){ agent =>
+                            agentRegister.findMap(agentNodeProps){ agent =>
                               Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
                             }
                           }
       allSystemVars    =  systemVariables.toMap ++ bundleVars
       preparedTemplate <- prepareTechniqueTemplate(
-                              nodeId
-                            , agentNodeConfig.agentType
-                            , agentNodeConfig.config.nodeInfo.osDetails
+                              agentNodeProps
                             , agentNodeConfig.config.policies
                             , parameters
                             , allSystemVars
@@ -154,8 +156,7 @@ class PrepareTemplateVariablesImpl(
     } yield {
 
       AgentNodeWritableConfiguration(
-          agentNodeConfig.agentType
-        , agentNodeConfig.config.nodeInfo.osDetails
+          agentNodeProps
         , agentNodeConfig.paths
         , preparedTemplate
         , allSystemVars
@@ -165,9 +166,7 @@ class PrepareTemplateVariablesImpl(
 
 
   private[this] def prepareTechniqueTemplate(
-      nodeId              : NodeId // for log message
-    , agentType           : AgentType
-    , osDetails           : OsDetails
+      agentNodeProps      : AgentNodeProperties
     , policies            : List[Policy]
     , parameters          : Seq[ParameterEntry]
     , systemVars          : Map[String, Variable]
@@ -180,7 +179,7 @@ class PrepareTemplateVariablesImpl(
 
     sequence(policies) { p =>
       for {
-        variables <- prepareVariables(nodeId, p, agentType, osDetails, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${nodeId.value}"
+        variables <- prepareVariables(agentNodeProps, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}"
       } yield {
         val techniqueTemplatesIds = p.technique.templatesIds
         // only set if technique is multi-policy
@@ -191,7 +190,7 @@ class PrepareTemplateVariablesImpl(
         //if technique is multi-policy, we need to update destination path to add an unique id along with the version
         //to have one directory by directive.
         val techniqueTemplates = {
-          val templates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 ==  agentType).values.toSet
+          val templates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 ==  agentNodeProps.agentType).values.toSet
           p.technique.generationMode match {
             case TechniqueGenerationMode.MultipleDirectives =>
               templates.map( copyInfo => copyInfo.copy(destination = Policy.makeUniqueDest(copyInfo.destination, p)))
@@ -215,11 +214,9 @@ class PrepareTemplateVariablesImpl(
   }
 
   private[this] def prepareVariables(
-      nodeId    : NodeId // for log message
-    , policy    : Policy
-    , agentType : AgentType
-    , osDetails : OsDetails
-    , systemVars: Map[String, Variable]
+      agentNodeProps: AgentNodeProperties
+    , policy        : Policy
+    , systemVars    : Map[String, Variable]
   ) : Box[Seq[STVariable]] = {
 
     // we want to check that all technique variables are correctly provided.
@@ -233,23 +230,23 @@ class PrepareTemplateVariablesImpl(
                      variableSpec match {
                        case x : TrackerVariableSpec =>
                          variables.get(x.name) match {
-                           case None    => Failure(s"[${nodeId.value}:${policy.technique.id}] Misssing mandatory value for tracker variable: '${x.name}'")
+                           case None    => Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Misssing mandatory value for tracker variable: '${x.name}'")
                            case Some(v) => Full(Some(x.toVariable(v.values)))
                          }
                        case x : SystemVariableSpec => systemVars.get(x.name) match {
                            case None =>
                              if(x.constraint.mayBeEmpty) { //ok, that's expected
-                               logger.trace(s"[${nodeId.value}:${policy.technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
+                               logger.trace(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
                                Full(None)
                              } else {
-                               Failure(s"[${nodeId.value}:${policy.technique.id}] Missing value for system variable: '${x.name}'")
+                               Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Missing value for system variable: '${x.name}'")
                              }
                            case Some(sysvar) =>
                              Full(Some(x.toVariable(sysvar.values)))
                        }
                        case x : SectionVariableSpec =>
                          variables.get(x.name) match {
-                           case None    => Failure(s"[${nodeId.value}:${policy.technique.id}] Misssing value for standard variable: '${x.name}'")
+                           case None    => Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Misssing value for standard variable: '${x.name}'")
                            case Some(v) => Full(Some(x.toVariable(v.values)))
                          }
                      }
@@ -259,10 +256,10 @@ class PrepareTemplateVariablesImpl(
       variables.flatten.map { v => STVariable(
           name = v.spec.name
         , mayBeEmpty = v.spec.constraint.mayBeEmpty
-        , values = agentRegister.findMap(agentType, osDetails) { agent =>  v.getValidatedValue(agent.escape) ?~! s"Wrong value type for variable '${v.spec.name}'" } match {
+        , values = agentRegister.findMap(agentNodeProps) { agent =>  v.getValidatedValue(agent.escape) ?~! s"Wrong value type for variable '${v.spec.name}'" } match {
                       case Full(seq)   => seq
                       case eb:EmptyBox =>
-                        val e = (eb ?~! s"Error when preparing variable for node with ID '${nodeId.value}' on Technique '${policy.technique.id.toString()}'")
+                        val e = (eb ?~! s"Error when preparing variable for node with ID '${agentNodeProps.nodeId.value}' on Technique '${policy.technique.id.toString()}'")
                         throw new VariableException(e.messageChain)
                     }
         , v.spec.isSystem

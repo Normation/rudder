@@ -46,6 +46,7 @@ import com.normation.utils.HashcodeCaching
 import com.normation.templates.STVariable
 import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.OsDetails
+import com.normation.inventory.domain.ServerRole
 import com.normation.rudder.services.policies.PolicyId
 
 /**
@@ -68,6 +69,19 @@ case class AgentNodeConfiguration(
   , paths    : NodePromisesPaths
 )
 
+
+/**
+ * A data structure which handle the minimum information that allows to
+ * qualify the agent "kind": agentType, os details, policy server and rudder roles, etc.
+ */
+final case class AgentNodeProperties(
+    nodeId        : NodeId
+  , agentType     : AgentType
+  , osDetails     : OsDetails
+  , isPolicyServer: Boolean
+  , serverRoles   : Set[ServerRole]
+)
+
 /**
  * Data structure that hold all the information to actually write
  * configuration for a node/agent in a CFEngine compatible way:
@@ -77,8 +91,7 @@ case class AgentNodeConfiguration(
  * - the expected reports csv file content
  */
 final case class AgentNodeWritableConfiguration(
-    agentType         : AgentType
-  , os                : OsDetails
+    agentNodeProps    : AgentNodeProperties
   , paths             : NodePromisesPaths
   , preparedTechniques: Seq[PreparedTechnique]
   , systemVariables   : Map[String, Variable]
