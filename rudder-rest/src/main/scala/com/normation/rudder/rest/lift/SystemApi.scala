@@ -1,4 +1,43 @@
+/*
+*************************************************************************************
+* Copyright 2018 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+
 package com.normation.rudder.rest.lift
+
 import com.normation.rudder.rest.{ApiPath, ApiVersion, AuthzToken, RestExtractorService, RestUtils, SystemApi => API}
 import net.liftweb.http.{InMemoryResponse, LiftResponse, Req}
 import com.normation.rudder.rest.RestUtils.{getActor, toJsonError, toJsonResponse}
@@ -9,7 +48,7 @@ import com.normation.rudder.batch.{AsyncDeploymentAgent, ManualStartDeployment, 
 import com.normation.rudder.UserService
 import com.normation.rudder.repository.xml.{GitFindUtils, GitTagDateTimeFormatter}
 import com.normation.rudder.repository.{GitArchiveId, GitCommitId, ItemArchiveManager}
-import com.normation.rudder.services.ClearCacheService
+import com.normation.rudder.services.{ClearCacheService, SupportInfoService}
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
@@ -32,6 +71,7 @@ class SystemApi(
 
     API.endpoints.map(e => e match {
       case API.Status                         => Status
+      case API.SupportInfos                   => SupportInfos
       case API.TechniquesReload               => TechniquesReload
       case API.DyngroupsReload                => DyngroupsReload
       case API.ReloadAll                      => ReloadAll
@@ -74,6 +114,18 @@ class SystemApi(
 
       toJsonResponse(None, ("global" -> "OK"))
     }
+  }
+
+  object SupportInfos extends LiftApiModule0 {
+
+    val schema = API.SupportInfos
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
+      apiv11service.supportInfo(params)
+    }
+
   }
 
   //Reload [techniques / dynamics groups] endpoint implementation
@@ -347,6 +399,7 @@ class SystemApi(
 
 class SystemApiService11(
     updatePTLibService      : UpdateTechniqueLibrary
+  , supportScriptService    : SupportInfoService
   , clearCacheService       : ClearCacheService
   , asyncDeploymentAgent    : AsyncDeploymentAgent
   , uuidGen                 : StringUuidGenerator
@@ -515,6 +568,23 @@ class SystemApiService11(
             "Content-Disposition" -> """attachment;filename="rudder-conf-%s-%s.zip"""".format(archiveType, date) ::
             Nil)
         )
+    }
+  }
+
+  def supportInfo(params: DefaultParams) : LiftResponse = {
+    implicit val action = "getSupportInfos"
+    implicit val prettify = params.prettify
+
+    supportScriptService.launch() match {
+      case Full(bytes) =>
+        InMemoryResponse(bytes
+          , "content-Type" -> "application/gzip" ::
+            "Content-Disposition" -> "attachment;filename=support-info-server.tar.gz" :: Nil
+          , Nil
+          , 200)
+      case eb: EmptyBox =>
+        val fail = eb ?~! "Error has occured while getting support script result"
+        toJsonError(None, "script support" -> s"An Error has occured : ${fail.msg}" )
     }
   }
 

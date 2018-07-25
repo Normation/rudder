@@ -59,7 +59,7 @@ import scala.util.control.NonFatal
  * Hooks are stored in a directory. All hooks from a directory are
  * run sequentially, so that side effects from one hook can be used
  * in the following if the user want so.
- * A hook wich fails stop the process and error from stderr are used
+ * A hook which fails stop the process and error from stderr are used
  * for the reason of the failing.
  * A failed hook is decided by the return code: 0 mean success, anything
  * else is a failure.
@@ -83,7 +83,7 @@ object RunNuCommand extends Loggable {
   /*
    * An helper class that create a promise to handle the async termination of the NuProcess
    * and signal it to its derived future.
-   * Exit code, stdout and sdterr content are accumalated in CmdResult data structure.
+   * Exit code, stdout and stderr content are accumulated in CmdResult data structure.
    */
   private[this] class CmdProcessHandler extends NuAbstractCharsetHandler(StandardCharsets.UTF_8) {
     val promise = Promise[CmdResult]()
@@ -126,7 +126,7 @@ object RunNuCommand extends Loggable {
      * - new NuProcessBuilder("/bin/cat")
      * Will stall forever.
      *
-     * Some intersting error code:
+     * Some interesting error code:
      * - Invocation of posix_spawn() failed, return code: 2, last error: 2
      *   => command not found
      * - Invocation of posix_spawn() failed, return code: 13, last error: 13
@@ -146,7 +146,7 @@ object RunNuCommand extends Loggable {
 
       /*
        * The start process is nasty:
-       * - it can return null is something goes wrong,
+       * - it can return null if something goes wrong,
        * - even if everything goes OK, it can write stacktrace in our logs,
        *   see: https://github.com/brettwooldridge/NuProcess/issues/63
        */
