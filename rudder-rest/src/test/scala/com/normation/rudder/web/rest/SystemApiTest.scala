@@ -5,9 +5,9 @@ import java.nio.file.Files
 import java.util.zip.ZipFile
 
 import com.normation.rudder.rest.RestTestSetUp
-import com.normation.rudder.rest.RestUtils.toJsonResponse
+import com.normation.rudder.rest.RestUtils.{toJsonResponse, toJsonError}
 import net.liftweb.common.{Full, Loggable}
-import net.liftweb.http.{InMemoryResponse, Req}
+import net.liftweb.http.{InMemoryResponse, LiftResponse, Req}
 import net.liftweb.json.JsonAST.{JArray, JField, JObject}
 import net.liftweb.json.JsonDSL._
 import org.apache.commons.io.FileUtils
@@ -431,31 +431,27 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
     }
   }
 
-  private[this] def contentArchiveDiff(req: Req, matcher: List[File]) = {
+  private[this] def contentArchiveDiff(req: Req, matcher: List[File], action: String) = {
     import com.normation.rudder.repository.xml.ZipUtils
-    val response: InMemoryResponse = RestTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() match {
-      case Full(resp: InMemoryResponse) => resp
+
+    RestTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() match {
+
+      case Full(resp: InMemoryResponse) =>
+        FileUtils.writeByteArrayToFile(new File("/tmp/response-content/response-archive.zip"), resp.data)
+        val zip = new ZipFile("/tmp/response-content/response-archive.zip")
+        ZipUtils.unzip(zip, testDir)
+        def filterGeneratedFile(f: File): Boolean = matcher.contains(f)
+        testDir must org.specs2.matcher.ContentMatchers.haveSameFilesAs(RestTestSetUp.testNodeConfiguration.configurationRepositoryRoot)
+          .withFilter(filterGeneratedFile _)
+      case Full(resp: LiftResponse) => resp must beEqualTo(toJsonError(None, "Error when trying to get archive as a Zip")(action, false))
+      case _ => ko
     }
-
-    FileUtils.writeByteArrayToFile(new File("/tmp/response-content/response-archive.zip"), response.data)
-    val zip = new ZipFile("/tmp/response-content/response-archive.zip")
-    ZipUtils.unzip(zip, testDir)
-
-    def filterGeneratedFile(f: File): Boolean = matcher.contains(f)
-
-
-    testDir must org.specs2.matcher.ContentMatchers.haveSameFilesAs(RestTestSetUp.testNodeConfiguration.configurationRepositoryRoot)
-      .withFilter(filterGeneratedFile _)
-
   }
 
   val configRootPath = RestTestSetUp.testNodeConfiguration.configurationRepositoryRoot.getAbsolutePath
 
   "Getting directives zip archive from System Api" should {
     "satisfy the matcher defined below" in {
-
-      implicit val action = "getDirectivesZipArchive"
-      implicit val prettify = false
 
       val matcher = {
         val l = List(
@@ -467,42 +463,33 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
         l.filter(_.exists())
       }
 
-      RestTestSetUp.testGET(s"/api/latest/system/archives/zip/directives/$commitId") { req => contentArchiveDiff(req, matcher)
-      }
+      RestTestSetUp.testGET(s"/api/latest/system/archives/zip/directives/$commitId")
+      { req => contentArchiveDiff(req, matcher, "getDirectivesZipArchive") }
     }
   }
 
   "Getting groups zip archive from System Api" should {
     "satisfy the matcher defined below" in {
 
-      implicit val action = "getGroupsZipArchive"
-      implicit val prettify = false
-
       val matcher = List(new File(configRootPath + "/groups"))
 
-      RestTestSetUp.testGET(s"/api/latest/system/archives/zip/groups/$commitId") { req => contentArchiveDiff(req, matcher)
-      }
+      RestTestSetUp.testGET(s"/api/latest/system/archives/zip/groups/$commitId")
+      { req => contentArchiveDiff(req, matcher, "getGroupsZipArchive") }
     }
   }
 
   "Getting rules zip archive from System Api" should {
     "satisfy the matcher defined below" in {
 
-      implicit val action = "getRulesZipArchive"
-      implicit val prettify = false
-
       val matcher = List(new File(configRootPath + "/rules"), new File(configRootPath + "/ruleCategories"))
 
-      RestTestSetUp.testGET(s"/api/latest/system/archives/zip/rules/$commitId") { req => contentArchiveDiff(req, matcher)
-      }
+      RestTestSetUp.testGET(s"/api/latest/system/archives/zip/rules/$commitId")
+      { req => contentArchiveDiff(req, matcher, "getRulesZipArchive") }
     }
   }
 
   "Getting full zip archive from System Api" should {
     "satisfy the matcher defined below" in {
-
-      implicit val action = "getFullZipArchive"
-      implicit val prettify = false
 
       val matcher = {
         val l =  List(
@@ -516,8 +503,8 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
         l.filter(_.exists())
       }
 
-      RestTestSetUp.testGET(s"/api/latest/system/archives/zip/full/$commitId") { req => contentArchiveDiff(req, matcher)
-      }
+      RestTestSetUp.testGET(s"/api/latest/system/archives/zip/full/$commitId")
+      { req => contentArchiveDiff(req, matcher, "getAllZipArchive") }
     }
   }
 }
