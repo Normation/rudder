@@ -386,6 +386,12 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
     val (action, path) = GET / "system" / "status"
     }
 
+  final case object SupportInfos extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+    val description =  "Launch the support info script and get the result"
+    val (action, path) = GET / "system" / "support" / "infos"
+
+  }
+
   // For now, the techniques reload endpoint is implemented in the System API
   // but moving it inside the Techniques API should be discussed.
 
