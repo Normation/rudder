@@ -70,10 +70,11 @@ class PathComputerTest extends Specification {
       beEqualTo(Full(NodePromisesPaths(node1.id,"/var/rudder/share/node1/rules", "/var/rudder/share/node1/rules.new", "/var/rudder/backup/node1/rules")))
     }
 
-    "the nodeConfig2, behind a relay should be " in {
-      pathComputer.computeBaseNodePath(node2.id, root.id, allNodeConfig.mapValues(_.nodeInfo)) must
-      beEqualTo(Full(NodePromisesPaths(node2.id, "/var/rudder/share/node1/share/node2/rules", "/var/rudder/share/node1/share/node2/rules.new", "/var/rudder/backup/node1/share/node2/rules")))
-    }
+    // #TODO: migrate in scale-out relay plugin
+//    "the nodeConfig2, behind a relay should be " in {
+//      pathComputer.computeBaseNodePath(node2.id, root.id, allNodeConfig.mapValues(_.nodeInfo)) must
+//      beEqualTo(Full(NodePromisesPaths(node2.id, "/var/rudder/share/node1/share/node2/rules", "/var/rudder/share/node1/share/node2/rules.new", "/var/rudder/backup/node1/share/node2/rules")))
+//    }
   }
 
   "When there is a loop in the policy server parent chain, the algo" should {
