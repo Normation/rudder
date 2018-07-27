@@ -88,3 +88,4 @@ object AlwaysEnabledPluginStatus extends PluginStatus {
   override val current = PluginStatusInfo.EnabledNoLicense
   override val isEnabled = true
 }
+

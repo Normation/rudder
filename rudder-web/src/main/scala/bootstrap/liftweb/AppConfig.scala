@@ -380,8 +380,7 @@ object RudderConfig extends Loggable {
   lazy val roAgentRunsRepository : RoReportsExecutionRepository = cachedAgentRunRepository
   lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
 
-  //used in plugins, so init may be needed in strange time to avoid NPE
-  lazy val agentRegister = new AgentRegister()
+
   lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles(agentRegister)
 
   //all cache that need to be cleared are stored here
@@ -397,10 +396,32 @@ object RudderConfig extends Loggable {
 
   val changeRequestMapper = new ChangeRequestMapper(changeRequestChangesUnserialisation, changeRequestChangesSerialisation)
 
+
+  ////////////////////////////////////////////////
+  ////////// plugable service providers //////////
+  ////////////////////////////////////////////////
+
+  /*
+   * Plugable service:
+   * - Rudder Agent (agent type, agent os)
+   * - API ACL
+   * - Change Validation workflow
+   * - User authentication backends
+   * - User authorization capabilities
+   */
+  // Plugable agent register
+  lazy val agentRegister = new AgentRegister()
+
+  // Plugin input interface to
+  lazy val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
+
+  // Plugin input interface for alternative workflow
   lazy val workflowLevelService = new DefaultWorkflowLevel()
 
+  // Plugin input interface for alternative authentication providers
   lazy val authenticationProviders = new DefaultAuthBackendProviders()
 
+  ////////// end plugable service providers //////////
 
   val roChangeRequestRepository : RoChangeRequestRepository = {
     //a runtime checking of the workflow to use
@@ -419,9 +440,6 @@ object RudderConfig extends Loggable {
       , inMemoryChangeRequestRepository
     )
   }
-
-  case class A(s: String)
-  case class B(a: A)
 
   val roRuleCategoryRepository : RoRuleCategoryRepository = roLDAPRuleCategoryRepository
   val ruleCategoryService      : RuleCategoryService = new RuleCategoryService()
@@ -677,9 +695,6 @@ object RudderConfig extends Loggable {
     ApiVersion(10 , false) ::
     ApiVersion(11 , false) ::
     Nil
-
-  // new api dispatcher
-  lazy val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
 
   lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
   lazy val rudderApi = {

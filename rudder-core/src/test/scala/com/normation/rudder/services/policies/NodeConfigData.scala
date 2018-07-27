@@ -254,7 +254,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
   //node1 us a relay
   val node2Node = node1Node.copy(id = id2, name = id2.value)
-  val node2 = node1.copy(node = node2Node, hostname = hostname2, policyServerId = node1.id )
+  val node2 = node1.copy(node = node2Node, hostname = hostname2, policyServerId = root.id )
 
   val dscNode1Node = Node (
       NodeId("node-dsc")

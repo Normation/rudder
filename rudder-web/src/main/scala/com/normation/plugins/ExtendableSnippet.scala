@@ -72,6 +72,26 @@ trait SnippetExtensionPoint[T] {
 }
 
 /**
+ * An extendable snippet that only does its extension if the current
+ * status of the plugin is enabled
+ */
+trait PluginExtensionPoint[T] extends SnippetExtensionPoint[T] {
+
+  def status: PluginStatus
+
+  // only execute the transformation if the plugin is enable
+  def guard(f: NodeSeq => NodeSeq)(xml: NodeSeq): NodeSeq = if(status.isEnabled()) f(xml) else xml
+
+  // protect all compose method with the guard. The check is done each time to allow runtime
+  // switch on plugin status
+  final def compose(snippet: T): Map[String, NodeSeq => NodeSeq] = pluginCompose(snippet).mapValues(guard _)
+
+  def pluginCompose(snippet:T) : Map[String, NodeSeq => NodeSeq]
+}
+
+
+
+/**
  * This trait allows to plugin to connect and enhance that snippet.
  *
  * How plugin compose ?
