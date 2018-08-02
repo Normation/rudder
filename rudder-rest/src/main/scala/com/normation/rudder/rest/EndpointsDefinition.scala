@@ -388,7 +388,7 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
 
   final case object SupportInfos extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
     val description =  "Launch the support info script and get the result"
-    val (action, path) = GET / "system" / "support" / "infos"
+    val (action, path) = GET / "system" / "support" / "info"
 
   }
 

@@ -754,6 +754,28 @@
         </div>
       </div>
     </div>
+
+    <div class="inner-portlet">
+      <h3 class="page-title">Launch support script</h3>
+      <div class="portlet-content">
+        <div class="col-xs-12 callout-fade callout-warning">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
+          </div>
+          <p>Launch the support script (<i><strong>/opt/rudder/bin/support-info</strong></i>) to get information about the system.</p>
+          <p>The provided information are used to troubleshoot Rudder.</p>
+        </div>
+        <div class="lift:administration.SupportScript.render" id="supportScriptForm">
+          <lift:authz role="administration_write">
+            <form class="lift:form.ajax">
+              <input id="launchSupportScriptButton" type="submit" value="Download support information" />
+              <span class="lift:Msg?id=supportScript">[error]</span>
+            </form>
+          </lift:authz>
+        </div>
+      </div>
+    </div>
+
   </div>
   <div class="lift:administration.PropertiesManagement.onloadScript"></div>
 </lift:surround>

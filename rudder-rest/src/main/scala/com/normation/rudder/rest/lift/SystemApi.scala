@@ -83,6 +83,7 @@ class SystemApi(
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
       apiv11service.supportInfo(params)
     }
 
@@ -538,7 +539,7 @@ class SystemApiService11(
     supportScriptService.launch() match {
       case Full(bytes) =>
         InMemoryResponse(bytes
-          , "content-Type" -> "application/zip" ::
+          , "content-Type" -> "application/gzip" ::
             "Content-Disposition" -> "attachment;filename=support-info-server.tar.gz" :: Nil
           , Nil
           , 200)
