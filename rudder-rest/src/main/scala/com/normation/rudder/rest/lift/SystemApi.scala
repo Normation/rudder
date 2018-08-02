@@ -9,7 +9,7 @@ import com.normation.rudder.batch.{AsyncDeploymentAgent, ManualStartDeployment, 
 import com.normation.rudder.UserService
 import com.normation.rudder.repository.xml.{GitFindUtils, GitTagDateTimeFormatter}
 import com.normation.rudder.repository.{GitArchiveId, GitCommitId, ItemArchiveManager}
-import com.normation.rudder.services.ClearCacheService
+import com.normation.rudder.services.{ClearCacheService, SupportScriptService}
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
@@ -32,6 +32,7 @@ class SystemApi(
 
     API.endpoints.map(e => e match {
       case API.Status                         => Status
+      case API.SupportInfos                   => SupportInfos
       case API.TechniquesReload               => TechniquesReload
       case API.DyngroupsReload                => DyngroupsReload
       case API.ReloadAll                      => ReloadAll
@@ -74,6 +75,18 @@ class SystemApi(
 
       toJsonResponse(None, ("global" -> "OK"))
     }
+  }
+
+  object SupportInfos extends LiftApiModule0 {
+
+    val schema = API.SupportInfos
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
+      apiv11service.supportInfo(params)
+    }
+
   }
 
   //Reload [techniques / dynamics groups] endpoint implementation
@@ -347,6 +360,7 @@ class SystemApi(
 
 class SystemApiService11(
     updatePTLibService      : UpdateTechniqueLibrary
+  , supportScriptService    : SupportScriptService
   , clearCacheService       : ClearCacheService
   , asyncDeploymentAgent    : AsyncDeploymentAgent
   , uuidGen                 : StringUuidGenerator
@@ -515,6 +529,23 @@ class SystemApiService11(
             "Content-Disposition" -> """attachment;filename="rudder-conf-%s-%s.zip"""".format(archiveType, date) ::
             Nil)
         )
+    }
+  }
+
+  def supportInfo(params: DefaultParams) : LiftResponse = {
+    implicit val action = "getSupportInfos"
+    implicit val prettify = params.prettify
+
+    supportScriptService.launch() match {
+      case Full(bytes) =>
+        InMemoryResponse(bytes
+          , "content-Type" -> "application/gzip" ::
+            "Content-Disposition" -> "attachment;filename=support-info-server.tar.gz" :: Nil
+          , Nil
+          , 200)
+      case eb: EmptyBox =>
+        val fail = eb ?~! "Error has occured while getting support script result"
+        toJsonError(None, "script support" -> s"An Error has occured : ${fail.msg}" )
     }
   }
 

@@ -507,4 +507,7 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
       { req => contentArchiveDiff(req, matcher, "getAllZipArchive") }
     }
   }
+
+  "Launchin"
+
 }
