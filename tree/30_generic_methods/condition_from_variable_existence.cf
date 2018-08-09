@@ -1,5 +1,5 @@
 #####################################################################################
-# Copyright 2015 Normation SAS
+# Copyright 2018 Normation SAS
 #####################################################################################
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,9 +18,11 @@
 
 # @name Condition from variable existence
 # @description Create a condition from the existence of a variable
-# @documentation This bundle will define a class `{condition_prefix}_{variable_name}_{true/false}
+# @documentation This bundle will define a condition `{condition_prefix}_{variable_name}_{true/false}`
+# * `{condition_prefix}_{variable_name}_true` if the variable is defined
+# * `{condition_prefix}_{variable_name}_false` if the variable is not defined
 #
-# @parameter condition_prefix Prefix of the class (condition) generated
+# @parameter condition_prefix Prefix of the condition
 # @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable
 #
 # @class_prefix condition_from_variable_existence
@@ -46,5 +48,5 @@ bundle agent condition_from_variable_existence(condition_prefix, variable_name)
       "success" usebundle => _classes_success("${old_class_prefix}");
       "success" usebundle => _classes_success("${class_prefix}");
 
-      "report"  usebundle => _log("Create the condition ${condition_prefix}_{true,false} from the existence of variable ${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"  usebundle => _log_v3("Create the condition ${condition_prefix}_{true,false} from the existence of variable ${variable_name}", "${condition_prefix}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
