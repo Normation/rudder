@@ -31,7 +31,8 @@ bundle agent file_block_present(file, block)
       "old_class_prefix" string => canonify("file_block_present_${file}");
       "args"              slist => { "${file}", "${block}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("file_block_present_${report_param}");
+      "full_class_prefix" string => canonify("file_block_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   files:
       "${file}"

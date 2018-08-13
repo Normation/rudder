@@ -32,7 +32,8 @@ bundle agent user_fullname(login, fullname)
       "old_class_prefix"  string => canonify("user_fullname_${login}");
       "args"               slist => { "${login}", "${fullname}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("user_fullname_${report_param}");
+      "full_class_prefix" string => canonify("user_fullname_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
       
   classes:
       "user_exists"     expression => userexists("${login}");

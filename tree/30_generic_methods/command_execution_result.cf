@@ -37,7 +37,8 @@ bundle agent command_execution_result(command, kept_codes, repaired_codes)
       "old_class_prefix"  string => canonify("command_execution_result_${command}");
       "args"               slist => { "${command}", "${kept_codes}", "${repaired_codes}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("command_execution_result_${report_param}");
+      "full_class_prefix" string => canonify("command_execution_result_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "kept_list"     slist => splitstring("${kept_codes}", "\s*,\s*", "256");
       "repaired_list" slist => splitstring("${repaired_codes}", "\s*,\s*", "256");

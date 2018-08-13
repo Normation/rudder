@@ -32,7 +32,8 @@ bundle agent file_from_local_source_recursion(source, destination, recursion)
       "old_class_prefix" string => canonify("file_from_local_source_${destination}");
       "args"              slist => { "${source}", "${destination}", "${recursion}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("file_from_local_source_${report_param}");
+      "full_class_prefix" string => canonify("file_from_local_source_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
       # depth_search prevents from copying file/symlink

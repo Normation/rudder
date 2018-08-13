@@ -42,7 +42,8 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "old_class_prefix"        string => "package_install_${canonified_package_name}";
       "args"                     slist => { "${package_name}", "${version_comparator}", "${package_version}", "${action}", "${update_policy}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("package_install_${report_param}");
+      "full_class_prefix" string => canonify("package_install_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   defaults:
       "action" string => "fix", if_match_regex => "add";

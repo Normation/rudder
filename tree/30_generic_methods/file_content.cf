@@ -32,7 +32,8 @@ bundle agent file_content(file, lines, enforce)
       "old_class_prefix" string => canonify("file_lines_present_${file}");
       "args"              slist => { "${file}", "${lines}", "${enforce}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("file_lines_present_${report_param}");
+      "full_class_prefix" string => canonify("file_lines_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
     # We need to detect if lines is an iterator or a scalar
     !pass1::

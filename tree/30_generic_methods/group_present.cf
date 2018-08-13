@@ -31,7 +31,8 @@ bundle agent group_present(group)
       "old_class_prefix"  string => canonify("group_present_${group}");
       "args"               slist => { "${group}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("group_present_${report_param}");
+      "full_class_prefix" string => canonify("group_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
       "group_present" expression => groupexists("${group}");

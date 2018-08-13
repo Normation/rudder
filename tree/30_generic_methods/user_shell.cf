@@ -33,7 +33,8 @@ bundle agent user_shell(login, shell)
       "old_class_prefix"  string => canonify("user_shell_${login}");
       "args"               slist => { "${login}", "${shell}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("user_shell_${report_param}");
+      "full_class_prefix" string => canonify("user_shell_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
       "user_exists" expression => userexists("${login}");
