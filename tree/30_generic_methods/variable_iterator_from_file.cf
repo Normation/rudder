@@ -44,7 +44,8 @@ bundle agent variable_iterator_from_file(variable_prefix, variable_name, file_na
       "old_class_prefix"  string => canonify("variable_iterator_from_file_${variable_name}");
       "args"               slist => { "${variable_prefix}", "${variable_name}", "${file_name}", "${separator_regex}", "${comments_regex}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("variable_iterator_from_file_${report_param}");
+      "full_class_prefix" string => canonify("variable_iterator_from_file_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       # define the variable within the variable_prefix namespace
       "${variable_prefix}.${variable_name}" slist => readstringlist("${file_name}", "${comments_regex}", "${separator_regex}", "10000", "0");

@@ -35,7 +35,8 @@ bundle agent file_check_hardlink(file_name_1, file_name_2)
       "old_class_prefix"  string => canonify("file_check_hardlink_${file_name_1}");
       "args"               slist => { "${file_name_1}", "${file_name_2}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("file_check_hardlink_${report_param}");
+      "full_class_prefix" string => canonify("file_check_hardlink_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
 
 

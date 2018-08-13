@@ -31,7 +31,8 @@ bundle agent command_execution(command_name)
       "old_class_prefix"  string => canonify("command_execution_${command_name}");
       "args"               slist => { "${command_name}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("command_execution_${report_param}");
+      "full_class_prefix" string => canonify("command_execution_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   methods:
       "report"

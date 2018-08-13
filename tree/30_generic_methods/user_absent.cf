@@ -32,7 +32,8 @@ bundle agent user_absent(login)
       "old_class_prefix"  string => canonify("user_absent_${login}");
       "args"               slist => { "${login}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("user_absent_${report_param}");
+      "full_class_prefix" string => canonify("user_absent_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   users:
       "${login}"  policy      => "absent",

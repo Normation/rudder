@@ -108,7 +108,8 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
       "old_class_prefix"  string => canonify("sharedfile_to_node_${file_id}");
       "args"              slist  => { "${target_uuid}", "${file_id}", "${file_path}", "${ttl}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("sharedfile_to_node_${report_param}");
+      "full_class_prefix" string => canonify("sharedfile_to_node_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "canonified_path"   string => canonify("${file_path}");
       "url"               string => "https://${def.policy_server}/rudder/relay-api/shared-files/${target_uuid}/${g.uuid}/${file_id}";

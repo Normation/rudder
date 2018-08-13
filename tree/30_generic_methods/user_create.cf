@@ -40,7 +40,8 @@ bundle agent user_create(login, description, home, group, shell, locked)
       "old_class_prefix"  string => canonify("user_create_${login}");
       "args"               slist => { "${login}", "${description}", "${home}", "${group}", "${shell}", "${locked}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("user_create_${report_param}");
+      "full_class_prefix" string => canonify("user_create_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "policy"              string => ifelse(strcmp("true", "${locked}"), "locked", "present");
 

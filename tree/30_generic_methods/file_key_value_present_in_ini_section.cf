@@ -33,7 +33,8 @@ bundle agent file_key_value_present_in_ini_section(file, section, name, value)
       "old_class_prefix" string => canonify("file_key_value_present_in_ini_section_${file}");
       "args"              slist => { "${file}", "${section}", "${name}", "${value}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("file_key_value_present_in_ini_section_${report_param}");
+      "full_class_prefix" string => canonify("file_key_value_present_in_ini_section_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "content[${section}][${name}]" string => "${value}";
 

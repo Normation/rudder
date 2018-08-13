@@ -39,7 +39,8 @@ bundle agent file_key_value_present_option(file, key, value, separator, option)
       "args"              slist => { "${file}", "${key}", "${value}","${separator}", "${option}" };
 
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("file_key_value_present_${report_param}");
+      "full_class_prefix" string => canonify("file_key_value_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "keys[${key}]" string => "${value}";
 
