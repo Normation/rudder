@@ -224,8 +224,8 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";
       # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
       # and can be used to check for errors.
-    state_dumped_ok::
-      "errors" string => execresult("/usr/bin/python \"${jinja2_script}\" --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell");
+      "errors" string => execresult("/usr/bin/python \"${jinja2_script}\" --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell"),
+           ifvarclass => "state_dumped_${destination_canon}_ok";
 
   classes:
       # If the stderr of the python templating command was empty, we consider that the templating succeeeded.
@@ -244,7 +244,7 @@ bundle agent file_from_template_jinja2(source_template, destination)
       create => "true",
       edit_template => "${datastate_tpl}", 
       edit_defaults => no_backup,
-      classes => classes_generic("state_dumped");
+      classes => classes_generic("state_dumped_${destination_canon}");
 
   methods:
       "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
@@ -254,9 +254,11 @@ bundle agent file_from_template_jinja2(source_template, destination)
     pass2.templating_ok::
       "copy classes" usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
 
-    pass3.state_dumped_ok::
-      "clean data file"     usebundle => file_remove("${datastate_file}");
-      "clean template file" usebundle => file_remove("${destination_tmp}");
+    pass3::
+      "clean data file"     usebundle => file_remove("${datastate_file}"),
+                           ifvarclass => "state_dumped_${destination_canon}_ok";
+      "clean template file" usebundle => file_remove("${destination_tmp}"),
+                           ifvarclass => "state_dumped_${destination_canon}_ok";
 
     pass3::
       "failure" usebundle  => _classes_failure("${old_class_prefix}"),
@@ -273,6 +275,6 @@ bundle agent file_from_template_jinja2(source_template, destination)
   reports:
     pass3::
       # Display templating errors in case of failure.
-      "Templating error: ${errors}" ifvarclass => "state_dumped_ok.!templating_ok";
+      "Templating error: ${errors}" ifvarclass => "state_dumped_${destination_canon}_ok.!templating_ok";
 }
 
