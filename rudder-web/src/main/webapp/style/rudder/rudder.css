@@ -40,9 +40,6 @@
 /**********************************
  *Node inventory details
  **********************************/
-.querylinecolor{
-  color:#EEEEEE;
-}
 .sInventory {
   margin: 0px;
   padding: 0px;
@@ -90,8 +87,8 @@
 
 div.innerDetails {
   display: none;
-    background : #DEDEDE;
-    padding-left:5%;
+  background : #DEDEDE;
+  padding-left:5%;
 }
 
 /**********************************
@@ -162,7 +159,7 @@ div.intro {
    margin: 0px 0px 0px 0px;
    padding: 0px;
    width: 100%;
-   font-size: 1.1em;
+   font-size: 1em;
    line-height: 1.5em;
    color: #414141;
    background-color: #FFF9E1;
@@ -171,8 +168,11 @@ div.intro {
 
 div.intro div {
   padding: 5px 5px 5px 15px;
+  font-size: 1.1em;
 }
-
+div.intro p:last-child{
+  margin-bottom:0px;
+}
 div.intro div ul {
    padding: 0 0 0 20px;
 }
@@ -272,11 +272,11 @@ button.ui-state-default {
 
 .dangerButton:hover {
   background-color: #B33630 !important;
-    background-image: linear-gradient(#DC5F59, #B33630) !important;
-    background-repeat: repeat-x !important;
-    border-color: #CD504A !important;
-    color: #FFFFFF !important;
-    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3) !important;
+  background-image: linear-gradient(#DC5F59, #B33630) !important;
+  background-repeat: repeat-x !important;
+  border-color: #CD504A !important;
+  color: #FFFFFF !important;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3) !important;
 }
 
 button.largeButton {
@@ -376,12 +376,12 @@ button.ui-datepicker-trigger {
 }
 
 form input.removeLineButton {
-   padding: 0em 0.3em;
-   width:18px !important;
+  padding: 0em 0.3em;
+  width:18px !important;
 }
 
 input.deleteNetwork * {
-       padding: 0 !important;
+  padding: 0 !important;
 }
 #lift__noticesContainer___notice ul {
   padding: 10px 20px;
@@ -423,7 +423,7 @@ Tableau
 }
 
 .reportbiggerWidth{
-    width:110px;
+  width:110px;
 }
 .reportTitleWidth{
   width:92px;
@@ -434,6 +434,7 @@ Tableau
 .tablepadding{
   padding-left:15px;
   padding-top:5px;
+  line-height: normal;
 }
 .tablemargin{
   margin-top:5px;
@@ -445,7 +446,7 @@ Tableau
   border-left: 1px solid #B4B3A8;
 }
 
-#grid_rules_grid_zone .content-wrapper a{
+.content-wrapper #grid_rules_grid_zone a{
   color:#333;
 }
 #acceptNodeGrid_wrapper {
@@ -500,35 +501,34 @@ tr.color2 {
    background-color: #fff;
 }
 
-
 td.center, .center {
- text-align : center;
+  text-align : center;
 }
 
 td.right {
- text-align : right;
+  text-align : right;
 }
 
 .warning {
-   color: #c00;
+  color: #c00;
 }
 
 a.warning {
-   color: #c00;
-   padding-left: 30px;
+  color: #c00;
+  padding-left: 30px;
 }
 
 table.dataTable td img, table.dataTable th img {
-   float: none;
-   margin: 0;
-   padding: 4px 0 0 0;
+  float: none;
+  margin: 0;
+  padding: 4px 0 0 0;
 }
 
 
 .head th input, .foot td input {
-   padding: 0.1em;
-   background-color: #f8f8f8;
-   border: 1px solid #b4b3a8;
+  padding: 0.1em;
+  background-color: #f8f8f8;
+  border: 1px solid #b4b3a8;
 }
 
 .field_errors, .error, .errors {
@@ -602,25 +602,9 @@ input.pickStartInput, input.pickEndInput {
 }
 
 .recentChange_refresh {
-    float: right;
-    width: 10%;
-    text-align: right;
-}
-.dataTables_refresh .refreshButton img,.recentChange_refresh .refreshButton img{
-  margin: 0;
-  float:none;
-}
-
-.dataTables_refresh .refreshButton,.recentChange_refresh .refreshButton {
-  height: auto;
-  width: auto;
-  margin: 0;
-  padding: 0;
-}
-
-.dataTables_refresh .refreshButton.ui-button, .recentChange_refresh .refreshButton span {
-  padding: 8px;
-  line-height: 0;
+  float: right;
+  width: 10%;
+  text-align: right;
 }
 
 .paginate {
@@ -670,7 +654,7 @@ input.pickStartInput, input.pickEndInput {
 
 table.noMarginGrid {
   border-left : 0 ;
-    border-right : 0 ;
+  border-right : 0 ;
 }
 .noMarginGrid {
   margin: 0;
@@ -679,7 +663,7 @@ table.noMarginGrid {
   margin: 0;
 }
 #explanationMessage{
-    display: inline-block;
+  display: inline-block;
 }
 .dataTables_wrapper_top {
   padding: 6px;
@@ -714,7 +698,7 @@ table.noMarginGrid {
   width:auto !important;
   white-space: normal;
 }
-#reportsGrid td .content-wrapper .progress-bar {
+.content-wrapper #reportsGrid td .progress-bar {
   float: inherit;
   display: inline-block;
 }
@@ -778,63 +762,6 @@ table.noMarginGrid {
 
 .wbBaseFieldLabel {
   margin-top: 5px;
-}
-.policyDisplay {
-  font-size: 12px;
-  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
-}
-.greytooltip{
-  border-bottom:dotted 1 px grey;
-}
-.policyDisplay * {
-  font-size: 12px;
-  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
-}
-
-.variableDefinition {
-  margin: 3px;
-  padding:3px;
-  font-size: 12px;
-  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
-}
-
-.variableDefinition td {
-  border-bottom:dotted 1 px lightgrey;
-
-}
-
-.variableDefinition span,
-.variableDefinition td,
-.variableDefinition input {
-  font-size: 12px;
-  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
-  vertical-align: middle;
-}
-
-.variableDefinition sup {
-  font-size: 10px;
-}
-
-.policyVariables {
-  width:75%;
-  display:table;
-  border-bottom : solid 1px;
-}
-
-
-.policyReports {
-  padding:0;
-  margin:0;
-  width:20%;
-  float:right;
-}
-
-.policyReports img {
-  padding:0;
-  margin:0;
-}
-.policyField {
-  width:75%;
 }
 
 /**********************************
@@ -913,8 +840,6 @@ div.foldedSection div.section-title:before {
   text-align: right;
 }
 
-
-
 td.directiveVarLabel {
   width:25%;
   margin-right:2px;
@@ -940,54 +865,26 @@ td.directiveVarValue  {
 /**********************************
  * Temporal information
  *********************************/
-
-.executionPlanning div.planningDetail {
-  margin: 3px;
-  padding:3px;
-}
-.executionPlanningTitle {
-  font-size: 1.1em;
-  font-weight: bold;
-}
-
-form .executionPlanningTitle {
-padding:0 20px;
-}
-
-
-#weeklyPeriod {
-  padding:0 20px;
-}
-
 .variableDefinition td {
    border-top: 0px;
 }
-
-
-/*
-.variableDefinitionTitle {
-  font-size: 1.1em;
-  font-weight: bold;
-  padding:0 20px;
-}
-*/
 
 /*********************************
 * Search servers
 *********************************/
 
 .nodeheader {
-    font-weight: bold;
-    font-size: medium;
-    text-align: center;
+  font-weight: bold;
+  font-size: medium;
+  text-align: center;
 }
 
 .nodeheadercontent {
-    color: #FFFFFF;
-    display: inline-block;
-     padding : 3px 10px;
-     background-color: #2E2D2D;
-}
+  line-height: normal;
+  color: #FFFFFF;
+  display: inline-block;
+  padding : 3px 10px;
+  background-color: #2E2D2D;
 }
 .paddscala{
   padding: 0px 0px 0px 15px;
@@ -1070,11 +967,6 @@ table#serverGrid tbody td {
 
 #serverGrid_wrapper table {
   margin:0;
-}
-
-
-.desactivatedGrid {
-  color: #AAAAAA;
 }
 
 .dataTables_scrollHeadInner table {
@@ -1206,7 +1098,7 @@ a:focus {
 structure
 **************************************/
 .subContainerReasonField {
-    padding: 0 4px 0 4px;
+  padding: 0 4px 0 4px;
 }
 
 div#prelude {
@@ -1289,7 +1181,7 @@ div#infosUser {
 }
 
 #documentation a {
-    color: #999;
+  color: #999;
 }
 
 
@@ -1406,8 +1298,8 @@ p img {
    list-style-type: none;
 }
 table .innerDetails li{
-    word-break: break-all;
-    white-space: pre-wrap;
+  word-break: break-all;
+  white-space: pre-wrap;
 }
 .portlet-header {
    padding: 5px 0 5px 15px;
@@ -1484,8 +1376,8 @@ table .innerDetails li{
 
 #ui-dialog-title-addPopup{
   height: 25px;
-    width:90%;
-    }
+  width:90%;
+}
 
 .ui-dialog-title, .ui-dialog-titlebar-close {
   height: 25px;
@@ -1500,7 +1392,7 @@ table .innerDetails li{
   float: none;
 }
 #succesConfirmationDialog{
-    z-index : 9995;
+  z-index : 9995;
 }
 /**************************************
 popin Login
@@ -1588,10 +1480,6 @@ popin Alert
 /*****************************************
 * Popup creation groupe/category
 ******************************************/
-
-.createContainer {
-  height: 300px;
-}
 .createGroup {
   height: 400px;
 }
@@ -1612,8 +1500,8 @@ popin Alert
  * Underlined, dotted grey: that text has a tooltip
  */
 .tooltip {
-    color: #999;
-    padding-top: 0px;
+  color: #999;
+  padding-top: 0px;
 }
 
 .spacing-title {
@@ -1743,25 +1631,34 @@ td.complianceTd, td.parametersTd {
 .greyscala{
   color: #999;
 }
-.checkbox{
-  float:right;
-  margin:0 30px 0 10px;
-  height:20px;
+.content-wrapper .checkbox {
+    float: right;
+    margin: 0 30px 0 10px;
+    height: 20px;
+    position: static;
+    display: block;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+.content-wrapper .checkbox input[type="checkbox"]{
+  position:relative;
+  top:2px;
+  margin-left:2px;
 }
 .nodisplay{
   display:none;
 }
 .ajaxloader{
   position: fixed;
-    top: 50%;
-    left: 50%;
-    text-align:center;
-    padding:10px;
-    margin-left: -50px;
-    margin-top: -50px;
-    z-index:9999;
-    overflow: auto;
-    display:none;
+  top: 50%;
+  left: 50%;
+  text-align:center;
+  padding:10px;
+  margin-left: -50px;
+  margin-top: -50px;
+  z-index:9999;
+  overflow: auto;
+  display:none;
 }
 
 .right {
@@ -1777,59 +1674,59 @@ hr.spacer {
 }
 
 .float-inherit{
-    float: inherit !important;
+  float: inherit !important;
 }
 .twoCol {
-    float:left;
-    width:67%;
+  float:left;
+  width:67%;
 }
 
 .twoColPopup {
-    float:left;
-    width:66%;
+  float:left;
+  width:66%;
 }
 
 .rudderBaseFieldClassName {
-    width:99%;
+  width:99%;
 }
 
 .rudderBaseFieldSelectClassName {
-    width:101%;
+  width:101%;
 }
 
 .twoColParentCategory {
-    float:left;
-    width:62%;
-    margin-right: 2px;
+  float:left;
+  width:62%;
+  margin-right: 2px;
 }
 
 .threeCol {
-    float:left;
-    width:30%;
-    margin-right: 4px;
+  float:left;
+  width:30%;
+  margin-right: 4px;
 }
 
 .threeColReason {
-    float:left;
-    width:30%;
-    margin-right: 2px;
-    margin-bottom: 5px;
+  float:left;
+  width:30%;
+  margin-right: 2px;
+  margin-bottom: 5px;
 }
 
 .threeColErrors {
-    float:left;
-    margin-right: 2px;
+  float:left;
+  margin-right: 2px;
 }
 
 .smallCol {
-   float:left;
-   margin-right: 2px;
-   width:20%;
+  float:left;
+  margin-right: 2px;
+  width:20%;
 }
 .largeCol {
-   float:left;
-   margin-right: 2px;
-   width:60%;
+  float:left;
+  margin-right: 2px;
+  width:60%;
 }
 
 .align-radio span {
@@ -1871,12 +1768,12 @@ template, a Directive, etc)
 ************************************/
 
 .object-details {
-    padding:10px;
+  padding:10px;
 }
 
 .object-details fieldset {
-    padding-left: 2px;
-    padding-right: 20px;
+  padding-left: 2px;
+  padding-right: 20px;
 }
 
 
@@ -1899,11 +1796,11 @@ div.tabInform {
 }
 
 .reportLine {
-    background: url("../../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
-    color: #FFFFFF;
-    float: left;
-    margin-top: 4px;
-    padding: 5px;
+  background: url("../../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
+  color: #FFFFFF;
+  float: left;
+  margin-top: 4px;
+  padding: 5px;
 }
 
 .filter {
@@ -1938,11 +1835,6 @@ div.tabInform {
   font-weight:bold;
 }
 
-#parameters {
-/*   margin-top: 3px; */
-/*   margin-left: 5px; */
-}
-
 tr.parametersDescription {
   border-bottom: 1px solid #ABABAB;
   border-top: 0px;
@@ -1965,11 +1857,11 @@ tr.parametersDescription {
 }
 
 .reportTable {
-border-bottom : 2pt ridge;
+  border-bottom : 2pt ridge;
 }
 
 .detailReport {
-    border: 0pt none;
+  border: 0pt none;
 }
 .firstTd {
 
@@ -2007,15 +1899,15 @@ td.nestedImg{
 }
 
 .reportsHeader {
-   margin: 15px 0;
-   padding: 0 10px;
-   font-size: 1.1em;
+  margin: 15px 0;
+  padding: 0 10px;
+  font-size: 1.1em;
 }
 
 .reportDetailsGroup {
-   padding: 0 20px;
-   border-left:1px dotted;
-   border-right:1px dotted;
+  padding: 0 20px;
+  border-left:1px dotted;
+  border-right:1px dotted;
 }
 
 td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.AuditCompliant,td.Compliant,td.NotApplicable,td.Success{
@@ -2062,13 +1954,13 @@ table.detailedReport {
 }
 
 span.detailedReportTitle {
-    position:absolute;
+  position:absolute;
 }
 
 table.fixedlayout{
-    table-layout:fixed;
-    word-wrap:break-word
-    }
+  table-layout:fixed;
+  word-wrap:break-word
+}
 
 tr.detailedReportLine, td.detailedReportLine {
   padding: 0;
@@ -2085,7 +1977,7 @@ tr.unfoldable {
 }
 
 .diffOldValue {
-    text-decoration:line-through;
+  text-decoration:line-through;
 }
 
 /***********************************
@@ -2130,14 +2022,16 @@ li.disableTreeNode > a.jstree-anchor {
 
 .dataTable tr > td a{
   text-decoration:none !important;
+  color: #333;
 }
 .dataTable tr > td a:hover{
   color:#000 !important;
 }
-.dataTable tr > td .ui-state-hover a:hover{
+.dataTable tr > td .ui-state-hover a:hover, .ui-state-hover a, .ui-state-hover a:hover{
   color:#c77405 !important;
 }
-tr.disabledRule > td .rudder-label ~ a:after{
+
+tr.disabledRule > td .rudder-labNodeel ~ a:after{
   color: #999;
   content:"- Disabled";
   margin-left: 5px;
@@ -2148,17 +2042,15 @@ tr.unappliedRule > td .rudder-label ~ a:after{
   margin-left: 5px;
 }
 ins.jstree-icon {
-    float: left;
+  float: left;
 }
 
 .jstree-default.jstree-focused {
-    background: none repeat scroll 0 0 #FFFFFF !important;
+  background: none repeat scroll 0 0 #FFFFFF !important;
 }
 
-
-a>.jstree-icon
-{
-    background-position: 0!important;
+a>.jstree-icon{
+  background-position: 0!important;
 }
 
 .homePageBlock {
@@ -2183,8 +2075,9 @@ ins {
 table thead th div.DataTables_sort_wrapper {
   position: relative;
   padding-right: 20px;
+  font-size: 13.2px;
+  line-height: initial;
 }
-
 table thead th div.DataTables_sort_wrapper span {
   position: absolute;
   top: 50%;
@@ -2391,11 +2284,6 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
   padding-left: 15px;
 }
 
-
-form .content-wrapper input {
-  width: auto;
-}
-
 #cfagentSchedule h4 {
   margin-bottom: 10px;
   margin-top: 10px;
@@ -2481,11 +2369,11 @@ path.c3-bar.c3-shape.c3-bar-highlighted{
 }
 button.recentChangeGraph{
   position: relative;
-    top: -8px;
-    right: -10px;
+  top: -8px;
+  right: -10px;
 }
 button.buttonMargin {
- margin: 0 10px;
+  margin: 0 10px;
 }
 
 .c3-legend-item-hidden {
@@ -2503,16 +2391,16 @@ button.buttonMargin {
 
 
 label span.text-fit{
-    font-weight: normal !important;
+  font-weight: normal !important;
 }
 
 .bs-text-danger{
   color:#a94442;
 }
 
-#node-compliance-intro{
+#node-compliance-intro {
   padding: 10px 15px;
-  margin: 10px;
+  margin: 10px 0;
 }
 #generation-status .glyphicon {
   top 0;
@@ -2551,14 +2439,14 @@ label span.text-fit{
 }
 
 .jstree-anchor > .jstree-themeicon {
-	margin-right: 0px;
+  margin-right: 0px;
 }
 
 .jstree a.jstree-anchor, .jstree a.jstree-anchor:hover , .jstree a.jstree-anchor:focus, .jstree a.jstree-anchor:active {
-    white-space: normal !important;
-    height: auto;
-    padding: 1px 2px;
-    text-decoration: none;
+  white-space: normal !important;
+  height: auto;
+  padding: 1px 2px;
+  text-decoration: none;
 }
 
 .jstree a.jstree-anchor .greyscala {
@@ -2589,7 +2477,10 @@ label span.text-fit{
 }
 
 #bottomPanel {
-	background-color: #fff;
+  background-color: #fff;
+  padding: 15px;
+  border: 1px solid #dcdcdc;
+  border-top: none;
 }
 
 .ui-widget-shadow {
@@ -2610,10 +2501,10 @@ label span.text-fit{
   width: 140px !important;
 }
 #filterLogs .form-control.input-xs:focus {
-    border-color: #c1c1c1;
-    outline: 0;
-    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(208, 208, 208, 0.6);
-    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
+  border-color: #c1c1c1;
+  outline: 0;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(208, 208, 208, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
 }
 .ui-timepicker-div a.ui-slider-handle{
   border: 1px solid #aaaaaa;
@@ -2654,7 +2545,7 @@ label span.text-fit{
   overflow: visible;
 }
 #nodeInventory .ui-tabs-nav{
-	margin-top: 5px;
+  margin-top: 5px;
   margin-bottom: 15px;
 }
 #node_inventory{
@@ -2670,12 +2561,16 @@ label span.text-fit{
 #serverDetails .dataTables_wrapper_top .dataTables_length{
   padding: 5px;
 }
+.dataTables_length label {
+  font-weight: normal;
+  margin:0;
+}
 #ui-datepicker-div{
   z-index:99999999 !important;
 }
 
 #changesChartContainer {
-	height: 40vh;
+  height: 40vh;
 }
 .c3-tooltip tr td{
   padding: 0 5px;
@@ -2687,3 +2582,21 @@ label span.text-fit{
   top: -2px;
 }
 
+.ui-tabs-panel h4 {
+  font-size: inherit;
+  font-weight: bold;
+  margin-bottom:0px;
+}
+.ui-tabs-panel h3 {
+  margin-top:0px;
+  font-weight: bold;
+}
+
+.ui-tooltip-content{
+  font-size:13px;
+}
+.ui-tooltip-content h3{
+  font-size:16px;
+  font-weight:700;
+  margin:0;
+}
