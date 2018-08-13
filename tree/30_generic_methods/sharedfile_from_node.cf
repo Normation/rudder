@@ -42,7 +42,8 @@ bundle agent sharedfile_from_node(source_uuid, file_id, file_path)
       "old_class_prefix"  string => canonify("sharedfile_from_node_${file_id}");
       "args"              slist  => { "${source_uuid}", "${file_id}", "${file_path}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("sharedfile_from_node_${report_param}");
+      "full_class_prefix" string => canonify("sharedfile_from_node_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "source"            string => "/var/rudder/shared-files/${g.uuid}/files/${source_uuid}/${file_id}";
 

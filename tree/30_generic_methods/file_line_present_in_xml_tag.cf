@@ -32,7 +32,8 @@ bundle agent file_line_present_in_xml_tag(file, tag, line)
       "old_class_prefix" string => canonify("file_line_present_in_xml_tag_${file}");
       "args"              slist => { "${file}", "${tag}", "${line}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("file_line_present_in_xml_tag_${report_param}");
+      "full_class_prefix" string => canonify("file_line_present_in_xml_tag_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
       "opening_tag_exists" expression => regline("\s*<${tag}>\s*", "${file}");

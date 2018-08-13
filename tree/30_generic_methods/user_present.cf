@@ -34,7 +34,8 @@ bundle agent user_present(login)
     "old_class_prefix"  string => canonify("user_present_${login}");
     "args"               slist => { "${login}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("user_present_${report_param}");
+      "full_class_prefix" string => canonify("user_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
     any::

@@ -58,7 +58,8 @@ bundle agent file_key_value_parameter_present_in_list(file, key, key_value_separ
       "old_class_prefix" string => canonify("file_key_value_parameter_present_in_list_${file}");
       "args"              slist => { "${file}", "${key}", "${key_value_separator}", "${parameter}", "${parameter_separator}", "${leading_char_separator}", "${closing_char_separator}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("file_key_value_parameter_present_in_list_${report_param}");
+      "full_class_prefix" string => canonify("file_key_value_parameter_present_in_list_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
 
       "escaped_key"  string => escape("${key}");

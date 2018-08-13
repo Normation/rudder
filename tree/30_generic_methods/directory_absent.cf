@@ -33,7 +33,8 @@ bundle agent directory_absent(target, recursive)
       "old_class_prefix" string => canonify("directory_absent_${target}");
       "args"              slist => { "${target}", "${recursive}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("directory_absent_${report_param}");
+      "full_class_prefix" string => canonify("directory_absent_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   defaults:
       "recursive"        string => "false", if_match_regex => "";

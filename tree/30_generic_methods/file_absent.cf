@@ -30,7 +30,8 @@ bundle agent file_absent(target)
     "old_class_prefix" string => canonify("file_absent_${target}");
     "args"              slist => { "${target}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("file_absent_${report_param}");
+      "full_class_prefix" string => canonify("file_absent_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   files:
     "${target}"

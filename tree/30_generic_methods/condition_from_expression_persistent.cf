@@ -56,7 +56,8 @@ bundle agent condition_from_expression_persistent(condition_prefix, condition_ex
       "old_class_prefix"  string => canonify("condition_from_expression_persistent_${condition_prefix}");
       "args"               slist => { "${condition_prefix}", "${condition_expression}", "${duration}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("condition_from_expression_persistent_${report_param}");
+      "full_class_prefix" string => canonify("condition_from_expression_persistent_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
       "${condition_prefix}_true"   expression => "${condition_expression}",

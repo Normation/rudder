@@ -35,7 +35,8 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
       "old_class_prefix"        string => canonify("permissions_${path}");
       "args"                     slist => { "${path}", "${mode}", "${owner}", "${group}", "${type}", "${recursion}" };
       "report_param"      string => join("_", args);
-      "class_prefix"      string => canonify("permissions_${report_param}");
+      "full_class_prefix" string => canonify("permissions_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
       "is_type_all"         expression => strcmp("${type}", "all");
