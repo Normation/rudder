@@ -30,12 +30,12 @@
 bundle agent file_from_string_mustache(template, destination)
 {
   vars:
-    "old_class_prefix"  string => canonify("file_from_string_mustache_${destination}");
-    "args"               slist => { "${template}", "${destination}" };
+      "old_class_prefix"  string => canonify("file_from_string_mustache_${destination}");
+      "args"               slist => { "${template}", "${destination}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_from_string_mustache_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-    "content"           string => string_mustache("${template}", datastate());
+      "content"           string => string_mustache("${template}", datastate());
 
   files:
     "${destination}"

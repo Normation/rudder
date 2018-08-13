@@ -45,21 +45,28 @@
 bundle agent file_from_remote_source(source, destination)
 {
   vars:
-      "old_class_prefix" string => canonify("file_from_remote_source_${destination}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"              slist => { "${source}", "${destination}" };
+      "old_class_prefix"  string => canonify("file_from_remote_source_${destination}");
+
+      "args"               slist => { "${source}", "${destination}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_remote_source_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("file_from_remote_source_${report_param}_0");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"
+                               usebundle => disable_reporting;
       "copy without recursion" usebundle => file_from_remote_source_recursion("${source}", "${destination}", "0");
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
-      "new result classes"     usebundle => _classes_copy("${class_prefix}_copy_without_recursion", "${class_prefix}");
+      "reenable_reporting_${old_class_prefix}"
+                               usebundle => enable_reporting,
+                              ifvarclass => "should_report";
+      "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
       "report"                 usebundle => _log_v3("Copying ${destination} from ${source}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

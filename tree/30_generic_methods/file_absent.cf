@@ -27,8 +27,8 @@
 bundle agent file_absent(target)
 {
   vars:
-    "old_class_prefix" string => canonify("file_absent_${target}");
-    "args"              slist => { "${target}" };
+      "old_class_prefix"  string => canonify("file_absent_${target}");
+      "args"               slist => { "${target}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_absent_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -43,7 +43,7 @@ bundle agent file_absent(target)
                          ifvarclass => "!${old_class_prefix}_reached";
 
     "success_if_nothing" usebundle => _classes_success("${class_prefix}"),
-                         ifvarclass => "has_promiser_stack.!${class_prefix}_reached";
+                         ifvarclass => "!${class_prefix}_reached";
 
     "report"             usebundle => _log_v3("Remove file ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 

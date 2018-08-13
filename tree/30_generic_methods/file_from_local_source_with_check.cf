@@ -51,10 +51,24 @@ bundle agent file_from_local_source_with_check(source, destination, check_comman
 {
   vars:
       "old_class_prefix" string => canonify("file_from_local_source_with_check_${destination}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+
       "args"              slist => { "${source}", "${destination}", "${check_command}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_local_source_with_check_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
       "canonified_file"   string => canonify("${destination}");
+
+    pass1::
+      "full_inner_class_file_copy_prefix" string => canonify("file_from_local_source_${source}_${destination}");
+      "inner_class_file_copy_prefix"      string => string_head("${full_inner_class_file_copy_prefix}", "1000");
+
+      "full_inner_class_condition_prefix" string => canonify("condition_from_command_${old_class_prefix}_check_${check_command} \"${source}\"_${rc_ok}_999");
+      "inner_class_condition_prefix"      string => string_head("${full_inner_class_condition_prefix}", "1000");
+
+
+
+
 
   defaults:
       "rc_ok"             string => "0", if_match_regex => "";
@@ -65,27 +79,46 @@ bundle agent file_from_local_source_with_check(source, destination, check_comman
 
       "should_report"    expression => "${report_data.should_report}";
 
-  methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
-      "check"  usebundle => condition_from_command("file_from_local_source_with_check_${canonified_file}_check", "${check_command} \"${source}\"", "${rc_ok}", "999"),
-              ifvarclass => "copy_needed";
-      "copy"   usebundle => file_from_local_source("${source}", "${destination}"),
-              ifvarclass => "file_from_local_source_with_check_${canonified_file}_check_true";
+    any::
+      # We need pass, as rc_ok may be defined after the vars
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
+
+  methods:
+    pass2::
+      "disable_reporting_${old_class_prefix}"
+                       usebundle => disable_reporting;
+      "check"          usebundle => condition_from_command("file_from_local_source_with_check_${canonified_file}_check", "${check_command} \"${source}\"", "${rc_ok}", "999"),
+                      ifvarclass => "copy_needed";
+      "copy"           usebundle => file_from_local_source("${source}", "${destination}"),
+                      ifvarclass => "${inner_class_condition_prefix}_kept"; # the condition from command true is equivalent to inner_class_prefix_kept
+
+      "reenable_reporting_${old_class_prefix}"
+                       usebundle => enable_reporting,
+                      ifvarclass => "should_report";
       "result" usebundle => _classes_success("${old_class_prefix}"),
               ifvarclass => "!copy_needed";
-      "result" usebundle => _classes_failure("${old_class_prefix}"),
+      "result" usebundle => _classes_success("${class_prefix}"),
+              ifvarclass => "!copy_needed";
+
+
                             # here we are not using file_from_local_source_with_check_${canonified_file}_check_false as we want to allow any return code
                             # which is different from rc_ok as failure.
-              ifvarclass => "condition_from_command_file_from_local_source_with_check_${canonified_file}_check_failed";
-      "result" usebundle => _classes_copy("file_from_local_source_${canonified_file}", "${old_class_prefix}"),
-              ifvarclass => "file_from_local_source_with_check_${canonified_file}_check_true";
+      "result" usebundle => _classes_failure("${old_class_prefix}"),
+              ifvarclass => "${inner_class_condition_prefix}_error";
+      "result" usebundle => _classes_failure("${class_prefix}"),
+              ifvarclass => "${inner_class_condition_prefix}_error";
+
+
+      "result" usebundle => _classes_copy("${inner_class_file_copy_prefix}", "${old_class_prefix}"),
+              ifvarclass => "${inner_class_condition_prefix}_kept";
+      "result" usebundle => _classes_copy("${inner_class_file_copy_prefix}", "${class_prefix}"),
+              ifvarclass => "${inner_class_condition_prefix}_kept";
 
 
       "report" usebundle => _log_v3("Copying ${destination} from local ${source} with check", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
-              ifvarclass => "!condition_from_command_file_from_local_source_with_check_${canonified_file}_check_failed";
+              ifvarclass => "!${inner_class_condition_prefix}_failed";
       "report" usebundle => _log_v3("Copying ${destination} from local ${source} failed at check command", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
-              ifvarclass => "condition_from_command_file_from_local_source_with_check_${canonified_file}_check_failed";
+              ifvarclass => "${inner_class_condition_prefix}_failed";
 }

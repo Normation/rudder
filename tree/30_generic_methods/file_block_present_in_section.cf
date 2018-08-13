@@ -46,5 +46,5 @@ bundle agent file_block_present_in_section(file, section_start, section_end, blo
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report" usebundle => _log_v3("Insert text block ${block} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Insert text block ${block} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -30,20 +30,22 @@
 bundle agent environment_variable_present(name, value)
 {
   vars:
-    "old_class_prefix" string => canonify("environment_variable_present_${name}");
-    "promisers"         slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-    "class_prefix"     string => canonify(join("_", "promisers"));
-    "args"              slist => { "${name}" };
+      "old_class_prefix"  string => canonify("environment_variable_present_${name}");
 
-    "array[${name}]" string => "${value}";
+      "args"               slist => { "${name}", "${value}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("environment_variable_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "array[${name}]"    string => "${value}";
 
 
 
   files:
-    "/etc/environment"
-      create    => "true",
-      edit_line => set_variable_values("environment_variable_present.array"),
-      classes   => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+      "/etc/environment"
+        create    => "true",
+        edit_line => set_variable_values("environment_variable_present.array"),
+        classes   => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
     "report"   usebundle => _log_v3("Define environment variable ${name} to ${value}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});

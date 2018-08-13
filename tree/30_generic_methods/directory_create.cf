@@ -29,26 +29,25 @@
 bundle agent directory_create(target)
 {
   vars:
-    "canonified_target"    string => canonify("${target}");
+      "canonified_target" string => canonify("${target}");
 
-    "old_class_prefix" string => canonify("directory_create_${target}");
-    "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-    "class_prefix"      string => canonify(join("_", "promisers"));
-    "args"              slist => { "${target}" };
-
+      "old_class_prefix"  string => canonify("directory_create_${target}");
+      "full_class_prefix" string => canonify("directory_create_${target}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
+    "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
     "action"             usebundle => directory_present("${target}");
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
-    "class copy"         usebundle => _classes_copy("directory_present_${canonified_target}", "${old_class_prefix}"),
+    "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
+                         ifvarclass => "should_report";
+
+    "class copy"         usebundle  => _classes_copy("directory_present_${canonified_target}", "${old_class_prefix}"),
                          ifvarclass => "directory_present_${canonified_target}_reached";
-    "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                         ifvarclass => "${class_prefix}_action_reached";
-    "report"             usebundle => _log_v3("Create directory ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "new result classes" usebundle  => _classes_copy("directory_present_${canonified_target}","${class_prefix}"),
+                         ifvarclass => "directory_present_${canonified_target}_reached";
+    "report"             usebundle  => _log_v3("Create directory ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 
