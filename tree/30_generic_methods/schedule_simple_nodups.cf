@@ -49,12 +49,13 @@ bundle agent schedule_simple_nodups(job_id, agent_periodicity,
   vars:
     any::
       "old_class_prefix" string => canonify("schedule_simple_${job_id}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+
       "args"               slist => { "${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}",
                                       "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
                                       "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}" };
-
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("schedule_simple_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
@@ -68,7 +69,7 @@ bundle agent schedule_simple_nodups(job_id, agent_periodicity,
 
       "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
-      "new result classes" usebundle => _classes_copy("${class_prefix}_simple_scheduler", "${class_prefix}");
+      "new result classes" usebundle => _classes_copy("${old_class_prefix}", "${class_prefix}");
 
       "report"             usebundle => _log_v3("Scheduling ${job_id} (with nodups schedule)", "${job_id}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

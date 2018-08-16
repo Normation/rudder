@@ -31,22 +31,29 @@
 bundle agent monitoring_template(template)
 {
   vars:
+      "monitoring_file"   string => "/var/rudder/tmp/rudder_monitoring.csv";
 
-    "old_class_prefix" string => canonify("monitoring_template_${template}");
-    "promisers" slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-    "class_prefix" string => canonify(join("_", "promisers"));
-    "args" slist => {"${template}"}; 
+      "old_class_prefix"  string => canonify("monitoring_template_${template}");
+
+      "args"               slist => {"${template}"}; 
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("monitoring_template_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("file_ensure_lines_present_${monitoring_file}_template,${template}");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
   classes:
   
-    "should_report" expression => "${report_data.should_report}";
+      "should_report" expression => "${report_data.should_report}";
 
   methods:
     
-    "disable_reporting_${old_class_prefix}" usebundle => disable_reporting;
-    "Write csv file" usebundle => file_ensure_lines_present("/var/rudder/tmp/rudder_monitoring.csv", "template,${template}");
-    "reenable_reporting_${old_class_prefix}" usebundle => enable_reporting,
-      ifvarclass => "should_report";
-    "new result classes" usebundle => _classes_copy_invert_kept_repaired(canonify("file_ensure_lines_present_/var/rudder/tmp/rudder_monitoring.csv"), "${old_class_prefix}");
-    "report" usebundle => _log_v3("Host follows ${template} monitoring template", "${template}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "disable_reporting_${old_class_prefix}"  usebundle => disable_reporting;
+      "Write csv file"                         usebundle => file_ensure_lines_present("${monitoring_file}", "template,${template}");
+      "reenable_reporting_${old_class_prefix}" usebundle => enable_reporting,
+                                              ifvarclass => "should_report";
+      "result classes"                         usebundle => _classes_copy_invert_kept_repaired(canonify("file_ensure_lines_present_${monitoring_file}"), "${old_class_prefix}");
+      "new result classes"                     usebundle => _classes_copy_invert_kept_repaired("${inner_class_prefix}", "${class_prefix}");
+      "report"                                 usebundle => _log_v3("Host follows ${template} monitoring template", "${template}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
