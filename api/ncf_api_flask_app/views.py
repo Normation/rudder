@@ -58,8 +58,7 @@ def check_authentication_from_rudder(auth_request):
 
     return auth_response
   except Exception as e:
-    error = jsonify ({ "error" : [{"message": "An error while authenticating to Rudder"}]})
-    error.status_code = 500
+    error = { "response" : "An error while authenticating to Rudder.\n=> Error message is: " + str(e), "status_code": 500 }
 
     return error
 
@@ -97,9 +96,9 @@ def get_auth():
         # Authentication success return it
         success = jsonify ( authentication_result )
         return success
-      result.append(authentication_result)
+      result.append(authentication_result["response"])
     # all authentication have failed, return an error
-    error = jsonify ({ "error" : [{"message": "Could not authenticate with ncf API", "details": result }]})
+    error = jsonify ({ "error" : {"message": "Could not authenticate with ncf API", "details": "\n".join(result) }})
     error.status_code = 401
     return error
   except Exception as e:

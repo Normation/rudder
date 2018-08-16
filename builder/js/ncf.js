@@ -270,7 +270,7 @@ $scope.handle_error = function( actionName ) {
   return function(data, status, headers, config) {
     if (status === 401) {
       $scope.authenticated = false;
-      errorNotification('Could not authenticate '+ actionName);
+      errorNotification('Could not authenticate '+ actionName, data.error.details);
     } else {
       if (data.error !== undefined) {
           $.each(data.error, function(index,error) {
