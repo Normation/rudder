@@ -35,43 +35,41 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.hooks
 
-import org.junit.runner.RunWith
-import org.specs2.concurrent.ExecutionEnv
-import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
-
-import scala.concurrent.duration._
-import scala.collection.JavaConverters._
-/**
- * Test properties about NuProcess command, especially about
- * the process context (environment variable, file descriptors..)
- */
-
-@RunWith(classOf[JUnitRunner])
-case class RunNuCommandTest()(implicit ee: ExecutionEnv) extends Specification {
-
-  "A command" should {
+package com.normation.rudder.web.snippet.administration
 
 
-    val PATH = System.getenv().asScala.getOrElse("PATH", throw new RuntimeException(s"PATH environment variable must be defined to run process tests."))
+import net.liftweb._
+import http._
+import common._
+import util.Helpers._
+import js._
 
-    "has only the environment variable explicitly defined" in {
-      RunNuCommand.run(Cmd("env", Nil, Map("PATH" -> PATH, "foo" -> "bar"))).map( c =>
-        s"return code=${c.code}\n"++
-        c.stdout ++
-        c.stderr
-      ) must beMatching("return code=0\nPATH=.*\nfoo=bar\n".r).awaitFor(100.millis)
-    }
 
-    "has only the 3 stdin, stdout, stderr file descriptors" in {
-      //we only keep the return code and the number of lines in the ls output
-      //(we have one more line because last line ends with a "\n"
-      val res = RunNuCommand.run(Cmd("ls", "-1" :: "/proc/self/fd" :: Nil, Map("PATH" -> PATH))).map { cmd =>
-        (cmd.code, cmd.stdout.split("\n").size)
-      }
-      res must beEqualTo((0, 4)).awaitFor(100.millis)
-    }
+
+
+class SupportScript extends DispatchSnippet with Loggable {
+
+  def dispatch = {
+    case "render" => launchSupportScript
   }
+
+    def launchSupportScript : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+
+      // our process method returns a
+      // JsCmd which will be sent back to the browser
+      // as part of the response
+      def process(): JsCmd = {
+        //clear errors
+
+        S.clearCurrentNotices
+        S.redirectTo("/secure/api/system/support/info")
+      }
+
+      //process the list of networks
+      "#launchSupportScriptButton" #> {
+        SHtml.ajaxSubmit("Download support information", process _ ,("class","btn btn-primary"))
+      }
+    }
+
 }

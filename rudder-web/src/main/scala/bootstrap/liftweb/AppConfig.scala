@@ -81,7 +81,7 @@ import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.rule.category._
-import com.normation.rudder.services.ClearCacheServiceImpl
+import com.normation.rudder.services.{ClearCacheServiceImpl, SupportInfoService, SupportInfoServiceImpl}
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
 import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.eventlog._
@@ -306,7 +306,7 @@ object RudderConfig extends Loggable {
   ApplicationLogger.info(s"Starting Rudder ${rudderFullVersion} web application [build timestamp: ${builtTimestamp}]")
 
   //
-  // Theses services can be called from the outer worl/
+  // Theses services can be called from the outer world
   // They must be typed with there abstract interface, as
   // such service must not expose implementation details
   //
@@ -330,6 +330,7 @@ object RudderConfig extends Loggable {
   val eventLogDetailsService: EventLogDetailsService = eventLogDetailsServiceImpl
   val reportingService: ReportingService = reportingServiceImpl
   lazy val asyncComplianceService : AsyncComplianceService = new AsyncComplianceService(reportingService)
+  val supportScript : SupportInfoService = scriptLauncher
   val stringUuidGenerator: StringUuidGenerator = uuidGen
   val cmdbQueryParser: CmdbQueryParser = queryParser
   val getBaseUrlService: GetBaseUrlService = baseUrlService
@@ -667,6 +668,7 @@ object RudderConfig extends Loggable {
 
   val systemApiService11 = new SystemApiService11(
       updateTechniqueLibrary
+    , supportScript
     , clearCacheService
     , asyncDeploymentAgent
     , uuidGen
@@ -911,6 +913,7 @@ object RudderConfig extends Loggable {
 
   // => because of systemVariableSpecService
   // metadata.xml parser
+
   private[this] lazy val variableSpecParser = new VariableSpecParser
   private[this] lazy val sectionSpecParser = new SectionSpecParser(variableSpecParser)
   private[this] lazy val techniqueParser = {
@@ -1702,6 +1705,8 @@ object RudderConfig extends Loggable {
     , roLdapDirectiveRepository
     , nodeInfoServiceImpl
     , RUDDER_BATCH_REPORTS_LOGINTERVAL )
+
+  private[this] lazy val scriptLauncher = new SupportInfoServiceImpl
 
   ////////////////////// Snippet plugins & extension register //////////////////////
   lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()

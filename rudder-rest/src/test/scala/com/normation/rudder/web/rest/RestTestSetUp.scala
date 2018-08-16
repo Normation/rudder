@@ -64,11 +64,12 @@ import com.normation.rudder.repository._
 import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rest.lift.{LiftApiProcessingLogger, LiftHandler, SystemApiService11}
-import com.normation.rudder.services.ClearCacheService
+import com.normation.rudder.services.{ClearCacheService, SupportInfoService}
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.user.PersonIdentService
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -202,10 +203,13 @@ object RestTestSetUp {
 
  val testNodeConfiguration = new TestNodeConfiguration()
  val fakeRepo = testNodeConfiguration.repo
-
+ val fakeScriptLauncher = new SupportInfoService {
+   override def launch(): Box[Array[Byte]] = Full(new Array[Byte](42))
+ }
 
   val apiService11 = new SystemApiService11(
         fakeUpdatePTLibService
+      , fakeScriptLauncher
       , fakeClearCacheService
       , fakeAsyncDeployment
       , uuidGen
