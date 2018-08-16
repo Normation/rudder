@@ -48,19 +48,23 @@ bundle agent schedule_simple(job_id, agent_periodicity,
   vars:
     any::
       "canonified_job_id" string => canonify("${job_id}");
-      "old_class_prefix" string => "schedule_simple_${canonified_job_id}";
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+      "old_class_prefix"  string => "schedule_simple_${canonified_job_id}";
+
       "args"               slist => { "${canonified_job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}",
                                       "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
                                       "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}" };
+
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("schedule_simple_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
       "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
-    any::
+
       "simple scheduler" usebundle => schedule_simple_generic("${canonified_job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
                                                               "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
                                                               "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}");
