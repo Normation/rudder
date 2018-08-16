@@ -30,10 +30,6 @@ bundle agent file_content(file, lines, enforce)
 {
   vars:
       "old_class_prefix" string => canonify("file_lines_present_${file}");
-      "args"              slist => { "${file}", "${lines}", "${enforce}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_lines_present_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
     # We need to detect if lines is an iterator or a scalar
     !pass1::
@@ -47,6 +43,19 @@ bundle agent file_content(file, lines, enforce)
     islist::
       "report_string" string => join(", ", "lines");
 
+    pass1.!islist::
+      "args"              slist => { "${file}", "${lines}", "${enforce}" };
+
+    pass1.islist::
+      "args"              slist => { "${file}", "@{lines}", "${enforce}" };
+
+    pass1::
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_lines_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+
+
   classes:
     !pass2::
       "islist" expression => isgreaterthan("$(length_list)", "1");
@@ -55,14 +64,14 @@ bundle agent file_content(file, lines, enforce)
       "pass1" expression => "any";
 
   files:
-    !islist::
+    pass2.!islist::
       "${file}"
         create        => "true",
         edit_line     => insert_lines("${lines}"),
         edit_defaults => ncf_empty_select("${enforce}"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
-    islist::
+    pass2.islist::
       "${file}"
         create        => "true",
         edit_line     => insert_lines("@{lines}"), # If it's a list, we don't want to iterate each time over the element
@@ -70,6 +79,7 @@ bundle agent file_content(file, lines, enforce)
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
+    pass2::
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
     !islist.pass2::

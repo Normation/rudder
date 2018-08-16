@@ -107,16 +107,23 @@
 bundle agent file_from_template_type(source_template, destination, template_type)
 {
   vars:
-    "old_class_prefix" string => canonify("file_from_template_${destination}");
-    "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-    "class_prefix"      string => canonify(join("_", "promisers"));
-    "args"              slist => { "${source_template}", "${destination}", "${template_type}" };
-    # allow to avoid resolving the jinja2 bundle when not using jinja2, because of the special requirements
-    "jinja2_bundle_name" string => "file_from_template_jinja2";
+      "old_class_prefix"  string => canonify("file_from_template_${destination}");
+
+      "args"               slist => { "${source_template}", "${destination}", "${template_type}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_template_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      # Only used in the jinja2 case
+      "full_inner_class_prefix" string => canonify("file_from_template_${source_template}_${destination}");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
+      # allow to avoid resolving the jinja2 bundle when not using jinja2, because of the special requirements
+      "jinja2_bundle_name" string => "file_from_template_jinja2";
 
   classes:
-    "template_exists" expression => fileexists("${source_template}");
-    "is_jinja2"       expression => strcmp("${template_type}", "jinja2");
+      "template_exists" expression => fileexists("${source_template}");
+      "is_jinja2"       expression => strcmp("${template_type}", "jinja2");
 
       "should_report"    expression => "${report_data.should_report}";
 
@@ -137,13 +144,13 @@ bundle agent file_from_template_type(source_template, destination, template_type
     any::
       "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
-    is_jinja2.template_exists::
+
     !template_exists::
       "template_absent" usebundle => _classes_failure("${old_class_prefix}");
       "template_absent" usebundle => _classes_failure("${class_prefix}");
 
     is_jinja2.template_exists::
-      "new result classes" usebundle => _classes_copy("${class_prefix}_file_from_template_jinja2", "${class_prefix}");
+      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
       "report" usebundle => _log_v3("Build file ${destination} from ${template_type} template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     !(is_jinja2.template_exists)::

@@ -30,10 +30,15 @@
 bundle agent file_ensure_lines_present(file, lines)
 {
   vars:
-      "old_class_prefix" string => canonify("file_ensure_lines_present_${file}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+      "old_class_prefix"  string => canonify("file_ensure_lines_present_${file}");
+
       "args"               slist => { "${file}", "${lines}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_ensure_lines_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("file_ensure_lines_present_${report_param}_false");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
 
 
@@ -41,14 +46,14 @@ bundle agent file_ensure_lines_present(file, lines)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"
+                              usebundle => disable_reporting;
       "enforce lines content" usebundle => file_enforce_content("${file}", "${lines}", "false");
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
+      "reenable_reporting_${old_class_prefix}"
+                              usebundle => enable_reporting,
                              ifvarclass => "should_report";
-      "new result classes"    usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                             ifvarclass => "${class_prefix}_action_reached";
-
-      "new result classes"    usebundle => _classes_copy("${class_prefix}_enforce_lines_content", "${class_prefix}");
+      "new result classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
+                             ifvarclass => "${inner_class_prefix}_reached";
 
       "report"                usebundle => _log_v3("Append content ${lines} if needed into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

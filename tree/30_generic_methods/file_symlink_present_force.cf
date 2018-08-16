@@ -28,21 +28,28 @@
 bundle agent file_symlink_present_force(source, destination)
 {
   vars:
-      "old_class_prefix" string => canonify("file_symlink_present_${destination}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"              slist => { "${source}", "${destination}" };
+      "old_class_prefix"  string => canonify("file_symlink_present_${destination}");
+
+      "args"               slist => { "${source}", "${destination}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_symlink_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("file_symlink_present_${report_param}_true");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
-      "create with enforce"  usebundle => file_symlink_present_option("${source}", "${destination}", "true");
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
-      "new result classes"   usebundle => _classes_copy("${class_prefix}_create_with_enforce", "${class_prefix}");
+      "disable_reporting_${old_class_prefix}"
+                               usebundle => disable_reporting;
+      "create with enforce"    usebundle => file_symlink_present_option("${source}", "${destination}", "true");
+      "reenable_reporting_${old_class_prefix}"
+                               usebundle => enable_reporting,
+                              ifvarclass => "should_report";
+      "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-      "report"               usebundle => _log_v3("Symlink ${destination} targeting ${source} with forced overwrite", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                usebundle => _log_v3("Symlink ${destination} targeting ${source} with forced overwrite", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

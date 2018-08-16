@@ -28,8 +28,8 @@
 bundle agent file_block_present(file, block)
 {
   vars:
-      "old_class_prefix" string => canonify("file_block_present_${file}");
-      "args"              slist => { "${file}", "${block}" };
+      "old_class_prefix"  string => canonify("file_block_present_${file}");
+      "args"               slist => { "${file}", "${block}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_block_present_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -44,5 +44,5 @@ bundle agent file_block_present(file, block)
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report" usebundle => _log_v3("Insert text block ${block} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Insert text block ${block} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

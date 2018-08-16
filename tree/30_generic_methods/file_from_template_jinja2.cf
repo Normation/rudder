@@ -212,16 +212,24 @@ bundle agent file_from_template_jinja2(source_template, destination)
 {
 
   vars:
-      "promisers"         slist  => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+
       "old_class_prefix"  string => canonify("file_from_template_${destination}");
-      "class_prefix"      string => canonify(join("_", "promisers"));
+
       "args"              slist  => { "${source_template}", "${destination}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_template_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "jinja2_script"     string => "${sys.workdir}/modules/templates/jinja2-templating.py";
       "datastate_tpl"     string => "${sys.workdir}/modules/templates/datastate.json.tpl";
       "datastate_file"    string => "${source_template}.datastate.${this.promiser_pid}.json";
       "destination_canon" string => canonify("${destination}");
       "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";
+
+
+      "full_inner_class_prefix" string => canonify("file_copy_from_local_source_${destination_tmp}_${destination}");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
       # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
       # and can be used to check for errors.
       "errors" string => execresult("/usr/bin/python \"${jinja2_script}\" --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell"),
@@ -238,13 +246,13 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "should_report"    expression => "${report_data.should_report}";
 
   files:
-    # We can't use the generic method here because we want to avoid file backups
-    "${datastate_file}"
-      template_method => "mustache",
-      create => "true",
-      edit_template => "${datastate_tpl}", 
-      edit_defaults => no_backup,
-      classes => classes_generic("state_dumped_${destination_canon}");
+      # We can't use the generic method here because we want to avoid file backups
+      "${datastate_file}"
+        template_method => "mustache",
+        create          => "true",
+        edit_template   => "${datastate_tpl}", 
+        edit_defaults   => no_backup,
+        classes         => classes_generic("state_dumped_${destination_canon}");
 
   methods:
       "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
@@ -252,7 +260,8 @@ bundle agent file_from_template_jinja2(source_template, destination)
     pass2.templating_ok::
       "copy file"    usebundle => file_copy_from_local_source("${destination_tmp}", "${destination}");
     pass2.templating_ok::
-      "copy classes" usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
+      "copy classes"        usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
+      "copy new classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
     pass3::
       "clean data file"     usebundle => file_remove("${datastate_file}"),
@@ -264,10 +273,8 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "failure" usebundle  => _classes_failure("${old_class_prefix}"),
                 ifvarclass => "!${old_class_prefix}_reached";
       "failure" usebundle  => _classes_failure("${class_prefix}"),
-                ifvarclass => "!${old_class_prefix}_reached";
+                ifvarclass => "!${class_prefix}_reached";
 
-      "new result classes"  usebundle  => _classes_copy("${old_class_prefix}", "${class_prefix}"),
-                            ifvarclass => "${old_class_prefix}_reached";
       "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "report"              usebundle  => _log_v3("Build file ${destination} from jinja2 template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});

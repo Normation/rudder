@@ -34,9 +34,6 @@ bundle agent file_enforce_content(file, lines, enforce)
       "canonified_file"    string => canonify("${file}");
 
       "old_class_prefix" string => canonify("file_ensure_lines_present_${file}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"              slist => { "${file}", "${lines}", "${enforce}" };
 
     # We need to detect if lines is an iterator or a scalar
     !pass1::
@@ -50,6 +47,21 @@ bundle agent file_enforce_content(file, lines, enforce)
     islist::
       "report_string" string => join(", ", "lines");
 
+
+    pass1.!islist::
+      "args"              slist => { "${file}", "${lines}", "${enforce}" };
+
+    pass1.islist::
+      "args"              slist => { "${file}", "@{lines}", "${enforce}" };
+
+    pass1::
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_ensure_lines_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("file_lines_present_${report_param}");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
   classes:
       "should_report"    expression => "${report_data.should_report}";
     !pass2::
@@ -59,26 +71,29 @@ bundle agent file_enforce_content(file, lines, enforce)
       "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
+    pass2::
+      "disable_reporting_${old_class_prefix}"
+                            usebundle => disable_reporting;
     !islist.pass2::
       "action"              usebundle => file_content("${file}", "${lines}", "${enforce}");
-    any::
+    islist.pass2::
+      "action"              usebundle => file_content("${file}", "@{lines}", "${enforce}");
+    pass2::
       "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
+                           ifvarclass => "should_report";
     !islist.pass2::
       "class copy"          usebundle => _classes_copy("file_lines_present_${canonified_file}", "${old_class_prefix}"),
                            ifvarclass => "file_lines_present_${canonified_file}_reached";
-      "new result classes"  usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                           ifvarclass => "${class_prefix}_action_reached";
+      "new result classes"  usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
+                           ifvarclass => "${inner_class_prefix}_reached";
       "report"              usebundle => _log_v3("Insert content ${lines} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 
     islist.pass2::
-      "action"              usebundle => file_content("${file}", "@{lines}", "${enforce}");
       "class copy"          usebundle => _classes_copy("file_lines_present_${canonified_file}", "${old_class_prefix}"),
                            ifvarclass => "file_lines_present_${canonified_file}_reached";
-      "new result classes"  usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                           ifvarclass => "${class_prefix}_action_reached";
-      "report"            usebundle => _log_v3("Insert content ${report_string} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "new result classes"  usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
+                           ifvarclass => "${inner_class_prefix}_reached";
+      "report"              usebundle => _log_v3("Insert content ${report_string} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

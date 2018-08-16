@@ -172,21 +172,30 @@
 bundle agent file_from_template_mustache(source_template, destination)
 {
   vars:
-    "old_class_prefix" string => canonify("file_from_template_${destination}");
-    "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-    "class_prefix"      string => canonify(join("_", "promisers"));
-    "args"              slist => { "${source_template}", "${destination}" };
+      "old_class_prefix"  string => canonify("file_from_template_${destination}");
+
+      "args"              slist  => { "${source_template}", "${destination}" };
+
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_template_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      # file_from_template_type is called with mustache parameter
+      "full_inner_class_prefix" string => canonify("file_from_template_${source_template}_${destination}_mustache");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
-    "file template mustache type"  usebundle => file_from_template_type("${source_template}", "${destination}", "mustache");
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
-    "new result classes"           usebundle => _classes_copy("${class_prefix}_file_template_mustache_type", "${class_prefix}");
+      "disable_reporting_${old_class_prefix}"
+                                     usebundle => disable_reporting;
+      "file template mustache type"  usebundle => file_from_template_type("${source_template}", "${destination}", "mustache");
+      "reenable_reporting_${old_class_prefix}"
+                                     usebundle => enable_reporting,
+                                    ifvarclass => "should_report";
+      "new result classes"           usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-    "report"                       usebundle => _log_v3("Build file ${destination} from mustache template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                       usebundle => _log_v3("Build file ${destination} from mustache template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

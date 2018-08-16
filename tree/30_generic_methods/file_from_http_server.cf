@@ -48,33 +48,38 @@ bundle agent file_from_http_server(source, destination)
       "canonified_action_command" string => canonify("${action_command}");
 
       "old_class_prefix"          string => "file_from_http_server_${canonified_destination}";
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"                       slist => { "${source}", "${destination}" };
+      "report_param"              string => join("_", args);
+      "full_class_prefix"         string => canonify("file_from_http_server_${report_param}");
+      "class_prefix"              string => string_head("${full_class_prefix}", "1000");
+
 
   classes:
 
-    "file_exists"    expression => fileexists("${destination}");
+      "file_exists"    expression => fileexists("${destination}");
 
-      "should_report"    expression => "${report_data.should_report}";
+      "should_report"  expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"
+                        usebundle => disable_reporting;
 
 
     (_stdlib_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
-      "action"                    usebundle => command_execution("${action_command}");
+      "action"          usebundle => command_execution("${action_command}");
 
     any::
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
+      "reenable_reporting_${old_class_prefix}"
+                        usebundle => enable_reporting,
+                       ifvarclass => "should_report";
     (_stdlib_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
-      "class copy"                usebundle => _classes_copy("command_execution_${canonified_action_command}", "${old_class_prefix}");
+      "class copy"      usebundle => _classes_copy("command_execution_${canonified_action_command}", "${old_class_prefix}");
 
-      "new result classes"        usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}");
+      "new result classes"
+                        usebundle => _classes_copy("command_execution_${canonified_action_command}", "${class_prefix}");
 
-      "report"                    usebundle => _log_v3("Download ${source} into ${destination}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
-                                 ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
+      "report"          usebundle => _log_v3("Download ${source} into ${destination}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                       ifvarclass => "${class_prefix}_reached";
 
 
     !_stdlib_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
@@ -89,6 +94,6 @@ bundle agent file_from_http_server(source, destination)
       "new result classes"        usebundle => _classes_success("${class_prefix}"),
                                  ifvarclass => "!${class_prefix}_action_repaired";
       "report"                    usebundle => _log_v3("File ${destination} already downloaded", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
-                                 ifvarclass => "(!has_promiser_stack.!command_execution_${canonified_action_command}_repaired)|(has_promiser_stack.!${class_prefix}_action_repaired)";
+                                 ifvarclass => "!command_execution_${canonified_action_command}_repaired";
 
 }
