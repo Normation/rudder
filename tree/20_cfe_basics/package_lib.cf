@@ -23,6 +23,8 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "canonified_name"    string => canonify("${name}");
       "old_class_prefix"   string => "ncf_package_${state}_${canonified_name}";
 
+    # don't rewrite the class prefix based on defaults
+    !pass1::
       "args"               slist  => { "${name}", "${version}", "${architecture}", "${provider}", "${state}", "${options}" };
       "report_param"       string => join("_", args);
       "full_class_prefix"  string => canonify("ncf_package_${report_param}");
@@ -91,7 +93,9 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
 
     any::
       "supported_provider" expression => "use_apt_provider|use_yum_provider|use_zypper_provider|use_pkg_provider|use_slackpkg_provider|use_test_provider";
-    
+
+
+      "pass1" expression => "any";
 
   packages:
 

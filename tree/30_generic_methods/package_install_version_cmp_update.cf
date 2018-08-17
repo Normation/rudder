@@ -40,8 +40,10 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
   vars:
       "canonified_package_name" string => canonify("${package_name}");
       "old_class_prefix"        string => "package_install_${canonified_package_name}";
-      "args"                     slist => { "${package_name}", "${version_comparator}", "${package_version}", "${action}", "${update_policy}" };
 
+    # don't rewrite the class prefix based on defaults
+    !pass1::
+      "args"                     slist => { "${package_name}", "${version_comparator}", "${package_version}", "${action}", "${update_policy}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("package_install_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -59,6 +61,8 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "warn" expression => strcmp("warn", "${action}");
 
       "update"    expression => strcmp("update", "${update_policy}");
+
+      "pass1" expression => "any";
 
   packages:
 
