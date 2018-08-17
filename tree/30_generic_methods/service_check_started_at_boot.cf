@@ -31,24 +31,32 @@ bundle agent service_check_started_at_boot(service_name)
       "canonified_service_name" string => canonify("${service_name}");
 
       "old_class_prefix"        string => "service_check_started_at_boot_${canonified_service_name}";
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+
       "args"                     slist => { "${service_name}" };
+      "report_param"            string => join("_", args);
+      "full_class_prefix"       string => canonify("service_check_started_at_boot_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("ncf_services_${report_param}_is_enabled");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
 
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "should_report"     expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"
+                           usebundle => disable_reporting;
       "check_enabled"      usebundle => ncf_services("${service_name}", "is-enabled");
 
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
+      "reenable_reporting_${old_class_prefix}"
+                           usebundle => enable_reporting,
+                          ifvarclass => "should_report";
       "class copy"         usebundle => _classes_copy("ncf_services_${canonified_service_name}_is_enabled", "${old_class_prefix}"),
                           ifvarclass => "ncf_services_${canonified_service_name}_is_enabled_reached";
-      "new result classes" usebundle => _classes_copy("${class_prefix}_check_enabled", "${class_prefix}"),
-                          ifvarclass => "${class_prefix}_check_enabled_reached";
+      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
+                          ifvarclass => "${inner_class_prefix}_reached";
 
       "reports"            usebundle => _log_v3("Check if service ${service_name} is started at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
