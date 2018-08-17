@@ -50,8 +50,14 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.{Success, Try, Failure => TryFailure}
 
+final case class SupportInfoScriptResult (
+    serverName : String
+  , result     : Array[Byte]
+)
+
+
 trait SupportInfoService {
-  def launch() : Box[Array[Byte]]
+  def launch() : Box[SupportInfoScriptResult]
 }
 
 class SupportInfoServiceImpl extends SupportInfoService with Loggable {
@@ -66,7 +72,7 @@ class SupportInfoServiceImpl extends SupportInfoService with Loggable {
     try {
       Full(Await.result(RunNuCommand.run(cmd, timeOut), timeOut))
     } catch {
-      case e => Failure(s"An Error has occured when launching support-info script: ${e.getMessage}")
+      case e: Throwable => Failure(s"An Error has occured when launching support-info script: ${e.getMessage}")
     }
   }
 
@@ -74,20 +80,24 @@ class SupportInfoServiceImpl extends SupportInfoService with Loggable {
   // We want to get its binary representation into an Array of byte
   // In order for the API to build an InMemoryResponse
 
-  private[this] def getScriptResult() : Box[Array[Byte]] = {
+  private[this] def getScriptResult() : Box[SupportInfoScriptResult] = {
+    import java.net.InetAddress.getLocalHost
 
-    val resultPath = "/tmp/support-info-server.tar.gz"
     Try {
+      val serverHostname = getLocalHost.getHostName
+
+      val resultPath = s"/tmp/support-info-${serverHostname}.tar.gz"
+
       val result = Paths.get(resultPath)
-      Files.readAllBytes(result)
+      SupportInfoScriptResult(serverHostname,Files.readAllBytes(result))
     } match {
       case Success(supportInfo) => Full(supportInfo)
-      case TryFailure(exception) => Failure(s"Could not get file ${resultPath}: cause is ${exception.getMessage}")
+      case TryFailure(exception) => Failure(s"Could not get file support info result file: cause is ${exception.getMessage}")
     }
 
   }
 
-  override def launch() : Box[Array[Byte]] = {
+  override def launch() : Box[SupportInfoScriptResult] = {
 
     val start = DateTime.now.getMillis
     for {
@@ -97,7 +107,7 @@ class SupportInfoServiceImpl extends SupportInfoService with Loggable {
       duration  = end - start
       _         = logger.debug(s"support-info script run finished in ${duration} ms")
 
-      zip       <- if (cmdResult.code == 0) {
+      zip       <- if (cmdResult.code == 0 || cmdResult.code == 1) {
                      logger.trace(s"stdout: ${cmdResult.stdout}")
                      getScriptResult()
                    } else {

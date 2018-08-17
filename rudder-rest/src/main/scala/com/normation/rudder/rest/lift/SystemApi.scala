@@ -48,7 +48,7 @@ import com.normation.rudder.batch.{AsyncDeploymentAgent, ManualStartDeployment, 
 import com.normation.rudder.UserService
 import com.normation.rudder.repository.xml.{GitFindUtils, GitTagDateTimeFormatter}
 import com.normation.rudder.repository.{GitArchiveId, GitCommitId, ItemArchiveManager}
-import com.normation.rudder.services.{ClearCacheService, SupportInfoService}
+import com.normation.rudder.services.{ClearCacheService, SupportInfoScriptResult, SupportInfoService}
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
@@ -576,15 +576,15 @@ class SystemApiService11(
     implicit val prettify = params.prettify
 
     supportScriptService.launch() match {
-      case Full(bytes) =>
+      case Full(SupportInfoScriptResult(name,bytes)) =>
         InMemoryResponse(bytes
           , "content-Type" -> "application/gzip" ::
-            "Content-Disposition" -> "attachment;filename=support-info-server.tar.gz" :: Nil
+            "Content-Disposition" -> s"attachment;filename=support-info-${name}.tar.gz" :: Nil
           , Nil
           , 200)
       case eb: EmptyBox =>
         val fail = eb ?~! "Error has occured while getting support script result"
-        toJsonError(None, "script support" -> s"An Error has occured : ${fail.msg}" )
+        toJsonError(None, "script support" -> s"An Error has occured : ${fail.messageChain}" )
     }
   }
 
