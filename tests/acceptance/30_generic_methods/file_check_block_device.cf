@@ -61,11 +61,11 @@ bundle agent check
 
   classes:
     "test_file_is_block_device"
-      expression => strcmp("block special", execresult("${test_file_type}", "noshell") ),
+      expression => regcmp("block special.*", execresult("${test_file_type}", "noshell") ),
       ifvarclass => "file_check_block_device_${init.file_canon}_reached";
 
     "test_block_device_is_block_device"
-      expression => strcmp("block special", execresult("${test_block_device_type}", "noshell") ),
+      expression => regcmp("block special.*", execresult("${test_block_device_type}", "noshell") ),
       ifvarclass => "file_check_block_device_${init.block_device_canon}_reached";
 
     "ok"   expression => "test_block_device_is_block_device.file_check_block_device_${init.block_device_canon}_ok.!test_file_is_block_device.!file_check_block_device_${init.file_canon}_ok.file_check_block_device_${init.file_canon}_reached";

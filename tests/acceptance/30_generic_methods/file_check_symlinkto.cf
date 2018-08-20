@@ -68,11 +68,11 @@ bundle agent check
 
   classes:
     "symlink_good_is_ok"
-      expression => strcmp("symbolic link to `${init.symlink_good_target}'", execresult("${test_good_target}", "noshell") ),
+      expression => regcmp("symbolic link to `*${init.symlink_good_target}'*", execresult("${test_good_target}", "noshell") ),
       ifvarclass => "file_check_symlinkto_${init.symlink_good_canon}_reached";
 
     "symlink_bad_is_ok"
-      expression => strcmp("symbolic link to `${init.symlink_good_target}'",  execresult("${test_bad_target}", "noshell") ),
+      expression => regcmp("symbolic link to `*${init.symlink_good_target}'*",  execresult("${test_bad_target}", "noshell") ),
       ifvarclass => "file_check_symlinkto_${init.symlink_bad_canon}_reached";
 
     "ok"   expression => "symlink_good_is_ok.file_check_symlinkto_${init.symlink_good_canon}_ok.!symlink_bad_is_ok.!file_check_symlinkto_${init.symlink_bad_canon}_ok.file_check_symlinkto_${init.symlink_bad_canon}_reached";
