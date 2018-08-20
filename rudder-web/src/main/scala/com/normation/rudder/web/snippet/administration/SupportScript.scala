@@ -38,14 +38,11 @@
 
 package com.normation.rudder.web.snippet.administration
 
-
-import net.liftweb._
-import http._
-import common._
-import util.Helpers._
-import js._
-
-
+import net.liftweb.common.Loggable
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.{DispatchSnippet, IdMemoizeTransform, SHtml, S}
+import net.liftweb.util.Helpers._
+import scala.xml.Text
 
 
 class SupportScript extends DispatchSnippet with Loggable {
@@ -68,7 +65,7 @@ class SupportScript extends DispatchSnippet with Loggable {
 
       //process the list of networks
       "#launchSupportScriptButton" #> {
-        SHtml.ajaxSubmit("Download support information", process _ ,("class","btn btn-primary"))
+        SHtml.ajaxButton( <span class="fa fa-download"></span>++Text(" Download support information"), process _ ,("class","btn btn-primary"))
       }
     }
 
