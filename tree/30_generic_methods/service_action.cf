@@ -104,12 +104,12 @@ bundle agent service_action(service_name, action)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
 
       "action"                 usebundle => ncf_services("${service_name}", "${action}");
 
-      "reenable_reporting_${old_class_prefix}"
+      "reenable_reporting_${class_prefix}"
                                usebundle => enable_reporting,
                               ifvarclass => "should_report";
       "class copy"             usebundle => _classes_copy("ncf_services_${canonified_service_name}_${canonified_action}", "${old_class_prefix}"),

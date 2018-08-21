@@ -156,12 +156,12 @@ bundle agent package_state(name, version, architecture, provider, state)
       "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
 
       "action"                 usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "${state}", "");
 
-      "reenable_reporting_${old_class_prefix}"
+      "reenable_reporting_${class_prefix}"
                                usebundle => enable_reporting,
                               ifvarclass => "should_report";
       "class copy"             usebundle => _classes_copy("ncf_package_${canonified_state}_${canonified_name}", "${old_class_prefix}"),

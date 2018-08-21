@@ -61,13 +61,13 @@ bundle agent schedule_simple_nodups(job_id, agent_periodicity,
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
+      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
     any::
       "simple scheduler"   usebundle => schedule_simple("${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
                                                         "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
                                                         "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "nodups");
 
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
+      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${old_class_prefix}", "${class_prefix}");
 

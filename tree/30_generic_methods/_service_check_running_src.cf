@@ -42,12 +42,12 @@ bundle agent _service_check_running_src(service_name)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
                           usebundle => disable_reporting;
       "check if subsystem is running"
                           usebundle => service_check_running("${service_name}");
 
-      "reenable_reporting_${old_class_prefix}"
+      "reenable_reporting_${class_prefix}"
                           usebundle => enable_reporting,
                          ifvarclass => "should_report";
       "report"

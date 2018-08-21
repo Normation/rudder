@@ -45,7 +45,7 @@ bundle agent service_stopped(service_name)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
          usebundle => disable_reporting;
 
     !windows::
@@ -83,7 +83,7 @@ bundle agent service_stopped(service_name)
                           ifvarclass => "service_stop_${canonified_service_name}_reached";
 
     any::
-      "reenable_reporting_${old_class_prefix}"
+      "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
       "report"

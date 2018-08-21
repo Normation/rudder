@@ -49,10 +49,10 @@ bundle agent file_ensure_block_in_section(file, section_start, section_end, bloc
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
       "action"             usebundle => file_block_present_in_section("${file}", "${section_start}", "${section_end}", "${block}");
-      "reenable_reporting_${old_class_prefix}"
+      "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
       "class copy"         usebundle => _classes_copy("file_block_present_in_section_${canonified_file}", "${old_class_prefix}"),

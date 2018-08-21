@@ -46,10 +46,10 @@ bundle agent file_remove(target)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
       "action"             usebundle => file_absent("${target}");
-      "reenable_reporting_${old_class_prefix}"
+      "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
       "class copy"         usebundle => _classes_copy("file_absent_${canonified_target}", "${old_class_prefix}"),

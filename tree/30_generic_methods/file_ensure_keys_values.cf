@@ -102,10 +102,10 @@ bundle agent file_ensure_keys_values(file, keys, separator)
       "should_report"        expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
                               usebundle => disable_reporting;
       "action"                usebundle => file_keys_values_present("${file}", "${keys}", "${separator}");
-      "reenable_reporting_${old_class_prefix}"
+      "reenable_reporting_${class_prefix}"
                               usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "class copy"            usebundle => _classes_copy("file_keys_values_present_${canonified_file}", "${old_class_prefix}"),
