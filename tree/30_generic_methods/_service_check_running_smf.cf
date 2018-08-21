@@ -31,24 +31,26 @@ bundle agent _service_check_running_smf(service_name)
   vars:
       "canonified_service_name"   string => canonify("${service_name}");
 
-      "old_class_prefix"    string => canonify("service_check_running_${service_name}");
-      "promisers"            slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"        string => canonify(join("_", "promisers"));
-      "args"                 slist => { "${service_name}" };
+      "old_class_prefix"        string => canonify("service_check_running_${service_name}");
+
+      # Here, class_prefix, old_class_prefix and inner_class_prefix are the same (service_check_running defines service_check_running_${service_name})
+      "class_prefix"            string => "${old_class_prefix}";
+      "args"                     slist => { "${service_name}" };
 
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"
+                          usebundle => disable_reporting;
 
+      "check_if_service_is_running"
+                          usebundle => service_check_running("${service_name}");
 
-      "check_if_service_is_running" usebundle => service_check_running("${service_name}");
-
-
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
+      "reenable_reporting_${old_class_prefix}"
+                          usebundle => enable_reporting,
+                          ifvarclass => "should_report";
       "report"
         usebundle  => _log_v3("Check if the service ${service_name} is started using SMF", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
