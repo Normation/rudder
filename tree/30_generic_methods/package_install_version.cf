@@ -45,10 +45,10 @@ bundle agent package_install_version(package_name, package_version)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
                               usebundle => disable_reporting;
       "install with version"  usebundle => package_install_version_cmp("${package_name}", "==", "${package_version}", "add");
-      "reenable_reporting_${old_class_prefix}"
+      "reenable_reporting_${class_prefix}"
                               usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "new result classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");

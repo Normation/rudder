@@ -44,13 +44,13 @@ bundle agent package_check_installed(package_name)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
                         usebundle => disable_reporting;
 
       "check install with latest version"
                         usebundle => package_install_version_cmp_update("${package_name}", "==", "latest", "verify", "false");
 
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
+      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
                         ifvarclass => "should_report";
       "copy old classes" usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
       "copy old classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");

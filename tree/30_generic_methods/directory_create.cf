@@ -39,9 +39,9 @@ bundle agent directory_create(target)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-    "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
+    "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
     "action"             usebundle => directory_present("${target}");
-    "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
+    "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
                          ifvarclass => "should_report";
 
     "class copy"         usebundle  => _classes_copy("directory_present_${canonified_target}", "${old_class_prefix}"),

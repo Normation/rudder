@@ -43,10 +43,10 @@ bundle agent file_symlink_present(source, destination)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
       "create without enforce" usebundle => file_symlink_present_option("${source}", "${destination}", "false");
-      "reenable_reporting_${old_class_prefix}"
+      "reenable_reporting_${class_prefix}"
                                usebundle => enable_reporting,
                               ifvarclass => "should_report";
       "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");

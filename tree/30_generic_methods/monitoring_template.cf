@@ -49,9 +49,9 @@ bundle agent monitoring_template(template)
 
   methods:
     
-      "disable_reporting_${old_class_prefix}"  usebundle => disable_reporting;
+      "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
       "Write csv file"                         usebundle => file_ensure_lines_present("${monitoring_file}", "template,${template}");
-      "reenable_reporting_${old_class_prefix}" usebundle => enable_reporting,
+      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
                                               ifvarclass => "should_report";
       "result classes"                         usebundle => _classes_copy_invert_kept_repaired(canonify("file_ensure_lines_present_${monitoring_file}"), "${old_class_prefix}");
       "new result classes"                     usebundle => _classes_copy_invert_kept_repaired("${inner_class_prefix}", "${class_prefix}");

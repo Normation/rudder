@@ -49,10 +49,10 @@ bundle agent file_ensure_line_present_in_xml_tag(file, tag, line)
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"
+      "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
       "action"             usebundle => file_line_present_in_xml_tag("${file}", "${tag}", "${line}");
-      "reenable_reporting_${old_class_prefix}"
+      "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
       "class copy"         usebundle => _classes_copy("file_line_present_in_xml_tag_${canonified_file}", "${old_class_prefix}"),
