@@ -34,16 +34,22 @@ bundle agent service_disabled(service_name)
       "canonified_service_name" string => canonify("${service_name}");
 
       "old_class_prefix"        string => "service_disabled_${canonified_service_name}";
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+
       "args"                     slist => { "${service_name}" };
+      "report_param"            string => join("_", args);
+      "full_class_prefix"       string => canonify("service_disabled_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("ncf_services_${report_param}_disable");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
 
   methods:
-      "disable_reporting_${old_class_prefix}"     usebundle => disable_reporting;
+      "disable_reporting_${old_class_prefix}"
+        usebundle => disable_reporting;
 
     !windows::
       "disable_at_boot"
@@ -51,7 +57,7 @@ bundle agent service_disabled(service_name)
 
       "undefine_at_boot"
         usebundle => ncf_services("${service_name}", "disable"),
-        ifvarclass => "(!has_promiser_stack.service_check_disabled_at_boot_${canonified_service_name}_not_ok)|(has_promiser_stack.${class_prefix}_check_disabled_not_ok)";
+        ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_not_ok";
 
     !windows::
       "already undefined"
@@ -60,29 +66,29 @@ bundle agent service_disabled(service_name)
 
       "already undefined"
         usebundle  => _classes_success("${class_prefix}"),
-        ifvarclass => "${class_prefix}_check_disabled_ok";
+        ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_ok";
 
       "copy classes"
         usebundle  => _classes_copy("ncf_services_${canonified_service_name}_disable", "${old_class_prefix}"),
         ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_not_ok";
 
       "copy classes"
-        usebundle  => _classes_copy("${class_prefix}_disable", "${class_prefix}"),
-        ifvarclass => "${class_prefix}_check_disabled_not_ok";
+        usebundle  => _classes_copy("${inner_class_prefix}_disable", "${class_prefix}"),
+        ifvarclass => "${inner_class_prefix}_not_ok";
 
     windows::
       "action"             usebundle => service_stop("${service_name}");
 
       "class copy"         usebundle => _classes_copy("service_stop_${canonified_service_name}", "${old_class_prefix}"),
                           ifvarclass => "service_stop_${canonified_service_name}_reached";
-      "new result classes" usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}"),
-                          ifvarclass => "${class_prefix}_action_reached";
+      "new result classes" usebundle => _classes_copy("service_stop_${canonified_service_name}", "${class_prefix}"),
+                          ifvarclass => "service_stop_${canonified_service_name}_reached";
 
    any::
-      "reenable_reporting_${old_class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
+      "reenable_reporting_${old_class_prefix}"
+                           usebundle => enable_reporting,
+                          ifvarclass => "should_report";
       "report"
-        usebundle => _log_v3("Ensure service ${service_name} is disabled at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
+        usebundle => _log_v3("Ensure service ${service_name} is disabled at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }
