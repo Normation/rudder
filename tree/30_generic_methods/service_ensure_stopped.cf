@@ -38,7 +38,7 @@ bundle agent service_ensure_stopped(service_name)
 
       "args"                          slist => { "${service_name}" };
 
-      "full_inner_class_prefix"      string => canonify("service_stopped_{service_name}");
+      "full_inner_class_prefix"      string => canonify("service_stopped_${service_name}");
       "inner_class_prefix"           string => string_head("${full_inner_class_prefix}", "1000");
 
 
