@@ -39,7 +39,7 @@ bundle agent service_started_path(service_name, service_path)
       "full_class_prefix"            string => canonify("service_started_${report_param}");
       "class_prefix"                 string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix"      string => canonify("service_ensure_running_${report_param}");
+      "full_inner_class_prefix"      string => canonify("service_check_running_${service_path}");
       "inner_class_prefix"           string => string_head("${full_inner_class_prefix}", "1000");
 
   classes:
