@@ -50,11 +50,9 @@ bundle agent service_started(service_name)
     !windows::
       "check_running" usebundle  => service_check_running("${service_name}");
 
-    !windows::
       "start if not running"
                       usebundle  => service_start("${service_name}"),
                       ifvarclass => "!${inner_class_prefix}_kept";
-
 
       "class copy if not running"
                       usebundle  => _classes_copy("service_start_${canonified_service_name}", "${old_class_prefix}"),

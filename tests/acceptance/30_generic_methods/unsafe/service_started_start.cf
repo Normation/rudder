@@ -23,8 +23,10 @@ body common control
 bundle agent init
 {
   vars:
-    !aix::
+    !aix.!redhat::
       "service_name"  string => "cron";
+    redhat::
+      "service_name"  string => "crond";
     aix::
       "service_name"  string => "syslogd";
 
@@ -59,6 +61,6 @@ bundle agent check
     !ok::
       "$(this.promise_filename) FAIL";
     !service_running::
-      "Service ${init.service_name} was not detected as running using ${command_ps} command";
+      "Service ${init.service_name} was not detected as running using '${command_ps}' command";
 
 }
