@@ -43,7 +43,7 @@ install: build
 	$(CP_A) api $(DESTDIR)/share/ncf/
 	$(INSTALL) -m 755 ncf $(DESTDIR)/share/ncf/
 	mkdir -p $(DESTDIR)/bin
-	ln -s ../share/ncf/ncf $(DESTDIR)/bin/ncf
+	ln -sf ../share/ncf/ncf $(DESTDIR)/bin/ncf
 	mkdir -p $(DESTDIR)/share/man/man1
 	$(INSTALL) -m 644 doc/ncf.1 $(DESTDIR)/share/man/man1/
 
