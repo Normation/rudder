@@ -176,6 +176,20 @@ trait UnboundidConnectionProvider {
   def toConnectionString : String
 }
 
+object RudderLDAPConnectionOptions {
+  def apply(useSchemaInfos : Boolean): LDAPConnectionOptions = {
+    val options = new LDAPConnectionOptions
+    options.setUseSchema(useSchemaInfos)
+    // In Rudder, some entries can grow quite big, see: https://www.rudder-project.org/redmine/issues/13256
+    // so we need to change max entry size to a big value (default to max available entry).
+    // We don't want to change the property if it is not the default one (for ex if a system property was used
+    // to change it)
+    if(options.getMaxMessageSize() == 20971520) {
+      options.setMaxMessageSize(Int.MaxValue)
+    }
+    options
+  }
+}
 
 trait AnonymousConnection extends UnboundidConnectionProvider {
 
@@ -184,9 +198,7 @@ trait AnonymousConnection extends UnboundidConnectionProvider {
   def useSchemaInfos : Boolean
 
   override def newUnboundidConnection = {
-    val options = new LDAPConnectionOptions
-    options.setUseSchema(useSchemaInfos)
-    new UnboundidLDAPConnection(options,host,port)
+    new UnboundidLDAPConnection(RudderLDAPConnectionOptions(useSchemaInfos),host,port)
   }
 
   override def toConnectionString = s"anonymous@ldap://${host}:${port}"
@@ -205,9 +217,7 @@ trait SimpleAuthConnection extends UnboundidConnectionProvider {
   def useSchemaInfos : Boolean
 
   override def newUnboundidConnection = {
-    val options = new LDAPConnectionOptions
-    options.setUseSchema(useSchemaInfos)
-    new UnboundidLDAPConnection(options,host,port,authDn,authPw)
+    new UnboundidLDAPConnection(RudderLDAPConnectionOptions(useSchemaInfos),host,port,authDn,authPw)
   }
 
   override def toConnectionString = s"$authDn:*****@ldap://${host}:${port}"
