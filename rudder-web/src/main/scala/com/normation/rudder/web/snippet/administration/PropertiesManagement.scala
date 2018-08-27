@@ -409,7 +409,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                     <label class="input-group-addon" for={inputId}>
                      {inputCheck}
                       <label for={inputId} class="label-radio">
-                        <span class="ion ion-checkmark-round"></span>
+                        <span class="ion ion-record"></span>
                       </label>
                       <span class="ion ion-checkmark-round check-icon"></span>
                     </label>

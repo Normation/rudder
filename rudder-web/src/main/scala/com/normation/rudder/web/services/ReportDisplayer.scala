@@ -226,7 +226,7 @@ class ReportDisplayer(
            _:UnexpectedVersion | _:UnexpectedNoVersion |
            _:UnexpectedUnknowVersion | _:NoReportInInterval =>
 
-        ("bg-danger text-danger", NodeSeq.Empty)
+        ("alert alert-danger", NodeSeq.Empty)
 
       case _: ReportsDisabledInInterval =>
         ("progress-bar-reportsdisabled", NodeSeq.Empty)
@@ -262,7 +262,7 @@ class ReportDisplayer(
       case RunComplianceInfo.OK |
            RunComplianceInfo.PolicyModeInconsistency(Nil)  => (background, NodeSeq.Empty)
       case RunComplianceInfo.PolicyModeInconsistency(list) =>
-        ("bg-danger text-danger",
+        ("alert alert-danger",
         <div>
           <p>The node is reporting an error regarding the requested policy mode of the policies. This problem require special attention.</p>
           <ul>{list.map(error => error match {

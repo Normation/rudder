@@ -34,6 +34,9 @@
 *
 *************************************************************************************
 */
+#editRuleZone{
+  font-size:14px;
+}
 
 #ruleComplianceTab {
   padding-left: 10px;
@@ -82,6 +85,11 @@ label.rule-info + div{
 #recentChanges .btn-refresh{
   margin:-6px -6px 0 0;
 }
+
+.targetContainer {
+  min-height: 65px;
+}
+
 @media (min-width: 991px) and (max-width: 1300px){
   .new-icon.category:before{
     content:"Add";
