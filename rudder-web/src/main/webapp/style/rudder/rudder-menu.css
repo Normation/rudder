@@ -278,7 +278,7 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 .main-header>.navbar {
   max-height: 50px;
 }
-.content-wrapper .navbar-nav li.dropdown > a {
+.navbar-nav li.dropdown > a {
   padding: 14px 8px;
 }
 .user.user-menu .glyphicon,.tasks-menu .fa-book{
@@ -443,6 +443,7 @@ a.sidebar-toggle{
 .content-wrapper {
   height: auto;
   padding-top:50px;
+  font-size: 12px;
 }
 @media (max-width: 767px){
 	.content-wrapper {
@@ -463,13 +464,13 @@ a.sidebar-toggle{
 .content-wrapper aside form .form-control {
   font-size:14px;
 }
-.content-wrapper .navbar-nav > li > a {
-  padding: 15px 15px;
+.navbar-nav > li > a {
+  padding: 15px;
 }
-.content-wrapper .navbar-nav a .glyphicon,.content-wrapper .navbar-nav a:hover .glyphicon,.content-wrapper .navbar-nav a:focus .glyphicon {
+.navbar-nav a .glyphicon,.navbar-nav a:hover .glyphicon,.navbar-nav a:focus .glyphicon {
   color: #fff;
 }
-.content-wrapper .navbar-nav a .fa-sign-out{
+.navbar-nav a .fa-sign-out{
   font-size: 18px;
   top: 2px;
   position: relative;
@@ -558,6 +559,7 @@ a.sidebar-toggle{
 }
 .content-wrapper td, .content-wrapper th {
   padding: 4px 3px;
+  line-height: normal;
 }
 .content-wrapper .panel-default > .panel-heading {
   color: #333;
@@ -659,7 +661,7 @@ ul.graph-legend > li.legend:hover{
 }
 /* ----- <DROPDOWN MENU>  ----- */
 @media (max-width: 767px){
-  .content-wrapper .navbar-nav .open .dropdown-menu {
+  .navbar-nav .open .dropdown-menu {
     position: absolute;
     right: 42px;td
     float: none;
@@ -695,23 +697,23 @@ ul.graph-legend > li.legend:hover{
   border-bottom-color: #d9534f;
 }
 
-.content-wrapper .main-header .navbar .nav li.notifications-menu> a{
+.main-header .navbar .nav li.notifications-menu> a{
   color:#fff;
   height: 100%;
 }
-.content-wrapper .navbar-nav li.dropdown {
+.navbar-nav li.dropdown {
   height: 50px;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu> a:hover .rudder-badge,
-.content-wrapper .main-header .navbar .nav li.notifications-menu> a:focus .rudder-badge,
-.content-wrapper .main-header .navbar .nav li.notifications-menu> a:active .rudder-badge,
-.content-wrapper .main-header .navbar .nav li.notifications-menu> a:visited .rudder-badge{
+.main-header .navbar .nav li.notifications-menu> a:hover .rudder-badge,
+.main-header .navbar .nav li.notifications-menu> a:focus .rudder-badge,
+.main-header .navbar .nav li.notifications-menu> a:active .rudder-badge,
+.main-header .navbar .nav li.notifications-menu> a:visited .rudder-badge{
   background-color:#fff;
 }
 
-.content-wrapper .main-header .navbar .nav a:hover,
-.content-wrapper .main-header .navbar .nav a:active,
-.content-wrapper .main-header .navbar .nav a:focus,
+.main-header .navbar .nav a:hover,
+.main-header .navbar .nav a:active,
+.main-header .navbar .nav a:focus,
 .main-header .navbar .nav>li> a:hover,
 .main-header .navbar .nav>li> a:active,
 .main-header .navbar .nav>li> a:focus,
@@ -810,7 +812,7 @@ ul.graph-legend > li.legend:hover{
   font-size:80%;
   margin:5px 0 0 30px;
 }
-.content-wrapper .navbar-nav .notifications-menu>.dropdown-menu>li .menu>li>a:hover, .navbar-nav .messages-menu .dropdown-menu>li .menu>li>a:hover, .navbar-nav .tasks-menu .dropdown-menu>li .menu>li>a:hover {
+.navbar-nav .notifications-menu>.dropdown-menu>li .menu>li>a:hover, .navbar-nav .messages-menu .dropdown-menu>li .menu>li>a:hover, .navbar-nav .tasks-menu .dropdown-menu>li .menu>li>a:hover {
   background: #f4f4f4;
 }
 .navbar-nav li>.dropdown-menu .menu{
@@ -831,13 +833,13 @@ ul.graph-legend > li.legend:hover{
   padding: 3px;
 }
 /* ERROR */
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-error, .content-wrapper .main-header .navbar .nav li.notifications-menu.bg-error #generation-status{
+.main-header .navbar .nav li.notifications-menu.bg-error, .main-header .navbar .nav li.notifications-menu.bg-error #generation-status{
   background-color:#dd4b39;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-error:hover #generation-status,.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-error.open #generation-status{
+.main-header .navbar .nav li.notifications-menu.bg-error:hover #generation-status, .main-header .navbar .nav li.notifications-menu.bg-error.open #generation-status{
   background-color:#c24339;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-error #generation-status > span:after{
+.main-header .navbar .nav li.notifications-menu.bg-error #generation-status > span:after{
   display: inline-block;
   font: normal normal normal 14px/1 FontAwesome;
   font-size: inherit;
@@ -846,16 +848,16 @@ ul.graph-legend > li.legend:hover{
   content: "\f00d";
 }
 /* OK */
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-success, .content-wrapper .main-header .navbar .nav li.notifications-menu.bg-success #generation-status{
+.main-header .navbar .nav li.notifications-menu.bg-success, .main-header .navbar .nav li.notifications-menu.bg-success #generation-status{
   background-color:#9bc832;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-success:hover #generation-status,
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-success a:active #generation-status,
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-success a:focus #generation-status,
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-success.open #generation-status{
+.main-header .navbar .nav li.notifications-menu.bg-success:hover #generation-status,
+.main-header .navbar .nav li.notifications-menu.bg-success a:active #generation-status,
+.main-header .navbar .nav li.notifications-menu.bg-success a:focus #generation-status,
+.main-header .navbar .nav li.notifications-menu.bg-success.open #generation-status{
   background-color:#8bb52c;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-success #generation-status > span:after{
+.main-header .navbar .nav li.notifications-menu.bg-success #generation-status > span:after{
   display: inline-block;
   font: normal normal normal 14px/1 FontAwesome;
   font-size: inherit;
@@ -864,13 +866,13 @@ ul.graph-legend > li.legend:hover{
   content: "\f00c";
 }
 /* DEFAULT */
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-neutral, .content-wrapper .main-header .navbar .nav li.notifications-menu.bg-neutral #generation-status{
+.main-header .navbar .nav li.notifications-menu.bg-neutral, .main-header .navbar .nav li.notifications-menu.bg-neutral #generation-status{
   background-color:#abacac;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-neutral:hover #generation-status,.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-neutral.open #generation-status{
+.main-header .navbar .nav li.notifications-menu.bg-neutral:hover #generation-status,.main-header .navbar .nav li.notifications-menu.bg-neutral.open #generation-status{
   background-color:#9a9b9b;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-neutral #generation-status > span:after{
+.main-header .navbar .nav li.notifications-menu.bg-neutral #generation-status > span:after{
     position: relative;
     top: 1px;
     display: inline-block;
@@ -882,13 +884,13 @@ ul.graph-legend > li.legend:hover{
     content: "\e085";
 }
 /* REFRESH */
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-refresh, .content-wrapper .main-header .navbar .nav li.notifications-menu.bg-refresh #generation-status{
+.main-header .navbar .nav li.notifications-menu.bg-refresh, .main-header .navbar .nav li.notifications-menu.bg-refresh #generation-status{
   background-color:#abacac;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-refresh:hover #generation-status,.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-refresh.open #generation-status{
+.main-header .navbar .nav li.notifications-menu.bg-refresh:hover #generation-status,.main-header .navbar .nav li.notifications-menu.bg-refresh.open #generation-status{
   background-color:#9a9b9b;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu.bg-refresh #generation-status > span:after{
+.main-header .navbar .nav li.notifications-menu.bg-refresh #generation-status > span:after{
   display: inline-block;
   font: normal normal normal 14px/1 FontAwesome;
   font-size: inherit;
@@ -902,13 +904,13 @@ ul.graph-legend > li.legend:hover{
 #generation-status.label-success{
   background-color: #9bc832 !important;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu> a .fa-heartbeat{
+.main-header .navbar .nav li.notifications-menu> a .fa-heartbeat{
   font-size: 18px;
 }
 .label-neutral{
   background-color: #ABACAC !important;
 }
-.content-wrapper .main-header .navbar .nav li.notifications-menu> a #generation-status .fa{
+.main-header .navbar .nav li.notifications-menu> a #generation-status .fa{
   transition-duration:.2s;
 }
 .no-click{
@@ -1164,19 +1166,20 @@ table.tablewidth{
   border:1px solid #d6d6d6;
 }
 .node-tab-content{
-	float:left;
-	width:100%;
-	margin-bottom:15px;
+  float:left;
+  width:100%;
+  margin-bottom:15px;
 }
 #serverDetails > .ui-tabs.ui-widget.ui-widget-content{
-	margin:0;
-	padding:0;
-	border:none;
+  margin:0;
+  padding:0;
+  border:none;
 }
 #details{
   background-color: #fff;
   padding-left:0;
   padding-right:0;
+  font-size:14px;
 }
 table.dataTable td i.node-details{
   visibility:hidden;
@@ -1233,10 +1236,10 @@ pre.display-keys > label{
   margin-right:4px !important;
 }
 #technicalDetails{
-	padding:0 30px 12px 30px;
+  padding:0 30px 12px 30px;
 }
 #technicalDetails > .directiveTechnicalInfo:first-child{
-	margin-top:0;
+  margin-top:0;
 }
 .directiveTree {
   padding-left: 10px;
@@ -1330,7 +1333,7 @@ pre.display-keys > label{
   margin-bottom: 30px;
 }
 .space-left{
-	margin-left:5px !important;
+  margin-left:5px !important;
 }
 .padding-col{
   margin-left: 15px;

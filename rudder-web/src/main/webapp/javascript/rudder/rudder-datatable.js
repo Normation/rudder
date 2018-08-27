@@ -1811,12 +1811,12 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   $('#'+gridId+' thead tr').addClass("head");
   if (!( typeof refresh === 'undefined')) {
-    var refreshButton = $("<button class='btn btn-primary'><i class='fa fa-refresh'></i></button>");
-    refreshButton.button();
-    refreshButton.attr("title","Refresh");
-    refreshButton.click( function() { refresh(); } );
-    refreshButton.addClass("refreshButton");
-    $("#"+gridId+"_wrapper .dataTables_refresh").append(refreshButton);
+    var refreshBtn = $("<button class='btn btn-sm btn-blue'><i class='fa fa-refresh'></i></button>");
+    refreshBtn.button();
+    refreshBtn.attr("title","Refresh");
+    refreshBtn.click( function() { refresh(); } );
+    refreshBtn.removeClass("ui-button ui-corner-all ui-widget");
+    $("#"+gridId+"_wrapper .dataTables_refresh").append(refreshBtn);
   }
 
   $("#"+gridId+"_wrapper .dataTables_refresh button").tooltip({position:{my:"left+40 bottom-10",collision: "flipfit"}});

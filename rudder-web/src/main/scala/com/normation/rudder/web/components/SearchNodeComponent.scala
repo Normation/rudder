@@ -96,7 +96,7 @@ class SearchNodeComponent(
 
   private[this] def queryline = {
   <tr class="error"></tr>
-  <tr class="query_line querylinecolor">
+  <tr class="query_line">
     <td class="first objectType"></td>
     <td class="attributeName"></td>
     <td class="comparator"></td>
@@ -258,7 +258,6 @@ class SearchNodeComponent(
             Seq("AND", "OR")
           , Full(if(comp == Or) "OR" else "AND")
           , {value:String => composition = CriterionComposition.parse(value).getOrElse(And)} //default to AND on unknown composition string
-          , ("class", "radio")
         ).flatMap(radio =>
           <label>
             {radio.xhtml}

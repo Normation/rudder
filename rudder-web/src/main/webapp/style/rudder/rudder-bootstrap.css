@@ -34,6 +34,63 @@
 *
 *************************************************************************************
 */
+body{
+  height:100%;
+}
+.wrapper {
+  float:left;
+}
+
+.form-control, .content-wrapper .form-control {
+  display: block;
+  width: 100%;
+  height: 34px;
+  padding: 6px 12px;
+  font-size: 12px;
+  line-height: 1.42857143;
+  color: #555;
+  background-color: #fff;
+  background-image: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  -webkit-transition: border-color ease-in-out 0.15s, -webkit-box-shadow ease-in-out 0.15s;
+  -o-transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+  transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+}
+.content-wrapper .input-group .form-control:first-child,
+.content-wrapper .input-group-addon:first-child,
+.content-wrapper .input-group-btn:first-child > .btn,
+.content-wrapper .input-group-btn:first-child > .btn-group > .btn,
+.content-wrapper .input-group-btn:first-child > .dropdown-toggle,
+.content-wrapper .input-group-btn:last-child > .btn:not(:last-child):not(.dropdown-toggle),
+.content-wrapper .input-group-btn:last-child > .btn-group:not(:last-child) > .btn {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.content-wrapper .input-group .input-group-addon + .form-control,
+.content-wrapper .input-group .input-group-addon + .ng-isolate-scope .form-control{
+  border-top-left-radius:0;
+  border-bottom-left-radius:0;
+}
+
+.content-wrapper .form-control.input-sm {
+  height: 30px;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 3px;
+}
+.content-wrapper .btn{
+  font-size: 14px;
+}
+
+.content-wrapper .btn-sm,.content-wrapper .btn .btn-sm, .content-wrapper .btn-group-sm > .btn {
+  font-size: 12px;
+}
+
 .content-wrapper .tooltip.in {
   z-index: 99999;
 }
@@ -61,11 +118,11 @@
 }
 
 .content-wrapper .modal-header {
-    background-color: #f08004;
-    font-family: sans-serif;
-    font-weight: bold;
-    color: #fff;
-    border-radius: 0;
+  background-color: #f08004;
+  font-family: sans-serif;
+  font-weight: bold;
+  color: #fff;
+  border-radius: 0;
 }
 
 .content-wrapper .modal-body {
@@ -113,9 +170,6 @@
   display:block;
   position:relative;
 }
-.wrapper .navbar-nav > li > a {
-  padding: 15px 8px;
-}
 
 .content-wrapper .nav > li > a:hover .glyphicon, .content-wrapper .nav > li > a:focus .glyphicon,
 .content-wrapper .nav li.dropdown > a:hover .glyphicon, .content-wrapper .nav li.dropdown > a:focus .glyphicon {
@@ -149,7 +203,6 @@
   color:#d8000c;
 }
 
-
 .content-wrapper .nav li.dropdown > a:hover .badge .glyphicon, .content-wrapper .nav li.dropdown > a:focus .badge .glyphicon {
   color: #eee;
 }
@@ -174,15 +227,8 @@
 }
 .rudder_col{
   float: left;
-  position: static;
   height:100%;
-  background-color:#2e2d2d;
   width:100%;
-  padding: 15px 25px 0;
-}
-
-* {
-  box-sizing: border-box;
 }
 
 .container {
@@ -356,10 +402,6 @@
   padding-right:0;
 }
 
-.form-control {
-  width:100%;
-}
-
 #globalCompliance .progress {
   height:80px;
   margin: 33px 30px;
@@ -376,15 +418,15 @@
 }
 
 #complianceGauge {
-    max-width: 100%;
-    width:420px;
+  max-width: 100%;
+  width:420px;
 }
 #gauge-value {
-    font-weight: bold;
-    text-align: center;
-    font-size:30px;
-    float: left;
-    width: 100%;
+  font-weight: bold;
+  text-align: center;
+  font-size:30px;
+  float: left;
+  width: 100%;
 }
 
 .content-wrapper .nav-pills.navbar-rudder {
@@ -402,7 +444,7 @@
 }
 
 .content-wrapper .modal .table#grid_dependentRulesGrid {
-    margin-bottom: 0; 
+  margin-bottom: 0;
 }
 
 .content-wrapper .modal .modal-content {
@@ -411,203 +453,200 @@
   border-top-right-radius: 6px;
 }
 .content-wrapper .modal .modal-header {
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
 }
 .content-wrapper .modal .modal-body {
-    overflow-y: auto;
-    max-height: 76vh;
-    overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 76vh;
+  overflow-x: hidden;
 }
 .content-wrapper .modal .tooltip {
-    opacity: 1; 
+  opacity: 1;
 }
 .content-wrapper .modal .dataTable tr.head{
-    background-image: none;
-    background-image: none;
-    background-color: #DAD9D9;
+  background-image: none;
+  background-image: none;
+  background-color: #DAD9D9;
 }
 .content-wrapper .modal tr.head th{
-    color: #000 !important;
-    border-bottom: none;
-    width: 20%;
-    font-size: 14px;
+  color: #000 !important;
+  border-bottom: none;
+  width: 20%;
+  font-size: 14px;
 }
 .content-wrapper .modal .dataTables_paginate a {
-    background: rgb(255, 255, 255);
+  background: rgb(255, 255, 255);
 }
 .content-wrapper .modal #pendingNodeConfirm_wrapper table{
-    box-shadow: none;
+  box-shadow: none;
 }
 .content-wrapper .modal table{
-    border: none;
-}
-.content-wrapper .modal .dataTables_refresh .refreshButton {
-    background-color: #fff;
+  border: none;
 }
 .content-wrapper .modal .dataTables_wrapper_top {
-    background-color: #fff;
+  background-color: #fff;
 }
 
 .content-wrapper .modal .table-striped > tbody > tr:nth-child(odd) > td.dataTables_empty{
-    background-color: #FFFFFF;
-    border: none;
+  background-color: #FFFFFF;
+  border: none;
 }
 .content-wrapper .modal .space-top{
-    margin-top: 30px !important;
+  margin-top: 30px !important;
 }
 .content-wrapper .modal .space-bottom{
-    margin-bottom: 30px !important;
+  margin-bottom: 30px !important;
 }
 .content-wrapper .modal .space-right{
-    margin-right: 10px !important;
+  margin-right: 10px !important;
 }
 .content-wrapper .form-control.errorInput {
-    border-color: #A94442;
+  border-color: #A94442;
 }
 
 .content-wrapper .form-control.errorInput {
-    border-color: #A94442;
+  border-color: #A94442;
 }
 .content-wrapper .form-control.errorInput:focus {
-    border-color: #843534;
-    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 6px #ce8483;
-    box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 6px #ce8483;
+  border-color: #843534;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 6px #ce8483;
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 6px #ce8483;
 }
 .content-wrapper .modal .well.jstree-rudder.jstree-focused, .content-wrapper .modal .well.jstree-rudder {
-    background: #FBFBFB;
+  background: #FBFBFB;
 }
 .content-wrapper #grid_remove_popup_grid a,.content-wrapper #grid_dependentRulesGrid a {
-    color: #2E2D2D;
-    text-decoration: underline;
-    transition-duration: .1s;
+  color: #2E2D2D;
+  text-decoration: underline;
+  transition-duration: .1s;
 }
 .content-wrapper #grid_remove_popup_grid a:hover,.content-wrapper #grid_dependentRulesGrid a:hover {
-    color: #ec8e0c;
+  color: #ec8e0c;
 }
 .content-wrapper .modal table thead th {
-    border-right: 1px solid #B4B3A8 !important;
+  border-right: 1px solid #B4B3A8 !important;
 }
 .content-wrapper .modal #pendingNodeConfirm_wrapper table thead th {
-    border-bottom: 1px solid #B4B3A8 !important;
-    border-right: none !important;
+  border-bottom: 1px solid #B4B3A8 !important;
+  border-right: none !important;
 }
 .content-wrapper .modal .dataTables_wrapper_bottom{
-    font-size: 12px;
-    background-color: rgb(213, 213, 213);
+  font-size: 12px;
+  background-color: rgb(213, 213, 213);
 }
 .content-wrapper .modal .dataTables_wrapper_top {
-    padding: 0 6px;
-    line-height: 37px;
+  padding: 0 6px;
+  line-height: 37px;
 }
 .content-wrapper .modal #remove_popup_grid * {
-    border-color: #d8d8d8 !important;
+  border-color: #d8d8d8 !important;
 }
-form .content-wrapper input {
+.content-wrapper form input {
   width: auto;
 }
 .content-wrapper .modal #CRStatus {
-    background-color: #f5f5f5; 
-    font-size: 15px;
-    font-weight: bold;
-    padding: 7px;
-    margin-right: 0; 
-    cursor: not-allowed;
-    box-shadow:none;
-    width: 100%;
-    color:#797979;
-    display: inline-block;
-    border: 1px solid #C1BEBE;
+  background-color: #f5f5f5;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 7px;
+  margin-right: 0;
+  cursor: not-allowed;
+  box-shadow:none;
+  width: 100%;
+  color:#797979;
+  display: inline-block;
+  border: 1px solid #C1BEBE;
 }
 .content-wrapper .modal .form-control.vresize {
   resize: vertical; 
 }
 .content-wrapper label.valign, .content-wrapper .valign{
-    line-height: 28px;
+  line-height: 28px;
 }
 .wrapper .navbar-nav .glyphicon.text-danger{
-    color: #a94442;
+  color: #a94442;
 }
 .content-wrapper .panel-group a .panel-heading {
-    color: #565656;
-    background-color: #fff;
+  color: #565656;
+  background-color: #fff;
 }
 /* PopUp error details */
 
 
 .content-wrapper #showhidetechnicalerrors{
-    margin-left: 65%;
+  margin-left: 65%;
 }
 .content-wrapper #deploymentErrorMsg.list-group {
-    margin-bottom: 0;
-    font-weight: normal;
+  margin-bottom: 0;
+  font-weight: normal;
 }
 .content-wrapper .modal #validationForm span.col-xs-offset-0.col-sm-offset-0{
-    margin-left:0;
-    width:100%;
+  margin-left:0;
+  width:100%;
 }
 @media (min-width: 1200px){
-    .content-wrapper .modal .subContainerReasonField textarea.form-control.col-lg-12 {
-        width: 75%;
-    }
+  .content-wrapper .modal .subContainerReasonField textarea.form-control.col-lg-12 {
+    width: 75%;
+  }
 }
 @media (max-width: 1200px){
-    .content-wrapper .modal .text-right.wbBaseFieldLabel{
-        text-align: left;
-    }
+  .content-wrapper .modal .text-right.wbBaseFieldLabel{
+    text-align: left;
+  }
 }
 .content-wrapper .modal .field_errors,.content-wrapper .modal .error,.content-wrapper .modal .errors {
-    color: #A94442;
+  color: #A94442;
 }
 .content-wrapper .modal .btn.wideButton{
-    width: auto;
+  width: auto;
 }
 .content-wrapper .modal .alert .glyphicon{
-    top: 5px;
-    font-size: 20px;
+  top: 5px;
+  font-size: 20px;
 }
 
 .content-wrapper .modal h4.audit-title{
-    padding-left: 20px;
-    padding-bottom: 8px;
-    margin-bottom: 25px;
-    border-bottom: 1px solid #F38D17;
-    margin-top: 20px;
-    font-size: 17.5px;
+  padding-left: 20px;
+  padding-bottom: 8px;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #F38D17;
+  margin-top: 20px;
+  font-size: 17.5px;
 }
 .content-wrapper hr.css-fix{
-    margin:0;
-    border: none;
+  margin:0;
+  border: none;
 }
 .content-wrapper .modal .errors-container{
-    margin-top: 4px;
-    font-size: 12px;
-    padding: 0;
-    font-weight: bold;
+  margin-top: 4px;
+  font-size: 12px;
+  padding: 0;
+  font-weight: bold;
 }
 .content-wrapper .modal .space-top-sm{
-    margin-top: 4px;
+  margin-top: 4px;
 }
 .content-wrapper .panel-group a:hover, .content-wrapper .panel-group a:focus{
-    text-decoration:none;
+  text-decoration:none;
 }
 .content-wrapper .panel-group a #showhidetechnicalerrors{
-    transition-duration: .5s;
+  transition-duration: .5s;
 }
 .content-wrapper .panel-group a #showhidetechnicalerrors{
-    transform: rotate(0deg);
+  transform: rotate(0deg);
 }
 .content-wrapper .panel-group a #showhidetechnicalerrors.up{
-    transform: rotate(180deg);    
+  transform: rotate(180deg);
 }
 .content-wrapper .font-bold {
-    font-weight: bold !important;
+  font-weight: bold !important;
 }
 .content-wrapper .modal .align-radio-generate-input {
-    height: 34px;
+  height: 34px;
 }
 .content-wrapper .modal #pendingNodeConfirm thead tr{
-    background: #DAD9D9;
+  background: #DAD9D9;
 }
 .content-wrapper .modal tr.color1 {
    background-color: #fff;
@@ -640,8 +679,8 @@ form .content-wrapper input {
 }
 
 .content-wrapper .password-section textarea, .content-wrapper .text-section textarea, .content-wrapper .textarea {
-    resize: vertical;
-    border-radius: 4px !important;
+  resize: vertical;
+  border-radius: 4px !important;
 }
 
 .animate-show {
@@ -691,7 +730,8 @@ form .content-wrapper input {
 }
 
 .content-wrapper .jstree {
-	margin-top: 5px;
+  margin-top: 5px;
+  font-size: 14px;
 }
 
 .content-wrapper .text-section.row {
@@ -766,4 +806,62 @@ form .content-wrapper input {
 
 .content-wrapper .badge-grey {
   background-color: #777;
+}
+
+.content-wrapper .alert{
+  font-size:14px;
+}
+
+.content-wrapper .btn-danger {
+  color: #fff;
+  background-color: #d9534f;
+  border-color: #d43f3a;
+}
+.content-wrapper .btn-danger:hover {
+  color: #fff;
+  background-color: #c9302c;
+  border-color: #ac2925;
+}
+
+/* NO TW-BS */
+label.no-tw-bs, .no-tw-bs label{
+  display: inline;
+  max-width: 100%;
+  margin-bottom: 0;
+  font-weight: normal;
+}
+
+input.no-tw-bs, .no-tw-bs input[type="checkbox"], .no-tw-bs input[type="radio"]{
+  margin:0;
+}
+
+.content-wrapper a {
+  color: #337ab7;
+  text-decoration: none;
+}
+.content-wrapper a.btn {
+  color:#fff !important;
+  text-decoration:none !important;
+}
+.content-wrapper a.btn.btn-default {
+  color:#333 !important;
+}
+.content-wrapper .btn-default:hover  ,
+.content-wrapper .btn-default:focus  ,
+.content-wrapper .btn-default:active {
+  border : 1px solid #adadad !important;
+}
+.content-wrapper .dataTable{
+    font-size:14px;
+}
+.content-wrapper .dataTable a {
+  color: #333;
+  text-decoration: none;
+}
+.content-wrapper a:hover {
+  color: #337ab7;
+  text-decoration:underline;
+}
+.content-wrapper .dataTable a:hover {
+  text-decoration:none;
 }
