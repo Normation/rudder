@@ -41,11 +41,9 @@ import java.io.File
 import com.normation.templates.FillTemplatesService
 import com.normation.templates.STVariable
 import com.normation.utils.Control._
-import org.apache.commons.io.FileUtils
 import net.liftweb.common._
 import net.liftweb.json._
 import scopt.OptionParser
-import org.apache.commons.io.IOUtils
 import java.nio.charset.StandardCharsets
 
 /**

@@ -40,7 +40,6 @@ package bootstrap.liftweb
 import java.util.Collection
 
 import bootstrap.liftweb.RudderProperties.config
-import com.github.ghik.silencer.silent
 import com.normation.rudder.Role
 import com.normation.rudder.RoleToRights
 import com.normation.rudder.RudderAccount
@@ -68,11 +67,9 @@ import org.springframework.context.support.ClassPathXmlApplicationContext
 import org.springframework.ldap.core.DirContextAdapter
 import org.springframework.ldap.core.DirContextOperations
 import org.springframework.security.authentication.AuthenticationProvider
-import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
-import org.springframework.security.authentication.encoding.PlaintextPasswordEncoder
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
@@ -149,7 +146,7 @@ class AppConfigAuth extends ApplicationContextAware {
 
     val ctx = new ClassPathXmlApplicationContext(applicationContext)
     ctx.addBeanFactoryPostProcessor(propertyConfigurer)
-    ctx.setConfigLocations(configuredAuthProviders.map( _.configFile ).toArray)
+    ctx.setConfigLocations(configuredAuthProviders.map( _.configFile ).toSeq:_*)
     ctx.refresh
     appCtx = ctx
   }
@@ -212,7 +209,7 @@ class AppConfigAuth extends ApplicationContextAware {
     }
 
     val authConfigProvider = new UserDetailListProvider {
-      override def authConfig: UserDetailList = UserDetailList(new PlaintextPasswordEncoder, admins)
+      override def authConfig: UserDetailList = UserDetailList(PasswordEncoder.PlainText, admins)
     }
     val provider = new DaoAuthenticationProvider()
     provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider))
@@ -253,20 +250,14 @@ class RudderUrlAuthenticationFailureHandler(failureUrl: String) extends SimpleUr
 object LogFailedLogin {
 
   def warn(ex: AuthenticationException, request: HttpServletRequest): Unit = {
-    ApplicationLogger.warn(s"Login authentication failed for user '${getUser(ex)}' from IP '${getRemoteAddr(request)}': ${ex.getMessage}")
+    ApplicationLogger.warn(s"Login authentication failed for user '${getUser(request)}' from IP '${getRemoteAddr(request)}': ${ex.getMessage}")
   }
 
-  def getUser(ex: AuthenticationException): String = {
-    //remove deprecation warning
-    @silent def getAuthentication(bce: AuthenticationException) = bce.getAuthentication
-
-    ex match {
-      case bce:BadCredentialsException =>
-        getAuthentication(bce) match {
-          case user: UsernamePasswordAuthenticationToken => user.getName
-          case _                                         => "unknown"
-        }
-      case _ => "unknown"
+  // user login is passed in parameters named "j_username"
+  def getUser(req: HttpServletRequest): String = {
+    req.getParameter("username") match {
+      case null  => "unknown"
+      case login => login
     }
   }
 

@@ -295,16 +295,15 @@ trait GitArchiverFullCommitUtils extends Loggable {
     import org.eclipse.jgit.errors.IncorrectObjectTypeException
     import org.eclipse.jgit.lib._
     import org.eclipse.jgit.revwalk._
-    import scala.collection.mutable.{ ArrayBuffer, Map => MutMap }
+    import scala.collection.mutable.ArrayBuffer
 
-    var refList = MutMap[String,Ref]()
     val revWalk = new RevWalk(gitRepo.db)
     val tags = ArrayBuffer[RevTag]()
 
     try {
-      refList = gitRepo.db.getRefDatabase().getRefs(Constants.R_TAGS).asScala
+      val refList = gitRepo.db.getRefDatabase().getRefsByPrefix(Constants.R_TAGS).asScala
 
-      refList.values.foreach { ref =>
+      refList.foreach { ref =>
         try {
           val tag = revWalk.parseTag(ref.getObjectId())
           tags.append(tag)
