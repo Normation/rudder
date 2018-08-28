@@ -29,6 +29,11 @@ bundle agent init
     "primary_group1" string => "users";
     "primary_group2" string => "anonexistantgroup";
     "gid1"              int => getgid("${primary_group1}");
+
+  commands:
+    # To ensure that the default primary group is a new group based on the user name
+    suse::
+     "/usr/bin/sed -i 's/USERGROUPS_ENAB no/USERGROUPS_ENAB yes/g' /etc/login.defs";
 }
 
 #######################################################
