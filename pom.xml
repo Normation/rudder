@@ -363,35 +363,35 @@ limitations under the License.
 
     <scala-version>2.12.6</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
-    <lift-version>3.2.0</lift-version>
+    <lift-version>3.3.0</lift-version>
     <slf4j-version>1.7.25</slf4j-version>
     <logback-version>1.2.3</logback-version>
     <junit-version>4.12</junit-version>
-    <jodatime-version>2.9.9</jodatime-version>
-    <jodaconvert-version>2.0.1</jodaconvert-version>
+    <jodatime-version>2.10</jodatime-version>
+    <jodaconvert-version>2.1.1</jodaconvert-version>
     <commons-io-version>2.6</commons-io-version>
     <commons-codec-version>1.11</commons-codec-version>
     <commons-lang-version>2.6</commons-lang-version>
-    <spring-version>3.2.18.RELEASE</spring-version>
-    <spring-security-version>3.2.10.RELEASE</spring-security-version>
-    <jgit-version>4.11.0.201803080745-r</jgit-version>
-    <cglib-version>3.2.5</cglib-version>
+    <spring-version>5.0.8.RELEASE</spring-version>
+    <spring-security-version>5.0.7.RELEASE</spring-security-version>
+    <jgit-version>5.0.2.201807311906-r</jgit-version>
+    <cglib-version>3.2.7</cglib-version>
     <asm-version>5.2</asm-version>
-    <bcpkix-jdk15on-version>1.58</bcpkix-jdk15on-version>
+    <bcpkix-jdk15on-version>1.60</bcpkix-jdk15on-version>
     <monix-version>2.3.3</monix-version>
-    <silencer-lib-version>0.6</silencer-lib-version>
+    <silencer-lib-version>1.2</silencer-lib-version>
     <!--
       These one must be updated to work together
       We declare cats in "test" here, because it is not directly needed
       in any project before rudder.
     -->
-    <cats-version>1.1.0</cats-version>
-    <specs2-version>4.0.2</specs2-version>
-    <doobie-version>0.5.1</doobie-version>
-    <fs2-version>0.10.3</fs2-version>
+    <cats-version>1.2.0</cats-version>
+    <specs2-version>4.3.4</specs2-version>
+    <doobie-version>0.5.3</doobie-version>
+    <fs2-version>0.10.5</fs2-version>
     <http4s-version>0.18.1</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
-    <cats-effect-version>1.0.0-RC</cats-effect-version>
+    <cats-effect-version>1.0.0-RC3</cats-effect-version>
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
       With that, one can override Xmx or add jvm parameters either
