@@ -22,7 +22,7 @@ body common control
 bundle agent init
 {
   vars:
-    debian::
+    debian|suse::
       "service_name"  string => "cron";
     redhat::
       "service_name"  string => "crond";
@@ -31,9 +31,9 @@ bundle agent init
 
   classes:
     debian::
-      "enabled" expression => returnszero("update-rc.d cron disable", "useshell");
-    redhat::
-      "enabled" expression => returnszero("chkconfig crond off", "useshell");
+      "enabled" expression => returnszero("update-rc.d ${service_name} disable", "useshell");
+    redhat|suse::
+      "enabled" expression => returnszero("chkconfig ${service_name} off", "useshell");
 }
 
 #######################################################

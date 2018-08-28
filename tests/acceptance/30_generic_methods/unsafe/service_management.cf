@@ -23,11 +23,11 @@ body common control
 bundle agent init
 {
   vars:
-    redhat::
+    redhat|suse::
       "service" string => "sshd";
     aix::
       "service" string => "syslogd";
-    !(redhat|aix)::
+    !(redhat|aix|suse)::
       "service" string => "ssh";
 }
 

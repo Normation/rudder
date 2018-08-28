@@ -24,7 +24,7 @@ bundle agent init
   vars:
     debian::
       "service_name"  string => "ssh";
-    redhat::
+    redhat|suse::
       "service_name"  string => "sshd";
     any::
       # here we don't use the full path to support multiple version of agent
