@@ -88,7 +88,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-repository</artifactId>
-      <version>${rudder-version}</version>
+      <version>4.1.7-backport-13256</version>
     </dependency>
 
     <dependency>
