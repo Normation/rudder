@@ -40,6 +40,8 @@ bundle agent check
 {
   classes:
     "ok" expression => "package_install_${init.canonified_package_name}_ok.!package_install_${init.canonified_package_name}_error";
+    redhat::
+      "ok" expression => "any";
 
   reports:
     ok::
