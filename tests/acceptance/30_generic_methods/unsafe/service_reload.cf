@@ -27,19 +27,22 @@ bundle agent init
       "service_script" string => "crond";
     aix::
       "service_script" string => "syslogd";
-    debian::
+    debian|suse::
       "service_script" string => "cron";
+
 }
 
 #######################################################
 
 bundle agent test
 {
+  classes:
+    "running" expression => returnszero("service ${init.service_script} start", "useshell");
 
   methods:
-    redhat::
+    running.redhat::
       "ph" usebundle => service_reload("${init.service_script}");
-    !redhat::
+    running.!redhat::
       "ph" usebundle => service_reload("${init.service_script}");
 
 }
