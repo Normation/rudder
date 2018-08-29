@@ -452,6 +452,9 @@ class Boot extends Loggable {
 
     LiftRules.setSiteMapFunc(() => SiteMap(newSiteMap:_*))
 
+    // load users from rudder-users.xml
+    RudderConfig.rudderUserListProvider.reload()
+
     RudderConfig.eventLogRepository.saveEventLog(
         ModificationId(RudderConfig.stringUuidGenerator.newUuid)
       , ApplicationStarted(

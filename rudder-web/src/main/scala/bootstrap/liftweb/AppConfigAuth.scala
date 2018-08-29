@@ -37,21 +37,16 @@
 
 package bootstrap.liftweb
 
-import java.io.File
 import java.util.Collection
 
 import bootstrap.liftweb.RudderProperties.config
 import com.github.ghik.silencer.silent
-import com.normation.rudder.AuthorizationType
-import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.RoleToRights
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.web.services.UserSessionLogEvent
-import com.normation.utils.HashcodeCaching
 import com.typesafe.config.ConfigException
 import javax.servlet.Filter
 import javax.servlet.FilterChain
@@ -70,9 +65,6 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.ImportResource
 import org.springframework.context.support.AbstractApplicationContext
 import org.springframework.context.support.ClassPathXmlApplicationContext
-import org.springframework.core.io.Resource
-import org.springframework.core.io.{ClassPathResource => CPResource}
-import org.springframework.core.io.{FileSystemResource => FSResource}
 import org.springframework.ldap.core.DirContextAdapter
 import org.springframework.ldap.core.DirContextOperations
 import org.springframework.security.authentication.AuthenticationProvider
@@ -80,9 +72,7 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
-import org.springframework.security.authentication.encoding.Md5PasswordEncoder
 import org.springframework.security.authentication.encoding.PlaintextPasswordEncoder
-import org.springframework.security.authentication.encoding.ShaPasswordEncoder
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
@@ -93,9 +83,6 @@ import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
-import org.xml.sax.SAXParseException
-
-import scala.collection.JavaConverters.asJavaCollectionConverter
 
 /**
  * Spring configuration for user authentication.
@@ -113,7 +100,6 @@ import scala.collection.JavaConverters.asJavaCollectionConverter
 @Configuration
 @ImportResource(Array("classpath:applicationContext-security.xml"))
 class AppConfigAuth extends ApplicationContextAware {
-  import AppConfigAuth._
   import RudderProperties.config
 
   import scala.collection.JavaConverters.seqAsJavaListConverter
@@ -180,37 +166,19 @@ class AppConfigAuth extends ApplicationContextAware {
       appCtx.getBean(x.springBean, classOf[AuthenticationProvider])
   }.asJava)
 
+
   @Bean def rudderWebAuthenticationFailureHandler: AuthenticationFailureHandler = new RudderUrlAuthenticationFailureHandler("/index.html?login_error=true")
 
   @Bean def rudderUserDetailsService: RudderInMemoryUserDetailsService = {
-    try {
-      val resource = getUserResourceFile
-      //try to read and parse the file for users
-      parseUsers(resource) match {
-        case Some(config) =>
-          new RudderInMemoryUserDetailsService(config.encoder, config.users.map { case (login,pass,roles) =>
-            RudderUserDetail(RudderAccount.User(login, pass), roles.toSet, ApiAuthorization.ACL(RoleApiMapping.getApiAclFromRoles(roles)))
-          }.toSet)
-        case None =>
-          ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
-          throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
-      }
-    } catch {
-      case e : SAXParseException =>
-        ApplicationLogger.error("User definitions: An error occured while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.")
-        ApplicationLogger.error(s"User definitions: XML in file /opt/rudder/etc/rudder-users.xml is incorrect, error message is: ${e.getMessage()} (line ${e.getLineNumber()}, column ${e.getColumnNumber()})")
-        throw e
-      case e: Exception =>
-        ApplicationLogger.error("User definitions: An error occured while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.")
-        ApplicationLogger.error(s"User definitions: Error message is: ${e.getMessage()}")
-        throw e
-    }
+    new RudderInMemoryUserDetailsService(RudderConfig.rudderUserListProvider)
   }
 
   @Bean def fileAuthenticationProvider : AuthenticationProvider = {
     val provider = new DaoAuthenticationProvider()
     provider.setUserDetailsService(rudderUserDetailsService)
-    provider.setPasswordEncoder(rudderUserDetailsService.passwordEncoder)
+    provider.setPasswordEncoder(rudderUserDetailsService.authConfigProvider.authConfig.encoder)
+    // we need to register a callback to update password encoder when needed
+    RudderConfig.rudderUserListProvider.registerCallback( cb => provider.setPasswordEncoder(cb.encoder) )
     provider
   }
 
@@ -219,14 +187,14 @@ class AppConfigAuth extends ApplicationContextAware {
     // For that, we let the user either let undefined udder.auth.admin.login,
     // or let empty udder.auth.admin.login or rudder.auth.admin.password
 
-    val set = if(config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
+    val admins = if(config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
       val login = config.getString("rudder.auth.admin.login")
       val password = config.getString("rudder.auth.admin.password")
 
       if(login.isEmpty || password.isEmpty) {
-        Set.empty[RudderUserDetail]
+        Map.empty[String, RudderUserDetail]
       } else {
-        Set(RudderUserDetail(
+        Map(login -> RudderUserDetail(
             RudderAccount.User(
                 login
               , password
@@ -236,15 +204,18 @@ class AppConfigAuth extends ApplicationContextAware {
         ))
       }
     } else {
-      Set.empty[RudderUserDetail]
+      Map.empty[String, RudderUserDetail]
     }
 
-    if(set.isEmpty) {
+    if(admins.isEmpty) {
       logger.info("No master admin account is defined. You can define one with 'rudder.auth.admin.login' and 'rudder.auth.admin.password' properties in the configuration file")
     }
 
+    val authConfigProvider = new UserDetailListProvider {
+      override def authConfig: UserDetailList = UserDetailList(new PlaintextPasswordEncoder, admins)
+    }
     val provider = new DaoAuthenticationProvider()
-    provider.setUserDetailsService(new RudderInMemoryUserDetailsService(new PlaintextPasswordEncoder, set))
+    provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider))
     provider
   }
 
@@ -262,19 +233,11 @@ class AppConfigAuth extends ApplicationContextAware {
    * Map an user from XML user config file
    */
   @Bean def rudderXMLUserDetails : UserDetailsContextMapper = {
-    val resource = getUserResourceFile
-    parseUsers(resource) match {
-      case Some(config) =>
-        new RudderXmlUserDetailsContextMapper(config)
-      case None =>
-        ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
-        throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
-    }
+    new RudderXmlUserDetailsContextMapper(RudderConfig.rudderUserListProvider)
   }
 
   //userSessionLogEvent must not be lazy, because not used by anybody directly
   @Bean def userSessionLogEvent = new UserSessionLogEvent(RudderConfig.eventLogRepository, RudderConfig.stringUuidGenerator)
-
 }
 
 /*
@@ -334,43 +297,22 @@ object LogFailedLogin {
 /**
  *  A trivial, immutable implementation of UserDetailsService for RudderUser
  */
-class RudderInMemoryUserDetailsService(val passwordEncoder: PasswordEncoder.Rudder, private[this] val _users: Set[RudderUserDetail]) extends UserDetailsService {
-  private[this] val users = Map[String, RudderUserDetail](_users.map(u => (u.getUsername, u)).toSeq:_*)
-
+class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListProvider) extends UserDetailsService {
   @throws(classOf[UsernameNotFoundException])
   override def loadUserByUsername(username:String) : RudderUserDetail = {
-    users.getOrElse(username, throw new UsernameNotFoundException(s"User with username '${username}' was not found"))
+    authConfigProvider.authConfig.users.getOrElse(username, throw new UsernameNotFoundException(s"User with username '${username}' was not found"))
   }
 }
 
 /**
- * For now, we don't use at all Spring Authority to implements
- * our authorizations.
- * That because we want something more typed than String for
- * authority, and as a bonus, that allows to be able to switch
- * from Spring more easily
- *
- * So we have only one Authority type known by Spring Security: ROLE_USER
- * And one other for API: ROLE_REMOTE
+ * Spring context mapper
  */
-sealed trait RudderAuthType {
-  def grantedAuthorities: Collection[GrantedAuthority]
-}
+class RudderXmlUserDetailsContextMapper(authConfigProvider: UserDetailListProvider) extends UserDetailsContextMapper {
+  //we are not able to try to save user in the XML file
+  def mapUserToContext(user: UserDetails, ctx: DirContextAdapter) : Unit = ()
 
-final object RudderAuthType {
-  // build a GrantedAuthority from the string
-  private def buildAuthority(s: String): Collection[GrantedAuthority] = {
-    Seq(new GrantedAuthority { override def getAuthority: String = s }).asJavaCollection
-  }
-
-  final case object User extends RudderAuthType {
-    override val grantedAuthorities = buildAuthority("ROLE_USER")
-  }
-  final case object Api extends RudderAuthType {
-    override val grantedAuthorities = buildAuthority("ROLE_REMOTE")
-
-    val apiRudderRights = new Rights(AuthorizationType.NoRights)
-    val apiRudderRole: Set[Role] = Set(Role.NoRights)
+  def mapUserFromContext(ctx: DirContextOperations, username: String, authorities: Collection[_ <:GrantedAuthority]): UserDetails = {
+    authConfigProvider.authConfig.users.getOrElse(username, RudderUserDetail(RudderAccount.User(username, ""), Set(Role.NoRights), ApiAuthorization.None))
   }
 }
 
@@ -439,29 +381,6 @@ class DefaultAuthBackendProviders() extends AuthBackendsProvider {
     }
 
   }
-}
-
-
-/**
- * Our simple model for for user authentication and authorizations.
- * Note that authorizations are not managed by spring, but by the
- * 'authz' token of RudderUserDetail.
- */
-case class RudderUserDetail(
-    account : RudderAccount
-  , roles   : Set[Role]
-  , apiAuthz: ApiAuthorization
-) extends UserDetails with HashcodeCaching {
-  // merge roles rights
-  val authz = new Rights(roles.flatMap(_.rights.authorizationTypes).toSeq:_*)
-  override val (getUsername, getPassword, getAuthorities) = account match {
-    case RudderAccount.User(login, password) => (login         , password       , RudderAuthType.User.grantedAuthorities)
-    case RudderAccount.Api(api)              => (api.name.value, api.token.value, RudderAuthType.Api.grantedAuthorities)
-  }
-  override val isAccountNonExpired        = true
-  override val isAccountNonLocked         = true
-  override val isCredentialsNonExpired    = true
-  override val isEnabled                  = true
 }
 
 /**
@@ -621,101 +540,5 @@ class RestAuthenticationFilter(
         chain.doFilter(request, response)
     }
 
-  }
-}
-
-//remove deprecation warning on `PasswordEncoder`
-@silent object PasswordEncoder {
-  type Rudder = org.springframework.security.authentication.encoding.PasswordEncoder
-}
-
-@silent case class AuthConfig(
-  encoder: PasswordEncoder.Rudder,
-  users:List[(String,String,Seq[Role])]
-) extends HashcodeCaching
-
-class RudderXmlUserDetailsContextMapper(authConfig: AuthConfig) extends UserDetailsContextMapper {
-
-  val users = authConfig.users.map { case(login,pass,roles) =>
-    (login, RudderUserDetail(RudderAccount.User(login, pass), roles.toSet, ApiAuthorization.ACL(RoleApiMapping.getApiAclFromRoles(roles))))
-  }.toMap
-
-  //we are not able to try to save user in the XML file
-  def mapUserToContext(user: UserDetails, ctx: DirContextAdapter) : Unit = ()
-
-  def mapUserFromContext(ctx: DirContextOperations, username: String, authorities: Collection[_ <:GrantedAuthority]): UserDetails = {
-    users.getOrElse(username, RudderUserDetail(RudderAccount.User(username, ""), Set(Role.NoRights), ApiAuthorization.None))
-  }
-
-}
-
-object AppConfigAuth extends Loggable {
-
-  val JVM_AUTH_FILE_KEY = "rudder.authFile"
-  val DEFAULT_AUTH_FILE_NAME = "demo-rudder-users.xml"
-
-  def getUserResourceFile() : Resource =  System.getProperty(JVM_AUTH_FILE_KEY) match {
-      case null | "" => //use default location in classpath
-        ApplicationLogger.info("JVM property -D%s is not defined, use configuration file '%s' in classpath".format(JVM_AUTH_FILE_KEY, DEFAULT_AUTH_FILE_NAME))
-        new CPResource(DEFAULT_AUTH_FILE_NAME)
-      case x => //so, it should be a full path, check it
-        val config = new FSResource(new File(x))
-        if(config.exists && config.isReadable) {
-          ApplicationLogger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_AUTH_FILE_KEY, config.getPath))
-          config
-        } else {
-          ApplicationLogger.error("Can not find configuration file specified by JVM property %s: %s ; abort".format(JVM_AUTH_FILE_KEY, config.getPath))
-          throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
-        }
-    }
-
-  def parseUsers(resource:Resource) : Option[AuthConfig] = {
-    if(resource.exists && resource.isReadable) {
-      val xml = scala.xml.XML.load(resource.getInputStream)
-      //what password hashing algo to use ?
-      val root = (xml \\ "authentication")
-      if(root.size != 1) {
-        val msg = "Authentication file is malformed, the root tag '<authentication>' was not found"
-        ApplicationLogger.error(msg)
-        None
-      } else {
-        val hash = (root(0) \ "@hash").text.toLowerCase match {
-          case "sha" | "sha1" => new ShaPasswordEncoder(1)
-          case "sha256" | "sha-256" => new ShaPasswordEncoder(256)
-          case "sha512" | "sha-512" => new ShaPasswordEncoder(512)
-          case "md5" => new Md5PasswordEncoder
-          case _ => new PlaintextPasswordEncoder
-        }
-
-        //now, get users
-        val users = ( (xml \ "user").toList.flatMap { node =>
-         //for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
-         (   node.attribute("name").map(_.toList.map(_.text))
-           , node.attribute("password").map(_.toList.map(_.text))
-           , node.attribute("role").map(_.toList.map( role => RoleToRights.parseRole(role.text.split(",").toSeq.map(_.trim))))
-         ) match {
-           case (Some(name :: Nil) , Some(pwd :: Nil), roles ) if(name.size > 0 && pwd.size > 0) => roles match {
-             case Some(roles:: Nil) => (name, pwd, roles) :: Nil
-             case _ =>  (name, pwd, Seq(Role.NoRights)) :: Nil
-           }
-
-           case _ =>
-             ApplicationLogger.error(s"Ignore user line in authentication file '${resource.getURL.toString}', some required attribute is missing: ${node.toString}")
-             Nil
-         }
-        })
-
-        //and now, return the list of users
-        users map { user =>
-        if (user._3.contains(Role.NoRights))
-          ApplicationLogger.warn(s"User '${user._1}' authorisation are not defined correctly, please fix it (defined authorizations: ${user._3.map(_.name.toLowerCase()).mkString(", ")})")
-        ApplicationLogger.debug(s"User '${user._1}' with defined authorizations: ${user._3.map(_.name.toLowerCase()).mkString(", ")}")
-        }
-        Some(AuthConfig(hash, users))
-      }
-    } else {
-      ApplicationLogger.error("The resource '%s' does not exist or is not readable".format(resource.getURL.toString))
-      None
-    }
   }
 }
