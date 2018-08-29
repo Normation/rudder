@@ -400,6 +400,13 @@ bundle agent rudder_reporting_context(d_id, r_id, t_name) {
     "report_data.identifier"     string => "${r_id}@@${d_id}@@0";
 }
 
+
+bundle agent rudder_reporting_context_id(id, t_name) {
+  vars:
+    "report_data.technique_name" string => "${t_name}";
+    "report_data.identifier"     string => "${id}";
+}
+
 bundle agent clean_reporting_context {
   vars:
     "report_data.component_name" string => "";
