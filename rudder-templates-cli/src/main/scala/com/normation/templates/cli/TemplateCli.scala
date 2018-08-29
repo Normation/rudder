@@ -38,6 +38,7 @@
 package com.normation.templates.cli
 
 import java.io.File
+
 import com.normation.templates.FillTemplatesService
 import com.normation.templates.STVariable
 import com.normation.utils.Control._
@@ -45,6 +46,9 @@ import net.liftweb.common._
 import net.liftweb.json._
 import scopt.OptionParser
 import java.nio.charset.StandardCharsets
+
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.IOUtils
 
 /**
  * The configuration object for our CLI.
