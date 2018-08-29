@@ -34,10 +34,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <beans:beans xmlns="http://www.springframework.org/schema/security"
-    xmlns:beans="http://www.springframework.org/schema/beans"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
-                        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+  xmlns:beans="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/security
+		http://www.springframework.org/schema/security/spring-security.xsd">
 
 <!--    <global-method-security pre-post-annotations="enabled">-->
 <!--         AspectJ pointcut expression that locates our "post" method and applies security that way-->
@@ -48,6 +50,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <http pattern="/style/**" security="none"/>
     <http pattern="/images/**" security="none"/>
     <http pattern="/javascript/**" security="none"/>
+    <http pattern="/cache-**" security="none"/>
 
     <http pattern="/api/**" create-session="stateless" entry-point-ref="restAuthenticationEntryPoint">
       <intercept-url pattern='/**' access='ROLE_REMOTE' />
@@ -55,6 +58,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </http>
 
     <http use-expressions="true" disable-url-rewriting="true">
+        <csrf disabled="true"/>
         <session-management session-fixation-protection="migrateSession">
           <!--
             One can control the maximum concurrent session to have in parallel.

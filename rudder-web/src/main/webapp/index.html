@@ -9,7 +9,6 @@
     <link data-lift="with-cached-resource" href="/style/font-awesome/font-awesome-4.6.3.min.css" rel="stylesheet" type="text/css"></link>
     <link data-lift="with-cached-resource" href="/style/ionicons-2.0.1/css/ionicons.min.css" rel="stylesheet" type="text/css"></link>
     <link data-lift="with-cached-resource" href="/style/login.css" rel="stylesheet" type="text/css"></link>
-    <link data-lift="with-cached-resource" href="/style/login-custom.css" rel="stylesheet" type="text/css"></link>
     <link href="/images/rudder-favicon.ico" data-lift="with-cached-resource" rel="icon" type="image/x-icon" ></link>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/jquery/jquery-3.1.0.min.js"></script>
 </head>
@@ -26,7 +25,7 @@
               <label class="sr-only" for="username">Username</label>
               <div class="input-group">
                 <label class="input-group-addon" for="username"><span class="ion ion-android-person"></span></label>
-                <input type="text" class="form-control" id="username" name="j_username" placeholder="Username" size="30"></input>
+                <input type="text" class="form-control" id="username" name="username" placeholder="Username" size="30"></input>
                 <span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true" aria-describedby="inputError2Status"></span>
               </div>
                 <span id="inputErrorStatus" class="sr-only">The field is required</span>
@@ -36,11 +35,11 @@
               <label class="sr-only" for="password">Password</label>
               <div class="input-group">
                 <label class="input-group-addon" for="password"><span class="ion ion-android-lock"></span></label>
-                <input type="password" class="form-control" id="password" name="j_password" placeholder="Password"></input>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Password"></input>
                 <span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true" aria-describedby="inputError2Status"></span>
               </div>
               <span id="inputError2Status" class="sr-only">The field is required</span>
-              <span id="helpBlock2" class="help-block">This field is required.</span>  
+              <span id="helpBlock2" class="help-block">This field is required.</span>
             </div>
             <div class="form-group col-xs-12">
               <label class="sr-only" for="valid">Sign in</label>
@@ -50,7 +49,7 @@
                  </span>
                 <button class="btn btn-warning-rudder col-xs-12" id="valid" name="valid" type="submit">
                   Sign in
-                  <span class="ion ion-android-unlock"></span> 
+                  <span class="ion ion-android-unlock"></span>
                 </button>
               </div>
             </div>

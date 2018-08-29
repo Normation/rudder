@@ -40,9 +40,11 @@ package bootstrap.liftweb
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
+import java.math.BigInteger
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import java.util.Collection
 
-import com.github.ghik.silencer.silent
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
@@ -53,9 +55,6 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.utils.HashcodeCaching
-import org.springframework.security.authentication.encoding.Md5PasswordEncoder
-import org.springframework.security.authentication.encoding.PlaintextPasswordEncoder
-import org.springframework.security.authentication.encoding.ShaPasswordEncoder
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import org.xml.sax.SAXParseException
@@ -79,14 +78,39 @@ final case class UserFile(
 
 //Password encoder type definition. Done like that to avoid
 //a deprecation warning on `PasswordEncoder` thanks to @silent annotation
-@silent object PasswordEncoder {
-  type Rudder = org.springframework.security.authentication.encoding.PasswordEncoder
+object PasswordEncoder {
+  type Rudder = org.springframework.security.crypto.password.PasswordEncoder
+
+  import org.springframework.security.crypto.password.PasswordEncoder
+
+  class DigestEncoder(digestName: String) extends PasswordEncoder {
+    override def encode(rawPassword: CharSequence): String = {
+      val digest = MessageDigest.getInstance(digestName)
+      String.format( "%064x", new BigInteger( 1, digest.digest(rawPassword.toString.getBytes(StandardCharsets.UTF_8))))
+    }
+    override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
+      if(null == rawPassword) {
+        false
+      } else {
+        encode(rawPassword) == encodedPassword
+      }
+    }
+  }
+
+  val PlainText = new PasswordEncoder() {
+    override def encode(rawPassword: CharSequence): String = rawPassword.toString
+    override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = rawPassword.toString == encodedPassword
+  }
+  val MD5    = new DigestEncoder("MD5"    )
+  val SHA1   = new DigestEncoder("SHA-1"  )
+  val SHA256 = new DigestEncoder("SHA-256")
+  val SHA512 = new DigestEncoder("SHA-512")
 }
 
 /**
  * An user list is a parsed list of users with their authorisation
  */
-@silent case class UserDetailList(
+case class UserDetailList(
     encoder    : PasswordEncoder.Rudder
   , users      : Map[String, RudderUserDetail]
 )
@@ -134,7 +158,7 @@ final class FileUserDetailListProvider(authorisationLevel: UserAuthorisationLeve
    * Initialize user details list when class is instantiated with an empty list.
    * You will have to "reload" after application full init (to allows plugin override)
    */
-  private[this] var cache = UserDetailList(new PlaintextPasswordEncoder, Map())
+  private[this] var cache = UserDetailList(PasswordEncoder.PlainText, Map())
 
   /**
    * Callbacks for who need to be informed of a successufully users list reload
@@ -279,11 +303,11 @@ object UserFileProcessing {
       Left(UserConfigFileError("Authentication file is malformed, the root tag '<authentication>' was not found", None))
     } else {
       val hash = (root(0) \ "@hash").text.toLowerCase match {
-        case "sha" | "sha1" => new ShaPasswordEncoder(1)
-        case "sha256" | "sha-256" => new ShaPasswordEncoder(256)
-        case "sha512" | "sha-512" => new ShaPasswordEncoder(512)
-        case "md5" => new Md5PasswordEncoder
-        case _ => new PlaintextPasswordEncoder
+        case "sha" | "sha1"       => PasswordEncoder.SHA1
+        case "sha256" | "sha-256" => PasswordEncoder.SHA256
+        case "sha512" | "sha-512" => PasswordEncoder.SHA512
+        case "md5"                => PasswordEncoder.MD5
+        case _                    => PasswordEncoder.PlainText
       }
 
       //now, get users
