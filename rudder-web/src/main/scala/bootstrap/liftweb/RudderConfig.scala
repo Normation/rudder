@@ -422,7 +422,27 @@ object RudderConfig extends Loggable {
   // Plugin input interface for alternative authentication providers
   lazy val authenticationProviders = new DefaultAuthBackendProviders()
 
+  // Plugin input interface for user management plugin
+  lazy val userAuthorisationLevel = new DefaultUserAuthorisationLevel()
+
   ////////// end plugable service providers //////////
+
+
+  // rudder user list
+  lazy val rudderUserListProvider : FileUserDetailListProvider = {
+    (for {
+      resource <- UserFileProcessing.getUserResourceFile()
+    } yield {
+      resource
+    }) match {
+        case Right(resource) =>
+          new FileUserDetailListProvider(userAuthorisationLevel, resource)
+        case Left(UserConfigFileError(msg, exception)) =>
+          ApplicationLogger.error(msg, Box(exception))
+          //make the application not available
+          throw new javax.servlet.UnavailableException(s"Error when triyng to parse Rudder users file, aborting.")
+      }
+  }
 
   val roChangeRequestRepository : RoChangeRequestRepository = {
     //a runtime checking of the workflow to use

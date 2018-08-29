@@ -66,7 +66,7 @@ class DefaultWorkflowLevel() extends WorkflowLevelService {
   }
   override def workflowEnabled: Boolean = level.map( _.workflowEnabled ).getOrElse(false)
 
-  override def name: String = level.map( _.name ).getOrElse("Default implementation (RO/RW authorization)")
+  override def name: String = level.map( _.name ).getOrElse("Default implementation (no validation workflows)")
 }
 
 /**
