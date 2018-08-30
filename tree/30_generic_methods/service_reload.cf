@@ -37,10 +37,10 @@ bundle agent service_reload(service_name)
       "args"                    slist => { "${service_name}" };
 
 
-      "full_class_prefix"       string => canonify("service_reload_{service_name}");
+      "full_class_prefix"       string => canonify("service_reload_${service_name}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix" string => canonify("service_action_{service_name}_reload");
+      "full_inner_class_prefix" string => canonify("service_action_${service_name}_reload");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
   classes:
