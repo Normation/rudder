@@ -40,7 +40,7 @@ var app = angular.module('auditmode', []);
 app.factory('configGlobalFactory', function ($http){
   //Case : global configuration
   this.policyMode = {
-    url      : contextPath+"/secure/api//settings"
+    url      : contextPath+"/secure/api/settings"
   , getValue : function(){
                  return $http.get(this.url+"/global_policy_mode").then(function successCallback(response) {
                    return response.data.data.settings.global_policy_mode;
