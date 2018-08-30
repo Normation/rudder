@@ -391,7 +391,7 @@ limitations under the License.
     <fs2-version>0.10.5</fs2-version>
     <http4s-version>0.18.16</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
-    <cats-effect-version>1.0.0-RC3</cats-effect-version>
+    <cats-effect-version>1.0.0-RC</cats-effect-version>
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
       With that, one can override Xmx or add jvm parameters either
