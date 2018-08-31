@@ -217,6 +217,7 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 .content-wrapper .btn-success,.content-wrapper .btn-success[disabled]:hover {
   background-color: #9bc832;
   border-color: #8fb92a;
+  background-image: none !important;
 }
 .content-wrapper .btn-success:hover,.content-wrapper .btn-success:focus:hover  {
   background-color: #85b711;
