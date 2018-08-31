@@ -98,7 +98,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
   def errorMessage(htmlId: String, b:EmptyBox) = {
     val error = b ?~! "Error when processing allowed network"
-    logger.debug(error.messageChain, b)
+    logger.error(error.messageChain, b)
 
     s"${htmlId} *" #> { (x:NodeSeq) =>
       <div class="error">

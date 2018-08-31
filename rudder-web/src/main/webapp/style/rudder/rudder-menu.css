@@ -1857,6 +1857,21 @@ form .tooltip-content p {
   cursor: default;
 }
 
+.page-subtitle {
+  color: #555 !important;
+  border-bottom: 2px solid #f08004;
+  box-shadow: none;
+  padding: 0;
+  width: 100%;
+  padding-bottom: 4px;
+  margin: 5px 0 20px;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
+  line-height: 1.42857143 !important;
+  cursor: default;
+}
+
 .page div.row{
   margin-right: 15px;
   margin-left: 15px;
