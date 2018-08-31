@@ -99,7 +99,7 @@ body{
   margin-bottom:0;
 }
 
-.content-wrapper .modal{
+.skin-yellow .modal{
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -117,7 +117,7 @@ body{
   }
 }
 
-.content-wrapper .modal-header {
+.skin-yellow .modal-header {
   background-color: #f08004;
   font-family: sans-serif;
   font-weight: bold;
@@ -125,7 +125,7 @@ body{
   border-radius: 0;
 }
 
-.content-wrapper .modal-body {
+.skin-yellow .modal-body {
   font-size : 14px;
 }
 
@@ -443,62 +443,62 @@ body{
   z-index:1050;
 }
 
-.content-wrapper .modal .table#grid_dependentRulesGrid {
+.skin-yellow .modal .table#grid_dependentRulesGrid {
   margin-bottom: 0;
 }
 
-.content-wrapper .modal .modal-content {
+.skin-yellow.modal .modal-content {
   border-radius: 4px;
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
 }
-.content-wrapper .modal .modal-header {
+.skin-yellow .modal .modal-header {
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
 }
-.content-wrapper .modal .modal-body {
+.skin-yellow .modal .modal-body {
   overflow-y: auto;
   max-height: 76vh;
   overflow-x: hidden;
 }
-.content-wrapper .modal .tooltip {
+.skin-yellow.modal .tooltip {
   opacity: 1;
 }
-.content-wrapper .modal .dataTable tr.head{
+.skin-yellow .modal .dataTable tr.head{
   background-image: none;
   background-image: none;
   background-color: #DAD9D9;
 }
-.content-wrapper .modal tr.head th{
+.skin-yellow .modal tr.head th{
   color: #000 !important;
   border-bottom: none;
   width: 20%;
   font-size: 14px;
 }
-.content-wrapper .modal .dataTables_paginate a {
+.skin-yellow .modal .dataTables_paginate a {
   background: rgb(255, 255, 255);
 }
-.content-wrapper .modal #pendingNodeConfirm_wrapper table{
+.skin-yellow .modal #pendingNodeConfirm_wrapper table{
   box-shadow: none;
 }
-.content-wrapper .modal table{
+.skin-yellow .modal table{
   border: none;
 }
-.content-wrapper .modal .dataTables_wrapper_top {
+.skin-yellow .modal .dataTables_wrapper_top {
   background-color: #fff;
 }
 
-.content-wrapper .modal .table-striped > tbody > tr:nth-child(odd) > td.dataTables_empty{
+.skin-yellow .modal .table-striped > tbody > tr:nth-child(odd) > td.dataTables_empty{
   background-color: #FFFFFF;
   border: none;
 }
-.content-wrapper .modal .space-top{
+.skin-yellow .modal .space-top{
   margin-top: 30px !important;
 }
-.content-wrapper .modal .space-bottom{
+.skin-yellow .modal .space-bottom{
   margin-bottom: 30px !important;
 }
-.content-wrapper .modal .space-right{
+.skin-yellow .modal .space-right{
   margin-right: 10px !important;
 }
 .content-wrapper .form-control.errorInput {
@@ -513,7 +513,7 @@ body{
   -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 6px #ce8483;
   box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 6px #ce8483;
 }
-.content-wrapper .modal .well.jstree-rudder.jstree-focused, .content-wrapper .modal .well.jstree-rudder {
+.skin-yellow .modal .well.jstree-rudder.jstree-focused, .skin-yellow .modal .well.jstree-rudder {
   background: #FBFBFB;
 }
 .content-wrapper #grid_remove_popup_grid a,.content-wrapper #grid_dependentRulesGrid a {
@@ -524,28 +524,28 @@ body{
 .content-wrapper #grid_remove_popup_grid a:hover,.content-wrapper #grid_dependentRulesGrid a:hover {
   color: #ec8e0c;
 }
-.content-wrapper .modal table thead th {
+.skin-yellow .modal table thead th {
   border-right: 1px solid #B4B3A8 !important;
 }
-.content-wrapper .modal #pendingNodeConfirm_wrapper table thead th {
+.skin-yellow .modal #pendingNodeConfirm_wrapper table thead th {
   border-bottom: 1px solid #B4B3A8 !important;
   border-right: none !important;
 }
-.content-wrapper .modal .dataTables_wrapper_bottom{
+.skin-yellow .modal .dataTables_wrapper_bottom{
   font-size: 12px;
   background-color: rgb(213, 213, 213);
 }
-.content-wrapper .modal .dataTables_wrapper_top {
+.skin-yellow .modal .dataTables_wrapper_top {
   padding: 0 6px;
   line-height: 37px;
 }
-.content-wrapper .modal #remove_popup_grid * {
+.skin-yellow .modal #remove_popup_grid * {
   border-color: #d8d8d8 !important;
 }
 .content-wrapper form input {
   width: auto;
 }
-.content-wrapper .modal #CRStatus {
+.skin-yellow .modal #CRStatus {
   background-color: #f5f5f5;
   font-size: 15px;
   font-weight: bold;
@@ -558,7 +558,7 @@ body{
   display: inline-block;
   border: 1px solid #C1BEBE;
 }
-.content-wrapper .modal .form-control.vresize {
+.skin-yellow .modal .form-control.vresize {
   resize: vertical; 
 }
 .content-wrapper label.valign, .content-wrapper .valign{
@@ -581,32 +581,32 @@ body{
   margin-bottom: 0;
   font-weight: normal;
 }
-.content-wrapper .modal #validationForm span.col-xs-offset-0.col-sm-offset-0{
+.skin-yellow .modal #validationForm span.col-xs-offset-0.col-sm-offset-0{
   margin-left:0;
   width:100%;
 }
 @media (min-width: 1200px){
-  .content-wrapper .modal .subContainerReasonField textarea.form-control.col-lg-12 {
+  .skin-yellow .modal .subContainerReasonField textarea.form-control.col-lg-12 {
     width: 75%;
   }
 }
 @media (max-width: 1200px){
-  .content-wrapper .modal .text-right.wbBaseFieldLabel{
+  .skin-yellow .modal .text-right.wbBaseFieldLabel{
     text-align: left;
   }
 }
-.content-wrapper .modal .field_errors,.content-wrapper .modal .error,.content-wrapper .modal .errors {
+.skin-yellow .modal .field_errors,.skin-yellow .modal .error,.skin-yellow .modal .errors {
   color: #A94442;
 }
-.content-wrapper .modal .btn.wideButton{
+.skin-yellow .modal .btn.wideButton{
   width: auto;
 }
-.content-wrapper .modal .alert .glyphicon{
+.skin-yellow .modal .alert .glyphicon{
   top: 5px;
   font-size: 20px;
 }
 
-.content-wrapper .modal h4.audit-title{
+.skin-yellow .modal h4.audit-title{
   padding-left: 20px;
   padding-bottom: 8px;
   margin-bottom: 25px;
@@ -618,13 +618,13 @@ body{
   margin:0;
   border: none;
 }
-.content-wrapper .modal .errors-container{
+.skin-yellow .modal .errors-container{
   margin-top: 4px;
   font-size: 12px;
   padding: 0;
   font-weight: bold;
 }
-.content-wrapper .modal .space-top-sm{
+.skin-yellow .modal .space-top-sm{
   margin-top: 4px;
 }
 .content-wrapper .panel-group a:hover, .content-wrapper .panel-group a:focus{
@@ -642,13 +642,13 @@ body{
 .content-wrapper .font-bold {
   font-weight: bold !important;
 }
-.content-wrapper .modal .align-radio-generate-input {
+.skin-yellow .modal .align-radio-generate-input {
   height: 34px;
 }
-.content-wrapper .modal #pendingNodeConfirm thead tr{
+.skin-yellow .modal #pendingNodeConfirm thead tr{
   background: #DAD9D9;
 }
-.content-wrapper .modal tr.color1 {
+.skin-yellow .modal tr.color1 {
    background-color: #fff;
 }
 

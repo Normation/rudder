@@ -146,16 +146,20 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
   transform:rotate(90deg);
 }
 /* - MODAL 4.0 - */
-.content-wrapper .modal .modal-content {
+.skin-yellow > .modal-backdrop.fade.in{
+  display :none;
+}
+
+.skin-yellow .modal .modal-content {
   border-radius: 0;
   border: none;
 }
-.content-wrapper .modal .modal-header {
+.skin-yellow .modal .modal-header {
   border-radius: 0;
   border-bottom: 1px solid #f08004;
   background: #f08004;
 }
-.content-wrapper .modal .modal-footer .btn {
+.skin-yellow .modal .modal-footer .btn {
   width:auto;
 }
 /* - LABEL BOOTSTRAP */
