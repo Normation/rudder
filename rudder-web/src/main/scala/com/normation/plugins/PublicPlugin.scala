@@ -40,6 +40,7 @@ package com.normation.plugins
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
+import net.liftweb.sitemap.Menu
 import net.liftweb.util.Helpers
 
 import scala.xml.NodeSeq
@@ -105,6 +106,25 @@ trait DefaultPluginDef extends RudderPluginDef {
      }
      </div>
   )
+
+  /*
+   * By default, the plugin can provide a menu entry and it is added under the
+   * "Plugins" menu. Override that method if you want a more potent
+   * interaction with Rudder menu (at the risk of breaking it).
+   */
+  def pluginMenuEntry: Option[Menu] = None
+
+  override def updateSiteMap(menus:List[Menu]) : List[Menu] = {
+    pluginMenuEntry match {
+      case None       => menus
+      case Some(menu) =>
+        menus.map {
+          case m@Menu(l, _* ) if(l.name == "PluginsHome") =>
+            Menu(l , (m.kids.toSeq :+ menu):_* )
+          case m => m
+        }
+    }
+  }
 }
 
 

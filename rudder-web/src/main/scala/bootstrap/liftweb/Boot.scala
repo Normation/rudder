@@ -65,6 +65,10 @@ import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.{InfoApi => InfoApiDef}
 import com.normation.rudder.rest.lift.InfoApi
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
+import net.liftweb.sitemap.Loc.LocGroup
+import net.liftweb.sitemap.Loc.LocGroup
+import net.liftweb.sitemap.Loc.TestAccess
+import net.liftweb.sitemap.Loc.TestAccess
 import org.reflections.Reflections
 
 /*
@@ -333,8 +337,9 @@ class Boot extends Loggable {
 
       )
 
-    def buildManagerMenu(name:String) =
-      Menu(name+"ManagerHome", <i class="fa fa-gears"></i> ++ <span>{name.capitalize} policy</span>) /
+    def policyMenu = {
+      val name = "configuration"
+      Menu(name+"ManagerHome", <i class="fa fa-pencil"></i> ++ <span>{name.capitalize} policy</span>) /
         "secure" / (name+"Manager") / "index" >> TestAccess ( ()
             => userIsAllowed("/secure/index",AuthorizationType.Configuration.Read) ) submenus (
 
@@ -348,11 +353,17 @@ class Boot extends Loggable {
             >> LocGroup(name+"Group")
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Directive.Read ) )
 
+        , Menu("techniqueEditor", <span>Techniques</span>) /
+            "secure" / (name+"Manager") / "techniqueEditor"
+            >> LocGroup((name+"Manager"))
+            >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Technique.Read) )
+
         , Menu(name+"ParameterManagement", <span>Parameters</span>) /
             "secure" / (name+"Manager") / "parameterManagement"
             >> LocGroup(name+"Group")
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Directive.Read ) )
       )
+    }
 
     def administrationMenu =
       Menu("AdministrationHome", <i class="fa fa-gear"></i> ++ <span>Settings</span>) /
@@ -364,25 +375,34 @@ class Boot extends Loggable {
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read) )
 
-        , Menu("pluginManagement", <span>Plugins</span>) /
-            "secure" / "administration" / "pluginManagement"
-            >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Administration.Read) )
-
         , Menu("databaseManagement", <span>Reports database</span>) /
             "secure" / "administration" / "databaseManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Administration.Read) )
 
-        , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
+        , Menu("TechniqueLibraryManagement", <span>Active Tree</span>) /
             "secure" / "administration" / "techniqueLibraryManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Technique.Read ) )
+
         , Menu("apiManagement", <span>API accounts</span>) /
             "secure" / "administration" / "apiManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Administration.Write) )
       )
+
+    def pluginsMenu = {
+      (Menu("PluginsHome", <i class="fa fa-puzzle-piece"></i> ++ <span>Plugins</span>) /
+        "secure" / "plugins" / "index"
+        >> LocGroup("pluginsGroup")
+        >> TestAccess ( () => userIsAllowed("/secure/index", AuthorizationType.Administration.Read)
+      )) submenus (
+          Menu("pluginInformation", <span>Plugin Information</span>) /
+            "secure" / "plugins" / "pluginInformation"
+            >> LocGroup("pluginsGroup")
+            >> TestAccess ( () => userIsAllowed("/secure/index", AuthorizationType.Administration.Read) )
+      )
+    }
 
     def utilitiesMenu = {
       // if we can't get the workflow property, default to false
@@ -426,11 +446,6 @@ class Boot extends Loggable {
             "secure" / "utilities" / "eventLogs"
             >> LocGroup("utilitiesGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read) )
-
-        , Menu("techniqueEditor", <span>Technique editor</span>) /
-            "secure" / "utilities" / "techniqueEditor"
-            >> LocGroup("utilitiesGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Technique.Read) )
       )
     }
 
@@ -439,9 +454,10 @@ class Boot extends Loggable {
       , Menu("Login") / "index" >> Hidden
       , Menu("Templates") / "templates" / ** >> Hidden //allows access to html file use by js
       , nodeManagerMenu
-      , buildManagerMenu("configuration")
+      , policyMenu
       , utilitiesMenu
       , administrationMenu
+      , pluginsMenu
     ).map( _.toMenu )
 
     ////////// import and init modules //////////

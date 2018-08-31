@@ -35,21 +35,60 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.snippet.index
-
+package com.normation.rudder.web.snippet
 
 //lift std import
-import scala.xml._
-import net.liftweb.http._// For implicits
+import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.web.model.CurrentUser
+import net.liftweb.http._
 
+import scala.xml._
 
 /**
- * Manage redirection for ConfigurationManager
- * home page
+ * Manage redirection for index pages
  */
-class ConfigurationManager {
-  def index(xhtml:NodeSeq) : NodeSeq = {
+class Index {
+
+  def utilities(xhtml:NodeSeq) : NodeSeq = {
+    if ( CurrentUser.checkRights(AuthorizationType.Administration.Read) ) {
+      S.redirectTo("eventLogs")
+    } else {
+      if ( CurrentUser.checkRights(AuthorizationType.Technique.Read) ) {
+        S.redirectTo("techniqueEditor")
+      } else {
+        //if we are not able to read workflow, redirect to index
+        val workflow = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
+
+        if (workflow) {
+          S.redirectTo("/secure/utilities/changeRequests")
+        } else {
+          S.redirectTo("/secure/index")
+        }
+      }
+    }
+  }
+
+  def administration(xhtml:NodeSeq) : NodeSeq = {
+    if ( CurrentUser.checkRights(AuthorizationType.Administration.Read) ) {
+      S.redirectTo("policyServerManagement")
+    } else {
+      if ( CurrentUser.checkRights(AuthorizationType.Technique.Read) ) {
+        S.redirectTo("techniqueLibraryManagement")
+      } else {
+        S.redirectTo("/secure/index")
+      }
+    }
+  }
+
+  def nodeManager(xhtml:NodeSeq) : NodeSeq = {
+    S.redirectTo("nodes")
+  }
+  def configurationManager(xhtml:NodeSeq) : NodeSeq = {
     S.redirectTo("ruleManagement")
   }
 
+  def plugins(xhtml:NodeSeq) : NodeSeq = {
+    S.redirectTo("pluginInformation")
+  }
 }

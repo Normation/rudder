@@ -55,7 +55,7 @@ class PluginManagement extends DispatchSnippet with Loggable {
 
   def display(xml:NodeSeq) : NodeSeq = {
     (
-    ".portlet *" #> PluginsInfo.plugins.map { case(name,pluginDef) =>
+    ".inner-portlet *" #> PluginsInfo.plugins.map { case(name,pluginDef) =>
         displayPlugin(pluginDef) _
       }
     ).apply(xml)
@@ -63,11 +63,11 @@ class PluginManagement extends DispatchSnippet with Loggable {
 
   private[this] def displayPlugin(p:RudderPluginDef)(xml:NodeSeq) : NodeSeq = {
     (
-      ".page-title *" #> p.displayName &
-      "#pluginId" #> (p.name.value + ": " + p.id) &
-      "#pluginVersion" #> p.version.toString &
-      "#pluginDescription" #> p.description &
-      "#pluginStatusInformation" #> p.statusInformation
+      "data-plugin=name *" #> p.displayName &
+      "data-plugin=id" #> (p.name.value + ": " + p.id) &
+      "data-plugin=version" #> p.version.toString &
+      "data-plugin=description" #> p.description &
+      "data-plugin=statusInformation" #> p.statusInformation
     )(xml)
   }
 }
