@@ -564,7 +564,7 @@ a.sidebar-toggle{
 }
 .content-wrapper td, .content-wrapper th {
   padding: 4px 3px;
-  line-height: normal;
+  line-height: 1.42857143;
 }
 .content-wrapper .panel-default > .panel-heading {
   color: #333;
@@ -2896,6 +2896,12 @@ table a > i.fa-pencil:hover{
   color:#999;
 }
 
+/* TABLE */
+.content-wrapper .dataTable{
+  font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-size: 14px;
+  line-height: 1.42857143;
+}
 @keyframes opacity-1 {
   0%   {opacity:0;visibility: visible;}
   100% {opacity:1;visibility: visible;}
