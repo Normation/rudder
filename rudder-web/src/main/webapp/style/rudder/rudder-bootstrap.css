@@ -780,7 +780,7 @@ body{
   min-height:100px;
 }
 .content-wrapper .input-group-sm input[type=text].form-control.monospace-font {
-  min-height: 30px;
+  min-height: 34px;
   height: auto;
 }
 .content-wrapper .input-group-sm.text-section{
