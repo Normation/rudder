@@ -2600,3 +2600,9 @@ label span.text-fit{
   font-weight:700;
   margin:0;
 }
+
+.content-wrapper .ui-tabs-panel .jstree {
+  margin-top:0;
+  font-size: 12px;
+  font-family : "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
