@@ -40,9 +40,6 @@ package com.normation.rudder.repository
 import com.normation.rudder.domain.workflows.ChangeRequest
 import net.liftweb.common.Box
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.RuleId

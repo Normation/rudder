@@ -54,7 +54,9 @@ import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.data.RestParameter
 import com.normation.rudder.rest.{ParameterApi => API}
 import com.normation.rudder.services.workflows.ChangeRequestService
-import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.services.workflows.GlobalParamChangeRequest
+import com.normation.rudder.services.workflows.GlobalParamModAction
+import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -172,9 +174,8 @@ class ParameterApiService2 (
   , writeParameter       : WoParameterRepository
   , uuidGen              : StringUuidGenerator
   , changeRequestService : ChangeRequestService
-  , workflowService      : WorkflowService
+  , workflowLevelService : WorkflowLevelService
   , restExtractor        : RestExtractorService
-  , workflowEnabled      : () => Box[Boolean]
   , restDataSerializer   : RestDataSerializer
 ) ( implicit userService : UserService )
 extends Loggable {
@@ -188,39 +189,33 @@ extends Loggable {
     , initialState : Option[GlobalParameter]
     , actor        : EventActor
     , req          : Req
-    , act          : String
+    , act          : GlobalParamModAction
   ) (implicit action : String, prettify : Boolean) = {
 
+    val change = GlobalParamChangeRequest(act, initialState)
     logger.info(restExtractor.extractReason(req))
     ( for {
-        reason <- restExtractor.extractReason(req)
-        crName <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act} Parameter ${parameter.name} from API"))
-        crDescription = restExtractor.extractChangeRequestDescription(req)
-        cr     <- changeRequestService.createChangeRequestFromGlobalParameter(
-                  crName
-                , crDescription
-                , parameter
-                , initialState
-                , diff
-                , actor
-                , reason
-              )
-        wfStarted <- workflowService.startWorkflow(cr.id, actor, None)
+        reason    <- restExtractor.extractReason(req)
+        crName    <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act} Parameter ${parameter.name} from API"))
+        workflow  <- workflowLevelService.getForGlobalParam(actor, change)
+        cr        <- changeRequestService.createChangeRequestFromGlobalParameter(
+                         crName
+                       , restExtractor.extractChangeRequestDescription(req)
+                       , parameter
+                       , initialState
+                       , diff
+                       , actor
+                       , reason
+                     )
+        wfStarted <- workflow.startWorkflow(cr.id, actor, None)
       } yield {
-        cr.id
+        (cr.id, workflow)
       }
     ) match {
-      case Full(crId) =>
-        workflowEnabled() match {
-          case Full(enabled) =>
-            val optCrId = if (enabled) Some(crId) else None
-            val jsonParameter = List(serialize(parameter,optCrId))
-            toJsonResponse(Some(id), ("parameters" -> JArray(jsonParameter)))
-          case eb : EmptyBox =>
-            val fail = eb ?~ (s"Could not check workflow property" )
-            val msg = s"Change request creation failed, cause is: ${fail.msg}."
-            toJsonError(Some(id), msg)
-        }
+      case Full((crId, workflow)) =>
+        val optCrId = if (workflow.needExternalValidation()) Some(crId) else None
+        val jsonParameter = List(serialize(parameter,optCrId))
+        toJsonResponse(Some(id), ("parameters" -> JArray(jsonParameter)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Parameter ${id}" )
         val msg = s"${act} failed, cause is: ${fail.msg}."
@@ -257,7 +252,7 @@ extends Loggable {
               , None
               , actor
               , req
-              , "Create"
+              , GlobalParamModAction.Create
             )
 
       case eb : EmptyBox =>
@@ -291,7 +286,7 @@ extends Loggable {
     readParameter.getGlobalParameter(parameterId) match {
       case Full(parameter) =>
         val deleteParameterDiff = DeleteGlobalParameterDiff(parameter)
-        createChangeRequestAndAnswer(id, deleteParameterDiff, parameter, Some(parameter), actor, req, "Delete")
+        createChangeRequestAndAnswer(id, deleteParameterDiff, parameter, Some(parameter), actor, req, GlobalParamModAction.Delete)
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Parameter ${parameterId.value}" )
@@ -312,7 +307,7 @@ extends Loggable {
           case Full(restParameter) =>
             val updatedParameter = restParameter.updateParameter(parameter)
             val diff = ModifyToGlobalParameterDiff(updatedParameter)
-            createChangeRequestAndAnswer(id, diff, updatedParameter, Some(parameter), actor, req, "Update")
+            createChangeRequestAndAnswer(id, diff, updatedParameter, Some(parameter), actor, req, GlobalParamModAction.Update)
 
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )

@@ -346,7 +346,7 @@ object RudderConfig extends Loggable {
   val directiveEditorService: DirectiveEditorService = directiveEditorServiceImpl
   val userPropertyService: UserPropertyService = userPropertyServiceImpl
   val eventListDisplayer: EventListDisplayer = eventListDisplayerImpl
-  val asyncDeploymentAgent: AsyncDeploymentActor = asyncDeploymentAgentImpl
+  lazy val asyncDeploymentAgent: AsyncDeploymentActor = asyncDeploymentAgentImpl
   val policyServerManagementService: PolicyServerManagementService = psMngtService
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
   val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
@@ -357,7 +357,7 @@ object RudderConfig extends Loggable {
   val removeNodeService: RemoveNodeService = removeNodeServiceImpl
   val nodeInfoService: NodeInfoService = nodeInfoServiceImpl
   val reportDisplayer: ReportDisplayer = reportDisplayerImpl
-  val dependencyAndDeletionService: DependencyAndDeletionService =  dependencyAndDeletionServiceImpl
+  lazy val dependencyAndDeletionService: DependencyAndDeletionService =  dependencyAndDeletionServiceImpl
   val itemArchiveManager: ItemArchiveManager = itemArchiveManagerImpl
   val personIdentService: PersonIdentService = personIdentServiceImpl
   val gitRevisionProvider: GitRevisionProvider = gitRevisionProviderImpl
@@ -392,10 +392,10 @@ object RudderConfig extends Loggable {
     , nodeInfoServiceImpl
   )
 
-  val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
+  lazy val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
   val ldapInventoryMapper = inventoryMapper
 
-  val changeRequestMapper = new ChangeRequestMapper(changeRequestChangesUnserialisation, changeRequestChangesSerialisation)
+  lazy val changeRequestMapper = new ChangeRequestMapper(changeRequestChangesUnserialisation, changeRequestChangesSerialisation)
 
 
   ////////////////////////////////////////////////
@@ -417,7 +417,10 @@ object RudderConfig extends Loggable {
   lazy val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
 
   // Plugin input interface for alternative workflow
-  lazy val workflowLevelService = new DefaultWorkflowLevel()
+  lazy val workflowLevelService = new DefaultWorkflowLevel(new NoWorkflowServiceImpl(
+      commitAndDeployChangeRequest
+    , inMemoryChangeRequestRepository
+  ))
 
   // Plugin input interface for alternative authentication providers
   lazy val authenticationProviders = new DefaultAuthBackendProviders()
@@ -426,7 +429,6 @@ object RudderConfig extends Loggable {
   lazy val userAuthorisationLevel = new DefaultUserAuthorisationLevel()
 
   ////////// end plugable service providers //////////
-
 
   // rudder user list
   lazy val rudderUserListProvider : FileUserDetailListProvider = {
@@ -444,7 +446,7 @@ object RudderConfig extends Loggable {
       }
   }
 
-  val roChangeRequestRepository : RoChangeRequestRepository = {
+  lazy val roChangeRequestRepository : RoChangeRequestRepository = {
     //a runtime checking of the workflow to use
     new EitherRoChangeRequestRepository(
         configService.rudder_workflow_enabled _
@@ -453,7 +455,7 @@ object RudderConfig extends Loggable {
     )
   }
 
-  val woChangeRequestRepository : WoChangeRequestRepository = {
+  lazy val woChangeRequestRepository : WoChangeRequestRepository = {
     //a runtime checking of the workflow to use
     new EitherWoChangeRequestRepository(
         configService.rudder_workflow_enabled _
@@ -468,7 +470,7 @@ object RudderConfig extends Loggable {
 
   val changeRequestEventLogService : ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
 
-  val xmlSerializer = XmlSerializerImpl(
+  lazy val xmlSerializer = XmlSerializerImpl(
       ruleSerialisation
     , directiveSerialisation
     , nodeGroupSerialisation
@@ -476,7 +478,7 @@ object RudderConfig extends Loggable {
     , ruleCategorySerialisation
   )
 
-  val xmlUnserializer = XmlUnserializerImpl(
+  lazy val xmlUnserializer = XmlUnserializerImpl(
       ruleUnserialisation
     , directiveUnserialisation
     , nodeGroupUnserialisation
@@ -485,7 +487,7 @@ object RudderConfig extends Loggable {
   )
   val workflowEventLogService = new WorkflowEventLogServiceImpl(eventLogRepository,uuidGen)
   val diffService: DiffService = new DiffServiceImpl()
-  val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
+  lazy val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
     new CommitAndDeployChangeRequestServiceImpl(
         uuidGen
       , roChangeRequestRepository
@@ -505,12 +507,6 @@ object RudderConfig extends Loggable {
       , xmlUnserializer
       , sectionSpecParser
     )
-  lazy val workflowService: FacadeWorkflowService = FacadeWorkflowService(
-    new NoWorkflowServiceImpl(
-        commitAndDeployChangeRequest
-      , inMemoryChangeRequestRepository
-    )
-  )
 
   val changeRequestService: ChangeRequestService = new ChangeRequestServiceImpl (
       roChangeRequestRepository
@@ -522,6 +518,7 @@ object RudderConfig extends Loggable {
 
   val roParameterService : RoParameterService = roParameterServiceImpl
   val woParameterService : WoParameterService = woParameterServiceImpl
+
 
   //////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////// REST ///////////////////////////////////////////
@@ -535,7 +532,7 @@ object RudderConfig extends Loggable {
       , techniqueRepository
       , queryParser
       , userPropertyService
-      , workflowService
+      , workflowLevelService
     )
 
   val tokenGenerator = new TokenGeneratorImpl(32)
@@ -564,9 +561,8 @@ object RudderConfig extends Loggable {
       , uuidGen
       , asyncDeploymentAgent
       , changeRequestService
-      , workflowService
+      , workflowLevelService
       , restExtractorService
-      , configService.rudder_workflow_enabled _
       , restDataSerializer
     )
 
@@ -586,9 +582,8 @@ object RudderConfig extends Loggable {
       , uuidGen
       , asyncDeploymentAgent
       , changeRequestService
-      , workflowService
+      , workflowLevelService
       , restExtractorService
-      , configService.rudder_workflow_enabled _
       , directiveEditorService
       , restDataSerializer
       , techniqueRepositoryImpl
@@ -608,10 +603,9 @@ object RudderConfig extends Loggable {
       , uuidGen
       , asyncDeploymentAgent
       , changeRequestService
-      , workflowService
+      , workflowLevelService
       , restExtractorService
       , queryProcessor
-      , configService.rudder_workflow_enabled _
       , restDataSerializer
     )
 
@@ -669,9 +663,8 @@ object RudderConfig extends Loggable {
       , woLDAPParameterRepository
       , uuidGen
       , changeRequestService
-      , workflowService
+      , workflowLevelService
       , restExtractorService
-      , configService.rudder_workflow_enabled _
       , restDataSerializer
     )
 
@@ -726,8 +719,8 @@ object RudderConfig extends Loggable {
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6)
       , new ChangeRequestApi(restExtractorService, roChangeRequestRepository, woChangeRequestRepository, roWorkflowRepository
-                              , woWorkflowRepository, techniqueRepository, changeRequestService, workflowService, commitAndDeployChangeRequest
-                              , restDataSerializer, configService.rudder_workflow_enabled _
+                              , woWorkflowRepository, techniqueRepository, changeRequestService, workflowLevelService, commitAndDeployChangeRequest
+                              , restDataSerializer
                             )
       , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
       , new NcfApi(ncfTechniqueWriter, restExtractorService, stringUuidGenerator)

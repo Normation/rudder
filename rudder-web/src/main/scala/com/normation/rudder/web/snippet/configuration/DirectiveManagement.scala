@@ -85,25 +85,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] val configService = RudderConfig.configService
 
   def dispatch = {
-    configService.rudder_workflow_enabled match {
-      case Full(workflowEnabled) =>
-        {
-          case "head" => { _ => head(workflowEnabled) }
-          case "userLibrary" => { _ => displayDirectiveLibrary(workflowEnabled) }
-          case "showDirectiveDetails" => { _ => initDirectiveDetails(workflowEnabled) }
-          case "techniqueDetails" => { xml =>
-            techniqueDetails = initTechniqueDetails(workflowEnabled)
-            techniqueDetails.apply(xml)
-          }
-        }
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to read Rudder configuration for workflow activation"
-        logger.error(s"Error when displaying Directives : ${e.messageChain}")
-
-        {
-          case "userLibrary" => { _ => <div class="error">{e.msg}</div> }
-          case _ => { _ => NodeSeq.Empty }
-        }
+    case "head" => { _ => head() }
+    case "userLibrary" => { _ => displayDirectiveLibrary() }
+    case "showDirectiveDetails" => { _ => initDirectiveDetails() }
+    case "techniqueDetails" => { xml =>
+      techniqueDetails = initTechniqueDetails()
+      techniqueDetails.apply(xml)
     }
   }
 
@@ -128,11 +115,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   /**
    * Head information (JsTree dependencies,...)
    */
-  def head(workflowEnabled: Boolean) : NodeSeq = {
+  def head() : NodeSeq = {
     DirectiveEditForm.staticInit ++
     (
       <head>
-        {Script(OnLoad(parseJsArg(workflowEnabled)))}
+        {Script(OnLoad(parseJsArg()))}
       </head>
     )
   }
@@ -143,9 +130,9 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    *
    * We want to look for #{ "directiveId":"XXXXXXXXXXXX" }
    */
-  private[this] def parseJsArg(workflowEnabled: Boolean): JsCmd = {
+  private[this] def parseJsArg(): JsCmd = {
 
-    def displayDetails(directiveId:String) = updateDirectiveForm(workflowEnabled)(Right(DirectiveId(directiveId)), None)
+    def displayDetails(directiveId:String) = updateDirectiveForm(Right(DirectiveId(directiveId)), None)
 
     JsRaw("""
         var directiveId = null;
@@ -165,7 +152,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * Almost same as Technique/activeTechniquesTree
    * TODO : factor out that part
    */
-  def displayDirectiveLibrary(workflowEnabled: Boolean): NodeSeq = {
+  def displayDirectiveLibrary(): NodeSeq = {
     (
       <div id={htmlId_activeTechniquesTree} class="col-xs-12">{
           (directiveLibrary,rules,configService.rudder_global_policy_mode()) match {
@@ -181,7 +168,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                   , usedDirectives
                   , None
                   , Some(onClickActiveTechnique)
-                  , Some(onClickDirective(workflowEnabled))
+                  , Some(onClickDirective)
                   , false
                 )
               }</ul>
@@ -224,14 +211,14 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     """)
   }
 
-  def initDirectiveDetails(workflowEnabled: Boolean): NodeSeq = directiveId match {
+  def initDirectiveDetails(): NodeSeq = directiveId match {
     case Full(id) => <div id={ htmlId_policyConf } /> ++
       //Here, we MUST add a Noop because of a Lift bug that add a comment on the last JsLine.
-      Script(OnLoad(updateDirectiveForm(workflowEnabled)(Right(DirectiveId(id)),None)))
+      Script(OnLoad(updateDirectiveForm(Right(DirectiveId(id)),None)))
     case _ =>  <div id={ htmlId_policyConf }></div>
   }
 
-  def initTechniqueDetails(workflowEnabled: Boolean) : MemoizeTransform = SHtml.memoize {
+  def initTechniqueDetails() : MemoizeTransform = SHtml.memoize {
     "#techniqueDetails *" #> ( currentTechnique match {
       case None =>
         "#info-title *" #> "Directives" &
@@ -302,7 +289,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
            "#techniqueDescription *" #>  technique.description &
            "#techniqueLongDescription" #>  technique.longDescription &
            "#isSingle *" #> showIsSingle(technique) &
-           "#techniqueVersion *+" #> showVersions(fullActiveTechnique, validTechniqueVersions, workflowEnabled)
+           "#techniqueVersion *+" #> showVersions(fullActiveTechnique, validTechniqueVersions)
         }
     })
   }
@@ -341,7 +328,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     </span>
   }
 
-  private[this] def showVersions(activeTechnique: FullActiveTechnique, validTechniques: Seq[(TechniqueVersion, Technique, DateTime)], workflowEnabled: Boolean) = {
+  private[this] def showVersions(activeTechnique: FullActiveTechnique, validTechniques: Seq[(TechniqueVersion, Technique, DateTime)]) = {
 
     val techniqueVersionInfo = validTechniques.map { case(v,t, timeStamp) =>
       val isDeprecated       = t.deprecrationInfo.isDefined
@@ -360,7 +347,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         case (_,_) => ("Multi instance", multiMessage)
       }
       val action = {
-        val ajax = SHtml.ajaxCall(JsNull, (_) => newDirective(t, activeTechnique, workflowEnabled))
+        val ajax = SHtml.ajaxCall(JsNull, (_) => newDirective(t, activeTechnique))
         AnonFunc("",ajax)
       }
       JsObj(
@@ -418,7 +405,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                     ) match {
                       case Full(diff)   =>
                         currentDirectiveSettingForm.set(Empty)
-                        Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""correctButtons(); createTooltip();""") & onRemoveSuccessCallBack(false)
+                        Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""correctButtons(); createTooltip();""") & onRemoveSuccessCallBack()
                       case eb: EmptyBox =>
                         val msg = (eb ?~! s"Error when trying to delete directive '${directive.name}' (${directive.id})").messageChain
                         //redisplay this form with the new error
@@ -448,7 +435,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def newDirective(technique: Technique, activeTechnique: FullActiveTechnique, workflowEnabled: Boolean)  = {
+  private[this] def newDirective(technique: Technique, activeTechnique: FullActiveTechnique)  = {
     configService.rudder_global_policy_mode() match {
       case Full(globalMode) =>
         val allDefaults = techniqueRepository.getTechniquesInfo.directivesDefaultNames
@@ -465,7 +452,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             , 5
             , true
           )
-        updateDirectiveSettingForm(activeTechnique, directive,None, workflowEnabled, true, globalMode)
+        updateDirectiveSettingForm(activeTechnique, directive,None, true, globalMode)
         //Update UI
         Replace(htmlId_policyConf, showDirectiveDetails) &
         SetHtml(html_techniqueDetails, NodeSeq.Empty) &
@@ -485,7 +472,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * either from the directive Id (when it comes from the url )
    * or from the full directive info ( callbacks, click on directive tree ...)
    */
-  def updateDirectiveForm(workflowEnabled : Boolean)(
+  def updateDirectiveForm(
       directiveInfo: Either[Directive,DirectiveId]
     , oldDirective: Option[Directive]
   ) = {
@@ -503,7 +490,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
               case Left(updatedDirective) => updatedDirective
               case _ => directive // Only the id, get it from the library
             }
-            updateDirectiveSettingForm(activeTechnique, newDirective, oldDirective, workflowEnabled, false, globalMode)
+            updateDirectiveSettingForm(activeTechnique, newDirective, oldDirective, false, globalMode)
           case eb:EmptyBox =>
             currentDirectiveSettingForm.set(eb)
         }
@@ -524,7 +511,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       activeTechnique     : FullActiveTechnique
     , directive           : Directive
     , oldDirective        : Option[Directive]
-    , workflowEnabled     : Boolean
     , isADirectiveCreation: Boolean
     , globalMode          : GlobalPolicyMode
   ) : Unit = {
@@ -537,12 +523,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           , activeTechnique
           , dir
           , oldDir
-          , workflowEnabled
           , globalMode
-          , onSuccessCallback = directiveEditFormSuccessCallBack(workflowEnabled)
-          , onMigrationCallback = (dir,optDir) => updateDirectiveForm(workflowEnabled)(Left(dir),optDir) & displayFinishMigrationPopup
           , isADirectiveCreation = isADirectiveCreation
-          , onRemoveSuccessCallBack = () => onRemoveSuccessCallBack(workflowEnabled)
+          , onSuccessCallback = directiveEditFormSuccessCallBack()
+          , onMigrationCallback = (dir,optDir) => updateDirectiveForm(Left(dir),optDir) & displayFinishMigrationPopup
+          , onRemoveSuccessCallBack = () => onRemoveSuccessCallBack()
         )
     }
 
@@ -582,12 +567,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * If it is given a directive, it updated the form, else goes to the changerequest page
    */
 
-  private[this] def directiveEditFormSuccessCallBack(workflowEnabled: Boolean)(returns: Either[Directive,ChangeRequestId]): JsCmd = {
+  private[this] def directiveEditFormSuccessCallBack()(returns: Either[Directive,ChangeRequestId]): JsCmd = {
 
     returns match {
       case Left(dir) => // ok, we've received a directive, show it
-        updateDirectiveLibrary(workflowEnabled) &
-        updateDirectiveForm(workflowEnabled)(Left(dir),None) &
+        updateDirectiveLibrary() &
+        updateDirectiveForm(Left(dir),None) &
         After(TimeSpan(0),JsRaw("""applyFilter('directiveFilter');"""))
 
       case Right(changeRequestId) => // oh, we have a change request, go to it
@@ -595,21 +580,21 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def onRemoveSuccessCallBack(workflowEnabled: Boolean): JsCmd = {
-    updateDirectiveLibrary(workflowEnabled)&
+  private[this] def onRemoveSuccessCallBack(): JsCmd = {
+    updateDirectiveLibrary()&
         After(TimeSpan(0),JsRaw("""applyFilter('directiveFilter');"""))
   }
 
-  private[this] def updateDirectiveLibrary(workflowEnabled : Boolean) : JsCmd = {
+  private[this] def updateDirectiveLibrary() : JsCmd = {
     directiveLibrary = getDirectiveLib()
     rules = getRules()
-    Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary(workflowEnabled))
+    Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary())
   }
 
   //////////////// display trees ////////////////////////
 
-  private[this] def onClickDirective(workflowEnabled: Boolean)(cat: FullActiveTechniqueCategory, at: FullActiveTechnique, directive: Directive) : JsCmd = {
-    updateDirectiveForm( workflowEnabled)(Left(directive),None)
+  private[this] def onClickDirective(cat: FullActiveTechniqueCategory, at: FullActiveTechnique, directive: Directive) : JsCmd = {
+    updateDirectiveForm(Left(directive),None)
   }
 
   private[this] def onClickActiveTechnique(cat: FullActiveTechniqueCategory, fullActiveTechnique : FullActiveTechnique) : JsCmd = {

@@ -40,6 +40,7 @@ import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
+
 import scala.xml._
 import net.liftweb.http._
 import net.liftweb.http.SHtml._
@@ -50,10 +51,14 @@ import com.normation.rudder.domain.parameters.GlobalParameter
 import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.services.workflows.GlobalParamChangeRequest
+import com.normation.rudder.services.workflows.GlobalParamModAction
+import com.normation.rudder.web.model.CurrentUser
 
 class ParameterManagement extends DispatchSnippet with Loggable {
 
-  private[this] val roParameterService = RudderConfig.roParameterService
+  private[this] val roParameterService   = RudderConfig.roParameterService
+  private[this] val workflowLevelService = RudderConfig.workflowLevelService
 
   private[this] val gridName      = "globalParametersGrid"
   private[this] val gridContainer = "ParamGrid"
@@ -69,11 +74,10 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   def display() : NodeSeq = {
     (for {
       seq <- roParameterService.getAllGlobalParameters
-      workflowEnabled <- RudderConfig.configService.rudder_workflow_enabled
     } yield {
-      (seq, workflowEnabled)
+      seq
     }) match {
-      case Full((seq, workflowEnabled)) => displayGridParameters(seq, gridName, workflowEnabled)
+      case Full((seq)) => displayGridParameters(seq, gridName)
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to get global Parameters"
         logger.error(s"Error when trying to display global Parameters, casue is: ${e.messageChain}")
@@ -81,7 +85,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  def displayGridParameters(params:Seq[GlobalParameter], gridName:String, workflowEnabled: Boolean) : NodeSeq  = {
+  def displayGridParameters(params:Seq[GlobalParameter], gridName:String) : NodeSeq  = {
     (
       "tbody *" #> ("tr" #> params.map { param =>
         val lineHtmlId = Helpers.nextFuncName
@@ -93,11 +97,11 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".overridable *" #> param.overridable &
         ".change *" #> <div>{
-                       ajaxButton("Edit", () => showPopup("save", Some(param), workflowEnabled), ("class", "btn btn-default btn-xs"), ("style", "min-width:50px;")) ++
-                       ajaxButton("Delete", () => showPopup("delete", Some(param), workflowEnabled), ("class", "btn btn-danger btn-xs"), ("style", "margin-left:5px;min-width:0px;"))
+          ajaxButton("Edit", () => showPopup(GlobalParamModAction.Update, Some(param)), ("class", "btn btn-default btn-xs"), ("style", "min-width:50px;")) ++
+          ajaxButton("Delete", () => showPopup(GlobalParamModAction.Delete, Some(param)), ("class", "btn btn-danger btn-xs"), ("style", "margin-left:5px;min-width:0px;"))
                        }</div>
       }) &
-      ".createParameter *" #> ajaxButton("Create Global Parameter", () => showPopup("create", None, workflowEnabled) , ("class","btn btn-success new-icon space-bottom space-top"))
+      ".createParameter *" #> ajaxButton("Create Global Parameter", () => showPopup(GlobalParamModAction.Create, None) , ("class","btn btn-success new-icon space-bottom space-top"))
      ).apply(dataTableXml(gridName)) ++ Script(initJs)
   }
 
@@ -207,33 +211,39 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def showPopup(
-      action         : String
+      action         : GlobalParamModAction
     , parameter      : Option[GlobalParameter]
-    , workflowEnabled: Boolean
   ) : JsCmd = {
-    parameterPopup.set(
-        Full(
-            new CreateOrUpdateGlobalParameterPopup(
-                parameter
-              , workflowEnabled
-              , action
-              , cr => workflowCallBack(action, workflowEnabled)(cr)
-            )
-        )
-      )
-    val popupHtml = createPopup
-    SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupHtml) &
-    JsRaw( """ createPopup("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup))
+    val change = GlobalParamChangeRequest(action, parameter)
+    workflowLevelService.getForGlobalParam(CurrentUser.actor, change) match {
+      case eb: EmptyBox =>
+        val msg = "An error occured when trying to find the validation workflow to use for that change."
+        logger.error(msg, eb)
+        JsRaw(s"alert('${msg}')")
 
+      case Full(workflowService) =>
+        parameterPopup.set(
+            Full(
+                new CreateOrUpdateGlobalParameterPopup(
+                    change
+                  , workflowService
+                  , cr => workflowCallBack(action, workflowService.needExternalValidation())(cr)
+                )
+            )
+          )
+        val popupHtml = createPopup
+        SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupHtml) &
+        JsRaw( """ createPopup("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup))
+    }
   }
 
-  private[this] def workflowCallBack(action:String, workflowEnabled: Boolean)(returns : Either[GlobalParameter,ChangeRequestId]) : JsCmd = {
-    if ((!workflowEnabled) & (action == "delete")) {
-      closePopup() & onSuccessDeleteCallback(workflowEnabled)
+  private[this] def workflowCallBack(action: GlobalParamModAction, workflowEnabled: Boolean)(returns : Either[GlobalParameter,ChangeRequestId]) : JsCmd = {
+    if ((!workflowEnabled) & (action == GlobalParamModAction.Delete)) {
+      closePopup() & onSuccessDeleteCallback()
     } else {
       returns match {
         case Left(param) => // ok, we've received a parameter, do as before
-          closePopup() &  updateGrid(workflowEnabled) & successPopup
+          closePopup() &  updateGrid() & successPopup
         case Right(changeRequestId) => // oh, we have a change request, go to it
           linkUtil.redirectToChangeRequestLink(changeRequestId)
       }
@@ -251,7 +261,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def updateGrid(workflowEnabled: Boolean) : JsCmd = {
+  private[this] def updateGrid() : JsCmd = {
     Replace(gridContainer, display())
   }
 
@@ -261,8 +271,8 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     """)
   }
 
-  private[this] def onSuccessDeleteCallback(workflowEnabled: Boolean) : JsCmd = {
-    updateGrid(workflowEnabled) & successPopup
+  private[this] def onSuccessDeleteCallback() : JsCmd = {
+    updateGrid() & successPopup
   }
 
   private[this] def closePopup() : JsCmd = {
