@@ -123,7 +123,7 @@ class AppConfigAuth extends ApplicationContextAware {
   val logger = ApplicationLogger
 
   // we define the System ApiAcl as one that is all mighty and can manage everything
-  val SYSTEM_API_ACL = ApiAuthorization.allAuthz
+  val SYSTEM_API_ACL = ApiAuthorization.RW
 
   def setApplicationContext(applicationContext: ApplicationContext): Unit = {
     //prepare specific properties for new context
