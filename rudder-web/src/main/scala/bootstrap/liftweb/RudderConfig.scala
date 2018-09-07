@@ -175,7 +175,6 @@ object RudderProperties {
       case FileSystemResource(file) => ConfigFactory.load(ConfigFactory.parseFile(file))
     }).withFallback(ConfigFactory.parseString(migrationConfig))
   }
-
 }
 
 /**
