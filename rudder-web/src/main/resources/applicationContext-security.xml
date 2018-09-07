@@ -55,6 +55,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <http pattern="/api/**" create-session="stateless" entry-point-ref="restAuthenticationEntryPoint">
       <intercept-url pattern='/**' access="hasRole('ROLE_REMOTE')" />
       <custom-filter position="BASIC_AUTH_FILTER" ref="restAuthenticationFilter" />
+      <csrf disabled="true"/>
     </http>
 
     <http use-expressions="true" disable-url-rewriting="true">
