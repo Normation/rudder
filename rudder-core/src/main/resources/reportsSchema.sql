@@ -208,23 +208,6 @@ CREATE TABLE archivedNodeConfigurations (
  *************************************************************************************
  */
 
-CREATE TYPE Compliance AS (
-  ruleId          text
-, directiveId     text
-, complianceLevel int[]
-);
-
--- Create the table for the node compliance
-CREATE TABLE nodeComplianceComposite (
-  nodeId            text NOT NULL CHECK (nodeId <> '')
-, runTimestamp      timestamp with time zone NOT NULL
-, details  Compliance[] NOT NULL
-, PRIMARY KEY (nodeId, runTimestamp)
-);
-
-
-
-
 -- Create the table for the node compliance
 CREATE TABLE nodeCompliance (
   nodeId            text NOT NULL CHECK (nodeId <> '')
@@ -263,6 +246,8 @@ CREATE INDEX nodeCompliance_nodeId ON nodeCompliance (nodeId);
 CREATE INDEX nodeCompliance_runTimestamp ON nodeCompliance (runTimestamp);
 CREATE INDEX nodeCompliance_endOfLife ON nodeCompliance (endOfLife);
 
+
+
 -- Create the table for the archived node compliance
 CREATE TABLE archivedNodeCompliance (
   nodeId            text NOT NULL CHECK (nodeId <> '')
@@ -273,6 +258,39 @@ CREATE TABLE archivedNodeCompliance (
 , details  text NOT NULL CHECK (details <> '' )
 , PRIMARY KEY (nodeId, runTimestamp)
 );
+
+-- Create a table of only (nodeid, ruleid, directiveid) -> complianceLevel
+-- for all runs. That table is amendable to postgresql-side processing,
+-- in particular to allow aggregation of compliance by rule / node / directive,
+-- but with a much more reasonable space until all our supported server versions
+-- have at least PostgreSQL 9.4.
+CREATE TABLE nodecompliancelevels (
+  nodeId             text NOT NULL CHECK (nodeId <> '')
+, runTimestamp       timestamp with time zone NOT NULL
+, ruleId             text NOT NULL CHECK (nodeId <> '')
+, directiveId        text NOT NULL CHECK (nodeId <> '')
+, pending            int DEFAULT 0
+, success            int DEFAULT 0
+, repaired           int DEFAULT 0
+, error              int DEFAULT 0
+, unexpected         int DEFAULT 0
+, missing            int DEFAULT 0
+, noAnswer           int DEFAULT 0
+, notApplicable      int DEFAULT 0
+, reportsDisabled    int DEFAULT 0
+, compliant          int DEFAULT 0
+, auditNotApplicable int DEFAULT 0
+, nonCompliant       int DEFAULT 0
+, auditError         int DEFAULT 0
+, badPolicyMode      int DEFAULT 0
+, PRIMARY KEY (nodeId, runTimestamp, ruleId, directiveId)
+);
+
+CREATE INDEX nodecompliancelevels_nodeId ON nodecompliancelevels (nodeId);
+CREATE INDEX nodecompliancelevels_ruleId ON nodecompliancelevels (nodeId);
+CREATE INDEX nodecompliancelevels_directiveId ON nodecompliancelevels (nodeId);
+CREATE INDEX nodecompliancelevels_runTimestamp ON nodecompliancelevels (runTimestamp);
+
 
 
 /*

@@ -41,7 +41,7 @@ import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.util.Properties
 
-import com.normation.rudder.db.Doobie.{DateTimeMeta, slf4jDoobieLogger}
+import com.normation.rudder.db.Doobie.slf4jDoobieLogger
 import com.normation.ldap.sdk.BuildFilter
 import com.normation.ldap.sdk.ROPooledSimpleAuthConnectionProvider
 import com.normation.ldap.sdk.RWPooledSimpleAuthConnectionProvider
@@ -49,16 +49,16 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
-import doobie.imports._
-import scalaz._
-import scalaz.Scalaz._
-import doobie.postgres._
-import doobie.postgres.imports._
+import doobie._
+import doobie.implicits._
+import doobie.postgres.implicits._
+import com.normation.rudder.db.Doobie._
 import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import org.joda.time.DateTime
+import cats.implicits._
 
 import scala.util.Random
 
@@ -68,9 +68,7 @@ import scala.util.Random
  */
 object GenerateCompliance {
 
-
-
-  lazy val properties = {
+  lazy val properties: Properties = {
     val p = new Properties()
     val in = new ByteArrayInputStream(
       """ldap.host=localhost
@@ -215,7 +213,12 @@ object GenerateCompliance {
   )
 
 
-  def saveRunCompliances(runs: Seq[RunCompliance]) = {
+
+  // -----------------------------------------------------------------------
+  // first example with composite type for compliance
+  // -----------------------------------------------------------------------
+
+  def saveCompositeCompliances(runs: Seq[RunCompliance]) = {
 
     /*
      * Array of composite type are not supported by JDBC driver which only see
@@ -242,7 +245,7 @@ object GenerateCompliance {
       (fr"insert into nodecompliancecomposite (nodeid, runtimestamp, details) values (${run.nodeId}, ${run.runtime}, " ++ rules(run.rules) ++ fr")").update
     }
 
-    runs.toList.traverse(r => query(r).run).transact(xa).unsafePerformSync
+    runs.toList.traverse(r => query(r).run).transact(xa).unsafeRunSync
   }
 
 
@@ -258,7 +261,7 @@ object GenerateCompliance {
    * Return compliance by node, for rule, in interval
    */
   type RES = (String, DateTime, String, String, Array[Int])
-  def getCompliance(startDate: DateTime, endDate: DateTime, ruleId: Option[String], nodeId: Option[String]): Vector[RES] = {
+  def getCompositeCompliance(startDate: DateTime, endDate: DateTime, ruleId: Option[String], nodeId: Option[String]): Vector[RES] = {
 
     val base = fr"""with compliance as (
                       select nodeid, runtimestamp, (r).* from (
@@ -273,12 +276,102 @@ object GenerateCompliance {
 
     val query = (base ++ optNode ++ optRule).query[RES]
 
-    query.vector.transact(xa).unsafePerformSync
+    query.to[Vector].transact(xa).unsafeRunSync
 
+  }
+
+  def compositeExample(runs: Seq[RunCompliance]): Unit = {
+    val now = DateTime.now
+    var i = 0
+    runs.grouped(1000).foreach { slice =>
+      println("now at " + i*1000)
+      saveCompositeCompliances(slice)
+      i += 1
+    }
+
+    println("saved, now query!")
+    val t0 = DateTime.now
+    val res = getCompositeCompliance(now.minusDays(2), now, None, None)
+    println(s"found ${res.size}")
+    println(s"done in ${DateTime.now.getMillis - t0.getMillis} ms")
+  }
+
+
+  // -----------------------------------------------------------------------
+  // second example with a purely normalized table (with loads of line)
+  // -----------------------------------------------------------------------
+
+  val columns = List("nodeid", "runtimestamp", "ruleid", "directiveid", "pending", "success", "repaired", "error", "unexpected", "missing", "noanswer", "notapplicable", "reportsdisabled", "compliant", "auditnotapplicable", "noncompliant", "auditerror", "badpolicymode")
+  val columnsString = columns.mkString(",")
+  val columnsPlaceholder = columns.map(_ => "?").mkString(",")
+
+  // in that case, our data are just expansion of RuleCompliance
+  type DATA = (String, DateTime, String, String, ComplianceLevel)
+
+
+  implicit val ComplianceComposite: Composite[ComplianceLevel] = {
+    Composite[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].imap(
+        tuple => ComplianceLevel.apply _ tupled tuple
+    )(  comp  => ComplianceLevel.unapply(comp).get
+    )
+  }
+
+  def saveComplianceLevel(runs: Seq[RunCompliance]) = {
+
+    val expanded = (for {
+      run  <- runs
+      rule <- run.rules
+      dir  <- rule.directives
+    } yield {
+      (run.nodeId, run.runtime, rule.ruleId, dir.directiveId, dir.compliance)
+    }).toList
+
+
+    Update[DATA](s"insert into nodecompliancelevels ($columnsString) values ($columnsPlaceholder)").updateMany(expanded).transact(xa).unsafeRunSync
+  }
+
+  def getComplianceData(startDate: DateTime, endDate: DateTime, ruleId: Option[String], nodeId: Option[String]): Vector[(ComplianceLevel, Int)] = {
+
+    // epoch is in seconds
+    val intervalLength = (endDate.getMillis - startDate.getMillis)/(30*1000)
+    val start = startDate.getMillis/1000
+
+    val base = Fragment.const(s"select ${columns.drop(4).map(x => s"sum($x)").mkString(",")},")
+
+    val interval = fr"(extract('epoch' from runtimestamp)::bigint - ${start}) / ${intervalLength} as index"
+    val dates = fr"from nodecompliancelevels where runtimestamp >= ${startDate} and runtimestamp <= ${endDate}"
+    val optNode = nodeId.fold(Fragment.empty)((id: String) => fr"and nodeid = ${id}")
+    val optRule = ruleId.fold(Fragment.empty)((id: String) => fr"and ruleid = ${id}")
+    val groupby = Fragment.const(" group by index")
+    val query = (base ++ interval ++ dates ++ optNode ++ optRule ++ groupby).query[(ComplianceLevel, Int)]
+
+    query.to[Vector].transact(xa).unsafeRunSync
+  }
+
+  def dataExample(runs: Seq[RunCompliance]): Unit = {
+    val now = DateTime.now
+//    var i = 0
+//    runs.grouped(1000).foreach { slice =>
+//      println("now at " + i*1000)
+//      saveComplianceLevel(slice)
+//      i += 1
+//    }
+
+    val t0 = DateTime.now
+    println(s"saved data in ${t0.getMillis - now.getMillis} ms, now query!")
+    val res = getComplianceData(now.minusDays(10), now, None, None)
+    println(s"found ${res.size}")
+    println(res)
+    println(s"done in ${System.currentTimeMillis - t0.getMillis} ms")
   }
 
   def main(args: Array[String]): Unit = {
     import BuildFilter._
+
+    import org.slf4j.LoggerFactory
+    import ch.qos.logback.classic.Level
+    import ch.qos.logback.classic.Logger
+    LoggerFactory.getLogger("sql").asInstanceOf[Logger].setLevel(Level.DEBUG)
 
     val rules = getBox(for {
       ldap  <- roLdap
@@ -298,25 +391,16 @@ object GenerateCompliance {
 
     val now = DateTime.now
 
-    val compliances =
+    val runs = {
       for {
         i <- 0 until nodeIds.size
-        j <- 100 to 0 by -1
+        j <- 1000 to 0 by -1
       } yield {
         newNodeCompliance(nodeIds(i), now.minusMinutes(5*j).minusMillis(Random.nextInt(1000)), newNodeConfig(rules))
       }
+    }
 
-//    var i = 0
-//    compliances.grouped(1000).foreach { slice =>
-//      println("now at " + i*1000)
-//      saveRunCompliances(slice)
-//      i += 1
-//    }
-//
-//    println("saved, now query!")
-    val t0 = DateTime.now
-    val res = getCompliance(now.minusDays(2), now, None, None)
-    println(s"found ${res.size}")
-    println(s"done in ${DateTime.now.getMillis - t0.getMillis} ms")
+    dataExample(runs)
+
   }
 }

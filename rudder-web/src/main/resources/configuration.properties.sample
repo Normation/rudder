@@ -148,6 +148,18 @@ rudder.batch.reportscleaner.archive.TTL=4
 rudder.batch.reportscleaner.delete.TTL=90
 
 #
+# Automatic compliance levels cleaning.
+# This allows you to define the periode of time during which
+# compliance level data for nodes, by run, up to directive
+# granularity are kept.
+# The table grows at ~60kB / node / directive / day
+# (ie, for 100 nodes, with 15 rules having each of them 10 directives,
+# you need ~25GB for a month back of data).
+# There is no archive state for compliance levels.
+#
+rudder.batch.reportscleaner.compliancelevels.delete.TTL=15
+
+#
 # Schedule option for automatic cleaning
 # Automatic cleaning can be scheduled:
 #  - every hour at the minute past the hour of your choice

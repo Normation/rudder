@@ -47,9 +47,11 @@ import doobie._, doobie.implicits._
 import cats.implicits._
 import com.normation.rudder.services.reports._
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.ReportLogger
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.domain.reports.AggregatedStatusReport
+import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.CompliancePercent
 
 
@@ -67,16 +69,27 @@ object RunCompliance {
   def from(runTimestamp: DateTime, endOfLife: DateTime, report: NodeStatusReport) = {
     RunCompliance(report.nodeId, runTimestamp, endOfLife, (report.runInfo, report.statusInfo), report.compliance.pc, report.report)
   }
-
 }
 
 class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
   import doobie._
 
+  val logger = ReportLogger
+
+  val nodeComplianceLevelcolumns = List("nodeid", "runtimestamp", "ruleid", "directiveid", "pending", "success", "repaired", "error", "unexpected", "missing", "noanswer", "notapplicable", "reportsdisabled", "compliant", "auditnotapplicable", "noncompliant", "auditerror", "badpolicymode")
+
+  implicit val ComplianceLevelComposite: Composite[ComplianceLevel] = {
+    Composite[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].imap(
+        tuple => ComplianceLevel.apply _ tupled tuple
+      )( comp  => ComplianceLevel.unapply(comp).get
+    )
+  }
+
   /*
    * Save a list of node compliance reports
    */
   override def saveRunCompliance(reports: List[NodeStatusReport]): Box[List[NodeStatusReport]] = {
+
     /*
      * some sorting of things. We must only store information about node status reports with
      * a run
@@ -113,17 +126,43 @@ class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
 
     } }
 
-    //now, save everything
+    type LEVELS = (String, DateTime, String, String, ComplianceLevel)
 
-    (for {
-      updated  <- Update[RunCompliance](
-                    """insert into nodecompliance (nodeid, runtimestamp, endoflife, runanalysis, summary, details)
-                       values (?, ?, ?, ?, ?, ?)
-                    """
-                  ).updateMany(runCompliances)
+    val nodeComplianceLevels: List[LEVELS] = runCompliances.flatMap { run =>
+      //one aggregatestatus reports can hold several RuleNodeStatusReports with the
+      //same node/rule/run but different serial. Here, we already know the nodeid and run,
+      //so group by ruleId, get directives, merge.
+
+      run.details.reports.groupBy( _.ruleId ).flatMap { case (ruleId, aggregats) =>
+        //get a map of all (directiveId -> seq(directives)
+        //be carefull to "toList", because we don't want to deduplicate if
+        //two directive are actually equal
+        aggregats.toList.flatMap( _.directives.values ).groupBy( _.directiveId ).map { case (directiveId, seq) =>
+
+            (run.nodeId.value, run.runTimestamp, ruleId.value, directiveId.value, ComplianceLevel.sum(seq.map(_.compliance)))
+        }
+      }
+    }
+    val queryCompliance = """insert into nodecompliance (nodeid, runtimestamp, endoflife, runanalysis, summary, details)
+                           | values (?, ?, ?, ?, ?, ?)""".stripMargin
+    val queryComplianceLevel = s"""insert into nodecompliancelevels (${nodeComplianceLevelcolumns.mkString(",")})
+                                 | values ( ${nodeComplianceLevelcolumns.map(_ => "?").mkString(",")} )""".stripMargin
+
+    val res = (for {
+      updated  <- Update[RunCompliance](queryCompliance).updateMany(runCompliances)
+      levels   <- Update[LEVELS](queryComplianceLevel).updateMany(nodeComplianceLevels)
     } yield {
       val saved = runCompliances.map(_.nodeId)
       reports.filter(r => saved.contains(r.nodeId))
-    }).attempt.transact(xa).unsafeRunSync  }
+    }).attempt.transact(xa).unsafeRunSync
+
+    res match {
+      case Right(_) => // ok
+      case Left(ex) =>
+        logger.error("Error when saving node compliances: " + ex.getMessage)
+    }
+
+    res
+  }
 
 }
