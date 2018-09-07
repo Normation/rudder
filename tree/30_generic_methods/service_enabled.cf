@@ -35,6 +35,8 @@ bundle agent service_enabled(service_name)
 
       "old_class_prefix"        string => "service_enabled_${canonified_service_name}";
 
+      "args"                    slist => { "${service_name}" };
+
       "full_class_prefix"       string => canonify("service_enabled_${service_name}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
@@ -87,6 +89,6 @@ bundle agent service_enabled(service_name)
                              usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "report"
-        usebundle => _log_v3("Ensure service ${service_name} is started at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", ${service_name});
+        usebundle => _log_v3("Ensure service ${service_name} is started at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }
