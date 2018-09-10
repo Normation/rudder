@@ -314,14 +314,14 @@ class ModificationValidationPopup(
     val (buttonName, classForButton, titleWorkflow) = (validationRequired, action) match {
       case (false, DGModAction.CreateSolo       )   => ("Create"      , "btn-success", NodeSeq.Empty)
       case (false, DGModAction.CreateAndModRules)   => ("Create"      , "btn-success", NodeSeq.Empty)
-      case (false, DGModAction.Delete           )   => ("Delete"      , "btn-danger", NodeSeq.Empty)
-      case (false, DGModAction.Update             ) => ("Update"      , "btn-success", NodeSeq.Empty)
+      case (false, DGModAction.Delete           )   => ("Delete"      , "btn-danger" , NodeSeq.Empty)
+      case (false, DGModAction.Update           )   => ("Update"      , "btn-success", NodeSeq.Empty)
       case (false, DGModAction.Enable           )   => ("Enable"      , "btn-primary", NodeSeq.Empty)
       case (false, DGModAction.Disable          )   => ("Disable"     , "btn-primary", NodeSeq.Empty)
       case (true , DGModAction.CreateSolo       )   => ("Create"      , "btn-success", NodeSeq.Empty)
       case (true , DGModAction.CreateAndModRules)   => ("Open request", "btn-primary", workflowMessage(true))
       case (true , DGModAction.Delete           )   => ("Open request", "btn-primary", workflowMessage(false))
-      case (true , DGModAction.Update             ) => ("Open request", "btn-primary", workflowMessage(false))
+      case (true , DGModAction.Update           )   => ("Open request", "btn-primary", workflowMessage(false))
       case (true , DGModAction.Enable           )   => ("Open request", "btn-primary", workflowMessage(false))
       case (true , DGModAction.Disable          )   => ("Open request", "btn-primary", workflowMessage(false))
     }

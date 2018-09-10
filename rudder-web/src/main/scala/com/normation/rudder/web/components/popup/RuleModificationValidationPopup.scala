@@ -76,49 +76,14 @@ object RuleModificationValidationPopup extends Loggable {
    * - Rules
    * - Enable & disable (for rule), delete, modify (save)
    */
-  private def titles(action: RuleModAction) = action match {
-    case RuleModAction.Enable  => "Enable a Rule"
-    case RuleModAction.Disable => "Disable a Rule"
-    case RuleModAction.Delete  => "Delete a Rule"
-    case RuleModAction.Update  => "Update a Rule"
-    case RuleModAction.Create  => "Create a Rule"
-  }
+  private def titles(action: RuleModAction) = s"${action.name.capitalize} a Rule"
 
-  private def explanationMessages(action: RuleModAction) = action match {
-    case RuleModAction.Enable =>
-      <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            Are you sure that you want to enable this Rule?
-        </h4>
-      </div>
-
-    case RuleModAction.Disable =>
-      <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            Are you sure that you want to disable this Rule?
-        </h4>
-      </div>
-
-    case RuleModAction.Delete =>
-      <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            Are you sure that you want to delete this Rule?
-        </h4>
-      </div>
-
-    case RuleModAction.Update =>
-      <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            Are you sure that you want to update this Rule?
-        </h4>
-      </div>
-
-    case RuleModAction.Create =>
-      <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            Are you sure that you want to create this Rule?
-        </h4>
-      </div>
+  private def explanationMessages(action: RuleModAction) = {
+    <div class="row">
+      <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+          Are you sure that you want to {action.name} this Rule?
+      </h4>
+    </div>
   }
 
 }

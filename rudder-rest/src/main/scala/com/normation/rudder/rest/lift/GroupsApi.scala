@@ -351,7 +351,6 @@ class GroupApiService2 (
     val groupId = NodeGroupId(req.param("id").getOrElse(uuidGen.newUuid))
 
     def actualGroupCreation(change: NodeGroupChangeRequest) = {
-      //val newGroup = restGroup.updateGroup( baseGroup )
       ( for {
         reason   <- restExtractor.extractReason(req)
         saveDiff <- writeGroup.create(change.newGroup, change.category.getOrElse(readGroup.getRootCategory.id), modId, actor, reason)
