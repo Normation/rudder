@@ -112,6 +112,7 @@ trait ChangeRequestService {
     , updatedRules     : List[Rule]
   ) : Box[ChangeRequest]
 
+  // no group category because category are not semantically binding (no effect on prod)
   def createChangeRequestFromRule(
       changeRequestName: String
     , changeRequestDesc: String
@@ -122,6 +123,7 @@ trait ChangeRequestService {
     , reason           : Option[String]
   ) : Box[ChangeRequest]
 
+  // no group category because category are not semantically binding (no effect on prod)
   def createChangeRequestFromNodeGroup(
       changeRequestName: String
     , changeRequestDesc: String

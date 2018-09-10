@@ -90,12 +90,12 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
 
   val mainDispatch = {
     RudderConfig.configService.rudder_workflow_enabled match {
-      case Full(workflowEnabled) =>
+      case Full(workflowEnable) =>
         Map(
             "head" -> head _
           , "detailsPopup" ->   { _ : NodeSeq =>  NodeGroupForm.staticBody }
-          , "initRightPanel" -> { _ : NodeSeq => initRightPanel(workflowEnabled) }
-          , "groupHierarchy" -> groupHierarchy(boxGroupLib, workflowEnabled)
+          , "initRightPanel" -> { _ : NodeSeq => initRightPanel }
+          , "groupHierarchy" -> groupHierarchy(boxGroupLib)
         )
       case eb: EmptyBox =>
         val e = eb ?~! "Error when getting Rudder application configuration for workflow activation"
@@ -135,21 +135,21 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    * @param html
    * @return
    */
-  def groupHierarchy(rootCategory: Box[FullNodeGroupCategory], workflowEnabled: Boolean) : CssSel = (
-      "#groupTree" #> buildGroupTree("", workflowEnabled)
-    & "#newItem"   #> groupNewItem(workflowEnabled)
+  def groupHierarchy(rootCategory: Box[FullNodeGroupCategory]) : CssSel = (
+      "#groupTree" #> buildGroupTree("")
+    & "#newItem"   #> groupNewItem
   )
 
-  def groupNewItem(workflowEnabled: Boolean) : NodeSeq = {
-      SHtml.ajaxButton("Create", () => showPopup(workflowEnabled), ("class","btn btn-success new-icon pull-right"))
+  def groupNewItem() : NodeSeq = {
+      SHtml.ajaxButton("Create", () => showPopup, ("class","btn btn-success new-icon pull-right"))
   }
 
   /**
    * Does the init part (showing the right component and highlighting
    * the tree if necessary)
    */
-  def initRightPanel(workflowEnabled: Boolean) : NodeSeq = {
-    Script(OnLoad(parseJsArg(workflowEnabled)(boxGroupLib)))
+  def initRightPanel() : NodeSeq = {
+    Script(OnLoad(parseJsArg(boxGroupLib)))
   }
 
   /**
@@ -158,7 +158,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    *
    * We want to look for #{ "groupId":"XXXXXXXXXXXX" }
    */
-  private[this] def parseJsArg(workflowEnabled: Boolean)(rootCategory: Box[FullNodeGroupCategory]) : JsCmd = {
+  private[this] def parseJsArg(rootCategory: Box[FullNodeGroupCategory]) : JsCmd = {
     def displayDetails(groupId:String) = {
       val gid = NodeGroupId(groupId)
       rootCategory match {
@@ -167,8 +167,8 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
           case None => Noop
           case Some(fullGroupTarget) => //so we also have its parent category
             //no modification, so no refreshGroupLib
-            refreshTree(htmlTreeNodeId(groupId), workflowEnabled) &
-            showGroupSection(workflowEnabled) (fullGroupTarget.nodeGroup, lib.categoryByGroupId(gid)) &
+            refreshTree(htmlTreeNodeId(groupId)) &
+            showGroupSection (fullGroupTarget.nodeGroup, lib.categoryByGroupId(gid)) &
             JsRaw("createTooltip()")
         }
       }
@@ -196,7 +196,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    *  Manage the state of what should be displayed on the right panel.
    * It could be nothing, a group edit form, or a category edit form.
    */
-  private[this] def setAndShowRightPanel(panel: RightPanel, rootCategory: FullNodeGroupCategory, workflowEnabled: Boolean) : NodeSeq = {
+  private[this] def setAndShowRightPanel(panel: RightPanel, rootCategory: FullNodeGroupCategory) : NodeSeq = {
     panel match {
       case NoPanel => NodeSeq.Empty
       case GroupForm(group,parentCatId) =>
@@ -205,14 +205,13 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
           , group
           , parentCatId
           , rootCategory
-          , workflowEnabled
           , { (redirect: Either[(NodeGroup,NodeGroupCategoryId),ChangeRequestId]) =>
               redirect match {
                 case Left((newGroup,newParentId)) =>
                   refreshGroupLib()
                   val newPanel = GroupForm(newGroup, newParentId)
-                  refreshTree(htmlTreeNodeId(newGroup.id.value), workflowEnabled) &
-                  refreshRightPanel(newPanel , workflowEnabled)
+                  refreshTree(htmlTreeNodeId(newGroup.id.value)) &
+                  refreshRightPanel(newPanel)
                 case Right(crId) =>
                   linkUtil.redirectToChangeRequestLink(crId)
               }
@@ -223,16 +222,16 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
         form.dispatch("showForm")(NodeSeq.Empty);
 
       case CategoryForm(category) =>
-        val form = new NodeGroupCategoryForm(htmlId_item, category, rootCategory, onSuccessCallback(workflowEnabled))
+        val form = new NodeGroupCategoryForm(htmlId_item, category, rootCategory, onSuccessCallback())
         nodeGroupCategoryForm.set(Full(form))
         form.showForm()
     }
   }
 
   //utility to refresh right panel
-  private[this] def refreshRightPanel(panel:RightPanel, workflowEnabled: Boolean) : JsCmd = {
+  private[this] def refreshRightPanel(panel:RightPanel) : JsCmd = {
     boxGroupLib match {
-      case Full(lib) => SetHtml(htmlId_item, setAndShowRightPanel(panel, lib, workflowEnabled))
+      case Full(lib) => SetHtml(htmlId_item, setAndShowRightPanel(panel, lib))
       case eb: EmptyBox =>
         val e = eb ?~! "Error when trying to get the root node group category"
         logger.error(e.messageChain)
@@ -246,25 +245,25 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     boxGroupLib = getFullGroupLibrary()
   }
 
-  private[this] def setCreationPopup(rootCategory: FullNodeGroupCategory, workflowEnabled: Boolean) : Unit = {
+  private[this] def setCreationPopup(rootCategory: FullNodeGroupCategory) : Unit = {
     creationPopup.set(Full(new CreateCategoryOrGroupPopup(
         None
       , rootCategory
       , selectedCategoryId
-      , onSuccessCategory = displayCategory(workflowEnabled)
-      , onSuccessGroup = showGroupSection(workflowEnabled)
-      , onSuccessCallback = onSuccessCallback(workflowEnabled)
+      , onSuccessCategory = displayCategory
+      , onSuccessGroup = showGroupSection
+      , onSuccessCallback = onSuccessCallback()
     )))
   }
 
-  private[this] def onSuccessCallback(workflowEnabled: Boolean) = {
-    (id: String) => {refreshGroupLib; refreshTree(htmlTreeNodeId(id), workflowEnabled) }
+  private[this] def onSuccessCallback() = {
+    (id: String) => {refreshGroupLib; refreshTree(htmlTreeNodeId(id)) }
   }
 
   /**
    * build the tree of categories and group and init its JS
    */
-  private[this] def buildGroupTree(selectedNode: String, workflowEnabled: Boolean) : NodeSeq = {
+  private[this] def buildGroupTree(selectedNode: String) : NodeSeq = {
     boxGroupLib match {
       case eb: EmptyBox =>
         val e = eb ?~! "Can not get the group library"
@@ -281,8 +280,8 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
         <div id={htmlId_groupTree} class="col-xs-12">
           <ul>{DisplayNodeGroupTree.displayTree(
                   lib
-                , Some(fullDisplayCategory(workflowEnabled))
-                , Some(showTargetInfo(workflowEnabled))
+                , Some(fullDisplayCategory)
+                , Some(showTargetInfo)
                 , Map()
            )}</ul>
         </div>
@@ -301,10 +300,10 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
           if( destCatId ) {
             if(sourceGroupId) {
               var arg = JSON.stringify({ 'sourceGroupId' : sourceGroupId, 'destCatId' : destCatId });
-              ${SHtml.ajaxCall(JsVar("arg"), moveGroup(lib, workflowEnabled) _)._2.toJsCmd};
+              ${SHtml.ajaxCall(JsVar("arg"), moveGroup(lib) _)._2.toJsCmd};
             } else if(  sourceCatId ) {
               var arg = JSON.stringify({ 'sourceCatId' : sourceCatId, 'destCatId' : destCatId });
-              ${SHtml.ajaxCall(JsVar("arg"), moveCategory(lib, workflowEnabled) _ )._2.toJsCmd};
+              ${SHtml.ajaxCall(JsVar("arg"), moveCategory(lib) _ )._2.toJsCmd};
             } else {
               alert("Can not move that kind of object");
               $$.jstree.rollback(data.rlbk);
@@ -336,7 +335,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   }
 
   ///////////////////// Callback function for Drag'n'drop in the tree /////////////////////
-  private[this] def moveGroup(lib:FullNodeGroupCategory, workflowEnabled: Boolean)(arg: String) : JsCmd = {
+  private[this] def moveGroup(lib:FullNodeGroupCategory)(arg: String) : JsCmd = {
     //parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
@@ -356,9 +355,9 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
             case Full((ng,cat)) =>
               refreshGroupLib()
               (
-                  refreshTree(htmlTreeNodeId(ng.id.value), workflowEnabled)
+                  refreshTree(htmlTreeNodeId(ng.id.value))
                 & JsRaw("""setTimeout(function() { $("[groupid=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceGroupId))
-                & refreshRightPanel(GroupForm(ng,cat), workflowEnabled)
+                & refreshRightPanel(GroupForm(ng,cat))
               )
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move group with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceGroupId,destCatId))
@@ -370,7 +369,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     }
   }
 
-  private[this] def moveCategory(lib: FullNodeGroupCategory, workflowEnabled: Boolean)(arg: String) : JsCmd = {
+  private[this] def moveCategory(lib: FullNodeGroupCategory)(arg: String) : JsCmd = {
     //parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
@@ -396,9 +395,9 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
             case Full((id,res)) =>
               refreshGroupLib
               (
-                  refreshTree(htmlTreeNodeId(id), workflowEnabled)
+                  refreshTree(htmlTreeNodeId(id))
                 & OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").effect("highlight", {}, 2000);}, 100)""".format(sourceCatId)))
-                & refreshRightPanel(CategoryForm(res), workflowEnabled)
+                & refreshRightPanel(CategoryForm(res))
               )
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceCatId,destCatId))
@@ -412,49 +411,49 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
 
   ////////////////////
 
-  private[this] def refreshTree(selectedNode:String, workflowEnabled: Boolean) : JsCmd =  {
-    Replace(htmlId_groupTree, buildGroupTree(selectedNode, workflowEnabled))
+  private[this] def refreshTree(selectedNode:String) : JsCmd =  {
+    Replace(htmlId_groupTree, buildGroupTree(selectedNode))
   }
 
  /********************************************
   * Utility methods for JS
   ********************************************/
 
-  private[this] def displayCategory(workflowEnabled: Boolean)(category : NodeGroupCategory) : JsCmd = {
+  private[this] def displayCategory(category : NodeGroupCategory) : JsCmd = {
     selectedCategoryId = Full(category.id)
     //update UI - no modification here, so no refreshGroupLib
-    refreshRightPanel(CategoryForm(category), workflowEnabled) &
+    refreshRightPanel(CategoryForm(category)) &
     JsRaw("""$('#groupDetails').show();""")
   }
 
   //adaptater
-  private[this] def fullDisplayCategory(workflowEnabled: Boolean)(category: FullNodeGroupCategory) = displayCategory(workflowEnabled)(category.toNodeGroupCategory)
+  private[this] def fullDisplayCategory(category: FullNodeGroupCategory) = displayCategory(category.toNodeGroupCategory)
 
-  private[this] def showGroupSection(workflowEnabled: Boolean)(g: NodeGroup, parentCategoryId: NodeGroupCategoryId) = {
-    refreshRightPanel(GroupForm(g, parentCategoryId), workflowEnabled)&
+  private[this] def showGroupSection(g: NodeGroup, parentCategoryId: NodeGroupCategoryId) = {
+    refreshRightPanel(GroupForm(g, parentCategoryId))&
     JsRaw(s"""
         jQuery('#groupDetails').show();
         var groupId = JSON.stringify({'groupId':'${g.id.value}'});
         window.location.hash = "#"+groupId""")
   }
 
-  private[this] def showTargetInfo(workflowEnabled: Boolean)(parentCategory: FullNodeGroupCategory, targetInfo: FullRuleTargetInfo) : JsCmd = {
+  private[this] def showTargetInfo(parentCategory: FullNodeGroupCategory, targetInfo: FullRuleTargetInfo) : JsCmd = {
     //update UI - no modeification here, so no refreshGroupLib
 
     //action only for node group
 
     targetInfo.target match {
-      case t:FullGroupTarget => showGroupSection(workflowEnabled)(t.nodeGroup, parentCategory.id)
+      case t:FullGroupTarget => showGroupSection(t.nodeGroup, parentCategory.id)
       case _ => Noop
     }
   }
 
-  private[this] def showPopup(workflowEnabled: Boolean) : JsCmd = {
+  private[this] def showPopup() : JsCmd = {
 
     boxGroupLib match {
       case eb: EmptyBox => Alert("Error when trying to get the list of categories")
       case Full(rootCategory) =>
-        setCreationPopup(rootCategory, workflowEnabled)
+        setCreationPopup(rootCategory)
 
         //update UI
         SetHtml("createGroupContainer", createPopup) &

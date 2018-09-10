@@ -40,6 +40,7 @@ import bootstrap.liftweb.RudderConfig
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.util.Helpers._
+
 import scala.xml._
 import net.liftweb.http._
 import net.liftweb.http.js._
@@ -47,24 +48,23 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField
-}
+import com.normation.rudder.web.model._
 import java.util.regex.Pattern
-import CreateOrUpdateGlobalParameterPopup._
+
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.services.workflows.GlobalParamChangeRequest
+import com.normation.rudder.services.workflows.GlobalParamModAction
+import com.normation.rudder.services.workflows.WorkflowService
 
 class CreateOrUpdateGlobalParameterPopup(
-    parameter         : Option[GlobalParameter]
-  , workflowEnabled   : Boolean
-  , action            : String //one among: create, save or delete
-  , onSuccessCallback : (Either[GlobalParameter,ChangeRequestId]) => JsCmd = { x => Noop }
+    change            : GlobalParamChangeRequest
+  , workflowService   : WorkflowService
+  , onSuccessCallback : (Either[GlobalParameter, ChangeRequestId]) => JsCmd = { x => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet  with Loggable {
-  private[this] val userPropertyService= RudderConfig.userPropertyService
 
-  private[this] val changeRequestService     = RudderConfig.changeRequestService
-  private[this] val workflowService          = RudderConfig.workflowService
+  private[this] val userPropertyService  = RudderConfig.userPropertyService
+  private[this] val changeRequestService = RudderConfig.changeRequestService
 
   def dispatch = {
     case "popupContent" =>  { _ =>   popupContent }
@@ -74,12 +74,13 @@ class CreateOrUpdateGlobalParameterPopup(
    * - Global Parameter
    * - Create, delete, modify (save)
    */
-  private def titles = Map(
-      "delete"  -> "Delete a Global Parameter"
-    , "save"    -> "Update a Global Parameter"
-    , "create"  -> "Add a Global Parameter"
-  )
+  private def titles = change.action match {
+    case GlobalParamModAction.Delete => "Delete a Global Parameter"
+    case GlobalParamModAction.Update => "Update a Global Parameter"
+    case GlobalParamModAction.Create => "Add a Global Parameter"
+  }
 
+  private[this] val workflowEnabled = workflowService.needExternalValidation()
   private[this] val titleWorkflow = workflowEnabled match {
       case true =>
             <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
@@ -92,17 +93,16 @@ class CreateOrUpdateGlobalParameterPopup(
     }
 
   private[this] def globalParamDiffFromAction(newParameter : GlobalParameter): Box[ChangeRequestGlobalParameterDiff] = {
-    parameter match {
+    change.previousGlobalParam match {
       case None =>
-        if ((action == "save") || (action == "create"))
+        if ((change.action == GlobalParamModAction.Update) || (change.action == GlobalParamModAction.Create))
           Full(AddGlobalParameterDiff(newParameter))
         else
-          Failure(s"Action ${action} is not possible on a new Global Parameter")
+          Failure(s"Action ${change.action.name} is not possible on a new Global Parameter")
       case Some(d) =>
-        action match {
-          case "delete" => Full(DeleteGlobalParameterDiff(d))
-          case "save" | "create" => Full(ModifyToGlobalParameterDiff(newParameter))
-          case _ => Failure(s"Action ${action} is not possible on a existing Global Parameter")
+        change.action match {
+          case GlobalParamModAction.Delete                               => Full(DeleteGlobalParameterDiff(d))
+          case GlobalParamModAction.Update | GlobalParamModAction.Create => Full(ModifyToGlobalParameterDiff(newParameter))
         }
     }
   }
@@ -124,7 +124,7 @@ class CreateOrUpdateGlobalParameterPopup(
                          changeRequestName.get
                        , paramReasons.map( _.get ).getOrElse("")
                        , newParameter
-                       , parameter
+                       , change.previousGlobalParam
                        , diff
                        , CurrentUser.actor
                        , paramReasons.map( _.get )
@@ -162,7 +162,7 @@ class CreateOrUpdateGlobalParameterPopup(
    * Update the form when something happened
    */
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml(htmlId_popupContainer, popupContent())
+    SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupContent())
   }
 
   private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
@@ -181,10 +181,10 @@ class CreateOrUpdateGlobalParameterPopup(
   ////////////////////////// fields for form ////////////////////////
   private[this] val patternName = Pattern.compile("[a-zA-Z0-9_]+");
 
-  private[this] val parameterName = new WBTextField("Name", parameter.map(_.name.value).getOrElse("")) {
+  private[this] val parameterName = new WBTextField("Name", change.previousGlobalParam.map(_.name.value).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
-    override def inputField = (parameter match {
+    override def inputField = (change.previousGlobalParam match {
       case Some(entry) => super.inputField % ("disabled" -> "true")
       case None => super.inputField
     }) % ("onkeydown" -> "return processKey(event , 'createParameterSaveButton')")  % ("tabindex" -> "1")
@@ -194,39 +194,34 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   // The value may be empty
-  private[this] val parameterValue = new WBTextAreaField("Value", parameter.map(_.value).getOrElse("")) {
+  private[this] val parameterValue = new WBTextAreaField("Value", change.previousGlobalParam.map(_.value).getOrElse("")) {
     override def setFilter = trim _ :: Nil
-    override def inputField = ( action match {
-      case "delete" => super.inputField % ("disabled" -> "true")
-      case _ => super.inputField
+    override def inputField = ( change.action match {
+      case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
+      case _                           => super.inputField
     }) % ("style" -> "height:4em")  % ("tabindex" -> "2")
     override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
   }
 
-  private[this] val parameterDescription = new WBTextAreaField("Description", parameter.map(_.description).getOrElse("")) {
+  private[this] val parameterDescription = new WBTextAreaField("Description", change.previousGlobalParam.map(_.description).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField =( action match {
-      case "delete" => super.inputField % ("disabled" -> "true")
+    override def inputField =( change.action match {
+      case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
       case _ => super.inputField
     })  % ("tabindex" -> "3")
     override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
   }
 
-  private[this] val defaultActionName = Map (
-        "save"    -> "Update"
-      , "create"  -> "Create"
-      , "delete"  -> "Delete"
-    )(action)
 
-  private[this] val defaultClassName = Map (
-      "save"    -> "btn-success"
-    , "create"  -> "btn-success"
-    , "delete"  -> "btn-danger"
-  )(action)
+  private[this] def defaultClassName = change.action match {
+    case GlobalParamModAction.Update => "btn-success"
+    case GlobalParamModAction.Create => "btn-success"
+    case GlobalParamModAction.Delete => "btn-danger"
+  }
 
-  private[this] val defaultRequestName = s"${defaultActionName} Global Parameter " + parameter.map(_.name.value).getOrElse("")
+  private[this] val defaultRequestName = s"${change.action.name.capitalize} Global Parameter " + change.previousGlobalParam.map(_.name.value).getOrElse("")
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
@@ -276,11 +271,11 @@ class CreateOrUpdateGlobalParameterPopup(
     val (buttonName, classForButton) = workflowEnabled match {
       case true =>
          ("Open Request", "wideButton btn-primary")
-      case false => (defaultActionName, defaultClassName)
+      case false => (change.action.name.capitalize, defaultClassName)
     }
 
     (
-      "#title *" #> titles(action) &
+      "#title *" #> titles &
       ".name" #> parameterName.toForm_! &
       ".value" #> parameterValue.toForm_! &
       ".description *" #> parameterDescription.toForm_! &
@@ -292,7 +287,7 @@ class CreateOrUpdateGlobalParameterPopup(
             Full(NodeSeq.Empty)
       } &
       "#delete *" #> {
-        if (action=="delete") {
+        if (change.action == GlobalParamModAction.Delete) {
         <div class="row">
         </div>
         } else {

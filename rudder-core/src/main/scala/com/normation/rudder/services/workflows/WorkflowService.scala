@@ -37,26 +37,117 @@
 
 package com.normation.rudder.services.workflows
 
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.workflows._
 import net.liftweb.common._
 import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.Rule
 
 
 case object WorkflowUpdate
+
+
+/*
+ * For rules, we have dedicated actions
+ */
+sealed abstract class RuleModAction(val name: String)
+object RuleModAction {
+  final case object Create  extends RuleModAction( "create"  )
+  final case object Update  extends RuleModAction( "update"  )
+  final case object Delete  extends RuleModAction( "delete"  )
+  final case object Enable  extends RuleModAction( "enable"  )
+  final case object Disable extends RuleModAction( "disable" )
+}
+
+final case class RuleChangeRequest(action: RuleModAction, newRule: Rule, previousRule: Option[Rule])
+
+/*
+ * Actions for groups and directives are mixed
+ */
+sealed abstract class DGModAction (val name: String)
+object DGModAction {
+  //create the directive without modifying rules (creation only - skip workflows)
+  final case object CreateSolo        extends DGModAction("create" )
+  //create the directive and assign it to rules (creation of directive without wf, rules modification with wf)
+  final case object CreateAndModRules extends DGModAction("create" )
+  final case object Update            extends DGModAction("update" )
+  final case object Delete            extends DGModAction("delete" )
+  final case object Enable            extends DGModAction("enable" )
+  final case object Disable           extends DGModAction("disable")
+}
+
+final case class DirectiveChangeRequest(
+    action           : DGModAction
+  , techniqueName    : TechniqueName
+  , activeTechniqueId: ActiveTechniqueId
+  , sectionSpec      : SectionSpec
+  , newDirective     : Directive
+  , previousDirective: Option[Directive]
+  , baseRules        : List[Rule]
+  , updatedRules     : List[Rule]
+)
+
+final case class NodeGroupChangeRequest(
+    action       : DGModAction
+  , newGroup     : NodeGroup
+  , category     : Option[NodeGroupCategoryId]
+  , previousGroup: Option[NodeGroup]
+)
+
+sealed abstract class GlobalParamModAction(val name: String)
+object GlobalParamModAction {
+  final case object Create  extends GlobalParamModAction( "create"  )
+  final case object Update  extends GlobalParamModAction( "update"  )
+  final case object Delete  extends GlobalParamModAction( "delete"  )
+}
+
+final case class GlobalParamChangeRequest(
+    action             : GlobalParamModAction
+  , previousGlobalParam: Option[GlobalParameter]
+   // this one is strange, we don't have the new value?
+)
+
 
 /*
  * This service allows to know if the change validation service is set
  */
 trait WorkflowLevelService {
+  /*
+   * Does that level of workflow service allows a workflow to
+   * be enabled ?
+   */
+  def workflowLevelAllowsEnable: Boolean
+
+  /*
+   * Is the workflow enable from the user pont of view ?
+   * For that to be true, workflow level supporting workflow must be
+   * installed AND the user must have chosen workflows.
+   * It behaves like property "rudder_workflow_enabled"
+   */
   def workflowEnabled: Boolean
   def name: String
+
+  def getWorkflowService(): WorkflowService
+
+  /*
+   * Find the workflow that must follow the change to be validated
+   */
+  def getForRule       (actor: EventActor, change: RuleChangeRequest       ): Box[WorkflowService]
+  def getForDirective  (actor: EventActor, change: DirectiveChangeRequest  ): Box[WorkflowService]
+  def getForNodeGroup  (actor: EventActor, change: NodeGroupChangeRequest  ): Box[WorkflowService]
+  def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): Box[WorkflowService]
 }
 
 // and default implementation is: no
-class DefaultWorkflowLevel() extends WorkflowLevelService {
+class DefaultWorkflowLevel(val defaultWorkflowService: WorkflowService) extends WorkflowLevelService {
   // Alternative level provider
   private[this] var level: Option[WorkflowLevelService] = None
 
@@ -64,9 +155,26 @@ class DefaultWorkflowLevel() extends WorkflowLevelService {
     PluginLogger.info(s"Update Validation Workflow level to '${l.name}'")
     level = Some(l)
   }
+
+  override def workflowLevelAllowsEnable: Boolean = level.map( _.workflowLevelAllowsEnable ).getOrElse(false)
   override def workflowEnabled: Boolean = level.map( _.workflowEnabled ).getOrElse(false)
 
   override def name: String = level.map( _.name ).getOrElse("Default implementation (no validation workflows)")
+
+  override def getWorkflowService(): WorkflowService = level.map(_.getWorkflowService()).getOrElse(defaultWorkflowService)
+
+  override def getForRule(actor: EventActor, change: RuleChangeRequest): Box[WorkflowService] = {
+    this.level.map( _.getForRule(actor, change)).getOrElse(Full(defaultWorkflowService))
+  }
+  override def getForDirective(actor: EventActor, change: DirectiveChangeRequest): Box[WorkflowService] = {
+    this.level.map( _.getForDirective(actor, change)).getOrElse(Full(defaultWorkflowService))
+  }
+  override def getForNodeGroup(actor: EventActor, change: NodeGroupChangeRequest): Box[WorkflowService] = {
+    this.level.map( _.getForNodeGroup(actor, change)).getOrElse(Full(defaultWorkflowService))
+  }
+  override def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): Box[WorkflowService] = {
+    this.level.map( _.getForGlobalParam(actor, change)).getOrElse(Full(defaultWorkflowService))
+  }
 }
 
 /**
@@ -119,6 +227,13 @@ trait WorkflowService {
 
   def isEditable(currentUserRights:Seq[String],currentStep:WorkflowNodeId, isCreator : Boolean): Boolean
   def isPending(currentStep:WorkflowNodeId): Boolean
+
+  /*
+   * A method that tells if the workflow requires an external validation.
+   * It can be usefull if you want to adapt message and validation redirection if
+   * it is the case.
+   */
+  def needExternalValidation(): Boolean
 }
 
 case class WorkflowAction(
@@ -130,50 +245,6 @@ object NoWorkflowAction extends WorkflowAction("Nothing",Seq())
 object WorkflowAction {
   type WorkflowStepFunction = (ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId]
   def apply(name:String,action:(WorkflowNodeId,WorkflowStepFunction)):WorkflowAction = WorkflowAction(name,Seq(action))
-}
-
-/**
- * A facade, use to hide the real workflow service.
- * Must be initialized with a non-null workflow service.
- */
-class FacadeWorkflowService(private var workflowService: WorkflowService) extends WorkflowService {
-
-  // one can change the workflow service, and the action is log
-  def updateWorkflowService(wf: WorkflowService): Unit = {
-    ApplicationLogger.info(s"Setting a new changes validation workflow: '${wf.name}'")
-    this.workflowService = wf
-  }
-
-  // allow to recover current workflow server
-  def getCurrentWorkflowService = workflowService
-
-  ///// below are all the forwards, nothing interesting at all /////
-  override def name: String = //we are totaly tranparent, the name is the name of the backend workflow service
-    workflowService.name
-  override def startWorkflow(changeRequestId: ChangeRequestId, actor: EventActor, reason: Option[String]): Box[WorkflowNodeId] =
-    workflowService.startWorkflow(changeRequestId, actor, reason)
-  override def openSteps: List[WorkflowNodeId] =
-    workflowService.openSteps
-  override def closedSteps: List[WorkflowNodeId] =
-    workflowService.closedSteps
-  override def stepsValue: List[WorkflowNodeId] =
-    workflowService.stepsValue
-  override def findNextSteps(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): WorkflowAction =
-    workflowService.findNextSteps(currentUserRights, currentStep, isCreator)
-  override def findBackSteps(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => Box[WorkflowNodeId])] =
-    workflowService.findBackSteps(currentUserRights, currentStep, isCreator)
-  override def findStep(changeRequestId: ChangeRequestId): Box[WorkflowNodeId] =
-    workflowService.findStep(changeRequestId)
-  override def getAllChangeRequestsStep(): Box[Map[ChangeRequestId, WorkflowNodeId]] =
-    workflowService.getAllChangeRequestsStep()
-  override def isEditable(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Boolean =
-    workflowService.isEditable(currentUserRights, currentStep, isCreator)
-  override def isPending(currentStep: WorkflowNodeId): Boolean =
-    workflowService.isPending(currentStep)
-}
-
-object FacadeWorkflowService {
-  def apply(wf: WorkflowService): FacadeWorkflowService = new FacadeWorkflowService(wf)
 }
 
 /**
@@ -238,4 +309,6 @@ class NoWorkflowServiceImpl(
   def isEditable(currentUserRights:Seq[String],currentStep:WorkflowNodeId, isCreator : Boolean): Boolean = false
 
   def isPending(currentStep:WorkflowNodeId): Boolean = false
+
+  override def needExternalValidation(): Boolean = false
 }

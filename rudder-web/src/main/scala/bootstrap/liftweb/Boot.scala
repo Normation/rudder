@@ -258,10 +258,6 @@ class Boot extends Loggable {
         RewriteResponse("secure" :: "administration" :: "techniqueLibraryManagement" :: Nil, Map("techniqueId" -> activeTechniqueId))
       case RewriteRequest(ParsePath("secure"::"nodeManager"::"searchNodes"::nodeId::Nil, _, _, _), GetRequest, _) =>
         RewriteResponse("secure"::"nodeManager"::"searchNodes"::Nil, Map("nodeId" -> nodeId))
-      case RewriteRequest(ParsePath("secure"::"utilities"::"changeRequests"::filter::Nil, _, _, _), GetRequest, _) =>
-        RewriteResponse("secure"::"utilities"::"changeRequests"::Nil, Map("filter" -> filter))
-      case RewriteRequest(ParsePath("secure"::"utilities"::"changeRequest"::crId::Nil, _, _, _), GetRequest, _) =>
-        RewriteResponse("secure"::"utilities"::"changeRequest"::Nil, Map("crId" -> crId))
     }
 
     // Fix relative path to css resources
@@ -421,26 +417,6 @@ class Boot extends Loggable {
             "secure" / "utilities" / "archiveManagement"
             >> LocGroup("utilitiesGroup")
             >> TestAccess ( () => userIsAllowed("/secure/utilities/eventLogs",AuthorizationType.Administration.Write) )
-
-        , Menu("changeRequests", <span>Change requests</span>) /
-            "secure" / "utilities" / "changeRequests"
-            >> LocGroup("utilitiesGroup")
-            >> TestAccess ( () =>
-              if (workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser.checkRights(AuthorizationType.Deployer.Read)))
-                Empty
-              else
-                Full(RedirectWithState("/secure/utilities/eventLogs", redirection ) )
-              )
-
-        , Menu("changeRequest", <span>Change request</span>) /
-            "secure" / "utilities" / "changeRequest"
-            >> Hidden
-            >> TestAccess ( () =>
-              if (workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser.checkRights(AuthorizationType.Deployer.Read)))
-                Empty
-              else
-                Full(RedirectWithState("/secure/utilities/eventLogs", redirection) )
-              )
 
         , Menu("eventLogViewer", <span>Event logs</span>) /
             "secure" / "utilities" / "eventLogs"

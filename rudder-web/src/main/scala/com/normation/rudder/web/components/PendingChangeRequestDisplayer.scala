@@ -38,7 +38,6 @@
 package com.normation.rudder.web.components
 
 import scala.xml.NodeSeq
-import com.normation.rudder.domain.policies.RuleId
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
@@ -52,6 +51,11 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.AuthorizationType
 
+/*
+ * This object is just a service that check if a given rule/directive/etc has
+ * already a change request on it to display a relevant information if it is
+ * the case.
+ */
 object PendingChangeRequestDisplayer extends Loggable{
 
   private[this] val roChangeRequestRepo = RudderConfig.roChangeRequestRepository
@@ -90,9 +94,8 @@ object PendingChangeRequestDisplayer extends Loggable{
       xml   : NodeSeq
     , id    : T
     , check : checkFunction[T]
-    , workflowEnabled: Boolean
   ) = {
-    if (workflowEnabled) {
+    if (RudderConfig.configService.rudder_workflow_enabled().getOrElse(false)) {
       val crs = check(id,true)
       displayPendingChangeRequest(xml,crs)
     }  else {
@@ -101,15 +104,15 @@ object PendingChangeRequestDisplayer extends Loggable{
     }
   }
 
-  def checkByRule(xml:NodeSeq,ruleId:RuleId, workflowEnabled: Boolean) = {
-    checkChangeRequest(xml,ruleId,roChangeRequestRepo.getByRule, workflowEnabled)
+  def checkByRule(xml:NodeSeq,ruleId:RuleId) = {
+    checkChangeRequest(xml,ruleId,roChangeRequestRepo.getByRule)
   }
 
-  def checkByGroup(xml:NodeSeq,groupId:NodeGroupId, workflowEnabled: Boolean) = {
-    checkChangeRequest(xml,groupId,roChangeRequestRepo.getByNodeGroup, workflowEnabled)
+  def checkByGroup(xml:NodeSeq,groupId:NodeGroupId) = {
+    checkChangeRequest(xml,groupId,roChangeRequestRepo.getByNodeGroup)
   }
 
-  def checkByDirective(xml:NodeSeq,directiveId:DirectiveId, workflowEnabled: Boolean) = {
-    checkChangeRequest(xml,directiveId,roChangeRequestRepo.getByDirective, workflowEnabled)
+  def checkByDirective(xml:NodeSeq,directiveId:DirectiveId) = {
+    checkChangeRequest(xml,directiveId,roChangeRequestRepo.getByDirective)
   }
 }

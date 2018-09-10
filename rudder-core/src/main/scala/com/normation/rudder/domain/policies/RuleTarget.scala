@@ -60,10 +60,10 @@ sealed abstract class RuleTarget {
   def toJson : JValue = JString(target)
 }
 
-sealed trait NonGroupRuleTarget extends RuleTarget
+sealed trait SimpleTarget extends RuleTarget //simple as opposed to composed
 
 object GroupTarget { def r = "group:(.+)".r }
-final case class GroupTarget(groupId:NodeGroupId) extends RuleTarget with HashcodeCaching {
+final case class GroupTarget(groupId:NodeGroupId) extends SimpleTarget with HashcodeCaching {
   override def target = "group:"+groupId.value
 }
 
@@ -71,6 +71,8 @@ final case class GroupTarget(groupId:NodeGroupId) extends RuleTarget with Hashco
 //case class NodeTarget(nodeId:NodeId) extends RuleTarget {
 //  override def target = "node:"+nodeId.value
 //}
+
+sealed trait NonGroupRuleTarget extends SimpleTarget
 
 object PolicyServerTarget { def r = "policyServer:(.+)".r }
 final case class PolicyServerTarget(nodeId:NodeId) extends NonGroupRuleTarget with HashcodeCaching {
