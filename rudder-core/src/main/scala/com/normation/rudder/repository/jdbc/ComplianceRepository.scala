@@ -163,7 +163,13 @@ class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
     res match {
       case \/-(_) => // ok
       case -\/(ex) =>
-        logger.error("Error when saving node compliances: " + ex.getMessage)
+        // that message can be huge because it may contains whole nodecompliance json. Truncate it in error, and
+        // display whole in debub
+        val msg = if(ex.getMessage.size > 200) { ex.getMessage.substring(0, 196) ++ "..." } else { ex.getMessage }
+        logger.error("Error when saving node compliances: " + msg)
+        if(msg.endsWith("...")) {
+          logger.debug("Full error message was: " + ex.getMessage)
+        }
     }
 
     res
