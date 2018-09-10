@@ -42,9 +42,7 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField,WBSelectField,WBRadioField
-}
+import com.normation.rudder.web.model.{FormTracker, WBRadioField, WBSelectField, WBTextAreaField, WBTextField}
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
@@ -56,10 +54,13 @@ import JsCmds._
 import JE._
 import net.liftweb.common._
 import net.liftweb.http._
+
 import scala.xml._
 import net.liftweb.util.Helpers._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.services.workflows.DGModAction
+import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.web.ChooseTemplate
 
 object NodeGroupForm {
@@ -89,7 +90,6 @@ class NodeGroupForm(
   , val nodeGroup     : NodeGroup
   , parentCategoryId  : NodeGroupCategoryId
   , rootCategory      : FullNodeGroupCategory
-  , workflowEnabled   : Boolean
   , onSuccessCallback : (Either[(NodeGroup, NodeGroupCategoryId), ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with DefaultExtendableSnippet[NodeGroupForm] with Loggable {
@@ -97,6 +97,7 @@ class NodeGroupForm(
 
   private[this] val nodeInfoService            = RudderConfig.nodeInfoService
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
+  private[this] val workflowLevelService       = RudderConfig.workflowLevelService
 
   private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm]
   private[this] val nodeGroupForm = new LocalSnippet[NodeGroupForm]
@@ -150,7 +151,7 @@ class NodeGroupForm(
      )
 
      (
-        "group-pendingchangerequest" #>  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled)
+        "group-pendingchangerequest" #>  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id)
       & "group-name" #> groupName.toForm_!
       & "group-rudderid" #> <div class="form-group row">
                       <label class="wbBaseFieldLabel">Rudder ID</label>
@@ -285,13 +286,13 @@ class NodeGroupForm(
         formTracker.addFormError(Text("There are no modifications to save"))
         onFailure & onFailureCallback()
       } else {
-        displayConfirmationPopup(ModificationValidationPopup.Save, newGroup, optContainer)
+        displayConfirmationPopup(DGModAction.Update, newGroup, optContainer)
       }
     }
   }
 
   private[this] def onSubmitDelete(): JsCmd = {
-    displayConfirmationPopup(ModificationValidationPopup.Delete, nodeGroup, None)
+    displayConfirmationPopup(DGModAction.Delete, nodeGroup, None)
   }
 
   /*
@@ -299,43 +300,52 @@ class NodeGroupForm(
    */
 
   private[this] def displayConfirmationPopup(
-      action     : ModificationValidationPopup.Action
+      action     : DGModAction
     , newGroup   : NodeGroup
     , newCategory: Option[NodeGroupCategoryId]
   ) : JsCmd = {
 
     val optOriginal = Some(nodeGroup)
+    val change = NodeGroupChangeRequest(action, newGroup, newCategory, optOriginal)
 
-    val popup = {
+    workflowLevelService.getForNodeGroup(CurrentUser.actor, change) match {
+      case eb: EmptyBox =>
+        val msg = s"Error when getting the validation workflow for changes in directive '${change.newGroup.name}'"
+        logger.warn(msg, eb)
+        JsRaw(s"alert('${msg}')")
 
-      def successCallback(crId:ChangeRequestId) = if (workflowEnabled) {
-        onSuccessCallback(Right(crId))
-      } else {
-        val updateCategory = newCategory.getOrElse(parentCategoryId)
-        successPopup & onSuccessCallback(Left((newGroup,updateCategory))) &
-        (if (action==ModificationValidationPopup.Delete)
-           SetHtml(htmlId_item,NodeSeq.Empty)
-        else
-             Noop)
-      }
+      case Full(workflowService) =>
 
-      new ModificationValidationPopup(
-          Right((newGroup, newCategory, optOriginal))
-        , action
-        , workflowEnabled
-        , crId => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & successCallback(crId)
-        , xml => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
-        , parentFormTracker = formTracker
-      )
+        val popup = {
 
-    }
+          def successCallback(crId:ChangeRequestId) = {
+            if (workflowService.needExternalValidation()) {
+              onSuccessCallback(Right(crId))
+            } else {
+              val updateCategory = newCategory.getOrElse(parentCategoryId)
+              successPopup & onSuccessCallback(Left((newGroup,updateCategory))) &
+              (if (action==DGModAction.Delete)
+                 SetHtml(htmlId_item,NodeSeq.Empty)
+              else
+                   Noop)
+            }
+          }
+          new ModificationValidationPopup(
+              Right(change)
+            , workflowService
+            , crId => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & successCallback(crId)
+            , xml => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
+            , parentFormTracker = formTracker
+          )
+        }
 
-    popup.popupWarningMessages match {
-      case None =>
-        popup.onSubmit
-      case Some(_) =>
-        SetHtml("confirmUpdateActionDialog", popup.popupContent) &
-        JsRaw("""createPopup("confirmUpdateActionDialog")""")
+        popup.popupWarningMessages match {
+          case None =>
+            popup.onSubmit
+          case Some(_) =>
+            SetHtml("confirmUpdateActionDialog", popup.popupContent) &
+            JsRaw("""createPopup("confirmUpdateActionDialog")""")
+        }
     }
   }
 
@@ -372,7 +382,7 @@ class NodeGroupForm(
     panel match {
       case NoPanel => NodeSeq.Empty
       case GroupForm(group, catId) =>
-        val form = new NodeGroupForm(htmlId_item, group, catId, rootCategory, workflowEnabled, onSuccessCallback)
+        val form = new NodeGroupForm(htmlId_item, group, catId, rootCategory, onSuccessCallback)
         nodeGroupForm.set(Full(form))
         form.showForm()
 

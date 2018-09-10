@@ -57,14 +57,7 @@ class Index {
       if ( CurrentUser.checkRights(AuthorizationType.Technique.Read) ) {
         S.redirectTo("techniqueEditor")
       } else {
-        //if we are not able to read workflow, redirect to index
-        val workflow = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
-
-        if (workflow) {
-          S.redirectTo("/secure/utilities/changeRequests")
-        } else {
-          S.redirectTo("/secure/index")
-        }
+        S.redirectTo("/secure/index")
       }
     }
   }

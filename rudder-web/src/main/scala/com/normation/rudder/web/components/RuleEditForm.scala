@@ -46,7 +46,6 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.policies.TargetExclusion
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -70,11 +69,12 @@ import net.liftweb.json._
 import net.liftweb.util.ClearClearable
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model.WBSelectField
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.TargetExclusion
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.Tags
+import com.normation.rudder.services.workflows.RuleChangeRequest
+import com.normation.rudder.services.workflows.RuleModAction
 import com.normation.rudder.web.ChooseTemplate
 
 object RuleEditForm {
@@ -120,7 +120,6 @@ object RuleEditForm {
 class RuleEditForm(
     htmlId_rule       : String //HTML id for the div around the form
   , var rule          : Rule //the Rule to edit
-  , workflowEnabled   : Boolean
   , changeMsgEnabled  : Boolean
   , onSuccessCallback : (Rule) => JsCmd = { (r : Rule) => Noop } //JS to execute on form success (update UI parts)
   //there are call by name to have the context matching their execution when called,
@@ -129,13 +128,13 @@ class RuleEditForm(
 ) extends DispatchSnippet with DefaultExtendableSnippet[RuleEditForm] with Loggable {
   import RuleEditForm._
 
-  private[this] val htmlId_save = htmlId_rule + "Save"
+  private[this] val htmlId_save     = htmlId_rule + "Save"
   private[this] val htmlId_EditZone = "editRuleZone"
 
-  private[this] val roRuleRepository     = RudderConfig.roRuleRepository
+  private[this] val roRuleRepository           = RudderConfig.roRuleRepository
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
-  private[this] var ruleTarget = RuleTarget.merge(rule.targets)
+  private[this] var ruleTarget           = RuleTarget.merge(rule.targets)
   private[this] var selectedDirectiveIds = rule.directiveIds
 
   private[this] val getFullNodeGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
@@ -144,6 +143,8 @@ class RuleEditForm(
   private[this] val getRootRuleCategory = RudderConfig.roRuleCategoryRepository.getRootCategory _
   private[this] val configService       = RudderConfig.configService
   private[this] val linkUtil            = RudderConfig.linkUtil
+
+  private[this] val workflow            = RudderConfig.workflowLevelService
 
   //////////////////////////// public methods ////////////////////////////
 
@@ -216,8 +217,8 @@ class RuleEditForm(
          SHtml.ajaxButton("Delete", () => onSubmitDelete(),("class","btn btn-danger"))
        } &
        "#desactivateAction *" #> {
-         val status = rule.isEnabledStatus ? "disable" | "enable"
-         SHtml.ajaxButton(status.capitalize, () => onSubmitDisable(status) ,("class","btn btn-default"))
+         val status = if(rule.isEnabledStatus) { ("Disable", RuleModAction.Disable) } else { ("Enable", RuleModAction.Enable) }
+         SHtml.ajaxButton(status._1, () => onSubmitDisable(status._2) ,("class","btn btn-default"))
        } &
       "#clone" #> SHtml.ajaxButton(
                       { Text("Clone") }
@@ -254,7 +255,7 @@ class RuleEditForm(
 
     (
       "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
-          PendingChangeRequestDisplayer.checkByRule(xml, rule.id, workflowEnabled)
+          PendingChangeRequestDisplayer.checkByRule(xml, rule.id)
         } &
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
@@ -496,54 +497,60 @@ class RuleEditForm(
       if (newCr == rule) {
         onNothingToDo()
       } else {
-        displayConfirmationPopup("save", newCr)
+        displayConfirmationPopup(RuleModAction.Update, newCr)
       }
     }
   }
 
    //action must be 'enable' or 'disable'
-  private[this] def onSubmitDisable(action:String): JsCmd = {
+  private[this] def onSubmitDisable(action: RuleModAction): JsCmd = {
     displayConfirmationPopup(
         action
-      , rule.copy(isEnabledStatus = action == "enable")
+      , rule.copy(isEnabledStatus = action == RuleModAction.Enable)
     )
   }
 
   private[this] def onSubmitDelete(): JsCmd = {
     displayConfirmationPopup(
-        "delete"
+        RuleModAction.Delete
       , rule
     )
   }
 
   // Create the popup for workflow
   private[this] def displayConfirmationPopup(
-      action  : String
+      action  : RuleModAction
     , newRule : Rule
   ) : JsCmd = {
-    // for the moment, we don't have creation from here
-    val optOriginal = Some(rule)
 
-    val popup = new RuleModificationValidationPopup(
-          newRule
-        , optOriginal
-        , action
-        , workflowEnabled
-        , cr => workflowCallBack(action)(cr)
-        , () => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
-        , parentFormTracker = Some(formTracker)
-      )
+    val change = RuleChangeRequest(action, newRule, Some(rule))
+    workflow.getForRule(CurrentUser.actor, change) match {
+      case eb: EmptyBox =>
+        val msg = "An error occured when trying to find the validation workflow to use for that change."
+        logger.error(msg, eb)
+        JsRaw(s"alert('${msg}')")
 
-    if((!changeMsgEnabled) && (!workflowEnabled)) {
-      popup.onSubmit
-    } else {
-      SetHtml("confirmUpdateActionDialog", popup.popupContent) &
-      JsRaw("""createPopup("confirmUpdateActionDialog")""")
+      case Full(workflowService) =>
+
+        val popup = new RuleModificationValidationPopup(
+            change
+          , workflowService
+          , cr => workflowCallBack(workflowService.needExternalValidation(), action)(cr)
+          , () => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
+          , parentFormTracker = Some(formTracker)
+        )
+
+        if((!changeMsgEnabled) && (!workflowService.needExternalValidation())) {
+          popup.onSubmit
+        } else {
+          SetHtml("confirmUpdateActionDialog", popup.popupContent) &
+          JsRaw("""createPopup("confirmUpdateActionDialog")""")
+        }
     }
   }
 
-  private[this] def workflowCallBack(action:String)(returns : Either[Rule,ChangeRequestId]) : JsCmd = {
-    if ((!workflowEnabled) & (action == "delete")) {
+  private[this] def workflowCallBack(workflowEnabled: Boolean, action: RuleModAction)(returns : Either[Rule,ChangeRequestId]) : JsCmd = {
+    if ((!workflowEnabled) & (action == RuleModAction.Delete)) {
       JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onSuccessCallback(rule) & SetHtml("editRuleZone",
           <div id={htmlId_rule}> Rule '{rule.name}' successfully deleted</div>
       )

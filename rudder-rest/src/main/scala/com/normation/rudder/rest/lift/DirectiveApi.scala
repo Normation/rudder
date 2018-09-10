@@ -62,7 +62,9 @@ import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.data._
 import com.normation.rudder.rest.{DirectiveApi => API}
 import com.normation.rudder.services.workflows.ChangeRequestService
-import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.services.workflows.DGModAction
+import com.normation.rudder.services.workflows.DirectiveChangeRequest
+import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.web.model.DirectiveEditor
 import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.utils.Control._
@@ -203,9 +205,8 @@ class DirectiveAPIService2 (
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentActor
   , changeRequestService : ChangeRequestService
-  , workflowService      : WorkflowService
+  , workflowLevelService : WorkflowLevelService
   , restExtractor        : RestExtractorService
-  , workflowEnabled      : () => Box[Boolean]
   , editorService        : DirectiveEditorService
   , restDataSerializer   : RestDataSerializer
   , techniqueRepository  : TechniqueRepository
@@ -219,22 +220,25 @@ class DirectiveAPIService2 (
     , activeTechnique : ActiveTechnique
     , directive       : Directive
     , initialState    : Option[Directive]
+    , action          : DGModAction
   ) (actor : EventActor, reason : Option[String], crName : String, crDescription : String) : Box[JValue] = {
+    val change = DirectiveChangeRequest(action, technique.id.name, activeTechnique.id, technique.rootSection, directive, initialState, Nil, Nil)
+
     for {
-        cr <- changeRequestService.createChangeRequestFromDirective(
-                  crName
-                , crDescription
-                , technique.id.name
-                , technique.rootSection
-                , directive.id
-                , initialState
-                , diff
-                , actor
-                , reason
-              ) ?~! s"Change request creation on Directive '${directive.name}' failed"
-        wfStarted <- workflowService.startWorkflow(cr.id, actor, None) ?~! s"Could not start workflow for change request creation on Directive '${directive.name}'"
-        enabled   <- workflowEnabled() ?~! s"Could not check workflow property"
-        optCrId = if (enabled) Some(cr.id) else None
+      workflow  <- workflowLevelService.getForDirective(actor, change)
+      cr        <- changeRequestService.createChangeRequestFromDirective(
+                       crName
+                     , crDescription
+                     , technique.id.name
+                     , technique.rootSection
+                     , directive.id
+                     , initialState
+                     , diff
+                     , actor
+                     , reason
+                  ) ?~! s"Change request creation on Directive '${directive.name}' failed"
+      wfStarted <- workflow.startWorkflow(cr.id, actor, None) ?~! s"Could not start workflow for change request creation on Directive '${directive.name}'"
+        optCrId = if (workflow.needExternalValidation()) Some(cr.id) else None
         jsonDirective = ("directives" -> JArray(List(serialize(technique, directive, optCrId))))
       } yield {
         jsonDirective
@@ -330,6 +334,7 @@ class DirectiveAPIService2 (
           , activeTechnique
           , directive
           , Some(directive)
+          , DGModAction.Delete
         ) _
     } yield {
       result
@@ -403,6 +408,7 @@ class DirectiveAPIService2 (
           , directiveUpdate.activeTechnique
           , updatedDirective
           , Some(oldDirective)
+          , DGModAction.Update
         ) _
     }
   }

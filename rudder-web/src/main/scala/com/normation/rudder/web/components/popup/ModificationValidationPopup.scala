@@ -42,31 +42,29 @@ import JsCmds._
 import com.normation.rudder.domain.policies._
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,DispatchSnippet}
+import net.liftweb.http.{DispatchSnippet, SHtml}
+
 import scala.xml._
 import net.liftweb.util.Helpers._
-import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField
-}
-import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.web.model._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.web.components.RuleGrid
-import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.nodes.ChangeRequestNodeGroupDiff
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
+import com.normation.rudder.services.workflows.DGModAction
+import com.normation.rudder.services.workflows.DirectiveChangeRequest
+import com.normation.rudder.services.workflows.NodeGroupChangeRequest
+import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
 
@@ -94,17 +92,6 @@ object ModificationValidationPopup extends Loggable {
     , "component-validationpopup"
   )
 
-sealed trait Action { def displayName: String }
-final case object Save extends Action { val displayName: String = "Save" }
-final case object Delete extends Action { val displayName: String = "Delete" }
-final case object Enable extends Action { val displayName: String = "Enable" }
-final case object Disable extends Action { val displayName: String = "Disable" }
-
-//create the directive without modifying rules (creation only - skip workflows)
-final case object CreateSolo extends Action { val displayName: String = "Create" }
-
-//create the directive and assign it to rules (creation of directive without wf, rules modification with wf)
-final case object CreateAndModRules extends Action { val displayName: String = "Create" }
 
   /* Text variation for
    * - Directive and groups,
@@ -112,26 +99,26 @@ final case object CreateAndModRules extends Action { val displayName: String = "
    *
    * Expects "Directive" or "Group" as argument
    */
-  private def titles(item:String, name:String, action: Action) = action match {
-    case Enable  => s"Enable Directive '${name}'"
-    case Disable => s"Disable Directive '${name}'"
-    case Delete  => s"Delete ${item} '${name}'"
-    case Save    => s"Update ${item} '${name}'"
-    case CreateSolo => s"Create a ${item}"
-    case CreateAndModRules => s"Create a ${item}"
+  private def titles(item:String, name:String, action: DGModAction) = action match {
+    case DGModAction.Enable            => s"Enable Directive '${name}'"
+    case DGModAction.Disable           => s"Disable Directive '${name}'"
+    case DGModAction.Delete            => s"Delete ${item} '${name}'"
+    case DGModAction.Update            => s"Update ${item} '${name}'"
+    case DGModAction.CreateSolo        => s"Create a ${item}"
+    case DGModAction.CreateAndModRules => s"Create a ${item}"
   }
 
-  private def explanationMessages(item:String, action: Action, disabled: Boolean) = action match {
-    case Enable =>
+  private def explanationMessages(item:String, action: DGModAction, disabled: Boolean) = action match {
+    case DGModAction.Enable  =>
     <div class="row">
         <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
             Are you sure that you want to enable this {item}?
-        </h4>
+  ²      </h4>
     </div>
         <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
             Enabling this {item} will have an impact on the following Rules which apply it.
         </div>
-    case Disable =>
+    case DGModAction.Disable =>
       <div class="row">
         <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
             Are you sure that you want to disable this {item}?
@@ -140,7 +127,7 @@ final case object CreateAndModRules extends Action { val displayName: String = "
         <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
             Disabling this {item} will have an impact on the following Rules which apply it.
         </div>
-    case Delete =>
+    case DGModAction.Delete  =>
       <div class="row">
         <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
             Are you sure that you want to delete this {item}?
@@ -149,7 +136,7 @@ final case object CreateAndModRules extends Action { val displayName: String = "
         <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
             Deleting this {item} will have an impact on the following Rules which apply it.
         </div>
-    case Save =>
+    case DGModAction.Update  =>
         <div class="row">
             <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
                 Are you sure that you want to update this {item}?
@@ -166,13 +153,13 @@ final case object CreateAndModRules extends Action { val displayName: String = "
         <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center">
             Updating this {item} will have an impact on the following Rules which apply it.
         </div>
-    case CreateSolo =>
+    case DGModAction.CreateSolo =>
       <div class="row">
         <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
             Are you sure you want to create this {item}?
         </h4>
     </div>
-    case CreateAndModRules =>
+    case DGModAction.CreateAndModRules =>
       <div class="row">
         <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
             Are you sure that you want to create this {item}?
@@ -202,24 +189,19 @@ final case object CreateAndModRules extends Action { val displayName: String = "
  */
 class ModificationValidationPopup(
     //if we are creating a new item, then None, else Some(x)
-    item              : Either[
-                            (TechniqueName, ActiveTechniqueId, SectionSpec ,Directive, Option[Directive], List[Rule], List[Rule])
-                          , (NodeGroup, Option[NodeGroupCategoryId], Option[NodeGroup])
-                        ]
-  , action            : ModificationValidationPopup.Action
-  , workflowEnabled   : Boolean
-  , onSuccessCallback : ChangeRequestId => JsCmd = { x => Noop }
-  , onFailureCallback : NodeSeq => JsCmd = { x => Noop }
+    item                    : Either[DirectiveChangeRequest, NodeGroupChangeRequest]
+  , workflowService         : WorkflowService // workflow used to validate that change request
+  , onSuccessCallback       : ChangeRequestId => JsCmd = { x => Noop }
+  , onFailureCallback       : NodeSeq => JsCmd = { x => Noop }
   , onCreateSuccessCallBack : (Either[Directive,ChangeRequestId]) => JsCmd = { x => Noop }
   , onCreateFailureCallBack : () => JsCmd = { () => Noop }
-  , parentFormTracker : FormTracker
+  , parentFormTracker       : FormTracker
 ) extends DispatchSnippet with Loggable {
 
   import ModificationValidationPopup._
 
   private[this] val userPropertyService      = RudderConfig.userPropertyService
   private[this] val changeRequestService     = RudderConfig.changeRequestService
-  private[this] val workflowService          = RudderConfig.workflowService
   private[this] val dependencyService        = RudderConfig.dependencyAndDeletionService
   private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
   private[this] val techniqueRepo            = RudderConfig.techniqueRepository
@@ -235,14 +217,17 @@ class ModificationValidationPopup(
   }
 
   private[this] val disabled = item match {
-    case Left(item) => ! item._4.isEnabled
-    case Right(item) => ! item._1.isEnabled
+    case Left(item) => ! item.newDirective.isEnabled
+    case Right(item) => ! item.newGroup.isEnabled
   }
 
-  private[this] val (defaultRequestName, itemType, itemName) = {
+  private[this] val validationRequired = workflowService.needExternalValidation()
+  private[this] val (defaultRequestName, itemType, itemName, action) = {
     item match {
-      case Left((t,a,r,d,opt,add,remove)) => (s"${action.displayName} Directive ${d.name}" , "Directive", d.name)
-      case Right((g,_,_))                 => (s"${action.displayName} Group ${g.name}"     , "Group", g.name)
+      case Left(DirectiveChangeRequest(action,t,a,r,d,opt,add,remove)) =>
+        (s"${action.name} Directive ${d.name}" , "Directive", d.name, action)
+      case Right(NodeGroupChangeRequest(action,g,_,_))                         =>
+        (s"${action.name} Group ${g.name}"     , "Group", g.name, action)
     }
   }
 
@@ -253,15 +238,15 @@ class ModificationValidationPopup(
 
   private[this] val rules = {
     action match {
-      case CreateSolo =>
+      case DGModAction.CreateSolo =>
         Full(Set[Rule]())
       case _ =>
         item match {
-          case Left((_, _, _, directive, _, baseRules, _)) =>
-            dependencyService.directiveDependencies(directive.id, groupLib).map(_.rules ++ baseRules)
+          case Left(directiveChange) =>
+            dependencyService.directiveDependencies(directiveChange.newDirective.id, groupLib).map(_.rules ++ directiveChange.baseRules)
 
-          case Right((nodeGroup, _, _)) =>
-            dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules)
+          case Right(nodeGroupChange) =>
+            dependencyService.targetDependencies(GroupTarget(nodeGroupChange.newGroup.id)).map( _.rules)
         }
     }
   }
@@ -288,7 +273,7 @@ class ModificationValidationPopup(
 
         //if there is nothing to validate and no workflows,
         action match {
-          case CreateSolo =>
+          case DGModAction.CreateSolo =>
             if(crReasons.isDefined) {
               Some((explanationNoWarning,NodeSeq.Empty))
             } else {
@@ -297,7 +282,7 @@ class ModificationValidationPopup(
               None
             }
           case _ => //item update
-            if(crReasons.isDefined || workflowEnabled) {
+            if(crReasons.isDefined || validationRequired) {
               Some((explanationNoWarning,NodeSeq.Empty))
             } else { //no wf, no message => the user can't do anything
               None
@@ -312,32 +297,33 @@ class ModificationValidationPopup(
   // _1 is explanation message, _2 is dependant rules
   def popupContent() : NodeSeq = {
 
-    def workflowMessage(directiveCreation: Boolean) =
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
-        <hr class="css-fix"/>
-        <div class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center">
-            <span class="glyphicon glyphicon-info-sign"></span>
-            Workflows are enabled in Rudder, your change has to be validated in a Change request
-            {
-            if(directiveCreation)
-                <p>The directive will be directly created, only rule changes have to been validated.</p>
-             else
-                NodeSeq.Empty
-            }
-        </div>
-    val (buttonName, classForButton, titleWorkflow) = (workflowEnabled, action) match {
-      case (false, CreateSolo) => ("Create", "btn-success", NodeSeq.Empty)
-      case (false, CreateAndModRules) => ("Create", "btn-success", NodeSeq.Empty)
-      case (false, Delete) => ("Delete", "btn-danger", NodeSeq.Empty)
-      case (false, Save) => ("Update", "btn-success", NodeSeq.Empty)
-      case (false, Enable) => ("Enable", "btn-primary", NodeSeq.Empty)
-      case (false, Disable) => ("Disable", "btn-primary", NodeSeq.Empty)
-      case (true, CreateSolo) => ("Create" , "btn-success", NodeSeq.Empty)
-      case (true, CreateAndModRules) => ("Open request", "btn-primary", workflowMessage(true))
-      case (true, Delete) => ("Open request", "btn-primary", workflowMessage(false))
-      case (true, Save) => ("Open request", "btn-primary", workflowMessage(false))
-      case (true, Enable) => ("Open request", "btn-primary", workflowMessage(false))
-      case (true, Disable) => ("Open request", "btn-primary", workflowMessage(false))
+    def workflowMessage(directiveCreation: Boolean) = (
+      <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
+      <hr class="css-fix"/>
+      <div class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center">
+        <span class="glyphicon glyphicon-info-sign"></span>
+        Workflows are enabled in Rudder, your change has to be validated in a Change request
+        {
+          if(directiveCreation)
+            <p>The directive will be directly created, only rule changes have to been validated.</p>
+          else
+            NodeSeq.Empty
+        }
+      </div>
+    )
+    val (buttonName, classForButton, titleWorkflow) = (validationRequired, action) match {
+      case (false, DGModAction.CreateSolo       )   => ("Create"      , "btn-success", NodeSeq.Empty)
+      case (false, DGModAction.CreateAndModRules)   => ("Create"      , "btn-success", NodeSeq.Empty)
+      case (false, DGModAction.Delete           )   => ("Delete"      , "btn-danger" , NodeSeq.Empty)
+      case (false, DGModAction.Update           )   => ("Update"      , "btn-success", NodeSeq.Empty)
+      case (false, DGModAction.Enable           )   => ("Enable"      , "btn-primary", NodeSeq.Empty)
+      case (false, DGModAction.Disable          )   => ("Disable"     , "btn-primary", NodeSeq.Empty)
+      case (true , DGModAction.CreateSolo       )   => ("Create"      , "btn-success", NodeSeq.Empty)
+      case (true , DGModAction.CreateAndModRules)   => ("Open request", "btn-primary", workflowMessage(true))
+      case (true , DGModAction.Delete           )   => ("Open request", "btn-primary", workflowMessage(false))
+      case (true , DGModAction.Update           )   => ("Open request", "btn-primary", workflowMessage(false))
+      case (true , DGModAction.Enable           )   => ("Open request", "btn-primary", workflowMessage(false))
+      case (true , DGModAction.Disable          )   => ("Open request", "btn-primary", workflowMessage(false))
     }
     (
       "#validationForm" #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
@@ -348,8 +334,8 @@ class ModificationValidationPopup(
         crReasons.map { f =>
           <div>
               {
-                (workflowEnabled, action) match {
-                  case (true, CreateSolo) => <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+                (validationRequired, action) match {
+                  case (true, DGModAction.CreateSolo) => <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
                   case (true, _) => NodeSeq.Empty
                   case _ => <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
                 }
@@ -360,8 +346,8 @@ class ModificationValidationPopup(
       } &
       "#titleWorkflow" #> titleWorkflow &
       "#changeRequestName" #> {
-        (workflowEnabled, action) match {
-          case (true, CreateSolo) => Full(NodeSeq.Empty)
+        (validationRequired, action) match {
+          case (true, DGModAction.CreateSolo) => Full(NodeSeq.Empty)
           case (true, _) => changeRequestName.toForm
           case _ => Full(NodeSeq.Empty)
         }
@@ -374,9 +360,9 @@ class ModificationValidationPopup(
 
   private[this] def showDependentRules(rules : Set[Rule]) : NodeSeq = {
     action match {
-      case CreateSolo => NodeSeq.Empty
-      case x if(rules.size <= 0) => NodeSeq.Empty
-      case x =>
+      case DGModAction.CreateSolo => NodeSeq.Empty
+      case x if(rules.size <= 0)  => NodeSeq.Empty
+      case x                      =>
         val noDisplay = DisplayColumn.Force(false)
         val cmp = new RuleGrid("remove_popup_grid", None, false, None, noDisplay, noDisplay)
         cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), false, true)
@@ -417,10 +403,10 @@ class ModificationValidationPopup(
 
   // The formtracker needs to check everything only if its not a creation and there is workflow
   private[this] val formTracker = {
-    (workflowEnabled, action) match {
-      case (false, _) => new FormTracker(crReasons.toList)
-      case (true, CreateSolo) => new FormTracker(crReasons.toList)
-      case (true, _ ) =>
+    (validationRequired, action) match {
+      case (false, _                     ) => new FormTracker(crReasons.toList)
+      case (true , DGModAction.CreateSolo) => new FormTracker(crReasons.toList)
+      case (true , _                     ) =>
         new FormTracker(
                 crReasons.toList
             ::: changeRequestName
@@ -459,15 +445,15 @@ class ModificationValidationPopup(
         initialState match {
           case None =>
             action match {
-              case Save | CreateAndModRules | CreateSolo =>
+              case DGModAction.Update | DGModAction.CreateAndModRules | DGModAction.CreateSolo =>
                 Full(Some(AddDirectiveDiff(techniqueName,directive)))
-              case _ =>
+              case _                                                                           =>
                 Failure(s"Action ${action} is not possible on a new directive")
             }
           case Some(d) =>
             action match {
-              case Delete => Full(Some(DeleteDirectiveDiff(techniqueName,directive)))
-              case Save|Disable|Enable|CreateSolo|CreateAndModRules =>
+              case DGModAction.Delete                                                                                                     => Full(Some(DeleteDirectiveDiff(techniqueName,directive)))
+              case DGModAction.Update | DGModAction.Disable | DGModAction.Enable | DGModAction.CreateSolo | DGModAction.CreateAndModRules =>
                 if (d == directive) {
                   Full(None)
                 } else {
@@ -485,16 +471,16 @@ class ModificationValidationPopup(
     initialState match {
       case None =>
         action match {
-          case Save | CreateSolo | CreateAndModRules =>
+          case DGModAction.Update | DGModAction.CreateSolo | DGModAction.CreateAndModRules =>
             Full(AddNodeGroupDiff(group))
-          case _ =>
+          case _                                                                           =>
             Failure(s"Action ${action} is not possible on a new group")
         }
       case Some(d) =>
         action match {
-          case Delete => Full(DeleteNodeGroupDiff(group))
-          case Save | CreateSolo | CreateAndModRules => Full(ModifyToNodeGroupDiff(group))
-          case _ => Failure(s"Action ${action} is not possible on a existing directive")
+          case DGModAction.Delete                                                          => Full(DeleteNodeGroupDiff(group))
+          case DGModAction.Update | DGModAction.CreateSolo | DGModAction.CreateAndModRules => Full(ModifyToNodeGroupDiff(group))
+          case _                                                                           => Failure(s"Action ${action} is not possible on a existing directive")
         }
     }
   }
@@ -502,7 +488,7 @@ class ModificationValidationPopup(
   private[this] def saveChangeRequest() : JsCmd = {
     // we only have quick change request now
     val cr = item match {
-      case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal, baseRules, updatedRules)) =>
+      case Left(DirectiveChangeRequest(action, techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal, baseRules, updatedRules)) =>
         //a def to avoid repetition in the following pattern matching
         def ruleCr() = {
           changeRequestService.createChangeRequestFromRules(
@@ -517,7 +503,7 @@ class ModificationValidationPopup(
 
         DirectiveDiffFromAction(techniqueName, directive, optOriginal).flatMap{
           case None => ruleCr()
-          case Some(_) if(action == CreateAndModRules) => ruleCr()
+          case Some(_) if(action == DGModAction.CreateAndModRules) => ruleCr()
           case Some(diff) =>
             changeRequestService.createChangeRequestFromDirectiveAndRules(
                 changeRequestName.get
@@ -534,7 +520,7 @@ class ModificationValidationPopup(
             )
           }
 
-      case Right((nodeGroup, optParentCategory, optOriginal)) =>
+      case Right(NodeGroupChangeRequest(action, nodeGroup, optParentCategory, optOriginal)) =>
         //if we have a optParentCategory, that means that we
         //have to start to move the group, and then create/save the cr.
 
@@ -573,7 +559,7 @@ class ModificationValidationPopup(
 
     (for {
       crId <- cr.map(_.id)
-      wf <- workflowService.startWorkflow(crId, CurrentUser.actor, crReasons.map(_.get))
+      wf   <- workflowService.startWorkflow(crId, CurrentUser.actor, crReasons.map(_.get))
     } yield {
       crId
     }) match {
@@ -595,10 +581,10 @@ class ModificationValidationPopup(
     } else {
       // we create a CR only if we are not creating
       action match {
-        case CreateSolo | CreateAndModRules =>
+        case DGModAction.CreateSolo | DGModAction.CreateAndModRules =>
           // if creation or clone, we create directive immediately and deploy if needed
           item match {
-            case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal, baseRules, remRules)) =>
+            case Left(DirectiveChangeRequest(action, techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal, baseRules, remRules)) =>
               saveAndDeployDirective(directive, activeTechniqueId, crReasons.map( _.get ))
 
             case _ =>
@@ -630,7 +616,7 @@ class ModificationValidationPopup(
 
         //now, if rules were modified, also create a CR
         action match {
-          case CreateAndModRules => saveChangeRequest()
+          case DGModAction.CreateAndModRules => saveChangeRequest()
           case _ => closePopup() & onCreateSuccessCallBack(Left(directive))
         }
       case Empty =>

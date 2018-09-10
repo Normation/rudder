@@ -63,7 +63,9 @@ import com.normation.rudder.rest.{RuleApi => API}
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category._
 import com.normation.rudder.services.workflows.ChangeRequestService
-import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.services.workflows.RuleChangeRequest
+import com.normation.rudder.services.workflows.RuleModAction
+import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -275,9 +277,8 @@ class RuleApiService2 (
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentActor
   , changeRequestService : ChangeRequestService
-  , workflowService      : WorkflowService
+  , workflowLevelService : WorkflowLevelService
   , restExtractor        : RestExtractorService
-  , workflowEnabled      : () => Box[Boolean]
   , restDataSerializer   : RestDataSerializer
 ) ( implicit userService : UserService ) {
 
@@ -286,45 +287,36 @@ class RuleApiService2 (
   private[this] def createChangeRequestAndAnswer (
       id           : String
     , diff         : ChangeRequestRuleDiff
-    , rule         : Rule
-    , initialState : Option[Rule]
+    , change       : RuleChangeRequest
     , actor        : EventActor
     , req          : Req
-    , act          : String
   ) (implicit action : String, prettify : Boolean) = {
-
     ( for {
-        reason <- restExtractor.extractReason(req)
-        crName <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act} Rule ${rule.name} from API"))
+        workflow  <- workflowLevelService.getForRule(actor, change)
+        reason    <- restExtractor.extractReason(req)
+        crName    <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${change.action.name} rule '${change.newRule.name}' by API request"))
         crDescription = restExtractor.extractChangeRequestDescription(req)
-        cr <- changeRequestService.createChangeRequestFromRule(
-                  crName
-                , crDescription
-                , rule
-                , initialState
-                , diff
-                , actor
-                , reason
-              )
-        wfStarted <- workflowService.startWorkflow(cr.id, actor, None)
+        cr        <- changeRequestService.createChangeRequestFromRule(
+                        crName
+                      , crDescription
+                      , change.newRule
+                      , change.previousRule
+                      , diff
+                      , actor
+                      , reason
+                    )
+        wfStarted <- workflowLevelService.getWorkflowService().startWorkflow(cr.id, actor, None)
       } yield {
-        cr.id
+        (workflow.needExternalValidation(), cr.id)
       }
     ) match {
-      case Full(crId) =>
-        workflowEnabled() match {
-          case Full(enabled) =>
-            val optCrId = if (enabled) Some(crId) else None
-            val jsonRule = List(serialize(rule,optCrId))
-            toJsonResponse(Some(id), ("rules" -> JArray(jsonRule)))
-          case eb : EmptyBox =>
-            val fail = eb ?~ (s"Could not check workflow property" )
-            val msg = s"Change request creation failed, cause is: ${fail.msg}."
-            toJsonError(Some(id), msg)
-        }
+      case Full((needValidation, crId)) =>
+        val optCrId = if (needValidation) Some(crId) else None
+        val jsonRule = List(serialize(change.newRule,optCrId))
+        toJsonResponse(Some(id), ("rules" -> JArray(jsonRule)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Rule ${id}" )
-        val msg = s"${act} failed, cause is: ${fail.msg}."
+        val msg = s"${change.action.name} failed, cause is: ${fail.msg}."
         toJsonError(Some(id), msg)
     }
   }
@@ -348,87 +340,82 @@ class RuleApiService2 (
     val actor = RestUtils.getActor(req)
     val ruleId = RuleId(req.param("id").getOrElse(uuidGen.newUuid))
 
-    def actualRuleCreation(restRule : RestRule, baseRule : Rule) = {
-      val newRule = restRule.updateRule( baseRule )
+    def actualRuleCreation(change: RuleChangeRequest) = {
       ( for {
         reason   <- restExtractor.extractReason(req)
-        saveDiff <-  writeRule.create(newRule, modId, actor, reason)
+        saveDiff <-  writeRule.create(change.newRule, modId, actor, reason)
       } yield {
         saveDiff
       } ) match {
         case Full(x) =>
           asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
-          val jsonRule = List(serialize(newRule,None))
+          val jsonRule = List(serialize(change.newRule,None))
           toJsonResponse(Some(ruleId.value), ("rules" -> JArray(jsonRule)))
 
         case eb:EmptyBox =>
           val fail = eb ?~ (s"Could not save Rule ${ruleId.value}" )
-          val message = s"Could not create Rule ${newRule.name} (id:${ruleId.value}) cause is: ${fail.msg}."
+          val message = s"Could not create Rule ${change.newRule.name} (id:${ruleId.value}) cause is: ${fail.msg}."
           toJsonError(Some(ruleId.value), message)
       }
     }
 
-    restRule match {
-      case Full(restRule) =>
-        restRule.name match {
-          case Some(name) =>
-            req.params.get("source") match {
-              // Cloning
-              case Some(sourceId :: Nil) =>
-                readRule.get(RuleId(sourceId)) match {
-                  case Full(sourceRule) =>
-                    // disable rest Rule if cloning
-                    actualRuleCreation(restRule.copy(enabled = Some(false)),sourceRule.copy(id=ruleId))
-                  case eb:EmptyBox =>
-                    val fail = eb ?~ (s"Could not find Rule ${sourceId}" )
-                    val message = s"Could not create Rule ${name} (id:${ruleId.value}) based on Rule ${sourceId} : cause is: ${fail.msg}."
-                    toJsonError(Some(ruleId.value), message)
-                }
+    // decide if we should create a new rule or clone an existing one
+    // Return the source rule to use in each case.
+    def createOrClone(actor: EventActor, restRule: RestRule, id: RuleId, name: String, sourceIdParam: Option[List[String]]): Box[RuleChangeRequest] = {
+      sourceIdParam match {
+        case Some(sourceId :: Nil) =>
+          // clone existing rule
+          for {
+            rule <- readRule.get(RuleId(sourceId)) ?~!
+              s"Could not create rule ${name} (id:${id.value}) by cloning rule '${sourceId}')"
+          } yield {
+            RuleChangeRequest(RuleModAction.Create, restRule.updateRule(rule), Some(rule))
+          }
 
-              // Create a new Rule
-              case None =>
-                // If enable is missing in parameter consider it to true
-                val defaultEnabled = restRule.enabled.getOrElse(true)
+        case None =>
+          // create from scratch - base rule is the same with default values
+          val category = restRule.category.getOrElse(RuleCategoryId("rootRuleCategory"))
+          val baseRule = Rule(ruleId,name,category)
+          // If enable is missing in parameter consider it to true
+          val defaultEnabled = restRule.enabled.getOrElse(true)
 
-                // if only the name parameter is set, consider it to be enabled
-                // if not if workflow are enabled, consider it to be disabled
-                // if there is no workflow, use the value used as parameter (default to true)
-                // code extract :
-                /*re
-                 * if (restRule.onlyName) true
-                 * else if (workflowEnabled) false
-                 * else defaultEnabled
-                 */
+          val change = RuleChangeRequest(RuleModAction.Create, restRule.updateRule(baseRule), Some(baseRule))
+          // if only the name parameter is set, consider it to be enabled
+          // if not if workflow are enabled, consider it to be disabled
+          // if there is no workflow, use the value used as parameter (default to true)
+          // code extract :
+          /*
+           * if (restRule.onlyName) true
+           * else if (workflowEnabled) false
+           * else defaultEnabled
+           */
+          for {
+            workflow <- workflowLevelService.getForRule(actor, change) ?~! "Could not find workflow status for that rule creation"
+          } yield {
+            // we don't actually start a workflow, we only disable the rule if a workflow should be
+            // started. Update rule "enable" status accordingly.
+            val enableCheck = restRule.onlyName || (!workflow.needExternalValidation() && defaultEnabled)
+            // Then enabled value in restRule will be used in the saved Rule
+            change.copy(newRule = change.newRule.copy(isEnabledStatus = enableCheck))
+          }
 
-                workflowEnabled() match {
-                  case Full(enabled) =>
-                    val enableCheck = restRule.onlyName || (!enabled && defaultEnabled)
-                    val category = restRule.category.getOrElse(RuleCategoryId("rootRuleCategory"))
-                    val baseRule = Rule(ruleId,name,category)
-                    // The enabled value in restRule will be used in the saved Rule
-                    actualRuleCreation(restRule.copy(enabled = Some(enableCheck)),baseRule)
+        case _                     =>
+          Failure(s"Could not create Rule ${name} (id:${ruleId.value}) based on an already existing Rule, cause is: too many values for source parameter.")
+      }
+    }
 
-                  case eb : EmptyBox =>
-                    val fail = eb ?~ (s"Could not check workflow property" )
-                    val msg = s"Change request creation failed, cause is: ${fail.msg}."
-                    toJsonError(Some(ruleId.value), msg)
-                }
-
-              // More than one source, make an error
-              case _ =>
-                val message = s"Could not create Rule ${name} (id:${ruleId.value}) based on an already existing Rule, cause is : too many values for source parameter."
-                toJsonError(Some(ruleId.value), message)
-            }
-
-          case None =>
-            val message =  s"Could not get create a Rule details because there is no value as display name."
-            toJsonError(Some(ruleId.value), message)
-        }
-
-      case eb : EmptyBox =>
-        val fail = eb ?~ (s"Could extract values from request" )
-        val message = s"Could not create Rule ${ruleId.value} cause is: ${fail.msg}."
-        toJsonError(Some(ruleId.value), message)
+    (for {
+      rule   <- restRule ?~! s"Could extract values from request"
+      name   <- Box(rule.name) ?~! "Missing mandatory value for rule name"
+      change <- createOrClone(actor, rule, ruleId, name, req.params.get("source"))
+    } yield {
+      actualRuleCreation(change)
+    }) match {
+      case Full(resp)   =>
+        resp
+      case eb: EmptyBox =>
+        val fail = eb ?~ (s"Error when creating new rule" )
+        toJsonError(Some(ruleId.value), fail.messageChain)
     }
   }
 
@@ -456,7 +443,8 @@ class RuleApiService2 (
     readRule.get(ruleId) match {
       case Full(rule) =>
         val deleteRuleDiff = DeleteRuleDiff(rule)
-        createChangeRequestAndAnswer(id, deleteRuleDiff, rule, Some(rule), actor, req, "Delete")
+        val change = RuleChangeRequest(RuleModAction.Delete, rule, Some(rule))
+        createChangeRequestAndAnswer(id, deleteRuleDiff, change, actor, req)
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Rule ${ruleId.value}" )
@@ -477,7 +465,8 @@ class RuleApiService2 (
           case Full(restRule) =>
             val updatedRule = restRule.updateRule(rule)
             val diff = ModifyToRuleDiff(updatedRule)
-            createChangeRequestAndAnswer(id, diff, updatedRule, Some(rule), actor, req, "Update")
+            val change = RuleChangeRequest(RuleModAction.Update, updatedRule, Some(rule))
+            createChangeRequestAndAnswer(id, diff, change, actor, req)
 
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )

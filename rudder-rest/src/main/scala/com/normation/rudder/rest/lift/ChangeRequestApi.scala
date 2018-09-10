@@ -56,7 +56,7 @@ import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.{ChangeRequestApi => API}
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestService
-import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control.boxSequence
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -77,16 +77,15 @@ class ChangeRequestApi (
   , writeWorkflow        : WoWorkflowRepository
   , readTechnique        : TechniqueRepository
   , changeRequestService : ChangeRequestService
-  , workflowService      : WorkflowService
+  , workflowLevelService : WorkflowLevelService
   , commitRepository     : CommitAndDeployChangeRequestService
   , restDataSerializer   : RestDataSerializer
-  , workflowEnabled      : () => Box[Boolean]
 ) extends LiftApiModuleProvider[API] {
 
   override def schemas: ApiModuleProvider[API] = API
 
   def checkWorkflow = {
-    if (workflowEnabled().getOrElse(false))
+    if(workflowLevelService.getWorkflowService().needExternalValidation())
       Full("Ok")
     else
       Failure("workflow disabled")
@@ -115,11 +114,11 @@ class ChangeRequestApi (
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-        case API.ListChangeRequests  => ListChangeRequests
-        case API.ChangeRequestsDetails => ChangeRequestsDetails
-        case API.DeclineRequestsDetails  => DeclineRequestsDetails
-        case API.AcceptRequestsDetails => AcceptRequestsDetails
-        case API.UpdateRequestsDetails => UpdateRequestsDetails
+        case API.ListChangeRequests     => ListChangeRequests
+        case API.ChangeRequestsDetails  => ChangeRequestsDetails
+        case API.DeclineRequestsDetails => DeclineRequestsDetails
+        case API.AcceptRequestsDetails  => AcceptRequestsDetails
+        case API.UpdateRequestsDetails  => UpdateRequestsDetails
     }).toList
   }
 
@@ -211,8 +210,8 @@ class ChangeRequestApi (
       implicit val prettify = restExtractor.extractPrettify(req.params)
       try {
         val crId = ChangeRequestId(id.toInt)
-        def actualRefuse(changeRequest : ChangeRequest, step:WorkflowNodeId) = {
-          val backSteps = workflowService.findBackSteps(apiUserRights, step, false)
+        def actualRefuse(changeRequest : ChangeRequest, step: WorkflowNodeId) = {
+          val backSteps = workflowLevelService.getWorkflowService().findBackSteps(apiUserRights, step, false)
           val optStep = backSteps.find(_._1 == WorkflowNodeId("Cancelled"))
           val answer = for {
             (_,func) <- optStep.map(Full(_)).
@@ -259,7 +258,7 @@ class ChangeRequestApi (
           try {
            val crId = ChangeRequestId(id.toInt)
             def actualAccept(changeRequest : ChangeRequest, step:WorkflowNodeId) = {
-              val nextSteps = workflowService.findNextSteps(apiUserRights, step, false)
+              val nextSteps = workflowLevelService.getWorkflowService().findNextSteps(apiUserRights, step, false)
               val optStep = nextSteps.actions.find(_._1 == targetStep)
               val answer = for {
                 (_,func) <- optStep.map(Full(_)).

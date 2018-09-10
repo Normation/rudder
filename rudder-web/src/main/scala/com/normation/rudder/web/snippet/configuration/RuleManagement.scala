@@ -71,26 +71,15 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
   private[this] val currentRuleDisplayer = new LocalSnippet[RuleDisplayer]
 
   override def mainDispatch = {
-    RudderConfig.configService.rudder_workflow_enabled match {
-      case Full(workflowEnabled) =>
-        RudderConfig.configService.rudder_ui_changeMessage_enabled match {
-          case Full(changeMsgEnabled) =>
-            Map(
-                "head" -> { _:NodeSeq => head(workflowEnabled, changeMsgEnabled) }
-              , "editRule" -> { _:NodeSeq => editRule(workflowEnabled, changeMsgEnabled) }
-              , "viewRules" -> { _:NodeSeq => viewRules(workflowEnabled, changeMsgEnabled) }
-            )
-          case  eb: EmptyBox =>
-            val e = eb ?~! "Error when getting Rudder application configuration for change audit message activation"
-            logger.error(s"Error when displaying Rules : ${e.messageChain}")
-            Map(
-                "head" -> { _:NodeSeq => NodeSeq.Empty }
-              , "editRule" -> { _:NodeSeq => NodeSeq.Empty }
-              , "viewRules" -> { _: NodeSeq => <div class="error">{e.msg}</div> }
-            )
-        }
-      case eb: EmptyBox =>
-        val e = eb ?~! "Error when getting Rudder application configuration for workflow activation"
+    RudderConfig.configService.rudder_ui_changeMessage_enabled match {
+      case Full(changeMsgEnabled) =>
+        Map(
+            "head" -> { _:NodeSeq => head(changeMsgEnabled) }
+          , "editRule" -> { _:NodeSeq => editRule(changeMsgEnabled) }
+          , "viewRules" -> { _:NodeSeq => viewRules(changeMsgEnabled) }
+        )
+      case  eb: EmptyBox =>
+        val e = eb ?~! "Error when getting Rudder application configuration for change audit message activation"
         logger.error(s"Error when displaying Rules : ${e.messageChain}")
         Map(
             "head" -> { _:NodeSeq => NodeSeq.Empty }
@@ -100,7 +89,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
     }
   }
 
-  def head(workflowEnabled: Boolean, changeMsgEnabled : Boolean) : NodeSeq = {
+  def head(changeMsgEnabled : Boolean) : NodeSeq = {
     RuleEditForm.staticInit ++
     RuleGrid.staticInit ++
     {<head>
@@ -124,20 +113,19 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
           } else {
             return true;
           }
-        }
         """) &
-        OnLoad(parseJsArg(workflowEnabled, changeMsgEnabled))
+        OnLoad(parseJsArg(changeMsgEnabled))
       ) }
     </head>
     }
   }
 
-  def viewRules(workflowEnabled: Boolean, changeMsgEnabled : Boolean) : NodeSeq = {
+  def viewRules(changeMsgEnabled : Boolean) : NodeSeq = {
     currentRuleDisplayer.set(Full(new RuleDisplayer(
         None
       , "rules_grid_zone"
-      , detailsCallbackLink(workflowEnabled, changeMsgEnabled)
-      , (rule : Rule ) => onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"showEditForm")
+      , detailsCallbackLink(changeMsgEnabled)
+      , (rule : Rule ) => onCreateRule(changeMsgEnabled)(rule,"showEditForm")
       , showPopup
       , DisplayColumn.Force(true)
       , DisplayColumn.FromConfig
@@ -152,17 +140,16 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
   }
 
   // When a rule is changed, the Rule displayer should be updated (Rule grid, selected category, ...)
-  def onRuleChange(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule:Rule) = {
+  def onRuleChange(changeMsgEnabled : Boolean)(rule:Rule) = {
     currentRuleDisplayer.get match {
       case Full(ruleDisplayer) =>
         ruleDisplayer.onRuleChange(rule.categoryId)
       case eb: EmptyBox =>
-        SetHtml(htmlId_viewAll,viewRules(workflowEnabled, changeMsgEnabled))
+        SetHtml(htmlId_viewAll,viewRules(changeMsgEnabled))
     }
   }
-  def editRule(workflowEnabled: Boolean, changeMsgEnabled : Boolean, dispatch:String="showForm") : NodeSeq = {
+  def editRule(changeMsgEnabled : Boolean, dispatch:String="showForm") : NodeSeq = {
     def errorDiv(f:Failure) = <div id={htmlId_editRuleDiv} class="error">Error in the form: {f.messageChain}</div>
-
     currentRuleForm.get match {
       case f:Failure => errorDiv(f)
       case Empty => <div id={htmlId_editRuleDiv}></div>
@@ -170,12 +157,12 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     }
   }
 
-  def onCreateRule(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule : Rule, action : String) : JsCmd = {
-    updateEditComponent(rule, workflowEnabled, changeMsgEnabled)
+  def onCreateRule(changeMsgEnabled : Boolean)(rule : Rule, action : String) : JsCmd = {
+    updateEditComponent(rule, changeMsgEnabled)
 
     //update UI
-    onRuleChange(workflowEnabled, changeMsgEnabled)(rule) &
-    Replace(htmlId_editRuleDiv, editRule(workflowEnabled, changeMsgEnabled, action))
+    onRuleChange(changeMsgEnabled)(rule) &
+    Replace(htmlId_editRuleDiv, editRule(changeMsgEnabled, action))
   }
 
   /**
@@ -184,7 +171,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
    *
    * We want to look for #{ "ruleId":"XXXXXXXXXXXX" }
    */
-  private[this] def parseJsArg(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(): JsCmd = {
+  private[this] def parseJsArg(changeMsgEnabled : Boolean)(): JsCmd = {
     def displayDetails(ruleData:String) = {
       import net.liftweb.json._
       val json = parse(ruleData)
@@ -194,9 +181,9 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
             case Full(rule) =>
               json \ "action" match {
                 case JString(action) =>
-                  onCreateRule(workflowEnabled, changeMsgEnabled)(rule,action)
+                  onCreateRule(changeMsgEnabled)(rule,action)
                 case _ =>
-                  onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"showEditForm")
+                  onCreateRule(changeMsgEnabled)(rule,"showEditForm")
               }
 
             case _ => Noop
@@ -231,7 +218,6 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
   }
 
   private[this] def showPopup(clonedRule:Option[Rule]) : JsCmd = {
-
     val popupHtml = createPopup(clonedRule:Option[Rule])
     SetHtml(CreateOrCloneRulePopup.htmlId_popupContainer, popupHtml) &
     JsRaw( s""" createPopup("${CreateOrCloneRulePopup.htmlId_popup}") """)
@@ -239,22 +225,21 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  private[this] def updateEditComponent(rule:Rule, workflowEnabled: Boolean, changeMsgEnabled : Boolean) : Unit = {
+  private[this] def updateEditComponent(rule:Rule, changeMsgEnabled : Boolean) : Unit = {
     val form = new RuleEditForm(
                        htmlId_editRuleDiv+"Form"
                      , rule
-                     , workflowEnabled
                      , changeMsgEnabled
                      , onCloneCallback = { (updatedRule:Rule) => showPopup(Some(updatedRule)) }
-                     , onSuccessCallback = { (updatedRule:Rule) => onRuleChange(workflowEnabled,changeMsgEnabled)(updatedRule)  }
+                     , onSuccessCallback = { (updatedRule:Rule) => onRuleChange(changeMsgEnabled)(updatedRule)  }
                    )
     currentRuleForm.set(Full(form))
   }
 
-  private[this] def detailsCallbackLink(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule:Rule, action:String) : JsCmd = {
-    updateEditComponent(rule, workflowEnabled, changeMsgEnabled)
+  private[this] def detailsCallbackLink(changeMsgEnabled : Boolean)(rule:Rule, action:String) : JsCmd = {
+    updateEditComponent(rule, changeMsgEnabled)
     //update UI
-    Replace(htmlId_editRuleDiv, editRule(workflowEnabled, changeMsgEnabled, action )) &
+    Replace(htmlId_editRuleDiv, editRule(changeMsgEnabled, action )) &
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'ruleId':'%s'})""".format(rule.id.value))
   }
 

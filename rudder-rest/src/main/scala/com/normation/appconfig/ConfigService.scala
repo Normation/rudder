@@ -93,7 +93,11 @@ trait ReadConfigService {
   def rudder_ui_changeMessage_explanation() : Box[String]
 
   /**
-   * Workflow
+   * Workflow.
+   * The semantic of that property for "enabled" depends ALSO
+   * of the plugins installed for workflows: if you don't have
+   * workflow plugin, you won't be able to enable it. And in the
+   * line, once you have the plugin, you need to enable it their.
    */
   def rudder_workflow_enabled(): Box[Boolean]
   def rudder_workflow_self_validation(): Box[Boolean]
@@ -470,7 +474,7 @@ class LDAPBasedConfigService(
 
   ///// workflows /////
   def rudder_workflow_enabled() = {
-    if(workflowLevel.workflowEnabled) {
+    if(workflowLevel.workflowLevelAllowsEnable) {
       get("rudder_workflow_enabled")
     } else {
       Full(false)
@@ -479,7 +483,7 @@ class LDAPBasedConfigService(
   def rudder_workflow_self_validation() = get("rudder_workflow_self_validation")
   def rudder_workflow_self_deployment() = get("rudder_workflow_self_deployment")
   def set_rudder_workflow_enabled(value: Boolean): Box[Unit] = {
-    if(workflowLevel.workflowEnabled) {
+    if(workflowLevel.workflowLevelAllowsEnable) {
       save("rudder_workflow_enabled", value)
       Full(workflowUpdate ! WorkflowUpdate)
     } else {

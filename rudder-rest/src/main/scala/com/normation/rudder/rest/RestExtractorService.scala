@@ -57,7 +57,6 @@ import com.normation.rudder.services.queries.CmdbQueryParser._
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
-import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.rest.data._
 import com.normation.utils.Control._
 import net.liftweb.common._
@@ -79,6 +78,7 @@ import com.normation.rudder.ncf.MethodParameter
 import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.ncf.{Technique => NcfTechnique}
 import com.normation.rudder.api.ApiAuthorizationKind
+import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.utils.Control
 
@@ -89,7 +89,7 @@ case class RestExtractorService (
   , techniqueRepository  : TechniqueRepository
   , queryParser          : CmdbQueryParser with JsonQueryLexer
   , userPropertyService  : UserPropertyService
-  , workflowService      : WorkflowService
+  , workflowLevelService : WorkflowLevelService
 ) extends Loggable {
 
   import com.normation.rudder.repository.json.DataExtractor.OptionnalJson._
@@ -97,7 +97,7 @@ case class RestExtractorService (
    * Params Extractors
    */
 
-  private[this] def extractOneValue[T] (params : Map[String,List[String]], key : String)( to : (String) => Box[T] = ( (value:String) => Full(value))) = {
+  private[this] def extractOneValue[T] (params : Map[String, List[String]], key : String)( to : (String) => Box[T] = ( (value:String) => Full(value))) = {
     params.get(key) match {
       case None               => Full(None)
       case Some(value :: Nil) => to(value).map(Some(_))
@@ -105,7 +105,7 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def extractList[T] (params : Map[String,List[String]], key: String)(to: (List[String]) => Box[T]) : Box[Option[T]] = {
+  private[this] def extractList[T] (params : Map[String, List[String]], key: String)(to: (List[String]) => Box[T]) : Box[Option[T]] = {
     params.get(key) match {
       case None       => Full(None)
       case Some(list) => to(list).map(Some(_))
@@ -217,10 +217,10 @@ case class RestExtractorService (
   }
 
   private[this] def toWorkflowStatus (value : String) : Box[Seq[WorkflowNodeId]] = {
-    val possiblestates = workflowService.stepsValue
+    val possiblestates = workflowLevelService.getWorkflowService().stepsValue
     value.toLowerCase match {
-      case "open" => Full(workflowService.openSteps)
-      case "closed" => Full(workflowService.closedSteps)
+      case "open" => Full(workflowLevelService.getWorkflowService().openSteps)
+      case "closed" => Full(workflowLevelService.getWorkflowService().closedSteps)
       case "all" =>  Full(possiblestates)
       case value => possiblestates.find(_.value.toLowerCase == value) match {
         case Some(state) => Full(Seq(state))
@@ -230,7 +230,7 @@ case class RestExtractorService (
   }
 
   private[this] def toWorkflowTargetStatus (value : String) : Box[WorkflowNodeId] = {
-    val possiblestates = workflowService.stepsValue
+    val possiblestates = workflowLevelService.getWorkflowService().stepsValue
     possiblestates.find(_.value.toLowerCase == value.toLowerCase) match {
       case Some(state) => Full(state)
       case None => Failure(s"'${value}' is not a possible state for change requests, availabled values are: ${possiblestates.mkString("[ ", ", ", " ]")}")
@@ -439,7 +439,7 @@ case class RestExtractorService (
 
   def extractWorkflowStatus (params : Map[String,List[String]]) : Box[Seq[WorkflowNodeId]] = {
     extractOneValue(params, "status")(toWorkflowStatus) match {
-       case Full(None) => Full(workflowService.openSteps)
+       case Full(None) => Full(workflowLevelService.getWorkflowService().openSteps)
        case Full(Some(value)) => Full(value)
        case eb:EmptyBox => eb ?~ "Error while fetching workflow status"
      }

@@ -279,10 +279,9 @@ class GroupApiService2 (
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentActor
   , changeRequestService : ChangeRequestService
-  , workflowService      : WorkflowService
+  , workflowLevelService : WorkflowLevelService
   , restExtractor        : RestExtractorService
   , queryProcessor       : QueryProcessor
-  , workflowEnabled      : () => Box[Boolean]
   , restDataSerializer   : RestDataSerializer
 ) ( implicit userService : UserService ) extends Loggable {
 
@@ -296,39 +295,35 @@ class GroupApiService2 (
     , initialState : Option[NodeGroup]
     , actor        : EventActor
     , req          : Req
-    , act          : String
+    , act          : DGModAction
     , apiVersion   : ApiVersion
   ) (implicit action : String, prettify : Boolean) = {
 
+    val change = NodeGroupChangeRequest(act, group, None, initialState)
+
     ( for {
-        reason <- restExtractor.extractReason(req)
-        crName <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act} Group ${group.name} from API"))
-        crDescription = restExtractor.extractChangeRequestDescription(req)
-        cr <- changeRequestService.createChangeRequestFromNodeGroup(
-                  crName
-                , crDescription
-                , group
-                , initialState
-                , diff
-                , actor
-                , reason
-              )
-        wfStarted <- workflowService.startWorkflow(cr.id, actor, None)
+        reason    <- restExtractor.extractReason(req)
+        crName    <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act.name} group '${group.name}' from API"))
+        workflow  <- workflowLevelService.getForNodeGroup(actor, change)
+        cr        <- changeRequestService.createChangeRequestFromNodeGroup(
+                        crName
+                      , restExtractor.extractChangeRequestDescription(req)
+                      , group
+                      , initialState
+                      , diff
+                      , actor
+                      , reason
+                    )
+        wfStarted <- workflow.startWorkflow(cr.id, actor, None)
       } yield {
-        cr.id
+        (cr.id, workflow)
       }
     ) match {
-      case Full(crId) =>
-        workflowEnabled() match {
-          case Full(enabled) =>
-            val optCrId = if (enabled) Some(crId) else None
-            val jsonGroup = List(serializeGroup(group, optCrId, apiVersion))
-            toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
-          case eb : EmptyBox =>
-            val fail = eb ?~ (s"Could not check workflow property" )
-            val msg = s"Change request creation failed, cause is: ${fail.msg}."
-            toJsonError(Some(id), msg)
-        }
+      case Full((crId, workflow)) =>
+        val optCrId = if (workflow.needExternalValidation()) Some(crId) else None
+        val jsonGroup = List(serializeGroup(group, optCrId, apiVersion))
+        toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
+
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Group ${id}" )
         val msg = s"${act} failed, cause is: ${fail.msg}."
@@ -355,11 +350,10 @@ class GroupApiService2 (
     val actor = RestUtils.getActor(req)
     val groupId = NodeGroupId(req.param("id").getOrElse(uuidGen.newUuid))
 
-    def actualGroupCreation(restGroup : RestGroup, baseGroup : NodeGroup, nodeGroupCategoryId: NodeGroupCategoryId) = {
-      val newGroup = restGroup.updateGroup( baseGroup )
+    def actualGroupCreation(change: NodeGroupChangeRequest) = {
       ( for {
         reason   <- restExtractor.extractReason(req)
-        saveDiff <- writeGroup.create(newGroup, nodeGroupCategoryId, modId, actor, reason)
+        saveDiff <- writeGroup.create(change.newGroup, change.category.getOrElse(readGroup.getRootCategory.id), modId, actor, reason)
       } yield {
         saveDiff
       } ) match {
@@ -368,80 +362,75 @@ class GroupApiService2 (
             // Trigger a deployment only if it is needed
             asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
           }
-          val jsonGroup = List(serializeGroup(newGroup, None, apiVersion))
+          val jsonGroup = List(serializeGroup(change.newGroup, None, apiVersion))
           toJsonResponse(Some(groupId.value), ("groups" -> JArray(jsonGroup)))
 
         case eb:EmptyBox =>
           val fail = eb ?~ (s"Could not save Group ${groupId.value}" )
-          val message = s"Could not create Group ${newGroup.name} (id:${groupId.value}) cause is: ${fail.msg}."
+          val message = s"Could not create Group ${change.newGroup.name} (id:${groupId.value}) cause is: ${fail.msg}."
           toJsonError(Some(groupId.value), message)
       }
     }
 
-    restGroup match {
-      case Full(restGroup) =>
-        restGroup.name match {
-          case Some(name) =>
-            req.params.get("source") match {
-              // Cloning
-              case Some(sourceId :: Nil) =>
-                readGroup.getNodeGroup(NodeGroupId(sourceId)) match {
-                  case Full((sourceGroup,category)) =>
-                    // disable rest Group if cloning
-                    actualGroupCreation(restGroup.copy(enabled = Some(false)),sourceGroup.copy(id=groupId),category)
-                  case eb:EmptyBox =>
-                    val fail = eb ?~ (s"Could not find Group ${sourceId}" )
-                    val message = s"Could not create Group ${name} (id:${groupId.value}) based on Group ${sourceId} : cause is: ${fail.msg}."
-                    toJsonError(Some(groupId.value), message)
-                }
+    // decide if we should create a new rule or clone an existing one
+    // Return the source rule to use in each case.
+    def createOrClone(actor: EventActor, restGroup: RestGroup, id: NodeGroupId, name: String, sourceIdParam: Option[List[String]]): Box[NodeGroupChangeRequest] = {
+      sourceIdParam match {
+        case Some(sourceId :: Nil) =>
+          // clone existing rule
+          for {
+            (group, cat) <- readGroup.getNodeGroup(NodeGroupId(sourceId)) ?~!
+              s"Could not create group ${name} (id:${id.value}) by cloning group '${sourceId}')"
+          } yield {
+            // in that case, we take rest category and if empty, we default to cloned group category
+            val category = restGroup.category.orElse(Some(cat))
+            NodeGroupChangeRequest(DGModAction.CreateSolo, restGroup.updateGroup(group), category, Some(group))
+          }
 
-              // Create a new Group
-              case None =>
-                // If enable is missing in parameter consider it to true
-                val defaultEnabled = restGroup.enabled.getOrElse(true)
+        case None =>
+          // If enable is missing in parameter consider it to true
+          val defaultEnabled = restGroup.enabled.getOrElse(true)
+          // create from scratch - base rule is the same with default values
+          val baseGroup = NodeGroup(groupId,name,"",None,true,Set(), defaultEnabled)
 
-                // if only the name parameter is set, consider it to be enabled
-                // if not if workflow are enabled, consider it to be disabled
-                // if there is no workflow, use the value used as parameter (default to true)
-                // code extract :
-                /*re
-                 * if (restGroup.onlyName) true
-                 * else if (workflowEnabled) false
-                 * else defaultEnabled
-                 */
+          val change = NodeGroupChangeRequest(DGModAction.CreateSolo, restGroup.updateGroup(baseGroup), restGroup.category, Some(baseGroup))
 
-                workflowEnabled() match {
-                  case Full(enabled) =>
-                    val enableCheck = restGroup.onlyName || (!enabled && defaultEnabled)
-                    val baseGroup = NodeGroup(groupId,name,"",None,true,Set(),enableCheck)
-                    restGroup.category match {
-                      case Some(category) =>
-                        // The enabled value in restGroup will be used in the saved Group
-                        actualGroupCreation(restGroup.copy(enabled = Some(enableCheck)),baseGroup,category)
-                      case None =>
-                        //use root category
-                        actualGroupCreation(restGroup.copy(enabled = Some(enableCheck)),baseGroup,readGroup.getRootCategory.id)
-                    }
-                  case eb : EmptyBox =>
-                    val fail = eb ?~ (s"Could not check workflow property" )
-                    val msg = s"Change request creation failed, cause is: ${fail.msg}."
-                    toJsonError(Some(groupId.value), msg)
-                }
-              // More than one source, make an error
-              case _ =>
-                val message = s"Could not create Group ${name} (id:${groupId.value}) based on an already existing Group, cause is : too many values for source parameter."
-                toJsonError(Some(groupId.value), message)
-            }
+          // if only the name parameter is set, consider it to be enabled
+          // if not if workflow are enabled, consider it to be disabled
+          // if there is no workflow, use the value used as parameter (default to true)
+          // code extract :
+          /*
+           * if (restGroup.onlyName) true
+           * else if (workflowEnabled) false
+           * else defaultEnabled
+           */
+          for {
+            workflow <- workflowLevelService.getForNodeGroup(actor, change) ?~! "Could not find workflow status for that rule creation"
+          } yield {
+            // we don't actually start a workflow, we only disable the rule if a workflow should be
+            // started. Update rule "enable" status accordingly.
+            val enableCheck = restGroup.onlyName || (!workflow.needExternalValidation() && defaultEnabled)
+            // Then enabled value in restRule will be used in the saved Rule
+            change.copy(newGroup = change.newGroup.copy(_isEnabled = enableCheck))
+          }
 
-          case None =>
-            val message =  s"Could not get create a Group details because there is no value as display name."
-            toJsonError(Some(groupId.value), message)
-        }
+        case _                     =>
+          Failure(s"Could not create Group ${name} (id:${groupId.value}) based on an already existing group, cause is: too many values for source parameter.")
+      }
+    }
 
-      case eb : EmptyBox =>
-        val fail = eb ?~ (s"Could extract values from request" )
-        val message = s"Could not create Group ${groupId.value} cause is: ${fail.msg}."
-        toJsonError(Some(groupId.value), message)
+    (for {
+      group  <- restGroup ?~! s"Could extract values from request"
+      name   <- Box(group.name) ?~! "Missing mandatory value for group name"
+      change <- createOrClone(actor, group, groupId, name, req.params.get("source"))
+    } yield {
+      actualGroupCreation(change)
+    }) match {
+      case Full(resp)   =>
+        resp
+      case eb: EmptyBox =>
+        val fail = eb ?~ (s"Error when creating new rule" )
+        toJsonError(Some(groupId.value), fail.messageChain)
     }
   }
 
@@ -472,7 +461,7 @@ class GroupApiService2 (
             case Full(nodeList) =>
               val updatedGroup = group.copy(serverList = nodeList.map(_.id).toSet)
               val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
-              createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), actor, req, "Reload", apiVersion)
+              createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), actor, req, DGModAction.Update, apiVersion)
             case eb:EmptyBox =>
               val fail = eb ?~(s"Could not fetch Nodes" )
               val message=  s"Could not reload Group ${id} details cause is: ${fail.msg}."
@@ -500,7 +489,7 @@ class GroupApiService2 (
     readGroup.getNodeGroup(groupId) match {
       case Full((group,_)) =>
         val deleteGroupDiff = DeleteNodeGroupDiff(group)
-        createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), actor, req, "Delete", apiVersion)
+        createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), actor, req, DGModAction.Delete, apiVersion)
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Group ${groupId.value}" )
@@ -521,7 +510,7 @@ class GroupApiService2 (
           case Full(restGroup) =>
             val updatedGroup = restGroup.updateGroup(group)
             val diff = ModifyToNodeGroupDiff(updatedGroup)
-            createChangeRequestAndAnswer(id, diff, updatedGroup, Some(group), actor, req, "Update", apiVersion)
+            createChangeRequestAndAnswer(id, diff, updatedGroup, Some(group), actor, req, DGModAction.Update, apiVersion)
 
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )

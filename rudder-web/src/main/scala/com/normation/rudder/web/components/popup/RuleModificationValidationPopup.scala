@@ -42,13 +42,15 @@ import JsCmds._
 import com.normation.rudder.domain.policies._
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,DispatchSnippet}
+import net.liftweb.http.{DispatchSnippet, SHtml}
+
 import scala.xml._
 import net.liftweb.util.Helpers._
-import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField
-}
+import com.normation.rudder.web.model._
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.services.workflows.RuleChangeRequest
+import com.normation.rudder.services.workflows.RuleModAction
+import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 
@@ -74,61 +76,22 @@ object RuleModificationValidationPopup extends Loggable {
    * - Rules
    * - Enable & disable (for rule), delete, modify (save)
    */
-  private def titles = Map(
-      "enable"  -> "Enable a Rule"
-    , "disable" -> "Disable a Rule"
-    , "delete"  -> "Delete a Rule"
-    , "save"    -> "Update a Rule"
-    , "create"  -> "Create a Rule"
-  )
-  private def titleworkflow = Map(
-      "enable"  -> "enable"
-    , "disable" -> "disable"
-    , "delete"  -> "delete"
-    , "save"    -> "update"
-    , "create"  -> "create"
-  )
-  private def explanationMessages = Map(
-      "enable"  ->
-    <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            Are you sure that you want to enable this Rule?
-        </h4>
-    </div>
-    , "disable" ->
-    <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            Are you sure that you want to disable this Rule?
-        </h4>
-    </div>
-    , "delete"  ->
+  private def titles(action: RuleModAction) = s"${action.name.capitalize} a Rule"
 
+  private def explanationMessages(action: RuleModAction) = {
     <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            Are you sure that you want to delete this Rule?
-        </h4>
+      <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+          Are you sure that you want to {action.name} this Rule?
+      </h4>
     </div>
-    , "save"    ->
-      <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            Are you sure that you want to update this Rule?
-        </h4>
-    </div>
-    , "create"    ->
-      <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            Are you sure that you want to create this Rule?
-        </h4>
-    </div>
-  )
+  }
 
 }
 
+
 class RuleModificationValidationPopup(
-    rule              : Rule
-  , initialState      : Option[Rule]
-  , action            : String //one among: save, delete, enable, disable or create
-  , workflowEnabled   : Boolean
+    changeRequest     : RuleChangeRequest
+  , workflowService   : WorkflowService // workflow used to validate that change request
   , onSuccessCallBack : (Either[Rule,ChangeRequestId]) => JsCmd = { x => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
   , parentFormTracker : Option[FormTracker] = None
@@ -138,40 +101,42 @@ class RuleModificationValidationPopup(
 
   private[this] val userPropertyService      = RudderConfig.userPropertyService
   private[this] val changeRequestService     = RudderConfig.changeRequestService
-  private[this] val workflowService          = RudderConfig.workflowService
+
+  val validationNeeded = workflowService.needExternalValidation()
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }
   }
 
   def popupContent() : NodeSeq = {
-    val (buttonName, classForButton) = (workflowEnabled,action) match {
-      case (false, "save" )=> ("Update", "btn-success")
-      case (false, "delete" )=> ("Delete", "btn-danger")
-      case (false, "enable" )=> ("Enable", "btn-primary")
-      case (false, "disable" )=> ("Disable", "btn-primary")
-      case (false, "create" )=> ("Create", "btn-success")
-      case (false, _ )=> ("Save", "btn-success")
-      case (true, _ )=> ("Open request", "wideButton btn-primary")
+    import RuleModAction._
+    val (buttonName, classForButton) = (validationNeeded, changeRequest.action) match {
+      case (false, Update   ) => ("Update"      , "btn-success")
+      case (false, Delete )   => ("Delete"      , "btn-danger" )
+      case (false, Enable )   => ("Enable"      , "btn-primary")
+      case (false, Disable)   => ("Disable"     , "btn-primary")
+      case (false, Create )   => ("Create"      , "btn-success")
+      case (false, _      )   => ("Save"        , "btn-success")
+      case (true , _      )   => ("Open request", "wideButton btn-primary")
     }
 
-    val titleWorkflow = workflowEnabled match {
+    val titleWorkflow = validationNeeded match {
       case true =>
-          <h4 class="text-center titleworkflow">Are you sure that you want to {titleworkflow(action)} this rule?</h4>
+          <h4 class="text-center titleworkflow">Are you sure that you want to {changeRequest.action.name} this rule?</h4>
           <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
           <hr class="css-fix"/>
           <div class="text-center alert alert-info">
             <span class="glyphicon glyphicon-info-sign"></span>
             Workflows are enabled, your change has to be validated in a Change request
           </div>
-      case false =>  explanationMessages(action)
+      case false =>  explanationMessages(changeRequest.action)
     }
     (
       "#validationForm" #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
-      "#dialogTitle *" #> titles(action) &
+      "#dialogTitle *" #> titles(changeRequest.action) &
       "#titleWorkflow *" #> titleWorkflow &
       "#changeRequestName" #> {
-          if (workflowEnabled) {
+          if (validationNeeded) {
             changeRequestName.toForm
           } else
             Full(NodeSeq.Empty)
@@ -179,7 +144,7 @@ class RuleModificationValidationPopup(
       ".reasonsFieldsetPopup" #> {
         crReasons.map { f =>
           <div>
-            {if (!workflowEnabled) {
+            {if (!validationNeeded) {
               <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
             }}
               {f.toForm_!}
@@ -218,14 +183,7 @@ class RuleModificationValidationPopup(
     }
   }
 
-  private[this] val defaultActionName = Map (
-      "enable"  -> "Enable"
-    , "disable" -> "Disable"
-    , "delete"  -> "Delete"
-    , "save"    -> "Update"
-    , "create"  -> "Create"
-  )(action)
-  private[this] val defaultRequestName = s"${defaultActionName} Rule ${rule.name}"
+  private[this] val defaultRequestName = s"${changeRequest.action.name.capitalize} Rule ${changeRequest.newRule.name}"
 
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
@@ -238,7 +196,7 @@ class RuleModificationValidationPopup(
   // The formtracker needs to check everything only if there is workflow
   private[this] val formTracker = {
     val fields = crReasons.toList ::: {
-      if (workflowEnabled) changeRequestName :: Nil
+      if (validationNeeded) changeRequestName :: Nil
       else Nil
     }
 
@@ -259,17 +217,22 @@ class RuleModificationValidationPopup(
   }
 
   private[this] def ruleDiffFromAction(): Box[ChangeRequestRuleDiff] = {
-    initialState match {
+    import RuleModAction._
+
+    changeRequest.previousRule match {
       case None =>
-        if ((action == "save") || (action == "create"))
-          Full(AddRuleDiff(rule))
-        else
-          Failure(s"Action ${action} is not possible on a new Rule")
+        changeRequest.action match {
+          case Update | Create =>
+            Full(AddRuleDiff(changeRequest.newRule))
+          case _               =>
+            Failure(s"Action ${changeRequest.action.name} is not possible on a new Rule")
+        }
+
       case Some(d) =>
-        action match {
-          case "delete" => Full(DeleteRuleDiff(rule))
-          case "save" | "disable" | "enable" | "create" => Full(ModifyToRuleDiff(rule))
-          case _ => Failure(s"Action ${action} is not possible on a existing Rule")
+        changeRequest.action match {
+          case Delete                             => Full(DeleteRuleDiff(changeRequest.newRule))
+          case Update | Disable | Enable | Create => Full(ModifyToRuleDiff(changeRequest.newRule))
+          case _                                  => Failure(s"Action ${changeRequest.action.name} is not possible on a existing Rule")
         }
     }
   }
@@ -285,8 +248,8 @@ class RuleModificationValidationPopup(
             cr     <- changeRequestService.createChangeRequestFromRule(
                          changeRequestName.get
                        , crReasons.map( _.get ).getOrElse("")
-                       , rule
-                       , initialState
+                       , changeRequest.newRule
+                       , changeRequest.previousRule
                        , diff
                        , CurrentUser.actor
                        , crReasons.map( _.get )
@@ -298,10 +261,10 @@ class RuleModificationValidationPopup(
         }
         savedChangeRequest match {
           case Full(cr) =>
-            if (workflowEnabled)
+            if (validationNeeded)
               closePopup() & onSuccessCallBack(Right(cr))
             else
-              closePopup() & onSuccessCallBack(Left(rule))
+              closePopup() & onSuccessCallBack(Left(changeRequest.newRule))
           case eb:EmptyBox =>
             val e = (eb ?~! "Error when trying to save your modification")
             parentFormTracker.map( _.addFormError(error(e.messageChain)))
