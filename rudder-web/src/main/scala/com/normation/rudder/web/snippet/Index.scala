@@ -38,7 +38,6 @@
 package com.normation.rudder.web.snippet
 
 //lift std import
-import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.web.model.CurrentUser
 import net.liftweb.http._

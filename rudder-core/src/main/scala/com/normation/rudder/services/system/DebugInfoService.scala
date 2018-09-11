@@ -50,54 +50,52 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.{Success, Try, Failure => TryFailure}
 
-final case class SupportInfoScriptResult (
+final case class DebugInfoScriptResult (
     serverName : String
   , result     : Array[Byte]
 )
 
 
-trait SupportInfoService {
-  def launch() : Box[SupportInfoScriptResult]
+trait DebugInfoService {
+  def launch() : Box[DebugInfoScriptResult]
 }
 
-class SupportInfoServiceImpl extends SupportInfoService with Loggable {
+class DebugInfoServiceImpl extends DebugInfoService with Loggable {
 
   private[this] def execScript() : Box[CmdResult] = {
     val environment = System.getenv.asScala.toMap
     val timeOut     = Duration(30, TimeUnit.SECONDS)
-    val scriptPath  = "/opt/rudder/bin/rudder-support-info"
+    val scriptPath  = "/opt/rudder/bin/rudder-debug-info"
     val cmd         = Cmd(scriptPath, Nil, environment)
     // Since the API is blocking, we want to wait for the result.
-    logger.debug(s"Launching support-info script (${scriptPath})")
+    logger.debug(s"Launching debug-info script (${scriptPath})")
     try {
       Full(Await.result(RunNuCommand.run(cmd, timeOut), timeOut))
     } catch {
-      case e: Throwable => Failure(s"An Error has occured when launching support-info script: ${e.getMessage}")
+      case e: Throwable => Failure(s"An Error has occured when launching debug-info script: ${e.getMessage}")
     }
   }
 
-  // The support script generates an archive in the /tmp folder.
+  // The debug script generates an archive in the /tmp folder.
   // We want to get its binary representation into an Array of byte
   // In order for the API to build an InMemoryResponse
 
-  private[this] def getScriptResult() : Box[SupportInfoScriptResult] = {
-    import java.net.InetAddress.getLocalHost
+  private[this] def getScriptResult() : Box[DebugInfoScriptResult] = {
 
     Try {
-      val serverHostname = getLocalHost.getHostName
 
-      val resultPath = s"/tmp/support-info-${serverHostname}.tar.gz"
+      val resultPath = s"/var/rudder/debug/info/debug-info-latest.tar.gz"
+      val result = Paths.get(resultPath).toRealPath()
+      DebugInfoScriptResult(result.getFileName.toString, Files.readAllBytes(result))
 
-      val result = Paths.get(resultPath)
-      SupportInfoScriptResult(serverHostname,Files.readAllBytes(result))
     } match {
-      case Success(supportInfo) => Full(supportInfo)
-      case TryFailure(exception) => Failure(s"Could not get file support info result file: cause is ${exception.getMessage}")
+      case Success(debugInfo) => Full(debugInfo)
+      case TryFailure(exception) => Failure(s"Could not get file debug info result file: cause is ${exception.getMessage}")
     }
 
   }
 
-  override def launch() : Box[SupportInfoScriptResult] = {
+  override def launch() : Box[DebugInfoScriptResult] = {
 
     val start = DateTime.now.getMillis
     for {
@@ -105,13 +103,13 @@ class SupportInfoServiceImpl extends SupportInfoService with Loggable {
 
       end       = DateTime.now.getMillis
       duration  = end - start
-      _         = logger.debug(s"support-info script run finished in ${duration} ms")
+      _         = logger.debug(s"debug-info script run finished in ${duration} ms")
 
       zip       <- if (cmdResult.code == 0 || cmdResult.code == 1) {
                      logger.trace(s"stdout: ${cmdResult.stdout}")
                      getScriptResult()
                    } else {
-                     val msg = s"support-info script exited with an error (code ${cmdResult.code}))."
+                     val msg = s"debug-info script exited with an error (code ${cmdResult.code}))."
                      logger.error(s"${msg} Error details below")
                      logger.error(s"stderr: ${cmdResult.stderr}")
                      logger.error(s"stdout: ${cmdResult.stdout}")

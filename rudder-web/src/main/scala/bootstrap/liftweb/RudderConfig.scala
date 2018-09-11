@@ -81,7 +81,7 @@ import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.rule.category._
-import com.normation.rudder.services.{ClearCacheServiceImpl, SupportInfoService, SupportInfoServiceImpl}
+import com.normation.rudder.services.{ClearCacheServiceImpl, DebugInfoService, DebugInfoServiceImpl}
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
 import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.eventlog._
@@ -330,7 +330,7 @@ object RudderConfig extends Loggable {
   val eventLogDetailsService: EventLogDetailsService = eventLogDetailsServiceImpl
   val reportingService: ReportingService = reportingServiceImpl
   lazy val asyncComplianceService : AsyncComplianceService = new AsyncComplianceService(reportingService)
-  val supportScript : SupportInfoService = scriptLauncher
+  val debugScript : DebugInfoService = scriptLauncher
   val stringUuidGenerator: StringUuidGenerator = uuidGen
   val cmdbQueryParser: CmdbQueryParser = queryParser
   val getBaseUrlService: GetBaseUrlService = baseUrlService
@@ -681,7 +681,7 @@ object RudderConfig extends Loggable {
 
   val systemApiService11 = new SystemApiService11(
       updateTechniqueLibrary
-    , supportScript
+    , debugScript
     , clearCacheService
     , asyncDeploymentAgent
     , uuidGen
@@ -1720,7 +1720,7 @@ object RudderConfig extends Loggable {
     , nodeInfoServiceImpl
     , RUDDER_BATCH_REPORTS_LOGINTERVAL )
 
-  private[this] lazy val scriptLauncher = new SupportInfoServiceImpl
+  private[this] lazy val scriptLauncher = new DebugInfoServiceImpl
 
   ////////////////////// Snippet plugins & extension register //////////////////////
   lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()

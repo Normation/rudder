@@ -64,7 +64,7 @@ import com.normation.rudder.repository._
 import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rest.lift.{LiftApiProcessingLogger, LiftHandler, SystemApiService11}
-import com.normation.rudder.services.{ClearCacheService, SupportInfoScriptResult, SupportInfoService}
+import com.normation.rudder.services.{ClearCacheService, DebugInfoScriptResult, DebugInfoService}
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.user.PersonIdentService
 import org.eclipse.jgit.lib.PersonIdent
@@ -203,8 +203,8 @@ object RestTestSetUp {
 
  val testNodeConfiguration = new TestNodeConfiguration()
  val fakeRepo = testNodeConfiguration.repo
- val fakeScriptLauncher = new SupportInfoService {
-   override def launch(): Box[SupportInfoScriptResult] = Full(SupportInfoScriptResult("test", new Array[Byte](42)))
+ val fakeScriptLauncher = new DebugInfoService {
+   override def launch(): Box[DebugInfoScriptResult] = Full(DebugInfoScriptResult("test", new Array[Byte](42)))
  }
 
   val apiService11 = new SystemApiService11(

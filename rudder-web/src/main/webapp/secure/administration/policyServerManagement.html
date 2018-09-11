@@ -776,15 +776,15 @@
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
-          <p>Launch the support script (<i><strong>/opt/rudder/bin/rudder-support-info</strong></i>) to get information about your setup.</p>
+          <p>Launch the debug script (<i><strong>/opt/rudder/bin/rudder-debug-info</strong></i>) to get information about your setup.</p>
           <p>The provided information are used to troubleshoot Rudder.</p>
           <p>Data includes various commands about your install (package version ...), your system and useful logs</p>
         </div>
-        <div class="lift:administration.SupportScript.render" id="supportScriptForm">
+        <div class="lift:administration.DebugScript.render" id="debugScriptForm">
           <lift:authz role="administration_write">
             <form class="lift:form.ajax">
-              <input id="launchSupportScriptButton" type="submit" value="Download support information" />
-              <span class="lift:Msg?id=supportScript">[error]</span>
+              <input id="launchDebugScriptButton" type="submit" value="Download debug information" />
+              <span class="lift:Msg?id=debugScript">[error]</span>
             </form>
           </lift:authz>
         </div>
