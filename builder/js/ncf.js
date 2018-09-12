@@ -883,7 +883,7 @@ $scope.onImportFileChange = function (fileEl) {
   $scope.methodUrl = function(method) {
     var name = method.bundle_name !== undefined ? method.bundle_name : $scope.getMethodBundleName(method);
     if (usingRudder) {
-      return "/rudder-doc/_generic_methods.html#"+name
+      return "/rudder-doc/reference/current/reference/generic_methods.html#"+name
     } else {
       return "http://www.ncf.io/pages/reference.html#"+name;
     }
