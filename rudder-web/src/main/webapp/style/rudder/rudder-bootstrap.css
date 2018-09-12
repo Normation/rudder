@@ -642,7 +642,8 @@ body{
 .content-wrapper .font-bold {
   font-weight: bold !important;
 }
-.skin-yellow .modal .align-radio-generate-input {
+.skin-yellow .modal .align-radio-generate-input,
+.skin-yellow .reveal-password {
   height: 34px;
 }
 .skin-yellow .modal #pendingNodeConfirm thead tr{
@@ -652,10 +653,12 @@ body{
    background-color: #fff;
 }
 
+.content-wrapper .password-section{
+  padding-top: 10px;
+}
 .content-wrapper .password-section .btn{
   outline: none !important;
 }
-
 .content-wrapper .password-section .reveal-password:hover,.content-wrapper .password-section .reveal-password:active,.content-wrapper .password-section .reveal-password:focus{
   background-color: #fff;
   border-color: #ccc;
@@ -669,9 +672,8 @@ body{
   font-size: 16px;
   padding: 2px 0;
 }
-
-.content-wrapper .password-section .input-group-btn .btn{
-  margin-left: -3px
+.content-wrapper .password-section .bloc-action{
+  margin: 10px -15px 0 -15px;
 }
 
 .content-wrapper .text-section.input-group input{
@@ -701,7 +703,7 @@ body{
   padding: 0 10px;
 }
 
-#password-actions {
+.password-actions {
   padding: 0 15px 15px;
 }
 
