@@ -834,7 +834,7 @@ object PasswordField {
       // Html template
     def agentScheduleTemplate = ChooseTemplate(List("templates-hidden", "components", "passwordInput"), "password-input")
 
-    val css: CssSel =  ".directive-input-group [id]" #> id &
+    val css: CssSel =  ".password-app [id]" #> id &
     ".password-section [id]" #>  (id+"-controller")
 
     css(agentScheduleTemplate)
