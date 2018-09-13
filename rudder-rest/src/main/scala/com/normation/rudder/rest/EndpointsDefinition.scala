@@ -386,9 +386,9 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
     val (action, path) = GET / "system" / "status"
     }
 
-  final case object SupportInfos extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
+  final case object DebugInfo extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
     val description =  "Launch the support info script and get the result"
-    val (action, path) = GET / "system" / "support" / "info"
+    val (action, path) = GET / "system" / "debug" / "info"
 
   }
 

@@ -45,13 +45,13 @@ import net.liftweb.util.Helpers._
 import scala.xml.Text
 
 
-class SupportScript extends DispatchSnippet with Loggable {
+class DebugScript extends DispatchSnippet with Loggable {
 
   def dispatch = {
-    case "render" => launchSupportScript
+    case "render" => launchDebugScript
   }
 
-    def launchSupportScript : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+    def launchDebugScript : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
       // our process method returns a
       // JsCmd which will be sent back to the browser
@@ -60,12 +60,12 @@ class SupportScript extends DispatchSnippet with Loggable {
         //clear errors
 
         S.clearCurrentNotices
-        S.redirectTo("/secure/api/system/support/info")
+        S.redirectTo("/secure/api/system/debug/info")
       }
 
       //process the list of networks
-      "#launchSupportScriptButton" #> {
-        SHtml.ajaxButton( <span class="fa fa-download"></span>++Text(" Download support information"), process _ ,("class","btn btn-primary"))
+      "#launchDebugScriptButton" #> {
+        SHtml.ajaxButton( <span class="fa fa-download"></span>++Text(" Download debug information"), process _ ,("class","btn btn-primary"))
       }
     }
 
