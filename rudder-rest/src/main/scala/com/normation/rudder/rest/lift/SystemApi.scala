@@ -48,7 +48,7 @@ import com.normation.rudder.batch.{AsyncDeploymentAgent, ManualStartDeployment, 
 import com.normation.rudder.UserService
 import com.normation.rudder.repository.xml.{GitFindUtils, GitTagDateTimeFormatter}
 import com.normation.rudder.repository.{GitArchiveId, GitCommitId, ItemArchiveManager}
-import com.normation.rudder.services.{ClearCacheService, SupportInfoScriptResult, SupportInfoService}
+import com.normation.rudder.services.{ClearCacheService, DebugInfoScriptResult, DebugInfoService}
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
@@ -71,7 +71,7 @@ class SystemApi(
 
     API.endpoints.map(e => e match {
       case API.Status                         => Status
-      case API.SupportInfos                   => SupportInfos
+      case API.DebugInfo                      => DebugInfo
       case API.TechniquesReload               => TechniquesReload
       case API.DyngroupsReload                => DyngroupsReload
       case API.ReloadAll                      => ReloadAll
@@ -116,14 +116,14 @@ class SystemApi(
     }
   }
 
-  object SupportInfos extends LiftApiModule0 {
+  object DebugInfo extends LiftApiModule0 {
 
-    val schema = API.SupportInfos
+    val schema = API.DebugInfo
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
-      apiv11service.supportInfo(params)
+      apiv11service.debugInfo(params)
     }
 
   }
@@ -398,15 +398,15 @@ class SystemApi(
 }
 
 class SystemApiService11(
-    updatePTLibService      : UpdateTechniqueLibrary
-  , supportScriptService    : SupportInfoService
-  , clearCacheService       : ClearCacheService
-  , asyncDeploymentAgent    : AsyncDeploymentAgent
-  , uuidGen                 : StringUuidGenerator
-  , updateDynamicGroups     : UpdateDynamicGroups
-  , itemArchiveManager      : ItemArchiveManager
-  , personIdentService      : PersonIdentService
-  , repo                    : GitRepositoryProvider
+    updatePTLibService   : UpdateTechniqueLibrary
+  , debugScriptService   : DebugInfoService
+  , clearCacheService    : ClearCacheService
+  , asyncDeploymentAgent : AsyncDeploymentAgent
+  , uuidGen              : StringUuidGenerator
+  , updateDynamicGroups  : UpdateDynamicGroups
+  , itemArchiveManager   : ItemArchiveManager
+  , personIdentService   : PersonIdentService
+  , repo                 : GitRepositoryProvider
 ) (implicit userService: UserService) extends Loggable {
 
 
@@ -571,20 +571,20 @@ class SystemApiService11(
     }
   }
 
-  def supportInfo(params: DefaultParams) : LiftResponse = {
-    implicit val action = "getSupportInfos"
+  def debugInfo(params: DefaultParams) : LiftResponse = {
+    implicit val action = "getDebugInfo"
     implicit val prettify = params.prettify
 
-    supportScriptService.launch() match {
-      case Full(SupportInfoScriptResult(name,bytes)) =>
+    debugScriptService.launch() match {
+      case Full(DebugInfoScriptResult(fileName,bytes)) =>
         InMemoryResponse(bytes
           , "content-Type" -> "application/gzip" ::
-            "Content-Disposition" -> s"attachment;filename=support-info-${name}.tar.gz" :: Nil
+            "Content-Disposition" -> s"attachment;filename=${fileName}" :: Nil
           , Nil
           , 200)
       case eb: EmptyBox =>
-        val fail = eb ?~! "Error has occured while getting support script result"
-        toJsonError(None, "script support" -> s"An Error has occured : ${fail.messageChain}" )
+        val fail = eb ?~! "Error has occured while getting debug script result"
+        toJsonError(None, "debug script" -> s"An Error has occured : ${fail.messageChain}" )
     }
   }
 

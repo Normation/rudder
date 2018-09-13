@@ -2483,7 +2483,7 @@ hr.separation{
 .content-wrapper .form-control.number-day{
   width:60px;
 }
-form input.dyngroupReloadingButton, form button#launchSupportScriptButton{
+form input.dyngroupReloadingButton, form button#launchDebugScriptButton{
 	width:auto;
 	min-width:130px;
 }
