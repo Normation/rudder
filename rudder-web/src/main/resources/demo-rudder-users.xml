@@ -64,7 +64,7 @@
 
   Please take a look at Rudder's documentation for additional details, either from the
   application itself (upper right corner) or on
-  http://www.rudder-project.org/rudder-doc-latest/rudder-doc.html#user-management.
+  https://docs.rudder.io/reference/current/administration/users.html
 
   IMPORTANT: After changing this file, the rudder webapp must be restarted to take changes
   into account: /etc/init.d/rudder-jetty restart
