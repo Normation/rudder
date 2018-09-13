@@ -183,7 +183,7 @@ class RuleCompliance (
     } catch {
       case oom: OutOfMemoryError =>
         val msg = "NodeChanges can not be retrieved du to OutOfMemory error. That mean that either your installation is missing " +
-          "RAM (see: http://www.rudder-project.org/doc-3.2/_performance_tuning.html#_java_out_of_memory_error) or that the number of recent changes is " +
+          "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
           "overwhelming, and you hit: http://www.rudder-project.org/redmine/issues/7735. Look here for workaround"
         logger.error(msg)
         Noop
@@ -231,7 +231,7 @@ class RuleCompliance (
     } catch {
       case oom: OutOfMemoryError =>
         val msg = "NodeChanges can not be retrieved du to OutOfMemory error. That mean that either your installation is missing " +
-          "RAM (see: http://www.rudder-project.org/doc-3.2/_performance_tuning.html#_java_out_of_memory_error) or that the number of recent changes is " +
+          "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
           "overwhelming, and you hit: http://www.rudder-project.org/redmine/issues/7735. Look here for workaround"
         logger.error(msg)
         Noop

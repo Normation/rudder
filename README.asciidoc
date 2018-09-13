@@ -46,8 +46,8 @@ https://www.rudder-project.org/site/support/chat-mailing-lists/[on IRC]!
 
 [horizontal]
 Rudder site:: http://rudder-project.org
-User documentation:: http://www.rudder-project.org/doc-latest/
-API documentation:: http://www.rudder-project.org/rudder-api-doc/
+User documentation:: https://docs.rudder.io/
+API documentation:: https://docs.rudder.io/api
 Mailing list, IRC:: https://www.rudder-project.org/site/community/mailing-lists/
 Bug report:: http://www.rudder-project.org/redmine/projects/rudder/issues
 Source:: https://github.com/Normation/rudder
