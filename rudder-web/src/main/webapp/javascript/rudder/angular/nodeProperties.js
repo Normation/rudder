@@ -91,6 +91,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
     }
     currentNodeId = nodeId
     $scope.properties = properties;
+
     $scope.urlAPI = contextPath + '/secure/api/nodes/'+ nodeId;
   }
 
@@ -164,3 +165,7 @@ app.config(function($locationProvider) {
     requireBase: false
   });
 })
+
+$(document).ready(function(){
+  $('.rudder-label').bsTooltip();
+});
