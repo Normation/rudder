@@ -431,7 +431,7 @@ class SystemApiService11(
   //We still send OK instead to inform the endpoint has correctly triggered.
   private[this] def reloadDyngroupsWrapper() : Either[String, JField] = {
     updateDynamicGroups.startManualUpdate
-    Right(JField("dynamicGroups", "Started"))
+    Right(JField("groups", "Started"))
   }
 
   /**
@@ -852,7 +852,7 @@ class SystemApiService11(
 
   def reloadDyngroups(params: DefaultParams): LiftResponse = {
 
-    implicit val action = "reloadDynGroups"
+    implicit val action = "reloadGroups"
     implicit val prettify = params.prettify
 
     reloadDyngroupsWrapper() match {
