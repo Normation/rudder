@@ -342,7 +342,7 @@ form select.selectField {
    width: 220px;
 }
 
-input.queryInputValue, select.queryInputValue {
+.content-wrapper input.queryInputValue, .content-wrapper select.queryInputValue {
   width:280px;
   margin: 0px;
   padding: 0px;
