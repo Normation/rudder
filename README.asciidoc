@@ -4,6 +4,8 @@ image::readme-resources/color_logo_horizontal_small.png[Rudder]
 Continuous configuration for effective compliance
 -------------------------------------------------
 
+image:https://badges.gitter.im/normation/rudder.svg[link="https://gitter.im/normation/rudder?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
+
 Rudder is an easy to use, web-driven, role-based solution for IT Infrastructure
 Automation & Compliance.
 
