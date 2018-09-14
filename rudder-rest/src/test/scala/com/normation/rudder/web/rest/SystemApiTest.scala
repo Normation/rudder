@@ -91,7 +91,7 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
       implicit val action = "reloadDynGroups"
       implicit val prettify = false
 
-      val response = toJsonResponse(None, "dynamicGroups" -> "Started")
+      val response = toJsonResponse(None, "groups" -> "Started")
 
       RestTestSetUp.testEmptyPost("/api/latest/system/action/groups/reload") { req =>
         RestTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -106,7 +106,7 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
       implicit val prettify = false
 
 
-      val response = toJsonResponse(None, List(JField("dynamicGroups", "Started"), JField("techniques", "Started")))
+      val response = toJsonResponse(None, List(JField("groups", "Started"), JField("techniques", "Started")))
 
       RestTestSetUp.testEmptyPost("/api/latest/system/action/reload") { req =>
         RestTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
