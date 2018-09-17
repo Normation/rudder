@@ -434,7 +434,10 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     JsRaw(s"""
         jQuery('#groupDetails').show();
         var groupId = JSON.stringify({'groupId':'${g.id.value}'});
-        window.location.hash = "#"+groupId""")
+        window.location.hash = "#"+groupId;
+        adjustHeight('#groupDetails');
+    """)
+
   }
 
   private[this] def showTargetInfo(parentCategory: FullNodeGroupCategory, targetInfo: FullRuleTargetInfo) : JsCmd = {
