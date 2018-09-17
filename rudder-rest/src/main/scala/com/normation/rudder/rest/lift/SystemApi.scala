@@ -440,15 +440,17 @@ class SystemApiService11(
     * { "archiveType" : [ { "id" : "datetimeID", "date": "human readable date" , "commiter": "name", "gitPath": "path" }, ... ]
     */
   private[this] def formatList(archiveType:String, availableArchives: Map[DateTime, GitArchiveId]) : JField = {
-    case class JsonArchive(id:String, date:String, commiter:String, gitPath:String)
     val ordered = availableArchives.toList.sortWith {
       case ( (d1,_), (d2,_) ) => d1.isAfter(d2)
     }.map {
       case (date,tag) =>
-        val id = date.toString(GitTagDateTimeFormatter)
-        val datetime = "%s at %s".format(date.toString("YYYY-MM-dd"), date.toString("HH:mm:ss"))
+        // archiveId is contained in gitPath, archive is archives/<kind>/archiveId
+        // splitting on last an getting back last part, falling back to full Id
+        val id = tag.path.value.split("/").lastOption.getOrElse(tag.path.value)
+
+        val datetime = format.print(date)
         //json
-        ("id" -> id) ~ ("date" -> datetime) ~ ("commiter" -> tag.commiter.getName) ~ ("gitCommit" -> tag.commit.value)
+        ("id" -> id) ~ ("date" -> datetime) ~ ("committer" -> tag.commiter.getName) ~ ("gitCommit" -> tag.commit.value)
     }
     JField(archiveType,  ordered)
   }
@@ -517,8 +519,8 @@ class SystemApiService11(
 
   private[this] def archive(req:Req, archive:(PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitArchiveId], archiveType:String) : Either[String, JField] = {
     (for {
-      commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
-      archiveId <- archive(commiter,newModId,RestUtils.getActor(req),Some("Create new archive requested from REST API"),false)
+      committer  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
+      archiveId <- archive(committer,newModId,RestUtils.getActor(req),Some("Create new archive requested from REST API"),false)
     } yield {
       archiveId
     }) match {
@@ -526,7 +528,11 @@ class SystemApiService11(
         val e = eb ?~! "Error when trying to archive %s.".format(archiveType)
         Left(e.msg)
       case Full(x) =>
-        Right(JField(archiveType, "OK"))
+        // archiveId is contained in gitPath, archive is archives/<kind>/archiveId
+        // splitting on last an getting back last part, falling back to full Id
+        val archiveId = x.path.value.split("/").lastOption.getOrElse(x.path.value)
+        val res = ("committer" -> x.commiter.getName) ~ ("gitCommit" -> x.commit.value) ~ ("id" -> archiveId)
+        Right(JField(archiveType, res))
     }
   }
 
@@ -619,7 +625,7 @@ class SystemApiService11(
   }
 
   def getAllZipArchive(params: DefaultParams, commitId: String): LiftResponse = {
-    implicit val action = "getAllZipArchive"
+    implicit val action = "getFullZipArchive"
     implicit val prettify = params.prettify
 
     getZip(commitId, allFiles, "all") match {
@@ -695,17 +701,17 @@ class SystemApiService11(
     implicit val action = "archiveRules"
     implicit val prettify = params.prettify
 
-    archive(req, itemArchiveManager.exportGroupLibrary _, "rules") match {
+    archive(req, itemArchiveManager.exportRules _, "rules") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
   }
 
   def archiveAll(req: Req, params: DefaultParams) : LiftResponse = {
-    implicit val action = "archiveAll"
+    implicit val action = "archiveFull"
     implicit val prettify = params.prettify
 
-    archive(req,  ((a,b,c,d,e) => itemArchiveManager.exportAll(a,b,c,d,e).map( _._1)), "full archive") match {
+    archive(req, ((a,b,c,d,e) => itemArchiveManager.exportAll(a,b,c,d,e).map( _._1)), "full") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
