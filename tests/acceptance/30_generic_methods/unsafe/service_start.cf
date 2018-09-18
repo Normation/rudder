@@ -29,9 +29,8 @@ bundle agent init
     aix::
       "service_name"  string => "syslogd";
 
-  processes:
-    "${service_name}"
-      signals => { "term", "kill" };
+  commands:
+    "/usr/sbin/service ${service_name} stop";
 
 }
 
