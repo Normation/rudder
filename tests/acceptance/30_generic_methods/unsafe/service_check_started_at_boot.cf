@@ -24,8 +24,12 @@ bundle agent init
   vars:
     redhat::
       "service_name"  string => "crond";
-    !redhat::
+    !redhat.!ubuntu::
       "service_name"  string => "cron";
+    ubuntu::
+      "service_name"  string => "ntp";
+    any::
+      "unknown_service_name"  string => "unknown";
 
   classes:
     redhat|suse::
@@ -40,6 +44,7 @@ bundle agent test
 {
   methods:
     "ph1" usebundle => service_check_started_at_boot("${init.service_name}");
+    "ph2" usebundle => service_check_started_at_boot("${init.unknown_service_name}");
 }
 
 #######################################################
@@ -47,10 +52,17 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok_success"  expression => "(promise_kept_service_check_started_at_boot_${init.service_name}.service_check_started_at_boot_${init.service_name}_kept.service_check_started_at_boot_${init.service_name}_ok.service_check_started_at_boot_${init.service_name}_not_repaired.service_check_started_at_boot_${init.service_name}_reached)";
-    "ok_repaired" expression => "!(promise_repaired_service_check_started_at_boot_${init.service_name}|service_check_started_at_boot_${init.service_name}_repaired)";
-    "ok_error"    expression => "!(service_check_started_at_boot_${init.service_name}_not_kept|repair_failed_service_check_started_at_boot_${init.service_name}|service_check_started_at_boot_${init.service_name}_failed|service_check_started_at_boot_${init.service_name}_not_ok)";
-    "ok"          and        => { "ok_success", "ok_repaired", "ok_error" };
+    "ok_success_1"  expression => "(promise_kept_service_check_started_at_boot_${init.service_name}.service_check_started_at_boot_${init.service_name}_kept.service_check_started_at_boot_${init.service_name}_ok.service_check_started_at_boot_${init.service_name}_not_repaired.service_check_started_at_boot_${init.service_name}_reached)";
+    "ok_repaired_1" expression => "!(promise_repaired_service_check_started_at_boot_${init.service_name}|service_check_started_at_boot_${init.service_name}_repaired)";
+    "ok_error_1"    expression => "!(service_check_started_at_boot_${init.service_name}_not_kept|repair_failed_service_check_started_at_boot_${init.service_name}|service_check_started_at_boot_${init.service_name}_failed|service_check_started_at_boot_${init.service_name}_not_ok)";
+    "ok_1"          and        => { "ok_success_1", "ok_repaired_1", "ok_error_1" };
+
+    "ok_success_2"  expression => "!(promise_kept_service_check_started_at_boot_${init.unknown_service_name}.service_check_started_at_boot_${init.unknown_service_name}_kept.service_check_started_at_boot_${init.unknown_service_name}_ok.service_check_started_at_boot_${init.unknown_service_name}_not_repaired.service_check_started_at_boot_${init.unknown_service_name}_reached)";
+    "ok_repaired_2" expression => "!(promise_repaired_service_check_started_at_boot_${init.unknown_service_name}|service_check_started_at_boot_${init.unknown_service_name}_repaired)";
+    "ok_error_2"    expression => "(service_check_started_at_boot_${init.unknown_service_name}_not_kept|repair_failed_service_check_started_at_boot_${init.unknown_service_name}|service_check_started_at_boot_${init.unknown_service_name}_failed|service_check_started_at_boot_${init.unknown_service_name}_not_ok)";
+    "ok_2"          and        => { "ok_success_2", "ok_repaired_2", "ok_error_2" };
+
+    "ok"            and        => { "ok_1", "ok_2" };
 
   reports:
     ok::

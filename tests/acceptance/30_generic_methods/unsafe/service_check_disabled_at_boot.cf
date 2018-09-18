@@ -22,7 +22,9 @@ body common control
 bundle agent init
 {
   vars:
-    debian|suse::
+    ubuntu::
+      "service_name"  string => "ntp";
+    (debian|suse).!ubuntu::
       "service_name"  string => "cron";
     redhat::
       "service_name"  string => "crond";

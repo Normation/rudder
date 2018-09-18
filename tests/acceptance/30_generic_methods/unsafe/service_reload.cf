@@ -29,7 +29,6 @@ bundle agent init
       "service_script" string => "syslogd";
     debian|suse::
       "service_script" string => "cron";
-
 }
 
 #######################################################
@@ -37,14 +36,15 @@ bundle agent init
 bundle agent test
 {
   classes:
-    "running" expression => returnszero("service ${init.service_script} start", "useshell");
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
 
   methods:
-    running.redhat::
-      "ph" usebundle => service_reload("${init.service_script}");
-    running.!redhat::
+    pass2::
       "ph" usebundle => service_reload("${init.service_script}");
 
+  commands:
+    "/usr/sbin/service ${init.service_script} start";
 }
 
 #######################################################
@@ -52,7 +52,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok" expression => "service_reload_${init.service_script}_reached.service_reload_${init.service_script}_repaired.!service_reload_${init.service_script}_kept.!service_reload_${init.service_script}_error";
+    "ok" expression => "service_reload_${init.service_script}_reached.service_reload_${init.service_script}_repaired.!service_reload_${init.service_script}_kept.!service_reload_${init.service_script}_error";
 
   reports:
     ok::
@@ -60,3 +60,4 @@ bundle agent check
     !ok::
       "$(this.promise_filename) FAIL (Service verification failed)";
 }
+
