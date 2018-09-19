@@ -356,7 +356,7 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
         saved    <- save(migrated)
       } yield {
         saved
-      }).attempt.transact(doobie.xa).unsafePerformSync
+      }).transact(doobie.xa).attempt.unsafePerformSync
 
       res match {
         case \/-(k) if(k.size < 1) =>

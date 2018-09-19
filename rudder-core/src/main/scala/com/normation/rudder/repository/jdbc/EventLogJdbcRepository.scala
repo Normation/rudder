@@ -85,7 +85,7 @@ class EventLogJdbcRepository(
           values(${eventLog.creationDate}, ${modId.value}, ${eventLog.principal.name}, ${eventLog.eventType.serialize},
                  ${eventLog.severity}, ${elt}, ${eventLog.eventDetails.reason}, ${eventLog.cause}
                 )
-        """.update.withUniqueGeneratedKeys[Int]("id").attempt.transact(xa).unsafePerformSync
+        """.update.withUniqueGeneratedKeys[Int]("id").transact(xa).attempt.unsafePerformSync
 
         for {
           id      <- boxId
@@ -151,7 +151,7 @@ class EventLogJdbcRepository(
       entries <- HC.process[(String, EventLogDetails)](q, param, 512).vector
     } yield {
       entries.map(toEventLog)
-    }).attempt.transact(xa).unsafePerformSync
+    }).transact(xa).attempt.unsafePerformSync
   }
 
   def getLastEventByChangeRequest(
@@ -196,7 +196,7 @@ class EventLogJdbcRepository(
       entries.map { case (crid, tpe, details) =>
         (ChangeRequestId(crid.substring(1, crid.length()-1).toInt), toEventLog((tpe, details)) )
       }.toMap
-    }).attempt.transact(xa).unsafePerformSync
+    }).transact(xa).attempt.unsafePerformSync
   }
 
   def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : Box[Vector[EventLog]] = {
@@ -215,7 +215,7 @@ class EventLogJdbcRepository(
       entries <- query[(String, EventLogDetails)](q).vector
     } yield {
       entries.map(toEventLog)
-    }).attempt.transact(xa).unsafePerformSync ?~! s"could not find event log with request ${q}"
+    }).transact(xa).attempt.unsafePerformSync ?~! s"could not find event log with request ${q}"
   }
 
   def getEventLogWithChangeRequest(id:Int) : Box[Option[(EventLog,Option[ChangeRequestId])]] = {
@@ -232,7 +232,7 @@ class EventLogJdbcRepository(
       optEntry.map { case (tpe, details, crid) =>
         (toEventLog((tpe, details)), crid.flatMap(i => if(i > 0) Some(ChangeRequestId(i)) else None))
       }
-    }).attempt.transact(xa).unsafePerformSync ?~! s"could not find event log with request ${select}"
+    }).transact(xa).attempt.unsafePerformSync ?~! s"could not find event log with request ${select}"
   }
 
 }

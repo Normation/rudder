@@ -130,7 +130,7 @@ class ExpectedReportsTest extends DBCommon {
 //            }
 //          })
 //        }.values.groupBy(_._1).mapValues(_.map{case(_, NodeConfigVersions(id,v)) => (id,v)}.toMap)
-//      }).attempt.transact(xa).unsafePerformSync
+//      }).transact(xa).attempt.unsafePerformSync
 //    }
 
 //    step {
