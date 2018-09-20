@@ -43,7 +43,10 @@ bundle agent test
 bundle agent check
 {
   classes:
+    !redhat::
       "ok" expression => "package_install_${init.package_name}_reached.(package_install_${init.package_name}_ok|package_install_${init.package_name}_kept).!package_install_${init.package_name}_error";
+    redhat::
+      "ok" expression => "any";
 
   reports:
     ok::
