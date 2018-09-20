@@ -32,7 +32,7 @@ bundle agent permissions(path, mode, owner, group)
   vars:
       "old_class_prefix"        string => canonify("permissions_${path}");
 
-      "args"                     slist => { "${mode}", "${mode}", "${owner}", "${group}" };
+      "args"                     slist => { "${path}", "${mode}", "${owner}", "${group}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("permissions_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
