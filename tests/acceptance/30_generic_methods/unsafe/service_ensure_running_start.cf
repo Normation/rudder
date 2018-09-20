@@ -23,7 +23,9 @@ body common control
 bundle agent init
 {
   vars:
-    !aix::
+    redhat::
+      "service_name"  string => "crond";
+    !aix.!redhat::
       "service_name"  string => "cron";
     aix::
       "service_name"  string => "syslogd";
