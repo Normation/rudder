@@ -3,6 +3,7 @@
 # Test adding a package that exists
 # In unsafe because:
 #   - Will install the "htop" package on the machine
+#   - Or will install the "dos2unix" package on the machine
 #######################################################
 
 bundle common acc_path
@@ -23,8 +24,10 @@ body common control
 bundle agent init
 {
   vars:
-    (debian|redhat)::
+    debian::
       "package_name" string => "htop";
+    !debian::
+      "package_name" string => "dos2unix";
 }
 
 #######################################################
@@ -33,8 +36,7 @@ bundle agent test
 {
 
   methods:
-    (debian|redhat)::
-      "ph" usebundle => package_install("${init.package_name}");
+    "ph" usebundle => package_install("${init.package_name}");
 
 }
 
@@ -43,10 +45,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-    !redhat::
       "ok" expression => "package_install_${init.package_name}_reached.(package_install_${init.package_name}_ok|package_install_${init.package_name}_kept).!package_install_${init.package_name}_error";
-    redhat::
-      "ok" expression => "any";
 
   reports:
     ok::
