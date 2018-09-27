@@ -1,6 +1,6 @@
 #######################################################
 #
-# Remove the htop package
+# Remove the htop or dos2unix package
 #
 #######################################################
 
@@ -22,7 +22,10 @@ body common control
 bundle agent init
 {
   vars:
-    "package_name"            string => "htop";
+    debian::
+      "package_name"            string => "htop";
+    !debian::
+      "package_name"            string => "dos2unix";
     "canonified_package_name" string => canonify("${package_name}");
 }
 

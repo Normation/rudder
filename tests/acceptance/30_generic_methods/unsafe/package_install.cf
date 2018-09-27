@@ -1,6 +1,6 @@
 #######################################################
 #
-# Install the htop package
+# Install the htop or dos2unix package
 #
 #######################################################
 
@@ -22,7 +22,10 @@ body common control
 bundle agent init
 {
   vars:
-    "package_name"            string => "htop";
+    debian::
+      "package_name"            string => "htop";
+    !debian::
+      "package_name"            string => "htop";
     "canonified_package_name" string => canonify("${package_name}");
 }
 
@@ -40,8 +43,6 @@ bundle agent check
 {
   classes:
     "ok" expression => "package_install_${init.canonified_package_name}_ok.!package_install_${init.canonified_package_name}_error";
-    redhat::
-      "ok" expression => "any";
 
   reports:
     ok::
