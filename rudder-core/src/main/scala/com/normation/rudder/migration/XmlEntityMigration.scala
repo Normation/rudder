@@ -360,7 +360,7 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
         saved
       })
 
-      val res = exec.attempt.transact(doobie.xa).unsafeRunSync
+      val res = exec.transact(doobie.xa).attempt.unsafeRunSync
 
       res match {
         case Right(k) if(k.size < 1) =>
