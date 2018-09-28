@@ -154,7 +154,7 @@ class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
     } yield {
       val saved = runCompliances.map(_.nodeId)
       reports.filter(r => saved.contains(r.nodeId))
-    }).attempt.transact(xa).unsafeRunSync
+    }).transact(xa).attempt.unsafeRunSync()
 
     res match {
       case Right(_) => // ok
