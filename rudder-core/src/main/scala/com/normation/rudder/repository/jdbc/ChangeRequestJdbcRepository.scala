@@ -189,7 +189,7 @@ class WoChangeRequestJdbcRepository(
        """.update.withUniqueGeneratedKeys[Int]("id")
 
     for {
-      id  <- (q.attempt.transact(xa).unsafeRunSync: Box[Int])
+      id  <- (q.transact(xa).attempt.unsafeRunSync: Box[Int])
       cr  <- roRepo.get(ChangeRequestId(id)).flatMap {
                case None    => Failure(s"The newly saved change request with ID ${id} was not found back in data base")
                case Some(x) => Full(x)
@@ -226,7 +226,7 @@ class WoChangeRequestJdbcRepository(
                    val (name, desc, xml, modId) = getAtom(changeRequest)
                    val q = sql"""update ChangeRequest set name = ${name}, description = ${desc}, content = ${xml}, modificationId = ${modId}
                                  where id = ${changeRequest.id}"""
-                   q.update.run.attempt.transact(xa).unsafeRunSync
+                   q.update.run.transact(xa).attempt.unsafeRunSync
                  }: Box[Int])
       updated <- roRepo.get(changeRequest.id).flatMap {
                    case None =>
