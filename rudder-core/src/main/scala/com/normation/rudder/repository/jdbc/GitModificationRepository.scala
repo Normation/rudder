@@ -10,7 +10,6 @@ import net.liftweb.common._
 import com.normation.rudder.db.Doobie
 
 import doobie.implicits._
-import cats.implicits._
 
 class GitModificationRepositoryImpl(
     db : Doobie
@@ -24,7 +23,7 @@ class GitModificationRepositoryImpl(
     """.update
 
 
-    sql.run.attempt.transact(xa).unsafeRunSync match {
+    sql.run.transact(xa).attempt.unsafeRunSync match {
       case Right(x) => Full(DB.GitCommitJoin(commit, modId))
       case Left(ex) => Failure(s"Error when trying to add a Git Commit in DB: ${ex.getMessage}", Full(ex), Empty)
     }
@@ -36,7 +35,7 @@ class GitModificationRepositoryImpl(
       select gitcommit from gitcommit where modificationid=${modificationId.value}
     """.query[String].option
 
-    sql.attempt.transact(xa).unsafeRunSync match {
+    sql.transact(xa).attempt.unsafeRunSync match {
       case Right(x)  => Full(x.map(id => GitCommitId(id)))
       case Left(ex) => Failure(s"Error when trying to get Git Commit for modification ID '${modificationId.value}': ${ex.getMessage}", Full(ex), Empty)
     }
