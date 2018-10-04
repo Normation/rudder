@@ -83,9 +83,10 @@ bundle agent file_ensure_keys_values(file, keys, separator)
 {
   vars:
       "old_class_prefix" string => canonify("file_ensure_keys_values_${file}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+      "promisers"         slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"     string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${keys}", "${separator}" };
+      "joined"           string => join(",",args);
 
   files:
       "${file}"
@@ -97,5 +98,5 @@ bundle agent file_ensure_keys_values(file, keys, separator)
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log("Ensure lines in format key${separator}values into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log("Ensure lines in format key${separator}values into ${file}", "${old_class_prefix}", "${class_prefix}", "${joined}");
 }

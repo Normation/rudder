@@ -30,9 +30,10 @@ bundle agent file_ensure_line_present_in_ini_section(file, section, line)
 {
   vars:
       "old_class_prefix"       string => canonify("file_ensure_line_present_in_ini_section_${file}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+      "promisers"               slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"           string => canonify(join("_", "promisers"));
       "args"                    slist => { "${file}", "${section}", "${line}" };
+      "joined"                 string => join(",",args);
       "section_and_blank_line" string => "[${section}]
 ";
 
@@ -60,5 +61,5 @@ bundle agent file_ensure_line_present_in_ini_section(file, section, line)
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log("Insert line(s) ${line} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log("Insert line(s) into ${file}", "${old_class_prefix}", "${class_prefix}", "${joined}");
 }

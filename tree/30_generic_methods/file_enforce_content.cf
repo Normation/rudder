@@ -30,10 +30,10 @@ bundle agent file_enforce_content(file, lines, enforce)
 {
   vars:
       "old_class_prefix" string => canonify("file_ensure_lines_present_${file}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+      "promisers"         slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"     string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${lines}", "${enforce}" };
-      "joined" string => join(",",args);
+      "joined"           string => join(",",args);
     # We need to detect if lines is an iterator or a scalar
     !pass1::
       "length_list" int => length("lines");
