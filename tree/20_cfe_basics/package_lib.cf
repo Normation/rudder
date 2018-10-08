@@ -66,6 +66,13 @@ body package_module zypper
     #default_options => {};
 }
 
+body package_module zypper_pattern
+{
+    query_installed_ifelapsed => "60";
+    query_updates_ifelapsed => "240";
+    #default_options => {};
+}
+
 body package_module pkg
 {
     query_installed_ifelapsed => "60";
@@ -151,13 +158,14 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "use_apt_provider" expression => strcmp("apt", "${provider}");
       "use_yum_provider" expression => strcmp("yum", "${provider}");
       "use_zypper_provider" expression => strcmp("zypper", "${provider}");
+      "use_zypper_pattern_provider" expression => strcmp("zypper_pattern", "${provider}");
       "use_pkg_provider" expression => strcmp("pkg", "${provider}");
       "use_slackpkg_provider" expression => strcmp("slackpkg", "${provider}");
       # Used in tests
       "use_test_provider" expression => strcmp("test", "${provider}");
 
     any::
-      "supported_provider" expression => "use_apt_provider|use_yum_provider|use_zypper_provider|use_pkg_provider|use_slackpkg_provider|use_test_provider";
+      "supported_provider" expression => "use_apt_provider|use_yum_provider|use_zypper_provider|use_zypper_pattern_provider|use_slackpkg_provider|use_pkg_provider|use_test_provider";
     
 
   packages:
@@ -263,6 +271,40 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "${name}"
           policy         => "${state}",
           package_module => zypper,
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    #### zypper-pattern ####
+
+    use_zypper_pattern_provider.architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => zypper_pattern,
+          architecture   => "${architecture}",
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_zypper_pattern_provider.architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => zypper_pattern,
+          architecture   => "${architecture}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_zypper_pattern_provider.!architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => zypper_pattern,
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_zypper_pattern_provider.!architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => zypper_pattern,
           options        => { "${options}" },
           classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
