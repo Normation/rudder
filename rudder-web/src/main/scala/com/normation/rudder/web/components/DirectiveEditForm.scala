@@ -423,8 +423,12 @@ class DirectiveEditForm(
             <span tooltipid="priorityId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
             <div class="tooltipContent" id="priorityId">
               <h4> Priority </h4>
-              <p>Priority determines which <b> unique </b> Directive will be applied.</p>
-              <p>Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied.</p>
+              <p>Priority has two uses depending if the technique from which that directive is derived is <b>Unique</b> or not.</p>
+              <p>Unique directives can be applied only once (for example Time Settings), so only the highest priority will be applied.</p>
+              <p>For <b>non-unique</b> directives, priority is used to choose the order of the directive application when applicable. The
+                highest priority directive comes first.</p>
+              <p>Note that overriding variable definitions are the ones coming last and so, the used value will be the one with the lowest priority.</p>
+              <p>More information is available in <a href="https://docs.rudder.io/reference/current/usage/advanced_configuration_management.html#_special_use_case_overriding_generic_variable_definition">documentation about ordering directive application</a>.</p>
             </div>
           </span>
         </div>
