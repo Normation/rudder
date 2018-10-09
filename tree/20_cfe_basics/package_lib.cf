@@ -93,7 +93,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "use_test_provider" expression => strcmp("test", "${provider}");
 
     any::
-      "supported_provider" expression => "use_apt_provider|use_yum_provider|use_zypper_provider|use_pkg_provider|use_slackpkg_provider|use_test_provider";
+      "supported_provider" expression => "use_apt_provider|use_yum_provider|use_zypper_provider|use_pkg_provider|use_slackpkg_provider|use_test_provider|use_zypper_pattern_provider";
 
 
       "pass1" expression => "any";
