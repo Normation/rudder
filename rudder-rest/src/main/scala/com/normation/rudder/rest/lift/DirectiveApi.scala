@@ -204,7 +204,6 @@ class DirectiveAPIService2 (
   , writeDirective       : WoDirectiveRepository
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentActor
-  , changeRequestService : ChangeRequestService
   , workflowLevelService : WorkflowLevelService
   , restExtractor        : RestExtractorService
   , editorService        : DirectiveEditorService
@@ -226,7 +225,7 @@ class DirectiveAPIService2 (
 
     for {
       workflow  <- workflowLevelService.getForDirective(actor, change)
-      cr        <- changeRequestService.createChangeRequestFromDirective(
+      cr        =  ChangeRequestService.createChangeRequestFromDirective(
                        crName
                      , crDescription
                      , technique.id.name
@@ -236,9 +235,9 @@ class DirectiveAPIService2 (
                      , diff
                      , actor
                      , reason
-                  ) ?~! s"Change request creation on Directive '${directive.name}' failed"
-      wfStarted <- workflow.startWorkflow(cr.id, actor, None) ?~! s"Could not start workflow for change request creation on Directive '${directive.name}'"
-        optCrId = if (workflow.needExternalValidation()) Some(cr.id) else None
+                  )
+      id        <- workflow.startWorkflow(cr, actor, None) ?~! s"Could not start workflow for change request creation on Directive '${directive.name}'"
+        optCrId = if (workflow.needExternalValidation()) Some(id) else None
         jsonDirective = ("directives" -> JArray(List(serialize(technique, directive, optCrId))))
       } yield {
         jsonDirective

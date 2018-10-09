@@ -70,7 +70,6 @@ import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.ComplianceModeServiceImpl
 import com.normation.rudder.reports.execution._
 import com.normation.rudder.repository._
-import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
 import com.normation.rudder.repository.jdbc._
 import com.normation.rudder.repository.ldap._
 import com.normation.rudder.repository.xml._
@@ -375,9 +374,6 @@ object RudderConfig extends Loggable {
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
   val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
 
-  val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(doobie)
-  val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(doobie)
-
   lazy val roAgentRunsRepository : RoReportsExecutionRepository = cachedAgentRunRepository
   lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
 
@@ -392,11 +388,7 @@ object RudderConfig extends Loggable {
     , nodeInfoServiceImpl
   )
 
-  lazy val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
   val ldapInventoryMapper = inventoryMapper
-
-  lazy val changeRequestMapper = new ChangeRequestMapper(changeRequestChangesUnserialisation, changeRequestChangesSerialisation)
-
 
   ////////////////////////////////////////////////
   ////////// plugable service providers //////////
@@ -419,7 +411,6 @@ object RudderConfig extends Loggable {
   // Plugin input interface for alternative workflow
   lazy val workflowLevelService = new DefaultWorkflowLevel(new NoWorkflowServiceImpl(
       commitAndDeployChangeRequest
-    , inMemoryChangeRequestRepository
   ))
 
   // Plugin input interface for alternative authentication providers
@@ -428,7 +419,12 @@ object RudderConfig extends Loggable {
   // Plugin input interface for user management plugin
   lazy val userAuthorisationLevel = new DefaultUserAuthorisationLevel()
 
+  // Plugin input interface for Authorization for API
+  lazy val authorizationApiMapping = new ExtensibleAuthorizationApiMapping(AuthorizationApiMapping.Core :: Nil)
+
   ////////// end plugable service providers //////////
+
+  lazy val roleApiMapping = new RoleApiMapping(authorizationApiMapping)
 
   // rudder user list
   lazy val rudderUserListProvider : FileUserDetailListProvider = {
@@ -438,7 +434,7 @@ object RudderConfig extends Loggable {
       resource
     }) match {
         case Right(resource) =>
-          new FileUserDetailListProvider(userAuthorisationLevel, resource)
+          new FileUserDetailListProvider(roleApiMapping, userAuthorisationLevel, resource)
         case Left(UserConfigFileError(msg, exception)) =>
           ApplicationLogger.error(msg, Box(exception))
           //make the application not available
@@ -446,23 +442,6 @@ object RudderConfig extends Loggable {
       }
   }
 
-  lazy val roChangeRequestRepository : RoChangeRequestRepository = {
-    //a runtime checking of the workflow to use
-    new EitherRoChangeRequestRepository(
-        configService.rudder_workflow_enabled _
-      , new RoChangeRequestJdbcRepository(doobie, changeRequestMapper)
-      , inMemoryChangeRequestRepository
-    )
-  }
-
-  lazy val woChangeRequestRepository : WoChangeRequestRepository = {
-    //a runtime checking of the workflow to use
-    new EitherWoChangeRequestRepository(
-        configService.rudder_workflow_enabled _
-      , new WoChangeRequestJdbcRepository(doobie, changeRequestMapper, roChangeRequestRepository)
-      , inMemoryChangeRequestRepository
-    )
-  }
 
   val roRuleCategoryRepository : RoRuleCategoryRepository = roLDAPRuleCategoryRepository
   val ruleCategoryService      : RuleCategoryService = new RuleCategoryService()
@@ -490,8 +469,6 @@ object RudderConfig extends Loggable {
   lazy val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
     new CommitAndDeployChangeRequestServiceImpl(
         uuidGen
-      , roChangeRequestRepository
-      , woChangeRequestRepository
       , roDirectiveRepository
       , woDirectiveRepository
       , roNodeGroupRepository
@@ -507,14 +484,6 @@ object RudderConfig extends Loggable {
       , xmlUnserializer
       , sectionSpecParser
     )
-
-  val changeRequestService: ChangeRequestService = new ChangeRequestServiceImpl (
-      roChangeRequestRepository
-    , woChangeRequestRepository
-    , changeRequestEventLogService
-    , uuidGen
-    , configService.rudder_workflow_enabled _
-  )
 
   val roParameterService : RoParameterService = roParameterServiceImpl
   val woParameterService : WoParameterService = woParameterServiceImpl
@@ -560,7 +529,6 @@ object RudderConfig extends Loggable {
       , woRuleRepository
       , uuidGen
       , asyncDeploymentAgent
-      , changeRequestService
       , workflowLevelService
       , restExtractorService
       , restDataSerializer
@@ -581,7 +549,6 @@ object RudderConfig extends Loggable {
       , woDirectiveRepository
       , uuidGen
       , asyncDeploymentAgent
-      , changeRequestService
       , workflowLevelService
       , restExtractorService
       , directiveEditorService
@@ -602,7 +569,6 @@ object RudderConfig extends Loggable {
       , woNodeGroupRepository
       , uuidGen
       , asyncDeploymentAgent
-      , changeRequestService
       , workflowLevelService
       , restExtractorService
       , queryProcessor
@@ -662,7 +628,6 @@ object RudderConfig extends Loggable {
         roLDAPParameterRepository
       , woLDAPParameterRepository
       , uuidGen
-      , changeRequestService
       , workflowLevelService
       , restExtractorService
       , restDataSerializer
@@ -718,10 +683,6 @@ object RudderConfig extends Loggable {
     val modules = List(
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6)
-      , new ChangeRequestApi(restExtractorService, roChangeRequestRepository, woChangeRequestRepository, roWorkflowRepository
-                              , woWorkflowRepository, techniqueRepository, changeRequestService, workflowLevelService, commitAndDeployChangeRequest
-                              , restDataSerializer
-                            )
       , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
       , new NcfApi(ncfTechniqueWriter, restExtractorService, stringUuidGenerator)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8)
@@ -896,7 +857,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val ruleUnserialisation = new RuleUnserialisationImpl
   private[this] lazy val ruleCategoryUnserialisation = new RuleCategoryUnserialisationImpl
   private[this] lazy val globalParameterUnserialisation = new GlobalParameterUnserialisationImpl
-  private[this] lazy val changeRequestChangesUnserialisation = new ChangeRequestChangesUnserialisationImpl(
+  lazy val changeRequestChangesUnserialisation = new ChangeRequestChangesUnserialisationImpl(
       nodeGroupUnserialisation
     , directiveUnserialisation
     , ruleUnserialisation
