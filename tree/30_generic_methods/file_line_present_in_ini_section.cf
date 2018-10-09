@@ -61,5 +61,5 @@ bundle agent file_line_present_in_ini_section(file, section, line)
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Insert line(s) ${line} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Insert line(s) into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

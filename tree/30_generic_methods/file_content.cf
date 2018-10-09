@@ -40,9 +40,6 @@ bundle agent file_content(file, lines, enforce)
       # value will be reused if lines is a scalar
       "length_list" int => "0";
 
-    islist::
-      "report_string" string => join(", ", "lines");
-
     pass1.!islist::
       "args"              slist => { "${file}", "${lines}", "${enforce}" };
 
@@ -82,8 +79,5 @@ bundle agent file_content(file, lines, enforce)
     pass2::
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-    !islist.pass2::
-      "report" usebundle => _log_v3("Insert content ${lines} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
-    islist.pass2::
-      "report" usebundle => _log_v3("Insert content ${report_string} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log_v3("Insert content into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
