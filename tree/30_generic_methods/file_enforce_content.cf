@@ -44,10 +44,6 @@ bundle agent file_enforce_content(file, lines, enforce)
     pass2::
       "length_list" int => "0";
 
-    islist::
-      "report_string" string => join(", ", "lines");
-
-
     pass1.!islist::
       "args"              slist => { "${file}", "${lines}", "${enforce}" };
 
@@ -81,19 +77,11 @@ bundle agent file_enforce_content(file, lines, enforce)
     pass2::
       "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
                            ifvarclass => "should_report";
-    !islist.pass2::
+
       "class copy"          usebundle => _classes_copy("file_lines_present_${canonified_file}", "${old_class_prefix}"),
                            ifvarclass => "file_lines_present_${canonified_file}_reached";
       "new result classes"  usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                            ifvarclass => "${inner_class_prefix}_reached";
-      "report"              usebundle => _log_v3("Insert content ${lines} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
-
-
-    islist.pass2::
-      "class copy"          usebundle => _classes_copy("file_lines_present_${canonified_file}", "${old_class_prefix}"),
-                           ifvarclass => "file_lines_present_${canonified_file}_reached";
-      "new result classes"  usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
-                           ifvarclass => "${inner_class_prefix}_reached";
-      "report"              usebundle => _log_v3("Insert content ${report_string} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"              usebundle => _log_v3("Insert content into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }
