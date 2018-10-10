@@ -510,7 +510,7 @@ class RestAuthenticationFilter(
                           case Right(u) => //update acl
                             authenticate(RudderUserDetail(
                                 RudderAccount.Api(principal)
-                              , RudderAuthType.Api.apiRudderRole
+                              , u.roles
                               , u.apiAuthz
                             ))
                             chain.doFilter(request, response)
