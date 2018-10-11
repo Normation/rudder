@@ -55,6 +55,7 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.utils.HashcodeCaching
+import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import org.xml.sax.SAXParseException
@@ -86,7 +87,7 @@ object PasswordEncoder {
   class DigestEncoder(digestName: String) extends PasswordEncoder {
     override def encode(rawPassword: CharSequence): String = {
       val digest = MessageDigest.getInstance(digestName)
-      String.format( "%064x", new BigInteger( 1, digest.digest(rawPassword.toString.getBytes(StandardCharsets.UTF_8))))
+      new String(Hex.encode(digest.digest(rawPassword.toString.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8)
     }
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
       if(null == rawPassword) {
