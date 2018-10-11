@@ -42,14 +42,16 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.workflows._
 import net.liftweb.common._
-import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
 
 
 case object WorkflowUpdate
@@ -144,6 +146,14 @@ trait WorkflowLevelService {
   def getForDirective  (actor: EventActor, change: DirectiveChangeRequest  ): Box[WorkflowService]
   def getForNodeGroup  (actor: EventActor, change: NodeGroupChangeRequest  ): Box[WorkflowService]
   def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): Box[WorkflowService]
+
+  /*
+   * These method allow to get change request impacting a rule/directive/etc.
+   * Used to display information on them on corresponding update screens.
+   */
+  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
+  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
+  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
 }
 
 // and default implementation is: no
@@ -175,6 +185,12 @@ class DefaultWorkflowLevel(val defaultWorkflowService: WorkflowService) extends 
   override def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): Box[WorkflowService] = {
     this.level.map( _.getForGlobalParam(actor, change)).getOrElse(Full(defaultWorkflowService))
   }
+
+  override def getByDirective(id: DirectiveId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = this.level.map( _.getByDirective(id, onlyPending)).getOrElse(Full(Vector()))
+
+  override def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = this.level.map( _.getByNodeGroup(id, onlyPending)).getOrElse(Full(Vector()))
+
+  override def getByRule(id: RuleId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = this.level.map( _.getByRule(id, onlyPending)).getOrElse(Full(Vector()))
 }
 
 /**
@@ -195,11 +211,9 @@ trait WorkflowService {
    * (one change request can not have more than
    * one wf at the same time).
    *
-   * So for now, a workflow process id IS a changeRequestId.
-   * That abstraction is likelly to leak.
-   *
+   * Return the updated ChangeRequestId
    */
-  def startWorkflow(changeRequestId: ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId]
+  def startWorkflow(changeRequest: ChangeRequest, actor:EventActor, reason: Option[String]) : Box[ChangeRequestId]
 
   def openSteps : List[WorkflowNodeId]
   def closedSteps : List[WorkflowNodeId]
@@ -253,7 +267,6 @@ object WorkflowAction {
  */
 class NoWorkflowServiceImpl(
     commit : CommitAndDeployChangeRequestService
-  , crRepo : InMemoryChangeRequestRepository
 ) extends WorkflowService with Loggable {
 
   val noWorfkflow = WorkflowNodeId("No Workflow")
@@ -280,29 +293,13 @@ class NoWorkflowServiceImpl(
   val closedSteps : List[WorkflowNodeId] = List()
   val stepsValue :List[WorkflowNodeId] = List()
 
-  def startWorkflow(changeRequestId: ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId] = {
+  def startWorkflow(changeRequest: ChangeRequest, actor:EventActor, reason: Option[String]) : Box[ChangeRequestId] = {
     logger.debug("Automatically saving change")
     for {
-      result <- commit.save(changeRequestId, actor, reason)
+      result <- commit.save(changeRequest, actor, reason)
     } yield {
-      // always delete the CR
-      crRepo.deleteChangeRequest(changeRequestId, actor, reason)
       // and return a no workflow
-      noWorfkflow
-    }
-
-  }
-
-  // should we keep this one or the previous ??
-  def onSuccessWorkflow(changeRequestId: ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequestId] = {
-    logger.debug("Automatically saving change")
-    for {
-      result <- commit.save(changeRequestId, actor, reason)
-    } yield {
-       // always delete the CR
-      crRepo.deleteChangeRequest(changeRequestId, actor, reason)
-      // and return a no workflow
-      changeRequestId
+      result.id
     }
   }
 

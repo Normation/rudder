@@ -61,6 +61,7 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
+import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
@@ -201,7 +202,6 @@ class ModificationValidationPopup(
   import ModificationValidationPopup._
 
   private[this] val userPropertyService      = RudderConfig.userPropertyService
-  private[this] val changeRequestService     = RudderConfig.changeRequestService
   private[this] val dependencyService        = RudderConfig.dependencyAndDeletionService
   private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
   private[this] val techniqueRepo            = RudderConfig.techniqueRepository
@@ -487,11 +487,11 @@ class ModificationValidationPopup(
 
   private[this] def saveChangeRequest() : JsCmd = {
     // we only have quick change request now
-    val cr = item match {
+    val boxcr = item match {
       case Left(DirectiveChangeRequest(action, techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal, baseRules, updatedRules)) =>
         //a def to avoid repetition in the following pattern matching
         def ruleCr() = {
-          changeRequestService.createChangeRequestFromRules(
+          ChangeRequestService.createChangeRequestFromRules(
                 changeRequestName.get
               , crReasons.map( _.get ).getOrElse("")
               , CurrentUser.actor
@@ -501,11 +501,11 @@ class ModificationValidationPopup(
            )
         }
 
-        DirectiveDiffFromAction(techniqueName, directive, optOriginal).flatMap{
+        DirectiveDiffFromAction(techniqueName, directive, optOriginal).map{
           case None => ruleCr()
           case Some(_) if(action == DGModAction.CreateAndModRules) => ruleCr()
           case Some(diff) =>
-            changeRequestService.createChangeRequestFromDirectiveAndRules(
+            ChangeRequestService.createChangeRequestFromDirectiveAndRules(
                 changeRequestName.get
               , crReasons.map( _.get ).getOrElse("")
               , techniqueName
@@ -545,8 +545,8 @@ class ModificationValidationPopup(
         }
 
         val action = groupDiffFromAction(nodeGroup, optOriginal)
-        action.flatMap(
-        changeRequestService.createChangeRequestFromNodeGroup(
+        action.map(
+        ChangeRequestService.createChangeRequestFromNodeGroup(
             changeRequestName.get
           , crReasons.map( _.get ).getOrElse("")
           , nodeGroup
@@ -558,13 +558,13 @@ class ModificationValidationPopup(
     }
 
     (for {
-      crId <- cr.map(_.id)
-      wf   <- workflowService.startWorkflow(crId, CurrentUser.actor, crReasons.map(_.get))
+      cr <- boxcr
+      id <- workflowService.startWorkflow(cr, CurrentUser.actor, crReasons.map(_.get))
     } yield {
-      crId
+      id
     }) match {
-      case Full(cr) =>
-        onSuccessCallback(cr)
+      case Full(id) =>
+        onSuccessCallback(id)
       case eb:EmptyBox =>
         val e = (eb ?~! "Error when trying to save your modification")
         e.chain.foreach { ex =>

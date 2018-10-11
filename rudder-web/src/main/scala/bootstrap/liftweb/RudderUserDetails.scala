@@ -117,9 +117,9 @@ case class UserDetailList(
 )
 
 object UserDetailList {
-  def fromRudderAccount(encoder: PasswordEncoder.Rudder, users: List[(RudderAccount.User,Seq[Role])]): UserDetailList = {
+  def fromRudderAccount(roleApiMapping: RoleApiMapping, encoder: PasswordEncoder.Rudder, users: List[(RudderAccount.User,Seq[Role])]): UserDetailList = {
     new UserDetailList(encoder, users.map { case (user, roles) =>
-      (user.login, RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(RoleApiMapping.getApiAclFromRoles(roles))))
+      (user.login, RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(roleApiMapping.getApiAclFromRoles(roles))))
     }.toMap)
   }
 }
@@ -153,7 +153,7 @@ trait UserDetailListProvider {
   def authConfig: UserDetailList
 }
 
-final class FileUserDetailListProvider(authorisationLevel: UserAuthorisationLevel, file: UserFile) extends UserDetailListProvider {
+final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisationLevel: UserAuthorisationLevel, file: UserFile) extends UserDetailListProvider {
 
   /**
    * Initialize user details list when class is instantiated with an empty list.
@@ -170,7 +170,7 @@ final class FileUserDetailListProvider(authorisationLevel: UserAuthorisationLeve
    * Reload the list of users. Only update the cache if there is no errors.
    */
   def reload(): Either[UserConfigFileError, Unit] = {
-    UserFileProcessing.parseUsers(file, authorisationLevel.userAuthEnabled) match {
+    UserFileProcessing.parseUsers(roleApiMapping, file, authorisationLevel.userAuthEnabled) match {
       case Right(config) =>
         cache = config
         // callbacks
@@ -267,7 +267,7 @@ object UserFileProcessing {
     }
   }
 
-  def parseUsers(resource: UserFile, extendedAuthz: Boolean) : Either[UserConfigFileError, UserDetailList] = {
+  def parseUsers(roleApiMapping: RoleApiMapping, resource: UserFile, extendedAuthz: Boolean) : Either[UserConfigFileError, UserDetailList] = {
     val optXml = {
       try {
         Right(scala.xml.XML.load(resource.inputStream()))
@@ -281,7 +281,7 @@ object UserFileProcessing {
 
     for {
       xml <- optXml
-      res <- parseXml(xml, resource.name, extendedAuthz)
+      res <- parseXml(roleApiMapping, xml, resource.name, extendedAuthz)
     } yield {
       res
     }
@@ -297,7 +297,7 @@ object UserFileProcessing {
    *
    * "resourceName' is the resource name used to get the input stream.
    */
-  def parseXml(xml: Elem, debugFileName: String, extendedAuthz: Boolean): Either[UserConfigFileError, UserDetailList] = {
+  def parseXml(roleApiMapping: RoleApiMapping, xml: Elem, debugFileName: String, extendedAuthz: Boolean): Either[UserConfigFileError, UserDetailList] = {
     //what password hashing algo to use ?
     val root = (xml \\ "authentication")
     if(root.size != 1) {
@@ -345,7 +345,7 @@ object UserFileProcessing {
        }
       })
 
-      Right(UserDetailList.fromRudderAccount(hash, users))
+      Right(UserDetailList.fromRudderAccount(roleApiMapping, hash, users))
     }
   }
 

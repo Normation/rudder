@@ -276,7 +276,6 @@ class RuleApiService2 (
   , writeRule            : WoRuleRepository
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentActor
-  , changeRequestService : ChangeRequestService
   , workflowLevelService : WorkflowLevelService
   , restExtractor        : RestExtractorService
   , restDataSerializer   : RestDataSerializer
@@ -292,22 +291,22 @@ class RuleApiService2 (
     , req          : Req
   ) (implicit action : String, prettify : Boolean) = {
     ( for {
-        workflow  <- workflowLevelService.getForRule(actor, change)
-        reason    <- restExtractor.extractReason(req)
-        crName    <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${change.action.name} rule '${change.newRule.name}' by API request"))
-        crDescription = restExtractor.extractChangeRequestDescription(req)
-        cr        <- changeRequestService.createChangeRequestFromRule(
-                        crName
-                      , crDescription
-                      , change.newRule
-                      , change.previousRule
-                      , diff
-                      , actor
-                      , reason
+        workflow <- workflowLevelService.getForRule(actor, change)
+        reason   <- restExtractor.extractReason(req)
+        crName   <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${change.action.name} rule '${change.newRule.name}' by API request"))
+        crDesc   =  restExtractor.extractChangeRequestDescription(req)
+        cr       =  ChangeRequestService.createChangeRequestFromRule(
+                       crName
+                     , crDesc
+                     , change.newRule
+                     , change.previousRule
+                     , diff
+                     , actor
+                     , reason
                     )
-        wfStarted <- workflowLevelService.getWorkflowService().startWorkflow(cr.id, actor, None)
+        id       <- workflowLevelService.getWorkflowService().startWorkflow(cr, actor, None)
       } yield {
-        (workflow.needExternalValidation(), cr.id)
+        (workflow.needExternalValidation(), id)
       }
     ) match {
       case Full((needValidation, crId)) =>

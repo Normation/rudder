@@ -58,8 +58,8 @@ import com.normation.rudder.AuthorizationType
  */
 object PendingChangeRequestDisplayer extends Loggable{
 
-  private[this] val roChangeRequestRepo = RudderConfig.roChangeRequestRepository
-  private[this] val linkUtil            = RudderConfig.linkUtil
+  private[this] val workflowLevel = RudderConfig.workflowLevelService
+  private[this] val linkUtil      = RudderConfig.linkUtil
 
   private[this] def displayPendingChangeRequest(xml:NodeSeq, crs:Box[Seq[ChangeRequest]] ) : NodeSeq = {
     crs match {
@@ -105,14 +105,14 @@ object PendingChangeRequestDisplayer extends Loggable{
   }
 
   def checkByRule(xml:NodeSeq,ruleId:RuleId) = {
-    checkChangeRequest(xml,ruleId,roChangeRequestRepo.getByRule)
+    checkChangeRequest(xml,ruleId,workflowLevel.getByRule)
   }
 
   def checkByGroup(xml:NodeSeq,groupId:NodeGroupId) = {
-    checkChangeRequest(xml,groupId,roChangeRequestRepo.getByNodeGroup)
+    checkChangeRequest(xml,groupId,workflowLevel.getByNodeGroup)
   }
 
   def checkByDirective(xml:NodeSeq,directiveId:DirectiveId) = {
-    checkChangeRequest(xml,directiveId,roChangeRequestRepo.getByDirective)
+    checkChangeRequest(xml,directiveId,workflowLevel.getByDirective)
   }
 }

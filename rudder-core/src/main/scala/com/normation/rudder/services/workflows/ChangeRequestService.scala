@@ -37,45 +37,31 @@
 
 package com.normation.rudder.services.workflows
 
-import org.joda.time.DateTime
+import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.workflows._
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.domain.workflows.ChangeRequestInfo
-import com.normation.cfclerk.domain.SectionSpec
-import net.liftweb.common.Loggable
-import com.normation.rudder.domain.policies.ChangeRequestDirectiveDiff
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.ChangeRequestNodeGroupDiff
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
-import com.normation.rudder.repository.RoChangeRequestRepository
-import com.normation.rudder.repository.WoChangeRequestRepository
-import com.normation.rudder.services.eventlog.ChangeRequestEventLogService
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog.AddChangeRequestDiff
-import net.liftweb.common.Full
-import net.liftweb.common.Box
-import com.normation.rudder.domain.eventlog.ChangeRequestDiff
-import com.normation.rudder.domain.eventlog.AddChangeRequestDiff
-import com.normation.rudder.domain.eventlog.ModifyToChangeRequestDiff
-import com.normation.rudder.domain.eventlog.DeleteChangeRequestDiff
-import com.normation.rudder.domain.eventlog.AddChangeRequestDiff
-import com.normation.rudder.domain.eventlog.ModifyToChangeRequestDiff
-import com.normation.rudder.domain.eventlog.ChangeRequestEventLog
+import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.policies.ChangeRequestDirectiveDiff
+import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.workflows.ChangeRequestInfo
+import com.normation.rudder.domain.workflows._
+import org.joda.time.DateTime
 
 
 /**
  * A service that handle all the logic about how
- * a change request is created / updated from basic parts.
+ * a change request is created from basic parts.
+ *
+ * It does nothing
  */
-trait ChangeRequestService {
+object ChangeRequestService {
 
   def createChangeRequestFromDirective(
       changeRequestName: String
@@ -87,132 +73,7 @@ trait ChangeRequestService {
     , diff             : ChangeRequestDirectiveDiff
     , actor            : EventActor
     , reason           : Option[String]
-  ) : Box[ChangeRequest]
-
-  def createChangeRequestFromDirectiveAndRules(
-      changeRequestName: String
-    , changeRequestDesc: String
-    , techniqueName    : TechniqueName
-    , rootSection      : SectionSpec
-    , directiveId      : DirectiveId
-    , originalDirective: Option[Directive]
-    , diff             : ChangeRequestDirectiveDiff
-    , actor            : EventActor
-    , reason           : Option[String]
-    , rulesToUpdate    : List[Rule]
-    , updatedRules     : List[Rule]
-  ) : Box[ChangeRequest]
-
-  def createChangeRequestFromRules(
-      changeRequestName: String
-    , changeRequestDesc: String
-    , actor            : EventActor
-    , reason           : Option[String]
-    , rulesToUpdate    : List[Rule]
-    , updatedRules     : List[Rule]
-  ) : Box[ChangeRequest]
-
-  // no group category because category are not semantically binding (no effect on prod)
-  def createChangeRequestFromRule(
-      changeRequestName: String
-    , changeRequestDesc: String
-    , rule             : Rule
-    , originalRule     : Option[Rule]
-    , diff             : ChangeRequestRuleDiff
-    , actor            : EventActor
-    , reason           : Option[String]
-  ) : Box[ChangeRequest]
-
-  // no group category because category are not semantically binding (no effect on prod)
-  def createChangeRequestFromNodeGroup(
-      changeRequestName: String
-    , changeRequestDesc: String
-    , nodeGroup        : NodeGroup
-    , originalNodeGroup: Option[NodeGroup]
-    , diff             : ChangeRequestNodeGroupDiff
-    , actor            : EventActor
-    , reason           : Option[String]
-  ) : Box[ChangeRequest]
-
-  def createChangeRequestFromGlobalParameter(
-      changeRequestName   : String
-    , changeRequestDesc   : String
-    , globalParam         : GlobalParameter
-    , originalGlobalParam : Option[GlobalParameter]
-    , diff                : ChangeRequestGlobalParameterDiff
-    , actor               : EventActor
-    , reason              : Option[String]
-  ) : Box[ChangeRequest]
-
-  def updateChangeRequestInfo(
-      oldChangeRequest : ChangeRequest
-    , newInfo          : ChangeRequestInfo
-    , actor            : EventActor
-    , reason           : Option[String]
-  ) : Box[ChangeRequest]
-
-  def get(id:ChangeRequestId) : Box[Option[ChangeRequest]]
-
-  def getLastLog(id:ChangeRequestId) : Box[Option[ChangeRequestEventLog]]
-
-}
-
-
-class ChangeRequestServiceImpl(
-    roChangeRequestRepository    : RoChangeRequestRepository
-  , woChangeRequestRepository    : WoChangeRequestRepository
-  , changeRequestEventLogService : ChangeRequestEventLogService
-  , uuidGen                      : StringUuidGenerator
-  , workflowEnable               : () => Box[Boolean]
-) extends ChangeRequestService with Loggable {
-
-  private[this] def saveAndLogChangeRequest(diff:ChangeRequestDiff,actor:EventActor,reason:Option[String]) = {
-    val changeRequest = diff.changeRequest
-    // We need to remap back to the original type to fetch the id of the CR created
-    val save = diff match {
-      case add:AddChangeRequestDiff         => woChangeRequestRepository.createChangeRequest(diff.changeRequest, actor, reason).map(AddChangeRequestDiff(_))
-      case modify:ModifyToChangeRequestDiff => woChangeRequestRepository.updateChangeRequest(changeRequest, actor, reason).map(x => modify) // For modification the id is already correct
-      case delete:DeleteChangeRequestDiff   => woChangeRequestRepository.deleteChangeRequest(changeRequest.id, actor, reason).map(DeleteChangeRequestDiff(_))
-    }
-
-    for {
-    saved  <- save ?~! s"could not save change request ${changeRequest.info.name}"
-    modId  =  ModificationId(uuidGen.newUuid)
-    workflowEnable <- workflowEnable()
-    logged <- if(workflowEnable) {
-                changeRequestEventLogService.saveChangeRequestLog(modId, actor, saved, reason) ?~!
-                  s"could not save event log for change request ${saved.changeRequest.id} creation"
-              } else {
-                Full("OK, no workflow")
-              }
-    } yield { saved.changeRequest }
-  }
-
-  def get(id:ChangeRequestId) : Box[Option[ChangeRequest]] = roChangeRequestRepository.get(id)
-
-  def getLastLog(id:ChangeRequestId) : Box[Option[ChangeRequestEventLog]] = changeRequestEventLogService.getLastLog(id)
-
-  def updateChangeRequestInfo(
-      oldChangeRequest : ChangeRequest
-    , newInfo          : ChangeRequestInfo
-    , actor            : EventActor
-    , reason           : Option[String]
-  ) : Box[ChangeRequest] = {
-    val newCr = ChangeRequest.updateInfo(oldChangeRequest, newInfo)
-    saveAndLogChangeRequest(ModifyToChangeRequestDiff(newCr,oldChangeRequest), actor, reason)
-  }
-
-  def createChangeRequestFromDirective(
-      changeRequestName: String
-    , changeRequestDesc: String
-    , techniqueName    : TechniqueName
-    , rootSection      : SectionSpec
-    , directiveId      : DirectiveId
-    , originalDirective: Option[Directive]
-    , diff             : ChangeRequestDirectiveDiff
-    , actor            : EventActor
-    , reason           : Option[String]
-  ) : Box[ChangeRequest] = {
+  ) : ChangeRequest = {
 
     val initialState = originalDirective match {
       case None =>  None
@@ -223,7 +84,6 @@ class ChangeRequestServiceImpl(
                    , firstChange = DirectiveChangeItem(actor, DateTime.now, reason, diff)
                    , Seq()
                  )
-    logger.debug(change)
     val changeRequest =  ConfigurationChangeRequest(
         ChangeRequestId(0)
       , None
@@ -236,7 +96,7 @@ class ChangeRequestServiceImpl(
       , Map()
       , Map()
     )
-    saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
+    changeRequest
   }
 
   private[this] def rulechange(
@@ -268,9 +128,7 @@ class ChangeRequestServiceImpl(
     , reason           : Option[String]
     , rulesToUpdate    : List[Rule]
     , updatedRules     : List[Rule]
-  ) : Box[ChangeRequest] = {
-
-
+  ) : ChangeRequest = {
 
     val initialState = originalDirective match {
       case None =>  None
@@ -284,7 +142,6 @@ class ChangeRequestServiceImpl(
                    , Seq()
                  )
     val rulesChanges = (rulesToUpdate zip updatedRules).map(r => rulechange(r._1,r._2,actor,reason)).toMap
-    logger.debug(change)
     val changeRequest =  ConfigurationChangeRequest(
         ChangeRequestId(0)
       , None
@@ -297,10 +154,9 @@ class ChangeRequestServiceImpl(
       , rulesChanges
       , Map()
     )
-    saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
+    ApplicationLogger.trace(s"New directive and rule change request: ${changeRequest}")
+    changeRequest
   }
-
-
 
   def createChangeRequestFromRules(
       changeRequestName: String
@@ -309,7 +165,7 @@ class ChangeRequestServiceImpl(
     , reason           : Option[String]
     , rulesToUpdate    : List[Rule]
     , updatedRules     : List[Rule]
-  ) : Box[ChangeRequest] = {
+  ) : ChangeRequest = {
     val rulesChanges = (rulesToUpdate zip updatedRules).map(r => rulechange(r._1,r._2,actor,reason)).toMap
     val changeRequest =  ConfigurationChangeRequest(
         ChangeRequestId(0)
@@ -323,7 +179,8 @@ class ChangeRequestServiceImpl(
       , rulesChanges
       , Map()
     )
-    saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
+    ApplicationLogger.trace(s"New rules change request: ${changeRequest}")
+    changeRequest
   }
 
   def createChangeRequestFromRule(
@@ -334,13 +191,12 @@ class ChangeRequestServiceImpl(
     , diff             : ChangeRequestRuleDiff
     , actor            : EventActor
     , reason           : Option[String]
-  ) : Box[ChangeRequest] = {
+  ) : ChangeRequest = {
    val change = RuleChange(
                      initialState = originalRule
                    , firstChange = RuleChangeItem(actor, DateTime.now, reason, diff)
                    , Seq()
                  )
-    logger.debug(change)
    val changeRequest = ConfigurationChangeRequest(
         ChangeRequestId(0)
       , None
@@ -353,7 +209,8 @@ class ChangeRequestServiceImpl(
       , Map(rule.id -> RuleChanges(change, Seq()))
       , Map()
     )
-    saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
+    ApplicationLogger.trace(s"New rule change request: ${changeRequest}")
+    changeRequest
   }
 
   def createChangeRequestFromNodeGroup(
@@ -364,14 +221,13 @@ class ChangeRequestServiceImpl(
     , diff             : ChangeRequestNodeGroupDiff
     , actor            : EventActor
     , reason           : Option[String]
-  ) : Box[ChangeRequest] = {
+  ) : ChangeRequest = {
 
     val change = NodeGroupChange(
                      initialState = originalNodeGroup
                    , firstChange = NodeGroupChangeItem(actor, DateTime.now, reason, diff)
                    , Seq()
                  )
-    logger.debug(change)
    val changeRequest = ConfigurationChangeRequest(
         ChangeRequestId(0)
       , None
@@ -384,7 +240,8 @@ class ChangeRequestServiceImpl(
       , Map()
       , Map()
     )
-    saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
+    ApplicationLogger.trace(s"New node group change request: ${changeRequest}")
+    changeRequest
   }
 
   def createChangeRequestFromGlobalParameter(
@@ -395,13 +252,12 @@ class ChangeRequestServiceImpl(
     , diff                : ChangeRequestGlobalParameterDiff
     , actor               : EventActor
     , reason              : Option[String]
-  ) : Box[ChangeRequest] = {
+  ) : ChangeRequest = {
     val change = GlobalParameterChange(
                      initialState = originalGlobalParam
                    , firstChange  = GlobalParameterChangeItem(actor, DateTime.now, reason, diff)
                    , Seq()
                  )
-    logger.debug(change)
     val changeRequest = ConfigurationChangeRequest(
         ChangeRequestId(0)
       , None
@@ -414,6 +270,7 @@ class ChangeRequestServiceImpl(
       , Map()
       , Map(globalParam.name -> GlobalParameterChanges(change,Seq()))
     )
-    saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
+    ApplicationLogger.trace(s"New global parameter change request: ${changeRequest}")
+    changeRequest
   }
 }

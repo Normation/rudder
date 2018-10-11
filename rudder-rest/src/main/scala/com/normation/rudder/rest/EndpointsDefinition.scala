@@ -143,33 +143,6 @@ object GroupApi extends ApiModuleProvider[GroupApi] {
   def endpoints = ca.mrvisser.sealerate.values[GroupApi].toList.sortBy( _.z )
 }
 
-sealed trait ChangeRequestApi extends EndpointSchema with GeneralApi with SortIndex
-object ChangeRequestApi extends ApiModuleProvider[ChangeRequestApi] {
-
-  final case object ListChangeRequests extends ChangeRequestApi with ZeroParam with StartsAtVersion3 with SortIndex { val z = zz
-    val description = "List all change requests"
-    val (action, path)  = GET / "changeRequests"
-  }
-  final case object ChangeRequestsDetails extends ChangeRequestApi with OneParam with StartsAtVersion3 with SortIndex { val z = zz
-    val description = "Get information about given change request"
-    val (action, path)  = GET / "changeRequests" / "{id}"
-  }
-  final case object DeclineRequestsDetails extends ChangeRequestApi with OneParam with StartsAtVersion3 with SortIndex { val z = zz
-    val description = "Decline given change request"
-    val (action, path)  = DELETE / "changeRequests" / "{id}"
-  }
-  final case object AcceptRequestsDetails extends ChangeRequestApi with OneParam with StartsAtVersion3 with SortIndex { val z = zz
-    val description = "Accept given change request"
-    val (action, path)  = POST / "changeRequests" / "{id}" / "accept"
-  }
-  final case object UpdateRequestsDetails extends ChangeRequestApi with OneParam with StartsAtVersion3 with SortIndex { val z = zz
-    val description = "Update information about given change request"
-    val (action, path)  = POST / "changeRequests" / "{id}"
-  }
-
-  def endpoints = ca.mrvisser.sealerate.values[ChangeRequestApi].toList.sortBy( _.z )
-}
-
 sealed trait DirectiveApi extends EndpointSchema with GeneralApi with SortIndex
 object DirectiveApi extends ApiModuleProvider[DirectiveApi] {
 
@@ -614,7 +587,6 @@ object AllApi {
   val api: List[EndpointSchema] =
     ComplianceApi.endpoints :::
     GroupApi.endpoints :::
-    ChangeRequestApi.endpoints :::
     DirectiveApi.endpoints :::
     NcfApi.endpoints :::
     NodeApi.endpoints :::
