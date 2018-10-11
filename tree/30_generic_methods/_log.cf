@@ -35,9 +35,32 @@
 
 bundle agent _log(message, old_class_prefix, origin_class_prefix, args)
 {
+  vars:
+    # We need to detect if args is an iterator or a scalar
+    !pass1::
+      "length_list" int => length("args");
+
+    pass2::
+      # we need to reset the value to 0, otherwise in the next call of this generic method, the previous
+      # value will be reused if args is a scalar
+      "length_list" int => "0";
+
+    islist::
+      "sanitized_args" string => join(", ", "args");
+    pass2.!islist::
+      "sanitized_args" string => "${args}";
+
+  classes:
+    !pass2::
+      "islist" expression => isgreaterthan("$(length_list)", "1");
+
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+
   methods:
+    pass2::
       # Report using the appropriate bundle(s)
       "wrapper for ${configuration.enabled_loggers}"
-        usebundle => ${configuration.enabled_loggers}("${message}", "${old_class_prefix}", "${origin_class_prefix}", "@{args}"),
-        comment   => "Call the ${method} bundle with arguments ${old_class_prefix}, ${origin_class_prefix}, @{args}";
+        usebundle => ${configuration.enabled_loggers}("${message}", "${old_class_prefix}", "${origin_class_prefix}", "${sanitized_args}"),
+        comment   => "Call the ${method} bundle with arguments ${old_class_prefix}, ${origin_class_prefix}, ${sanitized_args}";
 }
