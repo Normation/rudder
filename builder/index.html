@@ -240,19 +240,19 @@
                                 </div>
                             </div>
                             <div class="form-group" show-errors>
-                                <label for="bundleName" class="col-sm-3 control-label">Bundle name:</label>
+                                <label for="bundleName" class="col-sm-3 control-label">Technique ID:</label>
                                 <div class="col-sm-8">
                                     <input readonly id="bundleName" bundlename name="bundle_name" class="form-control" ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
                                 </div>
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.maxlength">
-                                    Bundle names longer than 255 characters won't work on most filesystems.
+                                  Technique IDs longer than 255 characters won't work on most filesystems.
                                 </span>
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.bundleName">
-                                  Bundle name must be unique.
+                                  Technique ID must be unique.
                                 </span>
-                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.pattern">Bundle name should start with an alphanumeric character.</span>
+                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.pattern">Technique ID should start with an alphanumeric character.</span>
                                 <span class="rudder-text-warning col-sm-8 col-sm-offset-3" ng-show="selectedTechnique.bundle_name.length > 100 && selectedTechnique.bundle_name.length < 253">
-                                  <b><span class="glyphicon glyphicon-exclamation-sign"></span></b> Bundle names longer than 100 characters may not work on some filesystems (Windows, in particular).
+                                  <b><span class="glyphicon glyphicon-exclamation-sign"></span></b> Technique IDs longer than 100 characters may not work on some filesystems (Windows, in particular).
                                 </span>
                             </div>
                             <div class="form-group">

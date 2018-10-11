@@ -449,9 +449,9 @@ def check_technique_metadata(technique_metadata):
 
   # File name of the technique will be invalid on most filesystem, do not save technique
   if len(technique_metadata['bundle_name']) > 253:
-    raise NcfError("Bundle names longer than 255 characters won't work on most filesystems.")
+    raise NcfError("Technique IDs longer than 255 characters won't work on most filesystems.")
   elif len(technique_metadata['bundle_name']) > 100:
-    warnings.append("Bundle names longer than 100 characters may not work on some filesystems (Windows, in particular).")
+    warnings.append("Technique IDs longer than 100 characters may not work on some filesystems (Windows, in particular).")
 
   # If there is no method call, raise an exception
   if len(technique_metadata['method_calls']) == 0:

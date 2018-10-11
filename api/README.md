@@ -20,7 +20,7 @@ A Flask based REST API to manage Techniques in a ncf directory
 * [DELETE] /api/techniques/bundle_name: Delete technique bunlde_name in specified ncf path
   * Parameters:
     * path [Optional][URL parameter]: path where the technique will be deleted (default value: /usr/share/ncf)
-    * bundle_name [URL]: Bundle name of the technique, used as technique filename to delete
+    * bundle_name [URL]: ID of the technique, used as technique filename to delete
 
 ## Deploy ncf API
 
