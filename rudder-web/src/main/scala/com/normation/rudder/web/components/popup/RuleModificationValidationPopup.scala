@@ -48,6 +48,7 @@ import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
 import com.normation.rudder.services.workflows.WorkflowService
@@ -100,7 +101,6 @@ class RuleModificationValidationPopup(
   import RuleModificationValidationPopup._
 
   private[this] val userPropertyService      = RudderConfig.userPropertyService
-  private[this] val changeRequestService     = RudderConfig.changeRequestService
 
   val validationNeeded = workflowService.needExternalValidation()
 
@@ -244,8 +244,8 @@ class RuleModificationValidationPopup(
        //based on the choice of the user, create or update a Change request
         val savedChangeRequest = {
           for {
-            diff   <- ruleDiffFromAction()
-            cr     <- changeRequestService.createChangeRequestFromRule(
+            diff <- ruleDiffFromAction()
+            cr   =  ChangeRequestService.createChangeRequestFromRule(
                          changeRequestName.get
                        , crReasons.map( _.get ).getOrElse("")
                        , changeRequest.newRule
@@ -253,16 +253,16 @@ class RuleModificationValidationPopup(
                        , diff
                        , CurrentUser.actor
                        , crReasons.map( _.get )
-                       )
-            wfStarted <- workflowService.startWorkflow(cr.id, CurrentUser.actor, crReasons.map(_.get))
+                    )
+            id   <- workflowService.startWorkflow(cr, CurrentUser.actor, crReasons.map(_.get))
           } yield {
-            cr.id
+            id
           }
         }
         savedChangeRequest match {
-          case Full(cr) =>
+          case Full(id) =>
             if (validationNeeded)
-              closePopup() & onSuccessCallBack(Right(cr))
+              closePopup() & onSuccessCallBack(Right(id))
             else
               closePopup() & onSuccessCallBack(Left(changeRequest.newRule))
           case eb:EmptyBox =>

@@ -45,13 +45,137 @@ import com.normation.rudder.Role
 import com.normation.rudder.api.AclPathSegment
 
 /*
+ * The goal of that class is to map Authorization to what API
+ * they give access.
+ * At some point, we will need AuthorizationType to be extensible, so
+ * that a new module can provide new authorization. For now, a plugin
+ * need to map its authorizations on the existing ones.
+ */
+trait AuthorizationApiMapping {
+  def mapAuthorization(authz: AuthorizationType): List[ApiAclElement]
+}
+
+/*
+ * An extensible mapper that allows for plugins to contribute to
+ * its mapper
+ */
+class ExtensibleAuthorizationApiMapping(base: List[AuthorizationApiMapping]) extends AuthorizationApiMapping {
+
+  private[this] var mappers: List[AuthorizationApiMapping] = base
+
+  def addMapper(mapper: AuthorizationApiMapping): Unit = {
+    // no need to add again and again the default mapper - it's ok, we have it.
+    if(mapper != AuthorizationApiMapping.OnlyAdmin) {
+      mappers = mappers :+ mapper
+    }
+  }
+
+  override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = {
+    mappers.flatMap( _.mapAuthorization(authz))
+  }
+}
+
+
+object AuthorizationApiMapping {
+  implicit class ToAuthz(api: EndpointSchema) {
+    def x: ApiAclElement = AuthzForApi(api)
+  }
+
+  /*
+   * A default mapping for "only 'all rights' (ie admin) can access it
+   */
+  case object OnlyAdmin extends AuthorizationApiMapping {
+    override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = Nil
+  }
+
+  /*
+   * The core authorization/api mapping, ie the authorization for Rudder
+   * default API.
+   */
+  object Core extends AuthorizationApiMapping {
+
+    override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = {
+      import AuthorizationType._
+      // shorthand to get authz for a given api
+
+      authz match {
+        case NoRights             => Nil
+        case AnyRights            => ApiAuthz.allAuthz.acl
+        // Administration is Rudder setting
+
+        case Administration.Read  => SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: Nil
+        case Administration.Write => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: Nil
+        case Administration.Edit  => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: Nil
+
+        case Compliance.Read      => ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x ::
+                                     ComplianceApi.GetRulesComplianceId.x :: ComplianceApi.GetNodesCompliance.x ::
+                                     ComplianceApi.GetNodeComplianceId.x :: Nil
+        case Compliance.Write     => Nil
+        case Compliance.Edit      => Nil
+
+        // Configuration doesn't give API rights.
+        // But as nothing manage parameter API, I think it's the correct place
+        // to add it.
+        case Configuration.Read   => ParameterApi.ListParameters.x :: ParameterApi.ParameterDetails.x :: Nil
+        case Configuration.Write  => ParameterApi.CreateParameter.x :: ParameterApi.DeleteParameter.x :: Nil
+        case Configuration.Edit   => ParameterApi.UpdateParameter.x :: Nil
+
+        case Deployment.Read      => Nil
+        case Deployment.Write     => Nil
+        case Deployment.Edit      => Nil
+
+        case Deployer.Read        => Nil // ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
+        case Deployer.Write       => Nil // ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
+        case Deployer.Edit        => Nil // ChangeRequestApi.UpdateRequestsDetails.x :: Nil
+
+        case Directive.Read       => DirectiveApi.ListDirectives.x :: DirectiveApi.DirectiveDetails.x :: Nil
+        case Directive.Write      => DirectiveApi.CreateDirective.x :: DirectiveApi.DeleteDirective.x ::
+                                     DirectiveApi.CheckDirective.x :: Nil
+        case Directive.Edit       => DirectiveApi.UpdateDirective.x :: Nil
+
+        case Group.Read           => GroupApi.ListGroups.x :: GroupApi.GroupDetails.x :: GroupApi.GetGroupTree.x ::
+                                     GroupApi.GetGroupCategoryDetails.x :: Nil
+        case Group.Write          => GroupApi.CreateGroup.x :: GroupApi.DeleteGroup.x :: GroupApi.ReloadGroup.x ::
+                                     GroupApi.DeleteGroupCategory.x :: GroupApi.CreateGroupCategory.x :: Nil
+        case Group.Edit           => GroupApi.UpdateGroup.x :: GroupApi.UpdateGroupCategory.x :: Nil
+
+        case Node.Read            => NodeApi.ListAcceptedNodes.x :: NodeApi.ListPendingNodes.x :: NodeApi.NodeDetails.x ::
+                                     // node read also allows to read some settings
+                                     AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode") :: Nil ) ::
+                                     AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode_overridable") :: Nil ) ::
+                                     Nil
+        case Node.Write           => NodeApi.DeleteNode.x :: NodeApi.ChangePendingNodeStatus.x :: NodeApi.ChangePendingNodeStatus2.x ::
+                                     NodeApi.ApplyPocicyAllNodes.x :: NodeApi.ApplyPolicy.x :: Nil
+        case Node.Edit            => NodeApi.UpdateNode.x :: Nil
+
+        case Rule.Read            => RuleApi.ListRules.x :: RuleApi.RuleDetails.x :: RuleApi.GetRuleTree.x ::
+                                     RuleApi.GetRuleCategoryDetails.x :: Nil
+        case Rule.Write           => RuleApi.CreateRule.x :: RuleApi.DeleteRule.x :: RuleApi.CreateRuleCategory.x ::
+                                     RuleApi.DeleteRuleCategory.x :: Nil
+        case Rule.Edit            => RuleApi.UpdateRule.x :: RuleApi.UpdateRuleCategory.x :: Nil
+
+        case Technique.Read       => TechniqueApi.ListTechniques.x :: TechniqueApi.ListTechniquesDirectives.x ::
+                                     TechniqueApi.ListTechniqueDirectives.x :: Nil
+        case Technique.Write      => Nil
+        case Technique.Edit       => Nil
+
+        case UserAccount.Read     => UserApi.GetApiToken.x :: Nil
+        case UserAccount.Write    => Nil
+        case UserAccount.Edit     => UserApi.CreateApiToken.x :: UserApi.DeleteApiToken.x :: Nil
+
+        case Validator.Read       => Nil // ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
+        case Validator.Write      => Nil // ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
+        case Validator.Edit       => Nil //ChangeRequestApi.UpdateRequestsDetails.x :: Nil
+      }
+    }
+  }
+}
+
+/*
  * This class keep the mapping between a role and the list
  * of authorization it gets on all endpoints
- *
- *
- *
  */
-object RoleApiMapping {
+class RoleApiMapping(mapper: AuthorizationApiMapping) {
 
   // get the access control list from the user rights.
   // Always succeeds,
@@ -80,83 +204,8 @@ object RoleApiMapping {
     }.toList
   }
 
-  // shorthand to get authz for a given api
-  private implicit class ToAuthz(api: EndpointSchema) {
-    def x: ApiAclElement = AuthzForApi(api)
-  }
-
   def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = {
-    import AuthorizationType._
-
-    authz match {
-      case NoRights             => Nil
-      case AnyRights            => ApiAuthz.allAuthz.acl
-      // Administration is Rudder setting
-
-      case Administration.Read  => SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: Nil
-      case Administration.Write => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: Nil
-      case Administration.Edit  => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: Nil
-
-      case Compliance.Read      => ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x ::
-                                   ComplianceApi.GetRulesComplianceId.x :: ComplianceApi.GetNodesCompliance.x ::
-                                   ComplianceApi.GetNodeComplianceId.x :: Nil
-      case Compliance.Write     => Nil
-      case Compliance.Edit      => Nil
-
-      // Configuration doesn't give API rights.
-      // But as nothing manage parameter API, I think it's the correct place
-      // to add it.
-      case Configuration.Read   => ParameterApi.ListParameters.x :: ParameterApi.ParameterDetails.x :: Nil
-      case Configuration.Write  => ParameterApi.CreateParameter.x :: ParameterApi.DeleteParameter.x :: Nil
-      case Configuration.Edit   => ParameterApi.UpdateParameter.x :: Nil
-
-      case Deployment.Read      => Nil
-      case Deployment.Write     => Nil
-      case Deployment.Edit      => Nil
-
-      case Deployer.Read        => ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
-      case Deployer.Write       => ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
-      case Deployer.Edit        => ChangeRequestApi.UpdateRequestsDetails.x :: Nil
-
-      case Directive.Read       => DirectiveApi.ListDirectives.x :: DirectiveApi.DirectiveDetails.x :: Nil
-      case Directive.Write      => DirectiveApi.CreateDirective.x :: DirectiveApi.DeleteDirective.x ::
-                                   DirectiveApi.CheckDirective.x :: Nil
-      case Directive.Edit       => DirectiveApi.UpdateDirective.x :: Nil
-
-      case Group.Read           => GroupApi.ListGroups.x :: GroupApi.GroupDetails.x :: GroupApi.GetGroupTree.x ::
-                                   GroupApi.GetGroupCategoryDetails.x :: Nil
-      case Group.Write          => GroupApi.CreateGroup.x :: GroupApi.DeleteGroup.x :: GroupApi.ReloadGroup.x ::
-                                   GroupApi.DeleteGroupCategory.x :: GroupApi.CreateGroupCategory.x :: Nil
-      case Group.Edit           => GroupApi.UpdateGroup.x :: GroupApi.UpdateGroupCategory.x :: Nil
-
-      case Node.Read            => NodeApi.ListAcceptedNodes.x :: NodeApi.ListPendingNodes.x :: NodeApi.NodeDetails.x ::
-                                   // node read also allows to read some settings
-                                   AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode") :: Nil ) ::
-                                   AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode_overridable") :: Nil ) ::
-                                   Nil
-      case Node.Write           => NodeApi.DeleteNode.x :: NodeApi.ChangePendingNodeStatus.x :: NodeApi.ChangePendingNodeStatus2.x ::
-                                   NodeApi.ApplyPocicyAllNodes.x :: NodeApi.ApplyPolicy.x :: Nil
-      case Node.Edit            => NodeApi.UpdateNode.x :: Nil
-
-      case Rule.Read            => RuleApi.ListRules.x :: RuleApi.RuleDetails.x :: RuleApi.GetRuleTree.x ::
-                                   RuleApi.GetRuleCategoryDetails.x :: Nil
-      case Rule.Write           => RuleApi.CreateRule.x :: RuleApi.DeleteRule.x :: RuleApi.CreateRuleCategory.x ::
-                                   RuleApi.DeleteRuleCategory.x :: Nil
-      case Rule.Edit            => RuleApi.UpdateRule.x :: RuleApi.UpdateRuleCategory.x :: Nil
-
-      case Technique.Read       => TechniqueApi.ListTechniques.x :: TechniqueApi.ListTechniquesDirectives.x ::
-                                   TechniqueApi.ListTechniqueDirectives.x :: Nil
-      case Technique.Write      => Nil
-      case Technique.Edit       => Nil
-
-      case UserAccount.Read     => UserApi.GetApiToken.x :: Nil
-      case UserAccount.Write    => Nil
-      case UserAccount.Edit     => UserApi.CreateApiToken.x :: UserApi.DeleteApiToken.x :: Nil
-
-      case Validator.Read       => ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
-      case Validator.Write      => ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
-      case Validator.Edit       => ChangeRequestApi.UpdateRequestsDetails.x :: Nil
-    }
+    mapper.mapAuthorization(authz)
   }
 }
 

@@ -55,11 +55,13 @@ import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.parameters._
+
 import scala.xml._
 import com.normation.rudder.services.marshalling.XmlSerializer
 import com.normation.rudder.services.marshalling.XmlUnserializer
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import java.io.ByteArrayInputStream
+
 import com.normation.rudder.domain.logger.ChangeRequestLogger
 
 /**
@@ -75,7 +77,7 @@ trait CommitAndDeployChangeRequestService {
    * the changes it contains and the actual current
    * state of configuration.
    */
-  def save(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ModificationId]
+  def save(changeRequest: ChangeRequest, actor:EventActor, reason: Option[String]) : Box[ChangeRequest]
 
 
   /**
@@ -84,7 +86,7 @@ trait CommitAndDeployChangeRequestService {
    * return either it is ok to merge (and the corresponding
    * merge) or the conflict.
    */
-  def isMergeable(changeRequestId:ChangeRequestId) : Boolean
+  def isMergeable(changeRequest: ChangeRequest) : Boolean
 }
 
 
@@ -95,8 +97,6 @@ trait CommitAndDeployChangeRequestService {
  */
 class CommitAndDeployChangeRequestServiceImpl(
     uuidGen               : StringUuidGenerator
-  , roChangeRequestRepo   : RoChangeRequestRepository
-  , woChangeRequestRepo   : WoChangeRequestRepository
   , roDirectiveRepo       : RoDirectiveRepository
   , woDirectiveRepo       : WoDirectiveRepository
   , roNodeGroupRepo       : RoNodeGroupRepository
@@ -115,20 +115,19 @@ class CommitAndDeployChangeRequestServiceImpl(
 
   val logger = ChangeRequestLogger
 
-  def save(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ModificationId] = {
+  def save(changeRequest: ChangeRequest, actor:EventActor, reason: Option[String]) : Box[ChangeRequest] = {
     workflowEnabled().foreach { if (_) {
-      logger.info(s"Saving and deploying change request ${changeRequestId}")
+      logger.info(s"Saving and deploying change request ${changeRequest.id.value}")
     } }
     for {
-      changeRequest    <- roChangeRequestRepo.get(changeRequestId)
-      (modId, trigger) <- changeRequest match {
-                         case Some(config:ConfigurationChangeRequest) =>
+      (cr, modId, trigger) <- changeRequest match {
+                         case config:ConfigurationChangeRequest =>
                            if(isMergeableConfigurationChangeRequest(config)) {
                              for{
                                (modId, triggerDeployment) <-saveConfigurationChangeRequest(config)
-                               updatedCr  <- woChangeRequestRepo.updateChangeRequest(ChangeRequest.setModId(config, modId),actor,reason)
+                               updatedCr = ChangeRequest.setModId(config, modId)
                              } yield {
-                               (modId, triggerDeployment)
+                               (updatedCr, modId, triggerDeployment)
                              }
                            } else {
                              Failure("The change request can not be merge because current item state diverged since its creation")
@@ -139,13 +138,13 @@ class CommitAndDeployChangeRequestServiceImpl(
       if (trigger) {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
       }
-      modId
+      cr
     }
   }
 
-  def isMergeable(changeRequestId:ChangeRequestId) : Boolean = {
-    roChangeRequestRepo.get(changeRequestId) match {
-      case Full(Some(cr:ConfigurationChangeRequest)) => isMergeableConfigurationChangeRequest(cr)
+  def isMergeable(changeRequest: ChangeRequest) : Boolean = {
+    changeRequest match {
+      case cr:ConfigurationChangeRequest => isMergeableConfigurationChangeRequest(cr)
       case _ => false
     }
   }

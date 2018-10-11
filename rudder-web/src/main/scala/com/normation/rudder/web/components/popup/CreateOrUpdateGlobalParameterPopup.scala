@@ -52,6 +52,7 @@ import com.normation.rudder.web.model._
 import java.util.regex.Pattern
 
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
@@ -64,7 +65,6 @@ class CreateOrUpdateGlobalParameterPopup(
 ) extends DispatchSnippet  with Loggable {
 
   private[this] val userPropertyService  = RudderConfig.userPropertyService
-  private[this] val changeRequestService = RudderConfig.changeRequestService
 
   def dispatch = {
     case "popupContent" =>  { _ =>   popupContent }
@@ -120,7 +120,7 @@ class CreateOrUpdateGlobalParameterPopup(
       val savedChangeRequest = {
         for {
           diff  <- globalParamDiffFromAction(newParameter)
-          cr    <- changeRequestService.createChangeRequestFromGlobalParameter(
+          cr    =  ChangeRequestService.createChangeRequestFromGlobalParameter(
                          changeRequestName.get
                        , paramReasons.map( _.get ).getOrElse("")
                        , newParameter
@@ -129,16 +129,16 @@ class CreateOrUpdateGlobalParameterPopup(
                        , CurrentUser.actor
                        , paramReasons.map( _.get )
                        )
-          wfStarted <- workflowService.startWorkflow(cr.id, CurrentUser.actor, paramReasons.map(_.get))
+          id    <- workflowService.startWorkflow(cr, CurrentUser.actor, paramReasons.map(_.get))
         } yield {
-          cr.id
+          id
         }
       }
       savedChangeRequest match {
-        case Full(cr) =>
+        case Full(id) =>
             if (workflowEnabled) {
               // TODO : do more than that
-              closePopup() & onSuccessCallback(Right(cr))
+              closePopup() & onSuccessCallback(Right(id))
             } else
              closePopup() & onSuccessCallback(Left(newParameter))
         case eb:EmptyBox =>

@@ -176,7 +176,12 @@ object ApiPath {
  * A bag of endpoints schema is provided by an ApiModuleProvider
  */
 trait ApiModuleProvider[A <: EndpointSchema] {
+  // the list of endpoints for that module
   def endpoints: List[A]
+
+  // specific authorization required for accesing path in that module
+  // a default is provided that tells "only admin can access it"
+  def authorizationApiMapping: AuthorizationApiMapping = AuthorizationApiMapping.OnlyAdmin
 }
 
 /**

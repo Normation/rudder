@@ -173,7 +173,6 @@ class ParameterApiService2 (
     readParameter        : RoParameterRepository
   , writeParameter       : WoParameterRepository
   , uuidGen              : StringUuidGenerator
-  , changeRequestService : ChangeRequestService
   , workflowLevelService : WorkflowLevelService
   , restExtractor        : RestExtractorService
   , restDataSerializer   : RestDataSerializer
@@ -195,10 +194,10 @@ extends Loggable {
     val change = GlobalParamChangeRequest(act, initialState)
     logger.info(restExtractor.extractReason(req))
     ( for {
-        reason    <- restExtractor.extractReason(req)
-        crName    <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act} Parameter ${parameter.name} from API"))
-        workflow  <- workflowLevelService.getForGlobalParam(actor, change)
-        cr        <- changeRequestService.createChangeRequestFromGlobalParameter(
+        reason   <- restExtractor.extractReason(req)
+        crName   <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act} Parameter ${parameter.name} from API"))
+        workflow <- workflowLevelService.getForGlobalParam(actor, change)
+        cr       =  ChangeRequestService.createChangeRequestFromGlobalParameter(
                          crName
                        , restExtractor.extractChangeRequestDescription(req)
                        , parameter
@@ -206,10 +205,10 @@ extends Loggable {
                        , diff
                        , actor
                        , reason
-                     )
-        wfStarted <- workflow.startWorkflow(cr.id, actor, None)
+                    )
+        id       <- workflow.startWorkflow(cr, actor, reason)
       } yield {
-        (cr.id, workflow)
+        (id, workflow)
       }
     ) match {
       case Full((crId, workflow)) =>

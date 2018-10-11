@@ -278,7 +278,6 @@ class GroupApiService2 (
   , writeGroup           : WoNodeGroupRepository
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentActor
-  , changeRequestService : ChangeRequestService
   , workflowLevelService : WorkflowLevelService
   , restExtractor        : RestExtractorService
   , queryProcessor       : QueryProcessor
@@ -305,7 +304,7 @@ class GroupApiService2 (
         reason    <- restExtractor.extractReason(req)
         crName    <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act.name} group '${group.name}' from API"))
         workflow  <- workflowLevelService.getForNodeGroup(actor, change)
-        cr        <- changeRequestService.createChangeRequestFromNodeGroup(
+        cr        =  ChangeRequestService.createChangeRequestFromNodeGroup(
                         crName
                       , restExtractor.extractChangeRequestDescription(req)
                       , group
@@ -314,9 +313,9 @@ class GroupApiService2 (
                       , actor
                       , reason
                     )
-        wfStarted <- workflow.startWorkflow(cr.id, actor, None)
+        id        <- workflow.startWorkflow(cr, actor, None)
       } yield {
-        (cr.id, workflow)
+        (id, workflow)
       }
     ) match {
       case Full((crId, workflow)) =>

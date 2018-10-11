@@ -66,8 +66,6 @@ import com.normation.rudder.rest.{InfoApi => InfoApiDef}
 import com.normation.rudder.rest.lift.InfoApi
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import net.liftweb.sitemap.Loc.LocGroup
-import net.liftweb.sitemap.Loc.LocGroup
-import net.liftweb.sitemap.Loc.TestAccess
 import net.liftweb.sitemap.Loc.TestAccess
 import org.reflections.Reflections
 
@@ -494,6 +492,7 @@ class Boot extends Loggable {
       //add APIs
       plugin.apis.foreach { (api:LiftApiModuleProvider[_]) =>
         RudderConfig.rudderApi.addModules(api.getLiftEndpoints())
+        RudderConfig.authorizationApiMapping.addMapper(api.schemas.authorizationApiMapping)
       }
 
       //add the plugin packages to Lift package to look for packages and add API information for other services
