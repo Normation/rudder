@@ -31,9 +31,10 @@ bundle agent file_ensure_block_in_section(file, section_start, section_end, bloc
 {
   vars:
       "old_class_prefix" string => canonify("file_ensure_block_in_section_${file}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+      "promisers"         slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"     string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${section_start}", "${section_end}", "${block}" };
+      "joined"           string => join(",",args);
 
   files:
       "${file}"
@@ -45,5 +46,5 @@ bundle agent file_ensure_block_in_section(file, section_start, section_end, bloc
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report" usebundle => _log("Insert text block ${block} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log("Insert text block into ${file}", "${old_class_prefix}", "${class_prefix}", "${joined}");
 }

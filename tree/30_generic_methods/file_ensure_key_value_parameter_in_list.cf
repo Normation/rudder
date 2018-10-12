@@ -56,9 +56,10 @@ bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separa
 {
   vars:
       "old_class_prefix" string => canonify("file_ensure_key_value_parameter_in_list_${file}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
+      "promisers"         slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"     string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${key}", "${key_value_separator}", "${parameter}", "${parameter_separator}", "${leading_char_separator}", "${closing_char_separator}" };
+      "joined"           string => join(",",args);
 
 
       "escaped_key"  string => escape("${key}");
@@ -127,11 +128,11 @@ bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separa
                       ifvarclass => "invalid_enclosing";
 
     pass2.!invalid_enclosing.!line_with_key_present::
-      "report"   usebundle => _log("Ensure ${parameter} in line ${key}${key_value_separator} values in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log("Ensure parameter in line ${key}${key_value_separator} values in ${file}", "${old_class_prefix}", "${class_prefix}", "${joined}");
 
     pass2.!invalid_enclosing.line_with_key_present::
-      "report"   usebundle => _log("Add key non existing ${key} with value ${leading_char_separator} ${parameter} ${closing_char_separator} in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log("Add key non existing ${key} with parameter value in ${file}", "${old_class_prefix}", "${class_prefix}", "${joined}");
 
     pass2.invalid_enclosing::
-      "report"   usebundle => _log("Ensure ${parameter} in line ${key}${key_value_separator} values in ${file} must have either no enclosing character, or two, but not only one", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log("Ensure parameter in line ${key}${key_value_separator} values in ${file} must have either no enclosing character, or two, but not only one", "${old_class_prefix}", "${class_prefix}", "${joined}");
 }

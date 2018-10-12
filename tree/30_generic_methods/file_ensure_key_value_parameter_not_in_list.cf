@@ -54,10 +54,11 @@
 bundle agent file_ensure_key_value_parameter_not_in_list(file, key, key_value_separator, parameter_regex, parameter_separator, leading_char_separator, closing_char_separator)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_ensure_key_value_parameter_not_in_list_${file}");
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"               slist => { "${file}", "${key}", "${key_value_separator}", "${parameter_regex}", "${parameter_separator}", "${leading_char_separator}", "${closing_char_separator}" };
+      "old_class_prefix" string => canonify("file_ensure_key_value_parameter_not_in_list_${file}");
+      "promisers"         slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"     string => canonify(join("_", "promisers"));
+      "args"              slist => { "${file}", "${key}", "${key_value_separator}", "${parameter_regex}", "${parameter_separator}", "${leading_char_separator}", "${closing_char_separator}" };
+      "joined"           string => join(",",args);
 
       "escaped_key"       string => escape("${key}");
       "escaped_parameter" string => escape("${parameter_regex}");
@@ -108,11 +109,11 @@ bundle agent file_ensure_key_value_parameter_not_in_list(file, key, key_value_se
                       ifvarclass => "invalid_enclosing";
 
     pass2.!invalid_enclosing.line_with_key_present::
-      "report"   usebundle => _log("Ensure ${parameter_regex} is not in ${key}${key_value_separator} values in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log("Ensure parameter is not in ${key}${key_value_separator} values in ${file}", "${old_class_prefix}", "${class_prefix}", "${joined}");
 
     pass2.!invalid_enclosing.!line_with_key_present::
-      "report"   usebundle => _log("Non existing key ${key} with value ${leading_char_separator} ${parameter_regex} ${closing_char_separator} in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log("Non existing key ${key} with parameter value in ${file}", "${old_class_prefix}", "${class_prefix}", "${joined}");
 
     pass2.invalid_enclosing::
-      "report"   usebundle => _log("Ensure not ${parameter_regex} in line ${key}${key_value_separator} values in ${file} must have either no enclosing character, or two, but not only one", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log("Ensure parameter is not in line ${key}${key_value_separator} values in ${file} must have either no enclosing character, or two, but not only one", "${old_class_prefix}", "${class_prefix}", "${joined}");
 }
