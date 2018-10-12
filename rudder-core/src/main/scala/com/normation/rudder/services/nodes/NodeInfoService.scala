@@ -516,7 +516,7 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
     ).reduceLeft(combine)
 
     withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
-      Full(cache.collect { case(k, (x,y)) if(comp(nodeIds.contains(k), p.matches(y))) => x }.toSet)
+      Full(cache.collect { case(k, (x,y)) if(nodeIds.contains(k) && p.matches(y)) => x }.toSet)
     }
   }
 
