@@ -504,16 +504,13 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
       override def matches(node: NodeInfo): Boolean = comp(a.matches(node), b.matches(node))
     }
 
-    // if there is no predicats (ie no specific filter on NodeInfo), we need to make the final
-    // filter be neutral to that part. The neutral element for "and" is true, and "false" for or.
-    // If we do have predicat, just compose them according to the composition operator.
-    val p = (if(predicats.isEmpty) {
-        composition match {
-          case And => Seq(new NodeInfoMatcher { override def matches(node: NodeInfo): Boolean = true  } )
-          case Or  => Seq(new NodeInfoMatcher { override def matches(node: NodeInfo): Boolean = false } )
-        }
-      } else(predicats)
-    ).reduceLeft(combine)
+    // if there is no predicats (ie no specific filter on NodeInfo), we don't have to filter and and we can get all Nodes information for all ids we got
+    val p =
+      if(predicats.isEmpty) {
+        new NodeInfoMatcher { override def matches(node: NodeInfo): Boolean = true  }
+      } else {
+        predicats.reduceLeft(combine)
+      }
 
     withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
       Full(cache.collect { case(k, (x,y)) if(nodeIds.contains(k) && p.matches(y)) => x }.toSet)
