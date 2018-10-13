@@ -1,15 +1,15 @@
 //
-// This is the permession given to the JS engine in Rudder. 
-// We try to limit the obvious kind of errors, like 
+// This is the permession given to the JS engine in Rudder.
+// We try to limit the obvious kind of errors, like
 // "exit(0)" and unwanted file access. But Nashorn need a big
 // deal of permission to just run, and any malicious code could
-// escape the VM without much difficulties. 
+// escape the VM without much difficulties.
 //
-// The main goal here is really to avoid Rudder crash because of a JS typo. 
+// The main goal here is really to avoid Rudder crash because of a JS typo.
 //
 
 // We only use the default permissions granted to all domains
-// because that file is only used in the JS context. 
+// because that file is only used in the JS context.
 
 grant {
     // allows anyone to listen on dynamic ports
@@ -26,6 +26,7 @@ grant {
     permission java.lang.RuntimePermission "loadLibrary.j2pkcs11";
     permission java.lang.RuntimePermission "loadLibrary.nio";
     // lots of runtime permission needed by nashorn
+    permission java.lang.RuntimePermission "getProtectionDomain";
     permission java.lang.RuntimePermission "loadLibrary.net";
     permission java.lang.RuntimePermission "nashorn.createGlobal";
     permission java.lang.RuntimePermission "createClassLoader";
@@ -45,6 +46,6 @@ grant {
     permission java.io.FilePermission "/dev/random" , "read";
     permission java.io.FilePermission "/dev/urandom", "read";
     // other specific files based on extension are handled in Rudder directly
-  
+
     permission java.net.NetPermission "specifyStreamHandler";
 };

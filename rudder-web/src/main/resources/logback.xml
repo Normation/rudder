@@ -223,14 +223,36 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
      Set to info to only have macro information, debug to have timing information about
      each step (good default), trace to have more information.
    -->
-   <!-- Rudder 3.2 and above -->
   <logger name="com.normation.rudder.services.policies.PromiseGenerationServiceImpl" level="debug" />
-
   <!--
     The following logger take care of promises writing. Set to debug or trace to
     have these information.
   -->
-  <logger name="com.normation.rudder.services.policies.RudderCf3PromisesFileWriterServiceImpl" level="debug" />
+  <logger name="com.normation.rudder.services.policies.write" level="info" />
+
+
+  <!--
+    This logger may help debug cases in JS Directive engine, like ticket #13014.
+    Set to debug to get stack traces and more details errors.
+  -->
+  <logger name="jsDirectiveParam" level="info" />
+
+
+  <!--
+      This logger allows to log information about policy generation
+  -->
+  <logger name="policy.generation" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger>
+  <!--
+      This logger allows to log information about expected reports in policy generation
+  -->
+  <logger name="policy.generation.expected_reports" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger>
+
 
   <!--
     Cache (nodes, compliance)
@@ -398,23 +420,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     quicksearch: what is the parsed query, how many results come from each backend, etc.
    -->
   <logger name="com.normation.rudder.services.quicksearch" level="info" />
-
-  <!--
-      This logger allows to log information about policy generation
-  -->
-  <logger name="policy.generation" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <appender-ref ref="STDOUT" />
-  </logger>
-
-  <!--
-      This logger allows to log information about expected reports in policy generation
-  -->
-  <logger name="policy.generation.expected_reports" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <appender-ref ref="STDOUT" />
-  </logger>
-
 
   <!--
     Hooks
