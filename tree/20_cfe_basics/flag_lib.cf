@@ -16,12 +16,69 @@
 #
 #####################################################################################
 
-# Flag library
+# # Flag library
+#
+# ## Concept
+#
+# It allows storing a persisting database of flags that will be usable in the agents.
+# Flags are somehow like persistent conditions but:
+#
+# * They have no expiration date
+# * They are kept when resetting agent state
+#
+# This allows use cases like executing a command only once on a system.
+#
+# The storage format is a json file containing:
+#
+# ```json
+# {
+#   "flag_name_1": { "created": "20181008-...." },
+#   "flag_name_2": { "created": "20181008-...." }
+# }
+# ```
+#
+# (dates are ISO 8601 formatted)
+#
+# The flag file is by default in `/var/rudder/agent-data/flags.json`, and configurable in `ncf.conf`.
+#
+# ## Usage
+#
+# This library provides several methods:
+#
+# * `reserve_flag` to reserve a flag for 24 hours, this will prevent anyone from reserving it during this period. It can give two possible values:
+#   * `ok`: if the flag was correctly reserved
+#   * `failed`: if the flag could not be reserved. I can happen if it was reserved by another agent.
+#
+# * `set_flag` to actually set a permanent flag, requires preceding reservation.
+#   If the flag already existed, its date is updated.
+#   It can give three possible values:
+#   * `ok`: if the flag was correctly set or updated
+#   * `failed`: if the flag could not be written
+#   * `notreserved`: if the flag was not reserved, in this case it is not set
+#
+# * `get_flag` to query the current state of a flag. Should not be used unless
+#   you really need the state of a flag without reserving it after. It can give two possible values:
+#   * `set`: if the flag is set or reserved
+#   * `free`: if the flag is free
 
-# Flags variable is stored in the ncf_flags bundle
+# A typical use case is:
+#
+# * At the beginning of the action, try to reserve the flag with `reserve_flag`. If it fails,
+#   it means the flag is already there or reserved
+# * If it succeeds, start your task if any
+# * Once the task if done, actually set the flag you reserved using `set_flag`
+#
+# ## Note about safety
+#
+# This library is though to be resilient to race conditions when several
+# agents are executing at the same time.
+# This is helped by always using reserve_flag to set an "almost atomic" lock on the flag.
+#
+# Race conditions can then only happen when when running the agent without
+# locks (between get_flag and the actual persistent class definition, in reserve_flag).
+#
 
-# This bundle initializes the context for push/pop
-# It is called in 10_ncf_internals/initialization.cf
+# This is called in 10_ncf_internals/initialization.cf
 bundle agent flag_initialization {
   vars:
       # designed to be incremented when a global unique ID is needed
@@ -39,6 +96,7 @@ bundle agent reserve_flag(name) {
       "flag_reserved_${cname}" expression => "any",
              # 1 day
              persistence => "1440",
+             scope => "namespace",
              if => "free";
 
     any::
@@ -50,14 +108,12 @@ bundle agent reserve_flag(name) {
       "${flag_unique.value}" usebundle => get_flag("${name}"),
                              useresult => "current";
 
-
   reports:
     pass3::
       "ok"
         bundle_return_value_index => "1",
                           comment => "${flag_unique.value}",
                                if => "free.flag_reserved_${cname}";
-
       "failed"
         bundle_return_value_index => "1",
                           comment => "${flag_unique.value}",
@@ -68,47 +124,10 @@ bundle agent reserve_flag(name) {
                           comment => "${flag_unique.value}",
                                if => "free";
 
-    pass3.error::
+    pass3::
       "Failed, flag '${cname}' was not free"
-        bundle_return_value_index => "1",
                           comment => "${flag_unique.value}",
                                if => "!free";
-}
-
-bundle agent get_flag(name) {
-  vars:
-      "cname" string => canonify("${name}");
-      "flag_unique.value" string => eval("${flag_unique.value}+1", "math", "infix");
-
-  classes:
-      "is_set" expression => isvariable("ncf_flags.data[${cname}]");
-      "pass1" expression => "any";
-
-  methods:
-      "${flag_unique.value}" usebundle => read_flags;
-
-  reports:
-      "set"
-        bundle_return_value_index => "1",
-                          comment => "${flag_unique.value}",
-                               if => "is_set|flag_reserved_${cname}";
-
-      "free"
-        bundle_return_value_index => "1",
-                          comment => "${flag_unique.value}",
-                               if => "!is_set.!flag_reserved_${cname}";
-    info::
-      "Flag '${cname}' is set"
-                          comment => "${flag_unique.value}",
-                               if => "is_set";
-
-      "Flag '${cname}' is reserved"
-                          comment => "${flag_unique.value}",
-                               if => "!is_set.flag_reserved_${cname}";
-
-      "Flag '${cname}' is free"
-                          comment => "${flag_unique.value}",
-                               if => "!is_set.!flag_reserved_${cname}";
 }
 
 bundle agent set_flag(name) {
@@ -132,10 +151,11 @@ bundle agent set_flag(name) {
         edit_template => "${sys.workdir}/modules/templates/datastate.json.tpl",
         template_data => "@{set_flag.output}",
         edit_defaults => no_backup,
-        classes => classes_generic("write_ncf_flag_${cname}");
+        classes => classes_generic("write_ncf_flag_${cname}"),
+        if => "flag_reserved_${cname}";
 
   methods:
-      "${flag_unique.value}" usebundle => read_flags;
+      "${flag_unique.value}" usebundle => _read_flags;
 
   reports:
       "ok"
@@ -145,23 +165,68 @@ bundle agent set_flag(name) {
       "failed"
         bundle_return_value_index => "1",
                           comment => "${flag_unique.value}",
-                               if => "write_ncf_flag_${cname}_reached.!write_ncf_flag_${cname}_ok";
+                               if => "write_ncf_flag_${cname}_failed";
+      "notreserved"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "!flag_reserved_${cname}";
+
+      "Flag '${cname}' (created ${time}) could not be set"
+                          comment => "${flag_unique.value}",
+                               if => "write_ncf_flag_${cname}_failed";
+      "Flag '${cname}' (created ${time}) could not be set as it was not reserved"
+                          comment => "${flag_unique.value}",
+                               if => "!flag_reserved_${cname}";
+
     info::
       "Flag '${cname}' (created ${time}) was set"
                           comment => "${flag_unique.value}",
-                               if => "!write_ncf_flag_${cname}_ok";
-
-    error::
-      "Flag '${cname}' (created ${time}) could not be set"
-                          comment => "${flag_unique.value}",
-                               if => "write_ncf_flag_${cname}_reached.!write_ncf_flag_${cname}_ok";
+                               if => "write_ncf_flag_${cname}_ok";
 }
 
-bundle agent read_flags {
+# Should probably not be necessary, unless you need to know the state of the flag
+# without reserving it
+bundle agent get_flag(name) {
+  vars:
+      "cname" string => canonify("${name}");
+      "flag_unique.value" string => eval("${flag_unique.value}+1", "math", "infix");
+
+  classes:
+      "is_set" expression => isvariable("ncf_flags.data[${cname}]");
+      "pass1" expression => "any";
+
+  methods:
+      "${flag_unique.value}" usebundle => _read_flags;
+
+  reports:
+      "set"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "is_set|flag_reserved_${cname}";
+      "free"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "!is_set.!flag_reserved_${cname}";
+    info::
+      "Flag '${cname}' is set"
+                          comment => "${flag_unique.value}",
+                               if => "is_set";
+
+      "Flag '${cname}' is reserved"
+                          comment => "${flag_unique.value}",
+                               if => "!is_set.flag_reserved_${cname}";
+
+      "Flag '${cname}' is free"
+                          comment => "${flag_unique.value}",
+                               if => "!is_set.!flag_reserved_${cname}";
+}
+
+# This updates the value of the in-memory flags database. Should not be called from outside.
+bundle agent _read_flags {
   vars:
       "flag_unique.value" string => eval("${flag_unique.value}+1", "math", "infix");
 
-    # Pass3 to avoid reading the json at each pass...
+    # Pass3 to avoid reading the json at each pass
     pass3.file_exists::
       "ncf_flags.data" data => readjson("${configuration.flag_file}"),
                     comment => "${flag_unique.value}";

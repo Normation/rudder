@@ -20,8 +20,11 @@ body common control
 #######################################################
 
 bundle agent init {
-methods:
-  "clean" usebundle => file_absent("/tmp/flags.json");
+  vars:
+      "existing" string => '{ "already": { "created": "2018-10-15T16:52:20+0200" } }';
+
+  methods:
+      "clean" usebundle => file_absent("${configuration.flag_file}");
 }
 
 #######################################################
@@ -48,7 +51,14 @@ bundle agent test
       "read after set"
         usebundle => get_flag("test"),
         useresult => "get6";
-        # TODO unset class an re-test
+      "set another flag without reservation"
+        usebundle => set_flag("test2"),
+        useresult => "set7";
+
+      "clean" usebundle => file_content("${configuration.flag_file}", "${init.existing}", "true");
+      "read an existing condition"
+        usebundle => get_flag("already"),
+        useresult => "get8";
 }
 
 bundle agent check
@@ -60,8 +70,10 @@ bundle agent check
       "ok_4" expression => strcmp("${test.reserve4[1]}", "failed");
       "ok_5" expression => strcmp("${test.set5[1]}", "ok");
       "ok_6" expression => strcmp("${test.get6[1]}", "set");
+      "ok_7" expression => strcmp("${test.set7[1]}", "notreserved");
+      "ok_8" expression => strcmp("${test.get8[1]}", "set");
 
-      "ok" expression => "ok_1.ok_2.ok_3.ok_4.ok_6";
+      "ok" expression => "ok_1.ok_2.ok_3.ok_4.ok_5.ok_6.ok_7.ok_8";
 
   reports:
     ok::

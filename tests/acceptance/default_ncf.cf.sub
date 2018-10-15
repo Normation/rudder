@@ -16,6 +16,13 @@ bundle common ncf_inputs
 
 }
 
+# Load a custom ncf.conf for tests
+bundle common ncf_configuration {
+  vars:
+      "ncf_configuration_basedir" string => dirname("${this.promise_filename}");
+      "ncf_configuration_file" string => "${ncf_configuration_basedir}/ncf.conf";
+}
+
 bundle common test_utils {
 
   vars:
