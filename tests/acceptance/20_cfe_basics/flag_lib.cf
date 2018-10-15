@@ -1,0 +1,72 @@
+#######################################################
+#
+# Test flag_lib
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { configuration, initialization, default("${this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init {
+methods:
+  "clean" usebundle => file_absent("/tmp/flags.json");
+}
+
+#######################################################
+
+bundle agent test
+{
+
+  methods:
+      "read before"
+        usebundle => get_flag("test"),
+        useresult => "get1";
+      "reserve"
+        usebundle => reserve_flag("test"),
+        useresult => "reserve2";
+      "read after"
+        usebundle => get_flag("test"),
+        useresult => "get3";
+      "reserve twice"
+        usebundle => reserve_flag("test"),
+        useresult => "reserve4";
+      "set flag"
+        usebundle => set_flag("test"),
+        useresult => "set5";
+      "read after set"
+        usebundle => get_flag("test"),
+        useresult => "get6";
+        # TODO unset class an re-test
+}
+
+bundle agent check
+{
+  classes:
+      "ok_1" expression => strcmp("${test.get1[1]}", "free");
+      "ok_2" expression => strcmp("${test.reserve2[1]}", "ok");
+      "ok_3" expression => strcmp("${test.get3[1]}", "set");
+      "ok_4" expression => strcmp("${test.reserve4[1]}", "failed");
+      "ok_5" expression => strcmp("${test.set5[1]}", "ok");
+      "ok_6" expression => strcmp("${test.get6[1]}", "set");
+
+      "ok" expression => "ok_1.ok_2.ok_3.ok_4.ok_6";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
+

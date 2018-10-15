@@ -1,0 +1,178 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# Flag library
+
+# Flags variable is stored in the ncf_flags bundle
+
+# This bundle initializes the context for push/pop
+# It is called in 10_ncf_internals/initialization.cf
+bundle agent flag_initialization {
+  vars:
+      # designed to be incremented when a global unique ID is needed
+      "flag_unique.value" string => "1";
+}
+
+bundle agent reserve_flag(name) {
+  vars:
+      "cname" string => canonify("${name}");
+      "flag_unique.value" string => eval("${flag_unique.value}+1", "math", "infix");
+
+  classes:
+    pass1::
+      "free" expression => strcmp("${current[1]}", "free");
+      "flag_reserved_${cname}" expression => "any",
+             # 1 day
+             persistence => "1440",
+             if => "free";
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+      "${flag_unique.value}" usebundle => get_flag("${name}"),
+                             useresult => "current";
+
+
+  reports:
+    pass3::
+      "ok"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "free.flag_reserved_${cname}";
+
+      "failed"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "!free";
+
+    pass3.info::
+      "Reserved flag '${cname}'"
+                          comment => "${flag_unique.value}",
+                               if => "free";
+
+    pass3.error::
+      "Failed, flag '${cname}' was not free"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "!free";
+}
+
+bundle agent get_flag(name) {
+  vars:
+      "cname" string => canonify("${name}");
+      "flag_unique.value" string => eval("${flag_unique.value}+1", "math", "infix");
+
+  classes:
+      "is_set" expression => isvariable("ncf_flags.data[${cname}]");
+      "pass1" expression => "any";
+
+  methods:
+      "${flag_unique.value}" usebundle => read_flags;
+
+  reports:
+      "set"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "is_set|flag_reserved_${cname}";
+
+      "free"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "!is_set.!flag_reserved_${cname}";
+    info::
+      "Flag '${cname}' is set"
+                          comment => "${flag_unique.value}",
+                               if => "is_set";
+
+      "Flag '${cname}' is reserved"
+                          comment => "${flag_unique.value}",
+                               if => "!is_set.flag_reserved_${cname}";
+
+      "Flag '${cname}' is free"
+                          comment => "${flag_unique.value}",
+                               if => "!is_set.!flag_reserved_${cname}";
+}
+
+bundle agent set_flag(name) {
+  vars:
+      "cname" string => canonify("${name}");
+      "time" string => strftime("localtime", "%FT%T%z", "${sys.systime}");
+      "flag" data => '{ "${cname}": { "created": "${time}" } }';
+    pass2::
+      "output" data => mergedata("ncf_flags.data", "flag");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+    pass3::
+      "${configuration.flag_file}"
+        create => "true",
+        template_method => "mustache",
+        edit_template => "${sys.workdir}/modules/templates/datastate.json.tpl",
+        template_data => "@{set_flag.output}",
+        edit_defaults => no_backup,
+        classes => classes_generic("write_ncf_flag_${cname}");
+
+  methods:
+      "${flag_unique.value}" usebundle => read_flags;
+
+  reports:
+      "ok"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "write_ncf_flag_${cname}_ok";
+      "failed"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "write_ncf_flag_${cname}_reached.!write_ncf_flag_${cname}_ok";
+    info::
+      "Flag '${cname}' (created ${time}) was set"
+                          comment => "${flag_unique.value}",
+                               if => "!write_ncf_flag_${cname}_ok";
+
+    error::
+      "Flag '${cname}' (created ${time}) could not be set"
+                          comment => "${flag_unique.value}",
+                               if => "write_ncf_flag_${cname}_reached.!write_ncf_flag_${cname}_ok";
+}
+
+bundle agent read_flags {
+  vars:
+      "flag_unique.value" string => eval("${flag_unique.value}+1", "math", "infix");
+
+    # Pass3 to avoid reading the json at each pass...
+    pass3.file_exists::
+      "ncf_flags.data" data => readjson("${configuration.flag_file}"),
+                    comment => "${flag_unique.value}";
+    pass3.!file_exists::
+      "ncf_flags.data" data => '{}';
+
+  classes:
+      "file_exists" expression => fileexists("${configuration.flag_file}");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+}
+
