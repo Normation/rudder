@@ -69,6 +69,7 @@ import com.normation.cfclerk.domain.AixPasswordHashAlgo
 import com.normation.cfclerk.domain.AbstactPassword
 import java.security.NoSuchAlgorithmException
 import java.net.URL
+import java.net.URLPermission
 import java.nio.file.Paths
 import java.security.CodeSource
 import java.security.ProtectionDomain
@@ -76,8 +77,8 @@ import java.util.logging.LoggingPermission
 import java.security.cert.Certificate
 
 import sun.security.provider.PolicyFile
-
 import com.github.ghik.silencer.silent
+import com.normation.rudder.domain.logger.JsDirectiveParamLogger
 
 sealed trait HashOsType
 
@@ -341,7 +342,21 @@ final object JsEngineProvider {
           defaultPath
         }
 
-        SandboxedJsEngine.sandboxed(url) { engine => script(engine) }
+        val res = SandboxedJsEngine.sandboxed(url) { engine => script(engine) }
+
+        //we may want to debug hard to debug case here, especially when we had a stackoverflow below
+        (JsDirectiveParamLogger.isDebugEnabled, res) match {
+          case (true, Failure(msg, Full(ex), x)) =>
+            import scala.util.{Properties => P}
+            JsDirectiveParamLogger.debug(s"Error when trying to use the JS script engine in a directive. Java version: '${P.javaVersion}'; JVM info: '${P.javaVmInfo}'; name: '${P.javaVmName}'; version: : '${P.javaVmVersion}'; vendor: '${P.javaVmVendor}';")
+
+            // in the case of an exception and debug enable, print stack
+            ex .printStackTrace()
+
+          case _ => // nothing more
+        }
+
+        res
       case FeatureSwitch.Disabled =>
         script(DisabledEngine)
     }
@@ -491,6 +506,12 @@ final object JsEngine {
 
   final class SandboxedJsEngine private (jsEngine: ScriptEngine, sm: SecurityManager, pool: ExecutorService, maxTime: (Int, TimeUnit)) extends JsEngine {
 
+    // we need to preload Permission to avoid loops - see #13014
+    val preload1 = new FilePermission("not a real path", "read")
+    val preload2 = new URLPermission("file://not/a/real/url", "read")
+    val preload3 = new RuntimePermission("not a real action", "read")
+    val preload4 = new LoggingPermission("control", null)
+
     private[this] trait KillingThread {
       /**
        * Force stop the thread, throws a the ThreadDeath error.
@@ -635,7 +656,7 @@ final object JsEngine {
    *
    * BE CAREFUL - this sandbox won't prevent an attacker to get/do things.
    * It's goal is to prevent a user to do obviously bad things on the servers,
-   * but more by mistake (because he didn't understood when the script is evaled,
+   * but more by mistake (because he didn't understood when the script is evalued,
    * for example).
    *
    * The security rules are taken from a rudder-js.policy file.
@@ -654,9 +675,22 @@ final object JsEngine {
     val policyFile = new PolicyFile(policyFileUrl)
 
     override def checkPermission(permission: Permission): Unit = {
+
+      /*
+       * TIP for the future myself: when bug happens here, don't try to put a println here,
+       * it will bring desolation in your debug session.
+       * You can try to put one in new catch all test after policyFile (as showned).
+       *
+       * There should be a way to tell "do not check privilege for the current method,
+       * else obviously it will loop", but I don't know how.
+       */
+
+
       if(isSandboxed.get) {
         // there some perms which are hard to specify in that file
         permission match {
+          // this seems to be now mandatory to avoid loops, see #13014
+          case x: FilePermission if(x.getActions == "read" && (x.getName.startsWith("/opt/rudder/share/webapps")|| x.getName.startsWith("/opt/rudder/etc/rudder-jetty-base/"))) => // ok
           // jar and classes
           case x: FilePermission if( x.getActions == "read" && (x.getName.contains(".class") || x.getName.endsWith(".jar")  || x.getName.endsWith(".so") ) ) => // ok
           // configuration files
@@ -666,6 +700,10 @@ final object JsEngine {
           case x: LoggingPermission  => // ok
           // else look in the dynamic rules from rudder-js.policy files
           case x if(policyFile.implies(protectionDomain, permission)) => // ok
+//          kept for a future myself
+//          case x: URLPermission => // ok
+//            throw new Throwable("url perm: " + permission)
+
           case x =>
             //JsDirectiveParamLogger.warn(s"Script tries to access protected resources: ${permission.toString}")
             throw new SecurityException("access denied to: " + permission)    // error
