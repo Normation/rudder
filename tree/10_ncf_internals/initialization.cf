@@ -40,6 +40,7 @@ bundle agent initialization
       # the ncf_init_* classes can be used to get the agregated result of ncf intialization
       "copy classes for reporting" usebundle => _classes_copy("ncf_internals_modules_update", "ncf_init");
       "init dry_run context" usebundle => dry_run_initialization;
+      "init flag context"    usebundle => flag_initialization;
 
   reports:
     info::
