@@ -1,0 +1,100 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Condition once
+# @description Create a new condition only once
+# @documentation This method evaluates an expression, and produces a `${condition}` when it is
+# first called. Following calls will not define the condition.
+#
+# This allows executing actions only once on a given machine.
+#
+# The created condition is global to the agent.
+#
+# #### Example
+#
+# If you use:
+#
+# ```
+# condition_once("my_condition")
+# ```
+#
+# The first agent run will have `my_condition` defined, contrary to subsequent runs
+# for which no class will be defined.
+#
+# See also : [command_execution_once](#command_execution_once)
+# @parameter condition     The condition to define
+#
+# @class_prefix condition_once
+# @class_parameter condition
+
+bundle agent condition_once(condition)
+{
+  vars:
+      "c_condition"       string => canonify("${condition}");
+      "old_class_prefix"  string => canonify("condition_once_${condition}");
+      "args"               slist => { "${condition}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("condition_once_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "reserved"    expression => strcmp("${reserve[1]}", "ok");
+      "already_set" expression => strcmp("${reserve[1]}", "failed_set");
+      "already_reserved" expression => strcmp("${reserve[1]}", "failed_reserved");
+      "set_ok"      expression => strcmp("${set[1]}", "ok");
+
+      "${c_condition}" expression => "set_ok",
+                            scope => "namespace";
+
+      "should_report" expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+      "reserve the flag" usebundle => reserve_flag("condition_once_${c_condition}"),
+                         useresult => "reserve";
+    reserved::
+      "set the flag"     usebundle => set_flag("condition_once_${c_condition}"),
+                         useresult => "set";
+
+    set_ok::
+      "success" usebundle => _classes_repaired("${old_class_prefix}");
+      "success" usebundle => _classes_repaired("${class_prefix}");
+
+    pass3.reserved.!set_ok::
+      "failure" usebundle => _classes_failure("${old_class_prefix}");
+      "failure" usebundle => _classes_failure("${class_prefix}");
+
+    pass3.(already_set|already_reserved)::
+      "success" usebundle => _classes_success("${old_class_prefix}");
+      "success" usebundle => _classes_success("${class_prefix}");
+
+    pass3.already_reserved::
+      "disable_reporting_${class_prefix}"
+                usebundle => disable_reporting;
+      "failure" usebundle => _classes_failure("temp_${old_class_prefix}_warn");
+      "failure" usebundle => _classes_failure("temp_${class_prefix}_warn");
+      "report"  usebundle => _log_v3("The '${c_condition}' condition was reserved but not set, this is unexpected", "${condition}", "temp_${old_class_prefix}_warn", "temp_${class_prefix}_warn", @{args});
+      "reenable_reporting_${class_prefix}"
+                usebundle => enable_reporting,
+                       if => "should_report";
+
+    pass3::
+      "report"  usebundle => _log_v3("Create the condition ${c_condition} once", "${condition}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

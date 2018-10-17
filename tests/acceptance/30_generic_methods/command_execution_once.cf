@@ -1,0 +1,90 @@
+#######################################################
+#
+# Test the exit code of shell commands
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { configuration, initialization, default("${this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  methods:
+      "clean" usebundle => file_absent("${configuration.flag_file}");
+}
+
+#######################################################
+
+bundle agent test
+{
+  vars:
+    "ok_codes" string => "0, 2,4, 6";
+
+  methods:
+    "phA"  usebundle => command_execution_once("exit 0",    "${ok_codes}", "any", "testA");
+    "phAA" usebundle => command_execution_once("exit 0 ",   "${ok_codes}", "any", "testA");
+    "enable"  usebundle => set_dry_run_mode("true");
+    "phAAA" usebundle => command_execution_once("exit 0  ", "${ok_codes}", "any", "testA");
+    "disable" usebundle => set_dry_run_mode("false");
+
+
+    "phB"  usebundle => command_execution_once("exit 1",  "${ok_codes}", "any", "testB");
+    "phBB" usebundle => command_execution_once("exit 1 ", "${ok_codes}", "any", "testB");
+
+    "phC"  usebundle => command_execution_once("exit 2",  "${ok_codes}", "ok", "testC");
+    "phCC" usebundle => command_execution_once("exit 2 ", "${ok_codes}", "ok", "testC");
+
+    "phD"    usebundle => command_execution_once("exit 3",  "${ok_codes}", "ok", "testD");
+    "phDD"   usebundle => command_execution_once("exit 3 ", "${ok_codes}", "ok", "testD");
+    "phDDD"  usebundle => command_execution_once("exit 4",  "${ok_codes}", "ok", "testD");
+
+    "reenable"  usebundle => set_dry_run_mode("true");
+    "phE"       usebundle => command_execution_once("exit 5",  "${ok_codes}", "ok", "testE");
+    "phEE"      usebundle => command_execution_once("exit 5 ", "${ok_codes}", "ok", "testE");
+    "phEEE"     usebundle => command_execution_once("exit 6",  "${ok_codes}", "ok", "testE");
+    "redisable" usebundle => set_dry_run_mode("false");
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+    "ok_A" expression => "!command_execution_once_exit_0_kept.command_execution_once_exit_0_repaired.!command_execution_once_exit_0_error";
+    "ok_AA" expression => "command_execution_once_exit_0__kept.!command_execution_once_exit_0__repaired.!command_execution_once_exit_0__error";
+    "ok_AAA" expression => "command_execution_once_exit_0___kept.!command_execution_once_exit_0___repaired.!command_execution_once_exit_0___error";
+
+    "ok_B" expression => "!command_execution_once_exit_1_kept.!command_execution_once_exit_1_repaired.command_execution_once_exit_1_error";
+    "ok_BB" expression => "command_execution_once_exit_1__kept.!command_execution_once_exit_1__repaired.!command_execution_once_exit_1__error";
+
+    "ok_C" expression => "!command_execution_once_exit_2_kept.command_execution_once_exit_2_repaired.!command_execution_once_exit_2_error";
+    "ok_CC" expression => "command_execution_once_exit_2__kept.!command_execution_once_exit_2__repaired.!command_execution_once_exit_2__error";
+
+    "ok_D" expression => "!command_execution_once_exit_3_kept.!command_execution_once_exit_3_repaired.command_execution_once_exit_3_error";
+    "ok_DD" expression => "!command_execution_once_exit_3__kept.!command_execution_once_exit_3__repaired.command_execution_once_exit_3__error";
+    "ok_DDD" expression => "!command_execution_once_exit_4_kept.command_execution_once_exit_4_repaired.!command_execution_once_exit_4_error";
+
+    "ok_E" expression => "!command_execution_once_exit_5_kept.!command_execution_once_exit_5_repaired.command_execution_once_exit_5_error";
+    "ok_EE" expression => "!command_execution_once_exit_5__kept.!command_execution_once_exit_5__repaired.command_execution_once_exit_5__error";
+    "ok_EEE" expression => "!command_execution_once_exit_6_kept.!command_execution_once_exit_6_repaired.command_execution_once_exit_6_error";
+
+    "ok"  expression => "ok_A.ok_AA.ok_AAA.ok_B.ok_BB.ok_C.ok_CC.ok_D.ok_DD.ok_DDD.ok_E.ok_EE.ok_EEE";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
