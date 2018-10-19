@@ -51,6 +51,9 @@ bundle agent test
       "read after set"
         usebundle => get_flag("test"),
         useresult => "get6";
+      "reserve after set"
+        usebundle => reserve_flag("test"),
+        useresult => "reserve6";
       "set another flag without reservation"
         usebundle => set_flag("test2"),
         useresult => "set7";
@@ -59,6 +62,14 @@ bundle agent test
       "read an existing condition"
         usebundle => get_flag("already"),
         useresult => "get8";
+
+      "reserve"
+        usebundle => reserve_flag("test3"),
+        useresult => "reserve9";
+      "cancel" usebundle => cancel_flag("test3");
+      "read after"
+        usebundle => get_flag("test3"),
+        useresult => "get10";
 }
 
 bundle agent check
@@ -66,14 +77,17 @@ bundle agent check
   classes:
       "ok_1" expression => strcmp("${test.get1[1]}", "free");
       "ok_2" expression => strcmp("${test.reserve2[1]}", "ok");
-      "ok_3" expression => strcmp("${test.get3[1]}", "set");
-      "ok_4" expression => strcmp("${test.reserve4[1]}", "failed");
+      "ok_3" expression => strcmp("${test.get3[1]}", "reserved");
+      "ok_4" expression => strcmp("${test.reserve4[1]}", "failed_reserved");
       "ok_5" expression => strcmp("${test.set5[1]}", "ok");
       "ok_6" expression => strcmp("${test.get6[1]}", "set");
+      "ok_6b" expression => strcmp("${test.reserve6[1]}", "failed_set");
       "ok_7" expression => strcmp("${test.set7[1]}", "notreserved");
       "ok_8" expression => strcmp("${test.get8[1]}", "set");
+      "ok_9" expression => strcmp("${test.reserve9[1]}", "ok");
+      "ok_10" expression => strcmp("${test.get10[1]}", "free");
 
-      "ok" expression => "ok_1.ok_2.ok_3.ok_4.ok_5.ok_6.ok_7.ok_8";
+      "ok" expression => "ok_1.ok_2.ok_3.ok_4.ok_5.ok_6.ok_6b.ok_7.ok_8.ok_9.ok_10";
 
   reports:
     ok::

@@ -49,6 +49,8 @@
 #   * `ok`: if the flag was correctly reserved
 #   * `failed`: if the flag could not be reserved. I can happen if it was reserved by another agent.
 #
+# * `cancel_flag` to remove a flag reservation. This does not affect already set flags.
+#
 # * `set_flag` to actually set a permanent flag, requires preceding reservation.
 #   If the flag already existed, its date is updated.
 #   It can give three possible values:
@@ -65,8 +67,15 @@
 #
 # * At the beginning of the action, try to reserve the flag with `reserve_flag`. If it fails,
 #   it means the flag is already there or reserved
-# * If it succeeds, start your task if any
-# * Once the task if done, actually set the flag you reserved using `set_flag`
+# * If it succeeds, start your task (if any)
+# * Once the task if done, actually set the flag you reserved using `set_flag` if it succeeded,
+#   or cancel the flag with `cancel_flag` if it failed and you want to restart later.
+#
+# ## Timeout
+#
+# If a reserved class is not set within 24 hours, the class will disappear and the flag
+# will be considered free again. You should have a timeout shorted than this for long-running
+# tasks using flag reservation.
 #
 # ## Note about safety
 #
@@ -85,6 +94,14 @@ bundle agent flag_initialization {
       "flag_unique.value" string => "1";
 }
 
+bundle agent cancel_flag(name) {
+  vars:
+      "cname"  string => canonify("${name}");
+      "cancel" string => "",
+              classes => if_ok_cancel("flag_reserved_${cname}"),
+                   if => "flag_reserved_${cname}" ;
+}
+
 bundle agent reserve_flag(name) {
   vars:
       "cname" string => canonify("${name}");
@@ -93,6 +110,8 @@ bundle agent reserve_flag(name) {
   classes:
     pass1::
       "free" expression => strcmp("${current[1]}", "free");
+      "reserved" expression => strcmp("${current[1]}", "reserved");
+      "set" expression => strcmp("${current[1]}", "set");
       "flag_reserved_${cname}" expression => "any",
              # 1 day
              persistence => "1440",
@@ -105,6 +124,7 @@ bundle agent reserve_flag(name) {
       "pass1" expression => "any";
 
   methods:
+    !pass2::
       "${flag_unique.value}" usebundle => get_flag("${name}"),
                              useresult => "current";
 
@@ -114,20 +134,25 @@ bundle agent reserve_flag(name) {
         bundle_return_value_index => "1",
                           comment => "${flag_unique.value}",
                                if => "free.flag_reserved_${cname}";
-      "failed"
+      "failed_set"
         bundle_return_value_index => "1",
                           comment => "${flag_unique.value}",
-                               if => "!free";
+                               if => "set";
+      "failed_reserved"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "reserved";
 
     pass3.info::
       "Reserved flag '${cname}'"
                           comment => "${flag_unique.value}",
                                if => "free";
-
-    pass3::
-      "Failed, flag '${cname}' was not free"
+      "Could not reserve flag '${cname}', it was already set"
                           comment => "${flag_unique.value}",
-                               if => "!free";
+                               if => "set";
+      "Could not reserve flag '${cname}', it was reserved"
+                          comment => "${flag_unique.value}",
+                               if => "reserved";
 }
 
 bundle agent set_flag(name) {
@@ -139,6 +164,9 @@ bundle agent set_flag(name) {
       "output" data => mergedata("ncf_flags.data", "flag");
 
   classes:
+      # to be used after flag is canceled
+      "reserved" expression => "flag_reserved_${cname}";
+
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
@@ -150,12 +178,15 @@ bundle agent set_flag(name) {
         template_method => "mustache",
         edit_template => "${sys.workdir}/modules/templates/datastate.json.tpl",
         template_data => "@{set_flag.output}",
+        action => immediate_ignore_dry_run,
         edit_defaults => no_backup,
         classes => classes_generic("write_ncf_flag_${cname}"),
         if => "flag_reserved_${cname}";
 
   methods:
       "${flag_unique.value}" usebundle => _read_flags;
+      "${flag_unique.value}" usebundle => cancel_flag("${name}"),
+                                    if => "write_ncf_flag_${cname}_ok";
 
   reports:
       "ok"
@@ -169,16 +200,17 @@ bundle agent set_flag(name) {
       "notreserved"
         bundle_return_value_index => "1",
                           comment => "${flag_unique.value}",
-                               if => "!flag_reserved_${cname}";
+                               if => "!reserved";
 
+    pass3::
       "Flag '${cname}' (created ${time}) could not be set"
                           comment => "${flag_unique.value}",
                                if => "write_ncf_flag_${cname}_failed";
       "Flag '${cname}' (created ${time}) could not be set as it was not reserved"
                           comment => "${flag_unique.value}",
-                               if => "!flag_reserved_${cname}";
+                               if => "!reserved";
 
-    info::
+    pass3.info::
       "Flag '${cname}' (created ${time}) was set"
                           comment => "${flag_unique.value}",
                                if => "write_ncf_flag_${cname}_ok";
@@ -193,6 +225,8 @@ bundle agent get_flag(name) {
 
   classes:
       "is_set" expression => isvariable("ncf_flags.data[${cname}]");
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
       "pass1" expression => "any";
 
   methods:
@@ -202,12 +236,16 @@ bundle agent get_flag(name) {
       "set"
         bundle_return_value_index => "1",
                           comment => "${flag_unique.value}",
-                               if => "is_set|flag_reserved_${cname}";
+                               if => "is_set";
+      "reserved"
+        bundle_return_value_index => "1",
+                          comment => "${flag_unique.value}",
+                               if => "!is_set.flag_reserved_${cname}";
       "free"
         bundle_return_value_index => "1",
                           comment => "${flag_unique.value}",
                                if => "!is_set.!flag_reserved_${cname}";
-    info::
+    pass3.info::
       "Flag '${cname}' is set"
                           comment => "${flag_unique.value}",
                                if => "is_set";
