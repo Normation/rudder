@@ -71,6 +71,16 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
+    # A known issue prevents cfengine to raise classes
+    # when dealing with empty promiser.
+    # Applying this bundle on a directory with a 0 level of recursion,
+    # no promisers will be found and we will need to define classes by ourselves.
+    iteration_2::
+      "error" usebundle => _classes_failure("${old_class_prefix}"),
+        ifvarclass=> "!${class_prefix}_reached";
+      "error" usebundle => _classes_failure("${class_prefix}"),
+        ifvarclass=> "!${class_prefix}_reached";
+
     # The reports should only be made after we know if this is a
     # directory (to apply recursion) or a file
     iteration_2.!is_dir_copy::
