@@ -34,11 +34,13 @@ bundle agent init
 {
   # Build packages + a local repo + remove packages used in test
   vars:
-    "repo_path" string => "/usr/share/ncf/tests/acceptance/30_generic_methods/modules/repo_rudder_tests";
+    "pwd" string => dirname("${this.promise_filename}");
+    "repo_path" string => "${pwd}/repo_rudder_tests";
+    "modules_path" string => "${ncf_inputs.ncf_tree}/10_ncf_internals/modules";
     "packages_list" slist => {"zip", "dummy", "rudder_test_repo", "rudder-tests"};
   commands:
     "/usr/bin/createrepo ${repo_path}";
-    "/usr/bin/zypper ar /usr/share/ncf/tests/acceptance/30_generic_methods/modules/repo_rudder_tests local";
+    "/usr/bin/zypper ar ${repo_path} local";
     "/usr/bin/zypper ref local";
 
     "/usr/bin/zypper --non-interactive in -t pattern rudder_test_remove";
@@ -50,7 +52,9 @@ bundle agent init
 ###############################################################################
 #                                 SCENARIO
 #________ Basic Tests ________ 
-# -Test get-package-data on a dummy rpm and a dummy package
+# -Test get-package-data on a dummy rpm on the repo => repo based return
+# -Test get-package-data on a dummy rpm without pattern => error return
+# -Test get-package-data on a rpm containing a pattern => ok and return pattenr name
 # -Test list-installed method by looking for its output in rpm -qa output
 # -Test file-install with rudder-tests-1-64.3.x86_64.rpm which should provide
 #       xxxx
@@ -66,7 +70,6 @@ bundle agent init
 bundle agent test
 {
   vars:
-    "pwd" string => "/usr/share/ncf/tests/acceptance/30_generic_methods/modules";
     pass1::
       "rudder_test_remove_installed" string => execresult("/usr/bin/zypper patterns --installed-only | grep -c rudder_test_remove", "useshell");
 
@@ -75,20 +78,23 @@ bundle agent test
     "rudder_test_remove_installed" expression => strcmp("${rudder_test_remove_installed}", "1");
 
   methods:
-  pass1::
+  SUSE.pass1::
     # Get-Package-Data
     "any" usebundle => test_package_module_get_package_data("zypper_pattern", "dummy", "PackageType=repo
 Name=dummy", "1");
-    "any" usebundle => test_package_module_get_package_data("zypper_pattern", "${pwd}/dummy-1-0.noarch.rpm", "PackageType=file
-Name=dummy
-Version=1-0
-Architecture=noarch", "2");
+    "any" usebundle => test_package_module_get_package_data("zypper_pattern", "${init.pwd}/dummy-1-0.noarch.rpm", "PackageType=file
+File=${init.pwd}/dummy-1-0.noarch.rpm
+ErrorMessage: Package pattern name not found", "2");
+    "any" usebundle => test_package_module_get_package_data("zypper_pattern", "${init.pwd}/rudder-tests-1-64.3.x86_64.rpm", "PackageType=file
+Name=rudder-tests
+Version=1-64.3
+Architecture=x86_64", "3");
 
     "any" usebundle => test_package_module_list_installed("zypper_pattern");
 
     # We assume that packages listed in the pattern will be installed and are available via repo
     # install a pattern from file
-    "any" usebundle => test_package_module_file_install("zypper_pattern","File=${pwd}/rudder-tests-1-64.3.x86_64.rpm", "1", "rudder-tests");
+    "any" usebundle => test_package_module_file_install("zypper_pattern","File=${init.pwd}/rudder-tests-1-64.3.x86_64.rpm", "1", "rudder-tests");
     "package" usebundle => test_package_module_package_installed("zypper", "Name=zip", "zip_installed");
 
     # Install a pattern from repo, version specific
@@ -116,25 +122,29 @@ Version=2-0", "dummy_2_0_installed");
 
 bundle agent check {
   vars:
-    "check_list" slist => {"package_data_ok_1", "package_data_ok_2", "list_installed_ok", "file_install_ok", "repo_install_ok", "list_updates_ok", "repo_install_latest_ok", "remove_ok"};
+    "check_list" slist => {"package_data_ok_1", "package_data_ok_2", "package_data_ok_3", "list_installed_ok", "file_install_ok", "repo_install_ok", "list_updates_ok", "repo_install_latest_ok", "remove_ok"};
 
   classes:
-    "package_data_ok_1" expression => "get_package_data_zypper_pattern_1_ok";
-    "package_data_ok_2" expression => "get_package_data_zypper_pattern_2_ok";
+    SUSE::
+      "package_data_ok_1" expression => "get_package_data_zypper_pattern_1_ok";
+      "package_data_ok_2" expression => "get_package_data_zypper_pattern_2_ok";
+      "package_data_ok_3" expression => "get_package_data_zypper_pattern_3_ok";
 
-    "list_installed_ok" expression => "test_package_module_list_installed_zypper_pattern_ok";
+      "list_installed_ok" expression => "test_package_module_list_installed_zypper_pattern_ok";
 
-    "file_install_ok" expression => "test_package_module_file_install_zypper_pattern_1_ok.zip_installed";
+      "file_install_ok" expression => "test_package_module_file_install_zypper_pattern_1_ok.zip_installed";
 
-    "repo_install_ok" expression => "test_package_module_repo_install_zypper_pattern_1_ok.dummy_1_0_installed";
+      "repo_install_ok" expression => "test_package_module_repo_install_zypper_pattern_1_ok.dummy_1_0_installed";
 
-    "list_updates_ok" expression => "test_package_module_list_updates_zypper_pattern_1_ok";
+      "list_updates_ok" expression => "test_package_module_list_updates_zypper_pattern_1_ok";
 
-    "repo_install_latest_ok" expression => "test_package_module_repo_install_zypper_pattern_2_ok.dummy_2_0_installed";
+      "repo_install_latest_ok" expression => "test_package_module_repo_install_zypper_pattern_2_ok.dummy_2_0_installed";
 
-    "remove_ok" expression => "test_package_module_remove_zypper_pattern_1_ok.dummy_to_not_remove_installed";
+      "remove_ok" expression => "test_package_module_remove_zypper_pattern_1_ok.dummy_to_not_remove_installed";
 
-    "ok" expression => "package_data_ok_1.package_data_ok_2.list_installed_ok.file_install_ok.repo_install_ok.list_updates_ok.repo_install_latest_ok.remove_ok";
+      "ok" expression => "package_data_ok_1.package_data_ok_2.package_data_ok_3.list_installed_ok.file_install_ok.repo_install_ok.list_updates_ok.repo_install_latest_ok.remove_ok";
+    !SUSE::
+      "ok" expression => "any";
 
   reports:
     "${check_list}  OK"
@@ -155,7 +165,7 @@ bundle agent check {
 bundle agent test_package_module_get_package_data(module_name, input, expected_output, test_id)
 {
   vars:
-    "command" string => "/usr/share/ncf/tree/10_ncf_internals/modules/packages/${module_name} get-package-data <<EOF
+    "command" string => "${init.modules_path}/packages/${module_name} get-package-data <<EOF
 File=${input}
 EOF";
     "output" string => execresult("${command}","useshell");
@@ -164,6 +174,8 @@ EOF";
     "get_package_data_${module_name}_${test_id}_ok" expression => strcmp("${output}", "${expected_output}"),
       scope => "namespace";
     "print" expression => "get_package_data_${module_name}_${test_id}_ok";
+  reports:
+    "${output}";
 }
 
 
@@ -177,7 +189,7 @@ bundle agent test_package_module_list_installed(module_name)
     # Parse the output of the module to get 3 array, use them to build a unique regex per pattern to match the raw output of 
     # the packet manager
 
-    "command" string => "/usr/share/ncf/tree/10_ncf_internals/modules/packages/${module_name} list-installed < /dev/null";
+    "command" string => "${init.modules_path}/packages/${module_name} list-installed < /dev/null";
     "module_output" string => execresult("${command}", "useshell");
 
     # Ugly way but most likely the only way to "easily" build 3 arrays from the module output, by parsing 3 long strings
@@ -213,7 +225,7 @@ bundle agent test_package_module_list_installed(module_name)
 bundle agent test_package_module_list_updates(module_name, expected_output, test_id)
 {
   vars:
-    "command" string => "/usr/share/ncf/tree/10_ncf_internals/modules/packages/${module_name} list-updates < /dev/null";
+    "command" string => "${init.modules_path}/packages/${module_name} list-updates < /dev/null";
     "output"  string => execresult("${command}", "useshell");
 
   classes:
@@ -227,7 +239,7 @@ bundle agent test_package_module_list_updates(module_name, expected_output, test
 bundle agent test_package_module_list_updates_local(module_name, input, expected_output, test_id)
 {
   vars:
-    "command" string => "/usr/share/ncf/tree/10_ncf_internals/modules/packages/${module_name} list-updates-local < /dev/null";
+    "command" string => "${init.modules_path}/packages/${module_name} list-updates-local < /dev/null";
     "output"  string => execresult("${command}", "useshell");
 
   classes:
@@ -263,7 +275,7 @@ bundle agent test_package_module_file_install(module_name, input, test_id, expec
 bundle agent test_package_module_install(module_name, source, input, test_id, expected_name)
 {
   vars:
-    "command" string => "/usr/share/ncf/tree/10_ncf_internals/modules/packages/${module_name} ${source}-install <<EOF
+    "command" string => "${init.modules_path}/packages/${module_name} ${source}-install <<EOF
 ${input}
 EOF";
     # Get info from the rpm file and from the input, the name is mandatory, version and arch are not
@@ -328,7 +340,7 @@ EOF";
 bundle agent test_package_module_remove(module_name, input, test_id)
 {
   vars:
-    "command" string => "/usr/share/ncf/tree/10_ncf_internals/modules/packages/${module_name} remove <<EOF
+    "command" string => "${init.modules_path}/packages/${module_name} remove <<EOF
 ${input}
 EOF # ${test_id}";
     pass1::
@@ -353,7 +365,7 @@ bundle agent test_package_module_package_installed(module_name, input, class_nam
 {
   vars:
     # We need a custom comment to avoid hitting the execresult cache...
-    "command" string => "/usr/share/ncf/tree/10_ncf_internals/modules/packages/${module_name} list-installed < /dev/null #${class_name}";
+    "command" string => "${init.modules_path}/packages/${module_name} list-installed < /dev/null #${class_name}";
     "module_output" string => execresult("${command}", "useshell");
 
   classes:
