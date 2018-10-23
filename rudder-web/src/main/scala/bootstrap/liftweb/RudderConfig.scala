@@ -130,12 +130,6 @@ sealed trait ConfigResource
 final case class ClassPathResource(name: String) extends ConfigResource
 final case class FileSystemResource(file: File) extends ConfigResource
 
-final case class AuthenticationMethods(name: String) {
-  val path = s"applicationContext-security-auth-${name}.xml"
-  val configFile = s"classpath:${path}"
-  val springBean = s"${name}AuthenticationProvider"
-}
-
 /**
  * User defined configuration variable
  * (from properties file or alike)
@@ -414,7 +408,7 @@ object RudderConfig extends Loggable {
   ))
 
   // Plugin input interface for alternative authentication providers
-  lazy val authenticationProviders = new DefaultAuthBackendProviders()
+  lazy val authenticationProviders = new AuthBackendProvidersManager()
 
   // Plugin input interface for user management plugin
   lazy val userAuthorisationLevel = new DefaultUserAuthorisationLevel()

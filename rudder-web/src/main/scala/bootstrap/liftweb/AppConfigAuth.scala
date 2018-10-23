@@ -39,13 +39,13 @@ package bootstrap.liftweb
 
 import java.util.Collection
 
-import bootstrap.liftweb.RudderProperties.config
 import com.normation.rudder.Role
 import com.normation.rudder.RoleToRights
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.web.services.UserSessionLogEvent
+import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import javax.servlet.Filter
 import javax.servlet.FilterChain
@@ -67,7 +67,6 @@ import org.springframework.context.support.ClassPathXmlApplicationContext
 import org.springframework.ldap.core.DirContextAdapter
 import org.springframework.ldap.core.DirContextOperations
 import org.springframework.security.authentication.AuthenticationProvider
-import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.core.AuthenticationException
@@ -99,19 +98,43 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationFa
 class AppConfigAuth extends ApplicationContextAware {
   import RudderProperties.config
 
-  import scala.collection.JavaConverters.seqAsJavaListConverter
-
-  private[this] var appCtx: ApplicationContext = null //yeah...
-
   val logger = ApplicationLogger
 
   // we define the System ApiAcl as one that is all mighty and can manage everything
   val SYSTEM_API_ACL = ApiAuthorization.RW
 
+
+
+  /*
+   * This method is expected to try to initialize the Spring bean for
+   * all authentication provider confgured by the user for \rudder.auth.provider`.
+   * (we don't consider other possible existing backend to avoid errors on
+   * not configured backends).
+   * If any of the provider from the user list is unknown, then an error log is logged.
+   * It will give back an ordered map of name -> AuthenticationMethods to the
+   * AuthBackendProvidersManager.
+   * It is the DefaultAuthBackendProviders which is responsible to dynamically
+   * choose from the map and its own rules (plugin license, etc) what
+   * provider are allowed in authentication, dynamically. This is done
+   * when the RudderProviderManager ask for DynamicRudderProviderManager#getEnabledProviders.
+   *
+   * Summary:
+   * - spring init is in charge of initializing all configured provider bean, whatever
+   *   the plugins status (if any).
+   * - spring init gives these provider to DefaultAuthBackendProviders
+   * - AuthBackendProvidersManager is in charge to be the link with plugins to know
+   *   what is enabled and when.
+   */
   def setApplicationContext(applicationContext: ApplicationContext): Unit = {
-    //prepare specific properties for new context
+    // the list of authentication backend configured by the user
+    val configuredAuthProviders = AuthenticationMethods.getForConfig(config)
+
+
+
+    //prepare specific properties for each configuredAuthProviders - we need system properties for spring
+
     import scala.collection.JavaConverters._
-    RudderConfig.authenticationProviders.authenticationMethods.foreach { x =>
+    configuredAuthProviders.foreach { x =>
       try {
         // try to load all the specific properties of that auth type
         // so that they are available from Spring
@@ -141,14 +164,25 @@ class AppConfigAuth extends ApplicationContextAware {
       case _ => //nothing
     }
 
-    val configuredAuthProviders = RudderConfig.authenticationProviders.authenticationMethods.filter( _.name != "rootAdmin")
-    logger.info(s"Loaded authentication provider(s): [${configuredAuthProviders.map(_.name).mkString(", ")}]")
+    logger.info(s"Configured authentication provider(s): [${configuredAuthProviders.map(_.name).mkString(", ")}]")
 
     val ctx = new ClassPathXmlApplicationContext(applicationContext)
     ctx.addBeanFactoryPostProcessor(propertyConfigurer)
+    // here, we load all spring bean conigured in the classpath files: applicationContext-security-auth-BACKEND.xml
     ctx.setConfigLocations(configuredAuthProviders.map( _.configFile ).toSeq:_*)
     ctx.refresh
-    appCtx = ctx
+
+    // now, handle back the configured bean / user configured list to AuthBackendProvidersManager
+    configuredAuthProviders.foreach { provider =>
+      try {
+        val bean = ctx.getBean(provider.springBean, classOf[AuthenticationProvider])
+        RudderConfig.authenticationProviders.addSpringAuthenticationProvider(provider.name, bean)
+      } catch {
+        case ex: Exception =>
+          ApplicationLogger.error(s"Error when trying to configure the authentication backend '${provider.name}': ${ex.getMessage}", ex)
+      }
+    }
+    RudderConfig.authenticationProviders.setConfiguredProviders(configuredAuthProviders.toArray)
   }
 
   ///////////// FOR WEB INTERFACE /////////////
@@ -159,10 +193,7 @@ class AppConfigAuth extends ApplicationContextAware {
    * log-in into Rudder.
    */
   @Bean(name = Array("org.springframework.security.authenticationManager"))
-  def authenticationManager = new ProviderManager(RudderConfig.authenticationProviders.authenticationMethods.map { x =>
-      appCtx.getBean(x.springBean, classOf[AuthenticationProvider])
-  }.asJava)
-
+  def authenticationManager = new RudderProviderManager(RudderConfig.authenticationProviders)
 
   @Bean def rudderWebAuthenticationFailureHandler: AuthenticationFailureHandler = new RudderUrlAuthenticationFailureHandler("/index.html?login_error=true")
 
@@ -236,6 +267,7 @@ class AppConfigAuth extends ApplicationContextAware {
   //userSessionLogEvent must not be lazy, because not used by anybody directly
   @Bean def userSessionLogEvent = new UserSessionLogEvent(RudderConfig.eventLogRepository, RudderConfig.stringUuidGenerator)
 }
+
 
 /*
  * A trivial extension to the SimpleUrlAuthenticationFailureHandler that correctly log failure
@@ -314,26 +346,21 @@ class RudderXmlUserDetailsContextMapper(authConfigProvider: UserDetailListProvid
 trait AuthBackendsProvider {
   def authenticationBackends: Set[String]
   def name: String
+  // dynamically check if a given plugin is enable
+  def allowedToUseBackend(name: String): Boolean
 }
 
-// and default implementation: provides 'file', 'rootAdmin'
-class DefaultAuthBackendProviders() extends AuthBackendsProvider {
+final case class AuthenticationMethods(name: String) {
+  val path = s"applicationContext-security-auth-${name}.xml"
+  val configFile = s"classpath:${path}"
+  val springBean = s"${name}AuthenticationProvider"
+}
 
-  override def authenticationBackends = Set("file", "rootAdmin")
-
-  private[this] var backends = authenticationBackends
-
-  def addProvider(p: AuthBackendsProvider): Unit = {
-    ApplicationLogger.info(s"Add backend providers '${p.name}'")
-    backends = backends ++ p.authenticationBackends
-  }
-
-  override def name: String = s"Default authentication backends provider: '${authenticationBackends.mkString("','")}"
-
+object AuthenticationMethods {
   //some logic for the authentication providers
-  val authenticationMethods: Seq[AuthenticationMethods] = {
+  def getForConfig(config: Config): Seq[AuthenticationMethods] = {
     val names = {
-      val n = try {
+      try {
         //config.getString can't be null by contract
         config.getString("rudder.auth.provider").split(",").toSeq.map( _.trim).collect { case s if(s.size > 0) => s}
       } catch {
@@ -341,13 +368,6 @@ class DefaultAuthBackendProviders() extends AuthBackendsProvider {
         //it can be a migration.
         case ex: ConfigException.Missing =>  Seq("file")
       }
-
-      // but we need to filter names to only try to configure the one known as backends.
-      val (ok, nok) = n.partition(backends.contains(_))
-      nok.foreach( missing =>
-        ApplicationLogger.warn(s"Required authentication method '${missing}' in property 'rudder.auth.provider' is not know by Rudder. Perhaps you are missing a plugin?")
-      )
-      ok
     }
 
     //always add "rootAdmin" has the first method
@@ -365,12 +385,79 @@ class DefaultAuthBackendProviders() extends AuthBackendsProvider {
         if(cpr.exists) {
           Some(a)
         } else {
-          ApplicationLogger.error(s"The authentication provider '${a.name}' will not be loaded because the spring ressource file '${a.configFile}' was not found")
+          ApplicationLogger.error(s"The authentication provider '${a.name}' will not be loaded because the spring " +
+                                  s"ressource file '${a.configFile}' was not found. Perhaps are you missing a plugin?")
           None
         }
       }
     }
+  }
+}
 
+// and default implementation: provides 'file', 'rootAdmin'
+class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
+
+  val defaultAuthBackendsProvider = new AuthBackendsProvider() {
+    override def authenticationBackends: Set[String] = Set("file", "rootAdmin")
+    override def name: String = s"Default authentication backends provider: '${authenticationBackends.mkString("','")}"
+    override def allowedToUseBackend(name: String): Boolean = true // always enable - ie we never want to skip them
+  }
+
+  // the list of AuthenticationMethods configured by the user
+  private[this] var authenticationMethods = Array[AuthenticationMethods]() // must be a var/array, because init by spring-side
+
+  private[this] var backends = Seq[AuthBackendsProvider]()
+  // a map of status for each backend (status is dynamic)
+  private[this] var allowedToUseBackend = Map[String, () => Boolean]()
+
+  // this is the map of configured spring bean "AuthenticationProvider"
+  private[this] var springProviders = Map[String, AuthenticationProvider]()
+
+  def addProvider(p: AuthBackendsProvider): Unit = {
+    ApplicationLogger.info(s"Add backend providers '${p.name}'")
+    backends = backends :+ p
+    allowedToUseBackend = allowedToUseBackend ++ ( p.authenticationBackends.map(name => (name, () => p.allowedToUseBackend(name))) )
+  }
+
+  // add default providers
+  this.addProvider(defaultAuthBackendsProvider)
+
+  /*
+   * Add a spring configured name -> provider
+   */
+  def addSpringAuthenticationProvider(name: String, provider: AuthenticationProvider): Unit = {
+    this.springProviders = this.springProviders + (name -> provider)
+  }
+
+  /*
+   * get the list of providers currently configured by user. Array because used from spring
+   */
+  def setConfiguredProviders(providers: Array[AuthenticationMethods]): Unit = {
+    this.authenticationMethods = providers
+  }
+
+  // get the list of provider in an imutable seq
+  def getConfiguredProviders(): Seq[AuthenticationMethods] = {
+    this.authenticationMethods.toSeq
+  }
+
+  /*
+   * what we
+   */
+  override def getEnabledProviders(): Array[AuthenticationProvider] = {
+    authenticationMethods.flatMap { m =>
+      if(allowedToUseBackend.isDefinedAt(m.name)) {
+        if(allowedToUseBackend(m.name)() == true) {
+          springProviders.get(m.name)
+        } else {
+          ApplicationLogger.debug(s"Authentication backend '${m.name}' is not currently enable. Perhaps a plugin is not enabled?")
+          None
+        }
+      } else {
+        ApplicationLogger.debug(s"Authentication backend '${m.name}' was not found in available backends. Perhaps a plugin is missing?")
+        None
+      }
+    }
   }
 }
 
