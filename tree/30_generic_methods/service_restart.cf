@@ -52,5 +52,5 @@ bundle agent service_restart(service_name)
       # old_class_prefix in service_restart_if is the same as in service_restart
       "new result classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-      "report"                usebundle => _log_v3("Restart service ${canonified_service_name}", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                usebundle => _log_v3("Restart service ${service_name}", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
