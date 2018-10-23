@@ -41,12 +41,11 @@
 bundle agent package_state_options(name, version, architecture, provider, state, options)
 {
   vars:
+    pass1::
       "canonified_name"           string => canonify("${name}");
       "canonified_state"          string => canonify("${state}");
       "old_class_prefix"          string => "package_state_options_${canonified_name}";
 
-    # don't rewrite the class prefix based on defaults
-    !pass1::
       "args"                      slist  => { "${name}", "${version}", "${architecture}", "${provider}", "${state}", "${options}" };
       "report_param"              string => join("_", args);
       "full_class_prefix"         string => canonify("package_state_options_${report_param}");
@@ -61,9 +60,11 @@ bundle agent package_state_options(name, version, architecture, provider, state,
   classes:
       "should_report"         expression => "${report_data.should_report}";
 
+      "pass2" expression => "pass1";
       "pass1" expression => "any";
 
   methods:
+    pass2::
       "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
 
