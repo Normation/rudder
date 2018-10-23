@@ -119,6 +119,7 @@ def get_package_data():
         name = re.match("pattern\(\) =+ (?P<name>\S+)\s[\s\S]+", rawOutput)
         if name is not None:
           sys.stdout.write("Name=" + name.group("name").rstrip("\n") + "\n")
+          sys.stdout.flush()
           return subprocess_call([rpm_cmd, "--qf", rpm_output_format, "-qp", pkg_string], stderr=NULLFILE)
         else:
           sys.stdout.write(line + "ErrorMessage: Package pattern name not found\n")
