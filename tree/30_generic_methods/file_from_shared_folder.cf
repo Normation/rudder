@@ -39,8 +39,7 @@ bundle agent file_from_shared_folder(source, destination, hash_type)
       "full_class_prefix"       string => canonify("file_from_shared_folder_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
-      # file_copy_from_remote_source_recursion is called with a 0 recursion
-      "full_inner_class_prefix" string => canonify("file_from_remote_source_${report_param}_0");
+      "full_inner_class_prefix" string => canonify("file_from_remote_source_${report_param}_inf");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
 
@@ -51,7 +50,7 @@ bundle agent file_from_shared_folder(source, destination, hash_type)
   methods:
       "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
-      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("/var/rudder/configuration-repository/shared-files/${source}", "${destination}", "0");
+      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("/var/rudder/configuration-repository/shared-files/${source}", "${destination}", "inf");
       "reenable_reporting_${class_prefix}"
                                usebundle => enable_reporting,
                               ifvarclass => "should_report";
