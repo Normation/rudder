@@ -72,6 +72,12 @@ bundle agent file_from_remote_source_recursion(source, destination, recursion)
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
+    iteration_2::
+      "error" usebundle => _classes_failure("${old_class_prefix}"),
+        ifvarclass=> "!${class_prefix}_reached";
+      "error" usebundle => _classes_failure("${class_prefix}"),
+        ifvarclass=> "!${class_prefix}_reached";
+
     # The reports should only be made after we know if this is a
     # directory (to apply recursion) or a file
     iteration_2.!is_dir_copy::
