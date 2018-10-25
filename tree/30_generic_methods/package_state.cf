@@ -86,6 +86,21 @@
 # Note: If the package version you want to install contains an epoch, you have to specify it
 # in the version in the `epoch:version` form, like reported by `zypper info`.
 #
+# ##### zypper_pattern
+#
+# This package provider uses zypper with the `-t pattern` option to manage zypper patterns or
+# meta-packages on the system.
+#
+# Since a zypper pattern can be named differently than the rpm package name providing it, please
+# always use the exact pattern name (as listed in the output of `zypper patterns`)
+# when using this provider.
+#
+# Note: When installing a pattern from a local rpm file, Rudder assumes that the pattern is built
+# following the 
+# [official zypper documentation](https://doc.opensuse.org/projects/libzypp/HEAD/zypp-pattern-packages.html).
+#
+# Older implementations of zypper patterns may not be supported by this module.
+#
 # ##### slackpkg
 #
 # This package provider uses Slackware's installpkg and upgradepkg tools to manage 
