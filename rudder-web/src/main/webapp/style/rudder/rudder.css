@@ -45,7 +45,7 @@
   padding: 0px;
 }
 
-.sInventory div {
+.sInventory > div {
   margin: 0px;
   padding: 0px;
 }
@@ -2605,4 +2605,9 @@ label span.text-fit{
   margin-top:0;
   font-size: 12px;
   font-family : "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.modal h4 {
+    font-size: 18px;
+    font-weight: normal;
 }
