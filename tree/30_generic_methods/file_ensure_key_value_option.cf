@@ -41,7 +41,7 @@ bundle agent file_ensure_key_value_option(file, key, value, separator, option)
       "args"                     slist => { "${file}", "${key}", "${value}","${separator}", "${option}" };
 
       "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("file_lines_present_${report_param}");
+      "full_class_prefix"       string => canonify("file_ensure_key_value_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
       "full_inner_class_prefix" string => canonify("file_key_value_present_${report_param}");
