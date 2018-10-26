@@ -78,6 +78,7 @@ sealed trait NotRegexFilter extends GeneralRegexFilter
 final case class SimpleRegexFilter         (attributeName:String, regex:String) extends RegexFilter    with HashcodeCaching
 final case class SimpleNotRegexFilter      (attributeName:String, regex:String) extends NotRegexFilter with HashcodeCaching
 
+
 /*
  * An NodeQuery differ a little from a Query because its components are sorted in two ways:
  * - the server is apart with its possible filter from criteria
@@ -91,7 +92,7 @@ final case class SimpleNotRegexFilter      (attributeName:String, regex:String) 
  *
  *   Moreover, we need a "DN to filter" function for the requested object type
  */
-case class LDAPNodeQuery(
+final case class LDAPNodeQuery(
     //filter on the return type.
     //a None here means that there was no criteria on the
     //return type, only on other objects
@@ -99,9 +100,18 @@ case class LDAPNodeQuery(
     //the final composition to apply
   , composition       : CriterionComposition
     //that map MUST not contains node related filters
-  , objectTypesFilters: Map[DnType, Map[String,Set[ExtendedFilter]]]
+  , objectTypesFilters: Map[DnType, Map[String, List[SubQuery]]]
   , nodeInfoFilters   : Seq[NodeInfoMatcher]
 ) extends HashcodeCaching
+
+/*
+ * A subquery is something that need to be done appart from the main query to
+ * get interesting information and use then to decide what the main query must do.
+ * Each subquery is run independantly.
+ * We try to minimize the number of subqueries.
+ */
+final case class SubQuery(subQueryId: String, dnType: DnType, objectTypeName: String, filters: Set[ExtendedFilter])
+
 
 final case class LdapQueryProcessorResult(
     // list of entries from inventory matching the search
@@ -421,47 +431,52 @@ class InternalLDAPQueryProcessor(
   /*
    * From the list of DN to query with their filters, build a list of LDAPObjectType
    */
-  private[this] def createLDAPObjects(query: LDAPNodeQuery, debugId: Long) : Box[Map[DnType, Map[String,LDAPObjectType]]] = {
-      Full(query.objectTypesFilters map { case(dnType,mapOtFilters) =>
-        (dnType, (mapOtFilters map { case (ot,setFilters) =>
-          val (ldapFilters, specialFilters) = unspecialiseFilters(setFilters) match {
-            case Full((ldapFilters, specialFilters)) =>
-              val f = ldapFilters.size match {
-                case 0 => None
-                case 1 => Some(ldapFilters.head)
-                case n =>
-                  query.composition match {
-                    case And => Some(AND(ldapFilters.toSeq:_*))
-                    case Or  => Some(OR(ldapFilters.toSeq:_*))
-                  }
-              }
+  private[this] def createLDAPObjects(query: LDAPNodeQuery, debugId: Long) : Box[Map[DnType, Map[String, LDAPObjectType]]] = {
+      Full(query.objectTypesFilters map { case(dnType, mapOtSubQueries) =>
+        (dnType, (mapOtSubQueries.flatMap { case (ot, listSubQueries) =>
 
-              query.composition match {
-                case And => (f, specialFilters.map( ( And:CriterionComposition , _)) )
-                case Or  => (f, specialFilters.map( ( Or :CriterionComposition , _)) )
-              }
+          val subqueries = listSubQueries.map { case SubQuery(subQueryId, dnType, objectTypeName, filters) =>
+            val (ldapFilters, specialFilters) = unspecialiseFilters(filters) match {
+              case Full((ldapFilters, specialFilters)) =>
+                val f = ldapFilters.size match {
+                  case 0 => None
+                  case 1 => Some(ldapFilters.head)
+                  case n =>
+                    query.composition match {
+                      case And => Some(AND(ldapFilters.toSeq:_*))
+                      case Or  => Some(OR(ldapFilters.toSeq:_*))
+                    }
+                }
 
-            case e:EmptyBox =>
-              val error = e ?~! "Error when processing filters for object type %s".format(ot)
-              logger.debug("[%s] `-> stop query due to error: %s".format(debugId,error))
-              return error
+                query.composition match {
+                  case And => (f, specialFilters.map( ( And:CriterionComposition , _)) )
+                  case Or  => (f, specialFilters.map( ( Or :CriterionComposition , _)) )
+                }
+
+              case e:EmptyBox =>
+                val error = e ?~! "Error when processing filters for object type %s".format(ot)
+                logger.debug("[%s] `-> stop query due to error: %s".format(debugId,error))
+                return error
+            }
+
+            //for each set of filter, build the query
+            val f = ldapFilters match {
+              case None    => objectTypes(ot).filter
+              case Some(x) =>
+                objectTypes(ot).filter match {
+                  case Some(y) => Some(AND(y, x))
+                  case None => Some(x)
+                }
+            }
+
+            (subQueryId, objectTypes(ot).copy(
+              filter=f,
+              join=joinAttributes(ot),
+              specialFilters=specialFilters
+            ))
           }
 
-          //for each set of filter, build the query
-          val f = ldapFilters match {
-            case None    => objectTypes(ot).filter
-            case Some(x) =>
-              objectTypes(ot).filter match {
-                case Some(y) => Some(AND(y, x))
-                case None => Some(x)
-              }
-          }
-
-          (ot, objectTypes(ot).copy(
-            filter=f,
-            join=joinAttributes(ot),
-            specialFilters=specialFilters
-          ))
+          subqueries.toMap
         })
         )
       })
@@ -751,9 +766,33 @@ class InternalLDAPQueryProcessor(
     // A filter that must be used in a nodeinfo
     final case class NodeInfoFilter(criterion: NodeCriterionType, comparator: CriterionComparator, value: String)
 
-    def groupFilterByLdapRequest(ldapFilters: Seq[LdapFilter]) = {
+
+    /*
+     * Create subqueries for each object type by merging adequatly
+     */
+    def groupFilterByLdapRequest(composition: CriterionComposition, ldapFilters: Seq[LdapFilter]): Map[DnType, Map[String, List[SubQuery]]] = {
           // group 'filter'(_3) by objectType (_1), then by LDAPObjectType (_2)
-      ldapFilters.groupBy(_.dnType).mapValues(_.groupBy(_.objectType).mapValues(_.map(_.filter).toSet))
+      ldapFilters.groupBy(_.dnType).map { case (dnType, byDnTypes) =>
+        val byOt = byDnTypes.groupBy(_.objectType).map { case(objectType, byObjectType) =>
+          val uniqueFilters = byObjectType.map(_.filter).toSet
+          // here, we need to know if for the given object type, we are allows to merge several filter on the same
+          // object in one request. This is generally the case, for example:
+          // node.id == xxx AND node.hostname == yyy => one request with filter &(id=xxx)(hostname=yyy).
+          // But for requests that are done on SET of elements, it does not compose for AND. For ex, for sub-groups
+          // query, if we want (node in group1) AND (node in group2), we can't translate that into:
+          // &(nodeGroupId=group1)(nodeGroupId=group2). We must do two sub requests, and intersec. For OR,
+          // one request is OK.
+
+          // only group is a special case with AND
+          // use objectType as ID safe for group, use group filter value
+          val subQueries = (objectType, composition) match {
+            case ("group", And) => uniqueFilters.map(f => SubQuery("group:"+f.toString, dnType, objectType, Set(f))).to[List]
+            case _              => SubQuery(objectType, dnType, objectType, uniqueFilters) :: Nil
+          }
+          (objectType, subQueries)
+        }
+        (dnType, byOt)
+      }
     }
 
     def checkAndSplitFilterType(q: Query): Box[Seq[Either[LdapFilter, NodeInfoFilter]]] = {
@@ -802,11 +841,11 @@ class InternalLDAPQueryProcessor(
       buildFilters     <- checkAndSplitFilterType(query)
       ldapFilters      =  buildFilters.collect { case Left (x) => x }
       nodeInfoFilters  =  buildFilters.collect { case Right(x) => x }
-      groupedSetFilter =  groupFilterByLdapRequest(ldapFilters)
+      groupedSetFilter =  groupFilterByLdapRequest(query.composition, ldapFilters)
       // Get only filters applied to nodes (NodeDn and 'node' objectType)
-      nodeFilters      =  groupedSetFilter.get(QueryNodeDn).flatMap ( _.get("node") )
+      nodeFilters      =  groupedSetFilter.get(QueryNodeDn).flatMap ( _.get("node") ).map( _.flatMap(_.filters).toSet)
       // Get the other filters, by only removing those with 'node' objectType ... maybe we could do a partition here, or even do it above
-      otherFilters     =  groupedSetFilter.mapValues(_.filterKeys { _ != "node" }).filterNot( _._2.isEmpty)
+      subQueries       =  groupedSetFilter.mapValues(_.filterKeys { _ != "node" }).filterNot( _._2.isEmpty)
     } yield {
       // at that point, it may happen that nodeFilters and otherFilters are empty. In that case, we add a
       // "get all nodes" query and all filters will be done in node info.
@@ -814,7 +853,7 @@ class InternalLDAPQueryProcessor(
       val mainFilters = if(groupedSetFilter.isEmpty) { Some(Set[ExtendedFilter](LDAPFilter(BuildFilter.ALL))) } else { nodeFilters }
 
       val nodeInfos = nodeInfoFilters.map { case NodeInfoFilter(c, comp, value) => c.matches(comp, value)}
-      LDAPNodeQuery(mainFilters, query.composition, otherFilters, nodeInfos)
+      LDAPNodeQuery(mainFilters, query.composition, subQueries, nodeInfos)
     }
   }
 

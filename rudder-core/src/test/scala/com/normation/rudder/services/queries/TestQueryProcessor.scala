@@ -120,6 +120,12 @@ class TestQueryProcessor extends Loggable {
 
   case class TestQuery(name:String,query:Query,awaited:Seq[NodeId]) extends HashcodeCaching
 
+
+  // when one need to debug search, you can just uncomment that to set log-level to trace
+  //val l: ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("com.normation.rudder.services.queries").asInstanceOf[ch.qos.logback.classic.Logger]
+  //l.setLevel(ch.qos.logback.classic.Level.TRACE)
+
+
   val s = Seq(
     new NodeId("node0"),new NodeId("node1"),new NodeId("node2"),
     new NodeId("node3"),new NodeId("node4"),new NodeId("node5"),
@@ -136,7 +142,7 @@ class TestQueryProcessor extends Loggable {
       con.search("cn=rudder-configuration", Sub, BuildFilter.ALL).size
     }).openOrThrowException("For tests")
 
-    val expected = 42+30  //bootstrap + inventory-sample
+    val expected = 42+34  //bootstrap + inventory-sample
     assert(expected == s, s"Not found the expected number of entries in test LDAP directory [expected: ${expected}, found: ${s}], perhaps the demo entries where not correctly loaded")
   }
 
@@ -213,7 +219,71 @@ class TestQueryProcessor extends Loggable {
 
     val q2_2_ = TestQuery("q2_2_", query = q2_2.query.copy(composition = Or), q2_2.awaited)
 
-    testQueries(q2_0 :: q2_0_ :: q2_1 :: q2_1_ :: q2_2 :: q2_2_ :: Nil)
+    // group of group, with or/and composition
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node1" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    testQueries(q2_0 :: q2_0_ :: q2_1 :: q2_1_ :: q2_2 :: q2_2_ :: q3 :: Nil)
+  }
+
+  // group of group, with or/and composition
+  @Test def groupOfgroups(): Unit = {
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node1" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    val q2 = TestQuery(
+      "q2",
+      parser("""
+      {  "select":"node", "composition":"or", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node1" }
+      , { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node2" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: s(2) :: Nil)
+
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node1" }
+      , { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    val q4 = TestQuery(
+      "q4",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node1" }
+      , { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node12" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    val q5 = TestQuery(
+      "q5",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node12" }
+      , { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node23" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(2) :: Nil)
+
+    testQueries(q1 :: q2 ::q3 :: q4 :: q5 :: Nil)
   }
 
   @Test def machineComponentQueries(): Unit = {

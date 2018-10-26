@@ -1,3 +1,51 @@
+# groups
+
+dn: nodeGroupId=test-group-node1,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: nodeGroup
+objectClass: top
+cn: Only contains node1
+isDynamic: TRUE
+nodeGroupId: test-group-node1
+isEnabled: TRUE
+isSystem: FALSE
+jsonNodeGroupQuery: {"select":"node","composition":"And","where":[{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node1"}}]}
+nodeId: node1
+
+dn: nodeGroupId=test-group-node2,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: nodeGroup
+objectClass: top
+cn: Only contains node2
+isDynamic: TRUE
+nodeGroupId: test-group-node2
+isEnabled: TRUE
+isSystem: FALSE
+jsonNodeGroupQuery: {"select":"node","composition":"And","where":[{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node2"}}]}
+nodeId: node2
+
+dn: nodeGroupId=test-group-node12,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: nodeGroup
+objectClass: top
+cn: Only contains node1 and node2
+isDynamic: TRUE
+nodeGroupId: test-group-node12
+isEnabled: TRUE
+isSystem: FALSE
+jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node1"}},{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node2"}}]}
+nodeId: node1
+nodeId: node2
+
+dn: nodeGroupId=test-group-node22,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: nodeGroup
+objectClass: top
+cn: Only contains node2 and node3
+isDynamic: TRUE
+nodeGroupId: test-group-node23
+isEnabled: TRUE
+isSystem: FALSE
+jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node2"}},{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node3"}}]}
+nodeId: node2
+nodeId: node3
+
 #all used node in that example
 
 dn: nodeId=root,ou=Nodes,cn=rudder-configuration
