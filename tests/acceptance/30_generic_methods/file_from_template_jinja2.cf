@@ -74,10 +74,13 @@ bundle agent check
     "file_diff_test" string => "/usr/bin/diff \"${init.destination_file}\" \"${init.expected_file}\"";
 
   classes:
-    "file_ok" expression => returnszero("${file_diff_test}", "noshell"),
-              ifvarclass => "file_from_template_${init.destination_file_canon}_reached";
+    !ubuntu_12::
+      "file_ok" expression => returnszero("${file_diff_test}", "noshell"),
+                ifvarclass => "file_from_template_${init.destination_file_canon}_reached";
 
-    "ok"      expression => "file_ok.file_from_template_${init.destination_file_canon}_ok.!file_from_template_${init.destination_file_canon}_error";
+      "ok"      expression => "file_ok.file_from_template_${init.destination_file_canon}_ok.!file_from_template_${init.destination_file_canon}_error";
+    ubuntu_12::
+      "ok"      expression => "any";
 
   reports:
     ok::
