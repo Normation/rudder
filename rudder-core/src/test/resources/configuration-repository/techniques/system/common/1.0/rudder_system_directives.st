@@ -33,7 +33,7 @@ body file control {
 bundle agent rudder_system_directives {
 
   methods:
-      &RUDDER_SYSTEM_DIRECTIVES_SEQUENCE&
+&RUDDER_SYSTEM_DIRECTIVES_SEQUENCE&
 
 }
 

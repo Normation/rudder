@@ -53,6 +53,10 @@
       <INPUT>
         <NAME>1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2</NAME>
         <DESCRIPTION>technique_parameter</DESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+          <MAYBEEMPTY>false</MAYBEEMPTY>
+        </CONSTRAINT>
         <LONGDESCRIPTION></LONGDESCRIPTION>
       </INPUT>
     </SECTION>

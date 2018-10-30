@@ -33,6 +33,10 @@
       <INPUT>
         <NAME>PACKAGE_VERSION</NAME>
         <DESCRIPTION>version</DESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+          <MAYBEEMPTY>false</MAYBEEMPTY>
+        </CONSTRAINT>
         <LONGDESCRIPTION></LONGDESCRIPTION>
       </INPUT>
     </SECTION>
