@@ -850,8 +850,6 @@ body classes classes_generic_return_boolean_list_two(x, y, boolean_prefix, true_
                       "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached", "${boolean_prefix}_true" };
 }
 
-# WARNING !!!
-# For new class prefix migration only, this will be removed when migration is over
 # Define x and y prefixed/suffixed with promise outcome
 body classes classes_generic_two(x,y)
 {
