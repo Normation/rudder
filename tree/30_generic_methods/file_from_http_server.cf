@@ -35,11 +35,11 @@ bundle agent file_from_http_server(source, destination)
   vars:
 
 
-    _stdlib_path_exists_curl::
-      "action_command"            string => "${paths.path[curl]} -s -L -o ${destination} ${source}";
+    _ncf_path_exists_curl::
+      "action_command"            string => "${ncf_paths.path[curl]} -s -L -o ${destination} ${source}";
 
 
-    !_stdlib_path_exists_curl._stdlib_path_exists_wget::
+    !_ncf_path_exists_curl._stdlib_path_exists_wget::
       "action_command"            string => "${paths.path[wget]} -O ${destination} ${source}";
 
 
@@ -65,14 +65,14 @@ bundle agent file_from_http_server(source, destination)
                         usebundle => disable_reporting;
 
 
-    (_stdlib_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
+    (_ncf_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
       "action"          usebundle => command_execution("${action_command}");
 
     any::
       "reenable_reporting_${class_prefix}"
                         usebundle => enable_reporting,
                        ifvarclass => "should_report";
-    (_stdlib_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
+    (_ncf_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
       "class copy"      usebundle => _classes_copy("command_execution_${canonified_action_command}", "${old_class_prefix}");
 
       "new result classes"
@@ -82,7 +82,7 @@ bundle agent file_from_http_server(source, destination)
                        ifvarclass => "${class_prefix}_reached";
 
 
-    !_stdlib_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
+    !_ncf_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
       "force_failure_class"       usebundle => _classes_failure("${old_class_prefix}");
       "new result classes"        usebundle => _classes_failure("${class_prefix}");
       "report"                    usebundle => _log_v3("Unable to download ${source}: neither wget or curl are installed", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
