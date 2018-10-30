@@ -434,7 +434,10 @@ object CfengineBundleVariables {
         } else {
           ""
         }
-        s""""${promiser}"${ " " * Math.max(0, alignWidth - promiser.size) } usebundle => ${bundle.name.value}${params};"""
+        // We want to add the spaces so it is correctly aligned for Rudder agent
+        // We used to have the variable correctly indented in rudder-directives but this prevent using multi-line variables
+        // See #12824 for more details
+        s"""      "${promiser}"${ " " * Math.max(0, alignWidth - promiser.size) } usebundle => ${bundle.name.value}${params};"""
       }
     }.mkString( "\n")) :: Nil
   }
