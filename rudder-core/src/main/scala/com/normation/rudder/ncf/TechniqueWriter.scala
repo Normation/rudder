@@ -138,6 +138,10 @@ class TechniqueWriter (
       <INPUT>
         <NAME>{parameter.id.value.toUpperCase()}</NAME>
         <DESCRIPTION>{parameter.name.value}</DESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+          <MAYBEEMPTY>false</MAYBEEMPTY>
+        </CONSTRAINT>
         <LONGDESCRIPTION></LONGDESCRIPTION>
       </INPUT>
     }
