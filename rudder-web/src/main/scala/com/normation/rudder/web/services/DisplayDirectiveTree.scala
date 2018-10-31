@@ -206,7 +206,7 @@ object DisplayDirectiveTree extends Loggable {
       val agentCompat =  AgentCompat(agentTypes)
 
       override val attrs = (
-        ("data-jstree" -> s"""{ "type" : "template" , "state" : { "disabled" : ${ !activeTechnique.isEnabled} } }""") :: ("class" -> "techniqueNode" ) :: Nil
+        ("data-jstree" -> s"""{ "type" : "template" , "state" : { "disabled" : ${ !activeTechnique.isEnabled} } }""") :: ("class" -> s"""techniqueNode ${ if(!activeTechnique.isEnabled)"is-disabled" else "" }""" ) :: Nil
       )
 
       override def children = {
@@ -227,14 +227,14 @@ object DisplayDirectiveTree extends Loggable {
         //display information (name, etc) relative to last technique version
         val xml = activeTechnique.newestAvailableTechnique match {
           case Some(technique) =>
-            val tooltipContent = s"""
+            val tooltipContent =
+              s"""
               <h4>${technique.name}</h4>
               <div class="tooltip-content">
                 <p>${technique.description}</p>
                 ${agentCompat.techniqueText}
-                ${if(!activeTechnique.isEnabled){<div>This Technique is currently disabled.</div>}else{NodeSeq.Empty}}
-              </div>
-            """
+                ${if(!activeTechnique.isEnabled){<div>This Technique is currently <b>disabled</b>.</div>}else{NodeSeq.Empty}}
+              </div>"""
             val className = {
               val defaultClass  = "treeActiveTechniqueName bsTooltip"
               val disabledClass = if(!activeTechnique.isEnabled){"is-disabled"}else{""}
@@ -338,6 +338,17 @@ object DisplayDirectiveTree extends Loggable {
 
           val tooltipId = Helpers.nextFuncName
 
+          val disableMessage = (activeTechnique.isEnabled, directive.isEnabled) match{
+            case(false, false) =>
+              <div>This Directive and its Technique are <b>disabled</b>.</div>
+            case(false, true) =>
+              <div>The Technique of this Directive is <b>disabled</b>.</div>
+            case(true, false) =>
+             <div>This Directive is <b>disabled</b>.</div>
+            case(true, true) =>
+              NodeSeq.Empty
+          }
+
           val tooltipContent = s"""
             <h4>${scala.xml.Utility.escape(directive.name)}</h4>
             <div class="tooltip-content directive">
@@ -354,7 +365,7 @@ object DisplayDirectiveTree extends Loggable {
               }}
               <span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
               ${agentCompat.directiveText}
-              ${ if(!directive.isEnabled) <div>This Directive is currently disabled.</div> else NodeSeq.Empty }
+              ${disableMessage}
             </div>
           """
           <span id={"badge-apm-"+tooltipId}>[BADGE]</span> ++

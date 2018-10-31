@@ -152,8 +152,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def setCreationPopup : Unit = {
-         creationPopup.set(Full(new CreateActiveTechniqueCategoryPopup(
-            onSuccessCallback = { () => refreshTree })))
+    creationPopup.set(Full(new CreateActiveTechniqueCategoryPopup(
+      onSuccessCallback = { () => refreshTree })))
   }
 
   private[this] def setGiveReasonPopup(s : ActiveTechniqueId, d : ActiveTechniqueCategoryId) : Unit = {
@@ -312,6 +312,14 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 }
 
             });
+            //Check if url anchor is a Technique name, if so open its details.
+            var anch = window.location.hash.substr(1);
+            if(anch!==""){
+              var selector = '#ref-technique-'+anch+'_anchor'
+              if($(selector).length){
+                $(selector).click();
+              }
+            }
           """.format(
             // %1$s
             htmlId_activeTechniquesTree ,
@@ -648,7 +656,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
               <div class="tooltip-content">
                 <p>${technique.description}</p>
                 ${agentCompat.techniqueText}
-                ${if(!activeTechnique.isEnabled){<div>This Technique is currently disabled.</div>}else{NodeSeq.Empty}}
+                ${if(!activeTechnique.isEnabled){<div>This Technique is currently <b>disabled</b>.</div>}else{NodeSeq.Empty}}
               </div>
             """
               val tooltipid1 = Helpers.nextFuncName
