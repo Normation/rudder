@@ -20,7 +20,7 @@
 # @description This method shares a file with another Rudder node
 # @documentation This method shares a file with another Rudder node using a unique file identifier.
 #
-# Read the Rudder documentation for a [high level overview of file sharing between nodes](http://www.rudder-project.org/doc-4.1/_how_to.html#_share_files_between_nodes).
+# Read the Rudder documentation for a [high level overview of file sharing between nodes](http://www.rudder-project.org/doc-4.3/_how_to.html#_share_files_between_nodes).
 #
 # The file will be kept on the policy server and transmitted to the destination node's policy server if it is different.
 # It will be kept on this server for the destination node to download as long as it is not replaced by a new
