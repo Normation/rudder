@@ -22,6 +22,27 @@ bundle common ncf_const {
       "s" string => " ";
 }
 
+
+# Use rudder_curl variable if available, rather than the path[curl]
+bundle common ncf_paths {
+  vars:
+      "path[curl]"   string => "${g.rudder_curl}",
+                         if => isvariable("g.rudder_curl");
+
+      "path[curl]"   string => "${paths.path[curl]}",
+                     unless => isvariable("g.rudder_curl");
+
+     
+      "all_paths"     slist => getindices("path");
+      "$(all_paths)" string => "$(path[$(all_paths)])";
+
+  classes:
+       "_ncf_path_exists_$(all_paths)"
+                 expression => fileexists("$(path[$(all_paths)])"),
+                 comment    => "It's useful to know if $(all_paths) exists on the filesystem as defined";
+
+}
+
 body package_method yum_rpm_no_version
 {
   package_changes => "bulk";

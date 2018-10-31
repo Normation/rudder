@@ -49,13 +49,13 @@ bundle agent http_request_content_headers(method, url, content, headers)
     pass2::
       "report" usebundle => _log_v3("Performing a HTTP ${method} request on ${url} with specific content", "${url}", "${old_class_prefix}", "${class_prefix}", @{args});
 
-    !_stdlib_path_exists_curl::
+    !_ncf_path_exists_curl::
       "force_failure_class old"   usebundle => _classes_failure("${old_class_prefix}");
       "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
       "report"                    usebundle => _log_v3("Unable to perform a HTTP ${method} on ${url}: curl is not installed", "${url}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
-      "/bin/echo \"${content}\" | ${paths.path[curl]}"
+      "/bin/echo \"${content}\" | ${ncf_paths.path[curl]}"
         args => "${url} -L -X ${method} -H '${headers}' -o /dev/null -s -f -d @-",
         contain => in_shell,
         classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
