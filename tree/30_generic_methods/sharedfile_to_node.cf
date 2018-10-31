@@ -159,7 +159,7 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
         ifvarclass => "!${canonified_path}_signed";
 
     _stdlib_path_exists_curl.pass2::
-      "code=`${paths.path[curl]} ${url}?hash=${hash} --insecure --tlsv1 --location --head --output /dev/null --silent --fail --write-out %{http_code}` || [ $code -eq 404 ] && exit 22 || exit 254"
+      "code=`${paths.path[curl]} ${url}?hash=${hash} --insecure --tlsv1 --location --head --output /dev/null --silent --fail --write-out %{http_code}` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi"
         contain => in_shell,
         classes => classes_generic_return_single_code_two("${old_class_prefix}_exist", "${class_prefix}_exist", "0", "22", "254"), # 254 = http 400 or above, 22 = http 404
         ifvarclass => "${canonified_path}_signed";
