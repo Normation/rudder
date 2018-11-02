@@ -54,7 +54,7 @@ bundle agent file_copy_from_remote_source(source, destination)
       "full_class_prefix" string => canonify("file_copy_from_remote_source_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix" string => canonify("file_copy_from_remote_source_${report_param}_0");
+      "full_inner_class_prefix" string => canonify("file_copy_from_remote_source_${report_param}_inf");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
 
@@ -65,7 +65,7 @@ bundle agent file_copy_from_remote_source(source, destination)
   methods:
       "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
-      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("${source}", "${destination}", "0");
+      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("${source}", "${destination}", "inf");
       "reenable_reporting_${class_prefix}"
                                usebundle => enable_reporting,
                               ifvarclass => "should_report";

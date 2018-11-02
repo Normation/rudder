@@ -70,4 +70,5 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
       "report"            usebundle  => _log_v3("Copying ${destination} from remote ${source}, recursion level ${recursion}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+
 }
