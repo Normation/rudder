@@ -18,10 +18,21 @@
 
 # @name Schedule Simple
 # @description Trigger a repaired outcome when a job should be run
-# @documentation This bundle will define a condition `schedule_simple_${job_id}_{kept,repaired,not_ok,ok,reached}`
-#  * _ok or _kept for when there is nothing to do
-#  * _repaired if the job should run
-#  * _not_ok and _reached have their usual meaning
+# @documentation This method compute the expected time for running the job, based on the parameters and splayed uing system ids, and define a conditions based on this cmputatoin:
+#  * `schedule_simple_${job_id}_kept` if the job should not be run now
+#  * `schedule_simple_${job_id}_repaired` if the job should be run
+#  * `schedule_simple_${job_id}_error` if their is an inconsistency in the method parameters
+#
+# ### Example
+#
+# If you want to run a job, at every hour and half-hour (0:00 and 0:30), with no spread across system, with an agent running with default schedule of 5 minutes, and making sure that the job is run (if the agent couldn't run it, then at the next agent execution the job should be run), you will call the method with the following parameters:
+#
+# ```
+# schedule_simple("job_schedule_id", "5", "0", "0",  "0", "0", "0",  "30", "0", "0", "catchup")
+# ```
+# During each run right after o'clock and half-hour, this method will define the condition schedule_simple_job_schedule_id_repaired, that you can use as a condition for a generic method `command_execution`
+#
+#
 # @agent_version >=3.6
 #
 # @parameter job_id                A string to identify this job

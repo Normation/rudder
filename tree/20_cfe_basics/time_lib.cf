@@ -59,7 +59,7 @@ bundle agent ncf_date(test_timestamp)
 
 # Store a unique host value based on IP + hostname
 # Splay is a predictible constant pseudorandom number
-# You can change its content if you want to run tests by calling this bundle with a parameter
+# You can change its content if you want to run tests by calling this bundle with a parameter - it will define when the run should be run next
 bundle agent ncf_splay(test_splay)
 {
   vars:
@@ -121,7 +121,7 @@ bundle agent schedule_generic(job_id, agent_periodicity, max_execution_delay, jo
       "max_run_id_real" string => eval("${max_execution_delay}/${agent_periodicity}", "math", "infix");
       "max_run_id" string => format("%d", "${max_run_id_real}");
 
-      # job_run_id = int(splay / splay_max * max_run_id) = run id of agent at wich we must run the job
+      # job_run_id = int(splay / splay_max * max_run_id) = run id of agent at which we must run the job
       "job_run_id_real" string => eval("${ncf_splay.splay} * ${max_run_id} / ${ncf_splay.splay_max}", "math", "infix");
       "job_run_id" string => format("%d", "${job_run_id_real}");
 
@@ -165,6 +165,7 @@ bundle agent schedule_generic(job_id, agent_periodicity, max_execution_delay, jo
       "Warning, there is a shift of ${run_shift} minutes between agent run period and ${job_id} run period";
     delay_too_small.!delay_null::
       "Warning, max_execution_delay for ${job_id} is less than your agent run period but not null, it will be ignored";
+
 }
 
 
