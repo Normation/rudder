@@ -50,7 +50,7 @@ bundle agent file_copy_from_remote_source(source, destination)
       "args"              slist => { "${source}", "${destination}" };
 
   methods:
-      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("${source}", "${destination}", "0");
+      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("${source}", "${destination}", "inf");
       "new result classes"     usebundle => _classes_copy("${class_prefix}_copy_without_recursion", "${class_prefix}");
 
       "report"                 usebundle => _log("Copying ${destination} from ${source}", "", "${class_prefix}", @{args});

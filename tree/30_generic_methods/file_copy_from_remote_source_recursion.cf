@@ -77,9 +77,9 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
     # no promisers will be found and we will need to define classes by ourselves.
     iteration_2::
       "error" usebundle => _classes_failure("${old_class_prefix}"),
-        ifvarclass=> "!${class_prefix}_reached";
+        ifvarclass=> "!${old_class_prefix}_reached";
       "error" usebundle => _classes_failure("${class_prefix}"),
-        ifvarclass=> "!${class_prefix}_reached";
+        ifvarclass=> "!${old_class_prefix}_reached";
 
     # The reports should only be made after we know if this is a
     # directory (to apply recursion) or a file
