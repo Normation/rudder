@@ -298,10 +298,31 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                (".directive *" #> piForm.directive.name)
              }
            } &
-           "#techniqueName *" #> technique.name &
+           "#techniqueName" #> <span class={ if(fullActiveTechnique.isEnabled) "" else "is-disabled" }>{technique.name}</span> &
+           "#compatibility" #> technique.compatible.map { comp =>
+             { if(comp.os.isEmpty) {
+               NodeSeq.Empty
+             } else {
+               <li><b>Supported operating systems: </b>{comp.os.mkString(", ")}</li>
+             } } ++ {
+             if (comp.agents.isEmpty) {
+               NodeSeq.Empty
+             } else {
+               <li><b>Supported agents: </b>{comp.agents.mkString(", ")}</li>
+             } }
+           } &
            "#techniqueDescription *" #>  technique.description &
            "#techniqueLongDescription" #>  technique.longDescription &
            "#isSingle *" #> showIsSingle(technique) &
+           "#isDisabled *" #> {
+             if(!fullActiveTechnique.isEnabled)
+               <div class="alert alert-warning">
+                 <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                 This Technique is disabled.
+                 <button class="btn btn-sm btn-default">Enable</button>
+               </div>
+             else NodeSeq.Empty
+           } &
            "#techniqueVersion *+" #> showVersions(fullActiveTechnique, validTechniqueVersions, workflowEnabled)
         }
     })

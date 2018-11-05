@@ -164,23 +164,23 @@ class TechniqueEditForm(
   }
 
   def showDisactivatePopupForm() : NodeSeq = {
-        currentActiveTechnique match {
-          case e:EmptyBox => NodeSeq.Empty
-          case Full(activeTechnique) =>
-    (
-          "#disableActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-          "#dialogDisableButton" #> { disableButton(activeTechnique) % ("id" -> "disableButton") } &
-          "#dialogDisableTitle" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
-          "#dialogDisableLabel" #> { if(activeTechnique.isEnabled) "disable" else "enable" } &
-          "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique) &
-          ".reasonsFieldset" #> { crReasonsDisablePopup.map { f =>
-            "#explanationMessage" #> <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4> &
-            "#reasonsField" #> f.toForm_!
-          } } &
-          "#time" #> <div>{ DateTime.now } </div>&
-          "#errorDisplay" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
+    currentActiveTechnique match {
+      case e:EmptyBox => NodeSeq.Empty
+      case Full(activeTechnique) =>
+      (
+        "#disableActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+        "#dialogDisableButton" #> { disableButton(activeTechnique) % ("id" -> "disableButton") } &
+        "#dialogDisableTitle" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
+        "#dialogDisableLabel" #> { if(activeTechnique.isEnabled) "disable" else "enable" } &
+        "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique) &
+        ".reasonsFieldset" #> { crReasonsDisablePopup.map { f =>
+          "#explanationMessage" #> <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4> &
+          "#reasonsField" #> f.toForm_!
+        } } &
+        "#time" #> <div>{ DateTime.now } </div>&
+        "#errorDisplay" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
       )(popupDisactivateForm)
-  }
+    }
   }
 
   def showCrForm() : NodeSeq = {
@@ -239,6 +239,11 @@ class TechniqueEditForm(
         createPopup("disableActionDialog");
         return false;
       });
+
+      //Scroll to details section
+      $([document.documentElement, document.body]).animate({
+        scrollTop: $("#bottomPanel").offset().top-50
+      }, 400);
     """)))
   }
 
