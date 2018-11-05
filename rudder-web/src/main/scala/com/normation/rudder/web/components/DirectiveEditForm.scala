@@ -42,7 +42,6 @@ import com.normation.cfclerk.domain.Technique
 import net.liftweb.http.js._
 import JsCmds._
 import net.liftweb.util._
-import Helpers._
 import net.liftweb.http._
 import JE._
 import net.liftweb.common._
@@ -205,7 +204,6 @@ class DirectiveEditForm(
         <span>
           Can be used on any system.
         </span>
-
       val agentCompEmpty : NodeSeq =
         <span>
           Can be used on any agent.
@@ -233,6 +231,25 @@ class DirectiveEditForm(
           (osComp,agentComp)
       }
     }
+    val (disableMessage, enableBtn) = (fullActiveTechnique.isEnabled, directive._isEnabled) match{
+      case(false, false) =>
+        ( "This Directive and its Technique are disabled."
+        , <span>
+            {SHtml.ajaxSubmit("Enable Directive", () => onSubmitDisable(ModificationValidationPopup.Enable), ("class" ,"btn btn-sm btn-default"))}
+            <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${fullActiveTechnique.techniqueName}"}>Edit Technique</a>
+          </span>
+        )
+      case(false, true) =>
+        ( "The Technique of this Directive is disabled."
+        , <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${fullActiveTechnique.techniqueName}"}>Edit Technique</a>
+        )
+      case(true, false) =>
+        ( "This Directive is disabled."
+          , SHtml.ajaxSubmit("Enable", () => onSubmitDisable(ModificationValidationPopup.Enable), ("class" ,"btn btn-sm btn-default"))
+        )
+      case(true, true) =>
+        ( "" , NodeSeq.Empty )
+    }
     (
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
@@ -246,7 +263,7 @@ class DirectiveEditForm(
         else xml ) andThen
       ClearClearable &
       //activation button: show disactivate if activated
-      "#directiveTitle *" #> directive.name &
+      "#directiveTitle *" #> <span class={ if(fullActiveTechnique.isEnabled) "" else "is-disabled" }>{directive.name}</span> &
       "#disactivateButtonLabel" #> {
         if (directive.isEnabled) "Disable" else "Enable"
        } &
@@ -270,6 +287,15 @@ class DirectiveEditForm(
           { technique.name } version {technique.id.version}
         </a> &
       "#techniqueDescription *" #> technique.description &
+      "#isDisabled" #> {
+        if (!fullActiveTechnique.isEnabled || !directive.isEnabled)
+          <div class="alert alert-warning">
+            <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+            {disableMessage}
+            {enableBtn}
+          </div>
+        else NodeSeq.Empty
+      } &
       "#nameField" #> {directiveName.toForm_!} &
       "#tagField *" #> tagsEditForm.tagsForm("directiveTags", "directiveEditTagsApp", updateTag, false) &
       "#rudderID *" #> {directive.id.value} &

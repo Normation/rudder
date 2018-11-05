@@ -2015,11 +2015,6 @@ i.jstree-icon.jstree-themeicon.fa.fa-file-text.jstree-themeicon-custom {
   color: #555;
 }
 
-li.disableTreeNode > a.jstree-anchor {
-  color: #999;
-  font-style:italic;
-}
-
 .dataTable tr > td a{
   text-decoration:none !important;
   color: #333;
