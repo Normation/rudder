@@ -930,7 +930,7 @@ ul.graph-legend > li.legend:hover{
 #details .callout-fade{
   margin-top:15px;
 }
-#details .box-body div{
+.box-body div{
   color:#555;
 }
 #details .box-body h4{
@@ -1370,13 +1370,36 @@ pre.display-keys > label{
 label.text-fit{
   font-weight:normal !important;
 }
-.treeActiveTechniqueName.is-disabled:after,.is-disabled > a.jstree-anchor > .treeDirective:after{
+
+#isDisabled .btn-sm {
+  width:auto;
+  margin-left:6px;
+}
+.treeActiveTechniqueName.is-disabled:after,
+.is-disabled > a.jstree-anchor > .treeDirective:after,
+#techniqueName.is-disabled:after,
+#directiveTitle > span.is-disabled:after,
+.techniqueNode.is-disabled .treeDirective:after,
+.disableTreeNode > a:after{
   content: "- Disabled";
   margin-left: 2px;
   font-weight: 300;
-  color: #999;
-  font-size: 10px;
+  color: #000;
+  font-size: 13px;
 }
+#techniqueName.is-disabled:after
+#directiveTitle > span.is-disabled:after{
+  font-size: 18px;
+  margin-left: 8px;
+}
+
+.treeActiveTechniqueName.is-disabled,
+.techniqueNode.is-disabled .directiveNode,
+.directiveNode.is-disabled,
+.disableTreeNode > a{
+  opacity: .5;
+}
+
 /* --- LABEL --- */
 #badge-apm{
   margin-left: 5px;
