@@ -235,7 +235,7 @@ class DirectiveEditForm(
       case(false, false) =>
         ( "This Directive and its Technique are disabled."
         , <span>
-            {SHtml.ajaxSubmit("Enable Directive", () => onSubmitDisable(ModificationValidationPopup.Enable), ("class" ,"btn btn-sm btn-default"))}
+            {SHtml.ajaxSubmit("Enable Directive", () => onSubmitDisable(DGModAction.Enable), ("class" ,"btn btn-sm btn-default"))}
             <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${fullActiveTechnique.techniqueName}"}>Edit Technique</a>
           </span>
         )
@@ -245,7 +245,7 @@ class DirectiveEditForm(
         )
       case(true, false) =>
         ( "This Directive is disabled."
-          , SHtml.ajaxSubmit("Enable", () => onSubmitDisable(ModificationValidationPopup.Enable), ("class" ,"btn btn-sm btn-default"))
+          , SHtml.ajaxSubmit("Enable", () => onSubmitDisable(DGModAction.Enable), ("class" ,"btn btn-sm btn-default"))
         )
       case(true, true) =>
         ( "" , NodeSeq.Empty )
