@@ -170,8 +170,8 @@ nodeId: root
 isSystem: TRUE
 isEnabled: TRUE
 jsonNodeGroupQuery: {"select":"nodeAndPolicyServer","composition":"And","where":[
-  {"objectType":"node","attribute":"agentName","comparator":"eq","value":"cfengine"}
-  ]}
+ {"objectType":"node","attribute":"agentName","comparator":"eq","value":"cfengine"}
+ ]}
 
 # Active technique library
 dn: techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
