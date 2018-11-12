@@ -42,6 +42,7 @@ import net.liftweb.common.{Failure => FailedBox, _}
 import com.normation.rudder.domain.parameters.ParameterName
 import net.liftweb.json.JsonAST.JValue
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.policies.PolicyModeOverrides
 
 /**
  * A parser that handle parameterized value of
@@ -303,6 +304,15 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
         case "id" :: Nil => Full(context.nodeInfo.id.value)
         case "hostname" :: Nil => Full(context.nodeInfo.hostname)
         case "admin" :: Nil => Full(context.nodeInfo.localAdministratorAccountName)
+        case "state" :: Nil => Full(context.nodeInfo.state.name)
+        case "policyMode" :: Nil =>
+          val effectivePolicyMode = context.globalPolicyMode.overridable match {
+            case PolicyModeOverrides.Unoverridable =>
+              context.globalPolicyMode.mode.name
+            case PolicyModeOverrides.Always =>
+              context.nodeInfo.policyMode.getOrElse(context.globalPolicyMode.mode).name
+          }
+          Full(effectivePolicyMode)
         case "policyserver" :: tail2 => tail2 match {
           case "id" :: Nil => Full(context.policyServerInfo.id.value)
           case "hostname" :: Nil => Full(context.policyServerInfo.hostname)

@@ -42,9 +42,7 @@ import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.{DirectiveId, GlobalPolicyMode, PolicyMode, RuleId}
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Box
 
@@ -132,6 +130,7 @@ object BundleOrder {
 case class InterpolationContext(
         nodeInfo        : NodeInfo
       , policyServerInfo: NodeInfo
+      , globalPolicyMode: GlobalPolicyMode
         //environment variable for that server
         //must be a case insensitive Map !!!!
       , nodeContext     : TreeMap[String, Variable]
@@ -153,6 +152,7 @@ object InterpolationContext {
   def apply(
         nodeInfo        : NodeInfo
       , policyServerInfo: NodeInfo
+      , globalPolicyMode: GlobalPolicyMode
         //environment variable for that server
         //must be a case insensitive Map !!!!
       , nodeContext     : Map[String, Variable]
@@ -164,7 +164,7 @@ object InterpolationContext {
         //for ex: param a => param b => param c => ..... => param a
         //should not be evaluated
       , depth           : Int = 0
-  ) = new InterpolationContext(nodeInfo, policyServerInfo, TreeMap(nodeContext.toSeq:_*), parameters, depth)
+  ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq:_*), parameters, depth)
 }
 
 final case class ParameterForConfiguration(
