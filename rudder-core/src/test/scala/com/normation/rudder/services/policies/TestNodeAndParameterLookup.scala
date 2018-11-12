@@ -97,6 +97,7 @@ class TestNodeAndParameterLookup extends Specification {
   val context = InterpolationContext(
         parameters      = Map()
       , nodeInfo        = node1
+      , globalPolicyMode= defaultModesConfig.globalPolicyMode
       , policyServerInfo= root
         //environment variable for that server
       , nodeContext     = Map()
