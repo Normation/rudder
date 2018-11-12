@@ -764,6 +764,18 @@ table.noMarginGrid {
   margin-top: 5px;
 }
 
+.variableDefinition > span,
+.variableDefinition td,
+.variableDefinition input {
+  font-size: 12px;
+  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
+  vertical-align: middle;
+}
+
+.wbBaseFieldLabel .tw-bs .ruddericon {
+    top: -2px;
+}
+
 /**********************************
  *define the group/section table
  **********************************/
