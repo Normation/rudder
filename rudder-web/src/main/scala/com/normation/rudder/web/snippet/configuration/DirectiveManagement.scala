@@ -319,7 +319,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                <div class="alert alert-warning">
                  <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
                  This Technique is disabled.
-                 <button class="btn btn-sm btn-default">Enable</button>
+
+                 <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${fullActiveTechnique.techniqueName}"}>Edit Technique</a>
                </div>
              else NodeSeq.Empty
            } &
