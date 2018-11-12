@@ -345,6 +345,29 @@ class TestQueryProcessor extends Loggable {
     testQueries(q1 :: q2 :: Nil)
   }
 
+  @Test def networkInterfaceElementQueries(): Unit = {
+
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"networkInterfaceLogicalElement", "attribute":"networkInterfaceGateway", "comparator":"regex", "value":".*192.168.*" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: s(2) :: Nil)
+
+    val q2 = TestQuery(
+      "q2",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"networkInterfaceLogicalElement", "attribute":"ipHostNumber", "comparator":"regex", "value":".*192.168.*" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: s(2) :: s(3) :: Nil)
+
+
+    testQueries(q1 :: q2 :: Nil)
+  }
   @Test def regexQueries(): Unit = {
 
     //regex and "subqueries" for logical elements should not be contradictory
