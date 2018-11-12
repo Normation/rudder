@@ -308,10 +308,21 @@ input .ui-button {
    color: #666;
    background: none;
 }
-.ui-state-default a, .ui-state-default a:link, .ui-state-default a:visited {
+.ui-state-default a,
+.ui-state-default a:link,
+.ui-state-default a:visited,
+.ui-widget-content .dataTable .ui-tabs-tab.ui-state-default a{
    color: #f79d10;/*liens tabs inactif*/
    text-decoration: underline;
 }
+.ui-state-default.ui-state-active a,
+.ui-state-default.ui-state-active a:link,
+.ui-state-default.ui-state-active a:visited,
+.ui-widget-content .dataTable .ui-tabs-tab.ui-state-default.ui-state-active a {
+    color: #333 !important;
+    cursor: default;
+}
+
 .ui-state-hover, .ui-widget-content .ui-state-hover, .ui-state-focus, .ui-widget-content .ui-state-focus {
    font-weight: bold;
    color: #000;
