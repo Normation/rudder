@@ -512,9 +512,10 @@ bundle edit_line ncf_maintain_keys_values(v, sep) {
       # Keys and values may contain regexps. Escape them for replace_pattern matching.
       "ve[${index}]" string => escape("${${v}[${index}]}");
       "ke[${index}]" string => escape("${index}");
+      "separator"    string => escape("${sep}");
 
       # Matching pattern for line (basically key-and-separator)
-      "keypat[${index}]" string => "\s*${ke[${index}]}\s*${sep}\s*";
+      "keypat[${index}]" string => "\s*${ke[${index}]}\s*${separator}\s*";
 
   classes:
       "${cindex[${index}]}_key_in_file"
@@ -547,9 +548,10 @@ bundle edit_line ncf_maintain_keys_values_option(v, sep, option) {
       # Keys and values may contain regexps. Escape them for replace_pattern matching.
       "ve[${index}]" string => escape("${${v}[${index}]}");
       "ke[${index}]" string => escape("${index}");
+      "separator"    string => escape("${sep}");
 
       # Matching pattern for line (basically key-and-separator)
-      "keypat[${index}]" string => "\s*${ke[${index}]}\s*${sep}\s*";
+      "keypat[${index}]" string => "\s*${ke[${index}]}\s*${separator}\s*";
 
 
   classes:
@@ -561,7 +563,7 @@ bundle edit_line ncf_maintain_keys_values_option(v, sep, option) {
 
     !strict_spacing::
       "${cindex[${index}]}_key_value_in_file"
-         comment   => "Dynamic Class created if in loose mode, key\s*sep\s*value is there",
+         comment   => "Dynamic Class created if in loose mode, key\s*separator\s*value is there",
         expression => regline("^${keypat[${index}]}${ve[${index}]}\s*", "${edit.filename}");
 
 
@@ -574,12 +576,12 @@ bundle edit_line ncf_maintain_keys_values_option(v, sep, option) {
       # For convergence need to use negative lookahead on value:
       # "key sep (?!value).*"
     strict_spacing::
-      "^(\s*${ke[${index}]}\s*${sep}\s*)(?!${ve[${index}]}$).*"
+      "^(\s*${ke[${index}]}\s*${separator}\s*)(?!${ve[${index}]}$).*"
         comment      => "Strict replace definition of ${index}",
         replace_with => value("${ke[${index}]}${sep}${${v}[${index}]}");
 
     !strict_spacing::
-      "^(\s*${ke[${index}]}\s*${sep}\s*)(?!${ve[${index}]}$).*"
+      "^(\s*${ke[${index}]}\s*${separator}\s*)(?!${ve[${index}]}$).*"
         comment      => "Replace definition of ${index}",
         replace_with => value("${match.1}${${v}[${index}]}"),
         ifvarclass   => "!${cindex[${index}]}_key_value_in_file";
