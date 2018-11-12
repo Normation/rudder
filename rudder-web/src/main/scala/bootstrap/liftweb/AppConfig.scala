@@ -1706,6 +1706,9 @@ object RudderConfig extends Loggable {
   lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       new CheckConnections(dataSourceProvider, rwLdap)
     , new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
+      // the two following should be done at the begining before dyngroup update and the like
+    , new UpdateLdapNodeSubnetAttrName(acceptedNodesDit, rwLdap)
+    , new UpdateLdapNodeSubnetInGroup(rudderDit, rwLdap)
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
         roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen, asyncDeploymentAgentImpl) //new CheckDirectiveBusinessRules()
