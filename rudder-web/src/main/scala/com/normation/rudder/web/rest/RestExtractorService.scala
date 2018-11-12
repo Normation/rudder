@@ -712,7 +712,7 @@ case class RestExtractorService (
       directives       <- extractJsonListString(json, "directives")(convertListToDirectiveId)
       target           <- toRuleTarget(json, "targets")
       enabled          <- extractJsonBoolean(json,"enabled")
-      tags             <- extractTags(json \ "tags") ?~! "Error when extracting Rule tags"
+      tags             <- extractTagsFromJson(json \ "tags")  ?~! "Error when extracting Rule tags"
     } yield {
       RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
     }
