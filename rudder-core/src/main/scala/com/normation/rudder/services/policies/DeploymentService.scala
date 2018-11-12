@@ -201,7 +201,7 @@ trait PromiseGenerationService extends Loggable {
 
       nodeContextsTime      =  System.currentTimeMillis
       activeNodeIds         =  (Set[NodeId]()/:ruleVals){case(s,r) => s ++ r.nodeIds}
-      nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode) ?~! "Could not get node interpolation context"
+      nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
       timeNodeContexts      =  (System.currentTimeMillis - nodeContextsTime)
       _                     =  logger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
 
@@ -366,6 +366,7 @@ trait PromiseGenerationService extends Loggable {
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
+    , globalPolicyMode      : GlobalPolicyMode
   ): Box[Map[NodeId, InterpolationContext]]
 
   /*
@@ -571,6 +572,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
+    , globalPolicyMode      : GlobalPolicyMode
   ): Box[Map[NodeId, InterpolationContext]] = {
 
     /*
@@ -609,6 +611,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
           (nodeId, InterpolationContext(
                         nodeInfo
                       , policyServer
+                      , globalPolicyMode
                       , nodeContext
                       , parameters
                     )
