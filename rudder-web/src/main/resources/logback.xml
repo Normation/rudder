@@ -221,9 +221,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
    -->
    <!--
      Set to info to only have macro information, debug to have timing information about
-     each step (good default), trace to have more information.
+     sub-steps (good for debugging performances issues), trace to have more information.
    -->
-  <logger name="com.normation.rudder.services.policies.PromiseGenerationServiceImpl" level="debug" />
+  <logger name="com.normation.rudder.services.policies.PromiseGenerationServiceImpl" level="info" />
   <!--
     The following logger take care of promises writing. Set to debug or trace to
     have these information.
