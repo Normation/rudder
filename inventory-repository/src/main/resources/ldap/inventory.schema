@@ -323,15 +323,15 @@ attributetype ( InventoryAttributes:300.16
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
-  
-  
+
+
 attributetype ( InventoryAttributes:300.17
   NAME 'keyStatus'
   DESC 'Status of security key of the Node'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-  
+
 attributetype ( InventoryAttributes:300.18
   NAME 'timezoneName'
   DESC 'Timezone name of the Node (potentially in local lang)'
@@ -379,6 +379,13 @@ attributetype ( InventoryAttributes:400.2
 
 attributetype ( InventoryAttributes:400.3
   NAME 'networkInterfaceMask'
+  DESC 'Network interface subnet'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.3.1
+  NAME 'networkSubnet'
   DESC 'Network interface subnet'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
@@ -1035,7 +1042,7 @@ objectclass ( InventoryObjectClasses:20
   STRUCTURAL
   MUST ( networkInterface )
   MAY ( status $ speed $ ipHostNumber $ networkInterfaceMacAddress $
-        networkInterfaceGateway $ ipNetworkNumber $ networkInterfaceDhcpServer $
+        networkInterfaceGateway $ ipNetworkNumber $ networkSubnet $ networkInterfaceDhcpServer $
         networkInterfaceMask $ networkInterfaceType $ networkInterfaceTypeMib) )
 
 objectclass ( InventoryObjectClasses:21

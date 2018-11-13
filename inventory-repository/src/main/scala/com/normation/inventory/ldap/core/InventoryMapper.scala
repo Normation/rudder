@@ -557,18 +557,23 @@ class InventoryMapper(
 
 
   def entryFromNetwork(elt:Network, dit:InventoryDit, serverId:NodeId) : LDAPEntry = {
+    // mutable, yep
+    def setSeqAddress(e: LDAPEntry, attr: String, list: Seq[InetAddress]): Unit = {
+      if(list.isEmpty) {
+        e -= attr
+      } else {
+        e +=!(attr, list.map(_.getHostAddress):_*)
+      }
+    }
+
     val e = dit.NODES.NETWORK.model(serverId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
     //addresses
-    if(elt.ifAddresses.isEmpty) {
-      e -= A_NETIF_ADDRESS
-    } else {
-      e +=!(A_NETIF_ADDRESS,elt.ifAddresses.map(_.getHostAddress):_*)
-    }
+    setSeqAddress(e, A_NETIF_ADDRESS, elt.ifAddresses)
+    setSeqAddress(e, A_NETIF_GATEWAY, elt.ifGateway)
+    setSeqAddress(e, A_NETIF_MASK   , elt.ifMask)
+    setSeqAddress(e, A_NETIF_SUBNET , elt.ifSubnet)
     e.setOpt(elt.ifDhcp,     A_NETIF_DHCP,     {x:InetAddress => x.getHostAddress})
-    e.setOpt(elt.ifGateway,  A_NETIF_GATEWAY,  {x:InetAddress => x.getHostAddress})
-    e.setOpt(elt.ifMask,     A_NETIF_MASK,     {x:InetAddress => x.getHostAddress})
-    e.setOpt(elt.ifSubnet,   A_NETIF_SUBNET,   {x:InetAddress => x.getHostAddress})
     e.setOpt(elt.macAddress, A_NETIF_MAC,      {x:String => x})
     e.setOpt(elt.status,     A_STATUS,         {x:String => x})
     e.setOpt(elt.ifType,     A_NETIF_TYPE,     {x:String => x})
@@ -581,14 +586,11 @@ class InventoryMapper(
     for {
       name <- e(A_NETWORK_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_NETWORK_NAME, e)
       desc = e(A_DESCRIPTION)
-      ifAddresses = for {
-        i <- e.valuesFor(A_NETIF_ADDRESS).toSeq
-        a <- getAddressByName(i)
-      } yield a
+      ifAddresses= e.valuesFor(A_NETIF_ADDRESS).toSeq.flatMap(getAddressByName)
+      ifGateway  = e.valuesFor(A_NETIF_GATEWAY).toSeq.flatMap(getAddressByName)
+      ifMask     = e.valuesFor(A_NETIF_MASK).toSeq.flatMap(getAddressByName)
+      ifSubnet   = e.valuesFor(A_NETIF_SUBNET).toSeq.flatMap(getAddressByName)
       ifDhcp     = e(A_NETIF_DHCP).flatMap(getAddressByName(_))
-      ifGateway  = e(A_NETIF_GATEWAY).flatMap(getAddressByName(_))
-      ifMask     = e(A_NETIF_MASK).flatMap(getAddressByName(_))
-      ifSubnet   = e(A_NETIF_SUBNET).flatMap(getAddressByName(_))
       macAddress = e(A_NETIF_MAC)
       status     = e(A_STATUS)
       ifType     = e(A_NETIF_TYPE)
