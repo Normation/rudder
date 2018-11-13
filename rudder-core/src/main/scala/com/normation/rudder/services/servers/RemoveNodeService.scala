@@ -216,10 +216,6 @@ class RemoveNodeServiceImpl(
     }
   }
 
-   /**
-   * Delete all node cnfiguration
-   */
-
   /**
    * Look for the groups containing this node in their nodes list, and remove the node
    * from the list
