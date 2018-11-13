@@ -368,6 +368,7 @@ class TestQueryProcessor extends Loggable {
 
     testQueries(q1 :: q2 :: Nil)
   }
+
   @Test def regexQueries(): Unit = {
 
     //regex and "subqueries" for logical elements should not be contradictory
