@@ -18,7 +18,7 @@
 
 # @name Schedule Simple
 # @description Trigger a repaired outcome when a job should be run
-# @documentation This method compute the expected time for running the job, based on the parameters and splayed uing system ids, and define a conditions based on this cmputatoin:
+# @documentation This method compute the expected time for running the job, based on the parameters and splayed uing system ids, and define a conditions based on this computation:
 #  * `schedule_simple_${job_id}_kept` if the job should not be run now
 #  * `schedule_simple_${job_id}_repaired` if the job should be run
 #  * `schedule_simple_${job_id}_error` if their is an inconsistency in the method parameters
@@ -36,15 +36,15 @@
 # @agent_version >=3.6
 #
 # @parameter job_id                A string to identify this job
-# @parameter agent_periodicity     How often you run the agent in minutes
+# @parameter agent_periodicity     Agent run interval (in minutes)
 # @parameter max_execution_delay_minutes  On how many minutes you want to spread the job
 # @parameter max_execution_delay_hours    On how many hours you want to spread the job
 # @parameter start_on_minutes      At which minute should be the first run
 # @parameter start_on_hours        At which hour should be the first run
 # @parameter start_on_day_of_week  At which day of week should be the first run
-# @parameter periodicity_minutes   How often should the job run
-# @parameter periodicity_hours     How often should the job run
-# @parameter periodicity_days      How often should the job run
+# @parameter periodicity_minutes   Desired job run interval (in minutes)
+# @parameter periodicity_hours     Desired job run interval (in hours)
+# @parameter periodicity_days      Desired job run interval (in days)
 # @parameter mode                  "nodups": avoid duplicate runs in the same period / "catchup": avoid duplicates and one or more run have been missed, run once before next period / "stateless": no check is done on past runs
 # 
 # @class_prefix schedule_simple
