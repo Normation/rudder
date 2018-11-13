@@ -45,6 +45,7 @@ bundle agent file_remove(target)
   classes:
       "should_report"    expression => "${report_data.should_report}";
 
+
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;

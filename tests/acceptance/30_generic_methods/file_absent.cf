@@ -22,14 +22,20 @@ body common control
 bundle agent init
 {
   vars:
-    "tmp"                    string => getenv("TEMP", 1024);
-    "destination_file"       string => "${tmp}/remove_test";
-    "destination_file_canon" string => canonify("${destination_file}");
-    "not_a_file"             string => "${tmp}/nonexistantfilenamefromncftests";
-    "not_a_file_canon"       string => canonify("${not_a_file}");
+    "tmp"                      string => getenv("TEMP", 1024);
+    "destination_file"         string => "${tmp}/remove_test";
+    "destination_file_canon"   string => canonify("${destination_file}");
+    "not_a_file"               string => "${tmp}/nonexistantfilenamefromncftests";
+    "not_a_file_canon"         string => canonify("${not_a_file}");
+
+    "destination_folder"       string => "${tmp}/no_remove_folder";
+    "destination_folder_canon" string => canonify("${destination_folder}");
 
   files:
     "${destination_file}"
+      create => "true";
+
+    "${destination_folder}/."
       create => "true";
 
 }
@@ -41,6 +47,7 @@ bundle agent test
   methods:
     "ph1" usebundle => file_absent("${init.destination_file}");
     "ph2" usebundle => file_absent("${init.not_a_file}");
+    "ph3" usebundle => file_absent("${init.destination_folder}");
 }
 
 #######################################################
@@ -51,7 +58,9 @@ bundle agent check
     "file_exists"      expression => fileexists("${init.destination_file}");
     "ok_1"             expression => "!file_exists.file_absent_${init.destination_file_canon}_repaired.!file_absent_${init.destination_file_canon}_error";
     "ok_2"             expression => "file_absent_${init.not_a_file_canon}_kept.!file_absent_${init.not_a_file_canon}_repaired.!file_absent_${init.not_a_file_canon}_error";
-    "ok"                      and => { "ok_1", "ok_2" };
+    "ok_3"             expression => "file_absent_${init.destination_folder_canon}_error.!file_absent_${init.destination_folder_canon}_repaired.!file_absent_${init.destination_folder_canon}_kept";
+    "ok"                      and => { "ok_1", "ok_2", "ok_3" };
+
 
   reports:
     file_exists::
@@ -60,6 +69,7 @@ bundle agent check
     !ok_1:: "First test failed (removing existing file, ${init.destination_file})";
     ok_2::  "Second test OK (removing a non existant file, ${init.not_a_file_canon})";
     !ok_2:: "Second test failed (removing a non existant file, ${init.not_a_file_canon})";
+    !ok_3:: "Third test failed (removing a folder should fail, ${init.destination_folder_canon})";
 
     !ok_2:: #debug
       "Second test debug: class file_absent_${init.not_a_file_canon}_reached defined" ifvarclass => "file_absent_${init.not_a_file_canon}_reached";
