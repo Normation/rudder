@@ -71,7 +71,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
   def display(xml:NodeSeq) : NodeSeq = {
 
-     ("#modeSelector" #> <ul style="float:left">{SHtml.radio(Seq("Archive", "Delete"), Full("Archive")
+     ("#modeSelector" #> <ul>{SHtml.radio(Seq("Archive", "Delete"), Full("Archive")
           , {value:String => action = value match {
             case "Archive" => archiveAction
             case "Delete"  => deleteAction
