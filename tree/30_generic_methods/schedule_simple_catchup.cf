@@ -28,15 +28,15 @@
 # @agent_version >=3.6
 #
 # @parameter job_id                A string to identify this job
-# @parameter agent_periodicity     How often you run the agent in minutes
+# @parameter agent_periodicity     Agent run interval (in minutes)
 # @parameter max_execution_delay_minutes  On how many minutes you want to spread the job
 # @parameter max_execution_delay_hours    On how many hours you want to spread the job
 # @parameter start_on_minutes      At which minute should be the first run
 # @parameter start_on_hours        At which hour should be the first run
 # @parameter start_on_day_of_week  At which day of week should be the first run
-# @parameter periodicity_minutes   How often should the job run
-# @parameter periodicity_hours     How often should the job run
-# @parameter periodicity_days      How often should the job run
+# @parameter periodicity_minutes   Desired job run interval (in minutes)
+# @parameter periodicity_hours     Desired job run interval (in hours)
+# @parameter periodicity_days      Desired job run interval (in days)
 # 
 # @class_prefix schedule_simple
 # @class_parameter job_id
