@@ -104,10 +104,26 @@ class TestReportParsing extends Specification with Loggable {
 
     val report = parser.parse("fusion-report/centos-with-two-ip-for-one-interface.ocs")
 
-    "lead to a node with two ips for eth0" in {
+    "lead to a node with 4 ips for eth0" in {
+      val a = 1
       report.node.networks.find( _.name == "eth0").get.ifAddresses.size must beEqualTo(4)
     }
   }
+
+  "Machine with one ipv4 and one ipv6 network for one interface" should {
+
+    val report = parser.parse("fusion-report/centos-with-two-ip-for-one-interface.ocs")
+
+    "have correct gateway, mask, network defined" in {
+      val net = report.node.networks.find( _.name == "ens3")
+      (net.get.ifAddresses.size must beEqualTo(2)) and
+      (net.get.ifAddresses.size must beEqualTo(2)) and
+      (net.get.ifAddresses.size must beEqualTo(2)) and
+      (net.get.ifAddresses.size must beEqualTo(2))
+    }
+
+  }
+
 
   "A node with Rudder roles" should {
 

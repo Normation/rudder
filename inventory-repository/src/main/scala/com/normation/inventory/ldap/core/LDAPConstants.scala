@@ -152,7 +152,7 @@ object LDAPConstants {
   val A_NETIF_DHCP = "networkInterfaceDhcpServer"
   val A_NETIF_GATEWAY = "networkInterfaceGateway"
   val A_NETIF_MASK = "networkInterfaceMask"
-  val A_NETIF_SUBNET = "ipNetworkNumber"
+  val A_NETIF_SUBNET =  "networkSubnet" // use to be "ipNetworkNumber"
   val A_NETIF_MAC = "networkInterfaceMacAddress"
   val A_NETIF_TYPE = "networkInterfaceType"
   val A_NETIF_TYPE_MIB = "networkInterfaceTypeMib"

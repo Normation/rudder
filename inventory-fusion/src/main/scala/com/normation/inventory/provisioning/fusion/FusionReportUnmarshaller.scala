@@ -458,18 +458,21 @@ class FusionReportUnmarshaller(
   }
 
   /**
-   * One interface can have several IP. We have to
+   * One interface can have several IP/mask/gateway/subnets. We have to
    * merge them when it's the case.
    */
   private[this] def demuxSameInterfaceDifferentIp(report: InventoryReport) : InventoryReport = {
     val nets = report.node.networks.groupBy( _.name ).map { case (interface, networks) =>
       val referenceInterface = networks.head //we have at least one due to the groupBy
       val ips = networks.flatMap( _.ifAddresses )
+      val masks = networks.flatMap( _.ifMask ).distinct
+      val gateways = networks.flatMap( _.ifGateway ).distinct
+      val subnets = networks.flatMap( _.ifSubnet ).distinct
       val uniqIps = ips.distinct
       if(uniqIps.size < ips.size) {
         logger.error(s"Network interface '${interface}' appears several time with same IPs. Taking only the first one, it is likelly a bug in fusion inventory.")
       }
-      referenceInterface.copy(ifAddresses = uniqIps )
+      referenceInterface.copy(ifAddresses = uniqIps, ifMask = masks, ifGateway = gateways, ifSubnet = subnets )
     }.toSeq
 
     report.copy(node = report.node.copy(networks = nets))
@@ -837,11 +840,14 @@ class FusionReportUnmarshaller(
         logger.debug(n)
         None
       case Some(desc) =>
-        val ipv4 =  optText(n\"IPADDRESS") match {
+        // in a single NETWORK element, we can have both IPV4 and IPV6
+        // variant for address, gateway, subnet, mask
+        def getBothAddresses(xml: NodeSeq, ipv4Attr: String, ipv6Attr: String): Seq[InetAddress] = {
+          val ipv4 =  optText(xml\ipv4Attr) match {
               case None => Seq()
               case Some(a) => getAddresses(a)
             }
-        val ipv6 = optText(n\"IPADDRESS6") match {
+          val ipv6 = optText(xml\ipv6Attr) match {
               case None => Seq()
               case Some(a) =>
                 // Ipv6 addresses from fusion inventory may have a / part we need to remove it to get valid ipv6 address
@@ -849,13 +855,16 @@ class FusionReportUnmarshaller(
                 getAddresses(ip)
             }
 
+          ipv4 ++ ipv6
+        }
+
         Some( Network(
             name = desc
-          , ifAddresses = ipv4 ++ ipv6
+          , ifAddresses = getBothAddresses(n, "IPADDRESS", "IPADDRESS6")
           , ifDhcp = optText(n\"IPDHCP").flatMap(getAddressByName( _ ))
-          , ifGateway = optText(n\"IPGATEWAY").flatMap(getAddressByName( _ ))
-          , ifMask = optText(n\"IPMASK").flatMap(getAddressByName( _ ))
-          , ifSubnet = optText(n\"IPSUBNET").flatMap(getAddressByName( _ ))
+          , ifGateway = getBothAddresses(n, "IPGATEWAY", "IPGATEWAY6")
+          , ifMask = getBothAddresses(n, "IPMASK", "IPMASK6")
+          , ifSubnet = getBothAddresses(n, "IPSUBNET", "IPSUBNET6")
           , macAddress = optText(n\"MACADDR")
           , status = optText(n\"STATUS")
           , ifType = optText(n\"TYPE")
