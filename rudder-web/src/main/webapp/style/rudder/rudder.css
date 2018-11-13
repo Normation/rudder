@@ -1758,15 +1758,20 @@ td.complianceTd, td.parametersTd {
 }
 .ajaxloader{
   position: fixed;
-    top: 50%;
-    left: 50%;
-    text-align:center;
-    padding:10px;
-    margin-left: -50px;
-    margin-top: -50px;
-    z-index:9999;
-    overflow: auto;
-    display:none;
+  top: 50%;
+  left: 50%;
+  text-align:center;
+  padding:10px;
+  margin-left: -40px;
+  margin-top: -40px;
+  z-index:9999;
+  display:none;
+}
+
+.svg-loader{
+  height:40px;
+  width:40px;
+  padding: 0 !important;
 }
 
 .right {
