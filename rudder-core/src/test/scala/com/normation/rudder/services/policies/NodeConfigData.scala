@@ -884,6 +884,22 @@ class TestNodeConfiguration() {
     )
   }
 
+  // fileTemplate3 is a copy of fileTemplate2 but provided by an other rule
+  lazy val fileTemplate3 = {
+    val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-000000000000"), DirectiveId("99f4ef91-537b-4e03-97bc-e65b447514cc"), TechniqueVersion("1.0"))
+    draft(
+        id
+      , fileTemplateTechnique
+      , fileTemplateVariables2
+      , fileTemplateTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
+      , BundleOrder("99-rule-technique-std-lib")
+      , BundleOrder("20-File template 2")
+      , false
+      , Some(PolicyMode.Enforce)
+    )
+  }
+
+
   val ncf1Technique = techniqueRepository.get(TechniqueId(TechniqueName("Create_file"), TechniqueVersion("1.0"))).unsafeGet
   val ncf1Variables = {
      val spec = ncf1Technique.getAllVariableSpecs.map(s => (s.name, s)).toMap

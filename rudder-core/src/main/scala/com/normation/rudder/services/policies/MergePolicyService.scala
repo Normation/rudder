@@ -202,7 +202,7 @@ final object MergePolicyService {
       , toMerge        : Map[TechniqueName, Seq[BoundPolicyDraft]]
       , multiDirectives: Set[BoundPolicyDraft]
     ) {
-      // return a copy of that group with on more toMerge at the correct place
+      // return a copy of that group with one more toMerge at the correct place
       def addToMerge(draft: BoundPolicyDraft): GroupedDrafts = {
         val name = draft.technique.id.name
         val thatTechnique = toMerge.getOrElse(name, Seq()) :+ draft
@@ -317,6 +317,14 @@ final object MergePolicyService {
       keep.copy(overrides = o)
     }
 
+
+    // for multiDirective directives, we must only keep one copy of the same directive even if provided by several rules
+    // (ie: some directive id => only keep the first by (rule name, directive name)
+    val deduplicatedMultiDirective = groupedDrafts.multiDirectives.groupBy( _.id.directiveId ).map { case (directiveId, set) =>
+      set.toList.sorted(onlyBundleOrder.toOrdering).head
+    }
+
+
     // now proceed the policies that need to be merged
     for {
       agent  <- Box(nodeInfo.agentsName.headOption) ?~! s"No agent defined for Node ${nodeInfo.hostname}, (id ${nodeInfo.id.value}), at least one should be defined"
@@ -328,7 +336,7 @@ final object MergePolicyService {
       }
       //now change remaining BoundPolicyDraft to Policy, managing tracking variable values
       others <- { import cats.implicits._
-                  (keptUniqueDraft ++ groupedDrafts.multiDirectives).toList.traverse( _.toPolicy(agent.agentType) )
+                  (keptUniqueDraft ++ deduplicatedMultiDirective).toList.traverse( _.toPolicy(agent.agentType) )
                 }
     } yield {
       // we are sorting several things in that method, and I'm not sure we want to sort them in the same way (and so

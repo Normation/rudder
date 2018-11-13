@@ -288,9 +288,9 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       )
     }
 
-    "correctly write the expected promises files with a multi-policy configured" in {
+    "correctly write the expected promises files with a multi-policy configured, skipping fileTemplate3 from bundle order" in {
       val (rootPath, writter) = getPromiseWritter("root-1-multipolicy")
-      (writeNodeConfigWithUserDirectives(writter, fileTemplate1, fileTemplate2) mustFull) and
+      (writeNodeConfigWithUserDirectives(writter, fileTemplate1, fileTemplate2, fileTemplate3) mustFull) and
       compareWith(rootPath, "root-with-one-multipolicy",
            """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
         :: """.*add:default:==:.*"""                               //rpm reports
