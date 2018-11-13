@@ -623,6 +623,8 @@ object DisplayNode extends Loggable {
         ("Interface", {x:Network => Text(x.name)}) ::
         ("IP address", {x:Network => Text(x.ifAddresses.map{ _.getHostAddress }.mkString(", "))}) ::
         ("Mask", {x:Network => Text(x.ifMask.map{ _.getHostAddress }.mkString(", "))}) ::
+        ("Network", {x:Network => Text(x.ifSubnet.map{ _.getHostAddress }.mkString(", "))}) ::
+        ("Gateway", {x:Network => Text(x.ifGateway.map{ _.getHostAddress }.mkString(", "))}) ::
         ("DHCP server", {x:Network => Text(x.ifDhcp.map{ _.getHostAddress }.mkString(", "))}) ::
         ("MAC address", {x:Network => ?(x.macAddress)}) ::
         ("Type", {x:Network => ?(x.ifType)}) ::
