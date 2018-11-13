@@ -378,6 +378,17 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
   def endpoints = ca.mrvisser.sealerate.values[RuleApi].toList.sortBy( _.z )
 }
 
+sealed trait SystemApi extends EndpointSchema with GeneralApi with SortIndex
+object SystemApi extends ApiModuleProvider[SystemApi] {
+
+  final case object Info extends SystemApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
+    val description = "Get information about system installation (version, etc)"
+    val (action, path) = GET / "system" / "info"
+  }
+
+  def endpoints = ca.mrvisser.sealerate.values[SystemApi].toList.sortBy( _.z )
+}
+
 sealed trait InfoApi extends EndpointSchema with GeneralApi with SortIndex
 object InfoApi extends ApiModuleProvider[InfoApi] {
 
@@ -442,11 +453,10 @@ object AllApi {
     NodeApi.endpoints :::
     ParameterApi.endpoints :::
     SettingsApi.endpoints :::
+    SystemApi.endpoints :::
     TechniqueApi.endpoints :::
     RuleApi.endpoints :::
     InfoApi.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin
     Nil
 }
-
-
