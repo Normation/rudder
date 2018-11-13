@@ -643,7 +643,7 @@ class PolicyWriterServiceImpl(
           licenses.get(sourceLicenceNodeId) match {
             case None =>
               // we are in the "free case", just log-debug it (as we already informed the user that there is no license)
-              logger.info(s"Not copying missing license file into '${paths.newFolder}' for node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}).")
+              logger.debug(s"Not copying missing license file into '${paths.newFolder}' for node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}).")
               Full(x)
 
             case Some(license) =>
