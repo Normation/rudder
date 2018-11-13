@@ -2315,7 +2315,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 .rudder-form  input[type=radio] + .label-radio span{
   color: #757575;
   font-size: 9px;
-  top: -11px;
+  top: calc(-50% - 8px);
   left: 0.1px;
   position: relative;
   visibility:hidden;
