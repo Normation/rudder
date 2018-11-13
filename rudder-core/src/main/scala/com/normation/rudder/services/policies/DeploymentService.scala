@@ -261,21 +261,20 @@ trait PromiseGenerationService extends Loggable {
       Future { invalidateComplianceCache(updatedNodeConfigs.keySet) }
 
       PolicyLogger.info("Timing summary:")
-      PolicyLogger.info("Run pre-gen scripts hooks : %10s ms".format(timeRunPreGenHooks))
-      PolicyLogger.info("Run pre-gen modules hooks : %10s ms".format(timeCodePreGenHooks))
-      PolicyLogger.info("Fetch all information     : %10s ms".format(timeFetchAll))
-      PolicyLogger.info("Historize names           : %10s ms".format(timeHistorize))
-      PolicyLogger.info("Build current rule values : %10s ms".format(timeRuleVal))
-      PolicyLogger.info("Build target configuration: %10s ms".format(timeBuildConfig))
-      PolicyLogger.info("Write node configurations : %10s ms".format(timeWriteNodeConfig))
-      PolicyLogger.info("Save expected reports     : %10s ms".format(timeSetExpectedReport))
-      PolicyLogger.info("Run post generation hooks : %10s ms".format(timeRunPostGenHooks))
-      PolicyLogger.info("Number of nodes updated   : %10s   ".format(updatedNodeIds.size))
+      PolicyLogger.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks))
+      PolicyLogger.info("Run pre-gen modules hooks     : %10s ms".format(timeCodePreGenHooks))
+      PolicyLogger.info("Fetch all information         : %10s ms".format(timeFetchAll))
+      PolicyLogger.info("Historize names               : %10s ms".format(timeHistorize))
+      PolicyLogger.info("Build current rule values     : %10s ms".format(timeRuleVal))
+      PolicyLogger.info("Build target configuration    : %10s ms".format(timeBuildConfig))
+      PolicyLogger.info("Write node configurations     : %10s ms".format(timeWriteNodeConfig))
+      PolicyLogger.info("Save expected reports         : %10s ms".format(timeSetExpectedReport))
+      PolicyLogger.info("Run post generation hooks     : %10s ms".format(timeRunPostGenHooks))
+      PolicyLogger.info("Number of nodes updated       : %10s   ".format(updatedNodeIds.size))
 
       writtenNodeConfigs.map( _.nodeInfo.id )
     }
-
-    logger.debug("Policy generation completed in %d ms".format((System.currentTimeMillis - initialTime)))
+    PolicyLogger.info("Policy generation completed in: %10s ms".format((System.currentTimeMillis - initialTime)))
     result
   }
 
@@ -847,11 +846,11 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     }
 
     if(updatedConfig.size == 0) {
-      logger.info("No node configuration was updated, no promises to write")
+      PolicyLogger.info("No node configuration was updated, no promises to write")
       Set()
     } else {
       val nodeToKeep = updatedConfig.map( _.id ).toSet
-      logger.info(s"Configuration of following nodes were updated, their promises are going to be written: [${updatedConfig.map(_.id.value).mkString(", ")}]")
+      PolicyLogger.info(s"Configuration of following nodes were updated, their promises are going to be written: [${updatedConfig.map(_.id.value).mkString(", ")}]")
       nodeConfigurations.keySet.intersect(nodeToKeep)
     }
   }
