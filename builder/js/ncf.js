@@ -125,7 +125,7 @@ app.directive('constraint', function($http, $q, $timeout) {
             return $q.when(modelValue);
           }
         , function(errorResult) {
-          // If there was an error with the request, accept the value, it will be checked when saving 
+          // If there was an error with the request, accept the value, it will be checked when saving
           // Maybe we should display a warning but I'm not sure at all ...
             if (timeoutStatus) {
               return $q.when('request timeout');
@@ -176,7 +176,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Variable we use in the whole application
   // Give access to the "General information" form
   $scope.editForm;
-  // Path of ncf files, defined as a url parameter    
+  // Path of ncf files, defined as a url parameter
   $scope.path;
   // generic methods container
   $scope.generic_methods;
@@ -219,18 +219,18 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Callback when an element is dropped on the list of method calls
   // return the element that will be added, if false do not add anything
   $scope.dropCallback = function(elem, nextIndex, type){
-  
+
     // Add element
     // if type is a bundle, then transform it to a method call and add it
     if (type === "bundle") {
       return toMethodCall(elem);
     }
-  
+
     // If selected method is the same than the one moving, we need to update selectedMethod
     if (angular.equals($scope.selectedMethod, elem)) {
       $scope.selectedMethod = elem;
     }
-  
+
     return elem
   }
 
@@ -255,7 +255,7 @@ $scope.capitaliseFirstLetter = function (string) {
 function errorNotification (message,details) {
   var errorMessage = '<b>An Error occured!</b> ' + message
   if (details !== undefined) {
-    errorMessage += '<br/><b>Details:</b><pre>' + details +"</pre>"
+    errorMessage += '<br/><b>Details:</b><pre class="error-pre">' + $('<div>').text(details).html() +"</pre>"
   }
   ngToast.create({
       content: errorMessage
@@ -266,7 +266,7 @@ function errorNotification (message,details) {
   });
 }
 
-$scope.handle_error = function( actionName ) {
+function handle_error ( actionName ) {
   return function(data, status, headers, config) {
     if (status === 401) {
       $scope.authenticated = false;
@@ -274,10 +274,11 @@ $scope.handle_error = function( actionName ) {
     } else {
       if (data.error !== undefined) {
           $.each(data.error, function(index,error) {
-            errorNotification(error.message,error.details);
+            var details = error.details === undefined ? error.errorDetails : error.details
+            errorNotification(error.message,details);
           })
       } else {
-          errorNotification('Error '+ actionName)
+        errorNotification('Error '+ actionName, data.errorDetails)
       }
     }
   }
@@ -467,7 +468,7 @@ $scope.getTechniques = function () {
         errorNotification(error.message,error.details)
       })
     } ).
-    error($scope.handle_error(" while fetching techniques"));
+    error(handle_error(" while fetching techniques"));
 };
 
 // Call ncf api to get genereric methods and then after that get Techniques
@@ -493,7 +494,7 @@ $scope.getMethodsAndTechniques = function () {
         errorNotification(error.message,error.details)
       });
     } ).
-    error($scope.handle_error(" while fetching generic methods"));
+    error(handle_error(" while fetching generic methods"));
 };
 
 // Group methods by category, a category of a method is the first word in its name
@@ -528,7 +529,7 @@ $scope.exportTechnique = function(){
     }
   }
   var exportedTechnique = {
-    type: 'ncf_technique', version: 1.0, 
+    type: 'ncf_technique', version: 1.0,
     data: {
       bundle_args: $scope.selectedTechnique["bundle_args"],
       bundle_name: $scope.selectedTechnique["bundle_name"],
@@ -539,7 +540,7 @@ $scope.exportTechnique = function(){
       method_calls: calls
     }
   };
- 
+
   var blob = new Blob([angular.toJson(exportedTechnique, true)], {type: 'text/plain'});
   if (window.navigator && window.navigator.msSaveOrOpenBlob) {
     window.navigator.msSaveOrOpenBlob(blob, filename);
@@ -824,7 +825,7 @@ $scope.onImportFileChange = function (fileEl) {
         canReset = ! angular.equals($scope.selectedMethod, oldValue);
       }
     }
-    
+
     return canReset;
   };
 
@@ -1055,7 +1056,7 @@ $scope.onImportFileChange = function (fileEl) {
         $scope.selectedTechnique = undefined;
         $scope.originalTechnique = undefined;
       } ).
-      error($scope.handle_error("while deleting Technique '"+$scope.selectedTechnique.name+"'"));
+      error(handle_error("while deleting Technique '"+$scope.selectedTechnique.name+"'"));
   };
 
   $scope.setBundleName = function (technique) {
@@ -1088,7 +1089,7 @@ $scope.onImportFileChange = function (fileEl) {
   });
 
   $scope.newParam = {}
-  
+
   $scope.addParameter = function() {
     $scope.selectedTechnique.parameter.push(angular.copy($scope.newParam))
     $scope.newParam.name = ""
@@ -1109,54 +1110,63 @@ $scope.onImportFileChange = function (fileEl) {
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
       // Technique may have been modified by ncf API
-      ncfTechnique = data.data.data.technique;
+      ncfTechnique = data.data.technique;
       var usedMethods = new Set();
       ncfTechnique.method_calls.forEach(
-        function(m) { 
+        function(m) {
           usedMethods.add($scope.generic_methods[m.method_name]);
         }
       );
-      
+
       var methodKeys = Object.keys($scope.generic_methods).map(function(e) {
         return $scope.generic_methods[e]
       });
       var reason = "Updating Technique " + technique.name + " using the Technique editor";
-      $http.post("/rudder/secure/api/ncf", { "technique": ncfTechnique, "methods":methodKeys, "reason":reason });
-      // Transform back ncfTechnique to UITechnique, that will make it ok
-      var savedTechnique = toTechUI(ncfTechnique);
 
-       // Update technique if still selected
-      if (angular.equals($scope.originalTechnique, origin_technique)) {
-        // If we were cloning a technique, remove its 'clone' state
-        savedTechnique.isClone = false;
-        if($scope.originalTechnique.bundle_name!=="" && $scope.originalTechnique.bundle_name!==undefined){
-          $scope.originalTechnique=angular.copy(savedTechnique);
+      var rudderApiSuccess = function(data) {
+        // Transform back ncfTechnique to UITechnique, that will make it ok
+        var savedTechnique = toTechUI(ncfTechnique);
+
+        // Update technique if still selected
+        if (angular.equals($scope.originalTechnique, origin_technique)) {
+          // If we were cloning a technique, remove its 'clone' state
+          savedTechnique.isClone = false;
+          if($scope.originalTechnique.bundle_name!=="" && $scope.originalTechnique.bundle_name!==undefined){
+            $scope.originalTechnique=angular.copy(savedTechnique);
+          }
+          $scope.selectedTechnique=angular.copy(savedTechnique);
+          // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
+          $scope.selectedMethod = undefined;
         }
-        $scope.selectedTechnique=angular.copy(savedTechnique);
-        // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
-        $scope.selectedMethod = undefined;
+        $scope.resetFlags();
+        ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
+        // Find index of the technique in the actual tree of technique (look for original technique)
+        var index = findIndex($scope.techniques,origin_technique);
+        if ( index === -1) {
+         // Add a new techniuqe
+         $scope.techniques.push(savedTechnique);
+        } else {
+         // modify techique in array
+         $scope.techniques[index] = savedTechnique;
+        }
       }
-      $scope.resetFlags();
-      ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
-      // Find index of the technique in the actual tree of technique (look for original technique)
-      var index = findIndex($scope.techniques,origin_technique);
-      if ( index === -1) {
-        // Add a new techniuqe
-        $scope.techniques.push(savedTechnique);
-      } else {
-        // modify techique in array
-        $scope.techniques[index] = savedTechnique;
-      }
+
+      var errorRudder = handle_error("while updating Technique \""+ ncfTechnique.name + "\" through Rudder API")
+
+      $http.post("/rudder/secure/api/ncf", { "technique": ncfTechnique, "methods":methodKeys, "reason":reason }).
+        success(rudderApiSuccess).
+        error(errorRudder);
+
     }
     var saveError = function(action, data) {
-      return $scope.handle_error("while "+action+" Technique '"+ data.technique.name+"'")
+      return handle_error("while "+action+" Technique '"+ data.technique.name+"'")
     }
 
     // Actually save the technique through API
     if ($scope.originalTechnique.bundle_name === undefined) {
-      $http.post("/ncf/api/techniques", data).then(saveSuccess,saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.post("/ncf/api/techniques", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
     } else {
-      $http.put("/ncf/api/techniques", data).then(saveSuccess,saveError("saving", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.put("/ncf/api/techniques", data).success(saveSuccess).error(saveError("saving", data)).finally(function(){$scope.$broadcast('endSaving');});
     }
   };
   // Popup definitions
@@ -1322,10 +1332,10 @@ var RestoreWarningModalCtrl = function ($scope, $modalInstance, technique, editF
 };
 
 app.config(function($httpProvider,$locationProvider) {
-    $locationProvider.html5Mode(false).hashPrefix('!');    
+    $locationProvider.html5Mode(false).hashPrefix('!');
     //On some browsers, HTML get headers are bypassed during Angular GET requests, so these headers have to be reinitialized in the Angular httpProvider defaults headers GET.
     if (!$httpProvider.defaults.headers.get) {
-        $httpProvider.defaults.headers.get = {};    
+        $httpProvider.defaults.headers.get = {};
     }
     // Allows the browser to not use the GET request response to satisfy subsequent responses without first checking with the originating server
     $httpProvider.defaults.headers.get['Cache-Control'] = 'no-cache';
