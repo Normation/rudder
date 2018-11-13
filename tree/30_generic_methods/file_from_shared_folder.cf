@@ -19,7 +19,7 @@
 # @name File copy from Rudder shared folder 
 # @description Ensure that a file or directory is copied from Rudder shared folder (/var/rudder/configuration-repository/shared-files)
 #
-# @parameter source      Source file (path relative to Rudder shared folder)
+# @parameter source      Source file (path, relative to /var/rudder/configuration-repository/shared-files)
 # @parameter destination Destination file (absolute path on the target node)
 # @parameter hash_type   Hash algorithm used to check if file is updated (md5, sha1, sha256). Only used on dsc agent, cfengine agent use it's own system for now. 
 # @parameter_constraint hash_type  "select" : [ "md5", "sha1", "sha256" ]
