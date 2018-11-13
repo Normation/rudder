@@ -244,7 +244,7 @@ class FusionReportEndpoint(
                       save(certifiedReport)
                     } else {
                       // Signature is not valid, reject inventory
-                      val msg = s"Rejecting Inventory '${report.name}' for Node '${report.node.main.id.value}' because signature is not valid, you can update the inventory key by running the following command '/opt/rudder/bin/rudder-keys change-key ${report.node.main.id.value} <your new public key>'"
+                      val msg = s"Rejecting Inventory '${report.name}' for Node '${report.node.main.id.value}' because the Inventory signature is not valid: the Inventory was not signed with the same agent key as the one saved within Rudder for that Node. If you updated the agent key on this node, you can update the key stored within Rudder with the following command on the Rudder Server: '/opt/rudder/bin/rudder-keys change-key ${report.node.main.id.value} <your new public key>'. If you did not change the key, please ensure that the node sending that inventory is actually the node registered within Rudder"
                       logger.error(msg)
                       new ResponseEntity(msg, HttpStatus.UNAUTHORIZED)
                     }
@@ -275,13 +275,13 @@ class FusionReportEndpoint(
                   }
                   // We are in certified state, refuse inventory with no signature
                   case Full((_,CertifiedKey))  =>
-                    val msg = s"Reject inventory '${report.name}' for Node '${report.node.main.id.value}' because signature is missing, you can go back to unsigned state by running the following command '/opt/rudder/bin/rudder-keys reset-status ${report.node.main.id.value}'"
+                    val msg = s"Rejecting Inventory '${report.name}' for Node '${report.node.main.id.value}' because its signature is missing. You can go back to unsigned state by running the following command on the Rudder Server: '/opt/rudder/bin/rudder-keys reset-status ${report.node.main.id.value}'"
                     logger.error(msg)
                     new ResponseEntity(msg, HttpStatus.UNAUTHORIZED)
                   // An error occurred while checking inventory key status
                   case eb: EmptyBox =>
                     logger.error(eb)
-                    val fail = eb ?~! "Error when trying to check inventory key status"
+                    val fail = eb ?~! s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'"
                     logger.error(fail.messageChain)
                     logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
                     new ResponseEntity(fail.messageChain, HttpStatus.PRECONDITION_FAILED)
