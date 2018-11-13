@@ -233,7 +233,7 @@ trait PromiseGenerationService extends Loggable {
       saveExpectedTime      =  System.currentTimeMillis
       savedExpectedReports  <- saveExpectedReports(expectedReports) ?~! "Error when saving expected reports"
       timeSaveExpected      =  (System.currentTimeMillis - saveExpectedTime)
-      _                     =  logger.debug(s"Node expected reports saved in base in ${timeWriteNodeConfig} ms.")
+      _                     =  logger.debug(s"Node expected reports saved in base in ${timeSaveExpected} ms.")
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime         =  System.currentTimeMillis
