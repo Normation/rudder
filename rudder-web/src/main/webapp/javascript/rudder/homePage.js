@@ -139,11 +139,13 @@ function doughnutChart (id,data,count,colors) {
 
   var context = $("#"+id)
 
+  var borderW = data.values.length > 1 ? 1 : 0;
   var chartData = {
     labels  :  data.labels,
     datasets:
       [ { data           : data.values
         , backgroundColor: colors
+        , borderWidth    : borderW
       } ]
   };
   
