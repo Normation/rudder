@@ -721,6 +721,7 @@ object RudderConfig extends Loggable {
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
       , new TechniqueApi(restExtractorService, techniqueApiService6)
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
+      , new SystemApi(restExtractorService, rudderMajorVersion, rudderFullVersion, builtTimestamp)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 
