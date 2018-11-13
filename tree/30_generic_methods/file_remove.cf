@@ -32,18 +32,29 @@ bundle agent file_remove(target)
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"              slist => { "${target}" };
 
+  classes:
+      #need to ensure if it's a folder or a file
+      "is_folder"  expression => isdir("${target}");
+
   files:
-    "${target}"
-      delete        => tidy,
-      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+    !is_folder::
+      "${target}"
+        delete        => tidy,
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "success_if_nothing" usebundle => _classes_success("${old_class_prefix}"),
-                         ifvarclass => "!${old_class_prefix}_reached";
+    !is_folder::
+      "success_if_nothing" usebundle => _classes_success("${old_class_prefix}"),
+                          ifvarclass => "!${old_class_prefix}_reached";
 
-    "success_if_nothing" usebundle => _classes_success("${class_prefix}"),
-                         ifvarclass => "has_promiser_stack.!${class_prefix}_reached";
+      "success_if_nothing" usebundle => _classes_success("${class_prefix}"),
+                          ifvarclass => "has_promiser_stack.!${class_prefix}_reached";
+    is_folder::
+      "error"              usebundle => _classes_failure("${old_class_prefix}");
 
-    "report"             usebundle => _log("Remove file ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log("${target} is a directory, and cannot be removed as a file", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    !is_folder::
+      "report"             usebundle => _log("Remove file ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }
