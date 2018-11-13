@@ -393,6 +393,13 @@ attributetype ( InventoryAttributes:400.3
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
+attributetype ( InventoryAttributes:400.3.1
+  NAME 'networkSubnet'
+  DESC 'Network interface subnet'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
 attributetype ( InventoryAttributes:400.4
   NAME 'networkInterfaceMacAddress'
   DESC 'Network interface MAC address'
@@ -1044,7 +1051,7 @@ objectclass ( InventoryObjectClasses:20
   STRUCTURAL
   MUST ( networkInterface )
   MAY ( status $ speed $ ipHostNumber $ networkInterfaceMacAddress $
-        networkInterfaceGateway $ ipNetworkNumber $ networkInterfaceDhcpServer $
+        networkInterfaceGateway $ ipNetworkNumber $ networkSubnet $ networkInterfaceDhcpServer $
         networkInterfaceMask $ networkInterfaceType $ networkInterfaceTypeMib) )
 
 objectclass ( InventoryObjectClasses:21

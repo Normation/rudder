@@ -57,14 +57,26 @@ case class FileSystem(
   , totalSpace  : Option[MemorySize] = None
 ) extends NodeElement with HashcodeCaching
 
+/**
+ * For network, we *should* have a group for all layer 3 information that
+ * are linked together and may be multivalued:
+ * - ifAddresses
+ * - ifMask
+ * - ifSubnet
+ * - ifGateway
+ *
+ * So we should track that linked. But as a first correction,
+ * it's better to have correct information that not have them,
+ * even if they are a little mixed-up.
+ */
 case class Network (
     name        : String
   , description : Option[String] = None
   , ifAddresses : Seq[InetAddress] = Seq()
   , ifDhcp      : Option[InetAddress] = None
-  , ifGateway   : Option[InetAddress] = None
-  , ifMask      : Option[InetAddress] = None
-  , ifSubnet    : Option[InetAddress] = None
+  , ifGateway   : Seq[InetAddress] = Seq()
+  , ifMask      : Seq[InetAddress] = Seq()
+  , ifSubnet    : Seq[InetAddress] = Seq()
   , macAddress  : Option[String] = None
   , status      : Option[String] = None
   , ifType      : Option[String] = None
