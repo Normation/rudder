@@ -92,7 +92,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         file_select  => dirs,
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
-    is_type_directories.((is_target_directory.is_depth_zero)|!is_target_directory)::
+    is_type_directories.is_target_directory.is_depth_zero::
 
       "${path}"
         create       => "false",
@@ -101,6 +101,13 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
+
+    is_type_directories.!is_target_directory::
+      "error report if target is a file and we manage directory"
+            usebundle => _classes_failure("${old_class_prefix}");
+      "error report if target is a file and we manage directory"
+            usebundle => _classes_failure("${class_prefix}");
+
 
     !target_exists::
       "error report if target doesn't exist"
