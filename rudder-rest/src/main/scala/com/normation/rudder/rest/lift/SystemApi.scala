@@ -38,6 +38,7 @@
 
 package com.normation.rudder.rest.lift
 
+
 import com.normation.rudder.rest.{ApiPath, ApiVersion, AuthzToken, RestExtractorService, RestUtils, SystemApi => API}
 import net.liftweb.http.{InMemoryResponse, LiftResponse, Req}
 import com.normation.rudder.rest.RestUtils.{getActor, toJsonError, toJsonResponse}
@@ -63,6 +64,9 @@ import org.joda.time.format.{DateTimeFormat, DateTimeFormatterBuilder}
 class SystemApi(
     restExtractorService : RestExtractorService
   , apiv11service        : SystemApiService11
+  , rudderMajorVersion   : String
+  , rudderFullVerion     : String
+  , rudderBuildTimestamp : String
 ) extends LiftApiModuleProvider[API] {
 
   def schemas = API
@@ -70,6 +74,7 @@ class SystemApi(
   override def getLiftEndpoints(): List[LiftApiModule] = {
 
     API.endpoints.map(e => e match {
+      case API.Info                           => Info
       case API.Status                         => Status
       case API.DebugInfo                      => DebugInfo
       case API.TechniquesReload               => TechniquesReload
@@ -102,6 +107,22 @@ class SystemApi(
       case API.GetRulesZipArchive             => GetRulesZipArchive
       case API.GetAllZipArchive               => GetAllZipArchive
     })
+  }
+
+  object Info extends LiftApiModule0 {
+    val schema = API.Info
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify = params.prettify
+      implicit val action = "getSystemInfo"
+
+      toJsonResponse(None, ("rudder" -> (
+          ("major-version" -> rudderMajorVersion)
+        ~ ("full-version"  -> rudderFullVerion)
+        ~ ("build-time"    -> rudderBuildTimestamp)
+      )))
+    }
   }
 
   object Status extends LiftApiModule0 {

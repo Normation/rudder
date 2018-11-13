@@ -40,7 +40,6 @@ package bootstrap.liftweb
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
-import java.math.BigInteger
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.Collection

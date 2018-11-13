@@ -354,6 +354,11 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
 sealed trait SystemApi extends EndpointSchema with GeneralApi with SortIndex
 object SystemApi extends ApiModuleProvider[SystemApi] {
 
+  final case object Info extends SystemApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = zz
+    val description = "Get information about system installation (version, etc)"
+    val (action, path) = GET / "system" / "info"
+  }
+
   final case object Status extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = zz
     val description = "Get Api status"
     val (action, path) = GET / "system" / "status"
@@ -592,11 +597,10 @@ object AllApi {
     NodeApi.endpoints :::
     ParameterApi.endpoints :::
     SettingsApi.endpoints :::
+    SystemApi.endpoints :::
     TechniqueApi.endpoints :::
     RuleApi.endpoints :::
     InfoApi.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin
     Nil
 }
-
-
