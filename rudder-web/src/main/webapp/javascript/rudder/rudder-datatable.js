@@ -411,9 +411,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
     , "sType" : "numeric"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData, "showForm");
-        if (oData.status === "In application" || oData.status === "Partially applied" ) {
-          elem.append('<div id="compliance-bar-'+oData.id+'"><center><img class="ajaxloader svg-loader" src="'+resourcesPath+'/images/ajax-loader.svg" /></center></div>');
-        }
+        elem.append('<div id="compliance-bar-'+oData.id+'"><center><img class="ajaxloader svg-loader" src="'+resourcesPath+'/images/ajax-loader.svg" /></center></div>');
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
@@ -1132,6 +1130,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
       "mDataProp": "agentPolicyMode"
     , "sWidth": "8%"
     , "sTitle": "Policy Mode"
+    , "sClass" : "tw-bs"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).empty();
         $(nTd).prepend(createTextAgentPolicyMode(true,oData.agentPolicyMode,oData.explanation));
@@ -1142,6 +1141,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "sTitle": "Compliance"
     , "sSortDataType": "node-compliance"
     , "sType" : "numeric"
+    , "sClass" : "tw-bs"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, true)
         var complianceBar = '<div id="compliance-bar-'+oData.id+'"><center><img class="svg-loader" src="'+resourcesPath+'/images/ajax-loader.svg" /></center></div>';
@@ -1401,12 +1401,16 @@ function createEventLogTable(gridId, data, contextPath, refresh, pickEventLogsIn
 }
 
 function computeCompliancePercent (complianceArray) {
-  var repaired = complianceArray[3];
-  // Enforce N/A + Audit N/A
-  var na       = complianceArray[1] + complianceArray[9];
-  // Enforce success + Audit success
-  var success  = complianceArray[2] + complianceArray[10];
-  return repaired + na + success;
+  if (Array.isArray(complianceArray)) {
+    var repaired = complianceArray[3];
+    // Enforce N/A + Audit N/A
+    var na       = complianceArray[1] + complianceArray[9];
+    // Enforce success + Audit success
+    var success  = complianceArray[2] + complianceArray[10];
+    return repaired + na + success;
+  } else {
+    return 0;
+  }
 }
 /*
  * A function that build a compliance bar with colored zone for compliance
@@ -1417,125 +1421,130 @@ function computeCompliancePercent (complianceArray) {
  *
  */
 function buildComplianceBar(compliance, minPxSize) {
-  //Set the default minimal size and displayed value of compliance bars if not defined
-  if (minPxSize === undefined) minPxSize = 5;
 
-  var content = $('<div class="progress"></div>');
+  if (Array.isArray(compliance)) {
+    //Set the default minimal size and displayed value of compliance bars if not defined
+    if (minPxSize === undefined) minPxSize = 5;
 
-  // Correct compliance array, if sum is over 100, fix it y removing the excedent amount to the max value
-  var sum = compliance.reduce(function(pv, cv) {return pv + cv; }, 0);
-  if (sum > 100) {
-    var max_of_array = Math.max.apply(Math, compliance);
-    var index = compliance.indexOf(max_of_array);
-    var toRemove = sum - 100
-    compliance[index] = compliance[index] - toRemove;
+    var content = $('<div class="progress"></div>');
+
+    // Correct compliance array, if sum is over 100, fix it y removing the excedent amount to the max value
+    var sum = compliance.reduce(function(pv, cv) {return pv + cv; }, 0);
+    if (sum > 100) {
+      var max_of_array = Math.max.apply(Math, compliance);
+      var index = compliance.indexOf(max_of_array);
+      var toRemove = sum - 100
+      compliance[index] = compliance[index] - toRemove;
+    }
+
+    var reportsDisabled      = compliance[0];  // - 5
+    var enforceNotApplicable = compliance[1];  // - 0
+    var enforceSuccess       = compliance[2];  // - 0
+    var repaired             = compliance[3];  // - 0
+    var enforceError         = compliance[4];  // - 2
+    var pending              = compliance[5];  // - 4
+    var noreport             = compliance[6];  // - 6
+    var missing              = compliance[7];  // - 3
+    var unknown              = compliance[8];  // - 3
+    var auditNotApplicable   = compliance[9];  // - 0
+    var compliant            = compliance[10]; // - 0
+    var nonCompliant         = compliance[11]; // - 1
+    var auditError           = compliance[12]; // - 2
+    var badPolicyMode        = compliance[13]; // - 3
+
+    var okStatus = computeCompliancePercent(compliance)
+    var unexpected = missing + unknown + badPolicyMode;
+    var error = enforceError + auditError;
+
+
+    var complianceBars = getProgressBars([
+        /*0*/ okStatus
+      , /*1*/ nonCompliant
+      , /*2*/ error
+      , /*3*/ unexpected
+      , /*4*/ pending
+      , /*5*/ reportsDisabled
+      , /*6*/ noreport
+    ] , minPxSize);
+
+    var precision = 2;
+    if(okStatus != 0) {
+      var text = []
+      if (enforceSuccess != 0) {
+        text.push("Success (enforce): "+enforceSuccess.toFixed(precision)+"% <br> ");
+      }
+      if (compliant != 0) {
+        text.push("Compliant: "+compliant.toFixed(precision)+"% <br> ");
+      }
+      if (repaired != 0) {
+        text.push("Repaired: "+repaired.toFixed(precision)+"% <br> ");
+      }
+      if (enforceNotApplicable != 0) {
+        text.push("Not applicable (enforce): "+enforceNotApplicable.toFixed(precision)+"% <br> ");
+      }
+      if (auditNotApplicable != 0) {
+        text.push("Not applicable (audit): "+auditNotApplicable.toFixed(precision)+"% <br> ");
+      }
+      content.append('<div class="progress-bar progress-bar-success" style="width:'+complianceBars[0].width+'" title="'+text.join("\n")+'">'+complianceBars[0].value+'</div>');
+    }
+
+    if(nonCompliant != 0) {
+      var text = []
+      text.push("Non compliance: "+nonCompliant.toFixed(precision)+"%");
+      content.append('<div class="progress-bar progress-bar-audit-noncompliant" style="width:'+complianceBars[1].width+'" title="'+text.join("\n")+'">'+complianceBars[1].value+'</div>');
+    }
+
+    if(error != 0) {
+      var text = []
+      if (enforceError != 0) {
+        text.push("Errors (enforce): "+enforceError.toFixed(precision)+"% <br> ");
+      }
+      if (auditError != 0) {
+        text.push("Errors (audit): "+auditError.toFixed(precision)+"% <br> ");
+      }
+      content.append('<div class="progress-bar progress-bar-error" style="width:'+complianceBars[2].width+'" title="'+text.join("\n")+'">'+complianceBars[2].value+'</div>');
+    }
+
+    if(unexpected != 0) {
+      var text = []
+      if (missing != 0) {
+        text.push("Missing reports: "+missing.toFixed(precision)+"% <br> ");
+      }
+      if (unknown != 0) {
+        text.push("Unknown reports: "+unknown.toFixed(precision)+"% <br> ");
+      }
+      if (badPolicyMode != 0) {
+        text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode.toFixed(precision)+"% <br> ");
+      }
+      content.append('<div class="progress-bar progress-bar-unknown progress-bar-striped" style="width:'+complianceBars[3].width+'" title="'+text.join("\n")+'">'+complianceBars[3].value+'</div>');
+    }
+
+    if(pending != 0) {
+      var tooltip = pending.toFixed(precision);
+      content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="width:'+complianceBars[4].width+'" title="Applying: '+tooltip+'%">'+complianceBars[4].value+'</div>');
+    }
+
+    if(reportsDisabled != 0) {
+      var tooltip = reportsDisabled.toFixed(precision);
+      content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+complianceBars[5].width+'" title="Reports Disabled: '+tooltip+'%">'+complianceBars[5].value+'</div>')
+    }
+
+    if(noreport != 0) {
+      var tooltip = noreport.toFixed(precision);
+      content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+complianceBars[6].width+'" title="No report: '+tooltip+'%">'+complianceBars[6].value+'</div>');
+    }
+
+    var container = $('<div></div>');
+    container.append(content);
+
+    $(window).on('resize',function(){
+      adjustComplianceBar(content);
+    });
+
+    return container
+  } else {
+    return compliance
   }
-
-  var reportsDisabled      = compliance[0];  // - 5
-  var enforceNotApplicable = compliance[1];  // - 0
-  var enforceSuccess       = compliance[2];  // - 0
-  var repaired             = compliance[3];  // - 0
-  var enforceError         = compliance[4];  // - 2
-  var pending              = compliance[5];  // - 4
-  var noreport             = compliance[6];  // - 6
-  var missing              = compliance[7];  // - 3
-  var unknown              = compliance[8];  // - 3
-  var auditNotApplicable   = compliance[9];  // - 0
-  var compliant            = compliance[10]; // - 0
-  var nonCompliant         = compliance[11]; // - 1
-  var auditError           = compliance[12]; // - 2
-  var badPolicyMode        = compliance[13]; // - 3
-
-  var okStatus = computeCompliancePercent(compliance)
-  var unexpected = missing + unknown + badPolicyMode;
-  var error = enforceError + auditError;
-
-
-  var complianceBars = getProgressBars([
-      /*0*/ okStatus
-    , /*1*/ nonCompliant
-    , /*2*/ error
-    , /*3*/ unexpected
-    , /*4*/ pending
-    , /*5*/ reportsDisabled
-    , /*6*/ noreport
-  ] , minPxSize);
-
-  var precision = 2;
-  if(okStatus != 0) {
-    var text = []
-    if (enforceSuccess != 0) {
-      text.push("Success (enforce): "+enforceSuccess.toFixed(precision)+"% <br> ");
-    }
-    if (compliant != 0) {
-      text.push("Compliant: "+compliant.toFixed(precision)+"% <br> ");
-    }
-    if (repaired != 0) {
-      text.push("Repaired: "+repaired.toFixed(precision)+"% <br> ");
-    }
-    if (enforceNotApplicable != 0) {
-      text.push("Not applicable (enforce): "+enforceNotApplicable.toFixed(precision)+"% <br> ");
-    }
-    if (auditNotApplicable != 0) {
-      text.push("Not applicable (audit): "+auditNotApplicable.toFixed(precision)+"% <br> ");
-    }
-    content.append('<div class="progress-bar progress-bar-success" style="width:'+complianceBars[0].width+'" title="'+text.join("\n")+'">'+complianceBars[0].value+'</div>');
-  }
-
-  if(nonCompliant != 0) {
-    var text = []
-    text.push("Non compliance: "+nonCompliant.toFixed(precision)+"%");
-    content.append('<div class="progress-bar progress-bar-audit-noncompliant" style="width:'+complianceBars[1].width+'" title="'+text.join("\n")+'">'+complianceBars[1].value+'</div>');
-  }
-
-  if(error != 0) {
-    var text = []
-    if (enforceError != 0) {
-      text.push("Errors (enforce): "+enforceError.toFixed(precision)+"% <br> ");
-    }
-    if (auditError != 0) {
-      text.push("Errors (audit): "+auditError.toFixed(precision)+"% <br> ");
-    }
-    content.append('<div class="progress-bar progress-bar-error" style="width:'+complianceBars[2].width+'" title="'+text.join("\n")+'">'+complianceBars[2].value+'</div>');
-  }
-
-  if(unexpected != 0) {
-    var text = []
-    if (missing != 0) {
-      text.push("Missing reports: "+missing.toFixed(precision)+"% <br> ");
-    }
-    if (unknown != 0) {
-      text.push("Unknown reports: "+unknown.toFixed(precision)+"% <br> ");
-    }
-    if (badPolicyMode != 0) {
-      text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode.toFixed(precision)+"% <br> ");
-    }
-    content.append('<div class="progress-bar progress-bar-unknown progress-bar-striped" style="width:'+complianceBars[3].width+'" title="'+text.join("\n")+'">'+complianceBars[3].value+'</div>');
-  }
-
-  if(pending != 0) {
-    var tooltip = pending.toFixed(precision);
-    content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="width:'+complianceBars[4].width+'" title="Applying: '+tooltip+'%">'+complianceBars[4].value+'</div>');
-  }
-
-  if(reportsDisabled != 0) {
-    var tooltip = reportsDisabled.toFixed(precision);
-    content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+complianceBars[5].width+'" title="Reports Disabled: '+tooltip+'%">'+complianceBars[5].value+'</div>')
-  }
-
-  if(noreport != 0) {
-    var tooltip = noreport.toFixed(precision);
-    content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+complianceBars[6].width+'" title="No report: '+tooltip+'%">'+complianceBars[6].value+'</div>');
-  }
-
-  var container = $('<div></div>');
-  container.append(content);
-
-  $(window).on('resize',function(){
-    adjustComplianceBar(content);
-  });
-
-  return container
 }
 
 function adjustComplianceBar(bar){
@@ -1729,7 +1738,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     , "aaData": data
     , "bJQueryUI": true
     , "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ]
-    , "pageLength": 25
+    , "pageLength": 1
     , "retrieve" : true
   };
   if (storageId !== undefined) {
