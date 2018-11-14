@@ -306,7 +306,6 @@ class NodeApi (
   }
 }
 
-
 class NodeApiService2 (
     newNodeManager    : NewNodeManager
   , nodeInfoService   : NodeInfoService
@@ -314,7 +313,6 @@ class NodeApiService2 (
   , uuidGen           : StringUuidGenerator
   , restExtractor     : RestExtractorService
   , restSerializer    : RestDataSerializer
-  , fixedTag          : Boolean
 ) ( implicit userService : UserService ) extends Loggable {
 
   import restSerializer._
@@ -323,7 +321,7 @@ class NodeApiService2 (
     implicit val action = "listAcceptedNodes"
       nodeInfoService.getAll match {
         case Full(nodes) =>
-          val acceptedNodes = nodes.values.map(serializeNodeInfo(_,"accepted",fixedTag))
+          val acceptedNodes = nodes.values.map(serializeNodeInfo(_,"accepted"))
           toJsonResponse(None, ( "nodes" -> JArray(acceptedNodes.toList)))
 
         case eb: EmptyBox => val message = (eb ?~ ("Could not fetch accepted Nodes")).msg
@@ -336,7 +334,7 @@ class NodeApiService2 (
     implicit val action = "acceptedNodeDetails"
     nodeInfoService.getNodeInfo(id) match {
       case Full(Some(info)) =>
-        val node =  serializeNodeInfo(info,"accepted",fixedTag)
+        val node =  serializeNodeInfo(info,"accepted")
         toJsonResponse(None, ( "nodes" -> JArray(List(node))))
       case Full(None) =>
         toJsonError(None, s"Could not find accepted Node ${id.value}")
@@ -405,12 +403,12 @@ class NodeApiService2 (
                      case Some(x) => Full(x)
                    }
         remove  <- removeNodeService.removeNode(info.id, modId, actor)
-      } yield { serializeNodeInfo(info,"deleted", fixedTag) }
+      } yield { serializeNodeInfo(info,"deleted") }
     }
 
    ( action match {
       case AcceptNode =>
-        newNodeManager.accept(ids, modId, actor, "").map(_.map(serializeInventory(_, "accepted", fixedTag)))
+        newNodeManager.accept(ids, modId, actor, "").map(_.map(serializeInventory(_, "accepted")))
 
       case RefuseNode =>
         newNodeManager.refuse(ids, modId, actor, "").map(_.map(serializeServerInfo(_,"refused")))

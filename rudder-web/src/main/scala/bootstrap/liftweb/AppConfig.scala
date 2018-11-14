@@ -637,7 +637,6 @@ object RudderConfig extends Loggable {
     , uuidGen
     , restExtractorService
     , restDataSerializer
-    , false
   )
 
   val nodeApiService4 = new NodeApiService4 (
