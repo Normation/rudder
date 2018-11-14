@@ -78,10 +78,10 @@ trait RestDataSerializer {
 
   def serializeServerInfo (srv : Srv, status : String) : JValue
 
-  def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue
+  def serializeNodeInfo(nodeInfo : NodeInfo, status : String) : JValue
   def serializeNode(node : Node) : JValue
 
-  def serializeInventory(inventory: FullInventory, status: String, tagFixed: Boolean) : JValue
+  def serializeInventory(inventory: FullInventory, status: String) : JValue
 
   def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue
 
@@ -104,15 +104,13 @@ case class RestDataSerializerImpl (
     }
   }
 
-  def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue = {
-    // before API v4, we had a typo that we choose to keep to not break preexisting API users
-    val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
+  def serializeNodeInfo(nodeInfo : NodeInfo, status : String) : JValue = {
     (   ("id"           -> nodeInfo.id.value)
       ~ ("status"       -> status)
       ~ ("hostname"     -> nodeInfo.hostname)
       ~ ("osName"       -> nodeInfo.osDetails.os.name)
       ~ ("osVersion"    -> nodeInfo.osDetails.version.value)
-      ~ (machineTypeTag -> serializeMachineType(nodeInfo.machine.map(_.machineType)))
+      ~ ("machineType"  -> serializeMachineType(nodeInfo.machine.map(_.machineType)))
     )
   }
 
@@ -133,16 +131,14 @@ case class RestDataSerializerImpl (
     filteredLevel.toJson(nodeInfo, status, inventory, software)
   }
 
-  def serializeInventory (inventory: FullInventory, status: String, tagFixed: Boolean) : JValue = {
-    // before API v4, we had a typo that we choose to keep to not break preexisting API users
-    val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
+  def serializeInventory (inventory: FullInventory, status: String) : JValue = {
 
     (   ("id"           -> inventory.node.main.id.value)
       ~ ("status"       -> status)
       ~ ("hostname"     -> inventory.node.main.hostname)
       ~ ("osName"       -> inventory.node.main.osDetails.os.name)
       ~ ("osVersion"    -> inventory.node.main.osDetails.version.toString)
-      ~ (machineTypeTag -> serializeMachineType(inventory.machine.map( _.machineType )))
+      ~ ("machineType"  -> serializeMachineType(inventory.machine.map( _.machineType )))
     )
   }
 
