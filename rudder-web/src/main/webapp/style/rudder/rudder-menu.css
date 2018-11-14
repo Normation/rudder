@@ -430,11 +430,6 @@ aside.main-sidebar.fixed{
 a.sidebar-toggle{
   font-size:14px;
 }
-.main-header .navbar .nav>li.user.user-menu>a:hover,.main-header .navbar .nav>li.user.user-menu>a:focus,.main-header .navbar .nav>li.user.user-menu>a:visited,.main-header .navbar .nav>li.user.user-menu{
-  background: inherit;
-  color: #fff;
-  cursor: default;
-}
 
 .rudder_col {
   background-color: rgb(236, 240, 245);
@@ -710,6 +705,15 @@ ul.graph-legend > li.legend:hover{
   background-color:#fff;
 }
 
+.main-header .navbar .nav>li.user.user-menu>a:hover,
+.main-header .navbar .nav>li.user.user-menu>a:focus,
+.main-header .navbar .nav>li.user.user-menu>a:visited,
+.main-header .navbar .nav>li.user.user-menu{
+  background: inherit;
+  color: #fff;
+  cursor: default;
+}
+
 .tw-bs .main-header .navbar .nav a:hover,
 .tw-bs .main-header .navbar .nav a:active,
 .tw-bs .main-header .navbar .nav a:focus,
@@ -721,10 +725,23 @@ ul.graph-legend > li.legend:hover{
 .main-header .navbar .nav .open> a:focus,
 .main-header .navbar .nav>.active a,
 .main-header .navbar .nav li.dropdown > a:hover,
-.main-header .navbar .nav li.dropdown > a:focus{
+.main-header .navbar .nav li.dropdown > a:focus,
+.main-header .navbar .nav>li.user.user-menu.dropdown>a:hover,
+.main-header .navbar .nav>li.user.user-menu.dropdown>a:focus,
+.main-header .navbar .nav>li.user.user-menu.dropdown>a:active{
   background: rgba(0,0,0,0.1);
   color: #f6f6f6;
 }
+
+.main-header .navbar .nav>li.user.user-menu>a:hover,
+.main-header .navbar .nav>li.user.user-menu>a:focus,
+.main-header .navbar .nav>li.user.user-menu>a:visited,
+.main-header .navbar .nav>li.user.user-menu{
+  background: inherit;
+  color: #fff;
+  cursor: default;
+}
+
 .main-header .navbar .nav>li> a#logout{
   max-height:50px;
 }
