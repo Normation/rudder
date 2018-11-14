@@ -142,7 +142,7 @@ object UnknownOSType extends OsType {
 }
 
 sealed abstract class WindowsType extends OsType {
-  override val kernelName = "MSWin"
+  override val kernelName = "Windows"
 }
 object WindowsType {
   val allKnownTypes = (
