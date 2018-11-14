@@ -1,37 +1,77 @@
+/*
+*************************************************************************************
+* Copyright 2011 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
 package com.normation.rudder.services.servers
-import net.liftweb.common._
-import com.normation.inventory.domain.NodeId
-import com.unboundid.ldif.LDIFChangeRecord
-import com.normation.rudder.domain.NodeDit
-import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import net.liftweb.common.Loggable
-import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.repository.WoNodeGroupRepository
-import com.normation.rudder.repository.RoNodeGroupRepository
+
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
-import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
-import com.normation.inventory.domain.{AcceptedInventory,RemovedInventory}
-import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.RemovedInventory
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.LDAPConstants
+import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
+import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.utils.Control.sequence
-import com.normation.rudder.repository.CachedRepository
-import com.normation.rudder.repository.UpdateExpectedReportsRepository
-import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.services.policies.write.PathComputer
-import com.normation.rudder.services.policies.write.NodePromisesPaths
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.Hooks
+import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.repository.CachedRepository
+import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.repository.UpdateExpectedReportsRepository
+import com.normation.rudder.repository.WoNodeGroupRepository
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
-import com.normation.rudder.repository.ldap.ScalaReadWriteLock
-import com.normation.rudder.repository.ldap.ScalaReadWriteLock
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.policies.write.NodePromisesPaths
+import com.normation.rudder.services.policies.write.PathComputer
+import com.normation.utils.Control.sequence
+import com.unboundid.ldap.sdk.Modification
+import com.unboundid.ldap.sdk.ModificationType
+import com.unboundid.ldif.LDIFChangeRecord
+import net.liftweb.common.Loggable
+import net.liftweb.common._
 
 sealed trait DeletionResult
 object DeletionResult {
@@ -57,6 +97,7 @@ trait RemoveNodeService {
 class RemoveNodeServiceImpl(
       nodeDit                   : NodeDit
     , rudderDit                 : RudderDit
+    , deletedDit                : InventoryDit
     , ldap                      : LDAPConnectionProvider[RwLDAPConnection]
     , ldapEntityMapper          : LDAPEntityMapper
     , roNodeGroupRepository     : RoNodeGroupRepository
@@ -158,6 +199,13 @@ class RemoveNodeServiceImpl(
             timePostHooks =  (System.currentTimeMillis - postHooksTime)
             _             = logger.debug(s"Node-post-deletion scripts hooks ran in ${timePostHooks} ms")
           } yield {
+            removeKeyCertification(nodeId) match {
+              case Full(_) => //ok
+              case eb: EmptyBox =>
+                val e = (eb ?~! "Error when removing the certification status of node key")
+                logger.warn(e.messageChain)
+            }
+
             runPostHook match {
               case stop : HookReturnCode.Error => PostHookFailed(stop)
               case _ => Success
@@ -215,6 +263,18 @@ class RemoveNodeServiceImpl(
       result <- con.delete(dn)
     } yield {
       result
+    }
+  }
+
+  /**
+   * Uncertify node key if it was. Can be done once the node is deleted
+   */
+  private def removeKeyCertification(nodeId: NodeId): Box[LDIFChangeRecord] = {
+    for {
+      con <- ldap
+      res <- con.modify(deletedDit.NODES.NODE.dn(nodeId.value), new Modification(ModificationType.DELETE, LDAPConstants.A_KEY_STATUS))
+    } yield {
+      res
     }
   }
 
