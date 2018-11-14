@@ -629,7 +629,18 @@ class PasswordField(
   protected var _x: String = getDefaultValue
 
   //the algo to use
-  private[this] var currentAlgo: Option[HashAlgoConstraint] = algos.headOption
+  private[this] var currentAlgo: Option[HashAlgoConstraint] =
+    if (algos.contains(HashAlgoConstraint.LinuxShadowSHA256)) {
+      Some(HashAlgoConstraint.LinuxShadowSHA256)
+    }
+    else {
+      if (algos.contains(HashAlgoConstraint.SHA256)) {
+        Some(HashAlgoConstraint.SHA256)
+      }
+      else {
+        algos.headOption
+      }
+    }
   private[this] var currentHash: Option[String] = None
   private[this] var currentAction: String = "keep"
   //to store the result
