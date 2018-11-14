@@ -1668,6 +1668,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val removeNodeServiceImpl = new RemoveNodeServiceImpl(
         nodeDitImpl
       , rudderDitImpl
+      , removedNodesDitImpl
       , rwLdap
       , ldapEntityMapper
       , roLdapNodeGroupRepository
