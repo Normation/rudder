@@ -166,21 +166,9 @@ class AsyncComplianceService (
           case Full(compliances) =>
             val bars  = {
               for { (key, optCompliance) <- compliances } yield {
-
                 val value = kind.value(key)
-                optCompliance match {
-                  case None =>
-                    s"""
-                    $$("#compliance-bar-${value}").parent().css("text-decoration", "none");
-                    $$("#compliance-bar-${value}").html('<div class="tw-bs"><span class="text-center text-muted">no data available</span></div>');
-                    """
-                  case Some(compliance) =>
-                    val array = compliance.toJsArray.toJsCmd
-                    s"""
-                    $$("#compliance-bar-${value}").html(buildComplianceBar(${array}));
-                    ${kind.jsContainer}['${value}'] = ${array};
-                    """
-                }
+                val displayCompliance = optCompliance.map(_.toJsArray.toJsCmd).getOrElse("""'<div class="text-muted text-center">no data available</div>'""")
+                s"${kind.jsContainer}['${value}'] = ${displayCompliance};"
               }
             }
             JsRaw(
