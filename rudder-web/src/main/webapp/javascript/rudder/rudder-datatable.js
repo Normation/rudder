@@ -412,7 +412,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData, "showForm");
         if (oData.status === "In application" || oData.status === "Partially applied" ) {
-          elem.append('<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+resourcesPath+'/images/ajax-loader.gif" /></center></div>');
+          elem.append('<div id="compliance-bar-'+oData.id+'"><center><img class="ajaxloader svg-loader" src="'+resourcesPath+'/images/ajax-loader.svg" /></center></div>');
         }
         $(nTd).empty();
         $(nTd).prepend(elem);
@@ -1144,7 +1144,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "sType" : "numeric"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, true)
-        var complianceBar = '<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+resourcesPath+'/images/ajax-loader.gif" /></center></div>';
+        var complianceBar = '<div id="compliance-bar-'+oData.id+'"><center><img class="svg-loader" src="'+resourcesPath+'/images/ajax-loader.svg" /></center></div>';
         link.append(complianceBar)
         $(nTd).empty();
         $(nTd).prepend(link);

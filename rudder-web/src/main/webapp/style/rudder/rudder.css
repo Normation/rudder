@@ -1666,11 +1666,16 @@ td.complianceTd, td.parametersTd {
   left: 50%;
   text-align:center;
   padding:10px;
-  margin-left: -50px;
-  margin-top: -50px;
+  margin-left: -40px;
+  margin-top: -40px;
   z-index:9999;
-  overflow: auto;
   display:none;
+}
+
+.svg-loader{
+  height:40px;
+  width:40px;
+  padding: 0 !important;
 }
 
 .right {
