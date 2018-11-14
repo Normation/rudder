@@ -35,6 +35,7 @@
 *************************************************************************************
 */
 
+//#sourceURL=passwordForm.js
 
 var passwordModule = angular.module("password", []);
 passwordModule.controller("passwordController", function($scope) {
@@ -79,12 +80,18 @@ passwordModule.controller("passwordController", function($scope) {
     $scope.result = JSON.stringify(result);
   }
 
+  var defaultHash
   // init function, That will be called from 'outside' angular scope to set with values sent from the webapp
   $scope.init = function(current, currentHash, isScript, currentAction, hashes, otherPasswords, canBeDeleted, scriptEnabled, previousPass, previousHash, previousIsScript) {
     if (currentAction === "keep") {
       $scope.current.password=current;
       $scope.current.hash = currentHash;
       $scope.current.isScript = isScript;
+    }
+    defaultHash = currentHash
+    if (current === undefined) {
+      currentAction = "change"
+      $scope.action = "change";
     }
     if (currentAction === "change") {
       $scope.newPassword.password=current;
@@ -108,9 +115,6 @@ passwordModule.controller("passwordController", function($scope) {
     $scope.hashes = hashes;
     $scope.displayedPass = $scope.current.password;
     $scope.action = currentAction;
-    if (current === undefined) {
-      $scope.action = "change";
-    }
     $scope.otherPasswords = otherPasswords;
     $scope.canBeDeleted = canBeDeleted;
     $scope.scriptEnabled = scriptEnabled;
@@ -135,7 +139,8 @@ passwordModule.controller("passwordController", function($scope) {
 
     $scope.newPassword.isScript=false;
     if(formType === "withHashes") {
-      $scope.newPassword.hash=Object.keys($scope.hashes)[0];
+      // If no hash was set put it to default hash
+      $scope.newPassword.hash=defaultHash;
     } else if (formType === "clearText") {
       $scope.newPassword.hash="plain";
     } else if (formType === "preHashed") {
@@ -164,7 +169,7 @@ passwordModule.controller("passwordController", function($scope) {
     }
   }
 
-  // Do not dissplay current password if undefined or if you want to delete password
+  // Do not display current password if undefined or if you want to delete password
   $scope.displayCurrent = function() {
     return $scope.current.password !== undefined && $scope.action !== 'delete';
   }
