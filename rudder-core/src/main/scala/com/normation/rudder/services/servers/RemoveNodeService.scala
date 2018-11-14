@@ -12,13 +12,15 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
-import com.normation.inventory.domain.{AcceptedInventory,RemovedInventory}
+import com.normation.inventory.domain.{AcceptedInventory, RemovedInventory}
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.eventlog._
 import com.normation.utils.ScalaReadWriteLock
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.utils.Control.sequence
 import com.normation.rudder.repository.CachedRepository
@@ -30,6 +32,8 @@ import com.normation.rudder.services.policies.write.NodePromisesPaths
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.Hooks
+import com.unboundid.ldap.sdk.Modification
+import com.unboundid.ldap.sdk.ModificationType
 
 sealed trait DeletionResult
 object DeletionResult {
@@ -55,6 +59,7 @@ trait RemoveNodeService {
 class RemoveNodeServiceImpl(
       nodeDit                   : NodeDit
     , rudderDit                 : RudderDit
+    , deletedDit                : InventoryDit
     , ldap                      : LDAPConnectionProvider[RwLDAPConnection]
     , ldapEntityMapper          : LDAPEntityMapper
     , roNodeGroupRepository     : RoNodeGroupRepository
@@ -156,6 +161,13 @@ class RemoveNodeServiceImpl(
             timePostHooks =  (System.currentTimeMillis - postHooksTime)
             _             = logger.debug(s"Node-post-deletion scripts hooks ran in ${timePreHooks} ms")
           } yield {
+            removeKeyCertification(nodeId) match {
+              case Full(_) => //ok
+              case eb: EmptyBox =>
+                val e = (eb ?~! "Error when removing the certification status of node key")
+                logger.warn(e.messageChain)
+            }
+
             runPostHook match {
               case stop : HookReturnCode.Error => PostHookFailed(stop)
               case _ => Success
@@ -213,6 +225,18 @@ class RemoveNodeServiceImpl(
       result <- con.delete(dn)
     } yield {
       result
+    }
+  }
+
+  /**
+   * Uncertify node key if it was. Can be done once the node is deleted
+   */
+  private def removeKeyCertification(nodeId: NodeId): Box[LDIFChangeRecord] = {
+    for {
+      con <- ldap
+      res <- con.modify(deletedDit.NODES.NODE.dn(nodeId.value), new Modification(ModificationType.DELETE, LDAPConstants.A_KEY_STATUS))
+    } yield {
+      res
     }
   }
 
