@@ -930,3 +930,7 @@ div.parameter{
 .no-padding-right {
   padding-right: 0px;
 }
+
+.error-pre {
+  white-space: pre-wrap;
+}
