@@ -305,7 +305,7 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
         case "hostname" :: Nil => Full(context.nodeInfo.hostname)
         case "admin" :: Nil => Full(context.nodeInfo.localAdministratorAccountName)
         case "state" :: Nil => Full(context.nodeInfo.state.name)
-        case "policyMode" :: Nil =>
+        case "policymode" :: Nil =>
           val effectivePolicyMode = context.globalPolicyMode.overridable match {
             case PolicyModeOverrides.Unoverridable =>
               context.globalPolicyMode.mode.name
