@@ -2946,6 +2946,11 @@ table a > i.fa-pencil:hover{
   font-size: 14px;
   line-height: 1.42857143;
 }
+
+.content-wrapper .dataTable > thead th div {
+    color: #fff;
+}
+
 @keyframes opacity-1 {
   0%   {opacity:0;visibility: visible;}
   100% {opacity:1;visibility: visible;}
