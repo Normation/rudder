@@ -101,7 +101,7 @@ final case class NodeInfo(
   /**
    * Get a digest of the key in the proprietary CFEngine digest format. It is
    * formated as expected by CFEngine authentication module, i.e with the
-   * "MD5=" prefix for community agent (resp. "SHA=") prefex for enterprise agent).
+   * "MD5=" prefix for community agent (resp. "SHA=") prefix for enterprise agent).
    */
   lazy val securityTokenHash: String = {
     agentsName.headOption.map(a => (a.agentType, a.securityToken)) match {
