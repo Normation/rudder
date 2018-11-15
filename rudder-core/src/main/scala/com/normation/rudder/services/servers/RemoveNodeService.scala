@@ -36,6 +36,13 @@
 */
 package com.normation.rudder.services.servers
 
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.attribute.BasicFileAttributes
+import java.util.function.BiPredicate
+import java.util.function.Consumer
+
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
@@ -205,6 +212,8 @@ class RemoveNodeServiceImpl(
                 val e = (eb ?~! "Error when removing the certification status of node key")
                 logger.warn(e.messageChain)
             }
+            // try to delete cfengine key if needed
+            deleteCfengineKey(nodeInfo)
 
             runPostHook match {
               case stop : HookReturnCode.Error => PostHookFailed(stop)
@@ -275,6 +284,31 @@ class RemoveNodeServiceImpl(
       res <- con.modify(deletedDit.NODES.NODE.dn(nodeId.value), new Modification(ModificationType.DELETE, LDAPConstants.A_KEY_STATUS))
     } yield {
       res
+    }
+  }
+
+  /**
+   * Delete cfengine key. We need to do it here b/c we don't have a variable with the
+   * key hash to use in a hook.
+   */
+  private def deleteCfengineKey(nodeInfo: NodeInfo): Unit = {
+    nodeInfo.securityTokenHash match {
+      case null | "" => // no key or not a cfengine agent
+        Full(())
+      case key =>
+        //key name looks like: root-MD5=8d3270d42486e8d6436d06ed5cc5034f.pub
+        Files.find(Paths.get("/var/rudder/cfengine-community/ppkeys"), 1, new BiPredicate[Path, BasicFileAttributes] {
+          override def test(keyName: Path, u: BasicFileAttributes): Boolean = keyName.toString().endsWith(key + ".pub")
+        }).forEach(new Consumer[Path] {
+          override def accept(p: Path): Unit = {
+            try {
+              Files.delete(p)
+            } catch {
+              case ex: Exception =>
+                logger.warn(s"Error when trying to remove CFEngine key for node '${nodeInfo.id.value}' at path: '${p.toString}': ${ex.getMessage}")
+            }
+          }
+        })
     }
   }
 
