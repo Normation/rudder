@@ -280,7 +280,7 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
             removedDit.NODES.dn
           , One
           , AND(IS(OC_NODE), GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString))
-          , A_MOD_TIMESTAMP
+          , A_MOD_TIMESTAMP , "entryCSN"
         )
 
         val allActiveEntries = getNodeInfoEntries(con, searchAttributes, AcceptedInventory)
