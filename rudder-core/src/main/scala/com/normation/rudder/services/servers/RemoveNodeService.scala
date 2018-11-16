@@ -48,6 +48,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.RemovedInventory
+import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
@@ -281,7 +282,7 @@ class RemoveNodeServiceImpl(
   private def removeKeyCertification(nodeId: NodeId): Box[LDIFChangeRecord] = {
     for {
       con <- ldap
-      res <- con.modify(deletedDit.NODES.NODE.dn(nodeId.value), new Modification(ModificationType.DELETE, LDAPConstants.A_KEY_STATUS))
+      res <- con.modify(deletedDit.NODES.NODE.dn(nodeId.value), new Modification(ModificationType.REPLACE, LDAPConstants.A_KEY_STATUS, UndefinedKey.value))
     } yield {
       res
     }
