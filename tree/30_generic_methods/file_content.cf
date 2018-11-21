@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name File content
-# @description Enfore the content of a file
+# @description Enforce the content of a file
 #
 # @parameter file  File name to edit (absolute path on the target node)
 # @parameter lines Line(s) to add in the file - if lines is a list, please use @{lines} to pass the iterator rather than iterating over each values
