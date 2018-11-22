@@ -39,17 +39,13 @@ package com.normation.rudder.web.snippet.administration
 
 import net.liftweb._
 import http._
-import common._
-import util.Helpers._
-import js._
-import JsCmds._
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common._
 import net.liftweb.http._
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
-
 
 class DyngroupReloading extends DispatchSnippet with Loggable {
 
@@ -60,21 +56,14 @@ class DyngroupReloading extends DispatchSnippet with Loggable {
     case "render" => reload
   }
 
-
   def reload : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
     // our process method returns a
     // JsCmd which will be sent back to the browser
     // as part of the response
     def process(): JsCmd = {
-      //clear errors
-      S.clearCurrentNotices
-
       updateDynamicGroups.startManualUpdate
-
-      S.notice("dyngroupReloadingNotice", "Dynamic group reloading started")
-
-      Replace("dyngroupReloadingForm", outerXml.applyAgain)
+      Replace("dyngroupReloadingForm", outerXml.applyAgain) & JsRaw("""createSuccessNotification("Dynamic group reloading started")""")
     }
 
     val initJs = SetHtml("dynGroupUpdateInterval", <span>{updateDynamicGroupsInterval}</span>)

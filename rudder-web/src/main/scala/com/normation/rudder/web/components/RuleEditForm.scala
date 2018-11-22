@@ -591,22 +591,15 @@ class RuleEditForm(
         </div>
     }
 
-    val content =
-      if ( ruleTarget.excludedTarget.targets.size + ruleTarget.includedTarget.targets.size== 0 ) {
-        if ( selectedDirectiveIds.size == 0 ) {
-          warning("This Rule is not applied to any Groups and does not have any Directives to apply.")
-        } else {
-          warning("This Rule is not applied to any Groups.")
-        }
-      } else {
-        if ( selectedDirectiveIds.size == 0 ) {
-          warning("This Rule does not have any Directives to apply.")
-        } else {
-          NodeSeq.Empty
-      } }
+    val warningNotification =
+      ((ruleTarget.excludedTarget.targets.size + ruleTarget.includedTarget.targets.size == 0), (selectedDirectiveIds.size == 0)) match{
+        case (true, true)  => JsRaw("""createWarningNotification("This Rule is not applied to any Groups and does not have any Directives to apply.")""")
+        case (true, false) => JsRaw("""createWarningNotification("This Rule is not applied to any Groups.")""")
+        case (false, true) => JsRaw("""createWarningNotification("This Rule does not have any Directives to apply.")""")
+        case (_)           => JsRaw("")
+      }
 
-    SetHtml("successDialogContent",content) &
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog")""")
+    JsRaw("""createSuccessNotification()""") & warningNotification
   }
 
 }

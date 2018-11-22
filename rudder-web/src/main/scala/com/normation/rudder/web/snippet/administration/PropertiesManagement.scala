@@ -134,9 +134,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       configService.set_rudder_ui_changeMessage_mandatory(mandatory).foreach(updateOk => initMandatory = Full(mandatory))
 
       configService.set_rudder_ui_changeMessage_explanation(explanation).foreach(updateOk => initExplanation = Full(explanation))
-      S.clearCurrentNotices
-      S.notice("updateChangeMsg","Change audit logs configuration correctly updated")
-      check()
+      check() & JsRaw("""createSuccessNotification("Change audit logs configuration correctly updated")""")
     }
 
     // Check if there is no modification
@@ -149,13 +147,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     def emptyString = explanation.trim().length==0
     // Check that there is some modification to enabled/disable save
     def check() = {
-      if(!noModif){
-        if(emptyString){
-          S.error("updateChangeMsg","The message field cannot be empty.")
-        }else{
-          S.notice("updateChangeMsg","")
-        }
-      }
       Run(s"""$$("#changeMessageSubmit").attr("disabled",${noModif||emptyString});""")
     }
 
@@ -290,18 +281,14 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration
-      S.notice("updateCfserverNetwork","Network security options correctly updated")
-      check()
+      check() & JsRaw("""createSuccessNotification("Network security options correctly updated")""")
     }
 
     def noModif = (
-         initDenyBadClocks.map(_ == denyBadClocks).getOrElse(false)
+      initDenyBadClocks.map(_ == denyBadClocks).getOrElse(false)
     )
 
     def check() = {
-      if(!noModif){
-        S.notice("updateCfserverNetwork","")
-      }
       Run(s"""$$("#cfserverNetworkSubmit").prop('disabled', ${noModif});""")
     }
 
@@ -362,10 +349,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     )
 
     def check() = {
-      if(!noModif){
-        S.notice("updateRelaySynchronization","")
-      }
-      Run(s"""$$("#relaySynchronizationSubmit").prop('disabled', ${noModif});""")
+      Run( s""" $$("#relaySynchronizationSubmit").prop('disabled', ${noModif});""".stripMargin )
     }
 
     def submit = {
@@ -375,8 +359,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration
-      S.notice("updateRelaySynchronization","Relay servers synchronization methods correctly updated")
-      check()
+      check() & JsRaw("""createSuccessNotification("Relay servers synchronization methods correctly updated")""")
     }
 
     def setRelaySyncMethodJs(input : String) : JsCmd = {
@@ -500,7 +483,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       var reportProtocol = initValue
       def check = {
         val noChange = initReportsProtocol == reportProtocol
-        S.notice("updateNetworkProtocol","")
         Run(s"""$$("#networkProtocolSubmit").attr("disabled",${noChange});""")
       }
 
@@ -511,11 +493,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             // Update the initial value of the form
             initReportsProtocol = reportProtocol
             startNewPolicyGeneration
-            S.notice("updateNetworkProtocol","Network protocol options correctly updated")
-            check
+            check & JsRaw("""createSuccessNotification("Network protocol options correctly updated")""")
           case eb:EmptyBox =>
-            S.error("updateNetworkProtocol","Error when saving network protocol options")
-            Noop
+            Noop & JsRaw("""createErrorNotification("Error when saving network protocol options")""")
         }
       }
 
@@ -545,7 +525,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         // We could not read current protocol, try repairing by setting protocol to UDP and warn user
         val actor = CurrentUser.actor
         configService.set_rudder_syslog_protocol(SyslogUDP,actor,Some("Property automatically reset to 'UDP' due to an error"))
-        S.error("updateNetworkProtocol","Error when fetching 'Syslog protocol' property, Setting it to UDP")
+        JsRaw("""createErrorNotification("Error when fetching 'Syslog protocol' property, Setting it to UDP")""")
         networkForm(SyslogUDP)
     }
   }
@@ -618,12 +598,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         configService.set_cfengine_modified_files_ttl(intModifiedFilesTtl).foreach(updateOk => initModifiedFilesTtl = Full(intModifiedFilesTtl))
         // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
         startNewPolicyGeneration
-        S.notice("updateCfengineGlobalProps","File retention settings correctly updated")
-        check()
+        check() & JsRaw("""createSuccessNotification("File retention settings correctly updated")""")
       } catch {
         case ex:NumberFormatException =>
-          S.error("updateCfengineGlobalProps", "Invalid value "+ex.getMessage().replaceFirst("F", "f"))
-          Noop
+          Noop & JsRaw(s"""createErrorNotification("Invalid value ${ex.getMessage().replaceFirst("F", "f")})""")
       }
     }
 
@@ -632,9 +610,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     )
 
     def check() = {
-      if(!noModif){
-        S.notice("updateCfengineGlobalProps","")
-      }
       Run(s"""$$("#cfengineGlobalPropsSubmit").attr("disabled",${noModif});""")
     }
 
@@ -675,18 +650,17 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       } catch{
         case ex:NumberFormatException =>
-          S.error("sendMetricsMsg", "Invalid value "+ex.getMessage().replaceFirst("F", "f"))
-          Noop
+          Noop & JsRaw(s"""createErrorNotification("Invalid value ${ex.getMessage().replaceFirst("F", "f")})""")
       }
       configService.set_rudder_store_all_centralized_logs_in_file(storeAllCentralizedLogsInFile).foreach(updateOk => initStoreAllCentralizedLogsInFile = Full(storeAllCentralizedLogsInFile))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration
-      S.notice("loggingConfiguration", storeAllCentralizedLogsInFile match {
+      val notifMessage =  storeAllCentralizedLogsInFile match {
         case true  => "Logging will be enabled during the next agent run on this server (5 minutes maximum)"
         case false => "Logging will be disabled during the next agent run on this server (5 minutes maximum)"
-        })
-      check()
+      }
+      check() & JsRaw(s"""createSuccessNotification("${notifMessage}")""")
     }
 
     def noModif = (
@@ -695,9 +669,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     )
 
     def check() = {
-      if(!noModif){
-        S.notice("loggingConfiguration","")
-      }
       Run(s"""$$("#loggingConfigurationSubmit").attr("disabled",${noModif});""")
     }
 
@@ -742,21 +713,20 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         var currentSendMetrics = value
         def noModif() = initSendMetrics == currentSendMetrics
         def check() = {
-          S.notice("sendMetricsMsg","")
-          Run(s"""$$("#sendMetricsSubmit").button( "option", "disabled",${noModif()});""")
+          Run(s"""$$("#sendMetricsSubmit").attr("disabled", ${noModif()});""")
         }
         def submit() = {
           val save = configService.set_send_server_metrics(currentSendMetrics,CurrentUser.actor,genericReasonMessage)
-          S.notice("sendMetricsMsg", save match {
+          val createNotification = save match {
             case Full(_)  =>
               initSendMetrics = currentSendMetrics
               // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
               startNewPolicyGeneration
-              "'send server metrics' property updated"
+              JsRaw("""createSuccessNotification("'send server metrics' property updated")""")
             case eb: EmptyBox =>
-              "There was an error when updating the value of the 'send server metrics' property"
-          } )
-          check
+              JsRaw("""createErrorNotification("There was an error when updating the value of the 'send server metrics' property")""")
+          }
+          check & createNotification
         }
 
         ( "#sendMetricsCheckbox" #> {
@@ -790,20 +760,19 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         var currentdisplayGraphs = value
         def noModif() = initDisplayGraphs == currentdisplayGraphs
         def check() = {
-          S.notice("displayGraphsMsg","")
           Run(s"""$$("#displayGraphsSubmit").attr("disabled",${noModif()});""")
         }
 
         def submit() = {
           val save = configService.set_display_changes_graph(currentdisplayGraphs)
-          S.notice("displayGraphsMsg", save match {
+          val createNotification = save match {
             case Full(_)  =>
               initDisplayGraphs = currentdisplayGraphs
-              "'display change graphs' property updated"
+              JsRaw("""createSuccessNotification("'display change graphs' property updated")""")
             case eb: EmptyBox =>
-              "There was an error when updating the value of the 'display change graphs' property"
-          } )
-          check
+              JsRaw("""createErrorNotification("There was an error when updating the value of the 'display change graphs' property")""")
+          }
+          check & createNotification
         }
 
         ( "#displayGraphsCheckbox" #> {
@@ -837,20 +806,19 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         var currentDisplayColumns = value
         def noModif() = initDisplayColumns  == currentDisplayColumns
         def check() = {
-          S.notice("displayColumnsMsg","")
           Run(s"""$$("#displayColumnsSubmit").prop( "checked", ${noModif()} );""")
         }
 
         def submit() = {
           val save = configService.set_rudder_ui_display_ruleComplianceColumns(currentDisplayColumns)
-          S.notice("displayColumnsMsg", save match {
+          val createNotifcation = save match {
             case Full(_)  =>
               initDisplayColumns  = currentDisplayColumns
-              "'Display compliance and recent changes columns on rule summary' property updated"
+              JsRaw("""createSuccessNotification("'Display compliance and recent changes columns on rule summary' property updated")""")
             case eb: EmptyBox =>
-              "There was an error when updating the value of the 'Display compliance and recent changes columns on rule summary' property"
-          } )
-          check
+              JsRaw("""createErrorNotification("There was an error when updating the value of the 'Display compliance and recent changes columns on rule summary' property")""")
+          }
+          check & createNotifcation
         }
 
         ( "#displayColumnsCheckbox" #> {
@@ -886,24 +854,23 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         var x = initialValue
         def noModif() = x == initSavedValued
         def check() = {
-          S.notice("directiveScriptEngineMsg","")
           Run(s"""$$("#directiveScriptEngineSubmit").attr("disabled",${noModif()});""")
         }
 
         def submit() = {
           val save = configService.set_rudder_featureSwitch_directiveScriptEngine(x)
-          S.notice("directiveScriptEngineMsg", save match {
+          val createNotification = save match {
             case Full(_)  =>
               initSavedValued = x
               // If we disable this feature we want to start policy generation because some data may be invalid
               if (x == Disabled) {
                 startNewPolicyGeneration
               }
-              "'directive script engine' property updated. The feature will be loaded as soon as you go to another page or reload this one."
+              JsRaw("""createSuccessNotification("'directive script engine' property updated. The feature will be loaded as soon as you go to another page or reload this one.")""")
             case eb: EmptyBox =>
-              "There was an error when updating the value of the 'directive script engine' property"
-          } )
-          check()
+              JsRaw("""createErrorNotification("There was an error when updating the value of the 'directive script engine' property")""")
+          }
+          check() & createNotification
         }
 
         ( "#directiveScriptEngineCheckbox" #> {
@@ -954,7 +921,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       def noModif() = initPolicyMode == policyMode && initNodeState == state
       def check() = {
-        S.notice("nodeOnAcceptDefaultsMsg","")
         Run(s"""$$("#nodeOnAcceptDefaultsSubmit").attr("disabled",${noModif()});""")
       }
 
@@ -968,16 +934,16 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           }
 
 
-        S.notice("nodeOnAcceptDefaultsMsg", save match {
-          case Full(_)  =>
-            initNodeState = state
-            initPolicyMode = policyMode
-
-            "Node default configuration post-acceptation correctly saved. Next accepted node will get these default configuration."
+        val createNotification =
+          save match {
+            case Full(_)  =>
+              initNodeState = state
+              initPolicyMode = policyMode
+              JsRaw("""createSuccessNotification("Node default configuration post-acceptation correctly saved. Next accepted node will get these default configuration.")""")
           case eb: EmptyBox =>
-            "There was an error when updating node default proerties"
-        } )
-        check()
+            JsRaw("""createErrorNotification("There was an error when updating node default proerties")""")
+        }
+        check() & createNotification
       }
 
       "#nodeOnAcceptState" #> SHtml.ajaxSelectObj(states, Full(initNodeState), { (x:NodeState) => state = x; check}, ("id","nodeOnAcceptState")) &
@@ -1013,23 +979,20 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         var x = initialValue
         def noModif() = x == initSavedValued
         def check() = {
-          if(!noModif()){
-            S.notice("unexpectedReportInterpretationFormMessage","")
-          }
           Run(s"""$$("#unexpectedReportInterpretationFormSubmit").prop("disabled",${noModif()});""")
         }
 
         def submit() = {
           val save = configService.set_rudder_compliance_unexpected_report_interpretation(x)
-          S.notice("unexpectedReportInterpretationFormMessage", save match {
+           val createNotification = save match {
             case Full(_)  =>
               initSavedValued = x
               // If we disable this feature we want to start policy generation because some data may be invalid
-              "'interpretation of unexpected compliance reports' property updated."
+              JsRaw("""createSuccessNotification("'interpretation of unexpected compliance reports' property updated.")""")
             case eb: EmptyBox =>
-              "There was an error when updating the value of the 'interpretation of unexpected compliance reports' property"
-          } )
-          check()
+              JsRaw("""createErrorNotification("There was an error when updating the value of the 'interpretation of unexpected compliance reports' property")""")
+          }
+          check() & createNotification
         }
 
         ( "#allowsDuplicate" #> {

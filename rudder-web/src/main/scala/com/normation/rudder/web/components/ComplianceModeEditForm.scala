@@ -161,21 +161,21 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
       case eb:EmptyBox =>
         val e = eb ?~! s"Error when trying to parse user data: '${jsonMode}'"
         logger.error(e.messageChain)
-        S.error("complianceModeMessage", e.messageChain)
+        JsRaw(s"""createErrorNotification("${ e.messageChain}")""")
       case Full(complianceMode) =>
         saveConfigureCallback(complianceMode)  match {
           case eb:EmptyBox =>
             val e = eb ?~! s"Error when trying to store in base new compliance mode: '${jsonMode}'"
             logger.error(e.messageChain)
-            S.error("complianceModeMessage", e.messageChain)
+            JsRaw(s"""createErrorNotification("${ e.messageChain}")""")
 
           case Full(success) =>
             // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
             startNewPolicyGeneration()
-            S.notice("complianceModeMessage", "Compliance mode saved")
+            JsRaw("""createSuccessNotification("Compliance mode saved")""")
         }
       //necessary to avoid the non-exhaustive warning due to "type pattern T is unchecked since eliminated by erasure" pb above
-      case x => S.error("complianceModeMessage", s"Compliance mode is not of the awaited type (dev error): please report that error")
+      case x => JsRaw(s"""createErrorNotification("Compliance mode is not of the awaited type (dev error): please report that error")""")
     }
   }
 

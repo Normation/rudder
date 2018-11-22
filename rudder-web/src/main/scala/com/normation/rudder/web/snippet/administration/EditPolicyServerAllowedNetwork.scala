@@ -170,9 +170,8 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         }) match {
           case Full(_) =>
             asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
-
             Replace(allowedNetworksFormId, outerXml.applyAgain) &
-            successPopup
+            successNotification
           case e:EmptyBox => SetHtml(allowedNetworksFormId,errorMessage(s"#${allowedNetworksFormId}", e)(outerXml.applyAgain))
         }
 
@@ -231,7 +230,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   }
 
   ///////////// success pop-up ///////////////
-  private[this] def successPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog")""")
+  private[this] def successNotification : JsCmd = {
+    JsRaw(""" createSuccessNotification() """)
   }
 }

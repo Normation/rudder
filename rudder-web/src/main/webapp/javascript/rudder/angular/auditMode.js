@@ -162,13 +162,13 @@ app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, co
       $scope.factory.policyMode.save($scope.conf).then(
         function(successResponse){
           //Reinitialize scope
-          $scope.errorFeedback = false;
           $scope.nochange = true;
           $scope.currentConf.policyMode = $scope.conf.policyMode;
           $scope.currentConf.overrideMode = $scope.conf.overrideMode;
+          createSuccessNotification()
         }, function(errorResponse) {
-          $scope.errorFeedback = true;
-          $scope.errorDetails = errorResponse.data.errorDetails
+          var errorDetails = $("<div>").html(errorResponse.data).text()
+          createErrorNotification("Error while saving new policy mode: " + errorDetails)
         }
       ).then(
         // Almost like a finally, set saving to 2 so we know saving state has changed

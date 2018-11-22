@@ -73,18 +73,17 @@ class AgentScheduleEditForm(
       case eb:EmptyBox =>
         val e = eb ?~! s"Error when trying to parse user data: '${jsonSchedule}'"
         logger.error(e.messageChain)
-        S.error("cfagentScheduleMessage", e.messageChain)
+        JsRaw(s"""createErrorNotification("${e.messageChain}")""")
       case Full(agentInterval) =>
         saveConfigureCallback(agentInterval) match {
           case eb:EmptyBox =>
             val e = eb ?~! s"Error when trying to store in base new agent schedule: '${jsonSchedule}'"
             logger.error(e.messageChain)
-            S.error("cfagentScheduleMessage", e.messageChain)
-
+            JsRaw(s"""createErrorNotification("${e.messageChain}")""")
           case Full(success) =>
             // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
             startNewPolicyGeneration()
-            S.notice("cfagentScheduleMessage", "Agent schedule saved")
+            JsRaw(s"""createSuccessNotification("Agent Schedule saved.")""")
         }
     }
   }

@@ -45,6 +45,7 @@ import js._
 import JsCmds._
 import com.normation.rudder.web.model.CurrentUser
 import bootstrap.liftweb.RudderConfig
+import net.liftweb.http.js.JE.JsRaw
 
 class ClearCache extends DispatchSnippet with Loggable {
 
@@ -60,16 +61,15 @@ class ClearCache extends DispatchSnippet with Loggable {
     // JsCmd which will be sent back to the browser
     // as part of the response
     def process(): JsCmd = {
-      //clear errors
-      S.clearCurrentNotices
-      clearCacheService.action(CurrentUser.actor) match {
+      val createNotification = clearCacheService.action(CurrentUser.actor) match {
         case empty:EmptyBox =>
           val e = empty ?~! "Error while clearing caches"
-          S.error(e.messageChain)
+          JsRaw(s"""createErrorNotification("${e.messageChain}")""")
         case Full(result) =>
-          S.notice("clearCacheNotice","Caches were successfully cleared")
+          JsRaw("""createSuccessNotification("Caches were successfully cleared")""")
+
       }
-      Replace("clearCacheForm", outerXml.applyAgain)
+      Replace("clearCacheForm", outerXml.applyAgain) & createNotification
     }
 
     //process the list of networks

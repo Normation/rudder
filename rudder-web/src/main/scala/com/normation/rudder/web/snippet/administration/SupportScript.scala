@@ -57,9 +57,6 @@ class DebugScript extends DispatchSnippet with Loggable {
       // JsCmd which will be sent back to the browser
       // as part of the response
       def process(): JsCmd = {
-        //clear errors
-
-        S.clearCurrentNotices
         S.redirectTo("/secure/api/system/debug/info")
       }
 
