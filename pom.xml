@@ -39,7 +39,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <parent>
     <groupId>com.normation</groupId>
     <artifactId>parent-pom</artifactId>
-    <version>4.1.17</version>
+    <version>4.1.18-SNAPSHOT</version>
   </parent>
 
 
