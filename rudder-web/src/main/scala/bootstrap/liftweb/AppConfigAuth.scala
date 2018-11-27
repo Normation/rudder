@@ -239,11 +239,13 @@ class AppConfigAuth extends ApplicationContextAware {
       logger.info("No master admin account is defined. You can define one with 'rudder.auth.admin.login' and 'rudder.auth.admin.password' properties in the configuration file")
     }
 
+    val passwordEncoder = PasswordEncoder.PlainText
     val authConfigProvider = new UserDetailListProvider {
-      override def authConfig: UserDetailList = UserDetailList(PasswordEncoder.PlainText, admins)
+      override def authConfig: UserDetailList = UserDetailList(passwordEncoder, admins)
     }
     val provider = new DaoAuthenticationProvider()
     provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider))
+    provider.setPasswordEncoder(passwordEncoder) // force password encode to plaintext only
     provider
   }
 
