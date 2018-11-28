@@ -151,13 +151,12 @@ class RuleEditForm(
 
   def mainDispatch = Map(
       "showForm"          -> { _:NodeSeq => showForm() }
-    , "showEditForm"      -> { _:NodeSeq => showForm(0) }
-    , "showRecentChanges" -> { _:NodeSeq => showForm(1,"changesGrid") }
+    , "showRecentChanges" -> { _:NodeSeq => showForm("changesGrid") }
   )
 
   private[this] val boxRootRuleCategory = getRootRuleCategory()
 
-  private[this] def showForm(tab :Int = 1, idToScroll  : String = "editRuleZonePortlet") : NodeSeq = {
+  private[this] def showForm(idToScroll  : String = "editRuleZonePortlet") : NodeSeq = {
     (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos(), boxRootRuleCategory, configService.rudder_global_policy_mode()) match {
       case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory), Full(globalMode)) =>
 
@@ -182,7 +181,11 @@ class RuleEditForm(
 
         form ++
         Script(
-          OnLoad(JsRaw(s"""$$($$('.rules-nav-tab > li > a').get(${tab})).bsTab('show');""")) &
+          OnLoad(JsRaw( s"""
+            var tab_stored = JSON.parse(localStorage.getItem('Active_Rule_Tab'));
+            var active_tab = isNaN(tab_stored) ? 1 : tab_stored;
+            $$($$('.rules-nav-tab > li > a').get(active_tab)).bsTab('show');
+          """.stripMargin)) &
           JsRaw(s"""
             var target = $$( ".nav-tabs .active a" ).attr('href');
             if(target=="#ruleComplianceTab"){
@@ -197,8 +200,10 @@ class RuleEditForm(
               var target = $$(e.target).attr("href") // activated tab
               if(target=="#ruleComplianceTab"){
                 $$('#changeIconRule').addClass('fa-area-chart');
+                localStorage.setItem('Active_Rule_Tab', 1);
               }else{
                 $$('#changeIconRule').removeClass('fa-area-chart');
+                localStorage.setItem('Active_Rule_Tab', 0);
               }
             });
             """
@@ -355,7 +360,7 @@ class RuleEditForm(
   ////////////// Callbacks //////////////
 
   private[this] def updateFormClientSide() : JsCmd = {
-    Replace(htmlId_EditZone, this.showForm(0) )
+    Replace(htmlId_EditZone, this.showForm() )
   }
 
   private[this] def onSuccess() : JsCmd = {

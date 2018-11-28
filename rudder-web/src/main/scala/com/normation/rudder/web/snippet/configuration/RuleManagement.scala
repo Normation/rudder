@@ -143,7 +143,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
         None
       , "rules_grid_zone"
       , detailsCallbackLink(workflowEnabled, changeMsgEnabled)
-      , (rule : Rule ) => onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"showEditForm")
+      , (rule : Rule ) => onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"showForm")
       , showPopup
       , DisplayColumn.Force(true)
       , DisplayColumn.FromConfig
@@ -174,6 +174,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
       case Empty => <div id={htmlId_editRuleDiv}></div>
       case Full(form) => form.dispatch(dispatch)(NodeSeq.Empty)
     }
+
   }
 
   def onCreateRule(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule : Rule, action : String) : JsCmd = {
@@ -202,7 +203,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
                 case JString(action) =>
                   onCreateRule(workflowEnabled, changeMsgEnabled)(rule,action)
                 case _ =>
-                  onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"showEditForm")
+                  onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"showForm")
               }
 
             case _ => Noop
