@@ -4,54 +4,19 @@
 <title>Rudder - Management</title>
 
 <style type="text/css">
-  .deca input {
-    width: auto;
-  }
   .inner-portlet{
-    float:left;
-    width:100%;
     margin-bottom: 15px;
-  }
-  .page-title, .inner-portlet h3.page-title{
-    color:#333;
-    margin:15px 0 10px;
-  }
-  button.defaultButton {
-    margin-top: -1px;
-    margin-left: 15px;
-    padding: 2px;
-    width: 100px;
-  }
-  select.twoCol {
-    width:auto
-  }
-  select {
-    min-width:50px
-  }
-  .defaultButton span.ui-button-text {
-          <div class="marker">
-            <span class="glyphicon glyphicon-info-sign"></span>
-          </div>
-          <p>
-            Configure the networks from which nodes are allowed
-            to connect to the Rudder policy servers to get their updated
-            configuration policy.
-          </p>
-          <p>
-            You can add as many networks as you want, the expected
-            format is: <b>NetworkIP/mask</b>, for example
-            "42.42.0.0/16".
-          </p>
-        </div>
-    padding: 0;
   }
   #nodeOnAcceptDefaults ul > li.rudder-form label.input-group-addon{
     min-width:185px;
     text-align:left;
   }
   #nodeOnAcceptDefaults ul > li.rudder-form select.form-control{
-      width: auto !important;
+    width: auto !important;
     min-width: 25%;
+  }
+  label{
+    font-size: 1.2em;
   }
 </style>
 <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/auditMode.js"></script>
@@ -81,34 +46,36 @@
             <div id="policyServerDetails"></div>
             <div id="policyServerText"></div>
             <form class="lift:form.ajax">
-              <label class="col-xs-12">Allowed networks</label>
-              <div id="allowNetworkFields" class="networkFieldsContainer">
-                <div class="network-group col-lg-4 col-sm-6 col-xs-12">
-                  <div class="input-group">
-                    <input name="network" class="networkField form-control input-sm"/>
-                    <span class="input-group-btn">
-                      <lift:authz role="administration_write">
-                        <button class="deleteNetwork btn btn-danger btn-sm" type="submit" title="Remove this network"></button>
-                      </lift:authz>
-                    </span>
+              <div class="row">
+                <label class="col-xs-12">Allowed networks</label>
+                <div id="allowNetworkFields" class="networkFieldsContainer">
+                  <div class="network-group col-lg-4 col-sm-6 col-xs-12">
+                    <div class="input-group">
+                      <input name="network" class="networkField form-control input-sm"/>
+                      <span class="input-group-btn">
+                        <lift:authz role="administration_write">
+                          <button class="deleteNetwork btn btn-danger btn-sm" type="submit" title="Remove this network"></button>
+                        </lift:authz>
+                      </span>
+                    </div>
+                    <div id="errorNetworkField"></div>
+                    <div class="warningNetworkField" style="display:none;">Invalid IP address.</div>
                   </div>
-                  <div id="errorNetworkField"></div>
-                  <div class="warningNetworkField" style="display:none;">Invalid IP address.</div>
                 </div>
+                <lift:authz role="administration_write">
+                  <div class="col-xs-12">
+                    <label>Add a network</label>
+                    <div class="input-group" id="addNetwork">
+                      <input class="form-control input-sm" id="addaNetworkfield"/>
+                      <span class="input-group-btn">
+                        <button class="btn btn-success btn-sm" id="addNetworkButton" disabled type="submit" title="Add a network"></button>
+                      </span>
+                    </div>
+                    <div id="warningNetworkField" class="warningNetworkField" style="display:none;">Invalid IP address.</div>
+                    <input id="submitAllowedNetwork" type="submit" value="Submit"/>
+                  </div>
+                </lift:authz>
               </div>
-              <lift:authz role="administration_write">
-                <div class="col-xs-12">
-                  <label>Add a network</label>
-                  <div class="input-group" id="addNetwork">
-                    <input class="form-control input-sm" id="addaNetworkfield"/>
-                    <span class="input-group-btn">
-                      <button class="btn btn-success btn-sm" id="addNetworkButton" disabled type="submit" title="Add a network"></button>
-                    </span>
-                  </div>
-                  <div id="warningNetworkField" class="warningNetworkField" style="display:none;">Invalid IP address.</div>
-                  <input id="submitAllowedNetwork" type="submit" value="Submit"/>
-                </div>
-              </lift:authz>
             </form>
           </div>
         </div>

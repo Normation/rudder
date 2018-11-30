@@ -61,47 +61,45 @@
         <p>You may override this global setting just for this node below:</p>
       </div>
     </div>
-    <div class="col-xs-12">
-      <form role="form" class="form-horizontal"  ng-hide="agentRun === undefined">
-        <ul ng-hide="globalRun === undefined">
-          <li class="rudder-form">
-            <div class="input-group">
-              <label class="input-group-addon" for="override">
-                <input  id="override" ng-model="agentRun.overrides" type="checkbox"/>
-                <label for="override" class="label-radio">
-                  <span class="ion ion-checkmark-round"></span>
-                </label>
-                <span class="ion ion-checkmark-round check-icon"></span>
+    <form role="form" class="form-horizontal"  ng-hide="agentRun === undefined">
+      <ul ng-hide="globalRun === undefined">
+        <li class="rudder-form">
+          <div class="input-group">
+            <label class="input-group-addon" for="override">
+              <input  id="override" ng-model="agentRun.overrides" type="checkbox"/>
+              <label for="override" class="label-radio">
+                <span class="ion ion-checkmark-round"></span>
               </label>
-              <label class="form-control" for="override">
-                Override global value
-                <span id="denyBadClocksTooltip"></span>
-              </label>
-            </div>
-          </li>
-        </ul>
-        <div class="globalConf">
-          <div class="form-group">
-            <label for="runInterval" class="control-label">Run agent every </label>
-            <select class="form-control input-sm schedule" ng-model="agentRun.interval" id="runInterval" ng-options="item.m as item.name for item in intervals" ng-disabled="overridesInterval()"  ng-change="onChangeInterval()"></select>
+              <span class="ion ion-checkmark-round check-icon"></span>
+            </label>
+            <label class="form-control" for="override">
+              Override global value
+              <span id="denyBadClocksTooltip"></span>
+            </label>
           </div>
-          <div class="form-group inline-input-group">
-            <label class="control-label">First run time</label>
-            <div class="input-group input-group-sm">
-              <select class="form-control input-sm" id="startHour" ng-model="agentRun.startHour" ng-options="item for item in hours()" ng-disabled="overridesInterval() || checkHours() " ng-change="onChange()"></select>
-              <span class="input-group-addon" id="sizing-addon3">Hour{{agentRun.startHour > 1 ? "s" : ""}}</span>
-              <select class="pull-left form-control input-sm"  id="startMinute" ng-model="agentRun.startMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
-              <span class="input-group-addon" id="sizing-addon3">Minute{{agentRun.startMinute > 1 ? "s" : ""}}</span>
-            </div>
+        </li>
+      </ul>
+      <div class="globalConf">
+        <div class="form-group">
+          <label for="runInterval" class="control-label">Run agent every </label>
+          <select class="form-control input-sm schedule" ng-model="agentRun.interval" id="runInterval" ng-options="item.m as item.name for item in intervals" ng-disabled="overridesInterval()"  ng-change="onChangeInterval()"></select>
+        </div>
+        <div class="form-group inline-input-group">
+          <label class="control-label">First run time</label>
+          <div class="input-group input-group-sm">
+            <select class="form-control input-sm" id="startHour" ng-model="agentRun.startHour" ng-options="item for item in hours()" ng-disabled="overridesInterval() || checkHours() " ng-change="onChange()"></select>
+            <span class="input-group-addon" id="sizing-addon3">Hour{{agentRun.startHour > 1 ? "s" : ""}}</span>
+            <select class="pull-left form-control input-sm"  id="startMinute" ng-model="agentRun.startMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
+            <span class="input-group-addon" id="sizing-addon3">Minute{{agentRun.startMinute > 1 ? "s" : ""}}</span>
           </div>
-          <div class="form-group inline-input-group">
-            <label class="control-label">Maximum delay</label>
-            <div class="input-group input-group-sm">
-              <select id="splayHour"  class="pull-left form-control input-sm" ng-model="agentRun.splayHour" ng-options="item for item in hours()" ng-disabled="checkHours() || overridesInterval()" ng-change="onChange()"></select>
-              <span class="input-group-addon" id="sizing-addon3">Hour{{agentRun.startHour > 1 ? "s" : ""}}</span>
-              <select id="splayMinute"  class="pull-left form-control input-sm" ng-model="agentRun.splayMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
-              <span class="input-group-addon" id="sizing-addon3">Minute{{agentRun.startMinute > 1 ? "s" : ""}}</span>
-            </div>
+        </div>
+        <div class="form-group inline-input-group">
+          <label class="control-label">Maximum delay</label>
+          <div class="input-group input-group-sm">
+            <select id="splayHour"  class="pull-left form-control input-sm" ng-model="agentRun.splayHour" ng-options="item for item in hours()" ng-disabled="checkHours() || overridesInterval()" ng-change="onChange()"></select>
+            <span class="input-group-addon" id="sizing-addon3">Hour{{agentRun.startHour > 1 ? "s" : ""}}</span>
+            <select id="splayMinute"  class="pull-left form-control input-sm" ng-model="agentRun.splayMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
+            <span class="input-group-addon" id="sizing-addon3">Minute{{agentRun.startMinute > 1 ? "s" : ""}}</span>
           </div>
         </div>
         <lift:authz role="administration_write">
@@ -113,9 +111,12 @@
               <span class="lift:Msg?cfagentScheduleMessage">[messages]</span>
             </div>
           </div>
-        </lift:authz>
-      </form>
-    </div>
+          <div id="scheduleMessage" class="pull-left">
+            <span class="lift:Msg?cfagentScheduleMessage">[messages]</span>
+          </div>
+        </div>
+      </lift:authz>
+    </form>
   </div>
 </div>
 </schedule-agentschedule>

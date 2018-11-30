@@ -197,11 +197,6 @@ form h3 {
    line-height: 1.5em;
    font-weight: bold;
 }
-form p {
-   margin: 15px 0;
-   padding: 0 10px;
-   font-size: 1.1em;
-}
 
 .directiveInfo{
    margin-left:10px;
@@ -353,10 +348,6 @@ form select.selectField {
   cursor:pointer;
 }
 
-.listEmpty{
-  padding-left: 15px;
-}
-
 .listopen:before{
   content:url('../../images/tableau/flecheDroiteGris.png');
   padding-right: 3px;
@@ -442,8 +433,9 @@ Tableau
 
 .dataTables_wrapper table {
   width:100%;
-  border-right: 1px solid #B4B3A8;
-  border-left: 1px solid #B4B3A8;
+  border: 1px solid #e8e8e8;
+  border-top: none;
+  border-bottom: none;
 }
 
 .content-wrapper #grid_rules_grid_zone a{
@@ -570,12 +562,6 @@ table.dataTable td img, table.dataTable th img {
   border: 1px solid #ccc;
 }
 
-.dataTables_length select {
-  padding: 1px;
-  border: 1px solid #B4B3A8;
-  width: auto;
-}
-
 .dataTables_length {
   width:27%;
   float:left;
@@ -639,19 +625,8 @@ input.pickStartInput, input.pickEndInput {
   float: left;
   width: 27%;
   padding: 3px 0px 3px 0px;
+  color: #777;
 }
-
-.dataTables_wrapper_top {
-  padding: 6px;
-  overflow: hidden;
-  display: block;
-  border-top: 1px solid #B4B3A8;
-  border-left: 1px solid #B4B3A8;
-  border-right: 1px solid #B4B3A8;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-}
-
 table.noMarginGrid {
   border-left : 0 ;
   border-right : 0 ;
@@ -665,6 +640,8 @@ table.noMarginGrid {
 #explanationMessage{
   display: inline-block;
 }
+
+/*
 .dataTables_wrapper_top {
   padding: 6px;
   overflow: hidden;
@@ -674,6 +651,15 @@ table.noMarginGrid {
   border-right: 1px solid #B4B3A8;
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
+}
+*/
+.dataTables_wrapper_top {
+  padding: 6px;
+  overflow: hidden;
+  display: block;
+  border: 1px solid #e8e8e8;
+  border-bottom: none;
+  border-radius: 0;
 }
 
 @media screen and (min-width: 993px) {
@@ -704,17 +690,15 @@ table.noMarginGrid {
 }
 
 .dataTables_wrapper_bottom {
-  padding: 6px;
   overflow: hidden;
   display: inline-block;
   display: block;
-  border-bottom: 1px solid #B4B3A8;
-  border-left: 1px solid #B4B3A8;
-  border-right: 1px solid #B4B3A8;
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
+  border: 1px solid #e8e8e8;
+  border-top: none;
 }
-
+.dataTables_wrapper_bottom > div{
+  padding: 6px;
+}
 #grid_rules_grid_zone {
   border-right: 1px solid #B4B3A8;
   width: 100%;
@@ -892,12 +876,9 @@ td.directiveVarValue  {
 }
 
 .nodeheadercontent {
-  line-height: normal;
-  color: #FFFFFF;
-  display: inline-block;
-  padding : 3px 10px;
-  background-color: #2E2D2D;
+
 }
+
 .paddscala{
   padding: 0px 0px 0px 15px;
 }
@@ -1328,23 +1309,6 @@ table .innerDetails li{
   border-bottom: 1px solid #e2e2e2;
   padding: 5px 0 5px 0px;
   color: #333;
-}
-
-.inner-portlet-content {
-  padding: 5px 5px 2px 5px;
-}
-
-.arrondishaut {
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-}
-
-*html .portlet-header {
-}
-
-.inner-portlet {
-   margin: 7px 10px 10px 10px;
-   background-color: #fff;
 }
 
 .portlet-header .ui-icon {
@@ -2039,7 +2003,7 @@ i.jstree-icon.jstree-themeicon.fa.fa-file-text.jstree-themeicon-custom {
 .dataTable tr > td a:hover{
   color:#000 !important;
 }
-.dataTable tr > td .ui-state-hover a:hover, .ui-state-hover a, .ui-state-hover a:hover{
+.dataTable tr > td .ui-state-hover a:hover{
   color:#c77405 !important;
 }
 
@@ -2327,12 +2291,6 @@ li.excluded a{
  font-size : 12px;
 }
 
-.ui-tooltip {
-  max-width: 600px !important;
-    border: 1px solid #DDDDDD !important;
-    color: #333333 !important;
-}
-
 .techniqueEditorLink {
   float:right;
   text-decoration:none;
@@ -2575,57 +2533,12 @@ label span.text-fit{
   -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(208, 208, 208, 0.6);
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
 }
-.ui-timepicker-div a.ui-slider-handle{
-  border: 1px solid #aaaaaa;
-  background: #ffffff;
-  transition-duration:.2s;
-}
-.ui-timepicker-div a.ui-slider-handle:hover{
-  border: 1px solid #777777;
-}
-.ui-timepicker-div a.ui-slider-handle:active{
-  border: 1px solid #777777;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 4px rgba(152, 152, 152, 0.6);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 4px rgb(152, 152, 152);
-}
-.ui-timepicker-div .ui-slider.ui-slider-horizontal{
-  border: 1px solid #aaaaaa;
-  background-color: #f1f1f1;
-}
-
-#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a:hover{
-  color: #c77405;
-}
-#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a {
-  color: #f78f1f;
-  transition-duration:.2s;
-  text-decoration: none;
-  padding: .5em 1em;
-  position: relative;
-  left: -0.25px;
-}
-#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a.active {
-  background-color: #f6f6f6;
-  border-radius: 4px;
-  color: #333;
-}
 #serverDetails .sInventory, #nodeInventory, #node_inventory{
   border : none !important;
   overflow: visible;
 }
-#nodeInventory .ui-tabs-nav{
-  margin-top: 5px;
-  margin-bottom: 15px;
-}
 #node_inventory{
 	padding : 0 !important;
-}
-#node_inventory .sInventory .sInventory{
-  padding:5px 0 5px 5px;
-  border: none !important;
-}
-#serverDetails .dataTables_filter input {
-  padding: 8px 5px 8px 30px;
 }
 #serverDetails .dataTables_wrapper_top .dataTables_length{
   padding: 5px;
@@ -2634,10 +2547,6 @@ label span.text-fit{
   font-weight: normal;
   margin:0;
 }
-#ui-datepicker-div{
-  z-index:99999999 !important;
-}
-
 #changesChartContainer {
   height: 40vh;
 }
@@ -2659,15 +2568,6 @@ label span.text-fit{
 .ui-tabs-panel h3 {
   margin-top:0px;
   font-weight: bold;
-}
-
-.ui-tooltip-content{
-  font-size:13px;
-}
-.ui-tooltip-content h3{
-  font-size:16px;
-  font-weight:700;
-  margin:0;
 }
 
 .content-wrapper .ui-tabs-panel .jstree {

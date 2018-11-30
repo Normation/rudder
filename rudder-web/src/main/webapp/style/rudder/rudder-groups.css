@@ -48,6 +48,7 @@
 #groupDetails{
   overflow-x: hidden;
   overflow-y: auto;
+  border-left: 15px solid #ebf0f5;
 }
 #groupDetails .form-group.row{
   padding: 0px 27px 0px 22px;

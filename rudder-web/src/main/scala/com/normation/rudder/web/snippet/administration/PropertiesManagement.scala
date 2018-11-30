@@ -770,8 +770,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
           }&
           "#sendMetricsSubmit *+" #> {
-            Script(Run("correctButtons();") & check())
-
+            Script(check())
           }
         )
       case eb: EmptyBox =>
