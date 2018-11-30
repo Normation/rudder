@@ -2320,9 +2320,9 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 .rudder-form  input[type=radio] + .label-radio span{
   color: #757575;
   font-size: 9px;
-  top: calc(-50% - 8px);
-  left: 0.1px;
-  position: relative;
+  position: absolute;
+  top: calc(50% - 4.5px);
+  left: calc(50% - 3.6px);
   visibility:hidden;
   animation: opacity-0 .1s linear forwards;
 }
