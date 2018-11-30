@@ -135,7 +135,7 @@ $(function() {
 
     $(".portlet").addClass("ui-widget ui-widget-content ui-helper-clearfix arrondis")
       .find(".portlet-header")
-        .addClass("ui-widget-header arrondishaut")
+        .addClass("ui-widget-header")
         .end()
       .find(".portlet-content");
 

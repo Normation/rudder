@@ -26,70 +26,77 @@
        </div>
      </div>
      <form class="rudder-form no-shadow col-xs-12" ng-if="isGlobalForm || (!isGlobalForm && globalConfiguration.overrideMode)" ng-cloak>
-       <p ng-if="$parent.isGlobalForm" class="sublabel col-xs-12">Global policy mode</p>
-       <p ng-if="!$parent.isGlobalForm" class="sublabel col-xs-12">Override policy mode for this node</p>
-       <div class="col-xs-12 policymode-group" ng-class="{'node':!$parent.isGlobalForm}">
-         <div class="btn-group" data-toggle="buttons">
-           <label class="btn btn-default btn-sm" ng-class="{'active':$parent.conf.policyMode=='default'}" ng-click="$parent.conf.policyMode='default'" ng-if="!$parent.isGlobalForm">
-	         <input type="radio" name="options" id="option1" autocomplete="off">
-	         Global mode
-	         <span class="mode"  ng-class="{'enforce':globalConfiguration.policyMode=='enforce'}">{{globalConfiguration.policyMode}}</span>
-	       </label>
-           <label class="btn btn-default btn-sm audit" ng-class="{'active':$parent.conf.policyMode=='audit'}" ng-click="$parent.conf.policyMode='audit'">
-	         <input type="radio" name="options" id="option2" autocomplete="off">
-	         Audit
-	       </label>
-	       <label class="btn btn-default btn-sm enforce" ng-class="{'active':$parent.conf.policyMode=='enforce'}" ng-click="$parent.conf.policyMode='enforce'">
-	         <input type="radio" name="options" id="option3" autocomplete="off">
-	         Enforce
-	       </label>
-	     </div>
-	     <span ng-if="!isGlobalForm" class="info-mode">
-	       <span ng-show="$parent.conf.policyMode=='default'">
-	         This may be overriden on a per-Directive basis.
-	       </span>
-	       <span ng-show="$parent.conf.policyMode=='audit'">
-	         Directives will never be enforced on this node, regardless of their policy mode.
-	       </span>
-	       <span ng-show="$parent.conf.policyMode=='enforce'">
-	         All Directives will apply necessary changes on this node, except Directives with an Audit override setting.
-	       </span>
-	     </span>
-       </div>
-       <div ng-show="$parent.isGlobalForm">
-         <p class="sublabel col-xs-12">Allow overrides on this default setting?</p>
-         <div class="form-group col-xs-12">
-	         <div class="btn-group yesno" data-toggle="buttons">
-		       <label class="btn btn-default btn-sm" ng-class="{'active':$parent.conf.overrideMode}" ng-click="$parent.conf.overrideMode=true">
-		         <input type="radio" name="options2" id="option3" autocomplete="off">
-		         Yes
-		       </label>
-		       <label class="btn btn-default btn-sm" ng-class="{'active':!$parent.conf.overrideMode}" ng-click="$parent.conf.overrideMode=false">
-		         <input type="radio" name="options2" id="option4" autocomplete="off">
-		         No
-		       </label>
-		     </div>
-           <label for="overrideAgentPolicy1" class="fit label-switch" ng-if="!$parent.conf.overrideMode">
-             This setting may not be overriden per-node or per-directive. All Rudder configuration rules will operate in this mode.
-           </label>
-           <label for="overrideAgentPolicy1" class="fit label-switch" ng-if="$parent.conf.overrideMode">
-             Make this setting a default only and allow overrides on a per-node or per-directive basis.
-           </label>
-         </div>
-       </div>
-         <div class="col-xs-12 button-group-success">
-           <span class="button-shape" ng-mouseover="pop=true" ng-mouseout="pop=false" ng-class="{disabled:$parent.nochange}">
-             <button type="button" class="btn btn-default btn-primary-rudder" ng-class="{loading: $parent.saving === 1 }" ng-click="saveChanges()" ng-disabled="$parent.nochange" ng-mouseover="pop=true;">
-               <i class="fa fa-cog fa-spin" aria-hidden="true"></i>
-               <span class="sr-only">Saving...</span>
-                <span>Save changes</span>
-             </button>
-           </span>
-           <span class="first-index">
-             <span class="button-warning no-modif" ng-if="$parent.nochange && $parent.saving === 0" ng-class="{pop:$parent.pop}">
-               There are no modifications to save.
+       <div class="row">
+         <label ng-if="$parent.isGlobalForm" class="col-xs-12">Global policy mode</label>
+         <label ng-if="!$parent.isGlobalForm" class="col-xs-12">Override policy mode for this node</label>
+         <div class="col-xs-12 policymode-group" ng-class="{'node':!$parent.isGlobalForm}">
+           <div class="btn-group" data-toggle="buttons">
+             <label class="btn btn-default btn-sm" ng-class="{'active':$parent.conf.policyMode=='default'}" ng-click="$parent.conf.policyMode='default'" ng-if="!$parent.isGlobalForm">
+               <input type="radio" name="options" id="option1" autocomplete="off">
+               Global mode
+               <span class="mode"  ng-class="{'enforce':globalConfiguration.policyMode=='enforce'}">{{globalConfiguration.policyMode}}</span>
+             </label>
+             <label class="btn btn-default btn-sm audit" ng-class="{'active':$parent.conf.policyMode=='audit'}" ng-click="$parent.conf.policyMode='audit'">
+               <input type="radio" name="options" id="option2" autocomplete="off">
+               Audit
+             </label>
+             <label class="btn btn-default btn-sm enforce" ng-class="{'active':$parent.conf.policyMode=='enforce'}" ng-click="$parent.conf.policyMode='enforce'">
+               <input type="radio" name="options" id="option3" autocomplete="off">
+               Enforce
+             </label>
+           </div>
+           <span ng-if="!isGlobalForm" class="info-mode">
+             <span ng-show="$parent.conf.policyMode=='default'">
+               This may be overriden on a per-Directive basis.
+             </span>
+             <span ng-show="$parent.conf.policyMode=='audit'">
+               Directives will never be enforced on this node, regardless of their policy mode.
+             </span>
+             <span ng-show="$parent.conf.policyMode=='enforce'">
+               All Directives will apply necessary changes on this node, except Directives with an Audit override setting.
              </span>
            </span>
+         </div>
+           <div ng-show="$parent.isGlobalForm">
+             <label class="col-xs-12">Allow overrides on this default setting?</label>
+             <div class="form-group col-xs-12">
+               <div class="btn-group yesno" data-toggle="buttons">
+                 <label class="btn btn-default btn-sm" ng-class="{'active':$parent.conf.overrideMode}" ng-click="$parent.conf.overrideMode=true">
+                   <input type="radio" name="options2" id="option3" autocomplete="off">
+                   Yes
+                 </label>
+                 <label class="btn btn-default btn-sm" ng-class="{'active':!$parent.conf.overrideMode}" ng-click="$parent.conf.overrideMode=false">
+                   <input type="radio" name="options2" id="option4" autocomplete="off">
+                   No
+                 </label>
+               </div>
+             <label for="overrideAgentPolicy1" class="fit label-switch" ng-if="!$parent.conf.overrideMode">
+               This setting may not be overriden per-node or per-directive. All Rudder configuration rules will operate in this mode.
+             </label>
+             <label for="overrideAgentPolicy1" class="fit label-switch" ng-if="$parent.conf.overrideMode">
+               Make this setting a default only and allow overrides on a per-node or per-directive basis.
+             </label>
+           </div>
+         </div>
+           <div class="col-xs-12 button-group-success">
+             <span class="button-shape" ng-mouseover="pop=true" ng-mouseout="pop=false" ng-class="{disabled:$parent.nochange}">
+               <button type="button" class="btn btn-default btn-primary-rudder" ng-class="{loading: $parent.saving === 1 }" ng-click="saveChanges()" ng-disabled="$parent.nochange" ng-mouseover="pop=true;">
+                 <i class="fa fa-cog fa-spin" aria-hidden="true"></i>
+                 <span class="sr-only">Saving...</span>
+                  <span>Save changes</span>
+               </button>
+             </span>
+             <span class="first-index">
+               <span class="button-warning no-modif" ng-if="$parent.nochange && $parent.saving === 0" ng-class="{pop:$parent.pop}">
+                 There are no modifications to save.
+               </span>
+               <span class="button-success" ng-class="{pop: $parent.saving === 2, ngHide:$parent.nochange, error:$parent.errorFeedback}">
+                 <span ng-if="!$parent.errorFeedback">Your changes have been saved</span>
+                 <span ng-if="$parent.errorFeedback">Error while saving: {{errorDetails}}</span>
+                 <span class="close-message glyphicon glyphicon-remove" ng-click="$parent.saving=0"></span>
+               </span>
+             </span>
+           </div>
          </div>
        </form>
        <div ng-if="!isGlobalForm && !globalConfiguration.overrideMode" class="col-xs-12" role="alert" ng-cloak>
