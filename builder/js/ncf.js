@@ -926,9 +926,9 @@ $scope.onImportFileChange = function (fileEl) {
       var method = $scope.generic_methods[method_call.method_name];
       var class_parameter = method.class_parameter;
       var param_index = method.bundle_args.indexOf(class_parameter);
-      return method_call.parameters[param_index].value;
+      return method_call.parameters[param_index];
     } else {
-      return method_call.parameters[0].value;
+      return method_call.parameters[0];
     }
   }
 
@@ -945,7 +945,7 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Get the class value generated from a class prefix and a class kind (kept,repaired,error, ...)
   $scope.getClassKind= function(method_call,kind) {
-    var param = $scope.getClassParameter(method_call)
+    var param = $scope.getClassParameter(method_call).value
     if (param === undefined) {
       param=""
     }
