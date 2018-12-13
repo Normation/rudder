@@ -72,8 +72,7 @@ complianceModeModule.controller("complianceModeController", function($scope) {
    $scope.callback=callback;
    $scope.contextPath=contextPath;
    $scope.savedValue = angular.copy($scope.complianceMode)
-   
-  }
+ }
  
  $scope.disableHeartbeat = function(){
    if ($scope.isNodePage) {
@@ -83,10 +82,6 @@ complianceModeModule.controller("complianceModeController", function($scope) {
    }
  }
 
-  $scope.onChange = function() {
-    $("#complianceModeMessage").empty();
-  }
-  
   $scope.checkMaximumValue = function() {
    return 60 * 24 / $scope.agentRun
   }

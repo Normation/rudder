@@ -776,28 +776,29 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     //update UI
 
     SetHtml("createActiveTechniquesContainer", createReasonPopup) &
-    JsRaw( """createPopup("createActiveTechniquePopup")
-     """)
+    JsRaw( """createPopup("createActiveTechniquePopup")""")
   }
 
   private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage : Boolean) : NodeSeq = {
 
       def initJs = SetHtml("techniqueLibraryUpdateInterval" , <span>{updateTecLibInterval}</span>)
       def process = {
-        updatePTLibService.update(ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Technique library reloaded by user")) match {
+        val createNotification = updatePTLibService.update(ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Technique library reloaded by user")) match {
           case Full(x) =>
-            S.notice("updateLib", "The Technique library was successfully reloaded")
+            JsRaw("""createSuccessNotification("The Technique library was successfully reloaded")""")
           case e:EmptyBox =>
             val error = e ?~! "An error occured when updating the Technique library from file system"
             logger.debug(error.messageChain, e)
-            S.error("updateLib", error.msg)
+            JsRaw(s"""createErrorNotification(s"${error.msg}}")""")
         }
 
-        (if (isTechniqueLibraryPage) {
-          refreshTree
-        } else {
-          Noop
-        } )
+        val processAction =
+          if (isTechniqueLibraryPage) {
+            refreshTree
+          } else {
+            Noop
+          }
+        processAction & createNotification
       }
 
       Script(OnLoad(initJs)) ++

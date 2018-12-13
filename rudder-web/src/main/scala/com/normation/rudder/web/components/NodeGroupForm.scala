@@ -417,8 +417,7 @@ class NodeGroupForm(
   }
 
   private[this] def successPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog")
-    """)
+    JsRaw("""createSuccessNotification()""")
   }
 
 }

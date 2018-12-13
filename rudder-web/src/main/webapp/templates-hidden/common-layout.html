@@ -67,6 +67,12 @@
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/technique-version.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/complianceMode.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/agentSchedule.js"></script>
+
+    <!-- ELM -->
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-notifications.css" />
+    <!--<script type="text/javascript" data-lift="with-cached-resource" src="/elm/rudder-notifications/generated/rudder-notifications.js"></script>-->
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-notifications.js"></script>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-elm.js"></script>
     <script>
     (function($) {
        $.fn.hasScrollBar = function() {
@@ -398,6 +404,7 @@
     <div class="content-wrapper">
       <div class="rudder_col">
         <lift:Authz.whenhasrights>
+          <rudder-notifications></rudder-notifications>
           <div id="content">
           <!-- Here come the content bound by <lift:surround at="content"> -->
           </div>
@@ -409,29 +416,6 @@
           </div></div></div>
         </lift:Authz.whennorights>
       </div>
-    </div>
-
-    <div id="successConfirmationDialog" class="modal fade" data-keyboard="true" tabindex="-1">
-      <div class="modal-backdrop fade in" style="height: 100%;"></div>
-      <div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header">
-            <div class="close" data-dismiss="modal">
-                <span aria-hidden="true">&times;</span>
-                <span class="sr-only">Close</span>
-            </div>
-            <h4 class="modal-title">Success</h4>
-        </div>
-        <div class="modal-body">
-            <div class="row">
-                <div class="col-lg-12 col-sm-12 col-xs-12">
-                    <h4 class="text-center"> Your changes have been saved </h4>
-                </div>
-            </div>
-            <div id="successDialogContent"></div>
-        </div>
-        <div class="modal-footer" style="text-align:center">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        </div>
     </div>
   </body>
 </html>

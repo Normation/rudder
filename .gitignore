@@ -11,3 +11,5 @@ target*
 *configuration.properties
 .cache*
 .worksheet
+**/elm-stuff/*
+**/generated/*
