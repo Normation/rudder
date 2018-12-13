@@ -51,7 +51,6 @@ bundle agent service_disabled(service_name)
       "disable_reporting_${class_prefix}"
         usebundle => disable_reporting;
 
-    !windows::
       "disable_at_boot"
         usebundle => service_check_disabled_at_boot("${service_name}");
 
@@ -59,7 +58,6 @@ bundle agent service_disabled(service_name)
         usebundle => ncf_services("${service_name}", "disable"),
         ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_not_ok";
 
-    !windows::
       "already undefined"
         usebundle  => _classes_success("${old_class_prefix}"),
         ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_ok";
@@ -76,15 +74,6 @@ bundle agent service_disabled(service_name)
         usebundle  => _classes_copy("${inner_class_prefix}_disable", "${class_prefix}"),
         ifvarclass => "${inner_class_prefix}_not_ok";
 
-    windows::
-      "action"             usebundle => service_stop("${service_name}");
-
-      "class copy"         usebundle => _classes_copy("service_stop_${canonified_service_name}", "${old_class_prefix}"),
-                          ifvarclass => "service_stop_${canonified_service_name}_reached";
-      "new result classes" usebundle => _classes_copy("service_stop_${canonified_service_name}", "${class_prefix}"),
-                          ifvarclass => "service_stop_${canonified_service_name}_reached";
-
-   any::
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";

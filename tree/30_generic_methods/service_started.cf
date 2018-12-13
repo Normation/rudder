@@ -49,7 +49,6 @@ bundle agent service_started(service_name)
       "disable_reporting_${class_prefix}"
                       usebundle => disable_reporting;
     
-    !windows::
       "check_running" usebundle  => service_check_running("${service_name}");
 
       "start if not running"
@@ -73,15 +72,6 @@ bundle agent service_started(service_name)
                       ifvarclass => "${inner_class_prefix_check}_kept";
  
  
-    windows::
-      "action"             usebundle => service_start("${service_name}");
-
-      "class copy"         usebundle => _classes_copy("service_start_${canonified_service_name}", "${old_class_prefix}"),
-                          ifvarclass => "service_start_${canonified_service_name}_reached";
-      "new result classes" usebundle => _classes_copy("service_start_${canonified_service_name}", "${class_prefix}"),
-                          ifvarclass => "service_start_${canonified_service_name}_reached";
-
-    any::
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
