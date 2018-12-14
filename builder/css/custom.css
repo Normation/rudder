@@ -161,31 +161,32 @@ a:hover {
 }
 
 .panel-heading{
-    padding: 8px 10px;
+    padding: 6px 0px 5px 10px;
 }
 
 .icon-margin {
     margin: 0 5px;
 }
-.method-settings .icon-margin {
+.method-settings .icon-margin, .input-group-addon .icon-margin {
     margin: 0 3px;
 }
-.method-actions {
+.method-action {
   background: none;
   border: none;
   outline: none;
   padding: 0;
   color: #555;
   top: 1px;
+  font-size: 14px;
 }
-.method-actions.disabled {
+.method-action.disabled {
   cursor: not-allowed;
   opacity: .3;
 }
-.method-actions:hover{
+.method-action:hover{
   color:#333;
 }
-.method-actions:hover .icon-delete{
+.method-action:hover .icon-delete{
   color:#c80003;
 }
 .icon-delete {
@@ -286,7 +287,7 @@ textarea.form-control {
     font-size: 13px;
     height: 20px;
     line-height: 1.5;
-    padding: 0 10px;
+    margin: 0
 }
 
 #methodBlock{
@@ -420,25 +421,34 @@ ul[dnd-list] {
   box-shadow:none;
 }
 
-.btn-method .input-group-addon {
+.btn-method.input-group-addon {
   padding: 6px 8px;
 }
 
-.btn-method .input-group-addon:first-child {
+.btn-method.input-group-addon:first-child {
   border:0;
-  color: #888;
 }
 
+.panel-heading .input-group-addon {
+  padding: 0;
+  padding-top: 1px;
+  background-color: inherit;
+  color: inherit;
+  border: none;
+  font-weight: inherit;
+  font-size: inherit;
+  text-overflow: ellipsis;
+}
 .method-param {
   font-size: 16px;
   margin: 0;
   word-break: break-word;
 }
 
-.method-settings{
-    position: absolute;
-    right: 10px;
+.method-actions{
+  text-align: right
 }
+
 .editForm .form-control[readonly]{
   cursor: text;
   box-shadow: none !important;
@@ -527,7 +537,7 @@ body.iframe .Override.container {
     }
 }
 
-i.glyphicon.glyphicon-circle-arrow-down.icon-margin.method-actions.ng-hide,i.glyphicon.glyphicon-circle-arrow-up.icon-margin.method-actions.ng-hide {
+i.glyphicon.glyphicon-circle-arrow-down.icon-margin.method-action.ng-hide,i.glyphicon.glyphicon-circle-arrow-up.icon-margin.method-action.ng-hide {
   display: inline-block !important;
   visibility: hidden;
 }
@@ -593,19 +603,12 @@ span.text-fit {
 #collapseFilters > .panel-body > .input-group > label{
   cursor: pointer;
 }
-.dsc-icon,.classic-icon{
-  float: right;
-  position: relative;
-  right: 0;
-  display: inline-block;
-}
+
 .classic-icon{
-  top: 2px;
   color: #999;
 }
 #methods .btn-method .method-name{
-  position: relative;
-  padding-right: 25px;
+  text-align: left;
 }
 .dsc-icon,.classic-icon{
   margin-left: 5px;
@@ -613,12 +616,7 @@ span.text-fit {
 #methods .btn-method .classic-icon{
   top: 1px;
 }
-.dsc-icon{
-  background-image: url("dsc-icon.svg");
-  top: -3px;
-  height: 23px;
-  width: 16px;
-}
+
 .btn.dsc-filter{
   padding-right: 32px;
   color: #440e62;
@@ -841,7 +839,7 @@ label.form-control .deprecated-icon{
   top: -8px;
 }
 
-input.form-control,textarea.form-control,div.parameter{
+input.form-control,textarea.form-control,input.parameter{
   white-space: pre-wrap;
   word-break: normal;
   font-family: monospace, Menlo, Monaco, Consolas, "Courier New";
@@ -849,9 +847,18 @@ input.form-control,textarea.form-control,div.parameter{
 .pull-left.method-param{
     width: 100%;
 }
-div.parameter{
-  max-height: 80px;
-  overflow: auto;
+input.form-control.parameter{
+  overflow: visible;
+  border: 0;
+  background-color: inherit;
+  word-break: break-all;
+  resize: none;
+  padding: 0 2px;
+  text-overflow: ellipsis;
+}
+
+.text-info input.form-control.parameter{
+  margin-top: 1px
 }
 
 @-webkit-keyframes saving {
@@ -933,4 +940,15 @@ div.parameter{
 
 .error-pre {
   white-space: pre-wrap;
+}
+.text-grey {
+  color: #888;
+}
+.text-light {
+  font-weight: 400;
+}
+.small-left-margin {
+  margin-left: 7px;
+  border-left: 2px solid #1b809e;
+  padding-left: 3px;
 }
