@@ -2,6 +2,7 @@
 
 // Helpers functions
 
+
 // Swap two two items in an array based on their index
 function swapTwoArrayItems(array, index1, index2) {
     var item = array[index1];
@@ -171,7 +172,7 @@ app.directive('popover', function() {
 });
 
 // Declare controller ncf-builder
-app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll, ngToast, $timeout, focus) {
+app.controller('ncf-builder', function ($scope, $uibModal, $http, $log, $location, $anchorScroll, ngToast, $timeout, focus) {
   initScroll();
   // Variable we use in the whole application
   // Give access to the "General information" form
@@ -375,7 +376,7 @@ $scope.getSessionStorage = function(){
         }
         if(!angular.equals(t2, existingTechnique)){
           $scope.conflictFlag = true;
-          var modalInstance = $modal.open({
+          var modalInstance = $uibModal.open({
             templateUrl: 'RestoreWarningModal.html',
             controller: RestoreWarningModalCtrl,
             backdrop : 'static',
@@ -1176,7 +1177,7 @@ $scope.onImportFileChange = function (fileEl) {
   // - Next technique you want to switch too
   // - Action to perform once the technique you validate the popup
   $scope.selectPopup = function( nextTechnique, select ) {
-    var modalInstance = $modal.open({
+    var modalInstance = $uibModal.open({
       templateUrl: 'SaveChangesModal.html',
       controller: SaveChangesModalCtrl,
       resolve: {
@@ -1198,7 +1199,7 @@ $scope.onImportFileChange = function (fileEl) {
 
   $scope.clonePopup = function() {
 
-    var modalInstance = $modal.open({
+    var modalInstance = $uibModal.open({
       templateUrl: 'template/cloneModal.html',
       controller: cloneModalCtrl,
       resolve: {
@@ -1216,7 +1217,7 @@ $scope.onImportFileChange = function (fileEl) {
   };
 
   $scope.confirmPopup = function(actionName,kind,action,elem, name) {
-    var modalInstance = $modal.open({
+    var modalInstance = $uibModal.open({
       templateUrl: 'template/confirmModal.html',
       controller: confirmModalCtrl,
       resolve: {
@@ -1266,7 +1267,7 @@ $scope.onImportFileChange = function (fileEl) {
   $scope.reloadData();
   $scope.setPath();
 });
-var confirmModalCtrl = function ($scope, $modalInstance, actionName, kind, name) {
+var confirmModalCtrl = function ($scope, $uibModalInstance, actionName, kind, name) {
 
   $scope.actionName = actionName;
   $scope.kind = kind;
@@ -1281,15 +1282,15 @@ var confirmModalCtrl = function ($scope, $modalInstance, actionName, kind, name)
   };
 
   $scope.confirm = function() {
-    $modalInstance.close();
+    $uibModalInstance.close();
   };
 
   $scope.cancel = function () {
-    $modalInstance.dismiss('cancel');
+    $uibModalInstance.dismiss('cancel');
   };
 };
 
-var cloneModalCtrl = function ($scope, $modalInstance, technique, techniques) {
+var cloneModalCtrl = function ($scope, $uibModalInstance, technique, techniques) {
 
   technique.bundle_name = undefined;
 
@@ -1298,36 +1299,36 @@ var cloneModalCtrl = function ($scope, $modalInstance, technique, techniques) {
   $scope.oldTechniqueName = technique.name;
 
   $scope.clone = function() {
-    $modalInstance.close(technique);
+    $uibModalInstance.close(technique);
   }
 
   $scope.cancel = function () {
-    $modalInstance.dismiss('cancel');
+    $uibModalInstance.dismiss('cancel');
   };
 };
 
-var SaveChangesModalCtrl = function ($scope, $modalInstance, technique, editForm) {
+var SaveChangesModalCtrl = function ($scope, $uibModalInstance, technique, editForm) {
   $scope.editForm = editForm;
   $scope.technique = technique;
   $scope.save = function() {
-    $modalInstance.close(true);
+    $uibModalInstance.close(true);
   }
 
   $scope.discard = function () {
-    $modalInstance.close(false);
+    $uibModalInstance.close(false);
   };
 
   $scope.cancel = function () {
-    $modalInstance.dismiss('cancel');
+    $uibModalInstance.dismiss('cancel');
   };
 };
 
-var RestoreWarningModalCtrl = function ($scope, $modalInstance, technique, editForm) {
+var RestoreWarningModalCtrl = function ($scope, $uibModalInstance, technique, editForm) {
   $scope.save = function() {
-    $modalInstance.close(true);
+    $uibModalInstance.close(true);
   }
   $scope.discard = function () {
-    $modalInstance.close(false);
+    $uibModalInstance.close(false);
   };
 };
 
