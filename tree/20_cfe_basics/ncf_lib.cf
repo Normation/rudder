@@ -888,6 +888,28 @@ body classes classes_generic_two(x,y)
                       "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
 }
 
+body classes common_classes_exclusive_persist_codes(prefix, persist, keptcodes, repairedcodes, errorcodes)
+{
+
+  kept_returncodes     => { "@{keptcodes}" };
+  repaired_returncodes => { "@{repairedcodes}" };
+  failed_returncodes   => { "@{errorcodes}" };
+
+  promise_kept     => { "${prefix}_kept"    , "${prefix}_ok" };
+  cancel_kept      => { "${prefix}_repaired", "${prefix}_failed", "${prefix}_error" };
+
+  promise_repaired => { "${prefix}_repaired", "${prefix}_ok" };
+  cancel_repaired  => { "${prefix}_kept", "${prefix}_failed", "${prefix}_error"  };
+
+  repair_failed    => { "${prefix}_failed"  , "${prefix}_error" };
+  repair_denied    => { "${prefix}_denied"  , "${prefix}_error" };
+  repair_timeout   => { "${prefix}_timeout" , "${prefix}_error" };
+  cancel_notkept   => { "${prefix}_kept", "${prefix}_ok", "${repaired}" };
+
+  persist_time     => "${persist}";
+
+}
+
 # WARNING !!!
 # For new class prefix migration only, this will be removed when migration is over
 body process_count any_count_two(cl, cl2)
