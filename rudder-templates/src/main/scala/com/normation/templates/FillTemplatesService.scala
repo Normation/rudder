@@ -72,7 +72,37 @@ final case class STVariable(
   , isSystem  :Boolean
 )
 
+
 class FillTemplatesService extends Loggable {
+
+  /*
+   * The cache is managed template by template
+   * If a content is not in the cache, it will create the StringTemplate instance, and return it
+   *
+   */
+  private[this] var cache = Map[String,StringTemplate]()
+
+
+  def clearCache(): Unit = this.synchronized {
+    cache = Map()
+  }
+
+  def getTemplateFromContent(templateName: String,content: String): Box[StringTemplate] = this.synchronized {
+    cache.get(content) match {
+      case Some(template) => Full(template.getInstanceOf())
+      case _ =>
+        try {
+          val template = new StringTemplate(content, classOf[NormationAmpersandTemplateLexer])
+          cache = cache + ((content, template))
+          Full(template.getInstanceOf())
+        } catch {
+          case ex: Exception =>
+            val m = s"Error when trying to parse template '${templateName}': ${ex.getMessage}"
+            logger.error(m, ex)
+            Failure(m)
+        }
+    }
+  }
 
   /**
    * Replace all occurences of parameters in the 'content' string with
@@ -83,17 +113,8 @@ class FillTemplatesService extends Loggable {
    */
   def fill(templateName: String, content: String, variables: Seq[STVariable]): Box[String] = {
     for {
-      template <- try {
-                    //string template does not allows "." in path name, so we are force to use a templateGroup by policy template (versions have . in them)
-                    val template = new StringTemplate(content, classOf[NormationAmpersandTemplateLexer])
-                    Full(template)
-                  } catch {
-                    case ex: Exception =>
-                      val m = s"Error when trying to parse template '${templateName}': ${ex.getMessage}"
-                      logger.error(m, ex)
-                      Failure(m)
-                  }
-       filled  <- {
+       template <- getTemplateFromContent(templateName, content)
+       filled   <- {
                     /*
                      * Here, we are using bestEffort to try to test a maxum of false values,
                      * but the StringTemplate thing is mutable, so we don't have the intersting

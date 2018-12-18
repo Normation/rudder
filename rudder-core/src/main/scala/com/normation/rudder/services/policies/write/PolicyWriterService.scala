@@ -294,7 +294,8 @@ class PolicyWriterServiceImpl(
       pathsInfo        =  configAndPaths.map { _.paths }
       templates        <- readTemplateFromFileSystem(techniqueIds)
       resources        <- readResourcesFromFileSystem(techniqueIds)
-
+      // Clearing cache
+      _                 = fillTemplates.clearCache
       readTemplateTime2 = DateTime.now.getMillis
       readTemplateDur   = readTemplateTime2 - readTemplateTime1
       _                 = policyLogger.debug(s"Paths computed and templates read in ${readTemplateDur} ms")
@@ -354,6 +355,7 @@ class PolicyWriterServiceImpl(
       licensesCopiedDur  = licensesCopiedTime - parametersWrittenTime
       _                  = policyLogger.debug(s"Licenses copied in ${licensesCopiedDur} ms")
 
+      _                 = fillTemplates.clearCache
       /// perhaps that should be a post-hook somehow ?
       // and perhaps we should have an AgentSpecific global pre/post write
 
