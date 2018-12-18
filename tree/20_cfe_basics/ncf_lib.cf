@@ -730,12 +730,31 @@ bundle edit_line ensure_line_in_xml_tag(tag_name, line)
       comment       => "Insert line in section ${tag_name}";
 }
 
+# DEPRECATED - for compatibility
+body delete_select rudder_delete_if_not_in_list(lines_to_delete)
+{
+  delete_if_not_match_from_list => { @{lines_to_delete} };
+}
+
+# Select lines for deletion
+# Select the lines that are not in the list (complete line match)
+body delete_select ncf_delete_if_not_in_list(lines_to_delete)
+{
+  delete_if_not_match_from_list => { @{lines_to_delete} };
+}
+
 body select_region ncf_section_selector(section_start, section_end)
 {
   select_start => "${section_start}";
   select_end   => "${section_end}";
 }
 
+# DEPRECATED - for compatibility
+body select_region rudder_section_selector(section_start, section_end)
+{
+  select_start => "${section_start}";
+  select_end   => "${section_end}";
+}
 
 # Edit AIX password file /etc/security/passwd
 bundle edit_line ncf_ensure_AIX_password(username, password) {
@@ -781,6 +800,42 @@ body select_region ncf_section_AIX_user(username)
   select_start => "${username}:";
   select_end => ".*:";
 }
+
+#
+# Select files older than X months
+#
+body file_select ncf_months_old(months)
+{
+  mtime       => irange(0,ago(0,"${months}",0,0,0,0));
+  file_result => "mtime";
+}
+
+#
+# Select files older than X hours
+#
+body file_select ncf_hours_old(hours)
+{
+  mtime       => irange(0,ago(0,0,0,"${hours}",0,0));
+  file_result => "mtime";
+}
+
+#
+# Select files older than X minutes
+#
+body file_select ncf_minutes_old(minutes)
+{
+  mtime       => irange(0,ago(0,0,0,0,"${minutes}",0));
+  file_result => "mtime";
+}
+
+# DEPRECATED - for compatibility
+body file_select rudder_common_minutes_old(minutes)
+{
+  mtime       => irange(0,ago(0,0,0,0,"${minutes}",0));
+  file_result => "mtime";
+}
+
+
 
 # Modular local copy_from body
 body copy_from ncf_local_cp_method(from, method)
