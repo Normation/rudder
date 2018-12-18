@@ -4,6 +4,7 @@
         <link type="image/x-icon" rel="icon" href="ncf-builder/css/favicon.ico"/>
 
         <link href="css/bootstrap-3.3.7.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="css/font-awesome-5.6.1.min.css">
         <link href="css/ngToast.min.css" rel="stylesheet">
         <link href="css/custom.css" rel="stylesheet">
         <!-- Needed polyfill for ie11, works in all other browsers -->
@@ -49,9 +50,9 @@
             <span class="text-danger" ng-if="editForm.$invalid">Technique cannot be saved because it has some errors</span>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-default pull-left" ng-click="cancel()">Cancel</button>
-            <button class="btn btn-default" ng-click="discard()">Discard Changes</button>
-            <button class="btn btn-success" ng-disabled="editForm.$invalid" ng-click="save()">Save Changes</button>
+            <button class="btn btn-primary btn-outline pull-left" ng-click="cancel()">Cancel <i class="fas fa-arrow-left"></i></button>
+            <button class="btn btn-primary" ng-click="discard()">Discard Changes <i class="fas fa-times-circle"></i></button>
+            <button class="btn btn-success" ng-disabled="editForm.$invalid" ng-click="save()">Save Changes <i class="fas fa-download"></i></button>
           </div>
         </script>
         <script type="text/ng-template" id="RestoreWarningModal.html">
@@ -77,8 +78,8 @@
             Are you sure you want to {{actionName}} {{displayName()}}?
           </div>
           <div class="modal-footer">
-            <button class="btn btn-default pull-left" ng-click="cancel()">Cancel</button>
-            <button class="btn btn-default btn-danger" ng-click="confirm()">{{actionName}}</button>
+            <button class="btn btn-primary btn-outline pull-left" ng-click="cancel()">Cancel <i class="fas fa-arrow-left"></i></button>
+            <button class="btn btn-danger" ng-click="confirm()">{{actionName}} <i class="fas fa-times-circle"></i> </button>
           </div>
         </script>
         <script id="template/cloneModal.html" type="text/ng-template">
@@ -96,8 +97,8 @@
               </div>
             </div>
             <div class="modal-footer">
-              <a class="btn btn-default pull-left" ng-click="cancel()">Cancel</a>
-              <button ng-disabled="cloneForm.$invalid || technique.name === oldTechniqueName" class="btn btn-default" ng-click="clone()">Clone</button>
+              <button class="btn btn-primary btn-outline pull-left" ng-click="cancel()">Cancel <i class="fas fa-arrow-left"></i></button>
+              <button ng-disabled="cloneForm.$invalid || technique.name === oldTechniqueName" class="btn btn-success" ng-click="clone()">Clone <i class="fas fa-clone"></i></button>
             </div>
           </form >
         </script>
@@ -145,9 +146,9 @@
                     <thead>
                         <tr>
                             <th colspan=2 style="border:none;">
-				<button ng-click="newTechnique()" class="btn btn-xs btn-success new-icon" style="height:30px;">Create</button>
-                                <label class="btn btn-xs btn-default" style="height:30px;line-height:30px;margin-left:10px;" for="btn-import">
-                                    <span class="glyphicon glyphicon-upload" style="margin-right:5px"></span>Import
+				                      <button ng-click="newTechnique()" class="btn btn-success">Create <i class="fas fa-plus-circle"></i></button>
+                              <label class="btn btn-primary btn-outline pull-right" for="btn-import">
+                                    Import <i class="fas fa-file-import"></i>
                                     <input id="btn-import" type="file" onchange="angular.element(this).scope().onImportFileChange(this)" class="hidden">
                                 </label>
                             </th>
@@ -192,7 +193,7 @@
                 <p>Create a new technique or edit one  from the list on the left.</p>
                 <p>Define target configuration using the generic methods from the list on the right as building blocks.</p>
                 <p>
-                  <a class="btn btn-success btn-lg new-icon" ng-click="newTechnique()" role="button">Create Technique</a>
+                  <a class="btn btn-success btn-lg" ng-click="newTechnique()" role="button">Create Technique  <i class="fas fa-plus-circle"></i></a>
                 </p>
              </div>
             <div ng-if="selectedTechnique" >
@@ -200,9 +201,9 @@
                     <div class="title">Technique</div>
                     <h3 id="technique-name">{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
                       <div class="btn-technique">
-                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-danger" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete</a>
-                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone</a>
-                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="exportTechnique(selectedTechnique)">Export</a>
+                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-danger" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete <i class="fas fa-times-circle"></i></a>
+                        <a ng-disabled="isNotSaved()" class="btn btn-success btn-outline pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone <i class="fas fa-clone"></i></a>
+                        <a ng-disabled="isNotSaved()" class="btn btn-primary btn-outline pull-right top-margin right-margin" ng-click="exportTechnique(selectedTechnique)">Export <i class="fas fa-file-export"></i></a>
                       </div>
                     </h3>
                     <uib-accordion>
@@ -279,15 +280,14 @@
                                 <input readonly class="form-control" ng-model="'${'+getBundleName(param.name)+'}'" placeHolder="Value in methods">
                                 <span class="input-group-btn">
                                   <button ng-click="selectedTechnique.parameter.splice($index,1)" class="btn btn-danger" >
-                                    <span class="glyphicon glyphicon-minus"></span>
+                                    <i class="fas fa-times-circle"></i>
                                   </button>
                                 </span>
                               </div>
                             </div>
                             <div class="form-group col-sm-12 text-center no-padding-right"> 
-                              <div ng-click="addParameter()" class="btn btn-success" >
-                                <span class="glyphicon glyphicon-plus"></span>
-                                Add parameter
+                              <div ng-click="addParameter()" class="btn btn-success btn-outline" >
+                                Add parameter <i class="fas fa-plus-circle"></i>
                               </div>
                             </div>
                           </div>
@@ -310,16 +310,13 @@
                                 <input ng-click="$event.stopPropagation();" class="input-xs form-control parameter" 
                                        uib-popover-html="'<small>Click <span class=\'text-info\'>3</span> times to copy the whole condition below</small>'" popover-trigger="mouseenter" popover-append-to-body="true" popover-title="{{method_call.class_context}}" ng-readonly="true" ng-model="method_call.class_context"  />
                                 <span class="input-group-addon input-xs">
-                                  <button type="button" ng-click="moveDown($event,$index);" class="icon-margin method-action" ng-class="{disabled : $index === 0}">
-                                    <i class="glyphicon glyphicon-circle-arrow-up"></i>
+                                  <button type="button" uib-tooltip="Clone this method" tooltip-append-to-body="true" popup-trigger="click" popup-open-delay="500" ng-click="cloneMethod($index);$event.stopPropagation();" class="icon-margin text-success method-action">
+                                    <i class="fas fa-clone"></i>
                                   </button>
-                                  <button type="button" ng-click="moveUp($event,$index);" class="icon-margin method-action" ng-class="{disabled : $index === selectedTechnique.method_calls.length - 1}">
-                                    <i class="glyphicon glyphicon-circle-arrow-down"></i>
+                                  <button type="button" ng-click="removeMethod($index);$event.stopPropagation();" class="icon-margin text-danger method-action">
+                                    <i class="fas fa-eraser"></i>
                                   </button>
-                                  <button type="button" ng-click="removeMethod($index);$event.stopPropagation();" class="icon-margin  method-action">
-                                    <i class="glyphicon glyphicon-remove-sign icon-delete"></i>
-                                  </button>
-                                  <button type="button" class="icon-margin method-action">
+                                  <button type="button" class="icon-margin text-classic method-action">
                                     <i class="glyphicon " ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
                                   </button>
                                  </span>
@@ -335,20 +332,17 @@
                                       <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
                                     </span>
                                     <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method_call)}}">
-                                      <i class="glyphicon glyphicon-info-sign method-action"></i>
+                                      <i class="glyphicon glyphicon-info-sign text-primary method-action"></i>
                                     </a>
                                   </div>
                                   <span class="input-group-addon method-actions"  ng-if="method_call.class_context === 'any'">
-                                    <button type="button" ng-click="moveDown($event,$index);" class="icon-margin method-action" ng-class="{disabled : $index === 0}">
-                                      <i class="glyphicon glyphicon-circle-arrow-up"></i>
+                                    <button type="button" uib-tooltip="Clone this method" tooltip-append-to-body="true" popup-trigger="click" popup-open-delay="500" ng-click="cloneMethod($index);$event.stopPropagation();" class="icon-margin  text-success method-action">
+                                      <i class="fas fa-clone"></i>
                                     </button>
-                                    <button type="button" ng-click="moveUp($event,$index);" class="icon-margin method-action" ng-class="{disabled : $index === selectedTechnique.method_calls.length - 1}">
-                                      <i class="glyphicon glyphicon-circle-arrow-down"></i>
+                                    <button type="button" ng-click="removeMethod($index);$event.stopPropagation();" class="icon-margin text-danger method-action">
+                                      <i class="fas fa-times-circle"></i>
                                     </button>
-                                    <button type="button" ng-click="removeMethod($index);$event.stopPropagation();" class="icon-margin  method-action">
-                                      <i class="glyphicon glyphicon-remove-sign icon-delete"></i>
-                                    </button>
-                                    <button type="button" class="icon-margin method-action">
+                                    <button type="button" class="icon-margin text-classic method-action">
                                       <i class="glyphicon " ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
                                     </button>
                                    </span>
@@ -378,14 +372,14 @@
             </div>
             </form>
             <div ng-if="selectedTechnique" class="col-md-5 col-md-offset-2 col-xs-12 col-xs-offset-0 fixed-footer">
-                <button ng-click="openMethods()" class="btn btn-success btn-outline new-icon pull-left">
-                    Add methods
+                <button ng-click="openMethods()" class="btn btn-success btn-outline pull-left">
+                    Add methods <i class="fas fa-plus-circle"></i>
                 </button>
                 <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving" class="btn btn-success pull-right btn-save" ng-class="{saving : saving}" ng-click="saveTechnique()">
                   <span class="glyphicon glyphicon-cog saving"></span>
-                  Save
+                  Save <i class="fas fa-download"></i>
                 </button>
-                <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default pull-right right-margin" ng-click="resetTechnique()">Reset</button>
+                <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-primary btn-outline pull-right right-margin" ng-click="resetTechnique()">Reset <i class="fas fa-undo-alt"></i></button>
             </div>
             <div class="col-md-5 ncf_col" id="methodBlock" ng-if="selectedMethod !== undefined">
                 <div>
@@ -397,7 +391,7 @@
                           <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
                         </span>
                         <i class="{{getIconClassByAgentType(selectedMethod.method_name)}}"></i>
-                        <button ng-disabled="! canResetMethod()" class="btn btn-default pull-right top-margin" ng-click="resetMethod()">Reset</button>
+                        <button ng-disabled="! canResetMethod()" class="btn btn-primary btn-outline pull-right top-margin" ng-click="resetMethod()">Reset <i class="fas fa-undo-alt"></i></button>
                     </h3>
                     <uib-accordion>
                         <uib-accordion-group is-open="conditionIsOpen">
@@ -570,7 +564,7 @@
                                     <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
                                   </span>
                                   <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method)}}">
-                                    <i class="glyphicon glyphicon-info-sign method-action"></i>
+                                    <i class="glyphicon glyphicon-info-sign text-primary method-action"></i>
                                   </a>
                                 </span>
                                 <img src="ncf-builder/css/dsc-icon.svg" class="dsc-icon" ng-if="checkAgentSupport(method,'dsc')"></i>

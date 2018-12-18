@@ -346,7 +346,10 @@ $scope.isSelected = function(technique) {
 
 // Check if a method is selected
 $scope.isSelectedMethod = function(method) {
-  return angular.equals($scope.selectedMethod,method);
+  if ($scope.selectedMethod === undefined) {
+    return false
+  }
+  return method["$$hashKey"] === $scope.selectedMethod["$$hashKey"];
 };
 $scope.getSessionStorage = function(){
   $scope.resetFlags();
@@ -984,6 +987,16 @@ $scope.onImportFileChange = function (fileEl) {
   }
 
   // Technique actions
+
+
+
+  // clone method of specified index and add it right after index
+  $scope.cloneMethod= function(index) {
+    var newMethod = angular.copy($scope.selectedTechnique.method_calls[index]);
+    delete newMethod.original_index;
+    $scope.selectedTechnique.method_calls.splice(index+1, 0, newMethod);
+    $scope.selectedMethod = newMethod;
+  }
 
   // Remove method on specified index
   $scope.removeMethod= function(index) {

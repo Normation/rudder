@@ -68,48 +68,54 @@ hr {
   margin: 10px 0 -10px 0;
 }
 
-.btn-ncf {
-    background-image: linear-gradient(#FFA033, #EE7F00 50%, #B86200);
-    border-color: #B86200;
-    color: #eeeeee;
+.btn {
+  padding-bottom: 3px;
 }
 
-.btn-ncf:hover, .btn-ncf:focus, .btn-ncf:active, .btn-ncf.active, .open .dropdown-toggle.btn-ncf {
-    background-image: linear-gradient(#EF9552, #DE6A19 50%, #A84719);
-    border-color: #A84719;  
-    color: #eeeeee;   
-}
-
-.btn.new-icon:after{
-  content: "\e081";
-  position: relative;
-  top: 3px;
-  display: inline-block;
-  font-family: 'Glyphicons Halflings';
-  font-style: normal;
-  font-weight: 400;
-  line-height: 1;
-  text-rendering: auto;
-  margin-left: 7px;
-}
 .btn.btn-success{
   background-color: #9bc832;
   border-color: #8fb92a;
+}
+.text-success {
+  color: #9bc832;
 }
 .btn.btn-success:hover, .btn.btn-success:focus:hover {
   background-color: #85b711;
   border-color: #79a90a;
 }
-.btn.btn-success.btn-outline{
-  background-color: #fff !important;
-  color: #8fb92a !important;
-  border-color: #8fb92a !important;
+
+.btn.btn-outline{
+  background-color: #fff ;
+  transition-property: background-color, color;
+  transition-duration: .2s;
 }
-.btn.btn-success.btn-outline:hover{
-  background-color: #8fb92a !important;
+.btn.btn-outline:hover {
   color: #fff !important;
   transition-property: background-color, color;
   transition-duration: .2s;
+}
+
+.btn.btn-success.btn-outline{
+  color: #9bc832;
+}
+.btn.btn-success.btn-outline:hover{
+  background-color: #85b711;
+}
+
+
+.btn.btn-primary.btn-outline{
+  color: #337ab7;
+}
+.btn.btn-primary.btn-outline:hover{
+  background-color: #286090;
+}
+
+
+.btn.btn-danger.btn-outline{
+  color: #d9534f;
+}
+.btn.btn-danger.btn-outline:hover{
+  background-color: #c9302c;
 }
 
 .dropdown-menu {
@@ -176,8 +182,21 @@ a:hover {
   border: none;
   outline: none;
   padding: 0;
-  color: #555;
   top: 1px;
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+.active .method-action.text-classic {
+  opacity: 1;
+}
+.method-action {
+  background: none;
+  border: none;
+  outline: none;
+  padding: 0;
+  top: 1px;
+  opacity: 0.6;
   font-size: 14px;
 }
 .method-action.disabled {
@@ -185,14 +204,9 @@ a:hover {
   opacity: .3;
 }
 .method-action:hover{
-  color:#333;
+  opacity: 1;
 }
-.method-action:hover .icon-delete{
-  color:#c80003;
-}
-.icon-delete {
-  color : #da635d;
-}
+
 .method-margin {
     margin-top:4px;
     margin-bottom:0px;
@@ -257,7 +271,7 @@ html, body, .Override.container{
     font-weight: 700;
     letter-spacing: 1px;
     margin-bottom: -20px;
-    margin-top: 25px;
+    margin-top: 15px;
     text-transform: uppercase;
 }
 
@@ -959,6 +973,10 @@ input.form-control.parameter{
   word-break: break-all
 }
 
-small {
-  color: #777 !important
+.input-group small {
+  color: #777;
+}
+
+.text-classic {
+  color: #333;
 }
