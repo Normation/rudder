@@ -1,3 +1,3 @@
 #!/bin/bash
 
-find . -name '*.py' | xargs pylint -E --disable=C,R --persistent=n
+find . -name '*.py' | xargs python2 -m pylint -E --disable=C,R --persistent=n
