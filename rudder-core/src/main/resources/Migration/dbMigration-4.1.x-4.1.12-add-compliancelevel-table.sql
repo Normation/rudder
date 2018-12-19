@@ -36,10 +36,7 @@
 */
 
 CREATE TABLE nodecompliancelevels (
-  nodeId             text NOT NULL CHECK (nodeId <> '')
-, runTimestamp       timestamp with time zone NOT NULL
-, ruleId             text NOT NULL CHECK (nodeId <> '')
-, directiveId        text NOT NULL CHECK (nodeId <> '')
+  runTimestamp       timestamp with time zone NOT NULL
 , pending            int DEFAULT 0
 , success            int DEFAULT 0
 , repaired           int DEFAULT 0
@@ -54,10 +51,13 @@ CREATE TABLE nodecompliancelevels (
 , nonCompliant       int DEFAULT 0
 , auditError         int DEFAULT 0
 , badPolicyMode      int DEFAULT 0
+, nodeId             text NOT NULL CHECK (nodeId <> '')
+, ruleId             text NOT NULL CHECK (nodeId <> '')
+, directiveId        text NOT NULL CHECK (nodeId <> '')
 , PRIMARY KEY (nodeId, runTimestamp, ruleId, directiveId)
 );
 
-CREATE INDEX nodecompliancelevels_nodeId ON nodecompliancelevels (nodeId);
-CREATE INDEX nodecompliancelevels_ruleId ON nodecompliancelevels (nodeId);
-CREATE INDEX nodecompliancelevels_directiveId ON nodecompliancelevels (nodeId);
-CREATE INDEX nodecompliancelevels_runTimestamp ON nodecompliancelevels (runTimestamp);
+CREATE INDEX nodecompliancelevels_nodeId_idx ON nodecompliancelevels (nodeId);
+CREATE INDEX nodecompliancelevels_ruleId_idx ON nodecompliancelevels (nodeId);
+CREATE INDEX nodecompliancelevels_directiveId_idx ON nodecompliancelevels (nodeId);
+CREATE INDEX nodecompliancelevels_runTimestamp_idx ON nodecompliancelevels (runTimestamp);

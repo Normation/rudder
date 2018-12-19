@@ -402,8 +402,8 @@ class UpdateExpectedReportsJdbcRepository(
     val dateAt_0000 = date.toString("yyyy-MM-dd")
     val copy = s"""
       insert into archivednodecompliance
-        (nodeid, runtimestamp, endoflife, runanalysis, summary, details)
-        (select nodeid, runtimestamp, endoflife, runanalysis, summary, details
+        (runtimestamp, endoflife, nodeid, runanalysis, summary, details)
+        (select runtimestamp, endoflife, nodeid, runanalysis, summary, details
            from nodecompliance
            where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'
         )

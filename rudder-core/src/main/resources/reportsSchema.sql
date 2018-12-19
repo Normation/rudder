@@ -64,15 +64,15 @@ ALTER database rudder SET standard_conforming_strings=true;
 CREATE SEQUENCE serial START 101;
 
 CREATE TABLE RudderSysEvents (
-  id                 bigint PRIMARY KEY default nextval('serial')
-, executionDate      timestamp with time zone NOT NULL
+  executionDate      timestamp with time zone NOT NULL
+, executionTimeStamp timestamp with time zone NOT NULL
+, id                 bigint PRIMARY KEY default nextval('serial')
+, serial             integer NOT NULL
 , nodeId             text NOT NULL CHECK (nodeId <> '')
 , directiveId        text NOT NULL CHECK (directiveId <> '')
 , ruleId             text NOT NULL CHECK (ruleId <> '')
-, serial             integer NOT NULL
 , component          text NOT NULL CHECK (component <> '')
 , keyValue           text
-, executionTimeStamp timestamp with time zone NOT NULL
 , eventType          text
 , policy             text
 , msg                text
@@ -93,15 +93,15 @@ CREATE INDEX changes_executionTimeStamp_idx ON RudderSysEvents (executionTimeSta
  * The table used to store archived agent execution reports.
  */
 CREATE TABLE ArchivedRudderSysEvents (
-  id                 bigint PRIMARY KEY
-, executionDate      timestamp with time zone NOT NULL
+  executionDate      timestamp with time zone NOT NULL
+, executionTimeStamp timestamp with time zone NOT NULL
+, id                 bigint PRIMARY KEY
+, serial             integer NOT NULL
 , nodeId             text NOT NULL CHECK (nodeId <> '')
 , directiveId        text NOT NULL CHECK (directiveId <> '')
 , ruleId             text NOT NULL CHECK (ruleId <> '')
-, serial             integer NOT NULL
 , component          text NOT NULL CHECK (component <> '')
 , keyValue           text
-, executionTimeStamp timestamp with time zone NOT NULL
 , eventType          text
 , policy             text
 , msg                text
@@ -116,29 +116,17 @@ CREATE INDEX executionTimeStamp_archived_idx ON ArchivedRudderSysEvents (executi
  * or not.
  */
 CREATE TABLE ReportsExecution (
-  nodeId       text NOT NULL
-, date         timestamp with time zone NOT NULL
-, complete     boolean NOT NULL
-, nodeConfigId text
+  date         timestamp with time zone NOT NULL
 , insertionId  bigint
+, complete     boolean NOT NULL
+, nodeId       text NOT NULL
+, nodeConfigId text
 , PRIMARY KEY(nodeId, date)
 );
 
 CREATE INDEX reportsexecution_date_idx ON ReportsExecution (date);
 CREATE INDEX reportsexecution_insertionid_idx ON ReportsExecution (insertionId);
 CREATE INDEX reportsexecution_nodeid_nodeconfigid_idx ON ReportsExecution (nodeId, nodeConfigId);
-
-/*
- * Store the archived agent execution times for each nodes.
- */
-CREATE TABLE ArchivedReportsExecution (
-  nodeId       text NOT NULL
-, date         timestamp with time zone NOT NULL
-, complete     boolean NOT NULL
-, nodeConfigId text
-, insertionId  bigint
-, PRIMARY KEY(nodeId, date)
-);
 
 /*
  *************************************************************************************
@@ -161,10 +149,11 @@ CREATE TABLE nodes_info (
 
 -- Create the table for the node configuration
 CREATE TABLE nodeConfigurations (
-  nodeId            text NOT NULL CHECK (nodeId <> '')
-, nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
-, beginDate         timestamp with time zone NOT NULL
+  beginDate         timestamp with time zone NOT NULL
 , endDate           timestamp with time zone
+
+, nodeId            text NOT NULL CHECK (nodeId <> '')
+, nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
 
 -- here, I'm using text but with valid JSON in it, because for now we can't impose postgres > 9.2,
 -- and interesting function are on 9.3/9.4.  we will be able to migrate with:
@@ -189,10 +178,10 @@ CREATE INDEX nodeConfigurations_nodeConfigId ON nodeConfigurations (nodeConfigId
 
 -- Create the table for the archived node configurations
 CREATE TABLE archivedNodeConfigurations (
-  nodeId            text NOT NULL CHECK (nodeId <> '')
-, nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
-, beginDate         timestamp with time zone NOT NULL
+  beginDate         timestamp with time zone NOT NULL
 , endDate           timestamp with time zone
+, nodeId            text NOT NULL CHECK (nodeId <> '')
+, nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
 , configuration     text NOT NULL CHECK (configuration <> '' )
 , PRIMARY KEY (nodeId, nodeConfigId, beginDate)
 );
@@ -210,14 +199,14 @@ CREATE TABLE archivedNodeConfigurations (
 
 -- Create the table for the node compliance
 CREATE TABLE nodeCompliance (
-  nodeId            text NOT NULL CHECK (nodeId <> '')
-, runTimestamp      timestamp with time zone NOT NULL
+  runTimestamp      timestamp with time zone NOT NULL
 
 -- endOfList is the date until which the compliance information
 -- are relevant. After that date/time, the node must have sent
 -- a more recent run, this one is not valide anymore.
 , endOfLife         timestamp with time zone
 
+, nodeId            text NOT NULL CHECK (nodeId <> '')
 -- all information about the run and what lead to that compliance:
 -- the run config version, the awaited config version, etc
 -- It's JSON (but in a string, cf explanation in nodeConfigurations table)
@@ -250,9 +239,9 @@ CREATE INDEX nodeCompliance_endOfLife ON nodeCompliance (endOfLife);
 
 -- Create the table for the archived node compliance
 CREATE TABLE archivedNodeCompliance (
-  nodeId            text NOT NULL CHECK (nodeId <> '')
-, runTimestamp      timestamp with time zone NOT NULL
+  runTimestamp      timestamp with time zone NOT NULL
 , endOfLife         timestamp with time zone
+, nodeId            text NOT NULL CHECK (nodeId <> '')
 , runAnalysis       text NOT NULL CHECK (runAnalysis <> '' )
 , summary           text NOT NULL CHECK (summary <> '' )
 , details  text NOT NULL CHECK (details <> '' )
@@ -265,10 +254,7 @@ CREATE TABLE archivedNodeCompliance (
 -- but with a much more reasonable space until all our supported server versions
 -- have at least PostgreSQL 9.4.
 CREATE TABLE nodecompliancelevels (
-  nodeId             text NOT NULL CHECK (nodeId <> '')
-, runTimestamp       timestamp with time zone NOT NULL
-, ruleId             text NOT NULL CHECK (nodeId <> '')
-, directiveId        text NOT NULL CHECK (nodeId <> '')
+  runTimestamp       timestamp with time zone NOT NULL
 , pending            int DEFAULT 0
 , success            int DEFAULT 0
 , repaired           int DEFAULT 0
@@ -283,13 +269,16 @@ CREATE TABLE nodecompliancelevels (
 , nonCompliant       int DEFAULT 0
 , auditError         int DEFAULT 0
 , badPolicyMode      int DEFAULT 0
+, nodeId             text NOT NULL CHECK (nodeId <> '')
+, ruleId             text NOT NULL CHECK (nodeId <> '')
+, directiveId        text NOT NULL CHECK (nodeId <> '')
 , PRIMARY KEY (nodeId, runTimestamp, ruleId, directiveId)
 );
 
-CREATE INDEX nodecompliancelevels_nodeId ON nodecompliancelevels (nodeId);
-CREATE INDEX nodecompliancelevels_ruleId ON nodecompliancelevels (nodeId);
-CREATE INDEX nodecompliancelevels_directiveId ON nodecompliancelevels (nodeId);
-CREATE INDEX nodecompliancelevels_runTimestamp ON nodecompliancelevels (runTimestamp);
+CREATE INDEX nodecompliancelevels_nodeId_idx ON nodecompliancelevels (nodeId);
+CREATE INDEX nodecompliancelevels_ruleId_idx ON nodecompliancelevels (ruleId);
+CREATE INDEX nodecompliancelevels_directiveId_idx ON nodecompliancelevels (directiveId);
+CREATE INDEX nodecompliancelevels_runTimestamp_idx ON nodecompliancelevels (runTimestamp);
 
 
 
