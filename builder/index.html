@@ -513,46 +513,42 @@
                     </div>
                     <div id="collapseFilters" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="filterTitle">
                       <div class="panel-body">
-                        <label>Agent type</label>
-                        <br/>
-                        <div class="btn-group">
-                          <button class="btn btn-default" ng-class="{active:filter.compatibility == 'all'}" ng-click="filter.compatibility='all'">
-                            All
-                          </button>
-                          <button class="btn btn-default classic-filter" ng-class="{active:filter.compatibility == 'classic'}" ng-click="filter.compatibility='classic'">
-                            Classic
-                            <i class="glyphicon glyphicon-cog classic-icon"></i>
-                          </button>
-                          <button class="btn btn-default dsc-filter" ng-class="{active:filter.compatibility == 'dsc'}" ng-click="filter.compatibility='dsc'">
-                            DSC
-                            <img src="ncf-builder/css/dsc-icon.svg" class="dsc-icon"></i>
-                          </button>
+                        <div class=form-group>
+                          <label>Agent type: </label>
+                          <div class="btn-group">
+                            <button class="btn btn-default" ng-class="{active:filter.compatibility == 'all'}" ng-click="filter.compatibility='all'">
+                              All
+                            </button>
+                            <button class="btn btn-default classic-filter" ng-class="{active:filter.compatibility == 'classic'}" ng-click="filter.compatibility='classic'">
+                              Classic <i class="glyphicon glyphicon-cog classic-icon"></i>
+                            </button>
+                            <button class="btn btn-default dsc-filter" ng-class="{active:filter.compatibility == 'dsc'}" ng-click="filter.compatibility='dsc'">
+                              DSC <img src="ncf-builder/css/dsc-icon.svg" class="dsc-icon"></i>
+                            </button>
+                          </div>
                         </div>
-                        <br>
-                        <ul class="form-group list-sm">
-                          <li class="rudder-form">
-                            <div class="input-group">
-                              <label for="showDeprecated" class="input-group-addon" id="labelShowDeprecated">
-                                <input id="showDeprecated" type="checkbox" ng-model="filter.showDeprecated">
-                                <label class="label-radio" for="showDeprecated">
-                                  <span class="glyphicon glyphicon-ok"></span>
-                                </label>
-                                <span class="glyphicon glyphicon-ok check-icon"></span>
-                              </label>
-                              <label for="showDeprecated" class="form-control">
-                                Show deprecated generic methods
-                                <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
-                              </label>
-                            </div>
-                          </li>
-                        </ul>
+                        <div class="input-group input-group-sm form-group">
+                          <div for="showDeprecated" class="input-group-addon" id="labelShowDeprecated">
+                            <input id="showDeprecated" type="checkbox" class="form-control" ng-model="filter.showDeprecated"/>
+                          </div>
+                          <label for="showDeprecated" class="form-control">
+                            Show deprecated generic methods <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                            <i class="glyphicon glyphicon-ok pull-right" ng-if="filter.showDeprecated"></i>
+                          </label>
+                        </div>
+                        <div class="input-group input-group-sm form-group">
+                          <label for="filterMethods" class="input-group-addon" >
+                            <i class="fas fa-search"></i>
+                          </label>
+                          <input id="filterMethods" placeholder="Filter generic methods" type="text" ng-model="filter.text" class="form-control" />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
                 <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory" ng-if="checkFilterCategory(methods)">
                     <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}}</h4>
-                    <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" ng-show="checkFilterMethod(method)" ng-class="{'used':isUsed(method)}">
+                    <li ng-click="addMethod(method)" ng-repeat="method in methods | filter:filter.text" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" ng-show="checkFilterMethod(method)" ng-class="{'used':isUsed(method)}">
                       <div class="input-group">
                         <span class="input-group-addon cursorMove"><b>:::</b></span>
                         <div class="panel-heading" style="overflow:hidden">
