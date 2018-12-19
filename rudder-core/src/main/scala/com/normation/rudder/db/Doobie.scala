@@ -170,7 +170,7 @@ object Doobie {
     import ExpectedReportsSerialisation._
     Composite[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].imap(
           tuple => throw new RuntimeException(s"Error: that method should not be used to deserialize NodeExpectedReports"))(
-          ner   => (ner.nodeId, ner.nodeConfigId, ner.beginDate, ner.endDate, ner.toJson)
+          ner   => (ner.nodeId, ner.nodeConfigId, ner.beginDate, ner.endDate, ner.toCompactJson)
     )
   }
 
@@ -207,7 +207,7 @@ object Doobie {
     import NodeStatusReportSerialization._
     Composite[String].imap(
         json => throw new RuntimeException(s"You can deserialize run compliance info for now"))(
-        x    => x.toJson
+        x    => x.toCompactJson
     )
   }
 
@@ -215,7 +215,7 @@ object Doobie {
     import NodeStatusReportSerialization._
     Composite[String].imap(
         json => throw new RuntimeException(s"You can deserialize aggredatedStatusReport for now"))(
-        x    => x.toJson
+        x    => x.toCompactJson
     )
   }
 
