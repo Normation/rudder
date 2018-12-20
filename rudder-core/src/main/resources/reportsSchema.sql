@@ -128,17 +128,6 @@ CREATE INDEX reportsexecution_date_idx ON ReportsExecution (date);
 CREATE INDEX reportsexecution_insertionid_idx ON ReportsExecution (insertionId);
 CREATE INDEX reportsexecution_nodeid_nodeconfigid_idx ON ReportsExecution (nodeId, nodeConfigId);
 
-/*
- * Store the archived agent execution times for each nodes.
- */
-CREATE TABLE ArchivedReportsExecution (
-  nodeId       text NOT NULL
-, date         timestamp with time zone NOT NULL
-, complete     boolean NOT NULL
-, nodeConfigId text
-, insertionId  bigint
-, PRIMARY KEY(nodeId, date)
-);
 
 /*
  *************************************************************************************
@@ -287,8 +276,8 @@ CREATE TABLE nodecompliancelevels (
 );
 
 CREATE INDEX nodecompliancelevels_nodeId ON nodecompliancelevels (nodeId);
-CREATE INDEX nodecompliancelevels_ruleId ON nodecompliancelevels (nodeId);
-CREATE INDEX nodecompliancelevels_directiveId ON nodecompliancelevels (nodeId);
+CREATE INDEX nodecompliancelevels_ruleId_idx ON nodecompliancelevels (ruleId);
+CREATE INDEX nodecompliancelevels_directiveId_idx ON nodecompliancelevels (directiveId);
 CREATE INDEX nodecompliancelevels_runTimestamp ON nodecompliancelevels (runTimestamp);
 
 
