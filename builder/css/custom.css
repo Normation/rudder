@@ -67,9 +67,10 @@ hr {
 .modal-body .alert{
   margin: 10px 0 -10px 0;
 }
-
-.btn {
-  padding-bottom: 3px;
+@-moz-document url-prefix() {
+  .btn {
+    padding-bottom: 3px;
+  }
 }
 
 .btn.btn-success{
@@ -695,6 +696,7 @@ input[type=checkbox].form-control {
 
 .input-group-addon input[type=checkbox].form-control {
   height: auto;
+  width: auto;
 }
 
 .deprecated-icon{
