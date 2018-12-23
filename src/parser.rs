@@ -4,13 +4,18 @@ use nom::alphanumeric;
 
 // STRUCTURES 
 //
+
+#[derive(Debug,PartialEq)]
+pub struct PHeader {
+    pub version: u32,
+}
+
 type PComment<'a> = Vec<&'a str>;
 
 #[derive(Debug,PartialEq)]
 pub struct PMetadata<'a> {
     pub key: &'a str,
-    // TODO replace with a structure
-    pub value: &'a str, 
+    pub value: PValue<'a>, 
 }
 
 #[derive(Debug,PartialEq)]
@@ -34,6 +39,13 @@ pub struct PObjectType<'a> {
     pub parameters: Vec<PParameter<'a>>,
 }
 
+#[derive(Debug,PartialEq)]
+pub enum PValue<'a> {
+    VString(&'a str),
+    //VInteger(u64),
+    // Composite types TODO
+}
+
 // PARSERS adapter for str instead of byte{]
 //
 
@@ -53,6 +65,18 @@ macro_rules! sp (
 // PARSERS
 //
 
+named!(header<&str,PHeader>,
+  do_parse!(
+    opt!(preceded!(tag!("#!/"),take_until_and_consume!("\n"))) >>
+    // Very strict parser so that anything can read this
+    tag!("@version=") >>
+    version: take_until!("\n") >>
+    tag!("\n") >>
+    // TODO replace unwrap
+    (PHeader { version: version.parse().unwrap() })
+  )
+);
+
 // string
 // TODO escaped string
 named!(delimited_string<&str,&str>,
@@ -60,6 +84,13 @@ named!(delimited_string<&str,&str>,
              take_until!("\""),
              char!('"')
   )
+);
+
+// Value
+//
+named!(typed_value<&str,PValue>,
+    // TODO other types
+    alt!(delimited_string => { |x| PValue::VString(x) })
 );
 
 // comments
@@ -80,7 +111,7 @@ named!(metadata<&str,PMetadata>,
   sp!(do_parse!(char!('@') >>
     key: alphanumeric >>
     char!('=') >>
-    value: delimited_string >>
+    value: typed_value >>
     (PMetadata {key, value})
   ))
 );
@@ -155,8 +186,8 @@ mod tests {
 
     #[test]
     fn test_metadata() {
-        assert_eq!(metadata("@key=\"value\""), Ok(("", PMetadata { key:"key", value:"value" })));
-        assert_eq!(metadata("@key = \"value\""), Ok(("", PMetadata { key:"key", value:"value" })));
+        assert_eq!(metadata("@key=\"value\""), Ok(("", PMetadata { key:"key", value:PValue::VString("value") })));
+        assert_eq!(metadata("@key = \"value\""), Ok(("", PMetadata { key:"key", value:PValue::VString("value") })));
     }
 
     #[test]
@@ -181,5 +212,19 @@ mod tests {
         assert_eq!(object_type("ObjectType hello (string: p1, p2)"), Ok(("", PObjectType { name: "hello", 
                                                                                 parameters: vec![ PParameter { name: "p1", ptype: Some(PType::TString) },
                                                                                                   PParameter { name: "p2", ptype: None }] })));
+    }
+
+    #[test]
+    fn test_value() {
+        // TODO other types
+        assert_eq!(typed_value("\"This is a string\""), Ok(("", PValue::VString("This is a string"))));
+    }
+
+    #[test]
+    fn test_headers() {
+        assert_eq!(header("#!/bin/bash\n@version=1\n"), Ok(("", PHeader { version: 1})));
+        assert_eq!(header("@version=21\n"), Ok(("", PHeader { version: 21})));
+        //TODO
+        //assert!(header("@version=21.5\n").is_err());
     }
 }
