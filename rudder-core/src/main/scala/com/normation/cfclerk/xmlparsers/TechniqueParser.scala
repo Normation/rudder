@@ -41,9 +41,12 @@ import CfclerkXmlConstants._
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.exceptions.ParsingException
+
 import scala.xml._
 import net.liftweb.common._
 import com.normation.inventory.domain.AgentType
+
+
 
 /**
  * Parse a technique (metadata.xml file)
@@ -178,13 +181,15 @@ class TechniqueParser(
         }
       }.flatten.toList
 
-      val templates = (xml \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).map(xml => parseTemplate(id, xml) )
+      // create a map of template per agent type
+      val templatesPerAgent = agentTypes.map(agentType => (agentType, (xml \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).map(xml => parseTemplate(id, xml, agentType) ).toList ) ).toMap
+
       val files = (xml \ FILES \\ FILE).map(xml => parseFile(id, xml) )
       val bundlesequence = (xml \ BUNDLES_ROOT \\ BUNDLE_NAME).map(xml => BundleName(xml.text) )
 
       val hooks = (xml \ RUN_HOOKS).flatMap(parseRunHooks(id, _))
 
-      agentTypes.map( agentType => AgentConfig(agentType, templates.toList, files.toList, bundlesequence.toList, hooks.toList))
+      agentTypes.map( agentType => AgentConfig(agentType, templatesPerAgent.getOrElse(agentType, Nil), files.toList, bundlesequence.toList, hooks.toList))
     }
   }
 
@@ -246,9 +251,9 @@ class TechniqueParser(
    *
    * if name content start with RUDDER_CONFIGURATION_REPOSITORY, the path must be considered relative
    * to root of configuration repository in place of relative to the technique.
-   *
+   * TODO: pass the AgentType here
    */
-  private[this] def parseResource(techniqueId: TechniqueId, xml: Node, isTemplate:Boolean): (TechniqueResourceId, String) = {
+  private[this] def parseResource(techniqueId: TechniqueId, xml: Node, isTemplate:Boolean, agentType:Option[AgentType]): (TechniqueResourceId, String) = {
 
     def fileToList(f: java.io.File): List[String] = {
       if(f == null) {
@@ -258,8 +263,9 @@ class TechniqueParser(
       }
     }
 
-    //the default out path for a template with name "name" is "techniqueName/techniqueVersion/name.cf
-    def defaultOutPath(name: String) = s"${techniqueId.name.value}/${techniqueId.version.toString}/${name}${if(isTemplate) TechniqueTemplate.promiseExtension else ""}"
+    //the default out path for a template with name "name" is "techniqueName/techniqueVersion/name".defaultAgentExtension
+    //note: by convention, the template name for DSC agent already contains the .ps1
+    def defaultOutPath(name: String) = s"${techniqueId.name.value}/${techniqueId.version.toString}/${name}${if(isTemplate) agentType.map(_.defaultPolicyExtension).getOrElse("") else ""}"
 
     val outPath = (xml \ PROMISE_TEMPLATE_OUTPATH).text match {
       case "" => None
@@ -301,14 +307,14 @@ class TechniqueParser(
     if(xml.label != FILE) throw new ParsingException(s"Error: try to parse a <${FILE}> xml, but actually got: ${xml}")
     // Default value for FILE is false, so we should only check if the value is true and if it is empty it
     val included = (xml \ PROMISE_TEMPLATE_INCLUDED).text == "true"
-    val (id, out) = parseResource(techniqueId, xml, false)
+    val (id, out) = parseResource(techniqueId, xml, false, None)
     TechniqueFile(id, out, included)
   }
 
-  def parseTemplate(techniqueId: TechniqueId, xml: Node): TechniqueTemplate = {
+  def parseTemplate(techniqueId: TechniqueId, xml: Node, agentType: AgentType): TechniqueTemplate = {
     if(xml.label != PROMISE_TEMPLATE) throw new ParsingException(s"Error: try to parse a <${PROMISE_TEMPLATE}> xml, but actually got: ${xml}")
     val included = !((xml \ PROMISE_TEMPLATE_INCLUDED).text == "false")
-    val (id, out) = parseResource(techniqueId, xml, true)
+    val (id, out) = parseResource(techniqueId, xml, true, Some(agentType))
     TechniqueTemplate(id, out, included)
   }
 
