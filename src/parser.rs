@@ -1,5 +1,4 @@
-use nom::rest;
-use nom::alphanumeric;
+use nom::*;
 
 
 // STRUCTURES 
@@ -34,7 +33,7 @@ pub enum PType {
 }
 
 #[derive(Debug,PartialEq)]
-pub struct PObjectType<'a> {
+pub struct PObjectDef<'a> {
     pub name: &'a str,
     pub parameters: Vec<PParameter<'a>>,
 }
@@ -43,7 +42,19 @@ pub struct PObjectType<'a> {
 pub enum PValue<'a> {
     VString(&'a str),
     //VInteger(u64),
-    // Composite types TODO
+    //...
+}
+
+#[derive(Debug,PartialEq)]
+pub struct PObjectRef<'a> {
+    pub name: &'a str,
+    pub parameters: Vec<PValue<'a>>,
+}
+
+#[derive(Debug,PartialEq)]
+pub enum PStatement<'a> {
+    StateCall(PObjectRef<'a>, &'a str, Vec<PValue<'a>>),
+    // TODO object instance, variable definition, case, exception
 }
 
 // PARSERS adapter for str instead of byte{]
@@ -68,12 +79,11 @@ macro_rules! sp (
 named!(header<&str,PHeader>,
   do_parse!(
     opt!(preceded!(tag!("#!/"),take_until_and_consume!("\n"))) >>
-    // Very strict parser so that anything can read this
-    tag!("@version=") >>
-    version: take_until!("\n") >>
+    // strict parser so that this does not diverge and anything can read the line
+    tag!("@format=") >>
+    version: map_res!(take_until!("\n"), |s:&str| s.parse::<u32>()) >>
     tag!("\n") >>
-    // TODO replace unwrap
-    (PHeader { version: version.parse().unwrap() })
+    (PHeader { version })
   )
 );
 
@@ -135,18 +145,50 @@ named!(parameter<&str,PParameter>,
   ))
 );
 
-// ObjectType
-named!(object_type<&str,PObjectType>,
+// ObjectDef
+named!(object_def<&str,PObjectDef>,
   sp!(do_parse!(
-    tag!("ObjectType") >>
+    tag!("ObjectDef") >>
     name: alphanumeric >>
     tag!("(") >>
     parameters: separated_list!(
         tag!(","),
         parameter) >>
     tag!(")") >>
-    (PObjectType {name, parameters})
+    (PObjectDef {name, parameters})
   ))
+);
+
+// ObjectRef
+named!(object_ref<&str,PObjectRef>,
+  sp!(do_parse!(
+    name: alphanumeric >>
+    // TODO accept no parameter with no ()
+    tag!("(") >>
+    parameters: separated_list!(
+        tag!(","),
+        typed_value) >>
+    tag!(")") >>
+    (PObjectRef {name, parameters})
+  ))
+);
+
+// statements
+named!(statement<&str,PStatement>,
+  alt!(
+      // sate call
+      sp!(do_parse!(
+          object: object_ref >>
+          tag!(".") >>
+          state: alphanumeric >>
+          tag!("(") >>
+          parameters: separated_list!(
+              tag!(","),
+              typed_value) >>
+          tag!(")") >>
+          (PStatement::StateCall(object,state,parameters))
+      ))
+  )
 );
 
 // TESTS
@@ -206,10 +248,10 @@ mod tests {
     }
 
     #[test]
-    fn test_object_type() {
-        assert_eq!(object_type("ObjectType hello()"), Ok(("", PObjectType { name: "hello", parameters: vec![] })));
-        assert_eq!(object_type("ObjectType  hello2 ( )"), Ok(("", PObjectType { name: "hello2", parameters: vec![] })));
-        assert_eq!(object_type("ObjectType hello (string: p1, p2)"), Ok(("", PObjectType { name: "hello", 
+    fn test_object_def() {
+        assert_eq!(object_def("ObjectDef hello()"), Ok(("", PObjectDef { name: "hello", parameters: vec![] })));
+        assert_eq!(object_def("ObjectDef  hello2 ( )"), Ok(("", PObjectDef { name: "hello2", parameters: vec![] })));
+        assert_eq!(object_def("ObjectDef hello (string: p1, p2)"), Ok(("", PObjectDef { name: "hello", 
                                                                                 parameters: vec![ PParameter { name: "p1", ptype: Some(PType::TString) },
                                                                                                   PParameter { name: "p2", ptype: None }] })));
     }
@@ -222,9 +264,25 @@ mod tests {
 
     #[test]
     fn test_headers() {
-        assert_eq!(header("#!/bin/bash\n@version=1\n"), Ok(("", PHeader { version: 1})));
-        assert_eq!(header("@version=21\n"), Ok(("", PHeader { version: 21})));
-        //TODO
-        //assert!(header("@version=21.5\n").is_err());
+        assert_eq!(header("#!/bin/bash\n@format=1\n"), Ok(("", PHeader { version: 1})));
+        assert_eq!(header("@format=21\n"), Ok(("", PHeader { version: 21})));
+        assert!(header("@format=21.5\n").is_err());
+    }
+
+    #[test]
+    fn test_object_ref() {
+        assert_eq!(object_ref("hello()"), Ok(("", PObjectRef { name: "hello", parameters: vec![] })));
+        assert_eq!(object_ref("hello2 ( )"), Ok(("", PObjectRef { name: "hello2", parameters: vec![] })));
+        assert_eq!(object_ref("hello ( \"p1\", \"p2\" )"), Ok(("", PObjectRef { name: "hello", 
+                                                                                parameters: vec![ PValue::VString("p1"),
+                                                                                                  PValue::VString("p2")] })));
+    }
+
+    #[test]
+    fn test_statement() {
+        assert_eq!(statement("object().state()"), Ok(("", PStatement::StateCall(PObjectRef { name: "object", parameters: vec![] }, "state", vec![]))));
+        assert_eq!(statement("object().state( \"p1\", \"p2\")"), Ok(("", PStatement::StateCall(PObjectRef { name: "object", parameters: vec![] }, 
+                                                                                "state", vec![PValue::VString("p1"),
+                                                                                              PValue::VString("p2")]))));
     }
 }
