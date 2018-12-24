@@ -59,7 +59,7 @@ pub enum PStatement<'a> {
 #[derive(Debug, PartialEq)]
 pub struct PStateDef<'a> {
     pub name: &'a str,
-    pub objectName: &'a str,
+    pub object_name: &'a str,
     pub parameters: Vec<PParameter<'a>>,
     pub statements: Vec<PStatement<'a>>,
 }
@@ -196,6 +196,25 @@ named!(statement<&str,PStatement>,
       ))
   )
 );
+
+// state definition
+named!(state<&str,PStateDef>,
+  sp!(do_parse!(
+      object_name: alphanumeric >>
+      tag!("state") >>
+      name: alphanumeric >>
+      tag!("(") >>
+      parameters: separated_list!(
+         tag!(","),
+         parameter) >>
+     tag!(")") >>
+     tag!("{") >>
+     statements: many0!(statement) >>
+     tag!("}") >>
+     (PStateDef {name, object_name, parameters, statements })   
+  ))
+);
+
 
 // TESTS
 //
@@ -439,5 +458,16 @@ mod tests {
                 )
             ))
         );
+    }
+
+    #[test]
+    fn test_state() {
+        assert_eq!(
+            state("object state configuration() { }"),
+            Ok((
+                "",
+                PStateDef { name: "configuration", object_name: "object", parameters: vec![], statements: vec![] }
+                ))
+            );
     }
 }
