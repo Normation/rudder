@@ -1,30 +1,29 @@
 use nom::*;
 
-
-// STRUCTURES 
+// STRUCTURES
 //
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct PHeader {
     pub version: u32,
 }
 
 type PComment<'a> = Vec<&'a str>;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct PMetadata<'a> {
     pub key: &'a str,
-    pub value: PValue<'a>, 
+    pub value: PValue<'a>,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct PParameter<'a> {
     pub name: &'a str,
     // TODO store default value in type
     pub ptype: Option<PType>,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum PType {
     TString,
     TInteger,
@@ -32,29 +31,37 @@ pub enum PType {
     TList,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct PObjectDef<'a> {
     pub name: &'a str,
     pub parameters: Vec<PParameter<'a>>,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum PValue<'a> {
     VString(&'a str),
     //VInteger(u64),
     //...
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct PObjectRef<'a> {
     pub name: &'a str,
     pub parameters: Vec<PValue<'a>>,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum PStatement<'a> {
     StateCall(PObjectRef<'a>, &'a str, Vec<PValue<'a>>),
     // TODO object instance, variable definition, case, exception
+}
+
+#[derive(Debug, PartialEq)]
+pub struct PStateDef<'a> {
+    pub name: &'a str,
+    pub objectName: &'a str,
+    pub parameters: Vec<PParameter<'a>>,
+    pub statements: Vec<PStatement<'a>>,
 }
 
 // PARSERS adapter for str instead of byte{]
@@ -71,7 +78,6 @@ macro_rules! sp (
     }
   )
 );
-
 
 // PARSERS
 //
@@ -134,7 +140,7 @@ named!(typename<&str,PType>,
     tag!("struct")      => { |_| PType::TStruct }  |
     tag!("list")        => { |_| PType::TList }
   )
-);    
+);
 
 // Parameters
 named!(parameter<&str,PParameter>,
@@ -204,32 +210,65 @@ mod tests {
 
     #[test]
     fn test_comment_line() {
-        assert_eq!(comment_line("#hello Herman\n"), Ok(("","hello Herman")));
-        assert_eq!(comment_line("#hello Herman\nHola"), Ok(("Hola","hello Herman")));
-        assert_eq!(comment_line("#hello Herman!"), Ok(("","hello Herman!")));
-        assert_eq!(comment_line("#hello\nHerman\n"), Ok(("Herman\n","hello")));
+        assert_eq!(comment_line("#hello Herman\n"), Ok(("", "hello Herman")));
+        assert_eq!(
+            comment_line("#hello Herman\nHola"),
+            Ok(("Hola", "hello Herman"))
+        );
+        assert_eq!(comment_line("#hello Herman!"), Ok(("", "hello Herman!")));
+        assert_eq!(comment_line("#hello\nHerman\n"), Ok(("Herman\n", "hello")));
         assert!(comment_line("hello\nHerman\n").is_err());
     }
 
     #[test]
     fn test_comment_block() {
-        assert_eq!(comment_block("#hello Herman\n"), Ok(("",vec!["hello Herman"])));
-        assert_eq!(comment_block("#hello Herman!"), Ok(("",vec!["hello Herman!"])));
-        assert_eq!(comment_block("#hello\n#Herman\n"), Ok(("",vec!["hello","Herman"])));
-        assert_eq!(comment_block(""), Ok(("",vec![])));
-        assert_eq!(comment_block("hello Herman"), Ok(("hello Herman",vec![])));
+        assert_eq!(
+            comment_block("#hello Herman\n"),
+            Ok(("", vec!["hello Herman"]))
+        );
+        assert_eq!(
+            comment_block("#hello Herman!"),
+            Ok(("", vec!["hello Herman!"]))
+        );
+        assert_eq!(
+            comment_block("#hello\n#Herman\n"),
+            Ok(("", vec!["hello", "Herman"]))
+        );
+        assert_eq!(comment_block(""), Ok(("", vec![])));
+        assert_eq!(comment_block("hello Herman"), Ok(("hello Herman", vec![])));
     }
 
     #[test]
     fn test_delimited_string() {
-        assert_eq!(delimited_string("\"hello Herman\""), Ok(("", "hello Herman")));
+        assert_eq!(
+            delimited_string("\"hello Herman\""),
+            Ok(("", "hello Herman"))
+        );
         assert!(delimited_string("hello Herman").is_err());
     }
 
     #[test]
     fn test_metadata() {
-        assert_eq!(metadata("@key=\"value\""), Ok(("", PMetadata { key:"key", value:PValue::VString("value") })));
-        assert_eq!(metadata("@key = \"value\""), Ok(("", PMetadata { key:"key", value:PValue::VString("value") })));
+        assert_eq!(
+            metadata("@key=\"value\""),
+            Ok((
+                "",
+                PMetadata {
+                    key: "key",
+                    value: PValue::VString("value")
+                }
+            ))
+        );
+        assert_eq!(
+            metadata("@key = \"value\""),
+            Ok((
+                "",
+                PMetadata {
+                    key: "key",
+                    value: PValue::VString("value")
+                }
+            ))
+        );
     }
 
     #[test]
@@ -242,47 +281,163 @@ mod tests {
 
     #[test]
     fn test_parameter() {
-        assert_eq!(parameter("hello "), Ok((" ", PParameter { name: "hello", ptype: None })));
-        assert_eq!(parameter("string:hello "), Ok((" ", PParameter { name: "hello", ptype: Some(PType::TString) })));
-        assert_eq!(parameter(" string : hello "), Ok((" ", PParameter { name: "hello", ptype: Some(PType::TString) })));
+        assert_eq!(
+            parameter("hello "),
+            Ok((
+                " ",
+                PParameter {
+                    name: "hello",
+                    ptype: None
+                }
+            ))
+        );
+        assert_eq!(
+            parameter("string:hello "),
+            Ok((
+                " ",
+                PParameter {
+                    name: "hello",
+                    ptype: Some(PType::TString)
+                }
+            ))
+        );
+        assert_eq!(
+            parameter(" string : hello "),
+            Ok((
+                " ",
+                PParameter {
+                    name: "hello",
+                    ptype: Some(PType::TString)
+                }
+            ))
+        );
     }
 
     #[test]
     fn test_object_def() {
-        assert_eq!(object_def("ObjectDef hello()"), Ok(("", PObjectDef { name: "hello", parameters: vec![] })));
-        assert_eq!(object_def("ObjectDef  hello2 ( )"), Ok(("", PObjectDef { name: "hello2", parameters: vec![] })));
-        assert_eq!(object_def("ObjectDef hello (string: p1, p2)"), Ok(("", PObjectDef { name: "hello", 
-                                                                                parameters: vec![ PParameter { name: "p1", ptype: Some(PType::TString) },
-                                                                                                  PParameter { name: "p2", ptype: None }] })));
+        assert_eq!(
+            object_def("ObjectDef hello()"),
+            Ok((
+                "",
+                PObjectDef {
+                    name: "hello",
+                    parameters: vec![]
+                }
+            ))
+        );
+        assert_eq!(
+            object_def("ObjectDef  hello2 ( )"),
+            Ok((
+                "",
+                PObjectDef {
+                    name: "hello2",
+                    parameters: vec![]
+                }
+            ))
+        );
+        assert_eq!(
+            object_def("ObjectDef hello (string: p1, p2)"),
+            Ok((
+                "",
+                PObjectDef {
+                    name: "hello",
+                    parameters: vec![
+                        PParameter {
+                            name: "p1",
+                            ptype: Some(PType::TString)
+                        },
+                        PParameter {
+                            name: "p2",
+                            ptype: None
+                        }
+                    ]
+                }
+            ))
+        );
     }
 
     #[test]
     fn test_value() {
         // TODO other types
-        assert_eq!(typed_value("\"This is a string\""), Ok(("", PValue::VString("This is a string"))));
+        assert_eq!(
+            typed_value("\"This is a string\""),
+            Ok(("", PValue::VString("This is a string")))
+        );
     }
 
     #[test]
     fn test_headers() {
-        assert_eq!(header("#!/bin/bash\n@format=1\n"), Ok(("", PHeader { version: 1})));
-        assert_eq!(header("@format=21\n"), Ok(("", PHeader { version: 21})));
+        assert_eq!(
+            header("#!/bin/bash\n@format=1\n"),
+            Ok(("", PHeader { version: 1 }))
+        );
+        assert_eq!(header("@format=21\n"), Ok(("", PHeader { version: 21 })));
         assert!(header("@format=21.5\n").is_err());
     }
 
     #[test]
     fn test_object_ref() {
-        assert_eq!(object_ref("hello()"), Ok(("", PObjectRef { name: "hello", parameters: vec![] })));
-        assert_eq!(object_ref("hello2 ( )"), Ok(("", PObjectRef { name: "hello2", parameters: vec![] })));
-        assert_eq!(object_ref("hello ( \"p1\", \"p2\" )"), Ok(("", PObjectRef { name: "hello", 
-                                                                                parameters: vec![ PValue::VString("p1"),
-                                                                                                  PValue::VString("p2")] })));
+        assert_eq!(
+            object_ref("hello()"),
+            Ok((
+                "",
+                PObjectRef {
+                    name: "hello",
+                    parameters: vec![]
+                }
+            ))
+        );
+        assert_eq!(
+            object_ref("hello2 ( )"),
+            Ok((
+                "",
+                PObjectRef {
+                    name: "hello2",
+                    parameters: vec![]
+                }
+            ))
+        );
+        assert_eq!(
+            object_ref("hello ( \"p1\", \"p2\" )"),
+            Ok((
+                "",
+                PObjectRef {
+                    name: "hello",
+                    parameters: vec![PValue::VString("p1"), PValue::VString("p2")]
+                }
+            ))
+        );
     }
 
     #[test]
     fn test_statement() {
-        assert_eq!(statement("object().state()"), Ok(("", PStatement::StateCall(PObjectRef { name: "object", parameters: vec![] }, "state", vec![]))));
-        assert_eq!(statement("object().state( \"p1\", \"p2\")"), Ok(("", PStatement::StateCall(PObjectRef { name: "object", parameters: vec![] }, 
-                                                                                "state", vec![PValue::VString("p1"),
-                                                                                              PValue::VString("p2")]))));
+        assert_eq!(
+            statement("object().state()"),
+            Ok((
+                "",
+                PStatement::StateCall(
+                    PObjectRef {
+                        name: "object",
+                        parameters: vec![]
+                    },
+                    "state",
+                    vec![]
+                )
+            ))
+        );
+        assert_eq!(
+            statement("object().state( \"p1\", \"p2\")"),
+            Ok((
+                "",
+                PStatement::StateCall(
+                    PObjectRef {
+                        name: "object",
+                        parameters: vec![]
+                    },
+                    "state",
+                    vec![PValue::VString("p1"), PValue::VString("p2")]
+                )
+            ))
+        );
     }
 }
