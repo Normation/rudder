@@ -137,8 +137,7 @@ named!(comment_line<CompleteStr,CompleteStr>,
   )
 );
 named!(comment_block<CompleteStr,PComment>,
-  // complete is mandatory to manage end of file with many
-  many0!(comment_line)
+  many1!(comment_line)
 );
 
 // metadata
@@ -237,10 +236,10 @@ named!(state<CompleteStr,PStateDef>,
 
 // a file
 named!(declaration<CompleteStr,PDeclaration>,
-    sp!(alt!(
-          state         => { |x| PDeclaration::State(x) }
-        | object_def    => { |x| PDeclaration::Object(x) }
+    sp!(alt_complete!(
+          object_def    => { |x| PDeclaration::Object(x) }
         | metadata      => { |x| PDeclaration::Metadata(x) }
+        | state         => { |x| PDeclaration::State(x) }
         | comment_block => { |x| PDeclaration::Comment(x) }
       ))
 );
@@ -254,7 +253,11 @@ named!(declaration<CompleteStr,PDeclaration>,
 //
 //}
 named!(pub code<CompleteStr,Vec<PDeclaration>>,
-  many0!(declaration)
+  do_parse!(
+    x: many0!(declaration) >>
+    eof!() >>
+    (x)
+  )
 );
 
 // TESTS
@@ -302,14 +305,7 @@ mod tests {
                 vec![CompleteStr("hello"), CompleteStr("Herman")]
             ))
         );
-        assert_eq!(
-            comment_block(CompleteStr("")),
-            Ok((CompleteStr(""), vec![]))
-        );
-        assert_eq!(
-            comment_block(CompleteStr("hello Herman")),
-            Ok((CompleteStr("hello Herman"), vec![]))
-        );
+        assert!(comment_block(CompleteStr("hello Herman")).is_err());
     }
 
     #[test]
@@ -541,6 +537,27 @@ mod tests {
                 PStatement::Comment(vec![CompleteStr("hello Herman")])
             ))
         );
+    }
+
+    #[test]
+    fn test_declaration() {
+        assert_eq!(
+            declaration(CompleteStr("ntp state configuration ()\n{\n  file(\"/tmp\").permissions(\"root\", \"root\", \"g+w\")\n}\n")),
+            Ok((CompleteStr("\n"),
+                PDeclaration::State(PStateDef { 
+                    name: CompleteStr("configuration"),
+                    object_name: CompleteStr("ntp"),
+                    parameters: vec![], 
+                    statements: vec![
+                        PStatement::StateCall(PObjectRef { 
+                            name: CompleteStr("file"), 
+                            parameters: vec![PValue::VString(CompleteStr("/tmp"))] }, 
+                            CompleteStr("permissions"),
+                            vec![PValue::VString(CompleteStr("root")), PValue::VString(CompleteStr("root")), PValue::VString(CompleteStr("g+w"))]
+                        )
+                    ]
+                })
+            )));
     }
 
     #[test]
