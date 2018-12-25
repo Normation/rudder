@@ -64,6 +64,20 @@ pub struct PStateDef<'a> {
     pub statements: Vec<PStatement<'a>>,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum PDeclaration<'a> {
+    Comment(PComment<'a>),
+    Metadata(PMetadata<'a>),
+    Object(PObjectDef<'a>),
+    State(PStateDef<'a>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct PCode<'a> {
+    header: PHeader,
+    code: Vec<PDeclaration<'a>>,
+}
+
 // PARSERS adapter for str instead of byte{]
 //
 
@@ -82,7 +96,7 @@ macro_rules! sp (
 // PARSERS
 //
 
-named!(header<&str,PHeader>,
+named!(pub header<&str,PHeader>,
   do_parse!(
     opt!(preceded!(tag!("#!/"),take_until_and_consume!("\n"))) >>
     // strict parser so that this does not diverge and anything can read the line
@@ -110,7 +124,7 @@ named!(typed_value<&str,PValue>,
 );
 
 // comments
-named!(pub comment_line<&str,&str>,
+named!(comment_line<&str,&str>,
   preceded!(tag!("#"),
             alt!(complete!(take_until_and_consume!("\n")) 
                 |rest
@@ -215,6 +229,28 @@ named!(state<&str,PStateDef>,
   ))
 );
 
+
+// a file
+named!(declaration<&str,PDeclaration>,
+    complete!(sp!(alt!(
+          state         => { |x| PDeclaration::State(x) }
+        | object_def    => { |x| PDeclaration::Object(x) }
+        | metadata      => { |x| PDeclaration::Metadata(x) }
+        | comment_block => { |x| PDeclaration::Comment(x) }
+      )))
+);
+
+//pub fn parse<'a>(input: &'a str) -> IResult<&'a str, PCode<'a>>
+//{
+//   let header = try!(header(input));
+//   if header.version != 0 {
+//       return Err(Err::Failure);
+//   }
+//   
+//}
+named!(pub code<&str,Vec<PDeclaration>>,
+  many0!(declaration)
+);
 
 // TESTS
 //

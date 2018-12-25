@@ -16,5 +16,11 @@ fn dump<T: Debug>(res: IResult<&str, T>) {
 fn main() {
     let filename = "test.ncf";
     let contents = fs::read_to_string(filename).expect("Something went wrong reading the file");
-    dump(parser::comment_line(&contents));
+    match parser::header(&contents) {
+        Err(err) => println!("Err {:?}", err),
+        Ok((rest, value)) => { 
+            println!("Version OK {:?}", value);
+            dump(parser::code(rest));
+        },
+    }
 }

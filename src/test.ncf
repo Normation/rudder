@@ -1,0 +1,21 @@
+@format=0
+
+# A file is a module
+
+## Metadata are @ before statements
+@name = ""
+@description = "kljsfd lkjsdf mlk
+#kjudgf  f"
+@version = "1.0"
+@documentation = "klmj
+dfl ksdf "
+
+# Single instance object type
+ObjectDef ntp ()
+
+
+# technique called ntp_configuration without parameters
+ntp state configuration ()
+{
+  file().permissions("root", "root", "g+w")
+}
