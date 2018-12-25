@@ -3,12 +3,12 @@
 # A file is a module
 
 ## Metadata are @ before statements
-@name = ""
+#name = ""
 @description = "kljsfd lkjsdf mlk
-#kjudgf  f"
-@version = "1.0"
+kjudgf  f"
+#version = "1.0"
 @documentation = "klmj
-dfl ksdf "
+fl ksdf "
 
 # Single instance object type
 ObjectDef ntp ()
@@ -17,5 +17,5 @@ ObjectDef ntp ()
 # technique called ntp_configuration without parameters
 ntp state configuration ()
 {
-  file().permissions("root", "root", "g+w")
+  file("/tmp").permissions("root", "root", "g+w")
 }

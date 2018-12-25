@@ -52,6 +52,7 @@ pub struct PObjectRef<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum PStatement<'a> {
+    Comment(PComment<'a>),
     StateCall(PObjectRef<'a>, &'a str, Vec<PValue<'a>>),
     // TODO object instance, variable definition, case, exception
 }
@@ -126,7 +127,7 @@ named!(typed_value<&str,PValue>,
 // comments
 named!(comment_line<&str,&str>,
   preceded!(tag!("#"),
-            alt!(complete!(take_until_and_consume!("\n")) 
+            alt!(complete!(take_until_and_consume!("\n"))
                 |rest
             )
   )
@@ -148,7 +149,7 @@ named!(metadata<&str,PMetadata>,
 
 // type
 named!(typename<&str,PType>,
-  alt_complete!(
+  alt!(
     tag!("string")      => { |_| PType::TString }  |
     tag!("int")         => { |_| PType::TInteger } |
     tag!("struct")      => { |_| PType::TStruct }  |
@@ -196,7 +197,7 @@ named!(object_ref<&str,PObjectRef>,
 // statements
 named!(statement<&str,PStatement>,
   alt!(
-      // sate call
+      // state call
       sp!(do_parse!(
           object: object_ref >>
           tag!(".") >>
@@ -208,6 +209,7 @@ named!(statement<&str,PStatement>,
           tag!(")") >>
           (PStatement::StateCall(object,state,parameters))
       ))
+    | comment_block => { |x| PStatement::Comment(x) }
   )
 );
 
@@ -494,12 +496,19 @@ mod tests {
                 )
             ))
         );
+        assert_eq!(
+            statement("#hello Herman\n"),
+            Ok((
+                "",
+                PStatement::Comment(vec!["hello Herman"])
+            ))
+        );
     }
 
     #[test]
     fn test_state() {
         assert_eq!(
-            state("object state configuration() { }"),
+            state("object state configuration() {} "),
             Ok((
                 "",
                 PStateDef { name: "configuration", object_name: "object", parameters: vec![], statements: vec![] }
