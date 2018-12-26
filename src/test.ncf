@@ -1,21 +1,23 @@
 @format=0
 
-# A file is a module
+# Metadata are @ before statements
+@name = "${name}"
+@description = [ "kljsfd lkjsdf \t mlk \n kjudgf f" ]
+@version = r"1.0$"
+@documentation = """klmj
+"helo" -> quoted hello
+\t -> backslash then t
+fl ksdf """
 
-## Metadata are @ before statements
-#name = ""
-@description = "kljsfd lkjsdf mlk
-kjudgf  f"
-#version = "1.0"
-@documentation = "klmj
-fl ksdf "
-
-# Single instance object type
-ObjectDef ntp ()
+## Single instance object type
+object ntp ( variable:string="jkh" )
 
 
-# technique called ntp_configuration without parameters
+## technique called ntp_configuration without parameters
 ntp state configuration ()
 {
+  var = file("/tmp")
+  # jkshdf
   file("/tmp").permissions("root", "root", "g+w")
 }
+

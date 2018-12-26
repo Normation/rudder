@@ -23,8 +23,8 @@ pub struct PMetadata<'a> {
 #[derive(Debug, PartialEq)]
 pub struct PParameter<'a> {
     pub name: CompleteStr<'a>,
-    // TODO store default value in type
     pub ptype: Option<PType>,
+    pub default: Option<PValue<'a>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -43,7 +43,8 @@ pub struct PObjectDef<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum PValue<'a> {
-    VString(CompleteStr<'a>),
+    VLiteralString(CompleteStr<'a>),
+    VInterpolatedString(CompleteStr<'a>),
     //VInteger(u64),
     //...
 }
@@ -90,6 +91,7 @@ pub struct PCode<'a> {
 named!(space_s<CompleteStr,CompleteStr>, eat_separator!(&" \t\r\n"[..]));
 
 // ws! for chars instead of u8
+// TODO add a strip comment
 macro_rules! sp (
   ($i:expr, $($args:tt)*) => (
     {
@@ -114,23 +116,29 @@ named!(pub header<CompleteStr,PHeader>,
 
 // string
 // TODO escaped string
-named!(delimited_string<CompleteStr,CompleteStr>,
-  delimited!(char!('"'),
-             take_until!("\""),
-             char!('"')
-  )
+named!(escaped_string<CompleteStr,CompleteStr>,
+    take_until!("\"")
+);
+
+named!(unescaped_string<CompleteStr,CompleteStr>,
+    take_until!("\"\"\"")
 );
 
 // Value
 //
 named!(typed_value<CompleteStr,PValue>,
     // TODO other types
-    alt!(delimited_string => { |x| PValue::VString(x) })
+    alt!(
+        delimited!(tag!("r\"\"\""), unescaped_string, tag!("\"\"\"")) => { |x| PValue::VLiteralString(x) }
+      | delimited!(tag!("r\""),     escaped_string,   tag!("\""))     => { |x| PValue::VLiteralString(x) }
+      | delimited!(tag!("\"\"\""),  unescaped_string, tag!("\"\"\"")) => { |x| PValue::VInterpolatedString(x) }
+      | delimited!(tag!("\""),      escaped_string,   tag!("\""))     => { |x| PValue::VInterpolatedString(x) }
+    )
 );
 
 // comments
 named!(comment_line<CompleteStr,CompleteStr>,
-  preceded!(tag!("#"),
+  preceded!(tag!("##"),
             alt!(take_until_and_consume!("\n")
                 |rest
             )
@@ -165,14 +173,15 @@ named!(parameter<CompleteStr,PParameter>,
   sp!(do_parse!(
     ptype: opt!(sp!(terminated!(typename, char!(':')))) >>
     name: alphanumeric >>
-    (PParameter {ptype, name})
+    default: opt!(sp!(preceded!(tag!("="),typed_value))) >>
+    (PParameter {ptype, name, default})
   ))
 );
 
 // ObjectDef
 named!(object_def<CompleteStr,PObjectDef>,
   sp!(do_parse!(
-    tag!("ObjectDef") >>
+    tag!("object") >>
     name: alphanumeric >>
     tag!("(") >>
     parameters: separated_list!(
@@ -187,13 +196,13 @@ named!(object_def<CompleteStr,PObjectDef>,
 named!(object_ref<CompleteStr,PObjectRef>,
   sp!(do_parse!(
     name: alphanumeric >>
-    // TODO accept no parameter with no ()
-    tag!("(") >>
-    parameters: separated_list!(
-        tag!(","),
-        typed_value) >>
-    tag!(")") >>
-    (PObjectRef {name, parameters})
+    params: opt!(sp!(do_parse!(tag!("(") >>
+        parameters: separated_list!(
+            tag!(","),
+            typed_value) >>
+        tag!(")") >>
+        (parameters) ))) >>
+    (PObjectRef {name, parameters: params.unwrap_or(vec![])})
   ))
 );
 
@@ -270,19 +279,19 @@ mod tests {
     #[test]
     fn test_comment_line() {
         assert_eq!(
-            comment_line(CompleteStr("#hello Herman\n")),
+            comment_line(CompleteStr("##hello Herman\n")),
             Ok((CompleteStr(""), CompleteStr("hello Herman")))
         );
         assert_eq!(
-            comment_line(CompleteStr("#hello Herman\nHola")),
+            comment_line(CompleteStr("##hello Herman\nHola")),
             Ok((CompleteStr("Hola"), CompleteStr("hello Herman")))
         );
         assert_eq!(
-            comment_line(CompleteStr("#hello Herman!")),
+            comment_line(CompleteStr("##hello Herman!")),
             Ok((CompleteStr(""), CompleteStr("hello Herman!")))
         );
         assert_eq!(
-            comment_line(CompleteStr("#hello\nHerman\n")),
+            comment_line(CompleteStr("##hello\nHerman\n")),
             Ok((CompleteStr("Herman\n"), CompleteStr("hello")))
         );
         assert!(comment_line(CompleteStr("hello\nHerman\n")).is_err());
@@ -291,30 +300,21 @@ mod tests {
     #[test]
     fn test_comment_block() {
         assert_eq!(
-            comment_block(CompleteStr("#hello Herman\n")),
+            comment_block(CompleteStr("##hello Herman\n")),
             Ok((CompleteStr(""), vec![CompleteStr("hello Herman")]))
         );
         assert_eq!(
-            comment_block(CompleteStr("#hello Herman!")),
+            comment_block(CompleteStr("##hello Herman!")),
             Ok((CompleteStr(""), vec![CompleteStr("hello Herman!")]))
         );
         assert_eq!(
-            comment_block(CompleteStr("#hello\n#Herman\n")),
+            comment_block(CompleteStr("##hello\n##Herman\n")),
             Ok((
                 CompleteStr(""),
                 vec![CompleteStr("hello"), CompleteStr("Herman")]
             ))
         );
         assert!(comment_block(CompleteStr("hello Herman")).is_err());
-    }
-
-    #[test]
-    fn test_delimited_string() {
-        assert_eq!(
-            delimited_string(CompleteStr("\"hello Herman\"")),
-            Ok((CompleteStr(""), CompleteStr("hello Herman")))
-        );
-        assert!(delimited_string(CompleteStr("hello Herman")).is_err());
     }
 
     #[test]
@@ -325,7 +325,7 @@ mod tests {
                 CompleteStr(""),
                 PMetadata {
                     key: CompleteStr("key"),
-                    value: PValue::VString(CompleteStr("value"))
+                    value: PValue::VInterpolatedString(CompleteStr("value"))
                 }
             ))
         );
@@ -335,7 +335,7 @@ mod tests {
                 CompleteStr(""),
                 PMetadata {
                     key: CompleteStr("key"),
-                    value: PValue::VString(CompleteStr("value"))
+                    value: PValue::VInterpolatedString(CompleteStr("value"))
                 }
             ))
         );
@@ -363,30 +363,44 @@ mod tests {
         assert_eq!(
             parameter(CompleteStr("hello ")),
             Ok((
-                CompleteStr(" "),
+                CompleteStr(""),
                 PParameter {
                     name: CompleteStr("hello"),
-                    ptype: None
+                    ptype: None,
+                    default: None,
                 }
             ))
         );
         assert_eq!(
             parameter(CompleteStr("string:hello ")),
             Ok((
-                CompleteStr(" "),
+                CompleteStr(""),
                 PParameter {
                     name: CompleteStr("hello"),
-                    ptype: Some(PType::TString)
+                    ptype: Some(PType::TString),
+                    default: None,
                 }
             ))
         );
         assert_eq!(
             parameter(CompleteStr(" string : hello ")),
             Ok((
-                CompleteStr(" "),
+                CompleteStr(""),
                 PParameter {
                     name: CompleteStr("hello"),
-                    ptype: Some(PType::TString)
+                    ptype: Some(PType::TString),
+                    default: None,
+                }
+            ))
+        );
+        assert_eq!(
+            parameter(CompleteStr(" string : hello=\"default\"")),
+            Ok((
+                CompleteStr(""),
+                PParameter {
+                    name: CompleteStr("hello"),
+                    ptype: Some(PType::TString),
+                    default: Some(PValue::VInterpolatedString(CompleteStr("default"))),
                 }
             ))
         );
@@ -395,7 +409,7 @@ mod tests {
     #[test]
     fn test_object_def() {
         assert_eq!(
-            object_def(CompleteStr("ObjectDef hello()")),
+            object_def(CompleteStr("object hello()")),
             Ok((
                 CompleteStr(""),
                 PObjectDef {
@@ -405,7 +419,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            object_def(CompleteStr("ObjectDef  hello2 ( )")),
+            object_def(CompleteStr("object  hello2 ( )")),
             Ok((
                 CompleteStr(""),
                 PObjectDef {
@@ -415,7 +429,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            object_def(CompleteStr("ObjectDef hello (string: p1, p2)")),
+            object_def(CompleteStr("object hello (string: p1, p2)")),
             Ok((
                 CompleteStr(""),
                 PObjectDef {
@@ -423,11 +437,13 @@ mod tests {
                     parameters: vec![
                         PParameter {
                             name: CompleteStr("p1"),
-                            ptype: Some(PType::TString)
+                            ptype: Some(PType::TString),
+                            default: None,
                         },
                         PParameter {
                             name: CompleteStr("p2"),
-                            ptype: None
+                            ptype: None,
+                            default: None,
                         }
                     ]
                 }
@@ -439,10 +455,31 @@ mod tests {
     fn test_value() {
         // TODO other types
         assert_eq!(
+            typed_value(CompleteStr("\"\"\"This is a string\"\"\"")),
+            Ok((
+                CompleteStr(""),
+                PValue::VInterpolatedString(CompleteStr("This is a string"))
+            ))
+        );
+        assert_eq!(
             typed_value(CompleteStr("\"This is a string\"")),
             Ok((
                 CompleteStr(""),
-                PValue::VString(CompleteStr("This is a string"))
+                PValue::VInterpolatedString(CompleteStr("This is a string"))
+            ))
+        );
+        assert_eq!(
+            typed_value(CompleteStr("r\"\"\"This is a string\"\"\"")),
+            Ok((
+                CompleteStr(""),
+                PValue::VLiteralString(CompleteStr("This is a string"))
+            ))
+        );
+        assert_eq!(
+            typed_value(CompleteStr("r\"This is a string\"")),
+            Ok((
+                CompleteStr(""),
+                PValue::VLiteralString(CompleteStr("This is a string"))
             ))
         );
     }
@@ -473,11 +510,11 @@ mod tests {
             ))
         );
         assert_eq!(
-            object_ref(CompleteStr("hello2 ( )")),
+            object_ref(CompleteStr("hello3 ")),
             Ok((
                 CompleteStr(""),
                 PObjectRef {
-                    name: CompleteStr("hello2"),
+                    name: CompleteStr("hello3"),
                     parameters: vec![]
                 }
             ))
@@ -489,9 +526,19 @@ mod tests {
                 PObjectRef {
                     name: CompleteStr("hello"),
                     parameters: vec![
-                        PValue::VString(CompleteStr("p1")),
-                        PValue::VString(CompleteStr("p2"))
+                        PValue::VInterpolatedString(CompleteStr("p1")),
+                        PValue::VInterpolatedString(CompleteStr("p2"))
                     ]
+                }
+            ))
+        );
+        assert_eq!(
+            object_ref(CompleteStr("hello2 ( )")),
+            Ok((
+                CompleteStr(""),
+                PObjectRef {
+                    name: CompleteStr("hello2"),
+                    parameters: vec![]
                 }
             ))
         );
@@ -524,14 +571,14 @@ mod tests {
                     },
                     CompleteStr("state"),
                     vec![
-                        PValue::VString(CompleteStr("p1")),
-                        PValue::VString(CompleteStr("p2"))
+                        PValue::VInterpolatedString(CompleteStr("p1")),
+                        PValue::VInterpolatedString(CompleteStr("p2"))
                     ]
                 )
             ))
         );
         assert_eq!(
-            statement(CompleteStr("#hello Herman\n")),
+            statement(CompleteStr("##hello Herman\n")),
             Ok((
                 CompleteStr(""),
                 PStatement::Comment(vec![CompleteStr("hello Herman")])
@@ -551,9 +598,9 @@ mod tests {
                     statements: vec![
                         PStatement::StateCall(PObjectRef { 
                             name: CompleteStr("file"), 
-                            parameters: vec![PValue::VString(CompleteStr("/tmp"))] }, 
+                            parameters: vec![PValue::VInterpolatedString(CompleteStr("/tmp"))] }, 
                             CompleteStr("permissions"),
-                            vec![PValue::VString(CompleteStr("root")), PValue::VString(CompleteStr("root")), PValue::VString(CompleteStr("g+w"))]
+                            vec![PValue::VInterpolatedString(CompleteStr("root")), PValue::VInterpolatedString(CompleteStr("root")), PValue::VInterpolatedString(CompleteStr("g+w"))]
                         )
                     ]
                 })
