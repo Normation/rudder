@@ -43,8 +43,9 @@ pub struct PObjectDef<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum PValue<'a> {
-    VLiteralString(CompleteStr<'a>),
-    VInterpolatedString(CompleteStr<'a>),
+    VLiteralString(String),
+    VInterpolatedString(String),
+    VString(CompleteStr<'a>),
     //VInteger(u64),
     //...
 }
@@ -116,12 +117,30 @@ named!(pub header<CompleteStr,PHeader>,
 
 // string
 // TODO escaped string
-named!(escaped_string<CompleteStr,CompleteStr>,
-    take_until!("\"")
+named!(escaped_string<CompleteStr,String>,
+    delimited!(
+        tag!("\""), 
+        escaped_transform!(
+            take_until_either1!("\\\""),
+            '\\',
+            alt!(
+                tag!("\\") => { |_| &"\\"[..] } |
+                tag!("\"") => { |_| &"\""[..] } |
+                tag!("n") => { |_| &"\n"[..] } |
+                tag!("r") => { |_| &"\r"[..] } |
+                tag!("t") => { |_| &"\t"[..] }
+            )
+        ),
+        tag!("\"")
+    )
 );
 
-named!(unescaped_string<CompleteStr,CompleteStr>,
-    take_until!("\"\"\"")
+named!(unescaped_string<CompleteStr,String>,
+    delimited!(
+        tag!("\"\"\""),
+        map!(take_until!("\"\"\""), { |x:CompleteStr| x.to_string() }),
+        tag!("\"\"\"")
+    )
 );
 
 // Value
@@ -129,10 +148,10 @@ named!(unescaped_string<CompleteStr,CompleteStr>,
 named!(typed_value<CompleteStr,PValue>,
     // TODO other types
     alt!(
-        delimited!(tag!("r\"\"\""), unescaped_string, tag!("\"\"\"")) => { |x| PValue::VLiteralString(x) }
-      | delimited!(tag!("r\""),     escaped_string,   tag!("\""))     => { |x| PValue::VLiteralString(x) }
-      | delimited!(tag!("\"\"\""),  unescaped_string, tag!("\"\"\"")) => { |x| PValue::VInterpolatedString(x) }
-      | delimited!(tag!("\""),      escaped_string,   tag!("\""))     => { |x| PValue::VInterpolatedString(x) }
+        preceded!(tag!("r"), unescaped_string) => { |x| PValue::VLiteralString(x) }
+      | preceded!(tag!("r"), escaped_string)   => { |x| PValue::VLiteralString(x) }
+      |                      unescaped_string  => { |x| PValue::VInterpolatedString(x) }
+      |                      escaped_string    => { |x| PValue::VInterpolatedString(x) }
     )
 );
 
@@ -277,6 +296,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_strings() {
+        assert_eq!(
+            escaped_string(CompleteStr("\"hello\\n\\\"Herman\\\"\n\"")),
+            Ok((CompleteStr(""), "hello\n\"Herman\"\n".to_string()))
+        );
+        assert_eq!(
+            unescaped_string(CompleteStr("\"\"\"hello\\n\"Herman\"\n\"\"\"")),
+            Ok((CompleteStr(""), "hello\\n\"Herman\"\n".to_string()))
+        );
+    }
+    #[test]
     fn test_comment_line() {
         assert_eq!(
             comment_line(CompleteStr("##hello Herman\n")),
@@ -325,7 +355,7 @@ mod tests {
                 CompleteStr(""),
                 PMetadata {
                     key: CompleteStr("key"),
-                    value: PValue::VInterpolatedString(CompleteStr("value"))
+                    value: PValue::VInterpolatedString("value".to_string())
                 }
             ))
         );
@@ -335,11 +365,14 @@ mod tests {
                 CompleteStr(""),
                 PMetadata {
                     key: CompleteStr("key"),
-                    value: PValue::VInterpolatedString(CompleteStr("value"))
+                    value: PValue::VInterpolatedString("value".to_string())
                 }
             ))
         );
     }
+
+    #[test]
+    fn test_escaped_string() {}
 
     #[test]
     fn test_alphanumeric() {
@@ -400,7 +433,7 @@ mod tests {
                 PParameter {
                     name: CompleteStr("hello"),
                     ptype: Some(PType::TString),
-                    default: Some(PValue::VInterpolatedString(CompleteStr("default"))),
+                    default: Some(PValue::VInterpolatedString("default".to_string())),
                 }
             ))
         );
@@ -458,28 +491,28 @@ mod tests {
             typed_value(CompleteStr("\"\"\"This is a string\"\"\"")),
             Ok((
                 CompleteStr(""),
-                PValue::VInterpolatedString(CompleteStr("This is a string"))
+                PValue::VInterpolatedString("This is a string".to_string())
             ))
         );
         assert_eq!(
             typed_value(CompleteStr("\"This is a string\"")),
             Ok((
                 CompleteStr(""),
-                PValue::VInterpolatedString(CompleteStr("This is a string"))
+                PValue::VInterpolatedString("This is a string".to_string())
             ))
         );
         assert_eq!(
             typed_value(CompleteStr("r\"\"\"This is a string\"\"\"")),
             Ok((
                 CompleteStr(""),
-                PValue::VLiteralString(CompleteStr("This is a string"))
+                PValue::VLiteralString("This is a string".to_string())
             ))
         );
         assert_eq!(
             typed_value(CompleteStr("r\"This is a string\"")),
             Ok((
                 CompleteStr(""),
-                PValue::VLiteralString(CompleteStr("This is a string"))
+                PValue::VLiteralString("This is a string".to_string())
             ))
         );
     }
@@ -526,8 +559,8 @@ mod tests {
                 PObjectRef {
                     name: CompleteStr("hello"),
                     parameters: vec![
-                        PValue::VInterpolatedString(CompleteStr("p1")),
-                        PValue::VInterpolatedString(CompleteStr("p2"))
+                        PValue::VInterpolatedString("p1".to_string()),
+                        PValue::VInterpolatedString("p2".to_string())
                     ]
                 }
             ))
@@ -571,8 +604,8 @@ mod tests {
                     },
                     CompleteStr("state"),
                     vec![
-                        PValue::VInterpolatedString(CompleteStr("p1")),
-                        PValue::VInterpolatedString(CompleteStr("p2"))
+                        PValue::VInterpolatedString("p1".to_string()),
+                        PValue::VInterpolatedString("p2".to_string())
                     ]
                 )
             ))
@@ -591,16 +624,16 @@ mod tests {
         assert_eq!(
             declaration(CompleteStr("ntp state configuration ()\n{\n  file(\"/tmp\").permissions(\"root\", \"root\", \"g+w\")\n}\n")),
             Ok((CompleteStr("\n"),
-                PDeclaration::State(PStateDef { 
+                PDeclaration::State(PStateDef {
                     name: CompleteStr("configuration"),
                     object_name: CompleteStr("ntp"),
-                    parameters: vec![], 
+                    parameters: vec![],
                     statements: vec![
-                        PStatement::StateCall(PObjectRef { 
+                        PStatement::StateCall(PObjectRef {
                             name: CompleteStr("file"), 
-                            parameters: vec![PValue::VInterpolatedString(CompleteStr("/tmp"))] }, 
+                            parameters: vec![PValue::VInterpolatedString("/tmp".to_string())] }, 
                             CompleteStr("permissions"),
-                            vec![PValue::VInterpolatedString(CompleteStr("root")), PValue::VInterpolatedString(CompleteStr("root")), PValue::VInterpolatedString(CompleteStr("g+w"))]
+                            vec![PValue::VInterpolatedString("root".to_string()), PValue::VInterpolatedString("root".to_string()), PValue::VInterpolatedString("g+w".to_string())]
                         )
                     ]
                 })
