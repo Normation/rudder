@@ -376,6 +376,13 @@ final object Policy {
     path.replaceFirst(subPath, s"${p.technique.id.name.value}/${p.id.getRudderUniqueId}")
   }
 
+  /*
+   * Replace the Rudder Unique Id also in the path for input list
+   */
+  def replaceRudderUniqueId(path: String, p: Policy): String = {
+    path.replace(TAG_OF_RUDDER_MULTI_POLICY, p.id.getRudderUniqueId)
+  }
+
   def withParams(p:Policy) : String  = {
     s"${p.technique.id.name.value}(${p.expandedVars.values.map(_.values.headOption.getOrElse(""))})"
   }

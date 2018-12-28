@@ -133,5 +133,4 @@ final case class TechniqueTemplate(
 
 object TechniqueTemplate {
   val templateExtension = ".st"
-  val promiseExtension = ".cf"
 }

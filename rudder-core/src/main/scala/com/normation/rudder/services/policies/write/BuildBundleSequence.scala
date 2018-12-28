@@ -207,14 +207,17 @@ class BuildBundleSequence(
     val inputs: List[InputFile] = sortedPolicies.flatMap { p =>
       val inputs = p.technique.agentConfig.templates.collect { case template if(template.included) => InputFile(template.outPath, p.technique.isSystem) } ++
                    p.technique.agentConfig.files.collect { case file if(file.included) => InputFile(file.outPath, p.technique.isSystem) }
-      //must replace RudderUniqueID in the paths
+      //must create unique path, or replace RudderUniqueID in the paths
       p.technique.generationMode match {
         case TechniqueGenerationMode.MultipleDirectives =>
-          inputs.map(i => i.copy(path = Policy.makeUniqueDest(i.path, p)))
+          val create = inputs.map(i => i.copy(path = Policy.makeUniqueDest(i.path, p)))
+          create.map(i => i.copy(path = Policy.replaceRudderUniqueId(i.path, p)))
         case _ =>
           inputs
       }
     }.toList
+
+
 
     //split (system | user) inputs
     val (systemInputFiles, userInputFiles) = inputs.partition( _.isSystem )
