@@ -89,6 +89,9 @@ sealed trait AgentType {
   // and a transformation function from reported software version name to agent version name, internal use only
   def toAgentVersionName(softwareVersionName: String): String
 
+  // default policy file extension
+  def defaultPolicyExtension: String
+
 }
 
 object AgentType {
@@ -101,6 +104,7 @@ object AgentType {
     override def inventoryAgentNames   = Set("cfengine-nova", "nova")
     override val inventorySoftwareName = "cfengine nova"
     override def toAgentVersionName(softwareVersionName: String) = s"cfe-${softwareVersionName}"
+    override val defaultPolicyExtension =".cf"
   }
 
   final case object CfeCommunity extends AgentType {
@@ -111,6 +115,7 @@ object AgentType {
     override def inventoryAgentNames   = Set("cfengine-community", "community")
     override val inventorySoftwareName = "rudder-agent"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
+    override val defaultPolicyExtension =".cf"
   }
 
   final case object Dsc extends AgentType {
@@ -121,6 +126,7 @@ object AgentType {
     override def inventoryAgentNames   = Set("dsc")
     override val inventorySoftwareName = "Rudder agent (DSC)"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
+    override val defaultPolicyExtension ="" // no extension - .ps1 extension is already in the template name (more by convention than anything else)
   }
 
   def allValues = ca.mrvisser.sealerate.values[AgentType]
