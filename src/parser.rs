@@ -116,7 +116,6 @@ named!(pub header<CompleteStr,PHeader>,
 );
 
 // string
-// TODO escaped string
 named!(escaped_string<CompleteStr,String>,
     delimited!(
         tag!("\""), 

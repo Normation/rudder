@@ -1,6 +1,6 @@
 @format=0
 
-# Metadata are @ before statements
+# Metadata are @sth before statements
 @name = "${name}"
 @description = [ "kljsfd lkjsdf \t mlk \n kjudgf f" ]
 @version = r"1.0$"
@@ -9,15 +9,87 @@
 \t -> backslash then t
 fl ksdf """
 
-## Single instance object type
+## Single instance object type (declaration is optional)
+object nntp ()
+## Multiple instance object type
 object ntp ( variable:string="jkh" )
 
 
 ## technique called ntp_configuration without parameters
 ntp state configuration ()
 {
-  var = file("/tmp")
-  # jkshdf
-  file("/tmp").permissions("root", "root", "g+w")
+  # Object variable not yet implemented
+  #obj = file("/tmp")
+  # Data variable not yes implemented
+  #var= "value"
+  # choose exactly one
+  when|match|case|switch {
+    os = Redhat => ...
+    os == Redhat => ...
+    os:Redhat => ...
+    os is Redhat => ...
+    os:system/Redhat => ...
+    os is system/Redhat => ...
+
+    os is debian | os:Ubuntu | outcomeA:kept => ...
+    default => critical | error | noop | ...
+  }
+  # equivalent to when{ ... => ..., default => noop}
+  if|variation|deviation|anomaly|irregilarity|exception|quirk|twist|context os:debian | os:Ubuntu => ...
+
+  # state usage, equivalent of a generic method call
+  outcomeA = file("/tmp").permissions("root", "root", "g+w")
+  # Condition
+  outcomeB = ? file("/tmp").permissions("root", "root", "g+w")
+  # check
+  ! file("/tmp").permissions("root", "root", "g+w")
+  # negative check
+  not ! file("/tmp").permissions("root", "root", "g+w")
+}
+
+set system {
+  debian,
+  ubuntu,
+  redhat,
+  centos,
+  aix,
+  windows
+}
+
+set system -> system_ancestor1 {
+  ubuntu -> debian,
+  centos -> redhat,
+  # default: * -> *
+}
+
+set system_ancestor1 -> system_ancestor2 {
+  debian -> linux,
+  redhat -> linux,
+  aix -> unix
+}
+
+set system_ancestor2 -> system_ancestor3 {
+  linux-> unix,
+}
+
+set system_ancestor1 -> package_format {
+  debian -> dpkg,
+  redhat -> rpm,
+  * -> unknown,
+}
+
+set system_version -> system {
+  debian5 -> debian,
+  debian6 -> debian,
+  debian7 -> debian,
+  debian8 -> debian,
+  # allowed: unknown -> *
+  # default: * -> *
+}
+
+set outcome {
+  kept,
+  repaired,
+  error,
 }
 
