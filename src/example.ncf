@@ -25,7 +25,8 @@ ntp state configuration ()
   # condition/set variable not yet implemented
   #os=system/Redhat
   # choose exactly one
-  when|match|case|switch {
+  #when|match|case|switch {
+  case {
     os = Redhat => ...
     os == Redhat => ...
     os:Redhat => ...
@@ -37,7 +38,8 @@ ntp state configuration ()
     default => critical | error | noop | ...
   }
   # equivalent to when{ ... => ..., default => noop}
-  if|variation|deviation|anomaly|irregilarity|exception|quirk|twist|context os:debian | os:Ubuntu => ...
+  #if|variation|deviation|anomaly|irregilarity|exception|quirk|twist|context
+  if os:debian | os:Ubuntu => ...
 
   # state usage, equivalent of a generic method call
   outcomeA = file("/tmp").permissions("root", "root", "g+w")

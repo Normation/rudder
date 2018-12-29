@@ -56,6 +56,7 @@ pub struct PObjectDef<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum PValue<'a> {
+    // TODO remove
     VLiteralString(String),
     VInterpolatedString(String),
     VString(CompleteStr<'a>),
@@ -70,9 +71,18 @@ pub struct PObjectRef<'a> {
 }
 
 #[derive(Debug, PartialEq)]
+pub enum PCallMode {
+    Enforce,
+    Condition,
+    Check,
+    CheckNot
+}
+
+#[derive(Debug, PartialEq)]
 pub enum PStatement<'a> {
     Comment(PComment<'a>),
-    StateCall(PObjectRef<'a>, CompleteStr<'a>, Vec<PValue<'a>>),
+    //        outcome                  mode       object          state name       parameters
+    StateCall(Option<CompleteStr<'a>>, PCallMode, PObjectRef<'a>, CompleteStr<'a>, Vec<PValue<'a>>),
     Set(PSet<'a>),
     Mapping(PSetMapping<'a>),
     // TODO object instance, variable definition, case, exception
@@ -140,11 +150,11 @@ named!(escaped_string<CompleteStr,String>,
             take_until_either1!("\\\""),
             '\\',
             alt!(
-                tag!("\\") => { |_| "\\" } |
-                tag!("\"") => { |_| "\"" } |
-                tag!("n") => { |_| "\n" } |
-                tag!("r") => { |_| "\r" } |
-                tag!("t") => { |_| "\t" }
+                tag!("\\") |
+                tag!("\"") |
+                tag!("n") => { |_| CompleteStr("\n") } |
+                tag!("r") => { |_| CompleteStr("\r") } |
+                tag!("t") => { |_| CompleteStr("\t") }
             )
         ),
         tag!("\"")
@@ -193,7 +203,7 @@ named!(set_mapping<CompleteStr,PSetMapping>,
         mapping: sp!(separated_list!(
                 tag!(","),
                 separated_pair!(
-                    alt!(alphanumeric|value!(CompleteStr("*"),tag!("*"))),
+                    alt!(alphanumeric|tag!("*")),
                     tag!("->"),
                     alphanumeric)
             )) >>
@@ -279,6 +289,13 @@ named!(statement<CompleteStr,PStatement>,
   alt!(
       // state call
       sp!(do_parse!(
+          outcome: opt!(terminated!(alphanumeric,tag!("="))) >>
+          mode: alt!(
+                    tag!("?") => { |_| PCallMode::Condition } |
+                    pair!(tag!("not"), tag!("!")) => { |_| PCallMode::CheckNot }     |
+                    tag!("!") => { |_| PCallMode::Check }     |
+                    value!(PCallMode::Enforce)
+                ) >>
           object: object_ref >>
           tag!(".") >>
           state: alphanumeric >>
@@ -287,7 +304,7 @@ named!(statement<CompleteStr,PStatement>,
               tag!(","),
               typed_value) >>
           tag!(")") >>
-          (PStatement::StateCall(object,state,parameters))
+          (PStatement::StateCall(outcome,mode,object,state,parameters))
       ))
     | comment_block => { |x| PStatement::Comment(x) }
   )
@@ -655,6 +672,7 @@ mod tests {
             Ok((
                 CompleteStr(""),
                 PStatement::StateCall(
+                    None, PCallMode::Enforce,
                     PObjectRef {
                         name: CompleteStr("object"),
                         parameters: vec![]
@@ -669,6 +687,7 @@ mod tests {
             Ok((
                 CompleteStr(""),
                 PStatement::StateCall(
+                    None, PCallMode::Enforce,
                     PObjectRef {
                         name: CompleteStr("object"),
                         parameters: vec![]
@@ -700,9 +719,11 @@ mod tests {
                     object_name: CompleteStr("ntp"),
                     parameters: vec![],
                     statements: vec![
-                        PStatement::StateCall(PObjectRef {
-                            name: CompleteStr("file"), 
-                            parameters: vec![PValue::VInterpolatedString("/tmp".to_string())] }, 
+                        PStatement::StateCall(
+                            None, PCallMode::Enforce,
+                            PObjectRef {
+                                name: CompleteStr("file"), 
+                                parameters: vec![PValue::VInterpolatedString("/tmp".to_string())] }, 
                             CompleteStr("permissions"),
                             vec![PValue::VInterpolatedString("root".to_string()), PValue::VInterpolatedString("root".to_string()), PValue::VInterpolatedString("g+w".to_string())]
                         )
