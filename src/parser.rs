@@ -36,6 +36,19 @@ pub enum PType {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct PSet<'a> {
+    pub name: CompleteStr<'a>,
+    pub items: Vec<CompleteStr<'a>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct PSetMapping<'a> {
+  pub from: CompleteStr<'a>,
+  pub to: CompleteStr<'a>,
+  pub mapping: Vec<(CompleteStr<'a>,CompleteStr<'a>)>,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct PObjectDef<'a> {
     pub name: CompleteStr<'a>,
     pub parameters: Vec<PParameter<'a>>,
@@ -60,6 +73,8 @@ pub struct PObjectRef<'a> {
 pub enum PStatement<'a> {
     Comment(PComment<'a>),
     StateCall(PObjectRef<'a>, CompleteStr<'a>, Vec<PValue<'a>>),
+    Set(PSet<'a>),
+    Mapping(PSetMapping<'a>),
     // TODO object instance, variable definition, case, exception
 }
 
@@ -84,6 +99,8 @@ pub struct PCode<'a> {
     header: PHeader,
     code: Vec<PDeclaration<'a>>,
 }
+
+
 
 // PARSERS adapter for str instead of byte{]
 //
@@ -123,11 +140,11 @@ named!(escaped_string<CompleteStr,String>,
             take_until_either1!("\\\""),
             '\\',
             alt!(
-                tag!("\\") => { |_| &"\\"[..] } |
-                tag!("\"") => { |_| &"\""[..] } |
-                tag!("n") => { |_| &"\n"[..] } |
-                tag!("r") => { |_| &"\r"[..] } |
-                tag!("t") => { |_| &"\t"[..] }
+                tag!("\\") => { |_| "\\" } |
+                tag!("\"") => { |_| "\"" } |
+                tag!("n") => { |_| "\n" } |
+                tag!("r") => { |_| "\r" } |
+                tag!("t") => { |_| "\t" }
             )
         ),
         tag!("\"")
@@ -153,6 +170,39 @@ named!(typed_value<CompleteStr,PValue>,
       |                      escaped_string    => { |x| PValue::VInterpolatedString(x) }
     )
 );
+
+// Sets
+named!(set<CompleteStr,PSet>,
+    sp!(do_parse!(
+        tag!("set") >>
+        name: alphanumeric >>
+        tag!("{") >>
+        items: sp!(separated_list!(tag!(","), alphanumeric)) >>
+        tag!("}") >>
+        (PSet {name, items})
+    ))
+);
+
+named!(set_mapping<CompleteStr,PSetMapping>,
+    sp!(do_parse!(
+        tag!("set") >>
+        from: alphanumeric >>
+        tag!("->") >>
+        to: alphanumeric >>
+        tag!("{") >>
+        mapping: sp!(separated_list!(
+                tag!(","),
+                separated_pair!(
+                    alt!(alphanumeric|value!(CompleteStr("*"),tag!("*"))),
+                    tag!("->"),
+                    alphanumeric)
+            )) >>
+        tag!("}") >>
+        (PSetMapping {from, to, mapping})
+    ))
+);
+
+
 
 // comments
 named!(comment_line<CompleteStr,CompleteStr>,
@@ -305,6 +355,28 @@ mod tests {
             Ok((CompleteStr(""), "hello\\n\"Herman\"\n".to_string()))
         );
     }
+
+    #[test]
+    fn test_set() {
+        assert_eq!(
+            set(CompleteStr("set abc { a, b, c }")),
+            Ok((CompleteStr(""), PSet { 
+                name: CompleteStr("abc"),
+                items: vec![CompleteStr("a"), CompleteStr("b"), CompleteStr("c")]
+            }))
+        );
+        assert_eq!(
+            set_mapping(CompleteStr("set abc -> def { a -> d, b -> e, * -> f}")),
+            Ok((CompleteStr(""), PSetMapping { 
+                from: CompleteStr("abc"),
+                to:CompleteStr("def"),
+                mapping: vec![(CompleteStr("a"),CompleteStr("d")),
+                              (CompleteStr("b"),CompleteStr("e")),
+                              (CompleteStr("*"),CompleteStr("f"))]
+            }))
+        );
+    }
+
     #[test]
     fn test_comment_line() {
         assert_eq!(

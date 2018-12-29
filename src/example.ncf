@@ -22,6 +22,8 @@ ntp state configuration ()
   #obj = file("/tmp")
   # Data variable not yes implemented
   #var= "value"
+  # condition/set variable not yet implemented
+  #os=system/Redhat
   # choose exactly one
   when|match|case|switch {
     os = Redhat => ...
