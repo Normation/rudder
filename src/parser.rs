@@ -234,17 +234,17 @@ named!(set_mapping<CompleteStr,PSetMapping>,
 );
 
 named!(set_expression<CompleteStr,PSetExpression>,
-    alt!(
-        delimited!(tag!("("),set_expression,tag!(")")) 
-        // exact is here to make sure there is nothing left
-        // this is necessary for the parser that does x&x->x to match and terminate
-        // the downside, is that you must first extract the expression as a whole string before parsing it
-      | exact!(set_expression_x)
+    alt!(set_or_expression
+       | set_and_expression
+       | set_not_expression
+       | set_atom
     )
 );
-named!(set_expression_x<CompleteStr,PSetExpression>,
+
+named!(set_atom<CompleteStr,PSetExpression>,
     sp!(alt!(
-        do_parse!(
+        delimited!(tag!("("),set_expression,tag!(")"))
+      | do_parse!(
             var: alphanumeric >>
             tag!("==") >>
             set: opt!(terminated!(alphanumeric,tag!("/"))) >>
@@ -256,23 +256,32 @@ named!(set_expression_x<CompleteStr,PSetExpression>,
             value: alphanumeric >>
             (PSetExpression::Classify(set,value))
         )
-      | do_parse!(
-            left: set_expression >>
-            tag!("&&") >>
-            right: set_expression >>
-            (PSetExpression::And(Box::new(left),Box::new(right)))
-        )
-      | do_parse!(
-            left: set_expression >>
-            tag!("||") >>
-            right: set_expression >>
-            (PSetExpression::Or(Box::new(left),Box::new(right)))
-        )
-      | do_parse!(
-            tag!("!") >>
-            right: set_expression >>
-            (PSetExpression::Not(Box::new(right)))
-        )
+    ))
+);
+
+named!(set_or_expression<CompleteStr,PSetExpression>,
+    sp!(do_parse!(
+        left: alt!(set_and_expression | set_not_expression | set_atom) >>
+        tag!("||") >>
+        right: alt!(set_or_expression | set_and_expression | set_not_expression | set_atom) >>
+        (PSetExpression::Or(Box::new(left),Box::new(right)))
+    ))
+);
+
+named!(set_and_expression<CompleteStr,PSetExpression>,
+    sp!(do_parse!(
+        left: alt!(set_not_expression | set_atom) >>
+        tag!("&&") >>
+        right: alt!(set_and_expression | set_not_expression | set_atom) >>
+        (PSetExpression::And(Box::new(left),Box::new(right)))
+    ))
+);
+
+named!(set_not_expression<CompleteStr,PSetExpression>,
+    sp!(do_parse!(
+        tag!("!") >>
+        right: set_atom >>
+        (PSetExpression::Not(Box::new(right)))
     ))
 );
 
@@ -465,34 +474,34 @@ mod tests {
             set_expression(CompleteStr("a==b/c")),
             Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),Some(CompleteStr("b")),CompleteStr("c"))))
         );
-//        assert_eq!(
-//            set_expression(CompleteStr("a==bc")),
-//            Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),None,CompleteStr("bc"))))
-//        );
-//        assert_eq!(
-//            set_expression(CompleteStr("bc")),
-//            Ok((CompleteStr(""), PSetExpression::Classify(None,CompleteStr("bc"))))
-//        );
-//        assert_eq!(
-//            set_expression(CompleteStr("(a == b/hello)")),
-//            Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),Some(CompleteStr("b")),CompleteStr("hello"))))
-//        );
-//        assert_eq!(
-//            set_expression(CompleteStr("bc && ( a || b=hello/g )")),
-//            Ok((CompleteStr(""), PSetExpression::And(
-//                        Box::new(PSetExpression::Classify(None,CompleteStr("bc"))),
-//                        Box::new(PSetExpression::Or(
-//                                Box::new(PSetExpression::Classify(None,CompleteStr("a"))),
-//                                Box::new(PSetExpression::Compare(CompleteStr("b"),Some(CompleteStr("hello")),CompleteStr("g")))
-//                        )),
-//            )))
-//        );
-//        assert_eq!(
-//            set_expression(CompleteStr("! a == hello")),
-//            Ok((CompleteStr(""), PSetExpression::Not(
-//                        Box::new(PSetExpression::Compare(CompleteStr("a"),None,CompleteStr("hello")))
-//            )))
-//        );
+        assert_eq!(
+            set_expression(CompleteStr("a==bc")),
+            Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),None,CompleteStr("bc"))))
+        );
+        assert_eq!(
+            set_expression(CompleteStr("bc")),
+            Ok((CompleteStr(""), PSetExpression::Classify(None,CompleteStr("bc"))))
+        );
+        assert_eq!(
+            set_expression(CompleteStr("(a == b/hello)")),
+            Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),Some(CompleteStr("b")),CompleteStr("hello"))))
+        );
+        assert_eq!(
+            set_expression(CompleteStr("bc&&(a||b==hello/g)")),
+            Ok((CompleteStr(""), PSetExpression::And(
+                        Box::new(PSetExpression::Classify(None,CompleteStr("bc"))),
+                        Box::new(PSetExpression::Or(
+                                Box::new(PSetExpression::Classify(None,CompleteStr("a"))),
+                                Box::new(PSetExpression::Compare(CompleteStr("b"),Some(CompleteStr("hello")),CompleteStr("g")))
+                        )),
+            )))
+        );
+        assert_eq!(
+            set_expression(CompleteStr("! a == hello")),
+            Ok((CompleteStr(""), PSetExpression::Not(
+                        Box::new(PSetExpression::Compare(CompleteStr("a"),None,CompleteStr("hello")))
+            )))
+        );
     }
 
     #[test]
