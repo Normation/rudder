@@ -43,9 +43,20 @@ pub struct PSet<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct PSetMapping<'a> {
-  pub from: CompleteStr<'a>,
-  pub to: CompleteStr<'a>,
-  pub mapping: Vec<(CompleteStr<'a>,CompleteStr<'a>)>,
+    pub from: CompleteStr<'a>,
+    pub to: CompleteStr<'a>,
+    pub mapping: Vec<(CompleteStr<'a>,CompleteStr<'a>)>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum PSetExpression<'a> {
+    //      variable         set                      value
+    Compare(CompleteStr<'a>, Option<CompleteStr<'a>>, CompleteStr<'a>),
+    //       set                      value
+    Classify(Option<CompleteStr<'a>>, CompleteStr<'a>),
+    And(Box<PSetExpression<'a>>, Box<PSetExpression<'a>>),
+    Or(Box<PSetExpression<'a>>, Box<PSetExpression<'a>>),
+    Not(Box<PSetExpression<'a>>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -83,9 +94,17 @@ pub enum PStatement<'a> {
     Comment(PComment<'a>),
     //        outcome                  mode       object          state name       parameters
     StateCall(Option<CompleteStr<'a>>, PCallMode, PObjectRef<'a>, CompleteStr<'a>, Vec<PValue<'a>>),
-    Set(PSet<'a>),
-    Mapping(PSetMapping<'a>),
-    // TODO object instance, variable definition, case, exception
+    //   list of condition          then
+    Case(Vec<(PSetExpression<'a>,Box<PStatement<'a>>)>),
+    // condition          then
+    If(PSetExpression<'a>,Box<PStatement<'a>>),
+    // Stop engine
+    Fail(CompleteStr<'a>),
+    // Inform the user of something
+    Log(CompleteStr<'a>),
+    // Do nothing
+    Noop()
+    // TODO condition instance, object instance, variable definition
 }
 
 #[derive(Debug, PartialEq)]
@@ -102,6 +121,8 @@ pub enum PDeclaration<'a> {
     Metadata(PMetadata<'a>),
     Object(PObjectDef<'a>),
     State(PStateDef<'a>),
+    Set(PSet<'a>),
+    Mapping(PSetMapping<'a>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -212,7 +233,48 @@ named!(set_mapping<CompleteStr,PSetMapping>,
     ))
 );
 
-
+named!(set_expression<CompleteStr,PSetExpression>,
+    alt!(
+        delimited!(tag!("("),set_expression,tag!(")")) 
+        // exact is here to make sure there is nothing left
+        // this is necessary for the parser that does x&x->x to match and terminate
+        // the downside, is that you must first extract the expression as a whole string before parsing it
+      | exact!(set_expression_x)
+    )
+);
+named!(set_expression_x<CompleteStr,PSetExpression>,
+    sp!(alt!(
+        do_parse!(
+            var: alphanumeric >>
+            tag!("==") >>
+            set: opt!(terminated!(alphanumeric,tag!("/"))) >>
+            value: alphanumeric >>
+            (PSetExpression::Compare(var,set,value))
+        )
+      | do_parse!(
+            set: opt!(terminated!(alphanumeric,tag!("/"))) >>
+            value: alphanumeric >>
+            (PSetExpression::Classify(set,value))
+        )
+      | do_parse!(
+            left: set_expression >>
+            tag!("&&") >>
+            right: set_expression >>
+            (PSetExpression::And(Box::new(left),Box::new(right)))
+        )
+      | do_parse!(
+            left: set_expression >>
+            tag!("||") >>
+            right: set_expression >>
+            (PSetExpression::Or(Box::new(left),Box::new(right)))
+        )
+      | do_parse!(
+            tag!("!") >>
+            right: set_expression >>
+            (PSetExpression::Not(Box::new(right)))
+        )
+    ))
+);
 
 // comments
 named!(comment_line<CompleteStr,CompleteStr>,
@@ -307,6 +369,7 @@ named!(statement<CompleteStr,PStatement>,
           (PStatement::StateCall(outcome,mode,object,state,parameters))
       ))
     | comment_block => { |x| PStatement::Comment(x) }
+  // TODO everything else
   )
 );
 
@@ -335,6 +398,8 @@ named!(declaration<CompleteStr,PDeclaration>,
         | metadata      => { |x| PDeclaration::Metadata(x) }
         | state         => { |x| PDeclaration::State(x) }
         | comment_block => { |x| PDeclaration::Comment(x) }
+        | set           => { |x| PDeclaration::Set(x) }
+        | set_mapping   => { |x| PDeclaration::Mapping(x) }
       ))
 );
 
@@ -392,6 +457,42 @@ mod tests {
                               (CompleteStr("*"),CompleteStr("f"))]
             }))
         );
+    }
+
+    #[test]
+    fn test_set_expression() {
+        assert_eq!(
+            set_expression(CompleteStr("a==b/c")),
+            Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),Some(CompleteStr("b")),CompleteStr("c"))))
+        );
+//        assert_eq!(
+//            set_expression(CompleteStr("a==bc")),
+//            Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),None,CompleteStr("bc"))))
+//        );
+//        assert_eq!(
+//            set_expression(CompleteStr("bc")),
+//            Ok((CompleteStr(""), PSetExpression::Classify(None,CompleteStr("bc"))))
+//        );
+//        assert_eq!(
+//            set_expression(CompleteStr("(a == b/hello)")),
+//            Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),Some(CompleteStr("b")),CompleteStr("hello"))))
+//        );
+//        assert_eq!(
+//            set_expression(CompleteStr("bc && ( a || b=hello/g )")),
+//            Ok((CompleteStr(""), PSetExpression::And(
+//                        Box::new(PSetExpression::Classify(None,CompleteStr("bc"))),
+//                        Box::new(PSetExpression::Or(
+//                                Box::new(PSetExpression::Classify(None,CompleteStr("a"))),
+//                                Box::new(PSetExpression::Compare(CompleteStr("b"),Some(CompleteStr("hello")),CompleteStr("g")))
+//                        )),
+//            )))
+//        );
+//        assert_eq!(
+//            set_expression(CompleteStr("! a == hello")),
+//            Ok((CompleteStr(""), PSetExpression::Not(
+//                        Box::new(PSetExpression::Compare(CompleteStr("a"),None,CompleteStr("hello")))
+//            )))
+//        );
     }
 
     #[test]
