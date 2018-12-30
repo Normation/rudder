@@ -45,7 +45,7 @@ pub struct PSet<'a> {
 pub struct PSetMapping<'a> {
     pub from: CompleteStr<'a>,
     pub to: CompleteStr<'a>,
-    pub mapping: Vec<(CompleteStr<'a>,CompleteStr<'a>)>,
+    pub mapping: Vec<(CompleteStr<'a>, CompleteStr<'a>)>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -67,10 +67,7 @@ pub struct PObjectDef<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum PValue<'a> {
-    // TODO remove
-    VLiteralString(String),
-    VInterpolatedString(String),
-    VString(CompleteStr<'a>),
+    String(CompleteStr<'a>),
     //VInteger(u64),
     //...
 }
@@ -86,25 +83,30 @@ pub enum PCallMode {
     Enforce,
     Condition,
     Check,
-    CheckNot
+    CheckNot,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum PStatement<'a> {
     Comment(PComment<'a>),
     //        outcome                  mode       object          state name       parameters
-    StateCall(Option<CompleteStr<'a>>, PCallMode, PObjectRef<'a>, CompleteStr<'a>, Vec<PValue<'a>>),
+    StateCall(
+        Option<CompleteStr<'a>>,
+        PCallMode,
+        PObjectRef<'a>,
+        CompleteStr<'a>,
+        Vec<PValue<'a>>,
+    ),
     //   list of condition          then
-    Case(Vec<(PSetExpression<'a>,Box<PStatement<'a>>)>),
+    Case(Vec<(PSetExpression<'a>, Box<PStatement<'a>>)>),
     // condition          then
-    If(PSetExpression<'a>,Box<PStatement<'a>>),
+    If(PSetExpression<'a>, Box<PStatement<'a>>),
     // Stop engine
     Fail(CompleteStr<'a>),
     // Inform the user of something
     Log(CompleteStr<'a>),
     // Do nothing
-    Noop()
-    // TODO condition instance, object instance, variable definition
+    Noop, // TODO condition instance, object instance, variable definition
 }
 
 #[derive(Debug, PartialEq)]
@@ -130,8 +132,6 @@ pub struct PCode<'a> {
     header: PHeader,
     code: Vec<PDeclaration<'a>>,
 }
-
-
 
 // PARSERS adapter for str instead of byte{]
 //
@@ -195,10 +195,8 @@ named!(unescaped_string<CompleteStr,String>,
 named!(typed_value<CompleteStr,PValue>,
     // TODO other types
     alt!(
-        preceded!(tag!("r"), unescaped_string) => { |x| PValue::VLiteralString(x) }
-      | preceded!(tag!("r"), escaped_string)   => { |x| PValue::VLiteralString(x) }
-      |                      unescaped_string  => { |x| PValue::VInterpolatedString(x) }
-      |                      escaped_string    => { |x| PValue::VInterpolatedString(x) }
+        unescaped_string  => { |x| PValue::String(x) }
+      | escaped_string    => { |x| PValue::String(x) }
     )
 );
 
@@ -378,6 +376,32 @@ named!(statement<CompleteStr,PStatement>,
           (PStatement::StateCall(outcome,mode,object,state,parameters))
       ))
     | comment_block => { |x| PStatement::Comment(x) }
+      // case
+    | sp!(do_parse!(
+          tag!("case") >>
+          tag!("{") >>
+          cases: separated_list!(tag!(","),
+                    do_parse!(
+                        expr: set_expression >>
+                        tag!("=>") >>
+                        stmt: statement >>
+                        ((expr,Box::new(stmt)))
+                )) >>
+          (PStatement::Case(cases))
+      ))
+      // if
+    | sp!(do_parse!(
+          tag!("if") >>
+          expr: set_expression >>
+          tag!("=>") >>
+          stmt: statement >>
+          (PStatement::If(expr,Box::new(stmt)))
+      ))
+      // Flow statements
+    | tag!("fail!") => { |_| PStatement::Fail(CompleteStr("failed")) } // TODO proper message
+    | tag!("log!")  => { |_| PStatement::Log(CompleteStr("failed")) } // TODO proper message
+    | tag!("noop!") => { |_| PStatement::Noop }
+
   // TODO everything else
   )
 );
@@ -451,20 +475,28 @@ mod tests {
     fn test_set() {
         assert_eq!(
             set(CompleteStr("set abc { a, b, c }")),
-            Ok((CompleteStr(""), PSet { 
-                name: CompleteStr("abc"),
-                items: vec![CompleteStr("a"), CompleteStr("b"), CompleteStr("c")]
-            }))
+            Ok((
+                CompleteStr(""),
+                PSet {
+                    name: CompleteStr("abc"),
+                    items: vec![CompleteStr("a"), CompleteStr("b"), CompleteStr("c")]
+                }
+            ))
         );
         assert_eq!(
             set_mapping(CompleteStr("set abc -> def { a -> d, b -> e, * -> f}")),
-            Ok((CompleteStr(""), PSetMapping { 
-                from: CompleteStr("abc"),
-                to:CompleteStr("def"),
-                mapping: vec![(CompleteStr("a"),CompleteStr("d")),
-                              (CompleteStr("b"),CompleteStr("e")),
-                              (CompleteStr("*"),CompleteStr("f"))]
-            }))
+            Ok((
+                CompleteStr(""),
+                PSetMapping {
+                    from: CompleteStr("abc"),
+                    to: CompleteStr("def"),
+                    mapping: vec![
+                        (CompleteStr("a"), CompleteStr("d")),
+                        (CompleteStr("b"), CompleteStr("e")),
+                        (CompleteStr("*"), CompleteStr("f"))
+                    ]
+                }
+            ))
         );
     }
 
@@ -472,35 +504,63 @@ mod tests {
     fn test_set_expression() {
         assert_eq!(
             set_expression(CompleteStr("a==b/c")),
-            Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),Some(CompleteStr("b")),CompleteStr("c"))))
+            Ok((
+                CompleteStr(""),
+                PSetExpression::Compare(CompleteStr("a"), Some(CompleteStr("b")), CompleteStr("c"))
+            ))
         );
         assert_eq!(
             set_expression(CompleteStr("a==bc")),
-            Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),None,CompleteStr("bc"))))
+            Ok((
+                CompleteStr(""),
+                PSetExpression::Compare(CompleteStr("a"), None, CompleteStr("bc"))
+            ))
         );
         assert_eq!(
             set_expression(CompleteStr("bc")),
-            Ok((CompleteStr(""), PSetExpression::Classify(None,CompleteStr("bc"))))
+            Ok((
+                CompleteStr(""),
+                PSetExpression::Classify(None, CompleteStr("bc"))
+            ))
         );
         assert_eq!(
             set_expression(CompleteStr("(a == b/hello)")),
-            Ok((CompleteStr(""), PSetExpression::Compare(CompleteStr("a"),Some(CompleteStr("b")),CompleteStr("hello"))))
+            Ok((
+                CompleteStr(""),
+                PSetExpression::Compare(
+                    CompleteStr("a"),
+                    Some(CompleteStr("b")),
+                    CompleteStr("hello")
+                )
+            ))
         );
         assert_eq!(
             set_expression(CompleteStr("bc&&(a||b==hello/g)")),
-            Ok((CompleteStr(""), PSetExpression::And(
-                        Box::new(PSetExpression::Classify(None,CompleteStr("bc"))),
-                        Box::new(PSetExpression::Or(
-                                Box::new(PSetExpression::Classify(None,CompleteStr("a"))),
-                                Box::new(PSetExpression::Compare(CompleteStr("b"),Some(CompleteStr("hello")),CompleteStr("g")))
-                        )),
-            )))
+            Ok((
+                CompleteStr(""),
+                PSetExpression::And(
+                    Box::new(PSetExpression::Classify(None, CompleteStr("bc"))),
+                    Box::new(PSetExpression::Or(
+                        Box::new(PSetExpression::Classify(None, CompleteStr("a"))),
+                        Box::new(PSetExpression::Compare(
+                            CompleteStr("b"),
+                            Some(CompleteStr("hello")),
+                            CompleteStr("g")
+                        ))
+                    )),
+                )
+            ))
         );
         assert_eq!(
             set_expression(CompleteStr("! a == hello")),
-            Ok((CompleteStr(""), PSetExpression::Not(
-                        Box::new(PSetExpression::Compare(CompleteStr("a"),None,CompleteStr("hello")))
-            )))
+            Ok((
+                CompleteStr(""),
+                PSetExpression::Not(Box::new(PSetExpression::Compare(
+                    CompleteStr("a"),
+                    None,
+                    CompleteStr("hello")
+                )))
+            ))
         );
     }
 
@@ -553,7 +613,7 @@ mod tests {
                 CompleteStr(""),
                 PMetadata {
                     key: CompleteStr("key"),
-                    value: PValue::VInterpolatedString("value".to_string())
+                    value: PValue::String("value".to_string())
                 }
             ))
         );
@@ -563,7 +623,7 @@ mod tests {
                 CompleteStr(""),
                 PMetadata {
                     key: CompleteStr("key"),
-                    value: PValue::VInterpolatedString("value".to_string())
+                    value: PValue::String("value".to_string())
                 }
             ))
         );
@@ -631,7 +691,7 @@ mod tests {
                 PParameter {
                     name: CompleteStr("hello"),
                     ptype: Some(PType::TString),
-                    default: Some(PValue::VInterpolatedString("default".to_string())),
+                    default: Some(PValue::String("default".to_string())),
                 }
             ))
         );
@@ -689,28 +749,14 @@ mod tests {
             typed_value(CompleteStr("\"\"\"This is a string\"\"\"")),
             Ok((
                 CompleteStr(""),
-                PValue::VInterpolatedString("This is a string".to_string())
+                PValue::String("This is a string".to_string())
             ))
         );
         assert_eq!(
-            typed_value(CompleteStr("\"This is a string\"")),
+            typed_value(CompleteStr("\"This is a string bis\"")),
             Ok((
                 CompleteStr(""),
-                PValue::VInterpolatedString("This is a string".to_string())
-            ))
-        );
-        assert_eq!(
-            typed_value(CompleteStr("r\"\"\"This is a string\"\"\"")),
-            Ok((
-                CompleteStr(""),
-                PValue::VLiteralString("This is a string".to_string())
-            ))
-        );
-        assert_eq!(
-            typed_value(CompleteStr("r\"This is a string\"")),
-            Ok((
-                CompleteStr(""),
-                PValue::VLiteralString("This is a string".to_string())
+                PValue::String("This is a string bis".to_string())
             ))
         );
     }
@@ -757,8 +803,8 @@ mod tests {
                 PObjectRef {
                     name: CompleteStr("hello"),
                     parameters: vec![
-                        PValue::VInterpolatedString("p1".to_string()),
-                        PValue::VInterpolatedString("p2".to_string())
+                        PValue::String("p1".to_string()),
+                        PValue::String("p2".to_string())
                     ]
                 }
             ))
@@ -782,7 +828,8 @@ mod tests {
             Ok((
                 CompleteStr(""),
                 PStatement::StateCall(
-                    None, PCallMode::Enforce,
+                    None,
+                    PCallMode::Enforce,
                     PObjectRef {
                         name: CompleteStr("object"),
                         parameters: vec![]
@@ -797,15 +844,16 @@ mod tests {
             Ok((
                 CompleteStr(""),
                 PStatement::StateCall(
-                    None, PCallMode::Enforce,
+                    None,
+                    PCallMode::Enforce,
                     PObjectRef {
                         name: CompleteStr("object"),
                         parameters: vec![]
                     },
                     CompleteStr("state"),
                     vec![
-                        PValue::VInterpolatedString("p1".to_string()),
-                        PValue::VInterpolatedString("p2".to_string())
+                        PValue::String("p1".to_string()),
+                        PValue::String("p2".to_string())
                     ]
                 )
             ))
@@ -833,9 +881,9 @@ mod tests {
                             None, PCallMode::Enforce,
                             PObjectRef {
                                 name: CompleteStr("file"), 
-                                parameters: vec![PValue::VInterpolatedString("/tmp".to_string())] }, 
+                                parameters: vec![PValue::String("/tmp".to_string())] }, 
                             CompleteStr("permissions"),
-                            vec![PValue::VInterpolatedString("root".to_string()), PValue::VInterpolatedString("root".to_string()), PValue::VInterpolatedString("g+w".to_string())]
+                            vec![PValue::String("root".to_string()), PValue::String("root".to_string()), PValue::String("g+w".to_string())]
                         )
                     ]
                 })
