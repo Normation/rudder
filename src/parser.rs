@@ -1,10 +1,7 @@
 use nom::types::CompleteStr;
+use nom_locate::LocatedSpan;
 use nom::*;
 
-// As recommended by nom, we use CompleteStr everywhere
-// They are almost like str so this should not be a problem
-
-// TODO identifier parsing
 // TODO Error management
 // TODO Store token location in file
 // TODO Whole file parsing
@@ -12,6 +9,13 @@ use nom::*;
 
 // STRUCTURES
 //
+
+// All input are Located Complete str
+pub type PInput<'a> = LocatedSpan<CompleteStr<'a>>;
+
+pub fn pinput(input: &str) -> PInput {
+    LocatedSpan::new(CompleteStr(input))
+}
 
 #[derive(Debug, PartialEq)]
 pub struct PHeader {
@@ -150,7 +154,7 @@ pub enum Error {
 //
 
 // eat char separators instead of u8
-named!(space_s<CompleteStr,CompleteStr>, eat_separator!(&" \t\r\n"[..]));
+named!(space_s<PInput,PInput>, eat_separator!(&" \t\r\n"[..]));
 
 // ws! for chars instead of u8
 // TODO add a strip comment
@@ -165,24 +169,24 @@ macro_rules! sp (
 // PARSERS
 //
 
-named!(pub header<CompleteStr,PHeader>,
+named!(pub header<PInput,PHeader>,
   do_parse!(
     opt!(preceded!(tag!("#!/"),take_until_and_consume!("\n"))) >>
     // strict parser so that this does not diverge and anything can read the line
     tag!("@format=") >>
-    version: map_res!(take_until!("\n"), |s:CompleteStr| s.parse::<u32>()) >>
+    version: map_res!(take_until!("\n"), |s:PInput| s.fragment.parse::<u32>()) >>
     tag!("\n") >>
     (PHeader { version })
   )
 );
 
-named!(identifier<CompleteStr,&str>,
+named!(identifier<PInput,&str>,
     map!(
-        verify!(alphanumeric, |x:CompleteStr| {
-            let c=x.chars().next().unwrap_or(' '); // space is not a valid starting char
+        verify!(alphanumeric, |x:PInput| {
+            let c=x.fragment.chars().next().unwrap_or(' '); // space is not a valid starting char
             (c as u8 >= 0x41 && c as u8 <= 0x5A) || (c as u8 >= 0x61 && c as u8 <= 0x7A) || (c as u8 >= 0x30 && c as u8 <= 0x39)
         } ),
-        |x| *x)
+        |x| *x.fragment)
 );
 
 //    // Convert to IResult<&[u8], &[u8], ErrorStr>
@@ -192,7 +196,7 @@ named!(identifier<CompleteStr,&str>,
 //      }
 //    }
 // string
-named!(escaped_string<CompleteStr,String>,
+named!(escaped_string<PInput,String>,
 //       fix_error!(PHeader,
     delimited!(
         tag!("\""), 
@@ -211,18 +215,18 @@ named!(escaped_string<CompleteStr,String>,
     )
 );
 
-named!(unescaped_string<CompleteStr,String>,
+named!(unescaped_string<PInput,String>,
     delimited!(
         // TODO string containing """
         tag!("\"\"\""),
-        map!(take_until!("\"\"\""), { |x:CompleteStr| x.to_string() }),
+        map!(take_until!("\"\"\""), { |x:PInput| x.to_string() }),
         return_error!(ErrorKind::Custom(Error::UnterminatedString as u32),tag!("\"\"\""))
     )
 );
 
 // Value
 //
-named!(typed_value<CompleteStr,PValue>,
+named!(typed_value<PInput,PValue>,
     // TODO other types
     alt!(
         unescaped_string  => { |x| PValue::String(x) }
@@ -231,7 +235,7 @@ named!(typed_value<CompleteStr,PValue>,
 );
 
 // Sets
-named!(set<CompleteStr,PSet>,
+named!(set<PInput,PSet>,
     sp!(do_parse!(
         tag!("set") >>
         name: identifier >>
@@ -242,7 +246,7 @@ named!(set<CompleteStr,PSet>,
     ))
 );
 
-named!(set_mapping<CompleteStr,PSetMapping>,
+named!(set_mapping<PInput,PSetMapping>,
     sp!(do_parse!(
         tag!("set") >>
         from: identifier >>
@@ -252,7 +256,7 @@ named!(set_mapping<CompleteStr,PSetMapping>,
         mapping: sp!(separated_list!(
                 tag!(","),
                 separated_pair!(
-                    alt!(identifier|map!(tag!("*"),|x| *x)),
+                    alt!(identifier|map!(tag!("*"),|x| *x.fragment)),
                     tag!("->"),
                     identifier)
             )) >>
@@ -261,7 +265,7 @@ named!(set_mapping<CompleteStr,PSetMapping>,
     ))
 );
 
-named!(set_expression<CompleteStr,PSetExpression>,
+named!(set_expression<PInput,PSetExpression>,
     alt!(set_or_expression
        | set_and_expression
        | set_not_expression
@@ -269,7 +273,7 @@ named!(set_expression<CompleteStr,PSetExpression>,
     )
 );
 
-named!(set_atom<CompleteStr,PSetExpression>,
+named!(set_atom<PInput,PSetExpression>,
     sp!(alt!(
         delimited!(tag!("("),set_expression,tag!(")"))
       | do_parse!(
@@ -287,7 +291,7 @@ named!(set_atom<CompleteStr,PSetExpression>,
     ))
 );
 
-named!(set_or_expression<CompleteStr,PSetExpression>,
+named!(set_or_expression<PInput,PSetExpression>,
     sp!(do_parse!(
         left: alt!(set_and_expression | set_not_expression | set_atom) >>
         tag!("||") >>
@@ -296,7 +300,7 @@ named!(set_or_expression<CompleteStr,PSetExpression>,
     ))
 );
 
-named!(set_and_expression<CompleteStr,PSetExpression>,
+named!(set_and_expression<PInput,PSetExpression>,
     sp!(do_parse!(
         left: alt!(set_not_expression | set_atom) >>
         tag!("&&") >>
@@ -305,7 +309,7 @@ named!(set_and_expression<CompleteStr,PSetExpression>,
     ))
 );
 
-named!(set_not_expression<CompleteStr,PSetExpression>,
+named!(set_not_expression<PInput,PSetExpression>,
     sp!(do_parse!(
         tag!("!") >>
         right: set_atom >>
@@ -314,19 +318,19 @@ named!(set_not_expression<CompleteStr,PSetExpression>,
 );
 
 // comments
-named!(comment_line<CompleteStr,&str>,
+named!(comment_line<PInput,&str>,
   map!(preceded!(tag!("##"),
             alt!(take_until_and_consume!("\n")
                 |rest
             )
-      ), |x| *x )
+      ), |x| *x.fragment )
 );
-named!(comment_block<CompleteStr,PComment>,
+named!(comment_block<PInput,PComment>,
   many1!(comment_line)
 );
 
 // metadata
-named!(metadata<CompleteStr,PMetadata>,
+named!(metadata<PInput,PMetadata>,
   sp!(do_parse!(char!('@') >>
     key: identifier >>
     char!('=') >>
@@ -336,7 +340,7 @@ named!(metadata<CompleteStr,PMetadata>,
 );
 
 // type
-named!(typename<CompleteStr,PType>,
+named!(typename<PInput,PType>,
   alt!(
     tag!("string")      => { |_| PType::TString }  |
     tag!("int")         => { |_| PType::TInteger } |
@@ -346,7 +350,7 @@ named!(typename<CompleteStr,PType>,
 );
 
 // Parameters
-named!(parameter<CompleteStr,PParameter>,
+named!(parameter<PInput,PParameter>,
   sp!(do_parse!(
     ptype: opt!(sp!(terminated!(typename, char!(':')))) >>
     name: identifier >>
@@ -356,7 +360,7 @@ named!(parameter<CompleteStr,PParameter>,
 );
 
 // ObjectDef
-named!(object_def<CompleteStr,PObjectDef>,
+named!(object_def<PInput,PObjectDef>,
   sp!(do_parse!(
     tag!("object") >>
     name: identifier >>
@@ -370,7 +374,7 @@ named!(object_def<CompleteStr,PObjectDef>,
 );
 
 // ObjectRef
-named!(object_ref<CompleteStr,PObjectRef>,
+named!(object_ref<PInput,PObjectRef>,
   sp!(do_parse!(
     name: identifier >>
     params: opt!(sp!(do_parse!(tag!("(") >>
@@ -384,7 +388,7 @@ named!(object_ref<CompleteStr,PObjectRef>,
 );
 
 // statements
-named!(statement<CompleteStr,PStatement>,
+named!(statement<PInput,PStatement>,
   alt!(
       // state call
       sp!(do_parse!(
@@ -435,7 +439,7 @@ named!(statement<CompleteStr,PStatement>,
 );
 
 // state definition
-named!(state<CompleteStr,PStateDef>,
+named!(state<PInput,PStateDef>,
   sp!(do_parse!(
       object_name: identifier >>
       tag!("state") >>
@@ -453,7 +457,7 @@ named!(state<CompleteStr,PStateDef>,
 );
 
 // a file
-named!(declaration<CompleteStr,PDeclaration>,
+named!(declaration<PInput,PDeclaration>,
     sp!(alt_complete!(
           object_def    => { |x| PDeclaration::Object(x) }
         | metadata      => { |x| PDeclaration::Metadata(x) }
@@ -464,7 +468,7 @@ named!(declaration<CompleteStr,PDeclaration>,
       ))
 );
 
-//pub fn parse<'a>(input: CompleteStr<'a>) -> IResult<CompleteStr<'a>, PCode<'a>>
+//pub fn parse<'a>(input: PInput<'a>) -> IResult<PInput<'a>, PCode<'a>>
 //{
 //   let header = try!(header(input));
 //   if header.version != 0 {
@@ -472,7 +476,7 @@ named!(declaration<CompleteStr,PDeclaration>,
 //   }
 //
 //}
-named!(pub code<CompleteStr,Vec<PDeclaration>>,
+named!(pub code<PInput,Vec<PDeclaration>>,
   do_parse!(
     x: many0!(declaration) >>
     eof!() >>
@@ -487,28 +491,33 @@ named!(pub code<CompleteStr,Vec<PDeclaration>>,
 mod tests {
     use super::*;
 
+    // Adapter to simplify writing tests
+    fn mapok<'a,O,E>(r: Result<(PInput<'a>, O), Err<PInput<'a>, E>>) -> Result<(&str, O), Err<PInput, E>> {
+        match r {
+            Ok((x,y)) => Ok((*x.fragment,y)),
+            Err(e) => Err(e)
+        }
+    }
+
     #[test]
     fn test_strings() {
         assert_eq!(
-            escaped_string(CompleteStr("\"hello\\n\\\"Herman\\\"\n\"")),
-            Ok((CompleteStr(""), "hello\n\"Herman\"\n".to_string()))
+            mapok(escaped_string(pinput("\"1hello\\n\\\"Herman\\\"\n\""))),
+            Ok(("", "1hello\n\"Herman\"\n".to_string()))
         );
         assert_eq!(
-            escaped_string(CompleteStr("\"hello\\n\\\"Herman\\\"\n")),
-            Ok((CompleteStr(""), "hello\n\"Herman\"\n".to_string()))
+            mapok(unescaped_string(pinput("\"\"\"2hello\\n\"Herman\"\n\"\"\""))),
+            Ok(("", "2hello\\n\"Herman\"\n".to_string()))
         );
-        assert_eq!(
-            unescaped_string(CompleteStr("\"\"\"hello\\n\"Herman\"\n\"\"\"")),
-            Ok((CompleteStr(""), "hello\\n\"Herman\"\n".to_string()))
-        );
+        assert!(escaped_string(pinput("\"2hello\\n\\\"Herman\\\"\n")).is_err());
     }
 
     #[test]
     fn test_set() {
         assert_eq!(
-            set(CompleteStr("set abc { a, b, c }")),
+            mapok(set(pinput("set abc { a, b, c }"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PSet {
                     name: "abc",
                     items: vec!["a", "b", "c"]
@@ -516,9 +525,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            set_mapping(CompleteStr("set abc -> def { a -> d, b -> e, * -> f}")),
+            mapok(set_mapping(pinput("set abc -> def { a -> d, b -> e, * -> f}"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PSetMapping {
                     from: "abc",
                     to: "def",
@@ -535,30 +544,30 @@ mod tests {
     #[test]
     fn test_set_expression() {
         assert_eq!(
-            set_expression(CompleteStr("a==b/c")),
+            mapok(set_expression(pinput("a==b/c"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PSetExpression::Compare("a", Some("b"), "c")
             ))
         );
         assert_eq!(
-            set_expression(CompleteStr("a==bc")),
+            mapok(set_expression(pinput("a==bc"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PSetExpression::Compare("a", None, "bc")
             ))
         );
         assert_eq!(
-            set_expression(CompleteStr("bc")),
+            mapok(set_expression(pinput("bc"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PSetExpression::Classify(None, "bc")
             ))
         );
         assert_eq!(
-            set_expression(CompleteStr("(a == b/hello)")),
+            mapok(set_expression(pinput("(a == b/hello)"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PSetExpression::Compare(
                     "a",
                     Some("b"),
@@ -567,9 +576,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            set_expression(CompleteStr("bc&&(a||b==hello/g)")),
+            mapok(set_expression(pinput("bc&&(a||b==hello/g)"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PSetExpression::And(
                     Box::new(PSetExpression::Classify(None, "bc")),
                     Box::new(PSetExpression::Or(
@@ -584,9 +593,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            set_expression(CompleteStr("! a == hello")),
+            mapok(set_expression(pinput("! a == hello"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PSetExpression::Not(Box::new(PSetExpression::Compare(
                     "a",
                     None,
@@ -599,50 +608,50 @@ mod tests {
     #[test]
     fn test_comment_line() {
         assert_eq!(
-            comment_line(CompleteStr("##hello Herman\n")),
-            Ok((CompleteStr(""), "hello Herman"))
+            mapok(comment_line(pinput("##hello Herman\n"))),
+            Ok(("", "hello Herman"))
         );
         assert_eq!(
-            comment_line(CompleteStr("##hello Herman\nHola")),
-            Ok((CompleteStr("Hola"), "hello Herman"))
+            mapok(comment_line(pinput("##hello Herman\nHola"))),
+            Ok(("Hola", "hello Herman"))
         );
         assert_eq!(
-            comment_line(CompleteStr("##hello Herman!")),
-            Ok((CompleteStr(""), "hello Herman!"))
+            mapok(comment_line(pinput("##hello Herman!"))),
+            Ok(("", "hello Herman!"))
         );
         assert_eq!(
-            comment_line(CompleteStr("##hello\nHerman\n")),
-            Ok((CompleteStr("Herman\n"), "hello"))
+            mapok(comment_line(pinput("##hello\nHerman\n"))),
+            Ok(("Herman\n", "hello"))
         );
-        assert!(comment_line(CompleteStr("hello\nHerman\n")).is_err());
+        assert!(comment_line(pinput("hello\nHerman\n")).is_err());
     }
 
     #[test]
     fn test_comment_block() {
         assert_eq!(
-            comment_block(CompleteStr("##hello Herman\n")),
-            Ok((CompleteStr(""), vec!["hello Herman"]))
+            mapok(comment_block(pinput("##hello Herman\n"))),
+            Ok(("", vec!["hello Herman"]))
         );
         assert_eq!(
-            comment_block(CompleteStr("##hello Herman!")),
-            Ok((CompleteStr(""), vec!["hello Herman!"]))
+            mapok(comment_block(pinput("##hello Herman!"))),
+            Ok(("", vec!["hello Herman!"]))
         );
         assert_eq!(
-            comment_block(CompleteStr("##hello\n##Herman\n")),
+            mapok(comment_block(pinput("##hello\n##Herman\n"))),
             Ok((
-                CompleteStr(""),
+                "",
                 vec!["hello", "Herman"]
             ))
         );
-        assert!(comment_block(CompleteStr("hello Herman")).is_err());
+        assert!(comment_block(pinput("hello Herman")).is_err());
     }
 
     #[test]
     fn test_metadata() {
         assert_eq!(
-            metadata(CompleteStr("@key=\"value\"")),
+            mapok(metadata(pinput("@key=\"value\""))),
             Ok((
-                CompleteStr(""),
+                "",
                 PMetadata {
                     key: "key",
                     value: PValue::String("value".to_string())
@@ -650,9 +659,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            metadata(CompleteStr("@key = \"value\"")),
+            mapok(metadata(pinput("@key = \"value\""))),
             Ok((
-                CompleteStr(""),
+                "",
                 PMetadata {
                     key: "key",
                     value: PValue::String("value".to_string())
@@ -662,31 +671,28 @@ mod tests {
     }
 
     #[test]
-    fn test_escaped_string() {}
-
-    #[test]
     fn test_identifier() {
         assert_eq!(
-            identifier(CompleteStr("simple ")),
-            Ok((CompleteStr(" "), "simple"))
+            mapok(identifier(pinput("simple "))),
+            Ok((" ", "simple"))
         );
         assert_eq!(
-            identifier(CompleteStr("simple?")),
-            Ok((CompleteStr("?"), "simple"))
+            mapok(identifier(pinput("simple?"))),
+            Ok(("?", "simple"))
         );
         assert_eq!(
-            identifier(CompleteStr("5impl3 ")),
-            Ok((CompleteStr(" "), "5impl3"))
+            mapok(identifier(pinput("5impl3 "))),
+            Ok((" ", "5impl3"))
         );
-        assert!(identifier(CompleteStr("%imple ")).is_err());
+        assert!(identifier(pinput("%imple ")).is_err());
     }
 
     #[test]
     fn test_parameter() {
         assert_eq!(
-            parameter(CompleteStr("hello ")),
+            mapok(parameter(pinput("hello "))),
             Ok((
-                CompleteStr(""),
+                "",
                 PParameter {
                     name: "hello",
                     ptype: None,
@@ -695,9 +701,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            parameter(CompleteStr("string:hello ")),
+            mapok(parameter(pinput("string:hello "))),
             Ok((
-                CompleteStr(""),
+                "",
                 PParameter {
                     name: "hello",
                     ptype: Some(PType::TString),
@@ -706,9 +712,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            parameter(CompleteStr(" string : hello ")),
+            mapok(parameter(pinput(" string : hello "))),
             Ok((
-                CompleteStr(""),
+                "",
                 PParameter {
                     name: "hello",
                     ptype: Some(PType::TString),
@@ -717,9 +723,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            parameter(CompleteStr(" string : hello=\"default\"")),
+            mapok(parameter(pinput(" string : hello=\"default\""))),
             Ok((
-                CompleteStr(""),
+                "",
                 PParameter {
                     name: "hello",
                     ptype: Some(PType::TString),
@@ -732,9 +738,9 @@ mod tests {
     #[test]
     fn test_object_def() {
         assert_eq!(
-            object_def(CompleteStr("object hello()")),
+            mapok(object_def(pinput("object hello()"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PObjectDef {
                     name: "hello",
                     parameters: vec![]
@@ -742,9 +748,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            object_def(CompleteStr("object  hello2 ( )")),
+            mapok(object_def(pinput("object  hello2 ( )"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PObjectDef {
                     name: "hello2",
                     parameters: vec![]
@@ -752,9 +758,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            object_def(CompleteStr("object hello (string: p1, p2)")),
+            mapok(object_def(pinput("object hello (string: p1, p2)"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PObjectDef {
                     name: "hello",
                     parameters: vec![
@@ -778,16 +784,16 @@ mod tests {
     fn test_value() {
         // TODO other types
         assert_eq!(
-            typed_value(CompleteStr("\"\"\"This is a string\"\"\"")),
+            mapok(typed_value(pinput("\"\"\"This is a string\"\"\""))),
             Ok((
-                CompleteStr(""),
+                "",
                 PValue::String("This is a string".to_string())
             ))
         );
         assert_eq!(
-            typed_value(CompleteStr("\"This is a string bis\"")),
+            mapok(typed_value(pinput("\"This is a string bis\""))),
             Ok((
-                CompleteStr(""),
+                "",
                 PValue::String("This is a string bis".to_string())
             ))
         );
@@ -796,22 +802,22 @@ mod tests {
     #[test]
     fn test_headers() {
         assert_eq!(
-            header(CompleteStr("#!/bin/bash\n@format=1\n")),
-            Ok((CompleteStr(""), PHeader { version: 1 }))
+            mapok(header(pinput("#!/bin/bash\n@format=1\n"))),
+            Ok(("", PHeader { version: 1 }))
         );
         assert_eq!(
-            header(CompleteStr("@format=21\n")),
-            Ok((CompleteStr(""), PHeader { version: 21 }))
+            mapok(header(pinput("@format=21\n"))),
+            Ok(("", PHeader { version: 21 }))
         );
-        assert!(header(CompleteStr("@format=21.5\n")).is_err());
+        assert!(header(pinput("@format=21.5\n")).is_err());
     }
 
     #[test]
     fn test_object_ref() {
         assert_eq!(
-            object_ref(CompleteStr("hello()")),
+            mapok(object_ref(pinput("hello()"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PObjectRef {
                     name: "hello",
                     parameters: vec![]
@@ -819,9 +825,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            object_ref(CompleteStr("hello3 ")),
+            mapok(object_ref(pinput("hello3 "))),
             Ok((
-                CompleteStr(""),
+                "",
                 PObjectRef {
                     name: "hello3",
                     parameters: vec![]
@@ -829,9 +835,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            object_ref(CompleteStr("hello ( \"p1\", \"p2\" )")),
+            mapok(object_ref(pinput("hello ( \"p1\", \"p2\" )"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PObjectRef {
                     name: "hello",
                     parameters: vec![
@@ -842,9 +848,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            object_ref(CompleteStr("hello2 ( )")),
+            mapok(object_ref(pinput("hello2 ( )"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PObjectRef {
                     name: "hello2",
                     parameters: vec![]
@@ -856,9 +862,9 @@ mod tests {
     #[test]
     fn test_statement() {
         assert_eq!(
-            statement(CompleteStr("object().state()")),
+            mapok(statement(pinput("object().state()"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PStatement::StateCall(
                     None,
                     PCallMode::Enforce,
@@ -872,9 +878,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            statement(CompleteStr("object().state( \"p1\", \"p2\")")),
+            mapok(statement(pinput("object().state( \"p1\", \"p2\")"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PStatement::StateCall(
                     None,
                     PCallMode::Enforce,
@@ -891,9 +897,9 @@ mod tests {
             ))
         );
         assert_eq!(
-            statement(CompleteStr("##hello Herman\n")),
+            mapok(statement(pinput("##hello Herman\n"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PStatement::Comment(vec!["hello Herman"])
             ))
         );
@@ -902,8 +908,8 @@ mod tests {
     #[test]
     fn test_declaration() {
         assert_eq!(
-            declaration(CompleteStr("ntp state configuration ()\n{\n  file(\"/tmp\").permissions(\"root\", \"root\", \"g+w\")\n}\n")),
-            Ok((CompleteStr("\n"),
+            mapok(declaration(pinput("ntp state configuration ()\n{\n  file(\"/tmp\").permissions(\"root\", \"root\", \"g+w\")\n}\n"))),
+            Ok(("\n",
                 PDeclaration::State(PStateDef {
                     name: "configuration",
                     object_name: "ntp",
@@ -925,9 +931,9 @@ mod tests {
     #[test]
     fn test_state() {
         assert_eq!(
-            state(CompleteStr("object state configuration() {}")),
+            mapok(state(pinput("object state configuration() {}"))),
             Ok((
-                CompleteStr(""),
+                "",
                 PStateDef {
                     name: "configuration",
                     object_name: "object",
