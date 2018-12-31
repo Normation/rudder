@@ -87,8 +87,6 @@ set system_version -> system {
   debian6 -> debian,
   debian7 -> debian,
   debian8 -> debian,
-  # allowed: unknown -> *
-  # default: * -> *
 }
 
 set outcome {

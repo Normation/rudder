@@ -2,7 +2,13 @@ use nom::types::CompleteStr;
 use nom::*;
 
 // As recommended by nom, we use CompleteStr everywhere
-// They are almost as str so this should not be a problem
+// They are almost like str so this should not be a problem
+
+// TODO identifier parsing
+// TODO Error management
+// TODO Store token location in file
+// TODO Whole file parsing
+// TODO add more types
 
 // STRUCTURES
 //
@@ -67,7 +73,8 @@ pub struct PObjectDef<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum PValue<'a> {
-    String(CompleteStr<'a>),
+    String(String),
+    XX(CompleteStr<'a>),
     //VInteger(u64),
     //...
 }
@@ -106,7 +113,8 @@ pub enum PStatement<'a> {
     // Inform the user of something
     Log(CompleteStr<'a>),
     // Do nothing
-    Noop, // TODO condition instance, object instance, variable definition
+    Noop,
+    // TODO condition instance, object instance, variable definition
 }
 
 #[derive(Debug, PartialEq)]
@@ -131,6 +139,11 @@ pub enum PDeclaration<'a> {
 pub struct PCode<'a> {
     header: PHeader,
     code: Vec<PDeclaration<'a>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Error {
+    UnterminatedString,
 }
 
 // PARSERS adapter for str instead of byte{]
@@ -163,8 +176,16 @@ named!(pub header<CompleteStr,PHeader>,
   )
 );
 
+
+//    // Convert to IResult<&[u8], &[u8], ErrorStr>
+//    impl From<u32> for PHeader {
+//      fn from(i: u32) -> Self {
+//        PHeader {version:1}
+//      }
+//    }
 // string
 named!(escaped_string<CompleteStr,String>,
+//       fix_error!(PHeader,
     delimited!(
         tag!("\""), 
         escaped_transform!(
@@ -178,15 +199,16 @@ named!(escaped_string<CompleteStr,String>,
                 tag!("t") => { |_| CompleteStr("\t") }
             )
         ),
-        tag!("\"")
+        add_return_error!(ErrorKind::Custom(Error::UnterminatedString as u32),tag!("\""))
     )
 );
 
 named!(unescaped_string<CompleteStr,String>,
     delimited!(
+        // TODO string containing """
         tag!("\"\"\""),
         map!(take_until!("\"\"\""), { |x:CompleteStr| x.to_string() }),
-        tag!("\"\"\"")
+        return_error!(ErrorKind::Custom(Error::UnterminatedString as u32),tag!("\"\"\""))
     )
 );
 
@@ -401,8 +423,6 @@ named!(statement<CompleteStr,PStatement>,
     | tag!("fail!") => { |_| PStatement::Fail(CompleteStr("failed")) } // TODO proper message
     | tag!("log!")  => { |_| PStatement::Log(CompleteStr("failed")) } // TODO proper message
     | tag!("noop!") => { |_| PStatement::Noop }
-
-  // TODO everything else
   )
 );
 
@@ -463,6 +483,10 @@ mod tests {
     fn test_strings() {
         assert_eq!(
             escaped_string(CompleteStr("\"hello\\n\\\"Herman\\\"\n\"")),
+            Ok((CompleteStr(""), "hello\n\"Herman\"\n".to_string()))
+        );
+        assert_eq!(
+            escaped_string(CompleteStr("\"hello\\n\\\"Herman\\\"\n")),
             Ok((CompleteStr(""), "hello\n\"Herman\"\n".to_string()))
         );
         assert_eq!(
