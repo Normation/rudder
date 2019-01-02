@@ -67,7 +67,7 @@ class RudderDatasourceProvider(
   config.setUsername(username)
   config.setPassword(password)
   config.setMaximumPoolSize(if(maxPoolSize < 1) 1 else maxPoolSize)
-  config.setAutoCommit(false)
+  config.setAutoCommit(true) //this is needed in Rudder 4.1, see #14056
 
   //set parameters to test for dead connection
   //not sure we need that, since we use JDBC4 driver, see:
