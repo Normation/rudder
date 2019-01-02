@@ -1,10 +1,10 @@
 use nom::types::CompleteStr;
-use nom_locate::LocatedSpan;
 use nom::*;
+use nom_locate::LocatedSpan;
+use nom_locate::position;
 
 // TODO Error management
 // TODO Store token location in file
-// TODO Whole file parsing
 // TODO add more types
 
 // STRUCTURES
@@ -20,6 +20,12 @@ pub fn pinput(input: &str) -> PInput {
 #[derive(Debug, PartialEq)]
 pub struct PHeader {
     pub version: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct PFile<'a> {
+    pub header: PHeader,
+    pub code: Vec<PDeclaration<'a>>,
 }
 
 type PComment<'a> = Vec<&'a str>;
@@ -46,27 +52,26 @@ pub enum PType {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PSet<'a> {
+pub struct PEnum<'a> {
     pub name: &'a str,
     pub items: Vec<&'a str>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PSetMapping<'a> {
+pub struct PEnumMapping<'a> {
     pub from: &'a str,
     pub to: &'a str,
     pub mapping: Vec<(&'a str, &'a str)>,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum PSetExpression<'a> {
-    //      variable         set                      value
-    Compare(&'a str, Option<&'a str>, &'a str),
-    //       set                      value
-    Classify(Option<&'a str>, &'a str),
-    And(Box<PSetExpression<'a>>, Box<PSetExpression<'a>>),
-    Or(Box<PSetExpression<'a>>, Box<PSetExpression<'a>>),
-    Not(Box<PSetExpression<'a>>),
+pub enum PEnumExpression<'a> {
+    //       variable enum              value
+    Compare(Option<&'a str>, Option<&'a str>, &'a str),
+    And(Box<PEnumExpression<'a>>, Box<PEnumExpression<'a>>),
+    Or(Box<PEnumExpression<'a>>, Box<PEnumExpression<'a>>),
+    Not(Box<PEnumExpression<'a>>),
+    Default,
 }
 
 #[derive(Debug, PartialEq)]
@@ -109,13 +114,13 @@ pub enum PStatement<'a> {
         Vec<PValue<'a>>,
     ),
     //   list of condition          then
-    Case(Vec<(PSetExpression<'a>, Box<PStatement<'a>>)>),
-    // condition          then
-    If(PSetExpression<'a>, Box<PStatement<'a>>),
+    Case(Vec<(PEnumExpression<'a>, Box<PStatement<'a>>)>),
     // Stop engine
     Fail(&'a str),
     // Inform the user of something
     Log(&'a str),
+    // Return a specific outcome
+    Return(&'a str),
     // Do nothing
     Noop,
     // TODO condition instance, object instance, variable definition
@@ -135,8 +140,8 @@ pub enum PDeclaration<'a> {
     Metadata(PMetadata<'a>),
     Object(PObjectDef<'a>),
     State(PStateDef<'a>),
-    Set(PSet<'a>),
-    Mapping(PSetMapping<'a>),
+    Enum(PEnum<'a>),
+    Mapping(PEnumMapping<'a>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -147,6 +152,7 @@ pub struct PCode<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
+    InvalidFormat,
     UnterminatedString,
 }
 
@@ -159,25 +165,35 @@ named!(space_s<PInput,PInput>, eat_separator!(&" \t\r\n"[..]));
 // ws! for chars instead of u8
 // TODO add a strip comment
 macro_rules! sp (
-  ($i:expr, $($args:tt)*) => (
-    {
-      sep!($i, space_s, $($args)*)
-    }
-  )
+    ($i:expr, $($args:tt)*) => (
+        {
+            sep!($i, space_s, $($args)*)
+        }
+    )
 );
+
+// simplify error repoting in parsers
+macro_rules! fail (
+    ($i:expr, $code:expr, $submac:ident!( $($args:tt)* )) => (return_error!($i, ErrorKind::Custom($code as u32), $submac!($($args)*)););
+    //($i:expr, $code:expr, $f:expr ) => (return_error!($i, ErrorKind::Custom($code as u32), call!($f)););
+);
+//macro_rules! error (
+//    ($i:expr, $code:expr, $submac:ident!( $($args:tt)* )) => (add_return_error!($i, ErrorKind::Custom($code as u32), $submac!($($args)*)););
+//    //($i:expr, $code:expr, $f:expr ) => (add_return_error!($i, ErrorKind::Custom($code as u32), call!($f)););
+//);
 
 // PARSERS
 //
 
-named!(pub header<PInput,PHeader>,
-  do_parse!(
-    opt!(preceded!(tag!("#!/"),take_until_and_consume!("\n"))) >>
-    // strict parser so that this does not diverge and anything can read the line
-    tag!("@format=") >>
-    version: map_res!(take_until!("\n"), |s:PInput| s.fragment.parse::<u32>()) >>
-    tag!("\n") >>
-    (PHeader { version })
-  )
+named!(header<PInput,PHeader>,
+    do_parse!(
+        opt!(preceded!(tag!("#!/"),take_until_and_consume!("\n"))) >>
+        // strict parser so that this does not diverge and anything can read the line
+        fail!(Error::InvalidFormat,tag!("@format=")) >>
+        version: fail!(Error::InvalidFormat,map_res!(take_until!("\n"), |s:PInput| s.fragment.parse::<u32>())) >>
+        fail!(Error::InvalidFormat,tag!("\n")) >>
+        (PHeader { version })
+    )
 );
 
 named!(identifier<PInput,&str>,
@@ -211,7 +227,7 @@ named!(escaped_string<PInput,String>,
                 tag!("t")  => { |_| "\t" }
             )
         ),
-        add_return_error!(ErrorKind::Custom(Error::UnterminatedString as u32),tag!("\""))
+        fail!(Error::UnterminatedString,tag!("\""))
     )
 );
 
@@ -220,7 +236,7 @@ named!(unescaped_string<PInput,String>,
         // TODO string containing """
         tag!("\"\"\""),
         map!(take_until!("\"\"\""), { |x:PInput| x.to_string() }),
-        return_error!(ErrorKind::Custom(Error::UnterminatedString as u32),tag!("\"\"\""))
+        fail!(Error::UnterminatedString,tag!("\"\"\""))
     )
 );
 
@@ -234,23 +250,23 @@ named!(typed_value<PInput,PValue>,
     )
 );
 
-// Sets
-named!(set<PInput,PSet>,
+// Enums
+named!(penum<PInput,PEnum>,
     sp!(do_parse!(
-        tag!("set") >>
+        tag!("enum") >>
         name: identifier >>
         tag!("{") >>
         items: sp!(separated_list!(tag!(","), identifier)) >>
         tag!("}") >>
-        (PSet {name, items})
+        (PEnum {name, items})
     ))
 );
 
-named!(set_mapping<PInput,PSetMapping>,
+named!(enum_mapping<PInput,PEnumMapping>,
     sp!(do_parse!(
-        tag!("set") >>
+        tag!("enum") >>
         from: identifier >>
-        tag!("->") >>
+        tag!("~>") >>
         to: identifier >>
         tag!("{") >>
         mapping: sp!(separated_list!(
@@ -261,59 +277,60 @@ named!(set_mapping<PInput,PSetMapping>,
                     identifier)
             )) >>
         tag!("}") >>
-        (PSetMapping {from, to, mapping})
+        (PEnumMapping {from, to, mapping})
     ))
 );
 
-named!(set_expression<PInput,PSetExpression>,
-    alt!(set_or_expression
-       | set_and_expression
-       | set_not_expression
-       | set_atom
+named!(enum_expression<PInput,PEnumExpression>,
+    alt!(enum_or_expression
+       | enum_and_expression
+       | enum_not_expression
+       | enum_atom
+       | tag!("default") => { |_| PEnumExpression::Default }
     )
 );
 
-named!(set_atom<PInput,PSetExpression>,
+named!(enum_atom<PInput,PEnumExpression>,
     sp!(alt!(
-        delimited!(tag!("("),set_expression,tag!(")"))
+        delimited!(tag!("("),enum_expression,tag!(")"))
       | do_parse!(
             var: identifier >>
             tag!("==") >>
-            set: opt!(terminated!(identifier,tag!("/"))) >>
+            penum: opt!(terminated!(identifier,tag!("::"))) >>
             value: identifier >>
-            (PSetExpression::Compare(var,set,value))
+            (PEnumExpression::Compare(Some(var),penum,value))
         )
       | do_parse!(
-            set: opt!(terminated!(identifier,tag!("/"))) >>
+            penum: opt!(terminated!(identifier,tag!("::"))) >>
             value: identifier >>
-            (PSetExpression::Classify(set,value))
+            (PEnumExpression::Compare(None,penum,value))
         )
     ))
 );
 
-named!(set_or_expression<PInput,PSetExpression>,
+named!(enum_or_expression<PInput,PEnumExpression>,
     sp!(do_parse!(
-        left: alt!(set_and_expression | set_not_expression | set_atom) >>
+        left: alt!(enum_and_expression | enum_not_expression | enum_atom) >>
         tag!("||") >>
-        right: alt!(set_or_expression | set_and_expression | set_not_expression | set_atom) >>
-        (PSetExpression::Or(Box::new(left),Box::new(right)))
+        right: alt!(enum_or_expression | enum_and_expression | enum_not_expression | enum_atom) >>
+        (PEnumExpression::Or(Box::new(left),Box::new(right)))
     ))
 );
 
-named!(set_and_expression<PInput,PSetExpression>,
+named!(enum_and_expression<PInput,PEnumExpression>,
     sp!(do_parse!(
-        left: alt!(set_not_expression | set_atom) >>
+        left: alt!(enum_not_expression | enum_atom) >>
         tag!("&&") >>
-        right: alt!(set_and_expression | set_not_expression | set_atom) >>
-        (PSetExpression::And(Box::new(left),Box::new(right)))
+        right: alt!(enum_and_expression | enum_not_expression | enum_atom) >>
+        (PEnumExpression::And(Box::new(left),Box::new(right)))
     ))
 );
 
-named!(set_not_expression<PInput,PSetExpression>,
+named!(enum_not_expression<PInput,PEnumExpression>,
     sp!(do_parse!(
         tag!("!") >>
-        right: set_atom >>
-        (PSetExpression::Not(Box::new(right)))
+        right: enum_atom >>
+        (PEnumExpression::Not(Box::new(right)))
     ))
 );
 
@@ -416,7 +433,7 @@ named!(statement<PInput,PStatement>,
           tag!("{") >>
           cases: separated_list!(tag!(","),
                     do_parse!(
-                        expr: set_expression >>
+                        expr: enum_expression >>
                         tag!("=>") >>
                         stmt: statement >>
                         ((expr,Box::new(stmt)))
@@ -426,15 +443,16 @@ named!(statement<PInput,PStatement>,
       // if
     | sp!(do_parse!(
           tag!("if") >>
-          expr: set_expression >>
+          expr: enum_expression >>
           tag!("=>") >>
           stmt: statement >>
-          (PStatement::If(expr,Box::new(stmt)))
+          (PStatement::Case( vec![(expr,Box::new(stmt)), (PEnumExpression::Default,Box::new(PStatement::Log("TODO")))] ))
       ))
       // Flow statements
-    | tag!("fail!") => { |_| PStatement::Fail("failed") } // TODO proper message
-    | tag!("log!")  => { |_| PStatement::Log("failed") } // TODO proper message
-    | tag!("noop!") => { |_| PStatement::Noop }
+    | tag!("fail!")    => { |_| PStatement::Fail("TODO") } // TODO proper message
+    | tag!("return!!") => { |_| PStatement::Return("TODO") } // TODO proper message
+    | tag!("log!")     => { |_| PStatement::Log("TODO") } // TODO proper message
+    | tag!("noop!")    => { |_| PStatement::Noop }
   )
 );
 
@@ -463,24 +481,17 @@ named!(declaration<PInput,PDeclaration>,
         | metadata      => { |x| PDeclaration::Metadata(x) }
         | state         => { |x| PDeclaration::State(x) }
         | comment_block => { |x| PDeclaration::Comment(x) }
-        | set           => { |x| PDeclaration::Set(x) }
-        | set_mapping   => { |x| PDeclaration::Mapping(x) }
+        | penum         => { |x| PDeclaration::Enum(x) }
+        | enum_mapping  => { |x| PDeclaration::Mapping(x) }
       ))
 );
 
-//pub fn parse<'a>(input: PInput<'a>) -> IResult<PInput<'a>, PCode<'a>>
-//{
-//   let header = try!(header(input));
-//   if header.version != 0 {
-//       return Err(Err::Failure);
-//   }
-//
-//}
-named!(pub code<PInput,Vec<PDeclaration>>,
+named!(pub parse<PInput,PFile>,
   do_parse!(
-    x: many0!(declaration) >>
+    header: header >>
+    code: many0!(declaration) >>
     eof!() >>
-    (x)
+    (PFile {header, code} )
   )
 );
 
@@ -492,10 +503,12 @@ mod tests {
     use super::*;
 
     // Adapter to simplify writing tests
-    fn mapok<'a,O,E>(r: Result<(PInput<'a>, O), Err<PInput<'a>, E>>) -> Result<(&str, O), Err<PInput, E>> {
+    fn mapok<'a, O, E>(
+        r: Result<(PInput<'a>, O), Err<PInput<'a>, E>>,
+    ) -> Result<(&str, O), Err<PInput, E>> {
         match r {
-            Ok((x,y)) => Ok((*x.fragment,y)),
-            Err(e) => Err(e)
+            Ok((x, y)) => Ok((*x.fragment, y)),
+            Err(e) => Err(e),
         }
     }
 
@@ -506,101 +519,77 @@ mod tests {
             Ok(("", "1hello\n\"Herman\"\n".to_string()))
         );
         assert_eq!(
-            mapok(unescaped_string(pinput("\"\"\"2hello\\n\"Herman\"\n\"\"\""))),
+            mapok(unescaped_string(pinput(
+                "\"\"\"2hello\\n\"Herman\"\n\"\"\""
+            ))),
             Ok(("", "2hello\\n\"Herman\"\n".to_string()))
         );
         assert!(escaped_string(pinput("\"2hello\\n\\\"Herman\\\"\n")).is_err());
     }
 
     #[test]
-    fn test_set() {
+    fn test_enum() {
         assert_eq!(
-            mapok(set(pinput("set abc { a, b, c }"))),
+            mapok(penum(pinput("enum abc { a, b, c }"))),
             Ok((
                 "",
-                PSet {
+                PEnum {
                     name: "abc",
                     items: vec!["a", "b", "c"]
                 }
             ))
         );
         assert_eq!(
-            mapok(set_mapping(pinput("set abc -> def { a -> d, b -> e, * -> f}"))),
+            mapok(enum_mapping(pinput(
+                "enum abc ~> def { a -> d, b -> e, * -> f}"
+            ))),
             Ok((
                 "",
-                PSetMapping {
+                PEnumMapping {
                     from: "abc",
                     to: "def",
-                    mapping: vec![
-                        ("a", "d"),
-                        ("b", "e"),
-                        ("*", "f")
-                    ]
+                    mapping: vec![("a", "d"), ("b", "e"), ("*", "f")]
                 }
             ))
         );
     }
 
     #[test]
-    fn test_set_expression() {
+    fn test_enum_expression() {
         assert_eq!(
-            mapok(set_expression(pinput("a==b/c"))),
-            Ok((
-                "",
-                PSetExpression::Compare("a", Some("b"), "c")
-            ))
+            mapok(enum_expression(pinput("a==b::c"))),
+            Ok(("", PEnumExpression::Compare(Some("a"), Some("b"), "c")))
         );
         assert_eq!(
-            mapok(set_expression(pinput("a==bc"))),
-            Ok((
-                "",
-                PSetExpression::Compare("a", None, "bc")
-            ))
+            mapok(enum_expression(pinput("a==bc"))),
+            Ok(("", PEnumExpression::Compare(Some("a"), None, "bc")))
         );
         assert_eq!(
-            mapok(set_expression(pinput("bc"))),
-            Ok((
-                "",
-                PSetExpression::Classify(None, "bc")
-            ))
+            mapok(enum_expression(pinput("bc"))),
+            Ok(("", PEnumExpression::Compare(None, None, "bc")))
         );
         assert_eq!(
-            mapok(set_expression(pinput("(a == b/hello)"))),
-            Ok((
-                "",
-                PSetExpression::Compare(
-                    "a",
-                    Some("b"),
-                    "hello"
-                )
-            ))
+            mapok(enum_expression(pinput("(a == b::hello)"))),
+            Ok(("", PEnumExpression::Compare(Some("a"), Some("b"), "hello")))
         );
         assert_eq!(
-            mapok(set_expression(pinput("bc&&(a||b==hello/g)"))),
+            mapok(enum_expression(pinput("bc&&(a||b==hello::g)"))),
             Ok((
                 "",
-                PSetExpression::And(
-                    Box::new(PSetExpression::Classify(None, "bc")),
-                    Box::new(PSetExpression::Or(
-                        Box::new(PSetExpression::Classify(None, "a")),
-                        Box::new(PSetExpression::Compare(
-                            "b",
-                            Some("hello"),
-                            "g"
-                        ))
+                PEnumExpression::And(
+                    Box::new(PEnumExpression::Compare(None, None, "bc")),
+                    Box::new(PEnumExpression::Or(
+                        Box::new(PEnumExpression::Compare(None, None, "a")),
+                        Box::new(PEnumExpression::Compare(Some("b"), Some("hello"), "g"))
                     )),
                 )
             ))
         );
         assert_eq!(
-            mapok(set_expression(pinput("! a == hello"))),
+            mapok(enum_expression(pinput("! a == hello"))),
             Ok((
                 "",
-                PSetExpression::Not(Box::new(PSetExpression::Compare(
-                    "a",
-                    None,
-                    "hello"
-                )))
+                PEnumExpression::Not(Box::new(PEnumExpression::Compare(Some("a"), None, "hello")))
             ))
         );
     }
@@ -638,10 +627,7 @@ mod tests {
         );
         assert_eq!(
             mapok(comment_block(pinput("##hello\n##Herman\n"))),
-            Ok((
-                "",
-                vec!["hello", "Herman"]
-            ))
+            Ok(("", vec!["hello", "Herman"]))
         );
         assert!(comment_block(pinput("hello Herman")).is_err());
     }
@@ -672,18 +658,9 @@ mod tests {
 
     #[test]
     fn test_identifier() {
-        assert_eq!(
-            mapok(identifier(pinput("simple "))),
-            Ok((" ", "simple"))
-        );
-        assert_eq!(
-            mapok(identifier(pinput("simple?"))),
-            Ok(("?", "simple"))
-        );
-        assert_eq!(
-            mapok(identifier(pinput("5impl3 "))),
-            Ok((" ", "5impl3"))
-        );
+        assert_eq!(mapok(identifier(pinput("simple "))), Ok((" ", "simple")));
+        assert_eq!(mapok(identifier(pinput("simple?"))), Ok(("?", "simple")));
+        assert_eq!(mapok(identifier(pinput("5impl3 "))), Ok((" ", "5impl3")));
         assert!(identifier(pinput("%imple ")).is_err());
     }
 
@@ -785,17 +762,11 @@ mod tests {
         // TODO other types
         assert_eq!(
             mapok(typed_value(pinput("\"\"\"This is a string\"\"\""))),
-            Ok((
-                "",
-                PValue::String("This is a string".to_string())
-            ))
+            Ok(("", PValue::String("This is a string".to_string())))
         );
         assert_eq!(
             mapok(typed_value(pinput("\"This is a string bis\""))),
-            Ok((
-                "",
-                PValue::String("This is a string bis".to_string())
-            ))
+            Ok(("", PValue::String("This is a string bis".to_string())))
         );
     }
 
@@ -898,10 +869,7 @@ mod tests {
         );
         assert_eq!(
             mapok(statement(pinput("##hello Herman\n"))),
-            Ok((
-                "",
-                PStatement::Comment(vec!["hello Herman"])
-            ))
+            Ok(("", PStatement::Comment(vec!["hello Herman"])))
         );
     }
 
