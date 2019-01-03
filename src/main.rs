@@ -1,5 +1,7 @@
 mod parser;
-//mod sets;
+mod enums;
+mod error;
+mod nom_locate;
 
 use nom::IResult;
 use std::fmt::Debug;

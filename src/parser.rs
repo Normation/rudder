@@ -11,10 +11,10 @@ use nom_locate::position;
 //
 
 // All input are Located Complete str
-pub type PInput<'a> = LocatedSpan<CompleteStr<'a>>;
+pub type PInput<'a> = LocatedSpan<CompleteStr<'a>,&'a str>;
 
-pub fn pinput(input: &str) -> PInput {
-    LocatedSpan::new(CompleteStr(input))
+pub fn pinput(name: &str, input: &str) -> PInput {
+    LocatedSpan::new(CompleteStr(input),name)
 }
 
 #[derive(Debug, PartialEq)]
@@ -53,6 +53,7 @@ pub enum PType {
 
 #[derive(Debug, PartialEq)]
 pub struct PEnum<'a> {
+    pub position: PInput<'a>,
     pub name: &'a str,
     pub items: Vec<&'a str>,
 }
@@ -66,7 +67,7 @@ pub struct PEnumMapping<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum PEnumExpression<'a> {
-    //       variable enum              value
+    //       variable        enum              value
     Compare(Option<&'a str>, Option<&'a str>, &'a str),
     And(Box<PEnumExpression<'a>>, Box<PEnumExpression<'a>>),
     Or(Box<PEnumExpression<'a>>, Box<PEnumExpression<'a>>),
@@ -75,7 +76,7 @@ pub enum PEnumExpression<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PObjectDef<'a> {
+pub struct PResourceDef<'a> {
     pub name: &'a str,
     pub parameters: Vec<PParameter<'a>>,
 }
@@ -89,7 +90,7 @@ pub enum PValue<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PObjectRef<'a> {
+pub struct PResourceRef<'a> {
     pub name: &'a str,
     pub parameters: Vec<PValue<'a>>,
 }
@@ -105,13 +106,12 @@ pub enum PCallMode {
 #[derive(Debug, PartialEq)]
 pub enum PStatement<'a> {
     Comment(PComment<'a>),
-    //        outcome                  mode       object          state name       parameters
     StateCall(
-        Option<&'a str>,
-        PCallMode,
-        PObjectRef<'a>,
-        &'a str,
-        Vec<PValue<'a>>,
+        Option<&'a str>,  // outcome
+        PCallMode,        // mode
+        PResourceRef<'a>, // resource
+        &'a str,          // state name
+        Vec<PValue<'a>>,  // parameters
     ),
     //   list of condition          then
     Case(Vec<(PEnumExpression<'a>, Box<PStatement<'a>>)>),
@@ -123,13 +123,13 @@ pub enum PStatement<'a> {
     Return(&'a str),
     // Do nothing
     Noop,
-    // TODO condition instance, object instance, variable definition
+    // TODO condition instance, resource instance, variable definition
 }
 
 #[derive(Debug, PartialEq)]
 pub struct PStateDef<'a> {
     pub name: &'a str,
-    pub object_name: &'a str,
+    pub resource_name: &'a str,
     pub parameters: Vec<PParameter<'a>>,
     pub statements: Vec<PStatement<'a>>,
 }
@@ -138,7 +138,7 @@ pub struct PStateDef<'a> {
 pub enum PDeclaration<'a> {
     Comment(PComment<'a>),
     Metadata(PMetadata<'a>),
-    Object(PObjectDef<'a>),
+    Resource(PResourceDef<'a>),
     State(PStateDef<'a>),
     Enum(PEnum<'a>),
     Mapping(PEnumMapping<'a>),
@@ -253,12 +253,13 @@ named!(typed_value<PInput,PValue>,
 // Enums
 named!(penum<PInput,PEnum>,
     sp!(do_parse!(
+        position: position!() >>
         tag!("enum") >>
         name: identifier >>
         tag!("{") >>
         items: sp!(separated_list!(tag!(","), identifier)) >>
         tag!("}") >>
-        (PEnum {name, items})
+        (PEnum {position, name, items})
     ))
 );
 
@@ -376,22 +377,22 @@ named!(parameter<PInput,PParameter>,
   ))
 );
 
-// ObjectDef
-named!(object_def<PInput,PObjectDef>,
+// ResourceDef
+named!(resource_def<PInput,PResourceDef>,
   sp!(do_parse!(
-    tag!("object") >>
+    tag!("resource") >>
     name: identifier >>
     tag!("(") >>
     parameters: separated_list!(
         tag!(","),
         parameter) >>
     tag!(")") >>
-    (PObjectDef {name, parameters})
+    (PResourceDef {name, parameters})
   ))
 );
 
-// ObjectRef
-named!(object_ref<PInput,PObjectRef>,
+// ResourceRef
+named!(resource_ref<PInput,PResourceRef>,
   sp!(do_parse!(
     name: identifier >>
     params: opt!(sp!(do_parse!(tag!("(") >>
@@ -400,7 +401,7 @@ named!(object_ref<PInput,PObjectRef>,
             typed_value) >>
         tag!(")") >>
         (parameters) ))) >>
-    (PObjectRef {name, parameters: params.unwrap_or(vec![])})
+    (PResourceRef {name, parameters: params.unwrap_or(vec![])})
   ))
 );
 
@@ -416,7 +417,7 @@ named!(statement<PInput,PStatement>,
                     tag!("!") => { |_| PCallMode::Check }     |
                     value!(PCallMode::Enforce)
                 ) >>
-          object: object_ref >>
+          resource: resource_ref >>
           tag!(".") >>
           state: identifier >>
           tag!("(") >>
@@ -424,7 +425,7 @@ named!(statement<PInput,PStatement>,
               tag!(","),
               typed_value) >>
           tag!(")") >>
-          (PStatement::StateCall(outcome,mode,object,state,parameters))
+          (PStatement::StateCall(outcome,mode,resource,state,parameters))
       ))
     | comment_block => { |x| PStatement::Comment(x) }
       // case
@@ -459,7 +460,7 @@ named!(statement<PInput,PStatement>,
 // state definition
 named!(state<PInput,PStateDef>,
   sp!(do_parse!(
-      object_name: identifier >>
+      resource_name: identifier >>
       tag!("state") >>
       name: identifier >>
       tag!("(") >>
@@ -470,14 +471,14 @@ named!(state<PInput,PStateDef>,
      tag!("{") >>
      statements: many0!(statement) >>
      tag!("}") >>
-     (PStateDef {name, object_name, parameters, statements })
+     (PStateDef {name, resource_name, parameters, statements })
   ))
 );
 
 // a file
 named!(declaration<PInput,PDeclaration>,
     sp!(alt_complete!(
-          object_def    => { |x| PDeclaration::Object(x) }
+          resource_def    => { |x| PDeclaration::Resource(x) }
         | metadata      => { |x| PDeclaration::Metadata(x) }
         | state         => { |x| PDeclaration::State(x) }
         | comment_block => { |x| PDeclaration::Comment(x) }
@@ -534,6 +535,7 @@ mod tests {
             Ok((
                 "",
                 PEnum {
+                    position: pinput(""),
                     name: "abc",
                     items: vec!["a", "b", "c"]
                 }
@@ -713,32 +715,32 @@ mod tests {
     }
 
     #[test]
-    fn test_object_def() {
+    fn test_resource_def() {
         assert_eq!(
-            mapok(object_def(pinput("object hello()"))),
+            mapok(resource_def(pinput("resource hello()"))),
             Ok((
                 "",
-                PObjectDef {
+                PResourceDef {
                     name: "hello",
                     parameters: vec![]
                 }
             ))
         );
         assert_eq!(
-            mapok(object_def(pinput("object  hello2 ( )"))),
+            mapok(resource_def(pinput("resource  hello2 ( )"))),
             Ok((
                 "",
-                PObjectDef {
+                PResourceDef {
                     name: "hello2",
                     parameters: vec![]
                 }
             ))
         );
         assert_eq!(
-            mapok(object_def(pinput("object hello (string: p1, p2)"))),
+            mapok(resource_def(pinput("resource hello (string: p1, p2)"))),
             Ok((
                 "",
-                PObjectDef {
+                PResourceDef {
                     name: "hello",
                     parameters: vec![
                         PParameter {
@@ -784,32 +786,32 @@ mod tests {
     }
 
     #[test]
-    fn test_object_ref() {
+    fn test_resource_ref() {
         assert_eq!(
-            mapok(object_ref(pinput("hello()"))),
+            mapok(resource_ref(pinput("hello()"))),
             Ok((
                 "",
-                PObjectRef {
+                PResourceRef {
                     name: "hello",
                     parameters: vec![]
                 }
             ))
         );
         assert_eq!(
-            mapok(object_ref(pinput("hello3 "))),
+            mapok(resource_ref(pinput("hello3 "))),
             Ok((
                 "",
-                PObjectRef {
+                PResourceRef {
                     name: "hello3",
                     parameters: vec![]
                 }
             ))
         );
         assert_eq!(
-            mapok(object_ref(pinput("hello ( \"p1\", \"p2\" )"))),
+            mapok(resource_ref(pinput("hello ( \"p1\", \"p2\" )"))),
             Ok((
                 "",
-                PObjectRef {
+                PResourceRef {
                     name: "hello",
                     parameters: vec![
                         PValue::String("p1".to_string()),
@@ -819,10 +821,10 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(object_ref(pinput("hello2 ( )"))),
+            mapok(resource_ref(pinput("hello2 ( )"))),
             Ok((
                 "",
-                PObjectRef {
+                PResourceRef {
                     name: "hello2",
                     parameters: vec![]
                 }
@@ -833,14 +835,14 @@ mod tests {
     #[test]
     fn test_statement() {
         assert_eq!(
-            mapok(statement(pinput("object().state()"))),
+            mapok(statement(pinput("resource().state()"))),
             Ok((
                 "",
                 PStatement::StateCall(
                     None,
                     PCallMode::Enforce,
-                    PObjectRef {
-                        name: "object",
+                    PResourceRef {
+                        name: "resource",
                         parameters: vec![]
                     },
                     "state",
@@ -849,14 +851,14 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(statement(pinput("object().state( \"p1\", \"p2\")"))),
+            mapok(statement(pinput("resource().state( \"p1\", \"p2\")"))),
             Ok((
                 "",
                 PStatement::StateCall(
                     None,
                     PCallMode::Enforce,
-                    PObjectRef {
-                        name: "object",
+                    PResourceRef {
+                        name: "resource",
                         parameters: vec![]
                     },
                     "state",
@@ -880,12 +882,12 @@ mod tests {
             Ok(("\n",
                 PDeclaration::State(PStateDef {
                     name: "configuration",
-                    object_name: "ntp",
+                    resource_name: "ntp",
                     parameters: vec![],
                     statements: vec![
                         PStatement::StateCall(
                             None, PCallMode::Enforce,
-                            PObjectRef {
+                            PResourceRef {
                                 name: "file", 
                                 parameters: vec![PValue::String("/tmp".to_string())] }, 
                             "permissions",
@@ -899,12 +901,12 @@ mod tests {
     #[test]
     fn test_state() {
         assert_eq!(
-            mapok(state(pinput("object state configuration() {}"))),
+            mapok(state(pinput("resource state configuration() {}"))),
             Ok((
                 "",
                 PStateDef {
                     name: "configuration",
-                    object_name: "object",
+                    resource_name: "resource",
                     parameters: vec![],
                     statements: vec![]
                 }
