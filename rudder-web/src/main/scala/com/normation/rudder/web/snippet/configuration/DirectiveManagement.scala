@@ -427,12 +427,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                     ) match {
                       case Full(diff)   =>
                         currentDirectiveSettingForm.set(Empty)
-                        Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""correctButtons(); createTooltip();""") & onRemoveSuccessCallBack()
+                        Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""createTooltip();""") & onRemoveSuccessCallBack()
                       case eb: EmptyBox =>
                         val msg = (eb ?~! s"Error when trying to delete directive '${directive.name}' (${directive.id})").messageChain
                         //redisplay this form with the new error
                         currentDirectiveSettingForm.set(Failure(msg))
-                        Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""correctButtons(); createTooltip();""")
+                        Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""createTooltip();""")
                     }
                   }, ("class" ,"dangerButton")
                 )
