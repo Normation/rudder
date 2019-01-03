@@ -234,6 +234,7 @@ class ShowNodeDetailsFromNode(
                 bindNode(node, sm, withinPopup,displayCompliance, globalMode) ++ Script(
                   DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
                   JsRaw(s"""
+                    $$('.portlet-header.page-title').html("<span>Node: ${sm.node.main.hostname}</span><span class='update-info'>last updated ${sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}</span>");
                     $$( "#${detailsId}" ).tabs({ active : ${tab} } );
                     $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a').on('click',function(){
                       var tab = $$(this).attr('href');
@@ -266,8 +267,7 @@ class ShowNodeDetailsFromNode(
    */
   private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean , displayCompliance: Boolean, globalMode : GlobalPolicyMode) : NodeSeq = {
     val id = JsNodeId(node.id)
-    ("#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
-      "#node_groupTree" #>
+    ( "#node_groupTree" #>
         <div id={groupTreeId}>
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>
         </div> &
@@ -281,7 +281,7 @@ class ShowNodeDetailsFromNode(
       "#node_parameters *+" #> complianceModeEditForm(node).complianceModeConfiguration &
       "#extraHeader" #> DisplayNode.showExtraHeader(inventory) &
       "#extraContent" #> DisplayNode.showExtraContent(Some(node), inventory) &
-     "#node_tabs [id]" #> s"details_${id}"
+      "#node_tabs [id]" #> s"details_${id}"
     ).apply(serverDetailsTemplate)
   }
 

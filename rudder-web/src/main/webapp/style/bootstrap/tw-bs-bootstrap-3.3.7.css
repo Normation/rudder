@@ -133,7 +133,7 @@ input[type="submit"] {
   cursor: pointer;
 }
 button[disabled],
-input[disabled] { 4chan d
+input[disabled] {
   cursor: default;
 }
 button::-moz-focus-inner,

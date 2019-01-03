@@ -3,44 +3,41 @@
 <lift:ignore>This part contains the search parts, with lines, and with the grid that get included behind</lift:ignore>
 
 <query-searchnodes>
-	<div id="SearchForm">
-  <content-query>
-    <div id="serverGrid_info_area"></div>
-
-    <div id="queryParameters">
-      <div class="composition no-tw-bs">
-        <label for="typeQuery">Include Rudder server components:</label>
-        <span id="typeQuery"></span>
-        <br/>
-        <span style="margin:5px 0px 7px 0px">
-          Match the criteria below with this operand:
-          <span style="margin-left:5px" id="composition">
+  <div id="SearchForm">
+    <content-query>
+      <div id="serverGrid_info_area"></div>
+      <div id="queryParameters">
+        <div class="composition no-tw-bs">
+          <label for="typeQuery">Include Rudder server components:</label>
+          <span id="typeQuery"></span>
+          <br/>
+          <span style="margin:5px 0px 7px 0px">
+            Match the criteria below with this operand:
+            <span style="margin-left:5px" id="composition">
+            </span>
           </span>
-        </span>
+        </div>
+        <table class="searchNodes" >
+          <tbody id="query_lines"></tbody>
+        </table>
+        <div class="nodeGroupSubmitSearch" id="submitSearch"></div>
       </div>
-
-      <table class="searchNodes" >
-        <tbody id="query_lines">
-        </tbody>
-      </table>
-      <div class="nodeGroupSubmitSearch" id="submitSearch" >
-      </div>
-    </div>
-  </content-query>
+    </content-query>
   </div>
   <div id="gridResult">
-      <update-gridresult></update-gridresult>
+    <update-gridresult></update-gridresult>
   </div>
 </query-searchnodes>
 
 <lift:ignore>This part is the detail of a node</lift:ignore>
 <detail-server>
-<div id="node_tabs" class="tabs">
-  <div id="node_header" class="nodeheader">
-    <div class="nodeheadercontent ui-corner-top"> Node: <span id="node_name"></span>
-    </div>
-  </div>
-
+  <style>
+  .query-search-message{
+    display:none !important;
+  }
+  </style>
+  <div id="node_tabs" class="tabs">
+    <div id="node_name"></div>
 
     <ul id="NodeDetailsTabMenu">
       <li><a href="#node_summary">Summary</a></li>
@@ -50,7 +47,6 @@
       <li><a href="#node_logs">Technical logs</a></li>
       <li><a href="#node_parameters">Settings</a></li>
     </ul>
-
 
   <div id="node_summary">
     <div  id="nodeDetails" ></div>
@@ -62,24 +58,20 @@
   </div>
 
   <div id="node_inventory">
-   <div id="nodeInventory">
-   </div>
+   <div id="nodeInventory"></div>
   </div>
 
   <span id="extraContent"></span>
 
   <div id="node_reports">
-   <div id="reportsDetails">
-   </div>
+   <div id="reportsDetails"></div>
   </div>
 
   <div id="node_logs">
-   <div id="logsDetails">
-   </div>
+    <div id="logsDetails"></div>
   </div>
 
-  <div id="node_parameters">
-  </div>
+  <div id="node_parameters"></div>
 
 </div>
 </detail-server>
