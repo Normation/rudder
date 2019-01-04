@@ -1,47 +1,66 @@
 use nom::types::CompleteStr;
 use nom::*;
-use nom_locate::LocatedSpan;
 use nom_locate::position;
-use std::ops::Deref;
+use nom_locate::LocatedSpan;
+use std::hash::{Hash, Hasher};
 
 // TODO Error management
 // TODO add more types
 // TODO lifetime = 'src
 // TODO store position in strings
+// TODO tests for high level parsers
 
 // STRUCTURES
 //
 
 // All input are Located Complete str
-pub type PInput<'a> = LocatedSpan<CompleteStr<'a>,&'a str>;
+pub type PInput<'a> = LocatedSpan<CompleteStr<'a>, &'a str>;
 
 // convenient creator
 pub fn pinput<'a>(name: &'a str, input: &'a str) -> PInput<'a> {
-    LocatedSpan::new(CompleteStr(input),name)
+    LocatedSpan::new(CompleteStr(input), name)
 }
 
 // All output are token based, they must behave like &str
 #[derive(Debug)]
 pub struct PToken<'a> {
-    val: LocatedSpan<CompleteStr<'a>,&'a str>,
+    val: LocatedSpan<CompleteStr<'a>, &'a str>,
 }
 
 // Create from strings
 impl<'a> PToken<'a> {
     fn new(name: &'a str, input: &'a str) -> Self {
-         PToken{ val: LocatedSpan::new(CompleteStr(input),name) }
+        PToken {
+            val: LocatedSpan::new(CompleteStr(input), name),
+        }
     }
 }
 // Convert from str (lossy, used for terse tests)
 impl<'a> From<&'a str> for PToken<'a> {
     fn from(input: &'a str) -> Self {
-        PToken{ val: LocatedSpan::new(CompleteStr(input),"")  }
+        PToken {
+            val: LocatedSpan::new(CompleteStr(input), ""),
+        }
     }
 }
 // Convert from PInput
 impl<'a> From<PInput<'a>> for PToken<'a> {
     fn from(val: PInput<'a>) -> Self {
-        PToken{ val }
+        PToken { val }
+    }
+}
+// PartialEq used by tests and by Token users
+impl<'a> PartialEq for PToken<'a> {
+    fn eq(&self, other: &PToken) -> bool {
+        self.val.fragment == other.val.fragment
+    }
+}
+// Eq used by Token users for HAshMaps (nothing to do)
+impl<'a> Eq for PToken<'a> {}
+// Hash used by Token users as keys in HashMaps
+impl<'a> Hash for PToken<'a> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.val.fragment.hash(state);
     }
 }
 // TODO Deref or AsRef ?
@@ -52,19 +71,6 @@ impl<'a> From<PInput<'a>> for PToken<'a> {
 //        *self.val.fragment
 //    }
 //}
-// PartialEq used by tests and by TokenUsers
-impl<'a> PartialEq for PToken<'a> {
-    fn eq(&self, other: &PToken) -> bool {
-        self.val.fragment == other.val.fragment
-    }
-}
-//pub fn pstr_start<'a>(name: &'a str, input: &'a str, offset: usize, line: u32) -> PStr<'a> {
-//    let mut span = LocatedSpan::new(CompleteStr(input),name);
-//    span.offset = offset;
-//    span.line = line;
-//    span
-//}
-
 
 #[derive(Debug, PartialEq)]
 pub struct PHeader {
@@ -157,11 +163,11 @@ pub enum PCallMode {
 pub enum PStatement<'a> {
     Comment(PComment<'a>),
     StateCall(
-        Option<PToken<'a>>,  // outcome
-        PCallMode,        // mode
-        PResourceRef<'a>, // resource
-        PToken<'a>,          // state name
-        Vec<PValue<'a>>,  // parameters
+        Option<PToken<'a>>, // outcome
+        PCallMode,          // mode
+        PResourceRef<'a>,   // resource
+        PToken<'a>,         // state name
+        Vec<PValue<'a>>,    // parameters
     ),
     //   list of condition          then
     Case(Vec<(PEnumExpression<'a>, Box<PStatement<'a>>)>),
@@ -569,32 +575,34 @@ mod tests {
     #[test]
     fn test_strings() {
         assert_eq!(
-            mapok(escaped_string(pinput("","\"1hello\\n\\\"Herman\\\"\n\""))),
+            mapok(escaped_string(pinput("", "\"1hello\\n\\\"Herman\\\"\n\""))),
             Ok(("", "1hello\n\"Herman\"\n".to_string()))
         );
         assert_eq!(
-            mapok(unescaped_string(pinput("",
+            mapok(unescaped_string(pinput(
+                "",
                 "\"\"\"2hello\\n\"Herman\"\n\"\"\""
             ))),
             Ok(("", "2hello\\n\"Herman\"\n".to_string()))
         );
-        assert!(escaped_string(pinput("","\"2hello\\n\\\"Herman\\\"\n")).is_err());
+        assert!(escaped_string(pinput("", "\"2hello\\n\\\"Herman\\\"\n")).is_err());
     }
 
     #[test]
     fn test_enum() {
         assert_eq!(
-            mapok(penum(pinput("","enum abc { a, b, c }"))),
+            mapok(penum(pinput("", "enum abc { a, b, c }"))),
             Ok((
                 "",
                 PEnum {
                     name: "abc".into(),
-                    items: vec!["a".into(),"b".into(),"c".into()]
+                    items: vec!["a".into(), "b".into(), "c".into()]
                 }
             ))
         );
         assert_eq!(
-            mapok(enum_mapping(pinput("",
+            mapok(enum_mapping(pinput(
+                "",
                 "enum abc ~> def { a -> d, b -> e, * -> f}"
             ))),
             Ok((
@@ -602,7 +610,11 @@ mod tests {
                 PEnumMapping {
                     from: "abc".into(),
                     to: "def".into(),
-                    mapping: vec![("a".into(),"d".into()), ("b".into(),"e".into()), ("*".into(),"f".into()),]
+                    mapping: vec![
+                        ("a".into(), "d".into()),
+                        ("b".into(), "e".into()),
+                        ("*".into(), "f".into()),
+                    ]
                 }
             ))
         );
@@ -611,39 +623,56 @@ mod tests {
     #[test]
     fn test_enum_expression() {
         assert_eq!(
-            mapok(enum_expression(pinput("","a==b::c"))),
-            Ok(("", PEnumExpression::Compare(Some("a".into()),Some("b".into()),"c".into())))
+            mapok(enum_expression(pinput("", "a==b::c"))),
+            Ok((
+                "",
+                PEnumExpression::Compare(Some("a".into()), Some("b".into()), "c".into())
+            ))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("","a==bc"))),
-            Ok(("", PEnumExpression::Compare(Some("a".into()),None,"bc".into())))
+            mapok(enum_expression(pinput("", "a==bc"))),
+            Ok((
+                "",
+                PEnumExpression::Compare(Some("a".into()), None, "bc".into())
+            ))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("","bc"))),
+            mapok(enum_expression(pinput("", "bc"))),
             Ok(("", PEnumExpression::Compare(None, None, "bc".into())))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("","(a == b::hello)"))),
-            Ok(("", PEnumExpression::Compare(Some("a".into()),Some("b".into()),"hello".into())))
+            mapok(enum_expression(pinput("", "(a == b::hello)"))),
+            Ok((
+                "",
+                PEnumExpression::Compare(Some("a".into()), Some("b".into()), "hello".into())
+            ))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("","bc&&(a||b==hello::g)"))),
+            mapok(enum_expression(pinput("", "bc&&(a||b==hello::g)"))),
             Ok((
                 "",
                 PEnumExpression::And(
                     Box::new(PEnumExpression::Compare(None, None, "bc".into())),
                     Box::new(PEnumExpression::Or(
                         Box::new(PEnumExpression::Compare(None, None, "a".into())),
-                        Box::new(PEnumExpression::Compare(Some("b".into()), Some("hello".into()),"g".into()))
+                        Box::new(PEnumExpression::Compare(
+                            Some("b".into()),
+                            Some("hello".into()),
+                            "g".into()
+                        ))
                     )),
                 )
             ))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("","! a == hello"))),
+            mapok(enum_expression(pinput("", "! a == hello"))),
             Ok((
                 "",
-                PEnumExpression::Not(Box::new(PEnumExpression::Compare(Some("a".into()), None, "hello".into())))
+                PEnumExpression::Not(Box::new(PEnumExpression::Compare(
+                    Some("a".into()),
+                    None,
+                    "hello".into()
+                )))
             ))
         );
     }
@@ -651,45 +680,45 @@ mod tests {
     #[test]
     fn test_comment_line() {
         assert_eq!(
-            mapok(comment_line(pinput("","##hello Herman\n"))),
+            mapok(comment_line(pinput("", "##hello Herman\n"))),
             Ok(("", "hello Herman".into()))
         );
         assert_eq!(
-            mapok(comment_line(pinput("","##hello Herman\nHola"))),
+            mapok(comment_line(pinput("", "##hello Herman\nHola"))),
             Ok(("Hola", "hello Herman".into()))
         );
         assert_eq!(
-            mapok(comment_line(pinput("","##hello Herman!"))),
+            mapok(comment_line(pinput("", "##hello Herman!"))),
             Ok(("", "hello Herman!".into()))
         );
         assert_eq!(
-            mapok(comment_line(pinput("","##hello\nHerman\n"))),
+            mapok(comment_line(pinput("", "##hello\nHerman\n"))),
             Ok(("Herman\n", "hello".into()))
         );
-        assert!(comment_line(pinput("","hello\nHerman\n")).is_err());
+        assert!(comment_line(pinput("", "hello\nHerman\n")).is_err());
     }
 
     #[test]
     fn test_comment_block() {
         assert_eq!(
-            mapok(comment_block(pinput("","##hello Herman\n"))),
+            mapok(comment_block(pinput("", "##hello Herman\n"))),
             Ok(("", vec!["hello Herman".into()]))
         );
         assert_eq!(
-            mapok(comment_block(pinput("","##hello Herman!"))),
+            mapok(comment_block(pinput("", "##hello Herman!"))),
             Ok(("", vec!["hello Herman!".into()]))
         );
         assert_eq!(
-            mapok(comment_block(pinput("","##hello\n##Herman\n"))),
-            Ok(("", vec!["hello".into(),"Herman".into()]))
+            mapok(comment_block(pinput("", "##hello\n##Herman\n"))),
+            Ok(("", vec!["hello".into(), "Herman".into()]))
         );
-        assert!(comment_block(pinput("","hello Herman")).is_err());
+        assert!(comment_block(pinput("", "hello Herman")).is_err());
     }
 
     #[test]
     fn test_metadata() {
         assert_eq!(
-            mapok(metadata(pinput("","@key=\"value\""))),
+            mapok(metadata(pinput("", "@key=\"value\""))),
             Ok((
                 "",
                 PMetadata {
@@ -699,7 +728,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(metadata(pinput("","@key = \"value\""))),
+            mapok(metadata(pinput("", "@key = \"value\""))),
             Ok((
                 "",
                 PMetadata {
@@ -712,19 +741,25 @@ mod tests {
 
     #[test]
     fn test_identifier() {
-        assert_eq!(mapok(identifier(pinput("","simple "))),
-                   Ok((" ", "simple".into())));
-        assert_eq!(mapok(identifier(pinput("","simple?"))),
-                   Ok(("?", "simple".into())));
-        assert_eq!(mapok(identifier(pinput("","5impl3 "))),
-                   Ok((" ", "5impl3".into())));
-        assert!(identifier(pinput("","%imple ")).is_err());
+        assert_eq!(
+            mapok(identifier(pinput("", "simple "))),
+            Ok((" ", "simple".into()))
+        );
+        assert_eq!(
+            mapok(identifier(pinput("", "simple?"))),
+            Ok(("?", "simple".into()))
+        );
+        assert_eq!(
+            mapok(identifier(pinput("", "5impl3 "))),
+            Ok((" ", "5impl3".into()))
+        );
+        assert!(identifier(pinput("", "%imple ")).is_err());
     }
 
     #[test]
     fn test_parameter() {
         assert_eq!(
-            mapok(parameter(pinput("","hello "))),
+            mapok(parameter(pinput("", "hello "))),
             Ok((
                 "",
                 PParameter {
@@ -735,7 +770,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(parameter(pinput("","string:hello "))),
+            mapok(parameter(pinput("", "string:hello "))),
             Ok((
                 "",
                 PParameter {
@@ -746,7 +781,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(parameter(pinput(""," string : hello "))),
+            mapok(parameter(pinput("", " string : hello "))),
             Ok((
                 "",
                 PParameter {
@@ -757,7 +792,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(parameter(pinput(""," string : hello=\"default\""))),
+            mapok(parameter(pinput("", " string : hello=\"default\""))),
             Ok((
                 "",
                 PParameter {
@@ -772,7 +807,7 @@ mod tests {
     #[test]
     fn test_resource_def() {
         assert_eq!(
-            mapok(resource_def(pinput("","resource hello()"))),
+            mapok(resource_def(pinput("", "resource hello()"))),
             Ok((
                 "",
                 PResourceDef {
@@ -782,7 +817,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(resource_def(pinput("","resource  hello2 ( )"))),
+            mapok(resource_def(pinput("", "resource  hello2 ( )"))),
             Ok((
                 "",
                 PResourceDef {
@@ -792,7 +827,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(resource_def(pinput("","resource hello (string: p1, p2)"))),
+            mapok(resource_def(pinput("", "resource hello (string: p1, p2)"))),
             Ok((
                 "",
                 PResourceDef {
@@ -818,11 +853,11 @@ mod tests {
     fn test_value() {
         // TODO other types
         assert_eq!(
-            mapok(typed_value(pinput("","\"\"\"This is a string\"\"\""))),
+            mapok(typed_value(pinput("", "\"\"\"This is a string\"\"\""))),
             Ok(("", PValue::String("This is a string".to_string())))
         );
         assert_eq!(
-            mapok(typed_value(pinput("","\"This is a string bis\""))),
+            mapok(typed_value(pinput("", "\"This is a string bis\""))),
             Ok(("", PValue::String("This is a string bis".to_string())))
         );
     }
@@ -830,20 +865,20 @@ mod tests {
     #[test]
     fn test_headers() {
         assert_eq!(
-            mapok(header(pinput("","#!/bin/bash\n@format=1\n"))),
+            mapok(header(pinput("", "#!/bin/bash\n@format=1\n"))),
             Ok(("", PHeader { version: 1 }))
         );
         assert_eq!(
-            mapok(header(pinput("","@format=21\n"))),
+            mapok(header(pinput("", "@format=21\n"))),
             Ok(("", PHeader { version: 21 }))
         );
-        assert!(header(pinput("","@format=21.5\n")).is_err());
+        assert!(header(pinput("", "@format=21.5\n")).is_err());
     }
 
     #[test]
     fn test_resource_ref() {
         assert_eq!(
-            mapok(resource_ref(pinput("","hello()"))),
+            mapok(resource_ref(pinput("", "hello()"))),
             Ok((
                 "",
                 PResourceRef {
@@ -853,7 +888,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(resource_ref(pinput("","hello3 "))),
+            mapok(resource_ref(pinput("", "hello3 "))),
             Ok((
                 "",
                 PResourceRef {
@@ -863,7 +898,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(resource_ref(pinput("","hello ( \"p1\", \"p2\" )"))),
+            mapok(resource_ref(pinput("", "hello ( \"p1\", \"p2\" )"))),
             Ok((
                 "",
                 PResourceRef {
@@ -876,7 +911,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(resource_ref(pinput("","hello2 ( )"))),
+            mapok(resource_ref(pinput("", "hello2 ( )"))),
             Ok((
                 "",
                 PResourceRef {
@@ -890,7 +925,7 @@ mod tests {
     #[test]
     fn test_statement() {
         assert_eq!(
-            mapok(statement(pinput("","resource().state()"))),
+            mapok(statement(pinput("", "resource().state()"))),
             Ok((
                 "",
                 PStatement::StateCall(
@@ -906,7 +941,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(statement(pinput("","resource().state( \"p1\", \"p2\")"))),
+            mapok(statement(pinput("", "resource().state( \"p1\", \"p2\")"))),
             Ok((
                 "",
                 PStatement::StateCall(
@@ -925,7 +960,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(statement(pinput("","##hello Herman\n"))),
+            mapok(statement(pinput("", "##hello Herman\n"))),
             Ok(("", PStatement::Comment(vec!["hello Herman".into()])))
         );
     }
@@ -956,7 +991,7 @@ mod tests {
     #[test]
     fn test_state() {
         assert_eq!(
-            mapok(state(pinput("","resource state configuration() {}"))),
+            mapok(state(pinput("", "resource state configuration() {}"))),
             Ok((
                 "",
                 PStateDef {

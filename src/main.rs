@@ -1,6 +1,6 @@
 mod parser;
-//mod enums;
 mod error;
+//mod enums;
 
 use nom::IResult;
 use std::fmt::Debug;
