@@ -109,22 +109,33 @@ class TechniqueWriter (
 
   def techniqueMetadataContent(technique : Technique, methods: Map[BundleName, GenericMethod]) : Result[XmlNode] = {
 
-    def reportingValuePerMethod (methodId: BundleName, calls :Seq[MethodCall]) : Result[Seq[XmlNode]] = {
-      methods.get(methodId) match {
-        case None => Left(MethodNotFound(s"Could not generate reporting section for method '${methodId.value}' in Technique '${technique.bundleName.value}', because we could not find the method",None))
-        case Some(method) =>
+    def reportingValuePerMethod (component: String, calls :Seq[MethodCall]) : Result[Seq[XmlNode]] = {
+
+      for {
+        spec <- sequence(calls) { call: MethodCall =>
           for {
-            spec <- sequence(calls.map(_.parameters.get(method.classParameter))) {
-              case None => Left(MethodNotFound(s"Could not find reporting values '${method.classParameter.value}' method '${methodId.value}' in Technique '${technique.bundleName.value}'",None))
-              case Some(value) => Right (<VALUE>{value}</VALUE>)
+            method <- methods.get(call.methodId) match {
+              case None => Left(MethodNotFound(s"Cannot find method ${call.methodId.value} when writing a method call of Technique '${technique.bundleName.value}'", None))
+              case Some(m) => Right(m)
             }
+            class_param <- call.parameters.get(method.classParameter) match {
+              case None => Left(MethodNotFound(s"Cannot find call parameter of ${call.methodId.value} when writing a method call of Technique '${technique.bundleName.value}'", None))
+              case Some(m) => Right(m)
+            }
+
           } yield {
-            <SECTION component="true" multivalued="true" name={method.name}>
-              <REPORTKEYS>
-                {spec}
-              </REPORTKEYS>
-            </SECTION>
+            <VALUE>{class_param}</VALUE>
           }
+
+        }
+      } yield {
+
+        <SECTION component="true" multivalued="true" name={component}>
+          <REPORTKEYS>
+            {spec}
+          </REPORTKEYS>
+        </SECTION>
+
       }
     }
 
@@ -149,10 +160,9 @@ class TechniqueWriter (
     // We filter those starting by _, which are internal methods
     val expectedReportingMethodsWithValues =
       for {
-        (name, methodCalls) <- technique.methodCalls.groupBy(_.methodId).toList.sortBy(_._1.value)
-        if ! name.value.startsWith("_")
+        (component, methodCalls) <- technique.methodCalls.filterNot(_.methodId.value.startsWith("_")).groupBy(_.component).toList.sortBy(_._1)
       } yield {
-        (name, methodCalls)
+        (component, methodCalls)
       }
 
     for {
