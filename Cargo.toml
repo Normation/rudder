@@ -6,12 +6,14 @@ edition = "2018"
 
 [dependencies]
 #nom = "4.1.1"
+#nom_locate = { path = "../my-crate-directory" }
+#derivative = "^1.0"
 
 [dependencies.nom]
 version = "^4.1"
 features = ["verbose-errors"]
 
-#[dependencies.nom_locate]
-#version = "^0.3"
-#features = ["verbose-errors"]
-
+[dependencies.nom_locate]
+version = "^0.3"
+features = ["verbose-errors"]
+path = "../nom_locate"
