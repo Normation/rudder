@@ -46,14 +46,17 @@ import com.normation.inventory.ldap.provisioning._
 import com.normation.ldap.sdk._
 import com.normation.ldap.ldif.DefaultLDIFFileLogger
 import com.unboundid.ldif.LDIFChangeRecord
-import org.springframework.context.annotation.{Bean,Configuration,Import}
+import org.springframework.context.annotation.{Bean, Configuration, Import}
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.multipart.commons.CommonsMultipartResolver
-import com.normation.utils.{StringUuidGenerator,StringUuidGeneratorImpl}
+import com.normation.utils.{StringUuidGenerator, StringUuidGeneratorImpl}
 import org.slf4j.LoggerFactory
 import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
 import java.security.Security
+
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+
+import scala.concurrent.duration._
 
 @Configuration
 @Import(Array(classOf[PropertyPlaceholderConfig]))
@@ -92,6 +95,15 @@ class AppConfig {
 
   @Value("${waiting.inventory.queue.size}")
   var WAITING_QUEUE_SIZE = 50
+
+  @Value("${inventories.root.directory}")
+  var INVENTORY_ROOT_DIR = ""
+
+  @Value("${inventories.watcher.enable}")
+  var WATCHER_ENABLE = "true"
+
+  @Value("${inventories.watcher.waitForSignatureDuration}")
+  var WATCHER_WAIT_FOR_SIG = 10 // in seconds
 
   //TODO: only have a root DN here !
   @Bean
@@ -252,23 +264,43 @@ class AppConfig {
     c
   }
 
+  @Bean
+  def inventoryProcessor() = new InventoryProcessor(
+      pipelinedReportUnmarshaller
+    , reportSaver
+    , WAITING_QUEUE_SIZE
+    , fullInventoryRepository
+    , new InventoryDigestServiceV1(fullInventoryRepository)
+    , rwLdapConnectionProvider
+    , pendingNodesDit
+  )
+
+  @Bean
+  def inventoryWatcher() = {
+    val watcher = new InventoryFileWatcher(
+        inventoryProcessor()
+      , INVENTORY_ROOT_DIR + "/incoming"
+      , INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
+      , INVENTORY_ROOT_DIR + "/received"
+      , INVENTORY_ROOT_DIR + "/failed"
+      , WATCHER_WAIT_FOR_SIG.seconds
+      , ".sign"
+    )
+    WATCHER_ENABLE.trim.toLowerCase match {
+      case "true" => watcher.startWatcher()
+      case _ => // don't start
+        InventoryLogger.debug(s"Not automatically incoming inventory watcher because 'inventories.watcher.enable'=${WATCHER_ENABLE}")
+    }
+
+    watcher
+  }
+
   /*
    * The REST end point where OCSi report are
    * uploaded
    */
   @Bean
-  def springApplication(
-    ocsiUnmarshaller:ReportUnmarshaller,
-    reportSaver:ReportSaver[Seq[LDIFChangeRecord]]
-  ) : FusionReportEndpoint = {
-    new FusionReportEndpoint(
-        ocsiUnmarshaller
-      , reportSaver
-      , WAITING_QUEUE_SIZE
-      , fullInventoryRepository
-      , new InventoryDigestServiceV1(fullInventoryRepository)
-      , rwLdapConnectionProvider
-      , pendingNodesDit
-    )
+  def springApplication() : FusionReportEndpoint = {
+    new FusionReportEndpoint(inventoryProcessor(), inventoryWatcher())
   }
 }
