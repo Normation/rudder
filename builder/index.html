@@ -325,7 +325,7 @@
                               <div ng-class="{'small-left-margin': method_call.class_context !== 'any'}">
                                 <h4 class="input-group panel-title">
                                   <div class="method-name text-left input-group-addon">
-                                    {{getMethodName(method_call)}}
+                                    {{method_call.component}}
                                     <span class="cursor-help" ng-if="(method_call.deprecated || isDeprecated(method_call.method_name))" 
                                          uib-popover-template="'deprecatedMethod.html'" popover-title="{{getMethodName(method_call)}}" 
                                          popover-trigger="mouseenter" popover-append-to-body="true">
@@ -393,6 +393,11 @@
                         <i class="{{getIconClassByAgentType(selectedMethod.method_name)}}"></i>
                         <button ng-disabled="! canResetMethod()" class="btn btn-primary btn-outline pull-right top-margin" ng-click="resetMethod()">Reset <i class="fas fa-undo-alt"></i></button>
                     </h3>
+
+                    <div class="form-group condition-form">
+                      <label for="component">Report component:</label>
+                      <input type="text" style="cursor:text" name="component" class="form-control" ng-model="selectedMethod.component"/>
+                    </div>
                     <uib-accordion>
                         <uib-accordion-group is-open="conditionIsOpen">
                             <uib-accordion-heading>
