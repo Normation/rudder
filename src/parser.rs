@@ -3,6 +3,8 @@ use nom::*;
 use nom_locate::position;
 use nom_locate::LocatedSpan;
 use std::hash::{Hash, Hasher};
+use std::fmt;
+use std::ops::Deref;
 
 // TODO Error management
 // TODO add more types
@@ -22,7 +24,8 @@ pub fn pinput<'a>(name: &'a str, input: &'a str) -> PInput<'a> {
 }
 
 // All output are token based, they must behave like &str
-#[derive(Debug)]
+// Copy for convenient use
+#[derive(Debug, Copy, Clone)]
 pub struct PToken<'a> {
     val: LocatedSpan<CompleteStr<'a>, &'a str>,
 }
@@ -33,6 +36,13 @@ impl<'a> PToken<'a> {
         PToken {
             val: LocatedSpan::new(CompleteStr(input), name),
         }
+    }
+    pub fn position_str(&self) -> String {
+        let (file,line,col) = self.position();
+        format!("{}:{}:{}", file,line,col)
+    }
+    pub fn position(&self) -> (String, u32,  usize) {
+        (self.val.extra.to_string(), self.val.line, self.val.get_utf8_column())
     }
 }
 // Convert from str (lossy, used for terse tests)
@@ -63,14 +73,20 @@ impl<'a> Hash for PToken<'a> {
         self.val.fragment.hash(state);
     }
 }
+// Display for debug info
+impl<'a> fmt::Display for PToken<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "'{}' at {}", self.val.fragment, self.position_str())
+    }
+}
 // TODO Deref or AsRef ?
 //// Deref to &str
-//impl <'a> Deref for PToken<'a> {
-//    type Target = str;
-//    fn deref(&self) -> &str {
-//        *self.val.fragment
-//    }
-//}
+impl <'a> Deref for PToken<'a> {
+    type Target = &'a str;
+    fn deref(&self) -> &&'a str {
+        &self.val.fragment
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub struct PHeader {
@@ -108,6 +124,7 @@ pub enum PType {
 
 #[derive(Debug, PartialEq)]
 pub struct PEnum<'a> {
+    pub global: bool,
     pub name: PToken<'a>,
     pub items: Vec<PToken<'a>>,
 }
@@ -308,18 +325,19 @@ named!(typed_value<PInput,PValue>,
 );
 
 // Enums
-named!(penum<PInput,PEnum>,
+named!(pub penum<PInput,PEnum>,
     sp!(do_parse!(
+        global: opt!(tag!("global")) >>
         tag!("enum") >>
         name: identifier >>
         tag!("{") >>
         items: sp!(separated_list!(tag!(","), identifier)) >>
         tag!("}") >>
-        (PEnum {name, items})
+        (PEnum {global: global.is_some(), name, items})
     ))
 );
 
-named!(enum_mapping<PInput,PEnumMapping>,
+named!(pub enum_mapping<PInput,PEnumMapping>,
     sp!(do_parse!(
         tag!("enum") >>
         from: identifier >>
@@ -331,14 +349,14 @@ named!(enum_mapping<PInput,PEnumMapping>,
                 separated_pair!(
                     alt!(identifier|map!(tag!("*"),|x| x.into())),
                     tag!("->"),
-                    identifier)
+                    alt!(identifier|map!(tag!("*"),|x| x.into())))
             )) >>
         tag!("}") >>
         (PEnumMapping {from, to, mapping})
     ))
 );
 
-named!(enum_expression<PInput,PEnumExpression>,
+named!(pub enum_expression<PInput,PEnumExpression>,
     alt!(enum_or_expression
        | enum_and_expression
        | enum_not_expression
@@ -352,7 +370,7 @@ named!(enum_atom<PInput,PEnumExpression>,
         delimited!(tag!("("),enum_expression,tag!(")"))
       | do_parse!(
             var: identifier >>
-            tag!("==") >>
+            tag!("=~") >>
             penum: opt!(terminated!(identifier,tag!("::"))) >>
             value: identifier >>
             (PEnumExpression::Compare(Some(var),penum,value))
@@ -595,6 +613,18 @@ mod tests {
             Ok((
                 "",
                 PEnum {
+                    global:false,
+                    name: "abc".into(),
+                    items: vec!["a".into(), "b".into(), "c".into()]
+                }
+            ))
+        );
+        assert_eq!(
+            mapok(penum(pinput("", "global enum abc { a, b, c }"))),
+            Ok((
+                "",
+                PEnum {
+                    global:true,
                     name: "abc".into(),
                     items: vec!["a".into(), "b".into(), "c".into()]
                 }
@@ -623,14 +653,14 @@ mod tests {
     #[test]
     fn test_enum_expression() {
         assert_eq!(
-            mapok(enum_expression(pinput("", "a==b::c"))),
+            mapok(enum_expression(pinput("", "a=~b::c"))),
             Ok((
                 "",
                 PEnumExpression::Compare(Some("a".into()), Some("b".into()), "c".into())
             ))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("", "a==bc"))),
+            mapok(enum_expression(pinput("", "a=~bc"))),
             Ok((
                 "",
                 PEnumExpression::Compare(Some("a".into()), None, "bc".into())
@@ -641,14 +671,14 @@ mod tests {
             Ok(("", PEnumExpression::Compare(None, None, "bc".into())))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("", "(a == b::hello)"))),
+            mapok(enum_expression(pinput("", "(a =~ b::hello)"))),
             Ok((
                 "",
                 PEnumExpression::Compare(Some("a".into()), Some("b".into()), "hello".into())
             ))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("", "bc&&(a||b==hello::g)"))),
+            mapok(enum_expression(pinput("", "bc&&(a||b=~hello::g)"))),
             Ok((
                 "",
                 PEnumExpression::And(
@@ -665,7 +695,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("", "! a == hello"))),
+            mapok(enum_expression(pinput("", "! a =~ hello"))),
             Ok((
                 "",
                 PEnumExpression::Not(Box::new(PEnumExpression::Compare(
