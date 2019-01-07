@@ -2,8 +2,8 @@ use nom::types::CompleteStr;
 use nom::*;
 use nom_locate::position;
 use nom_locate::LocatedSpan;
-use std::hash::{Hash, Hasher};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 
 // TODO Error management
@@ -38,11 +38,15 @@ impl<'a> PToken<'a> {
         }
     }
     pub fn position_str(&self) -> String {
-        let (file,line,col) = self.position();
-        format!("{}:{}:{}", file,line,col)
+        let (file, line, col) = self.position();
+        format!("{}:{}:{}", file, line, col)
     }
-    pub fn position(&self) -> (String, u32,  usize) {
-        (self.val.extra.to_string(), self.val.line, self.val.get_utf8_column())
+    pub fn position(&self) -> (String, u32, usize) {
+        (
+            self.val.extra.to_string(),
+            self.val.line,
+            self.val.get_utf8_column(),
+        )
     }
 }
 // Convert from str (lossy, used for terse tests)
@@ -81,7 +85,7 @@ impl<'a> fmt::Display for PToken<'a> {
 }
 // TODO Deref or AsRef ?
 //// Deref to &str
-impl <'a> Deref for PToken<'a> {
+impl<'a> Deref for PToken<'a> {
     type Target = &'a str;
     fn deref(&self) -> &&'a str {
         &self.val.fragment
@@ -613,7 +617,7 @@ mod tests {
             Ok((
                 "",
                 PEnum {
-                    global:false,
+                    global: false,
                     name: "abc".into(),
                     items: vec!["a".into(), "b".into(), "c".into()]
                 }
@@ -624,7 +628,7 @@ mod tests {
             Ok((
                 "",
                 PEnum {
-                    global:true,
+                    global: true,
                     name: "abc".into(),
                     items: vec!["a".into(), "b".into(), "c".into()]
                 }

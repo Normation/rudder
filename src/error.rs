@@ -5,8 +5,8 @@ use std::fmt;
 #[derive(Debug)]
 pub enum PError {
     //          message file    line  column
-    Compilation(String, String, u32,  usize),
-//    Parsing(nom::Err),
+    Compilation(String, String, u32, usize),
+    //    Parsing(nom::Err),
 }
 
 // Error management definitions
@@ -28,7 +28,7 @@ macro_rules! fail {
 impl fmt::Display for PError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            PError::Compilation(msg,_,_,_) => write!(f, "Compilation error: {}", msg),
+            PError::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
         }
     }
 }
