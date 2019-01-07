@@ -198,13 +198,13 @@ class InventoryProcessor(
     val start = System.currentTimeMillis()
 
     val res = for {
-      r            <- parseSafe(newInventoryStream, inventoryFileName) ?~! "Can't parse the input inventory, aborting"
+      report       <- parseSafe(newInventoryStream, inventoryFileName) ?~! "Can't parse the input inventory, aborting"
       afterParsing =  System.currentTimeMillis()
       _            =  logger.debug(s"Inventory '${report.name}' parsed in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
       saved        <- optNewSignatureStream match { // Do we have a signature ?
                         // Signature here, check it
                         case Some(sig) =>
-                          saveWithSignature(r, sig) ?~! "Error when trying to check inventory signature"
+                          saveWithSignature(report, sig) ?~! "Error when trying to check inventory signature"
 
                         // There is no Signature
                         case None =>
