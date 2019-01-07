@@ -225,20 +225,20 @@ impl<'a> EnumList<'a> {
         }
     }
 
-//    // evaluate a boolean expression given a set of variable=enum:value
-//    fn eval(&self, values:&HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>, expr:&PEnumExpression) -> bool {
-//        match expr {
-//            PEnumExpression::Default   => true,
-//            PEnumExpression::Not(e)    => !self.eval(values,&e),
-//            PEnumExpression::Or(e1,e2) => self.eval(values,&e1) || self.eval(values,&e2),
-//            PEnumExpression::And(e1,e2) => self.eval(values,&e1) && self.eval(values,&e2),
-//            PEnumExpression::Compare(var,enum1,value) => {
-//                // unwrap panic would be a bug since all values should be defined now
-//                let(s,v) = values.get(&var).unwrap();
-//                self.is_ancestor(s,v,enum1,value)
-//            }
-//        }
-//    }
+    // evaluate a boolean expression given a set of variable=enum:value
+    fn eval(&self, values:&HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>, expr:&EnumExpression) -> bool {
+        match expr {
+            EnumExpression::Default   => true,
+            EnumExpression::Not(e)    => !self.eval(values,&e),
+            EnumExpression::Or(e1,e2) => self.eval(values,&e1) || self.eval(values,&e2),
+            EnumExpression::And(e1,e2) => self.eval(values,&e1) && self.eval(values,&e2),
+            EnumExpression::Compare(var,enum1,value) => {
+                // unwrap panic would be a bug since all values should be defined now
+                let(s,v) = values.get(&var).unwrap();
+                self.is_ancestor(*s,*v,*enum1,*value)
+            }
+        }
+    }
 }
 
 //fn list_variables_set(expr:&EnumExpression) -> Vec<(String,String) {
@@ -265,29 +265,33 @@ mod tests {
     use super::*;
     use crate::parser;
     use crate::parser::*;
+    use maplit::hashmap;
 
-    fn penum(string: &str) -> PEnum { parser::penum(pinput("", string)).unwrap().1 }
+    // test utilities
+    fn add_penum<'a>(e: &mut EnumList<'a>, string: &'a str) -> Result<()> { e.add_enum(parser::penum(pinput("", string)).unwrap().1) }
+    fn add_enum_mapping<'a>(e: &mut EnumList<'a>, string: &'a str) -> Result<()> { e.add_mapping(parser::enum_mapping(pinput("", string)).unwrap().1) }
+    fn enum_expression(string: &str) -> PEnumExpression { parser::enum_expression(pinput("", string)).unwrap().1 }
+
     #[test]
     fn test_insert() {
-        let mut e = EnumList::new();
-        assert!(e.add_enum(penum("enum abc { a, a, c }")).is_err());
-        assert!(e.add_enum(penum("global enum abc { a, b, c }")).is_ok());
-        assert!(e.add_enum(penum("enum abc { a, b, c }")).is_err());
-        assert!(e.add_enum(penum("enum abc2 { a, b, c }")).is_err());
-        assert!(e.add_mapping(enum_mapping("enum abc ~> def { a -> b, b -> b }")).is_err());
-        assert!(e.add_mapping(enum_mapping("enum abx ~> def { a -> b, b -> b, c->c }")).is_err());
-        assert!(e.add_mapping(enum_mapping("enum abc ~> abc { a -> b, b -> b, c->c }")).is_err());
-        assert!(e.add_mapping(enum_mapping("enum abc ~> def { a -> b, b -> b, x->c }")).is_err());
-        assert!(e.add_mapping(enum_mapping("enum abc ~> def { a -> b, b -> b, *->* }")).is_ok());
+        let ref mut e = EnumList::new();
+        assert!(add_penum(e,"enum abc { a, a, c }").is_err());
+        assert!(add_penum(e,"global enum abc { a, b, c }").is_ok());
+        assert!(add_penum(e,"enum abc { a, b, c }").is_err());
+        assert!(add_penum(e,"enum abc2 { a, b, c }").is_err());
+        assert!(add_enum_mapping(e,"enum abc ~> def { a -> b, b -> b }").is_err());
+        assert!(add_enum_mapping(e,"enum abx ~> def { a -> b, b -> b, c->c }").is_err());
+        assert!(add_enum_mapping(e,"enum abc ~> abc { a -> b, b -> b, c->c }").is_err());
+        assert!(add_enum_mapping(e,"enum abc ~> def { a -> b, b -> b, x->c }").is_err());
+        assert!(add_enum_mapping(e,"enum abc ~> def { a -> b, b -> b, *->* }").is_ok());
     }
 
-    fn enum_mapping(string: &str) -> PEnumMapping { parser::enum_mapping(pinput("", string)).unwrap().1 }
     fn init_tests() -> EnumList<'static> {
         let mut e = EnumList::new();
-        e.add_enum(penum("global enum os { debian, ubuntu, redhat, centos, aix }")).unwrap();
-        e.add_mapping(enum_mapping("enum os ~> family { ubuntu->debian, centos->redhat, *->* }")).unwrap();
-        e.add_mapping(enum_mapping("enum family ~> type { debian->linux, redhat->linux, aix->unix }")).unwrap();
-        e.add_enum(penum("enum outcome { kept, repaired, error }")).unwrap();
+        add_penum(&mut e,"global enum os { debian, ubuntu, redhat, centos, aix }").unwrap();
+        add_enum_mapping(&mut e,"enum os ~> family { ubuntu->debian, centos->redhat, *->* }").unwrap();
+        add_enum_mapping(&mut e,"enum family ~> type { debian->linux, redhat->linux, aix->unix }").unwrap();
+        add_penum(&mut e,"enum outcome { kept, repaired, error }").unwrap();
         e
     }
 
@@ -320,7 +324,6 @@ mod tests {
         assert_eq!(e.find_elder("outcome".into()), "outcome".into());
     }
 
-    fn enum_expression(string: &str) -> PEnumExpression { parser::enum_expression(pinput("", string)).unwrap().1 }
     #[test]
     fn test_canonify() {
         let e = init_tests();
@@ -328,12 +331,29 @@ mod tests {
         assert!(e.canonify_expression(&enum_expression("os::ubuntu")).is_ok());
         //assert!(e.canonify_expression(&enum_expression("os=~ubuntu")).is_ok()); TODO var context
         assert!(e.canonify_expression(&enum_expression("os=~os::ubuntu")).is_ok());
-        // assert!(e.canonify_expression(&enum_expression("os=~linux")).is_ok()); TODO var context
+        //assert!(e.canonify_expression(&enum_expression("os=~linux")).is_ok()); TODO var context
         assert!(e.canonify_expression(&enum_expression("os=~type::linux")).is_ok());
         assert!(e.canonify_expression(&enum_expression("os=~type::debian")).is_err());
         assert!(e.canonify_expression(&enum_expression("os=~typo::debian")).is_err());
         assert!(e.canonify_expression(&enum_expression("typo::debian")).is_err());
         assert!(e.canonify_expression(&enum_expression("outcome::kept")).is_err());
         assert!(e.canonify_expression(&enum_expression("kept")).is_err());
+    }
+
+    #[test]
+    fn test_eval() {
+        let e = init_tests();
+        assert!(e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) }, 
+                       &e.canonify_expression(&enum_expression("ubuntu")).unwrap()));
+        assert!(e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) }, 
+                       &e.canonify_expression(&enum_expression("debian")).unwrap()));
+        assert!(!e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) }, 
+                       &e.canonify_expression(&enum_expression("os::debian")).unwrap()));
+        assert!(e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) }, 
+                       &e.canonify_expression(&enum_expression("!os::debian")).unwrap()));
+        assert!(!e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")), PToken::from("out") => (PToken::from("outcome"),PToken::from("kept")) }, 
+                       &e.canonify_expression(&enum_expression("os::debian && out =~ outcome::kept")).unwrap()));
+        assert!(e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")), PToken::from("out") => (PToken::from("outcome"),PToken::from("kept")) }, 
+                       &e.canonify_expression(&enum_expression("os::debian || out =~ outcome::kept")).unwrap()));
     }
 }
