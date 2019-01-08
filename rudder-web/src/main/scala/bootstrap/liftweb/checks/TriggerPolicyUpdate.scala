@@ -68,7 +68,7 @@ class TriggerPolicyUpdate(
         logger.info(s"Flag file '${filePath}' found, Start a new policy update now")
         asyncGeneration ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
       } else {
-        logger.info(s"Flag file '${filePath}' does not exist, No need to start a new policy update")
+        logger.debug(s"Flag file '${filePath}' does not exist, No need to start a new policy update")
       }
     } catch {
       // Exception while checking the file existence
