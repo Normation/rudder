@@ -59,6 +59,7 @@ test-common:
 	cd tests/unit/ && ./testall
 
 doc: 
+	mkdir -p doc
 	ls tree/30_generic_methods/*.cf | xargs egrep -h "^\s*bundle\s+agent\s+" | sed -r "s/\s*bundle\s+agent\s+//" | sort > doc/all_generic_methods.txt
 	tools/ncf_doc.py
 	rm -f tools/ncf_doc.pyc
