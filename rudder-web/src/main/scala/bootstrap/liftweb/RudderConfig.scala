@@ -1579,10 +1579,6 @@ object RudderConfig extends Loggable {
         , asyncDeploymentAgent
         , uuidGen
       )
-    , new ResumePolicyUpdateRunning(
-          asyncDeploymentAgent
-        , uuidGen
-      )
     , new CheckCfengineSystemRuleTargets(rwLdap)
     , new CheckNcfTechniqueUpdate(
           restExtractorService
@@ -1590,6 +1586,14 @@ object RudderConfig extends Loggable {
         , roLDAPApiAccountRepository.systemAPIAccount
         , uuidGen
       )
+    , new ResumePolicyUpdateRunning(
+          asyncDeploymentAgent
+        , uuidGen
+    )
+    , new TriggerPolicyUpdate(
+          asyncDeploymentAgent
+        , uuidGen
+    )
     , new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount)
     , new CheckApiTokenAutorizationKind(rudderDit, rwLdap)
   )
