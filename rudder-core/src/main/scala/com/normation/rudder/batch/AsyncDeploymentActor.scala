@@ -175,6 +175,7 @@ final class AsyncDeploymentActor(
 
   // That flag file is used to determine if a policy update was running when the webapp stopped so we can launch a new one when starting
   val policyUpdateRunningFlagPath = "/opt/rudder/etc/policy-update-running"
+  val triggerPolicyUpdateFlagPath = "/opt/rudder/etc/trigger-policy-generation"
 
   private[this] def createFlagFile = {
     val file =  new File(policyUpdateRunningFlagPath)
@@ -189,23 +190,30 @@ final class AsyncDeploymentActor(
   }
 
   private[this] def deleteFlagFile = {
-    val file =  new File(policyUpdateRunningFlagPath)
-    try {
-      if (file.delete) {
-        // Deleted, come back to normal
-        logger.debug(s"Flag file '${policyUpdateRunningFlagPath}' successfully removed")
-      } else {
-        // File could not be deleted, seek for reason
-        if(!file.exists()) {
-          logger.warn(s"Flag file '${policyUpdateRunningFlagPath}' could not be removed as it does not exist anymore")
-        } else {
-          logger.error(s"Flag file '${policyUpdateRunningFlagPath}' could not be removed, you may have to remove it manually, cause is: Permission denied or someone is actually editing the file")
-         }
+    val runningFile =  new File(policyUpdateRunningFlagPath)
+    val triggerFile = new File(triggerPolicyUpdateFlagPath)
+
+    for (file <- runningFile::triggerFile::Nil) {
+      try {
+        if (file.exists) {
+          // delete the file only if it is present
+          if (file.delete) {
+            // Deleted, come back to normal
+            logger.info(s"Flag file '${file.getPath}' successfully removed")
+          } else {
+            // File could not be deleted, seek for reason
+            if (!file.exists()) {
+              logger.warn(s"Flag file '${file.getPath}' could not be removed as it does not exist anymore")
+            } else {
+              logger.error(s"Flag file '${file.getPath}' could not be removed, you may have to remove it manually, cause is: Permission denied or someone is actually editing the file")
+            }
+          }
+        }
+      } catch {
+        // Exception while checking the file existence
+        case e: Exception =>
+          logger.error(s"An error occurred while deleting flag file '${file.getPath}', cause is: ${e.getMessage}")
       }
-    } catch {
-      // Exception while checking the file existence
-      case e : Exception =>
-        logger.error(s"An error occurred while deleting flag file '${policyUpdateRunningFlagPath}', cause is: ${e.getMessage}")
     }
   }
   override protected def lowPriority = {
