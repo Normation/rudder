@@ -36,8 +36,8 @@
 */
 
 
-DROP INDEX nodecompliancelevels_ruleId ON nodecompliancelevels (nodeId);
-DROP INDEX nodecompliancelevels_directiveId ON nodecompliancelevels (nodeId);
+DROP INDEX nodecompliancelevels_ruleId;
+DROP INDEX nodecompliancelevels_directiveId;
 
 CREATE INDEX nodecompliancelevels_ruleId_idx ON nodecompliancelevels (ruleId);
 CREATE INDEX nodecompliancelevels_directiveId_idx ON nodecompliancelevels (directiveId);
