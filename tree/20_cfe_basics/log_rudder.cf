@@ -452,7 +452,7 @@ body classes rudder_always_classes_persist(always, persist)
 # DEPRECATED - for compatibility
 body classes _rudder_always_classes_persist(always, persist)
 {
-  inherit_from => rudder_always_classes_persist("${always}", "${persist}")
+  inherit_from => rudder_always_classes_persist("${always}", "${persist}");
 }
 
 ################################################
