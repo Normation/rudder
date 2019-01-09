@@ -4,7 +4,7 @@
 
 This directory contains librairies with utility bodies that can be reused. Most notably, it contains the cfengine standard librairy.
 
-The `cfengine` folder contains the CFEngine stdlib from 3.10.
+The `cfengine` folder contains the CFEngine stdlib from 3.12.1.
 
 The changes made are:
 

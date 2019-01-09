@@ -74,13 +74,19 @@ bundle agent cfe_internal_cleanup_agent_reports
         slist => findfiles("$(sys.workdir)/state/promise_log/*.csv"),
         unless => isvariable( $(this.promiser) );
 
-      "previous_state_files"
+      "previous_state_files" -> { "ENT-3161" }
         slist => findfiles("$(sys.workdir)/state/previous_state/*.cache"),
-        unless => isvariable( $(this.promiser) );
+        unless => isvariable( $(this.promiser) ),
+        comment => "The files in this directory record the state at the end of
+                    the previous agent run. They are used in concert with the
+                    promise logs to derive delta reports.";
 
-      "untracked_files"
+      "untracked_files" -> { "ENT-3161" }
         slist => findfiles("$(sys.workdir)/state/untracked/*.idx"),
-        unless => isvariable( $(this.promiser) );
+        unless => isvariable( $(this.promiser) ),
+        comment => "The files in this directory are used in support of the
+                    report_data_select filters. This is a record of all promises
+                    that should not be collected";
 
       "files"
         slist => { @(diff_files),

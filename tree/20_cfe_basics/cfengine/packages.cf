@@ -60,10 +60,10 @@ bundle common package_module_knowledge
     freebsd::
       "platform_default" string => "pkg";
 
-    redhat::
+    redhat|amazon_linux::
       "platform_default" string => "yum";
 
-    suse::
+    suse|sles::
       "platform_default" string => "zypper";
 
     aix::
@@ -147,9 +147,9 @@ body package_module yum
 
 body package_module slackpkg
 {
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "1440";
-    #default_options =>  {};
+      query_installed_ifelapsed => "60";
+      query_updates_ifelapsed => "240";
+      #default_options =>  {};
 }
 
 body package_module pkg
@@ -340,7 +340,6 @@ bundle common redhat_knowledge
             bbegin;            # Jump back to begin.
         };
         p;                     # Print current buffer.'";
-
 }
 
 bundle common suse_knowledge
@@ -1817,7 +1816,7 @@ body package_method generic
 #     "mypackage" package_method => generic, package_policy => "add";
 # ```
 {
-    suse::
+    suse|sles::
       package_changes => "bulk";
       package_list_command => "$(rpm_knowledge.call_rpm) -qa --queryformat \"$(rpm_knowledge.rpm_output_format)\"";
       # set it to "0" to avoid caching of list during upgrade
@@ -1992,12 +1991,12 @@ bundle agent package_absent_legacy(package)
       package_policy => "delete",
       package_method => yum_rpm_permissive;
 
-    suse::
+    suse|sles::
       "$(package)"
       package_policy => "delete",
       package_method => zypper;
 
-    !debian.!redhat.!suse::
+    !debian.!redhat.!(suse|sles)::
       "$(package)"
       package_policy => "delete",
       package_method => generic;
@@ -2029,12 +2028,12 @@ bundle agent package_present_legacy(package)
       package_policy => "add",
       package_method => yum_rpm_permissive;
 
-    suse::
+    suse|sles::
       "$(package)"
       package_policy => "add",
       package_method => zypper;
 
-    !debian.!redhat.!suse::
+    !debian.!redhat.!(suse|sles)::
       "$(package)"
       package_policy => "add",
       package_method => generic;
@@ -2059,7 +2058,7 @@ bundle agent package_latest(package)
     debian::
       "$(package)"
       package_policy => "addupdate",
-      package_version => "999999999",
+      package_version => "999999999:9999999999",
       package_method => apt_get_permissive;
 
     redhat::
@@ -2068,13 +2067,13 @@ bundle agent package_latest(package)
       package_version => "999999999",
       package_method => yum_rpm_permissive;
 
-    suse::
+    suse|sles::
       "$(package)"
       package_policy => "addupdate",
       package_version => "999999999",
       package_method => zypper;
 
-    !debian.!redhat.!suse::
+    !debian.!redhat.!(suse|sles)::
       "$(package)"
       package_policy => "addupdate",
       package_method => generic;
@@ -2243,7 +2242,7 @@ bundle agent package_specific(package_name, desired, package_version, package_ar
       package_architectures => { $(package_arch) },
       package_method => yum_rpm;
 
-    suse::
+    suse|sles::
 
       "$(package_name)"
       package_policy => $(desired),
@@ -2269,13 +2268,13 @@ bundle agent package_specific(package_name, desired, package_version, package_ar
       package_version => $(package_version),
       package_method => solaris_install($(solaris_admin_file));
 
-    !filebased.!debian.!redhat.!suse::
+    !filebased.!debian.!redhat.!(suse|sles)::
 
       "$(package_name)"
       package_policy => $(desired),
       package_method => generic;
 
   reports:
-    "(DEBUG|DEBUG_$(this.bundle)).filebased.!suse.!debian.!redhat.!aix.!solaris_pkgadd"::
+    "(DEBUG|DEBUG_$(this.bundle)).filebased.!(suse|sles).!debian.!redhat.!aix.!solaris_pkgadd"::
       "DEBUG $(this.bundle): sorry, can't do file-based installs on $(sys.os)";
 }

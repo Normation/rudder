@@ -229,6 +229,8 @@ bundle agent standard_services(service,state)
 #
     systemd::
       "service_enabled" expression => reglist(@(systemd_service_info), "UnitFileState=enabled");
+      "service_enabled" -> { "CFE-2923" }
+        expression => returnszero( "$(call_systemctl) is-enabled $(service) > /dev/null 2>&1", useshell);
       "service_active"  expression => reglist(@(systemd_service_info), "ActiveState=active");
       "service_loaded"  expression => reglist(@(systemd_service_info), "LoadState=loaded");
       "service_notfound" expression => reglist(@(systemd_service_info), "LoadState=not-found");
@@ -371,7 +373,7 @@ bundle agent standard_services(service,state)
     verbose_mode.fallback::
       "$(this.bundle): falling back to classic_services to $(state) $(service)";
 
-    systemd.service_notfound.(inform_mode|verbose_mode)::
+    systemd.service_notfound.(start|restart|reload).(inform_mode|verbose_mode)::
         "$(this.bundle): Could not find service: $(service)";
 }
 
@@ -582,7 +584,7 @@ bundle agent classic_services(service,state)
       "pattern[varnish]"          string => ".*varnish.*";
       "pattern[wpa_supplicant]"   string => ".*wpa_supplicant.*";
 
-    suse::
+    suse|sles::
 
       "baseinit[mysql]"           string => "mysqld";
       "pattern[mysql]"            string => ".*mysqld.*";

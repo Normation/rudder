@@ -77,19 +77,6 @@ bundle edit_line insert_before_if_no_line(before, string)
         comment => "Prepend a line to the file if it doesn't already exist";
 }
 
-bundle edit_line insert_lines(lines)
-# @brief Append `lines` if they don't exist in the file
-# @param lines The lines to be appended
-#
-# **See also:** [`insert_lines`][insert_lines] in
-# [`edit_line`][bundle edit_line]
-{
-  insert_lines:
-
-      "$(lines)"
-      comment => "Append lines if they don't exist";
-}
-
 ##
 
 bundle edit_line insert_file(templatefile)
@@ -102,6 +89,59 @@ bundle edit_line insert_file(templatefile)
       "$(templatefile)"
       comment => "Insert the template file into the file being edited",
       insert_type => "file";
+}
+
+##
+
+bundle edit_line lines_present(lines)
+# @brief Ensure `lines` are present in the file. Lines that do not exist are appended to the file
+# @param List or string that should be present in the file
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#  vars:
+#    "nameservers" slist => { "8.8.8.8", "8.8.4.4" };
+#
+#  files:
+#      "/etc/resolv.conf" edit_line => lines_present( @(nameservers) );
+#      "/etc/ssh/sshd_config" edit_line => lines_present( "PermitRootLogin no" );
+# }
+# ```
+{
+  insert_lines:
+
+      "$(lines)"
+        comment => "Append lines if they don't exist";
+}
+
+bundle edit_line insert_lines(lines)
+# @brief Alias for `lines_present`
+{
+  insert_lines:
+
+      "$(lines)"
+        comment => "Append lines if they don't exist";
+}
+
+bundle edit_line append_if_no_line(lines)
+# @brief Alias for `lines_present`
+{
+  insert_lines:
+
+      "$(lines)"
+        comment => "Append lines if they don't exist";
+}
+
+bundle edit_line append_if_no_lines(lines)
+# @brief Alias for `lines_present`
+{
+  insert_lines:
+
+      "$(lines)"
+        comment => "Append lines if they don't exist";
 }
 
 ##
@@ -223,30 +263,6 @@ bundle edit_line prepend_if_no_line(string)
       "$(string)"
       location => start,
       comment => "Prepend a line to the file if it doesn't already exist";
-}
-
-bundle edit_line append_if_no_line(str)
-# @ignore
-# This duplicates the insert_lines bundle
-{
-  insert_lines:
-
-      "$(str)"
-
-      comment => "Append a line to the file if it doesn't already exist";
-}
-
-##
-
-bundle edit_line append_if_no_lines(list)
-# @ignore
-# This duplicates the insert_lines bundle
-{
-  insert_lines:
-
-      "$(list)"
-
-      comment => "Append lines to the file if they don't already exist";
 }
 
 ##
@@ -472,7 +488,6 @@ bundle edit_line set_variable_values_ini(tab, sectionName)
       classes => results("bundle", "set_variable_values_ini_not_$(cindex[$(index)])"),
       ifvarclass => "edit_$(cindex[$(index)])";
 
-
   insert_lines:
       "[$(sectionName)]"
       location => start,
@@ -500,7 +515,9 @@ bundle edit_line insert_ini_section(name, config)
 # @param config The fully-qualified name of an associative array containing `v[LHS]="rhs"`
 {
   vars:
-      "k" slist => getindices($(config));
+      # TODO: refactor once 3.7.x is EOL
+      "indeces" slist => getindices($(config));
+      "k" slist => sort("indeces", lex);
 
   insert_lines:
       "[$(name)]"

@@ -274,7 +274,7 @@ body classes if_ok(x)
 ##
 
 body classes if_ok_cancel(x)
-# @brief Cancel the class `x` if the promise ks kept or repaired
+# @brief Cancel the class `x` if the promise is kept or repaired
 # @param x The name of the class that should be cancelled
 {
       cancel_repaired => { "$(x)" };
@@ -472,6 +472,7 @@ body classes state_repaired(x)
 {
       promise_repaired => { "$(x)" };
       persist_time => "10";
+      scope => "namespace";
 }
 
 ##
@@ -485,6 +486,7 @@ body classes enumerate(x)
       promise_repaired => { "mXC_$(x)" };
       promise_kept => { "mXC_$(x)" };
       persist_time => "15";
+      scope => "namespace";
 }
 
 ##
