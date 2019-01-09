@@ -41,7 +41,7 @@ package checks
 import java.io.File
 
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.batch.{AsyncDeploymentAgent, AutomaticStartDeployment}
+import com.normation.rudder.batch.{AsyncDeploymentActor, AutomaticStartDeployment}
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.utils.StringUuidGenerator
 
@@ -51,7 +51,7 @@ import com.normation.utils.StringUuidGenerator
  * This needs to be achieved after all tasks that could modify configuration (ie: CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace)
  */
 class TriggerPolicyUpdate(
-    asyncGeneration : AsyncDeploymentAgent
+    asyncGeneration : AsyncDeploymentActor
   , uuidGen         : StringUuidGenerator
 ) extends BootstrapChecks {
 
