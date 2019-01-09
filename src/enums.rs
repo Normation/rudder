@@ -31,7 +31,7 @@ pub enum EnumExpression<'a> {
 }
 
 impl<'a> EnumList<'a> {
-    // Constructor
+    // Constructor / TODO implement Default
     pub fn new() -> EnumList<'static> {
         EnumList {
             mapping_path: HashMap::new(),
@@ -365,19 +365,18 @@ impl<'a> EnumList<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser;
     use crate::parser::*;
     use maplit::hashmap;
 
     // test utilities
     fn add_penum<'a>(e: &mut EnumList<'a>, string: &'a str) -> Result<()> {
-        e.add_enum(parser::penum(pinput("", string)).unwrap().1)
+        e.add_enum(penum(pinput("", string)).unwrap().1)
     }
     fn add_enum_mapping<'a>(e: &mut EnumList<'a>, string: &'a str) -> Result<()> {
-        e.add_mapping(parser::enum_mapping(pinput("", string)).unwrap().1)
+        e.add_mapping(enum_mapping(pinput("", string)).unwrap().1)
     }
-    fn enum_expression(string: &str) -> PEnumExpression {
-        parser::enum_expression(pinput("", string)).unwrap().1
+    fn parse_enum_expression(string: &str) -> PEnumExpression {
+        enum_expression(pinput("", string)).unwrap().1
     }
 
     #[test]
@@ -489,31 +488,31 @@ mod tests {
     #[test]
     fn test_canonify() {
         let e = init_tests();
-        assert!(e.canonify_expression(&enum_expression("ubuntu")).is_ok());
+        assert!(e.canonify_expression(&parse_enum_expression("ubuntu")).is_ok());
         assert!(e
-            .canonify_expression(&enum_expression("os::ubuntu"))
+            .canonify_expression(&parse_enum_expression("os::ubuntu"))
             .is_ok());
-        //assert!(e.canonify_expression(&enum_expression("os=~ubuntu")).is_ok()); TODO var context
+        //assert!(e.canonify_expression(&parse_enum_expression("os=~ubuntu")).is_ok()); TODO var context
         assert!(e
-            .canonify_expression(&enum_expression("os=~os::ubuntu"))
+            .canonify_expression(&parse_enum_expression("os=~os::ubuntu"))
             .is_ok());
-        //assert!(e.canonify_expression(&enum_expression("os=~linux")).is_ok()); TODO var context
+        //assert!(e.canonify_expression(&parse_enum_expression("os=~linux")).is_ok()); TODO var context
         assert!(e
-            .canonify_expression(&enum_expression("os=~type::linux"))
+            .canonify_expression(&parse_enum_expression("os=~type::linux"))
             .is_ok());
         assert!(e
-            .canonify_expression(&enum_expression("os=~type::debian"))
+            .canonify_expression(&parse_enum_expression("os=~type::debian"))
             .is_err());
         assert!(e
-            .canonify_expression(&enum_expression("os=~typo::debian"))
+            .canonify_expression(&parse_enum_expression("os=~typo::debian"))
             .is_err());
         assert!(e
-            .canonify_expression(&enum_expression("typo::debian"))
+            .canonify_expression(&parse_enum_expression("typo::debian"))
             .is_err());
         assert!(e
-            .canonify_expression(&enum_expression("outcome::kept"))
+            .canonify_expression(&parse_enum_expression("outcome::kept"))
             .is_err());
-        assert!(e.canonify_expression(&enum_expression("kept")).is_err());
+        assert!(e.canonify_expression(&parse_enum_expression("kept")).is_err());
     }
 
     #[test]
@@ -521,26 +520,26 @@ mod tests {
         let e = init_tests();
         assert!(e.eval(
             &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
-            &e.canonify_expression(&enum_expression("ubuntu")).unwrap()
+            &e.canonify_expression(&parse_enum_expression("ubuntu")).unwrap()
         ));
         assert!(e.eval(
             &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
-            &e.canonify_expression(&enum_expression("debian")).unwrap()
+            &e.canonify_expression(&parse_enum_expression("debian")).unwrap()
         ));
         assert!(!e.eval(
             &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
-            &e.canonify_expression(&enum_expression("os::debian"))
+            &e.canonify_expression(&parse_enum_expression("os::debian"))
                 .unwrap()
         ));
         assert!(e.eval(
             &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
-            &e.canonify_expression(&enum_expression("!os::debian"))
+            &e.canonify_expression(&parse_enum_expression("!os::debian"))
                 .unwrap()
         ));
         assert!(!e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")), PToken::from("out") => (PToken::from("outcome"),PToken::from("kept")) }, 
-                       &e.canonify_expression(&enum_expression("os::debian && out =~ outcome::kept")).unwrap()));
+                       &e.canonify_expression(&parse_enum_expression("os::debian && out =~ outcome::kept")).unwrap()));
         assert!(e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")), PToken::from("out") => (PToken::from("outcome"),PToken::from("kept")) }, 
-                       &e.canonify_expression(&enum_expression("os::debian || out =~ outcome::kept")).unwrap()));
+                       &e.canonify_expression(&parse_enum_expression("os::debian || out =~ outcome::kept")).unwrap()));
     }
 
     #[test]
@@ -548,14 +547,14 @@ mod tests {
         let e = init_tests();
         {
             let mut var1 = HashMap::new();
-            let ex = enum_expression("os::debian");
+            let ex = parse_enum_expression("os::debian");
             let exp = e.canonify_expression(&ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
             assert_eq!(var1, hashmap! { PToken::from("os") => PToken::from("os") });
         }
         {
             let mut var1 = HashMap::new();
-            let ex = enum_expression("os::debian && out =~ outcome::kept");
+            let ex = parse_enum_expression("os::debian && out =~ outcome::kept");
             let exp = e.canonify_expression(&ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
             assert_eq!(
@@ -565,7 +564,7 @@ mod tests {
         }
         {
             let mut var1 = HashMap::new();
-            let ex = enum_expression("family::debian && os::ubuntu");
+            let ex = parse_enum_expression("family::debian && os::ubuntu");
             let exp = e.canonify_expression(&ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
             assert_eq!(var1, hashmap! { PToken::from("os") => PToken::from("os") });

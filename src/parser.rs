@@ -1,6 +1,6 @@
-use nom::types::CompleteStr;
 use nom::*;
-use nom_locate::position;
+use nom::types::CompleteStr;
+//use nom_locate::position;
 use nom_locate::LocatedSpan;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -273,7 +273,7 @@ named!(header<PInput,PHeader>,
     )
 );
 
-named!(identifier<PInput,PToken>,
+named!(pub identifier<PInput,PToken>,
     map!(
         verify!(alphanumeric, |x:PInput| {
             let c=x.fragment.chars().next().unwrap_or(' '); // space is not a valid starting char

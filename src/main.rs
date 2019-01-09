@@ -2,7 +2,7 @@
 mod error;
 mod parser;
 mod enums;
-mod variable;
+mod context;
 
 use nom::IResult;
 use std::fmt::Debug;
