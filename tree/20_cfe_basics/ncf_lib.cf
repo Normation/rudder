@@ -43,6 +43,35 @@ bundle common ncf_paths {
 
 }
 
+# DEPRECATED
+bundle common rudder_debian_knowledge
+# @depends paths
+# @brief common Rudder Debian knowledge bundle
+#
+# This common bundle has useful information about Debian.
+{
+  vars:
+
+      "dpkg_compare_equal" string => "/usr/bin/dpkg --compare-versions '${v1}' eq '${v2}'";
+      "dpkg_compare_less"  string => "/usr/bin/dpkg --compare-versions '${v1}' lt '${v2}'";
+
+}
+
+# DEPRECATED
+bundle common rudder_rpm_knowledge
+# @depends paths
+# @brief common Rudder RPM knowledge bundle
+#
+# This common bundle has useful information about platforms using RPM
+{
+  vars:
+
+      "rpm_compare_equal" string => "${sys.workdir}/bin/rpmvercmp '${v1}' eq '${v2}'";
+      "rpm_compare_less"  string => "${sys.workdir}/bin/rpmvercmp '${v1}' lt '${v2}'";
+
+}
+
+# DEPRECATED
 body package_method yum_rpm_no_version
 {
   package_changes => "bulk";
@@ -81,6 +110,7 @@ body package_method yum_rpm_no_version
 
 
 # Install packages using yum localinstall, disable package caching
+# DEPRECATED
 body package_method redhat_local_install
 {
 redhat::
@@ -108,6 +138,7 @@ redhat::
       package_version_equal_command => "$(redhat_knowledge.rpm_compare_equal)";
 }
 # Install packages using yum standard install, disable package caching
+# DEPRECATED
 body package_method redhat_install
 {
 redhat::
@@ -135,6 +166,7 @@ redhat::
       package_version_equal_command => "$(redhat_knowledge.rpm_compare_equal)";
 }
 
+# DEPRECATED
 body package_method debian_local_install
 {
   package_changes => "individual";
@@ -169,6 +201,7 @@ have_aptitude::
   package_patch_version_regex => "^Inst\s+\S+\s+\[?\(?([^\],\s]+).*";
 }
 
+# DEPRECATED
 body package_method ncf_generic
 {
 SuSE::
@@ -308,6 +341,7 @@ archlinux::
 }
 
 # Same as ncf_generic with version in package name
+# DEPRECATED
 body package_method ncf_generic_version
 {
   SuSE::
@@ -447,6 +481,7 @@ body package_method ncf_generic_version
 }
 
 # Same as apt_get from CFEngine lib with version in package name
+# DEPRECATED
 body package_method apt_get_version
 {
       package_changes => "bulk";
@@ -477,6 +512,66 @@ body package_method apt_get_version
       package_version_equal_command => "$(debian_knowledge.dpkg_compare_equal)";
 }
 
+########################################################################
+# Install a package using rug                                          #
+########################################################################
+# DEPRECATED
+body package_method rudder_rug
+{
+
+        package_changes               => "individual";
+
+        package_list_command          => "/bin/rpm -qa --queryformat \"i | repos | %{name} | %{version}-%{release} | %{arch}\n\"";
+        package_list_update_ifelapsed => "240";
+        package_installed_regex       => "i.*";
+        package_list_name_regex       => "[^|]+\|[^|]+\|\s+([^\s]+).*";
+        package_list_version_regex    => "[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
+        package_list_arch_regex       => "[^|]+\|[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
+
+        package_name_convention       => "${name}";
+        package_add_command           => "/usr/bin/rug install -y";
+        package_delete_command        => "/usr/bin/rug remove -y";
+        package_update_command        => "/usr/bin/rug update -y";
+
+        package_verify_command        => "/usr/bin/rug verify -y$"; # $ means no args
+
+        # make correct version comparisons
+        package_version_less_command  => "${rudder_rpm_knowledge.rpm_compare_less}";
+        package_version_equal_command => "${rudder_rpm_knowledge.rpm_compare_equal}";
+
+}
+
+########################################################################
+# Install a package using yum but with a check from rpm                #
+########################################################################
+# DEPRECATED
+body package_method rudder_yum
+{
+
+  package_changes               => "bulk";
+  package_list_command          => "/bin/rpm -qa --qf '%{name} %{version}-%{release} %{arch}\n'";
+  package_list_name_regex       => "^(\S+?)\s\S+?\s\S+$";
+  package_list_version_regex    => "^\S+?\s(\S+?)\s\S+$";
+  package_list_arch_regex       => "^\S+?\s\S+?\s(\S+)$";
+  package_installed_regex       => ".*";
+  package_name_convention       => "${name}";
+  package_list_update_command   => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
+  package_list_update_ifelapsed => "240";
+  package_patch_name_regex      => "([^.]+).*";
+  package_patch_version_regex   => "[^\s]\s+([^\s]+).*";
+  package_patch_arch_regex      => "[^.]+\.([^\s]+).*";
+  package_add_command           => "/usr/bin/yum ${redhat_knowledge.yum_options} -y install";
+  package_update_command        => "/usr/bin/yum ${redhat_knowledge.yum_options} -y update";
+  package_patch_command         => "/usr/bin/yum ${redhat_knowledge.yum_options} -y update";
+  package_delete_command        => "/bin/rpm -e --nodeps --allmatches";
+  package_verify_command        => "/bin/rpm -V";
+
+  # make correct version comparisons
+  package_version_less_command  => "${rudder_rpm_knowledge.rpm_compare_less}";
+  package_version_equal_command => "${rudder_rpm_knowledge.rpm_compare_equal}";
+
+}
+
 # Don't do anything if class warn is defined, or remediate the promises
 # if immediate is defined (default action)
 # DEPRECATED: warn and immediate need to be global classes, use policy(p) instead.
@@ -490,6 +585,44 @@ body action do_if_immediate {
 body action immediate_ignore_dry_run
 {
       ifelapsed => "0";
+}
+
+body action WarnOnly
+{
+        action_policy => "warn";
+}
+
+body contain outputable
+{
+        useshell  => "true";
+        no_output => "false";
+}
+
+body depth_search recurse_visible(d)
+{
+        depth        => "${d}";
+        exclude_dirs => { "\..*" };
+}
+
+########################################################################
+# Handle a directory recursively, including the dir itself             #
+########################################################################
+body depth_search recurse_withroot(d)
+{
+        depth           => "${d}";
+        include_basedir => "true";
+}
+
+################################################
+# Same as recurse but without xdev
+# and including the current dir
+################################################
+body depth_search recurse_with_current(d)
+
+{
+        depth           => "${d}";
+        include_basedir => "true";
+        xdev            => "false";
 }
 
 bundle edit_line ncf_insert_block(block) {
@@ -730,6 +863,38 @@ bundle edit_line ensure_line_in_xml_tag(tag_name, line)
       comment       => "Insert line in section ${tag_name}";
 }
 
+bundle edit_line prepend(lines)
+{
+  insert_lines:
+
+      "${lines}"
+        comment  => "Prepending line: ${lines}",
+        location => start;
+}
+
+bundle edit_line replace_line(regex, replacement)
+{
+  replace_patterns:
+
+      "${regex}"
+        replace_with => value("${replacement}"),
+        comment      => "Replace every occurrence of ${regex} with ${replacement}";
+}
+
+bundle edit_line rudder_line_insertion(lines, location)
+{
+insert_lines:
+
+      "${lines}"
+        comment => "Adding line: ${lines}",
+        location => rudder_location_before_after("${location}");
+}
+
+body location rudder_location_before_after(location)
+{
+        before_after => "${location}";
+}
+
 # DEPRECATED - for compatibility
 body delete_select rudder_delete_if_not_in_list(lines_to_delete)
 {
@@ -801,6 +966,43 @@ body select_region ncf_section_AIX_user(username)
   select_end => ".*:";
 }
 
+bundle edit_line rudder_change_aix_password_entry(user, entry, content)
+{
+  field_edits:
+
+    "\s*${entry}\s*=.*"
+      select_region => rudder_aix_user_section("${user}"),
+      edit_field    => col("=","2"," ${content}","set");
+
+}
+
+body select_region rudder_aix_user_section(x)
+{
+  select_start => "${x}:\s*";
+  select_end => "\S*:\s*";
+}
+
+bundle edit_line insert_rudder_disclaimer
+{
+  vars:
+      "file_edit_header" string => "${rudder_parameters.rudder_file_edit_header}";
+
+  defaults:
+      "file_edit_header" string => "#############################################################
+### This file is protected by your Rudder infrastructure. ###
+### Manually editing the file might lead your Rudder      ###
+### infrastructure to change back the server's            ###
+### configuration and/or to raise a compliance alert.     ###
+#############################################################
+",
+        if_match_regex => "${const.dollar}{rudder_parameters.rudder_file_edit_header}";
+
+  insert_lines:
+
+      "${file_edit_header}"
+        location => start;
+}
+
 #
 # Select files older than X months
 #
@@ -835,7 +1037,15 @@ body file_select rudder_common_minutes_old(minutes)
   file_result => "mtime";
 }
 
-
+########################################################################
+# Select a file using a date AND a pattern                             #
+########################################################################
+body file_select date_pattern(age, pattern)
+{
+  mtime       => irange("0", ago(0,0,"${age}",0,0,0));
+  leaf_name   => { "${pattern}" };
+  file_result => "leaf_name.mtime";
+}
 
 # Modular local copy_from body
 body copy_from ncf_local_cp_method(from, method)
@@ -856,6 +1066,63 @@ body copy_from ncf_remote_cp_method(from, server, method)
   encrypt     => "true";
   copy_backup => "timestamp";
 }
+
+# DEPRECATED
+#server may be a list
+body copy_from cp(from,server)
+{
+        servers     => { "${server}" };
+        source      => "${from}";
+        compare     => "digest";
+    community_edition::
+        portnumber => "${system_common.community_port}";
+}
+
+# DEPRECATED
+# This is an evolved version of copy_from scp that uses local copies if we are
+# running on a policy server instead of copying from a localhost remote blindly.
+body copy_from rudder_copy_from(from, server,compare,trustkey,preserve,purge) {
+
+    source   => "${from}";
+
+    compare  => "${compare}";
+    encrypt  => "true";
+    verify   => "true";
+    trustkey => "${trustkey}";
+    preserve => "${preserve}"; # Preserve the permissions
+    purge    => "${purge}";
+    copy_backup => "timestamp";
+    servers  => { "${server}" };
+
+  community_edition::
+    portnumber => "${system_common.community_port}";
+}
+
+body copy_from copy(from)
+{
+        source      => "${from}";
+        copy_backup => "false";
+        preserve    => "true";
+}
+
+# DEPRECATED
+body copy_from copy_digest(from)
+{
+        source      => "${from}";
+        copy_backup => "timestamp";
+        preserve    => "true";
+        compare     => "digest";
+
+}
+
+body copy_from digest_cp(from)
+{
+        source            => "${from}";
+        copy_backup       => "timestamp";
+        compare           => "digest";
+        copylink_patterns => { ".*" };
+}
+
 
 # Define x prefixes/suffixed with promises outcome, based on return codes
 # !DEPRECATED!
@@ -965,12 +1232,117 @@ body classes common_classes_exclusive_persist_codes(prefix, persist, keptcodes, 
 
 }
 
+###########################################################################################
+# Persistent class
+# If the promise is repaired, define repaired for length minutes and undefine failed
+# If the promise is not kept, undefine repaired and define failed for length minutes
+##########################################################################################
+body classes persistent_class(repaired, failed, length)
+{
+        promise_repaired => { "${repaired}" };
+        repair_failed    => { "${failed}" };
+        repair_denied    => { "${failed}" };
+        repair_timeout   => { "${failed}" };
+
+        cancel_repaired  => {"${failed}"};
+        cancel_notkept   => {"${repaired}"};
+
+        persist_time     => "${length}";
+}
+
+###########################################################################################
+# Persistent class
+# If the promise is repaired/kept, define repaired for length minutes and undefine failed
+# If the promise is not kept, undefine repaired and define failed for length minutes
+##########################################################################################
+body classes set_persist_classes(repaired, failed, length)
+{
+        promise_kept 	   => { "${repaired}" };
+        promise_repaired => { "${repaired}" };
+        repair_failed    => { "${failed}" };
+        repair_denied    => { "${failed}" };
+        repair_timeout   => { "${failed}" };
+
+        cancel_kept      => {"${failed}"};
+        cancel_repaired  => {"${failed}"};
+        cancel_notkept   => {"${repaired}"};
+
+        persist_time     => "${length}";
+}
+
+################################################
+# kept_if_else
+# set kept if the promise is kept
+# yes if repaired
+# no if cannot repair
+################################################
+# DEPRECATED
+body classes kept_if_else(kept, yes,no)
+
+{
+        promise_kept     => { "${kept}" };
+        promise_repaired => { "${yes}" };
+        repair_failed    => { "${no}" };
+        repair_denied    => { "${no}" };
+        repair_timeout   => { "${no}" };
+}
+
+# DEPRECATED
+body classes kept_if_else_persist(kept, repaired, failed, persist) {
+
+  promise_kept     => { "${kept}" };
+  promise_repaired => { "${repaired}" };
+
+  repair_failed    => { "${failed}" };
+  repair_denied    => { "${failed}" };
+  repair_timeout   => { "${failed}" };
+
+  persist_time     => "${persist}";
+}
+
+################################################
+# Special kept_if_else
+# set kept if the promise is kept
+# yes if repaired
+# no if cannot repair
+# Trigger an additionnal promise if repaired
+################################################
+body classes kept_if_else_hook(kept,yes,no,hook)
+
+{
+        promise_kept     => { "${kept}" };
+        promise_repaired => { "${yes}", "${hook}" };
+        repair_failed    => { "${no}" };
+        repair_denied    => { "${no}" };
+        repair_timeout   => { "${no}" };
+}
+
+###########################################################################################
+# Cancel class
+# Cancel every classes passed by argument
+##########################################################################################
+
+body classes cancel_all_classes(class_to_cancel) {
+  cancel_kept     => { "${class_to_cancel}" };
+  cancel_repaired => { "${class_to_cancel}" };
+  cancel_notkept  => { "${class_to_cancel}" };
+}
+
 # WARNING !!!
 # For new class prefix migration only, this will be removed when migration is over
 body process_count any_count_two(cl, cl2)
 {
   match_range => "0,0";
   out_of_range_define => { "$(cl)", "$(cl2)" };
+}
+
+#######################################################
+# Match all variants of cron processes
+# DEPRECATED
+body process_select cron_bin
+{
+  command => "(/usr/sbin/)?crond?( -n| -f| -l notice)*";
+  process_result => "command";
 }
 
 # Enforce or not content of a file
@@ -982,6 +1354,31 @@ body edit_defaults ncf_empty_select(select)
         empty_file_before_editing => "${select}";
         max_file_size             => "25M";
         edit_backup               => "timestamp";
+}
+
+# DEPRECATED
+body edit_defaults rudder_empty_select(select)
+{
+    inherit_from => ncf_empty_select("${select}");
+}
+
+body edit_defaults empty_size(size)
+{
+  empty_file_before_editing => "true";
+  edit_backup => "false";
+  max_file_size => "${size}";
+}
+
+# DEPRECATED
+body edit_defaults noempty_backup
+{
+    inherit_from => ncf_empty_select("false");
+}
+
+# DEPRECATED
+body edit_defaults empty_backup
+{
+    inherit_from => ncf_empty_select("true");
 }
 
 # Combines classes from two specified prefixes
@@ -1084,6 +1481,17 @@ bundle agent ncf_classes_copy(source_prefix, destination_prefix)
       "destination_not_empty"      not => strcmp("${destination_prefix}", "");
       "destination_exists"         and => { "destination_defined", "destination_not_empty" };
 
+}
+
+########################################################################
+# Mount an NFS share, and allow the user to select if it is persistent #
+########################################################################
+body mount rudder_nfs(server,source,type,persistence)
+{
+        mount_type   => "${type}";
+        mount_source => "${source}";
+        mount_server => "${server}";
+        edit_fstab   => "${persistence}";
 }
 
 # defines ncf_services_${service}_${action}
@@ -1434,6 +1842,29 @@ body replace_with ncf_add_parameter_with_separator(parameter, parameter_separato
 body replace_with ncf_add_parameter_with_separator_and_enclosing_characters(parameter, parameter_separator) {
  occurrences => "first";
  replace_value => "${match.1}${match.2}${match.3}${parameter_separator}${parameter}${match.4}";
+}
+
+# DEPRECATED
+body perms u_p(p)
+{
+    inherit_from => m("${p}");
+}
+
+################################################
+# Simple group adjustment body
+################################################
+body perms group(group)
+{
+        groups => { "${group}" };
+}
+
+########################################################################
+# Change group and mode of a file/directory                            #
+########################################################################
+body perms mg(mode,group)
+{
+        groups => { "${group}" };
+        mode   => "${mode}";
 }
 
 bundle agent slackware_boot_services(service, action, class_prefix)
