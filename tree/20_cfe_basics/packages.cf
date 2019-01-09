@@ -345,4 +345,3 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "force failure class" usebundle => _classes_failure("${class_prefix}");
       "force failure class" usebundle => _classes_failure("${old_class_prefix}");
 }
-

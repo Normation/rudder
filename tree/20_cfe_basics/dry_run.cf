@@ -72,7 +72,6 @@
 # WARNING:
 #
 # @parameter mode   The dry-run mode, "true" to enable dry-run-mode and "false" to disable it
-# @agent_requirements "capabilities": [ "bodydefault" ] || "agent_version" >= 3.9
 # 
 
 bundle agent set_dry_run_mode(mode)
@@ -80,16 +79,17 @@ bundle agent set_dry_run_mode(mode)
   vars:
     # this is a way to remove the class without side effect
     pass2.unset_mode::
-      "ignored" string => "", classes => if_ok_cancel("dry_run"); 
+      "ignored" string        => "",
+                      classes => if_ok_cancel("dry_run");
 
   classes:
       # double negation, so that the default is dry_run (in case of error)
       "unset_mode" expression => strcmp("${mode}", "false");
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass2" expression      => "pass1";
+      "pass1" expression      => "any";
 
     pass2.!unset_mode::
-      "dry_run" expression => "any", scope => "namespace";
+      "dry_run" expression    => "any", scope => "namespace";
   
   reports:
     pass2.debug.unset_mode::
@@ -105,12 +105,13 @@ bundle agent set_dry_run_mode(mode)
 
 # This bundle initializes the context for push/pop
 # It is called in 10_ncf_internals/initialization.cf
-bundle agent dry_run_initialization {
+bundle agent dry_run_initialization
+{
   vars:
       # designed to be incremented when a global unique ID is needed
       "dry_run_unique.value" string => "1";
       # stack of dry_run modes
-      "dry_run_unique.stack" slist => {};
+      "dry_run_unique.stack" slist  => {};
 }
 
 # Push current dry-run mode to the stack and set a new mode instead.
@@ -271,4 +272,3 @@ body file control
 {
     namespace => "default"; 
 }
-
