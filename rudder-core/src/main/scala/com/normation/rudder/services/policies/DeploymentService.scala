@@ -226,7 +226,7 @@ trait PromiseGenerationService extends Loggable {
       updatedNodeConfigs    =  getNodesConfigVersion(uptodateSerialNodeconfig, nodeConfigCaches, generationTime)
       //second time we write something in repos: updated node configuration
       writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigs, uptodateSerialNodeconfig, allLicenses, globalPolicyMode, generationTime) ?~!
-                               "Cannot write configuration node"
+                               "Cannot write nodes configuration"
       timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
       _                     =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
