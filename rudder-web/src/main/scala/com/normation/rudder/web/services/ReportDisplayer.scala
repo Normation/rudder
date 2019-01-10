@@ -270,6 +270,7 @@ class ReportDisplayer(
             case RunComplianceInfo.PolicyModeError.AgentAbortMessage(cause, msg) => cause.toLowerCase match {
               case "unsupported_dryrun"     => <li><b>That node does not support the request {PolicyMode.Audit.name} policy mode. The run was aborted to avoid changes</b></li>
               case "repaired_during_dryrun" => <li><b>We detected a change for a check that was requested in {PolicyMode.Audit.name} policy mode. The run was aborted to further changes</b></li>
+              case "unsupported_agent"      => <li><b>That node runs an agent too old to run policies from this server, please upgrade the agent. The run was aborted to avoid any unexpected behavior</b></li>
             }
           } ) }</ul>
         </div>
