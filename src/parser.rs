@@ -275,9 +275,11 @@ named!(header<PInput,PHeader>,
 
 named!(pub identifier<PInput,PToken>,
     map!(
+        // TODO accept _
         verify!(alphanumeric, |x:PInput| {
-            let c=x.fragment.chars().next().unwrap_or(' '); // space is not a valid starting char
-            (c as u8 >= 0x41 && c as u8 <= 0x5A) || (c as u8 >= 0x61 && c as u8 <= 0x7A) || (c as u8 >= 0x30 && c as u8 <= 0x39)
+            // check first char
+            let c=x.fragment.chars().next().unwrap_or(' '); // space is not a valid starting char so it can be used for None
+            (c as u8 >= 0x41 && c as u8 <= 0x5A) || (c as u8 >= 0x61 && c as u8 <= 0x7A) || (c == '_')
         } ),
         |x| x.into()
     )
@@ -652,6 +654,26 @@ mod tests {
                 }
             ))
         );
+        assert_eq!(
+            mapok(enum_mapping(pinput(
+                "",
+                //"enum outcome~>okerr{kept->ok,repaired->ok,error->error}"
+                "enum outcome ~> okerr { kept->ok, repaired->ok, error->error }",
+            ))),
+            Ok((
+                "",
+                PEnumMapping {
+                    from: "outcome".into(),
+                    to: "okerr".into(),
+                    mapping: vec![
+                        ("kept".into(), "ok".into()),
+                        ("repaired".into(), "ok".into()),
+                        ("error".into(), "error".into()),
+                    ]
+                }
+            ))
+        );
+
     }
 
     #[test]
@@ -784,10 +806,16 @@ mod tests {
             Ok(("?", "simple".into()))
         );
         assert_eq!(
-            mapok(identifier(pinput("", "5impl3 "))),
-            Ok((" ", "5impl3".into()))
+            mapok(identifier(pinput("", "simpl3 "))),
+            Ok((" ", "simpl3".into()))
         );
+        // TODO accept _
+//        assert_eq!(
+//            mapok(identifier(pinput("", "simple_word "))),
+//            Ok((" ", "simple_word".into()))
+//        );
         assert!(identifier(pinput("", "%imple ")).is_err());
+        assert!(identifier(pinput("", "5imple ")).is_err());
     }
 
     #[test]

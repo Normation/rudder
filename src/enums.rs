@@ -1,5 +1,6 @@
 use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PEnumMapping, PToken};
+use crate::context::{VarKind,VarContext};
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -31,7 +32,7 @@ pub enum EnumExpression<'a> {
 }
 
 impl<'a> EnumList<'a> {
-    // Constructor / TODO implement Default
+    // Constructor
     pub fn new() -> EnumList<'static> {
         EnumList {
             mapping_path: HashMap::new(),
@@ -189,36 +190,38 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    pub fn canonify_expression(&'a self, expr: &'a PEnumExpression) -> Result<EnumExpression<'a>> {
+    pub fn canonify_expression(&'a self, context: &'a VarContext, expr: &'a PEnumExpression) -> Result<EnumExpression<'a>> {
         match expr {
             PEnumExpression::Default => Ok(EnumExpression::Default),
             PEnumExpression::Not(e) => {
-                Ok(EnumExpression::Not(Box::new(self.canonify_expression(e)?)))
+                Ok(EnumExpression::Not(Box::new(self.canonify_expression(context,e)?)))
             }
             PEnumExpression::Or(e1, e2) => Ok(EnumExpression::Or(
-                Box::new(self.canonify_expression(e1)?),
-                Box::new(self.canonify_expression(e2)?),
+                Box::new(self.canonify_expression(context,e1)?),
+                Box::new(self.canonify_expression(context,e2)?),
             )),
             PEnumExpression::And(e1, e2) => Ok(EnumExpression::And(
-                Box::new(self.canonify_expression(e1)?),
-                Box::new(self.canonify_expression(e2)?),
+                Box::new(self.canonify_expression(context,e1)?),
+                Box::new(self.canonify_expression(context,e2)?),
             )),
             PEnumExpression::Compare(var, enum1, value) => {
-                // get enum1 real value
+                // get enum1 real type
                 let e1 = match enum1 {
                     Some(e) => e,
-                    None => match var {
-                        // no var -> global enum
-                        None => match self.global_values.get(&value) {
+                    None => match self.global_values.get(&value) {
+                        // globale enum ?
+                        Some(e) => e,
+                        // none -> try to guess from var
+                        None => match var {
                             None => fail!(value, "Global enum value {} does not exist", value),
-                            Some(e) => e,
+                            Some(var1) => match context.get_variable(*var1) {
+                                Some(VarKind::Enum(t,_)) => t,
+                                _ => fail!(var1, "Variable {} desn't have an enum type", var1),
+                            },
                         },
-                        // var -> guess from type
-                        // TODO we don't have var context yet
-                        Some(var1) => fail!(var1, "TODO var context"),
                     },
                 };
-                // get var real value
+                // get var real name
                 let var1 = match var {
                     Some(v) => *v,
                     None => match self.enums.get(&e1) {
@@ -230,9 +233,7 @@ impl<'a> EnumList<'a> {
                         Some((true, _)) => self.find_elder(*e1),
                     },
                 };
-                // once we have everything:
-                // check that var exists and type matches enum TODO when we have var context
-                // check that enum exists and has var
+                // check that enum exists and has value
                 match self.enums.get(&e1) {
                     None => fail!(e1, "Enum {} does not exist", e1),
                     Some((_, list)) => {
@@ -240,6 +241,20 @@ impl<'a> EnumList<'a> {
                             fail!(value, "Value {} is not defined in enum {}", value, e1)
                         }
                     }
+                }
+                // check that var exists
+                match context.get_variable(var1) {
+                    None => fail!(var1, "Variable {} does not exist", var1),
+                    // wrong enum type
+                    Some(VarKind::Enum(t,_)) => {
+                        // check variable enum type
+                        if self.find_path(*t,*e1).is_none() {
+                            fail!(var1, "Variable {} is {} but expected to be {} or an ancestor", var1, t, e1);
+                        }
+                    },
+                    // TODO reduce expressions or warn the user if variable is known
+                    // not an enum
+                    _ => fail!(var1, "Variable {} is not a {} enum", var1, e1), 
                 }
                 Ok(EnumExpression::Compare(var1, *e1, *value))
             }
@@ -378,6 +393,9 @@ mod tests {
     fn parse_enum_expression(string: &str) -> PEnumExpression {
         enum_expression(pinput("", string)).unwrap().1
     }
+    fn ident(string: &str) -> PToken {
+        identifier(pinput("", string)).unwrap().1
+    }
 
     #[test]
     fn test_insert() {
@@ -393,7 +411,7 @@ mod tests {
         assert!(add_enum_mapping(e, "enum abc ~> def { a -> b, b -> b, *->* }").is_ok());
     }
 
-    fn init_tests() -> EnumList<'static> {
+    fn init_tests() -> (EnumList<'static>,VarContext<'static>) {
         let mut e = EnumList::new();
         add_penum(
             &mut e,
@@ -411,12 +429,17 @@ mod tests {
         )
         .unwrap();
         add_penum(&mut e, "enum outcome { kept, repaired, error }").unwrap();
-        e
+        add_enum_mapping(&mut e, "enum outcome ~> okerr { kept->ok, repaired->ok, error->error }").unwrap();
+        let mut gc = VarContext::new_global();
+        gc.new_enum_variable(ident("os"),ident("os"),None).unwrap();
+        gc.new_enum_variable(ident("out"),ident("outcome"),None).unwrap();
+        gc.new_enum_variable(ident("in"),ident("outcome"),Some(ident("kept"))).unwrap();
+        (e,gc)
     }
 
     #[test]
     fn test_path() {
-        let e = init_tests();
+        let (e,_) = init_tests();
         assert_eq!(e.find_path("os".into(), "outcome".into()), None);
         assert_eq!(
             e.find_path("os".into(), "os".into()),
@@ -431,7 +454,7 @@ mod tests {
 
     #[test]
     fn test_ancestor() {
-        let e = init_tests();
+        let (e,_) = init_tests();
         assert_eq!(
             e.is_ancestor("os".into(), "ubuntu".into(), "os".into(), "ubuntu".into()),
             true
@@ -479,7 +502,7 @@ mod tests {
 
     #[test]
     fn test_elder() {
-        let e = init_tests();
+        let (e,_) = init_tests();
         assert_eq!(e.find_elder("os".into()), "os".into());
         assert_eq!(e.find_elder("type".into()), "os".into());
         assert_eq!(e.find_elder("outcome".into()), "outcome".into());
@@ -487,75 +510,77 @@ mod tests {
 
     #[test]
     fn test_canonify() {
-        let e = init_tests();
-        assert!(e.canonify_expression(&parse_enum_expression("ubuntu")).is_ok());
+        let (e,c) = init_tests();
+        assert!(e.canonify_expression(&c, &parse_enum_expression("ubuntu")).is_ok());
         assert!(e
-            .canonify_expression(&parse_enum_expression("os::ubuntu"))
+            .canonify_expression(&c, &parse_enum_expression("os::ubuntu"))
             .is_ok());
-        //assert!(e.canonify_expression(&parse_enum_expression("os=~ubuntu")).is_ok()); TODO var context
+        assert!(e.canonify_expression(&c, &parse_enum_expression("os=~ubuntu")).is_ok());
         assert!(e
-            .canonify_expression(&parse_enum_expression("os=~os::ubuntu"))
+            .canonify_expression(&c, &parse_enum_expression("os=~os::ubuntu"))
             .is_ok());
-        //assert!(e.canonify_expression(&parse_enum_expression("os=~linux")).is_ok()); TODO var context
+        assert!(e.canonify_expression(&c, &parse_enum_expression("os=~linux")).is_ok());
+        assert!(e.canonify_expression(&c, &parse_enum_expression("out=~linux")).is_err());
+        assert!(e.canonify_expression(&c, &parse_enum_expression("os=~outcome::kept")).is_err());
         assert!(e
-            .canonify_expression(&parse_enum_expression("os=~type::linux"))
+            .canonify_expression(&c, &parse_enum_expression("os=~type::linux"))
             .is_ok());
         assert!(e
-            .canonify_expression(&parse_enum_expression("os=~type::debian"))
+            .canonify_expression(&c, &parse_enum_expression("os=~type::debian"))
             .is_err());
         assert!(e
-            .canonify_expression(&parse_enum_expression("os=~typo::debian"))
+            .canonify_expression(&c, &parse_enum_expression("os=~typo::debian"))
             .is_err());
         assert!(e
-            .canonify_expression(&parse_enum_expression("typo::debian"))
+            .canonify_expression(&c, &parse_enum_expression("typo::debian"))
             .is_err());
         assert!(e
-            .canonify_expression(&parse_enum_expression("outcome::kept"))
+            .canonify_expression(&c, &parse_enum_expression("outcome::kept"))
             .is_err());
-        assert!(e.canonify_expression(&parse_enum_expression("kept")).is_err());
+        assert!(e.canonify_expression(&c, &parse_enum_expression("kept")).is_err());
     }
 
     #[test]
     fn test_eval() {
-        let e = init_tests();
+        let (e,c) = init_tests();
         assert!(e.eval(
             &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
-            &e.canonify_expression(&parse_enum_expression("ubuntu")).unwrap()
+            &e.canonify_expression(&c, &parse_enum_expression("ubuntu")).unwrap()
         ));
         assert!(e.eval(
             &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
-            &e.canonify_expression(&parse_enum_expression("debian")).unwrap()
+            &e.canonify_expression(&c, &parse_enum_expression("debian")).unwrap()
         ));
         assert!(!e.eval(
             &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
-            &e.canonify_expression(&parse_enum_expression("os::debian"))
+            &e.canonify_expression(&c, &parse_enum_expression("os::debian"))
                 .unwrap()
         ));
         assert!(e.eval(
             &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
-            &e.canonify_expression(&parse_enum_expression("!os::debian"))
+            &e.canonify_expression(&c, &parse_enum_expression("!os::debian"))
                 .unwrap()
         ));
         assert!(!e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")), PToken::from("out") => (PToken::from("outcome"),PToken::from("kept")) }, 
-                       &e.canonify_expression(&parse_enum_expression("os::debian && out =~ outcome::kept")).unwrap()));
+                       &e.canonify_expression(&c, &parse_enum_expression("os::debian && out =~ outcome::kept")).unwrap()));
         assert!(e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")), PToken::from("out") => (PToken::from("outcome"),PToken::from("kept")) }, 
-                       &e.canonify_expression(&parse_enum_expression("os::debian || out =~ outcome::kept")).unwrap()));
+                       &e.canonify_expression(&c, &parse_enum_expression("os::debian || out =~ outcome::kept")).unwrap()));
     }
 
     #[test]
     fn test_varlist() {
-        let e = init_tests();
+        let (e,c) = init_tests();
         {
             let mut var1 = HashMap::new();
             let ex = parse_enum_expression("os::debian");
-            let exp = e.canonify_expression(&ex).unwrap();
+            let exp = e.canonify_expression(&c, &ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
             assert_eq!(var1, hashmap! { PToken::from("os") => PToken::from("os") });
         }
         {
             let mut var1 = HashMap::new();
             let ex = parse_enum_expression("os::debian && out =~ outcome::kept");
-            let exp = e.canonify_expression(&ex).unwrap();
+            let exp = e.canonify_expression(&c, &ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
             assert_eq!(
                 var1,
@@ -565,7 +590,7 @@ mod tests {
         {
             let mut var1 = HashMap::new();
             let ex = parse_enum_expression("family::debian && os::ubuntu");
-            let exp = e.canonify_expression(&ex).unwrap();
+            let exp = e.canonify_expression(&c, &ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
             assert_eq!(var1, hashmap! { PToken::from("os") => PToken::from("os") });
         }
