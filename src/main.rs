@@ -1,8 +1,8 @@
 #[macro_use]
 mod error;
-mod parser;
-mod enums;
 mod context;
+mod enums;
+mod parser;
 
 use nom::IResult;
 use std::fmt::Debug;

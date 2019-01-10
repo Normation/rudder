@@ -1,5 +1,5 @@
-use nom::*;
 use nom::types::CompleteStr;
+use nom::*;
 //use nom_locate::position;
 use nom_locate::LocatedSpan;
 use std::fmt;
@@ -11,6 +11,7 @@ use std::ops::Deref;
 // TODO lifetime = 'src
 // TODO store position in strings
 // TODO tests for high level parsers
+// TODO _ in identifiers
 
 // STRUCTURES
 //
@@ -377,12 +378,19 @@ named!(enum_atom<PInput,PEnumExpression>,
       | do_parse!(
             var: identifier >>
             tag!("=~") >>
-            penum: opt!(terminated!(identifier,tag!("::"))) >>
+            penum: opt!(terminated!(identifier,tag!(":"))) >>
             value: identifier >>
             (PEnumExpression::Compare(Some(var),penum,value))
         )
       | do_parse!(
-            penum: opt!(terminated!(identifier,tag!("::"))) >>
+            var: identifier >>
+            tag!("!~") >>
+            penum: opt!(terminated!(identifier,tag!(":"))) >>
+            value: identifier >>
+            (PEnumExpression::Not(Box::new(PEnumExpression::Compare(Some(var),penum,value))))
+        )
+      | do_parse!(
+            penum: opt!(terminated!(identifier,tag!(":"))) >>
             value: identifier >>
             (PEnumExpression::Compare(None,penum,value))
         )
@@ -673,13 +681,12 @@ mod tests {
                 }
             ))
         );
-
     }
 
     #[test]
     fn test_enum_expression() {
         assert_eq!(
-            mapok(enum_expression(pinput("", "a=~b::c"))),
+            mapok(enum_expression(pinput("", "a=~b:c"))),
             Ok((
                 "",
                 PEnumExpression::Compare(Some("a".into()), Some("b".into()), "c".into())
@@ -697,14 +704,25 @@ mod tests {
             Ok(("", PEnumExpression::Compare(None, None, "bc".into())))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("", "(a =~ b::hello)"))),
+            mapok(enum_expression(pinput("", "(a =~ b:hello)"))),
             Ok((
                 "",
                 PEnumExpression::Compare(Some("a".into()), Some("b".into()), "hello".into())
             ))
         );
         assert_eq!(
-            mapok(enum_expression(pinput("", "bc&&(a||b=~hello::g)"))),
+            mapok(enum_expression(pinput("", "(a !~ b:hello)"))),
+            Ok((
+                "",
+                PEnumExpression::Not(Box::new(PEnumExpression::Compare(
+                    Some("a".into()),
+                    Some("b".into()),
+                    "hello".into()
+                )))
+            ))
+        );
+        assert_eq!(
+            mapok(enum_expression(pinput("", "bc&&(a||b=~hello:g)"))),
             Ok((
                 "",
                 PEnumExpression::And(
@@ -810,10 +828,10 @@ mod tests {
             Ok((" ", "simpl3".into()))
         );
         // TODO accept _
-//        assert_eq!(
-//            mapok(identifier(pinput("", "simple_word "))),
-//            Ok((" ", "simple_word".into()))
-//        );
+        //        assert_eq!(
+        //            mapok(identifier(pinput("", "simple_word "))),
+        //            Ok((" ", "simple_word".into()))
+        //        );
         assert!(identifier(pinput("", "%imple ")).is_err());
         assert!(identifier(pinput("", "5imple ")).is_err());
     }
