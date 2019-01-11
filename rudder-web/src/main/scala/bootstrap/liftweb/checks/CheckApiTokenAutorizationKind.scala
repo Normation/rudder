@@ -41,9 +41,9 @@ package checks
 import com.normation.rudder.domain.RudderDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import javax.servlet.UnavailableException
-
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.ldap.sdk.BuildFilter
+import com.normation.rudder.api.ApiAccountType
 import com.normation.rudder.api.ApiAuthorizationKind
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
@@ -65,14 +65,15 @@ class CheckApiTokenAutorizationKind(
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
     import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
-    import com.normation.rudder.domain.RudderLDAPConstants.{ OC_API_ACCOUNT, A_API_AUTHZ_KIND, A_API_UUID }
+    import com.normation.rudder.domain.RudderLDAPConstants.{ OC_API_ACCOUNT, A_API_AUTHZ_KIND, A_API_UUID, A_API_KIND }
 
     for {
       ldap       <- ldapConnexion
     } yield {
-      ldap.searchOne(rudderDit.API_ACCOUNTS.dn, BuildFilter.IS(OC_API_ACCOUNT), A_API_AUTHZ_KIND, A_NAME).foreach { e =>
+      ldap.searchOne(rudderDit.API_ACCOUNTS.dn, BuildFilter.IS(OC_API_ACCOUNT), A_API_KIND, A_API_AUTHZ_KIND, A_NAME).foreach { e =>
         // we are looking for entries where A_API_ACL is not defined
-        if(!e.hasAttribute(A_API_AUTHZ_KIND)) {
+        // we also want to exclude already ported ACL, ie the one where A_API_KIND is defined to something else than "public"
+        if(!e.hasAttribute(A_API_AUTHZ_KIND) && e(A_API_KIND).getOrElse(ApiAccountType.PublicApi.name) == ApiAccountType.PublicApi.name ) {
           e += (A_API_AUTHZ_KIND, DEFAULT_AUTHZ.name)
           val name = e(A_NAME).orElse(e(A_API_UUID)).getOrElse("")
           ldap.save(e) match {
