@@ -863,7 +863,8 @@ class LDAPEntityMapper(
 
         def warnOnIgnoreAuthz(): Unit = {
           if(e(A_API_AUTHZ_KIND).isDefined || e(A_API_EXPIRATION_DATETIME).isDefined) {
-            logger.warn(s"Attribute '${A_API_AUTHZ_KIND}' or '${A_API_EXPIRATION_DATETIME}' is defined for " +
+            //this is a log for dev, an user can't do anything about it.
+            logger.debug(s"Attribute '${A_API_AUTHZ_KIND}' or '${A_API_EXPIRATION_DATETIME}' is defined for " +
                         s"API account '${name.value}' [${id.value}], it will be ignored because the account is of type '${accountType.name}'.")
           }
         }
