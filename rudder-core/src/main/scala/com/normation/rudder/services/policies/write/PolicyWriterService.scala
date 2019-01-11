@@ -59,6 +59,7 @@ import com.normation.templates.STVariable
 import com.normation.utils.Control._
 import java.io.File
 import java.io.IOException
+
 import monix.eval.Task
 import monix.eval.TaskSemaphore
 import monix.execution.ExecutionModel
@@ -71,8 +72,9 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
+
 import scala.concurrent.Await
-import scala.util.{ Failure => FailTry }
+import scala.util.{Failure => FailTry}
 import scala.util.Success
 import scala.util.Try
 import com.normation.cfclerk.domain.SystemVariable
@@ -82,7 +84,10 @@ import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
+
+import cats.data.NonEmptyList
 import com.normation.rudder.domain.logger.PolicyLogger
+import com.normation.rudder.hooks.HookReturnCode
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -190,35 +195,85 @@ class PolicyWriterServiceImpl(
    *
    */
   def parrallelSequence[U,T](seq: Seq[U])(f:U => Box[T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Seq[T]] = {
-    import scala.concurrent.duration._
-    // compact format a Failure(msg1, Failure(msg2, ...)) in to a Failure("msg1; msg2")
-    def compactFailure[A](b: Box[A]): Box[A] = {
-      b match {
-        case f:Failure =>
-          Failure(f.messageChain.replaceAll("<-", ";"), f.rootExceptionCause, Empty)
-        case x => x
-      }
+    def boxToEither(f: U => Box[T])(u:U): Either[String, T] = f(u) match {
+      case Full(t)    => Right(t)
+      case Empty      => Left("Error (no message available)")
+      case f: Failure => Left(f.messageChain)
     }
+    def recover(u:U, ex: Throwable): Either[String, T] = Left(ex.getMessage)
+
+    parrallelSequenceGen(seq)(boxToEither(f) _, recover) match {
+      case Left(nel) => Failure(nel.toList.mkString(";"))
+      case Right(x)  => Full(x)
+    }
+  }
+
+  // a version for Hook with a nicer message accumulation
+  def parrallelSequenceNodeHook(seq: Seq[AgentNodeConfiguration])(f: AgentNodeConfiguration => HookReturnCode)(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Unit] = {
+
+    type RES = Either[(NodeId, HookReturnCode.Error), HookReturnCode.Success]
+
+    def codeToEither(f: AgentNodeConfiguration => HookReturnCode)(u:AgentNodeConfiguration): RES = f(u) match {
+      case s:HookReturnCode.Success => Right(s)
+      case e:HookReturnCode.Error   => Left((u.config.nodeInfo.id, e))
+    }
+
+    def recover(u: AgentNodeConfiguration, ex: Throwable): RES = Left((u.config.nodeInfo.id, HookReturnCode.SystemError(ex.getMessage)))
+
+    def limitOut(s: String) = {
+      val max = 300
+      if(s.size <= max) s else s.substring(0, max-3) + "..."
+    }
+
+    parrallelSequenceGen(seq)(codeToEither(f) _, recover) match {
+      case Right(x)  => Full(())
+      case Left(nel) =>
+        // in that case, it is extremely likely that most messages are the same. We group them together
+        val nodeErrors = nel.toList.map{ case (nodeid, err) => err match {
+          // we need to limit sdtout/sdterr lenght
+          case HookReturnCode.ScriptError(code, stdout, stderr, msg) => (nodeid, s"${msg} [stdout:${limitOut(stdout)}][stderr:${limitOut(stderr)}]")
+          case x                                                     => (nodeid, x.msg)
+        }}
+        val message = nodeErrors.groupBy( _._2 ).foldLeft("Error when executing hooks:") { case (s, (msg, list)) =>
+          s + s"\n ${msg} (for node(s) ${list.map(_._1.value).mkString(";")})"
+        }
+        Failure(message)
+    }
+  }
+
+  // the generic version of parrallelSeq
+  def parrallelSequenceGen[U, T, E](seq: Seq[U])(f:U => Either[E, T], recover:(U, Throwable) => Either[E, T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Either[NonEmptyList[E], Seq[T]] = {
+    import scala.concurrent.duration._
 
     //transform the sequence in tasks, gather results unordered
     val tasks = Task.gather(seq.map { action =>
-      semaphore.greenLight(Task(f(action)))
+      semaphore.greenLight(Task(
+        try {
+          f(action)
+        } catch {
+          case ex: Throwable => recover(action, ex)
+        }
+      ))
     })
 
-   // give a timeout for the whole tasks sufficiently large.
-   // Hint: CF-promise taking 2s by node, for 10 000 nodes, on
-   // 4 cores => ~85 minutes...
-   // It is here mostly as a safeguard for generation which went wrong -
-   // we will already have timeout at the thread level for stalling threads.
-   val timeout = 2.hours
+    // give a timeout for the whole tasks sufficiently large.
+    // Hint: CF-promise taking 2s by node, for 10 000 nodes, on
+    // 4 cores => ~85 minutes...
+    // It is here mostly as a safeguard for generation which went wrong -
+    // we will already have timeout at the thread level for stalling threads.
+    val timeout = 2.hours
 
-   //exec
-   for {
-     updated       <- tryo(Await.result(tasks.runAsync, timeout))
-     gatherErrors  <- compactFailure(bestEffort(updated)(identity))
-   } yield {
-     gatherErrors
-   }
+    //exec
+    val updated = Await.result(tasks.runAsync, timeout)
+    // gather results
+    val gatherErrors = updated.foldLeft[Either[NonEmptyList[E], Seq[T]]](Right(Nil)) {
+      case (Left(nel) , Left(err)) => Left(err :: nel)
+      case (Left(nel) , _        ) => Left(nel)
+      case (Right(_)  , Left(err)) => Left(NonEmptyList.of(err))
+      case (Right(seq), Right(x) ) => Right(seq :+ x)
+    }
+
+   gatherErrors
   }
 
   /**
@@ -286,7 +341,6 @@ class PolicyWriterServiceImpl(
     implicit val scheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
 
     //interpret HookReturnCode as a Box
-    import com.normation.rudder.hooks.HooksImplicits.hooksReturnCodeToBox
 
     val readTemplateTime1 = DateTime.now.getMillis
     for {
@@ -360,7 +414,7 @@ class PolicyWriterServiceImpl(
       // and perhaps we should have an AgentSpecific global pre/post write
 
       nodePreMvHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
-      preMvHooks       <- parrallelSequence(configAndPaths) { agentNodeConfig =>
+      preMvHooks       <- parrallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
                             val hostname = agentNodeConfig.config.nodeInfo.hostname
@@ -393,7 +447,7 @@ class PolicyWriterServiceImpl(
       _                  = policyLogger.debug(s"Policies moved to their final position in ${movedPromisesDur} ms")
 
       nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
-      postMvHooks      <- parrallelSequence(configAndPaths) { agentNodeConfig =>
+      postMvHooks      <- parrallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
                             val hostname = agentNodeConfig.config.nodeInfo.hostname
