@@ -84,13 +84,13 @@ bundle agent cronjob(commands,user,hours,mins)
 # ```
 {
   vars:
-    suse::
+    suse|sles::
       "crontab" string => "/var/spool/cron/tabs";
     redhat|fedora::
       "crontab" string => "/var/spool/cron";
     freebsd::
       "crontab" string => "/var/cron/tabs";
-    !(suse|redhat|fedora|freebsd)::
+    !(suse|sles|redhat|fedora|freebsd)::
       "crontab" string => "/var/spool/cron/crontabs";
 
     any::
@@ -269,7 +269,8 @@ bundle agent logrotate(log_files, max_size, rotate_levels)
       "$(log_files)"
       comment     => "Rotate file if above specified size",
       rename      => rotate("$(rotate_levels)"),
-      file_select => bigger_than("$(max_size)");
+      file_select => bigger_than("$(max_size)"),
+      if => fileexists( $(log_files) );
 }
 
 bundle agent prunedir(dir, max_days)

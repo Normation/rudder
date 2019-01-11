@@ -63,8 +63,8 @@ bundle common paths
 # {
 # commands:
 #   _stdlib_path_exists_sed::
-#      “$(path[sed])”
-#        args => “-i 's/^M//' $(filename)”
+#      "$(path[sed])"
+#        args => "-i 's/^M//' $(filename)"
 # }
 # ```
 {
@@ -184,6 +184,26 @@ bundle common paths
       "path[journalctl]"        string => "/usr/bin/journalctl";
       "path[netctl]"            string => "/usr/bin/netctl";
 
+    coreos::
+
+      "path[awk]"      string => "/usr/bin/awk";
+      "path[cat]"      string => "/usr/bin/cat";
+      "path[cksum]"    string => "/usr/bin/cksum";
+      "path[curl]"     string => "/usr/bin/curl";
+      "path[cut]"      string => "/usr/bin/cut";
+      "path[diff]"     string => "/usr/bin/diff";
+      "path[dig]"      string => "/usr/bin/dig";
+      "path[echo]"     string => "/usr/bin/echo";
+      "path[ip]"       string => "/usr/bin/ip";
+      "path[lsof]"     string => "/usr/bin/lsof";
+      "path[netstat]"  string => "/usr/bin/netstat";
+      "path[ping]"     string => "/usr/bin/ping";
+      "path[printf]"   string => "/usr/bin/printf";
+      "path[sed]"      string => "/usr/bin/sed";
+      "path[sort]"     string => "/usr/bin/sort";
+      "path[test]"     string => "/usr/bin/test";
+      "path[wget]"     string => "/usr/bin/wget";
+
     freebsd|netbsd|openbsd::
 
       "path[awk]"      string => "/usr/bin/awk";
@@ -239,7 +259,6 @@ bundle common paths
 
     solaris::
 
-      "path[awk]"      string => "/usr/bin/awk";
       "path[bc]"       string => "/usr/bin/bc";
       "path[cat]"      string => "/usr/bin/cat";
       "path[cksum]"    string => "/usr/bin/cksum";
@@ -248,21 +267,13 @@ bundle common paths
       "path[curl]"     string => "/usr/bin/curl";
       "path[cut]"      string => "/usr/bin/cut";
       "path[dc]"       string => "/usr/bin/dc";
-      "path[df]"       string => "/usr/bin/df";
       "path[diff]"     string => "/usr/bin/diff";
       "path[dig]"      string => "/usr/sbin/dig";
       "path[echo]"     string => "/usr/bin/echo";
-      "path[egrep]"    string => "/usr/bin/egrep";
-      "path[find]"     string => "/usr/bin/find";
-      "path[grep]"     string => "/usr/bin/grep";
-      "path[ls]"       string => "/usr/bin/ls";
       "path[netstat]"  string => "/usr/bin/netstat";
       "path[ping]"     string => "/usr/bin/ping";
       "path[perl]"     string => "/usr/bin/perl";
       "path[printf]"   string => "/usr/bin/printf";
-      "path[sed]"      string => "/usr/bin/sed";
-      "path[sort]"     string => "/usr/bin/sort";
-      "path[tr]"       string => "/usr/bin/tr";
       "path[wget]"     string => "/usr/bin/wget";
       #
       "path[svcs]"     string => "/usr/bin/svcs";
@@ -278,6 +289,28 @@ bundle common paths
       "path[pkgrm]"    string => "/usr/sbin/pkgrm";
       "path[zoneadm]"  string => "/usr/sbin/zoneadm";
       "path[zonecfg]"  string => "/usr/sbin/zonecfg";
+
+    solaris.(mpf_stdlib_use_posix_utils.!disable_mpf_stdlib_use_posix_utils)::
+      "path[awk]"      string => "/usr/xpg4/bin/awk";
+      "path[df]"       string => "/usr/xpg4/bin/df";
+      "path[egrep]"    string => "/usr/xpg4/bin/egrep";
+      "path[find]"     string => "/usr/xpg4/bin/find";
+      "path[grep]"     string => "/usr/xpg4/bin/grep";
+      "path[ls]"       string => "/usr/xpg4/bin/ls";
+      "path[sed]"      string => "/usr/xpg4/bin/sed";
+      "path[sort]"     string => "/usr/xpg4/bin/sort";
+      "path[tr]"       string => "/usr/xpg4/bin/tr";
+
+    solaris.!(mpf_stdlib_use_posix_utils.!disable_mpf_stdlib_use_posix_utils)::
+      "path[awk]"      string => "/usr/bin/awk";
+      "path[df]"       string => "/usr/bin/df";
+      "path[egrep]"    string => "/usr/bin/egrep";
+      "path[find]"     string => "/usr/bin/find";
+      "path[grep]"     string => "/usr/bin/grep";
+      "path[ls]"       string => "/usr/bin/ls";
+      "path[sed]"      string => "/usr/bin/sed";
+      "path[sort]"     string => "/usr/bin/sort";
+      "path[tr]"       string => "/usr/bin/tr";
 
     redhat::
 
@@ -440,10 +473,10 @@ bundle common paths
 
       "path[sysctl]"        string => "/sbin/sysctl";
 
-    !suse::
+    !(suse|sles)::
       "path[logger]"        string => "/usr/bin/logger";
 
-    suse::
+    suse|sles::
 
       "path[awk]"           string => "/usr/bin/awk";
       "path[bc]"            string => "/usr/bin/bc";
