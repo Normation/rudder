@@ -33,6 +33,22 @@ pub enum EnumExpression<'a> {
     Default,
 }
 
+impl<'a> EnumExpression<'a> {
+    pub fn position_str(&self) -> String {
+        let (file, line, col) = self.position();
+        format!("{}:{}:{}", file, line, col)
+    }
+    pub fn position(&self) -> (String, u32, usize) {
+        match self {
+            EnumExpression::Compare(_,_,v) => v.position(),
+            EnumExpression::And(a,_) => a.position(),
+            EnumExpression::Or(a,_) => a.position(),
+            EnumExpression::Not(a) => a.position(),
+            EnumExpression::Default => (String::from("unknown"),0,0),
+        }
+    }
+}
+
 impl<'a> EnumList<'a> {
     // Constructor
     pub fn new() -> EnumList<'static> {
@@ -372,19 +388,33 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    //fn context_iterator(&self, context: &'a VarContext, variable_list: &HashMap<PToken<'a>, PToken<'a>>) -> Iterator<Item=&HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>>  {
-    //
-    //}
-    //TODO need var context
-    //TODO need var context generator
-    //    fn iterate_variables(&self, i: &HashMap<PToken<'a>,PToken<'a>>) -> Iterator<Item=&HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>> {
-    //        None
-    //    }
-    //    pub fn evaluate(&self, expressions: &Vec<EnumExpression>) -> ??? {
-    //        let mut variables = HashMap::new();
-    //        expressions.for_each(|e| self.list_variable_enum(&mut variables, &e));
-    //
-    //    }
+    fn describe(&self, values: HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>) -> String {
+        values.iter()
+              .map(|(key,(e,val))| format!("{}=~{}:{}",key.fragment(),e.fragment(),val.fragment()))
+              .collect::<Vec<String>>()
+              .join(" && ")
+    }
+
+    pub fn evaluate(&self, context: &'a VarContext<'a>, expressions: &Vec<EnumExpression>, case: PToken<'a>) -> Vec<PError> {
+        let mut warns = Vec::new();
+        let mut variables = HashMap::new();
+        expressions.iter().for_each(|e| self.list_variable_enum(&mut variables, &e));
+        let it = ContextIteraror::new(self, context, variables);        
+        for values in it {
+            let mut matched_exp = expressions.iter().filter(|e| self.eval(&values,e));
+            match matched_exp.next() {
+                // Missing case
+                None => warns.push(warn!(case, "Missing case in {}, '{}' is never processed", case, self.describe(values))),
+                Some(e1) => match matched_exp.next() {
+                    // Single matching case
+                    None => {},
+                    // Overlapping cases
+                    Some(e2) => warns.push(warn!(case,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(values)))
+                },
+            }
+        }
+        warns
+    }
 }
 
 enum AltVal<'a> {
@@ -466,22 +496,6 @@ impl<'a> Iterator for ContextIteraror<'a> {
         None
     }
 }
-
-//pub fn evaluate(Vec<expr>) -> (True/missing(expr), disjointe/overlap(e1,e2))
-//{
-//    pset = get_parameter_sets(Vec<expr>)
-//    pset = get_root_sets(pset)
-//    for i in pset.values
-//        for j in expr,
-//            over[j] = eval expr
-//        if count(over) > 1 -> overlap
-//        if count(over) = 0 -> missing (create_expr(i))
-//
-//    // There's probably a place for optimisation here, we know the truth table or the expression,
-//    // -> it can probably be simplified
-//}
-//
-//fn largest_set(set,name,target_set)
 
 #[cfg(test)]
 mod tests {
@@ -745,5 +759,21 @@ mod tests {
         e.list_variable_enum(&mut varlist, &exp);
         let it = ContextIteraror::new(&e, &c, varlist);
         assert_eq!(it.count(),15);
+    }
+
+    #[test]
+    fn test_evaluate() {
+        let (e, c) = init_tests();
+        let case = PToken::from("case");
+        let mut exprs = Vec::new();
+        let ex1 = parse_enum_expression("family:debian || family:redhat");
+        exprs.push(e.canonify_expression(&c, &ex1).unwrap());
+        assert_eq!(e.evaluate(&c, &exprs, case).len(), 1);
+        let ex1 = parse_enum_expression("os:aix");
+        exprs.push(e.canonify_expression(&c, &ex1).unwrap());
+        assert_eq!(e.evaluate(&c, &exprs, case), Vec::new());
+        let ex2 = parse_enum_expression(" family:redhat");
+        exprs.push(e.canonify_expression(&c, &ex2).unwrap());
+        assert_eq!(e.evaluate(&c, &exprs, case).len(), 2);
     }
 }

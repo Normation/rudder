@@ -2,11 +2,13 @@ use std::fmt;
 
 // Error management
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum PError {
     //          message file    line  column
     Compilation(String, String, u32, usize),
-    //    Parsing(nom::Err),
+    //Parsing(nom::Err),
+    //       message file    line  column
+    Warning(String, String, u32, usize),
 }
 
 // Error management definitions
@@ -25,10 +27,22 @@ macro_rules! fail {
     });
 }
 
+macro_rules! warn {
+    ($origin:expr, $ ( $ arg : tt ) *) => ({
+        let (file,line,col) = $origin.position();
+        PError::Warning(std::fmt::format( format_args!( $ ( $ arg ) * ) ),
+                                       file,
+                                       line,
+                                       col
+                                      )
+    });
+}
+
 impl fmt::Display for PError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             PError::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
+            PError::Warning(msg, _, _, _) => write!(f, "Compilation warning: {}", msg),
         }
     }
 }

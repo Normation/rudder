@@ -49,6 +49,9 @@ impl<'a> PToken<'a> {
             self.val.get_utf8_column(),
         )
     }
+    pub fn fragment(&self) -> &'a str {
+        &self.val.fragment
+    }
 }
 // Convert from str (lossy, used for terse tests)
 impl<'a> From<&'a str> for PToken<'a> {
