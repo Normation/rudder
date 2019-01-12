@@ -3,6 +3,8 @@ use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PEnumMapping, PToken};
 use std::collections::HashMap;
 use std::collections::HashSet;
+//use std::slice::Iter;
+use std::collections::hash_set::Iter;
 
 // As single enum can be derived into different set through multiple mappings
 // However a single enum can have only one parent
@@ -55,6 +57,10 @@ impl<'a> EnumList<'a> {
                 e.name,
                 position
             );
+        }
+        // check that enum is not empty
+        if e.items.len() == 0 {
+            fail!(e.name, "Enums must have at least one item, {} is empty", e.name);
         }
         let parent_enum = self.mapping_path.get(&e.name);
         for v in &e.items {
@@ -162,6 +168,12 @@ impl<'a> EnumList<'a> {
         }
     }
 
+    // return an iterator over an enum
+    // !NO CHECK the enum must exist
+    fn enum_iter(&'a self, e: PToken<'a>) -> Iter<'a,PToken<'a>> {
+        self.enums.get(&e).unwrap().1.iter()
+    }
+
     // find enum path from e1 fo e2
     fn find_path(&'a self, e1: PToken<'a>, e2: PToken<'a>) -> Option<Vec<PToken<'a>>> {
         // terminate recursion
@@ -262,7 +274,7 @@ impl<'a> EnumList<'a> {
                             );
                         }
                     }
-                    // TODO reduce expressions or warn the user if variable is known
+                    // TODO warn the user if variable is known
                     // not an enum
                     _ => fail!(var1, "Variable {} is not a {} enum", var1, e1),
                 }
@@ -314,7 +326,8 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    // extends the list of variable,enum that are used in an expression
+    // list variable,enum that are used in an expression
+    // this is recursive, pass it an empty hashmap at first call
     fn list_variable_enum(
         &self,
         variables: &mut HashMap<PToken<'a>, PToken<'a>>,
@@ -359,6 +372,9 @@ impl<'a> EnumList<'a> {
         }
     }
 
+    //fn context_iterator(&self, context: &'a VarContext, variable_list: &HashMap<PToken<'a>, PToken<'a>>) -> Iterator<Item=&HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>>  {
+    //
+    //}
     //TODO need var context
     //TODO need var context generator
     //    fn iterate_variables(&self, i: &HashMap<PToken<'a>,PToken<'a>>) -> Iterator<Item=&HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>> {
@@ -369,6 +385,86 @@ impl<'a> EnumList<'a> {
     //        expressions.for_each(|e| self.list_variable_enum(&mut variables, &e));
     //
     //    }
+}
+
+enum AltVal<'a> {
+    Constant(PToken<'a>),
+    Iterator(Iter<'a,PToken<'a>>),
+}
+struct ContextIteraror<'a> {
+    // enum reference
+    enumlist: &'a EnumList<'a>,
+    // variables to vary
+    varlist: Vec<PToken<'a>>,
+    //                 name        value or iterator
+    iterators: HashMap<PToken<'a>, AltVal<'a>>,
+    // current iteration         enum       value
+    current: HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>,
+    // true before first iteration
+    first: bool,
+}
+
+impl<'a> ContextIteraror<'a> {
+    fn new(enumlist: &'a EnumList<'a>, context: &'a VarContext<'a>, variable_list: HashMap<PToken<'a>, PToken<'a>>) -> ContextIteraror<'a> {
+        let varlist: Vec<PToken<'a>> = variable_list.keys().cloned().collect();
+        let mut iterators = HashMap::new();
+        let mut current = HashMap::new();
+        for v in &varlist {
+            match context.get_variable(*v) {
+                // known value
+                Some(VarKind::Enum(e,Some(val))) => {
+                    current.insert(*v, (*e,*val));
+                    iterators.insert(*v, AltVal::Constant(*val));
+                },
+                // iterable value
+                Some(VarKind::Enum(e,None)) => {
+                    let mut it = enumlist.enum_iter(*e);
+                    current.insert(*v, (*e,*(it.next().unwrap()))); // enums must always have at least one value
+                    iterators.insert(*v, AltVal::Iterator(it));
+                },
+                // impossible values
+                None => panic!("BUG This missing var should have already been detected"),
+                Some(_) => panic!("BUG This mistyped var should have already been detected"),
+            };
+        }
+        ContextIteraror { enumlist, varlist, iterators, current, first: true }
+    }
+}
+
+impl<'a> Iterator for ContextIteraror<'a> {
+    type Item = HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.first {
+            self.first = false;
+            // We cannot return a reference into self, so we must clone
+            // probably not the best solution but at least it's correct
+            return Some(self.current.clone());
+        }
+        for v in &self.varlist {
+            let reset = match self.iterators.get_mut(v) {
+                Some(AltVal::Constant(_)) => false, // skip this var
+                Some(AltVal::Iterator(i)) => match i.next() {
+                    None => true, // restart this iterator with current enum
+                    Some(val) => {
+                        // get next value in iterator and return
+                        self.current.entry(*v).and_modify(|e| {e.1=*val});
+                        return Some(self.current.clone());
+                    },
+                },
+                _ => panic!("BUG some value disapeared"),
+            };
+            if reset {
+                if let Some((e,_)) = self.current.get(v) {
+                    // restart iterator and update current
+                    let mut it = self.enumlist.enum_iter(*e);
+                    self.current.insert(*v, (*e,*(it.next().unwrap())));
+                    self.iterators.insert(*v, AltVal::Iterator(it));
+                } // no else, it has been checked many times
+            }
+        }
+        // no change or all iterator restarted -> the end
+        None
+    }
 }
 
 //pub fn evaluate(Vec<expr>) -> (True/missing(expr), disjointe/overlap(e1,e2))
@@ -628,5 +724,26 @@ mod tests {
             e.list_variable_enum(&mut var1, &exp);
             assert_eq!(var1, hashmap! { PToken::from("os") => PToken::from("os") });
         }
+        {
+            let mut var1 = HashMap::new();
+            let ex1 = parse_enum_expression("family:debian && os:ubuntu");
+            let exp1 = e.canonify_expression(&c, &ex1).unwrap();
+            e.list_variable_enum(&mut var1, &exp1);
+            let ex2 = parse_enum_expression("os:debian && out =~ outcome:kept");
+            let exp2 = e.canonify_expression(&c, &ex2).unwrap();
+            e.list_variable_enum(&mut var1, &exp2);
+            assert_eq!(var1, hashmap! { PToken::from("os") => PToken::from("os"), PToken::from("out") => PToken::from("outcome") });
+        }
+    }
+
+    #[test]
+    fn test_iterator() {
+        let (e, c) = init_tests();
+        let mut varlist = HashMap::new();
+        let ex = parse_enum_expression("os:debian && out =~ outcome:kept");
+        let exp = e.canonify_expression(&c, &ex).unwrap();
+        e.list_variable_enum(&mut varlist, &exp);
+        let it = ContextIteraror::new(&e, &c, varlist);
+        assert_eq!(it.count(),15);
     }
 }

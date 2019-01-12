@@ -1,7 +1,6 @@
 use crate::error::*;
 use crate::parser::PToken;
 use std::collections::HashMap;
-use std::collections::HashSet;
 
 // variable kind
 #[derive(Debug, PartialEq)]
