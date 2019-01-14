@@ -88,13 +88,15 @@
 #
 
 # This is called in 10_ncf_internals/initialization.cf
-bundle agent flag_initialization {
+bundle agent flag_initialization
+{
   vars:
       # designed to be incremented when a global unique ID is needed
       "flag_unique.value" string => "1";
 }
 
-bundle agent cancel_flag(name) {
+bundle agent cancel_flag(name)
+{
   vars:
       "cname"  string => canonify("${name}");
       "cancel" string => "",
@@ -102,7 +104,8 @@ bundle agent cancel_flag(name) {
                    if => "flag_reserved_${cname}" ;
 }
 
-bundle agent reserve_flag(name) {
+bundle agent reserve_flag(name)
+{
   vars:
       "cname" string => canonify("${name}");
       "flag_unique.value" string => eval("${flag_unique.value}+1", "math", "infix");
@@ -155,7 +158,8 @@ bundle agent reserve_flag(name) {
                                if => "reserved";
 }
 
-bundle agent set_flag(name) {
+bundle agent set_flag(name)
+{
   vars:
       "cname" string => canonify("${name}");
       "time" string => strftime("localtime", "%FT%T%z", "${sys.systime}");
@@ -218,7 +222,8 @@ bundle agent set_flag(name) {
 
 # Should probably not be necessary, unless you need to know the state of the flag
 # without reserving it
-bundle agent get_flag(name) {
+bundle agent get_flag(name)
+{
   vars:
       "cname" string => canonify("${name}");
       "flag_unique.value" string => eval("${flag_unique.value}+1", "math", "infix");
@@ -260,7 +265,8 @@ bundle agent get_flag(name) {
 }
 
 # This updates the value of the in-memory flags database. Should not be called from outside.
-bundle agent _read_flags {
+bundle agent _read_flags
+{
   vars:
       "flag_unique.value" string => eval("${flag_unique.value}+1", "math", "infix");
 
@@ -278,4 +284,3 @@ bundle agent _read_flags {
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 }
-

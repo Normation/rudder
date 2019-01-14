@@ -1,0 +1,346 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# Constants definitions
+bundle common ncf_const
+{
+  vars:
+      "s" string => " ";
+}
+
+# Don't do anything if class warn is defined, or remediate the promises
+# if immediate is defined (default action)
+# DEPRECATED: warn and immediate need to be global classes, use policy(p) instead.
+body action do_if_immediate
+{
+  warn|dry_run|global_dry_run::
+    action_policy => "warn";
+}
+
+# Useful for immediate call to bundles with dry-run mode on,
+# as we do not want dry-run mode applied on it.
+body action immediate_ignore_dry_run
+{
+    ifelapsed => "0";
+}
+
+body action WarnOnly
+{
+    action_policy => "warn";
+}
+
+# Define x prefixes/suffixed with promises outcome, based on return codes
+# !DEPRECATED!
+body classes classes_generic_return_codes(x, kept_return_code, repaired_return_code, failed_return_code)
+{
+    kept_returncodes => { "${kept_return_code}" };
+    repaired_returncodes => { "${repaired_return_code}" };
+    failed_returncodes =>  { "${failed_return_code}" };
+
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+}
+
+# Define x prefixes/suffixed with promises outcome, based on return codes
+body classes classes_generic_return_single_code_two(x, y, kept_return_code, repaired_return_code, failed_return_code)
+{
+    kept_returncodes => { "${kept_return_code}" };
+    repaired_returncodes => { "${repaired_return_code}" };
+    failed_returncodes =>  { "${failed_return_code}" };
+
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached",
+                          "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
+}
+
+# Define x prefixes/suffixed with promises outcome, based on return codes
+body classes classes_generic_return_code_list_two(x, y, kept_return_codes, repaired_return_codes)
+{
+    kept_returncodes => { @{kept_return_codes} };
+    repaired_returncodes => { @{repaired_return_codes} };
+
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached",
+                          "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error"};
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
+}
+
+# Define x prefixes/suffixed with true/false outcome, based on return codes
+# Note that an unknown return code is an error and doesn't return false nor true, just an error.
+body classes classes_generic_return_boolean_list_two(x, y, boolean_prefix, true_return_codes, false_return_codes)
+{
+    kept_returncodes => { @{true_return_codes} };
+    repaired_returncodes => { @{false_return_codes} };
+
+    promise_repaired => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                          "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached", "${boolean_prefix}_false" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached", "${boolean_prefix}_true" };
+}
+
+# Define x and y prefixed/suffixed with promise outcome
+body classes classes_generic_two(x,y)
+{
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached",
+                          "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
+}
+
+body classes common_classes_exclusive_persist_codes(prefix, persist, keptcodes, repairedcodes, errorcodes)
+{
+    kept_returncodes     => { "@{keptcodes}" };
+    repaired_returncodes => { "@{repairedcodes}" };
+    failed_returncodes   => { "@{errorcodes}" };
+
+    promise_kept     => { "${prefix}_kept"    , "${prefix}_ok" };
+    cancel_kept      => { "${prefix}_repaired", "${prefix}_failed", "${prefix}_error" };
+
+    promise_repaired => { "${prefix}_repaired", "${prefix}_ok" };
+    cancel_repaired  => { "${prefix}_kept", "${prefix}_failed", "${prefix}_error"  };
+
+    repair_failed    => { "${prefix}_failed"  , "${prefix}_error" };
+    repair_denied    => { "${prefix}_denied"  , "${prefix}_error" };
+    repair_timeout   => { "${prefix}_timeout" , "${prefix}_error" };
+    cancel_notkept   => { "${prefix}_kept", "${prefix}_ok", "${repaired}" };
+
+    persist_time     => "${persist}";
+}
+
+###########################################################################################
+# Persistent class
+# If the promise is repaired, define repaired for length minutes and undefine failed
+# If the promise is not kept, undefine repaired and define failed for length minutes
+##########################################################################################
+body classes persistent_class(repaired, failed, length)
+{
+    promise_repaired => { "${repaired}" };
+    repair_failed    => { "${failed}" };
+    repair_denied    => { "${failed}" };
+    repair_timeout   => { "${failed}" };
+
+    cancel_repaired  => {"${failed}"};
+    cancel_notkept   => {"${repaired}"};
+
+    persist_time     => "${length}";
+}
+
+###########################################################################################
+# Persistent class
+# If the promise is repaired/kept, define repaired for length minutes and undefine failed
+# If the promise is not kept, undefine repaired and define failed for length minutes
+##########################################################################################
+body classes set_persist_classes(repaired, failed, length)
+{
+    promise_kept 	 => { "${repaired}" };
+    promise_repaired => { "${repaired}" };
+    repair_failed    => { "${failed}" };
+    repair_denied    => { "${failed}" };
+    repair_timeout   => { "${failed}" };
+
+    cancel_kept      => {"${failed}"};
+    cancel_repaired  => {"${failed}"};
+    cancel_notkept   => {"${repaired}"};
+
+    persist_time     => "${length}";
+}
+
+################################################
+# kept_if_else
+# set kept if the promise is kept
+# yes if repaired
+# no if cannot repair
+################################################
+# DEPRECATED
+body classes kept_if_else(kept, yes,no)
+{
+    promise_kept     => { "${kept}" };
+    promise_repaired => { "${yes}" };
+    repair_failed    => { "${no}" };
+    repair_denied    => { "${no}" };
+    repair_timeout   => { "${no}" };
+}
+
+# DEPRECATED
+body classes kept_if_else_persist(kept, repaired, failed, persist)
+{
+    promise_kept     => { "${kept}" };
+    promise_repaired => { "${repaired}" };
+
+    repair_failed    => { "${failed}" };
+    repair_denied    => { "${failed}" };
+    repair_timeout   => { "${failed}" };
+
+    persist_time     => "${persist}";
+}
+
+################################################
+# Special kept_if_else
+# set kept if the promise is kept
+# yes if repaired
+# no if cannot repair
+# Trigger an additionnal promise if repaired
+################################################
+body classes kept_if_else_hook(kept,yes,no,hook)
+{
+    promise_kept     => { "${kept}" };
+    promise_repaired => { "${yes}", "${hook}" };
+    repair_failed    => { "${no}" };
+    repair_denied    => { "${no}" };
+    repair_timeout   => { "${no}" };
+}
+
+###########################################################################################
+# Cancel class
+# Cancel every classes passed by argument
+##########################################################################################
+body classes cancel_all_classes(class_to_cancel)
+{
+    cancel_kept     => { "${class_to_cancel}" };
+    cancel_repaired => { "${class_to_cancel}" };
+    cancel_notkept  => { "${class_to_cancel}" };
+}
+
+# Combines classes from two specified prefixes
+# The worst outcome is kept (logical AND)
+bundle agent ncf_classes_combine_two(first_prefix, second_prefix, destination_prefix)
+{
+  classes:
+      "first_reached"  expression => "${first_prefix}_reached";
+      "second_reached" expression => "${second_prefix}_reached";
+
+    destination_exists.first_reached.second_reached::
+      "${destination_prefix}_ok"               expression => "${first_prefix}_ok.${second_prefix}_ok",
+                                               scope => "namespace";
+
+      "${destination_prefix}_kept"             expression => "${first_prefix}_kept.${second_prefix}_kept",
+                                               scope => "namespace";
+
+      "promise_kept_${destination_prefix}"     expression => "${destination_prefix}_kept",
+                                               scope => "namespace";
+
+      "${destination_prefix}_repaired"         expression => "(${first_prefix}_ok.${second_prefix}_repaired)|(${first_prefix}_repaired.${second_prefix}_ok)",
+                                               scope => "namespace";
+
+      "promise_repaired_${destination_prefix}" expression => "${destination_prefix}_repaired",
+                                               scope => "namespace";
+
+      "${destination_prefix}_reached"          expression => "${first_prefix}_reached|${second_prefix}_reached",
+                                               scope => "namespace";
+
+      "${destination_prefix}_failed"           expression => "${first_prefix}_failed|${second_prefix}_failed",
+                                               scope => "namespace";
+
+      "repair_failed_${destination_prefix}"    expression => "${destination_prefix}_failed",
+                                               scope => "namespace";
+
+      "${destination_prefix}_denied"           expression => "${first_prefix}_denied|${second_prefix}_denied",
+                                               scope => "namespace";
+
+      "repair_denied_${destination_prefix}"    expression => "${destination_prefix}_denied",
+                                               scope => "namespace";
+
+      "${destination_prefix}_timeout"          expression => "${first_prefix}_timeout|${second_prefix}_timeout",
+                                               scope => "namespace";
+
+      "repair_timeout_${destination_prefix}"   expression => "${destination_prefix}_timeout",
+                                               scope => "namespace";
+
+      "${destination_prefix}_error"            expression => "${first_prefix}_error|${second_prefix}_error",
+                                               scope => "namespace";
+
+      "${destination_prefix}_not_ok"           expression => "!${destination_prefix}_ok",
+                                               scope => "namespace";
+
+      "${destination_prefix}_not_kept"         expression => "!${destination_prefix}_kept",
+                                               scope => "namespace";
+
+      "${destination_prefix}_not_repaired"     expression => "!${destination_prefix}_repaired",
+                                               scope => "namespace";
+
+  classes:
+    # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
+    # and it will always be evaluated to true otherwise
+    "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
+    "destination_not_empty"      not => strcmp("${destination_prefix}", "");
+    "destination_exists"         and => { "destination_defined", "destination_not_empty" };
+
+  methods:
+    first_reached.!second_reached::
+      "copy first"  usebundle => _classes_copy("${first_prefix}", "${destination_prefix}");
+
+    !first_reached.second_reached::
+      "copy second" usebundle => _classes_copy("${second_prefix}", "${destination_prefix}");
+}
+
+# Copies classes with source_prefix into destination_prefix
+# This copies the whole class set
+bundle agent ncf_classes_copy(source_prefix, destination_prefix)
+{
+  vars:
+      "prefix" slist => { "promise_kept", "promise_repaired", "repair_failed", "repair_denied", "repair_timeout" };
+      "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept", "error" };
+
+    destination_exists::
+      # Copy result classes prefixes
+      "${prefix}_local_destination_prefix"
+        string     => "${prefix}_${destination_prefix}",
+        ifvarclass => "${prefix}_${source_prefix}",
+        classes    => always("${prefix}_${destination_prefix}");
+
+      # Copy result classes suffixes
+      "local_destination_prefix_${suffix}"
+        string     => "${destination_prefix}_${suffix}",
+        ifvarclass => "${source_prefix}_${suffix}",
+        classes    => always("${destination_prefix}_${suffix}");
+
+  classes:
+      # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
+      # and it will always be evaluated to true otherwise
+      "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
+      "destination_not_empty"      not => strcmp("${destination_prefix}", "");
+      "destination_exists"         and => { "destination_defined", "destination_not_empty" };
+}

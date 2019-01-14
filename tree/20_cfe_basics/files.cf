@@ -1,0 +1,703 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+
+bundle edit_line ncf_insert_block(block)
+{
+  insert_lines:
+      "${block}"
+        insert_type => "preserve_block",
+        comment     => "Append a text block if it does not exist";
+}
+
+# Sets the RHS of configuration items with a given separator
+# supports keys that contains special characters (like *, ?)
+# This bundle will allow any quantity of spaces before the separator, but none
+# between the separator and the value
+bundle edit_line ncf_maintain_keys_values(v, sep)
+{
+  vars:
+      "index" slist => getindices("${v}");
+      # Be careful if the index string contains funny chars
+      "cindex[${index}]" string => canonify("${index}");
+
+      # Keys and values may contain regexps. Escape them for replace_pattern matching.
+      "ve[${index}]" string => escape("${${v}[${index}]}");
+      "ke[${index}]" string => escape("${index}");
+      "separator"    string => escape("${sep}");
+
+      # Matching pattern for line (basically key-and-separator)
+      "keypat[${index}]" string => "\s*${ke[${index}]}\s*${separator}\s*";
+
+  classes:
+      "${cindex[${index}]}_key_in_file"
+         comment   => "Dynamic Class created if patterns matching",
+        expression => regline("^${keypat[${index}]}.*", "${edit.filename}");
+
+  insert_lines:
+      "${index}${sep}${${v}[${index}]}"
+        comment    => "Insert definition of ${index}",
+        ifvarclass => "!${cindex[${index}]}_key_in_file";
+
+  replace_patterns:
+      # For convergence need to use negative lookahead on value:
+      # "key sep (?!value).*"
+      "^(${keypat[${index}]})(?!${ve[${index}]}$).*"
+        comment      => "Replace definition of ${index}",
+        replace_with => value("${match.1}${${v}[${index}]}");
+}
+
+# Sets the RHS of configuration items with a given separator
+# supports keys that contains special characters (like *, ?), with option to be strict or not
+# by default, treat non strictly spacing. If option is "strict", then no space will be allowed
+bundle edit_line ncf_maintain_keys_values_option(v, sep, option)
+{
+  vars:
+      "index" slist => getindices("${v}");
+      # Be careful if the index string contains funny chars
+      "cindex[${index}]" string => canonify("${index}");
+
+      # Keys and values may contain regexps. Escape them for replace_pattern matching.
+      "ve[${index}]" string => escape("${${v}[${index}]}");
+      "ke[${index}]" string => escape("${index}");
+      "separator"    string => escape("${sep}");
+
+      # Matching pattern for line (basically key-and-separator)
+      "keypat[${index}]" string => "\s*${ke[${index}]}\s*${separator}\s*";
+
+
+  classes:
+      "strict_spacing" expression => strcmp("${option}", "strict");
+
+      "${cindex[${index}]}_key_in_file"
+         comment   => "Dynamic Class created if patterns matching",
+        expression => regline("^${keypat[${index}]}.*", "${edit.filename}");
+
+    !strict_spacing::
+      "${cindex[${index}]}_key_value_in_file"
+         comment   => "Dynamic Class created if in loose mode, key\s*separator\s*value is there",
+        expression => regline("^${keypat[${index}]}${ve[${index}]}\s*", "${edit.filename}");
+
+
+  insert_lines:
+      "${index}${sep}${${v}[${index}]}"
+        comment    => "Insert definition of ${index}",
+        ifvarclass => "!${cindex[${index}]}_key_in_file";
+
+  replace_patterns:
+      # For convergence need to use negative lookahead on value:
+      # "key sep (?!value).*"
+    strict_spacing::
+      "^(\s*${ke[${index}]}\s*${separator}\s*)(?!${ve[${index}]}$).*"
+        comment      => "Strict replace definition of ${index}",
+        replace_with => value("${ke[${index}]}${sep}${${v}[${index}]}");
+
+    !strict_spacing::
+      "^(\s*${ke[${index}]}\s*${separator}\s*)(?!${ve[${index}]}$).*"
+        comment      => "Replace definition of ${index}",
+        replace_with => value("${match.1}${${v}[${index}]}"),
+        ifvarclass   => "!${cindex[${index}]}_key_value_in_file";
+}
+
+# enforce lines in section
+# WARNING: This bundle is deprecated and will be removed.
+# You should use ncf_ensure_section_content_type with the "literal" insert type.
+bundle edit_line ncf_ensure_section_content(section_start, section_end, content)
+{
+  vars:
+      "csection"              string => canonify("$(section_start)");
+      "escaped_section_start" string => escape(${section_start});
+      "escaped_section_end"   string => escape(${section_end});
+
+  classes:
+      # Detect if section is already there
+      "has_$(csection)" expression => regline("${escaped_section_start}", "$(edit.filename)");
+
+  delete_lines:
+      ".*"
+        select_region => ncf_section_selector("${escaped_section_start}", "${escaped_section_end}"),
+        ifvarclass => "has_$(csection)";
+
+  insert_lines:
+      # Insert new, empty section if it doesn't exist already.
+      "${section_start}
+${section_end}"
+        insert_type => "preserve_block",
+        ifvarclass => "!has_$(csection)";
+
+      # Insert missing lines into the section
+      "$(content)"
+        select_region => ncf_section_selector("${escaped_section_start}", "${escaped_section_end}");
+}
+
+# Enforce content in section.
+# It will create the section if it does not exist yet.
+# You can choose the insert_type:
+# * Use "preserve_block" to insert blocks of text
+# * Use "literal" to insert independant lines
+bundle edit_line ncf_ensure_section_content_type(section_start, section_end, content, insert_type)
+{
+  vars:
+      "csection"              string => canonify("$(section_start)");
+      "escaped_section_start" string => escape(${section_start});
+      "escaped_section_end"   string => escape(${section_end});
+
+  classes:
+      # Detect if section is already there
+      "has_$(csection)" expression => regline("${escaped_section_start}", "$(edit.filename)");
+
+  delete_lines:
+      ".*"
+        select_region => ncf_section_selector("${escaped_section_start}", "${escaped_section_end}"),
+        ifvarclass => "has_$(csection)";
+
+  insert_lines:
+      # Insert new, empty section if it doesn't exist already.
+      "${section_start}
+${section_end}"
+        insert_type => "preserve_block",
+        ifvarclass => "!has_$(csection)";
+
+      # Insert missing lines or block into the section
+      "$(content)"
+        insert_type => "${insert_type}",
+        select_region => ncf_section_selector("${escaped_section_start}", "${escaped_section_end}");
+}
+
+# Enforce content in section.
+# It will create the section if it does not exist yet.
+# You can choose the insert_type:
+# * Use "preserve_block" to insert blocks of text
+# * Use "literal" to insert independant lines
+# content_to_delete is a regexp to delete all lines (even outside section) matching the regex
+bundle edit_line ncf_ensure_section_content_and_purge_type(section_start, section_end, content, insert_type, content_to_delete)
+{
+  vars:
+      "csection"              string => canonify("$(section_start)");
+      "escaped_section_start" string => escape(${section_start});
+      "escaped_section_end"   string => escape(${section_end});
+
+  classes:
+      # Detect if section is already there
+      "has_$(csection)" expression => regline("${escaped_section_start}", "$(edit.filename)");
+
+      "content_to_delete_defined" not => strcmp("${content_to_delete}", "");
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+
+  delete_lines:
+      ".*"
+        select_region => ncf_section_selector("${escaped_section_start}", "${escaped_section_end}"),
+        ifvarclass => "has_$(csection)";
+
+    !pass2::
+      "${content_to_delete}	.*"
+        ifvarclass => "content_to_delete_defined";
+
+  insert_lines:
+      # Insert new, empty section if it doesn't exist already.
+      "${section_start}
+${section_end}"
+        insert_type => "preserve_block",
+        ifvarclass => "!has_$(csection)";
+
+      # Insert missing lines or block into the section
+      "$(content)"
+        insert_type => "${insert_type}",
+        select_region => ncf_section_selector("${escaped_section_start}", "${escaped_section_end}");
+}
+
+
+# Ensure that a line is present in a section (INI-style)
+# It will create the Section if it doesn't exist yet
+bundle edit_line ensure_line_in_ini_section(section_name, line)
+{
+  insert_lines:
+    # If the section is not there, we need to insert it
+    "[${section_name}]"
+      comment  => "Insert section if it doesn't exist";
+
+    "${line}"
+      select_region => INI_section("${section_name}"),
+      comment       => "Insert line in section ${section_name}";
+}
+
+# Ensure that a line is present in an xml tag
+# Won't create the tag if not there (we don't know where to put it)
+bundle edit_line ensure_line_in_xml_tag(tag_name, line)
+{
+  vars:
+    "section_start" string => "\s*<${tag_name}>\s*";
+    "section_end" string => "\s*</${tag_name}>\s*";
+
+  insert_lines:
+    "${line}"
+      select_region => ncf_section_selector("${section_start}", "${section_end}"),
+      comment       => "Insert line in section ${tag_name}";
+}
+
+bundle edit_line prepend(lines)
+{
+  insert_lines:
+      "${lines}"
+        comment  => "Prepending line: ${lines}",
+        location => start;
+}
+
+bundle edit_line replace_line(regex, replacement)
+{
+  replace_patterns:
+      "${regex}"
+        replace_with => value("${replacement}"),
+        comment      => "Replace every occurrence of ${regex} with ${replacement}";
+}
+
+bundle edit_line rudder_line_insertion(lines, location)
+{
+  insert_lines:
+      "${lines}"
+        comment  => "Adding line: ${lines}",
+        location => rudder_location_before_after("${location}");
+}
+
+bundle edit_line edit_service_block_rc_d(service, action)
+{
+  insert_lines:
+"if [ -x /etc/rc.d/rc.${service} ]; then
+  . /etc/rc.d/rc.${service} start
+fi"
+    insert_type => "preserve_block";
+}
+
+bundle edit_line edit_service_block_shutdown(service)
+{
+  insert_lines:
+"if [ -x /etc/rc.d/rc.${service} ]; then
+  . /etc/rc.d/rc.${service} stop
+fi"
+    insert_type => "preserve_block";
+}
+
+# Edit AIX password file /etc/security/passwd
+bundle edit_line ncf_ensure_AIX_password(username, password)
+{
+  vars:
+      "current_date" int => now();
+
+  classes:
+      # does the section exists, or should it be created ?
+      "section_absent" not => regline("${username}:", "${edit.filename}");
+
+  field_edits:
+    !section_absent::
+      "\s*password\s*=.*"
+        # We need to put a space before password to keep the format password = <PASSWORD>
+        edit_field => col("=", "2", " ${password}", "set"),
+        select_region => ncf_section_AIX_user("${username}");
+
+  insert_lines:
+    section_absent::
+      "${username}:
+        password = ${password}
+        lastupdate = ${current_date}"
+        insert_type => "preserve_block";
+
+}
+
+# Define the lastupdate date when a password is changed
+bundle edit_line ncf_edit_lastupdate_AIX_password(username)
+{
+  vars:
+      "current_date" int => now();
+
+  field_edits:
+    section_absent::
+      "\s*lastupdate\s*=.*"
+        # We need to put a space before password to keep the format password = <PASSWORD>
+        edit_field => col("=", "2", " ${password}", "set"),
+        select_region => ncf_section_AIX_user("${username}");
+
+}
+
+bundle edit_line rudder_change_aix_password_entry(user, entry, content)
+{
+  field_edits:
+    "\s*${entry}\s*=.*"
+      select_region => rudder_aix_user_section("${user}"),
+      edit_field    => col("=","2"," ${content}","set");
+}
+
+bundle edit_line insert_rudder_disclaimer
+{
+  vars:
+      "file_edit_header" string => "${rudder_parameters.rudder_file_edit_header}";
+
+  defaults:
+      "file_edit_header" string => "#############################################################
+### This file is protected by your Rudder infrastructure. ###
+### Manually editing the file might lead your Rudder      ###
+### infrastructure to change back the server's            ###
+### configuration and/or to raise a compliance alert.     ###
+#############################################################
+",
+        if_match_regex => "${const.dollar}{rudder_parameters.rudder_file_edit_header}";
+
+  insert_lines:
+      "${file_edit_header}"
+        location => start;
+}
+
+# Add parameter in key->values line, where -> is key_value_separator
+bundle edit_line ncf_add_parameter_in_list(key, key_value_separator, parameter_separator, parameter)
+{
+  vars:
+      "escaped_key" string => escape("${key}");
+
+  replace_patterns:
+      "^(${escaped_key}\s*${key_value_separator}\s*)(.*)$"
+        replace_with => ncf_add_parameter_with_separator("${parameter}", "${parameter_separator}");
+}
+
+# Add parameter in key->[values] line, where -> is key_value_separator and [ ] are leading and closing char separator
+bundle edit_line ncf_add_parameter_in_list_with_enclosing_chars(key, key_value_separator, parameter_separator, parameter, leading_char_separator, closing_char_separator)
+{
+  vars:
+      "escaped_key"          string => escape("${key}");
+      "escaped_leading_char" string =>  escape("${leading_char_separator}");
+      "escaped_closing_char" string =>  escape("${closing_char_separator}");
+
+  replace_patterns:
+      "^(${escaped_key}\s*${key_value_separator}\s*)(${escaped_leading_char})(.*)(${escaped_closing_char})\s*$"
+        replace_with => ncf_add_parameter_with_separator_and_enclosing_characters("${parameter}", "${parameter_separator}");
+}
+
+# Remove parameter_regex in  key->[values] line, where -> is key_value_separator and [ ] are leading and closing char separator. Note: any whitespace between parameter_regex and parameter_separator will be also removed
+bundle edit_line ncf_remove_parameter_in_list(key, key_value_separator, parameter_separator, parameter_regex, leading_char_separator, closing_char_separator)
+{
+  vars:
+      "escaped_key"          string => escape("${key}");
+      "escaped_leading_char" string =>  escape("${leading_char_separator}");
+      "escaped_closing_char" string =>  escape("${closing_char_separator}");
+
+  replace_patterns:
+      "^(${escaped_key}\s*${key_value_separator}\s*${escaped_leading_char}.*)(${parameter_separator}+\s*${parameter_regex}|${parameter_regex}\s*${parameter_separator}+)(.*${escaped_closing_char})\s*$"
+        replace_with => value("${match.1}${match.3}");
+}
+
+bundle agent service_block_rc_d(service, new_class_prefix)
+{
+  vars:
+    "canon_service" string => canonify("${service}");
+
+  # When the dry run mode is enabled, the needed changes will not be applied, but the classes will be copied
+  files:
+    "/etc/rc.d/rc.local"
+    edit_line => edit_service_block_rc_d("${service}"),
+    classes => classes_generic("service_${canon_service}_block_in_rc_local");
+
+    "/etc/rc.d/rc.local_shutdown"
+    create => "true",
+    edit_line => edit_service_block_shutdown("${service}"),
+    classes => classes_generic("service_${canon_service}_block_in_rc_shutdown");
+
+    "/etc/rc.d/rc.M"
+    edit_line => edit_service_block_rc_d("${service}"),
+    classes => classes_generic("${class_prefix}"),
+    ifvarclass => "service_${canon_service}_block_in_rc_local_not_ok";
+
+  methods:
+    "combine" usebundle => ncf_classes_combine_two("service_${canon_service}_block_in_rc_local", "service_${canon_service}_block_in_rc_shutdown", "service_${canon_service}_block_in_rc_both");
+    "new classes" usebundle => ncf_classes_copy("service_${service}_block_in_rc_both", "${class_prefix}"),
+              ifvarclass => "service_${canon_service}_block_in_rc_both_ok";
+}
+
+body replace_with ncf_add_parameter_with_separator(parameter, parameter_separator)
+{
+    occurrences   => "first";
+    replace_value => "${match.1}${match.2}${parameter_separator}${parameter}";
+}
+
+body replace_with ncf_add_parameter_with_separator_and_enclosing_characters(parameter, parameter_separator)
+{
+    occurrences   => "first";
+    replace_value => "${match.1}${match.2}${match.3}${parameter_separator}${parameter}${match.4}";
+}
+
+# DEPRECATED - for compatibility
+body delete_select rudder_delete_if_not_in_list(lines_to_delete)
+{
+    delete_if_not_match_from_list => { @{lines_to_delete} };
+}
+
+# Select lines for deletion
+# Select the lines that are not in the list (complete line match)
+body delete_select ncf_delete_if_not_in_list(lines_to_delete)
+{
+    delete_if_not_match_from_list => { @{lines_to_delete} };
+}
+
+body select_region ncf_section_selector(section_start, section_end)
+{
+    select_start => "${section_start}";
+    select_end   => "${section_end}";
+}
+
+# DEPRECATED - for compatibility
+body select_region rudder_section_selector(section_start, section_end)
+{
+    select_start => "${section_start}";
+    select_end   => "${section_end}";
+}
+
+# Select region in /etc/security/passwd file
+body select_region ncf_section_AIX_user(username)
+{
+    select_start => "${username}:";
+    select_end => ".*:";
+}
+
+body select_region rudder_aix_user_section(x)
+{
+    select_start => "${x}:\s*";
+    select_end => "\S*:\s*";
+}
+
+# Enforce or not content of a file
+########################################################################
+# Same as std_defs, allowing user to specify the file erase policy     #
+########################################################################
+body edit_defaults ncf_empty_select(select)
+{
+    empty_file_before_editing => "${select}";
+    max_file_size             => "25M";
+    edit_backup               => "timestamp";
+}
+
+# DEPRECATED
+body edit_defaults rudder_empty_select(select)
+{
+    inherit_from => ncf_empty_select("${select}");
+}
+
+body edit_defaults empty_size(size)
+{
+    empty_file_before_editing => "true";
+    edit_backup               => "false";
+    max_file_size             => "${size}";
+}
+
+# DEPRECATED
+body edit_defaults noempty_backup
+{
+    inherit_from => ncf_empty_select("false");
+}
+
+# DEPRECATED
+body edit_defaults empty_backup
+{
+    inherit_from => ncf_empty_select("true");
+}
+
+body location rudder_location_before_after(location)
+{
+    before_after => "${location}";
+}
+
+# Modular local copy_from body
+body copy_from ncf_local_cp_method(from, method)
+{
+    source      => "${from}";
+    compare     => "${method}";
+    copy_backup => "timestamp";
+}
+
+# Modular remote copy_from body
+# This body gets the CFEngine port from ncf's configuration.
+body copy_from ncf_remote_cp_method(from, server, method)
+{
+    servers     => { "${server}" };
+    source      => "${from}";
+    portnumber  => "${configuration.cfengine_port}";
+    compare     => "${method}";
+    encrypt     => "true";
+    copy_backup => "timestamp";
+}
+
+# DEPRECATED
+#server may be a list
+body copy_from cp(from,server)
+{
+    servers     => { "${server}" };
+    source      => "${from}";
+    compare     => "digest";
+
+  community_edition::
+    portnumber  => "${system_common.community_port}";
+}
+
+# DEPRECATED
+# This is an evolved version of copy_from scp that uses local copies if we are
+# running on a policy server instead of copying from a localhost remote blindly.
+body copy_from rudder_copy_from(from, server,compare,trustkey,preserve,purge)
+{
+    source      => "${from}";
+    compare     => "${compare}";
+    encrypt     => "true";
+    verify      => "true";
+    trustkey    => "${trustkey}";
+    preserve    => "${preserve}"; # Preserve the permissions
+    purge       => "${purge}";
+    copy_backup => "timestamp";
+    servers     => { "${server}" };
+
+  community_edition::
+    portnumber  => "${system_common.community_port}";
+}
+
+body copy_from copy(from)
+{
+    source      => "${from}";
+    copy_backup => "false";
+    preserve    => "true";
+}
+
+# DEPRECATED
+body copy_from copy_digest(from)
+{
+    source      => "${from}";
+    copy_backup => "timestamp";
+    preserve    => "true";
+    compare     => "digest";
+}
+
+body copy_from digest_cp(from)
+{
+    source            => "${from}";
+    copy_backup       => "timestamp";
+    compare           => "digest";
+    copylink_patterns => { ".*" };
+}
+
+# DEPRECATED
+body perms u_p(p)
+{
+    inherit_from => m("${p}");
+}
+
+################################################
+# Simple group adjustment body
+################################################
+body perms group(group)
+{
+    groups => { "${group}" };
+}
+
+########################################################################
+# Change group and mode of a file/directory                            #
+########################################################################
+body perms mg(mode,group)
+{
+    groups => { "${group}" };
+    mode   => "${mode}";
+}
+
+bundle agent perm_on_file(file, mod, class_prefix)
+{
+  vars:
+    "canonfile" string => canonify("${file}");
+
+  files:
+    "${file}"
+      perms   => m("${mod}"),
+      classes => classes_generic("${class_prefix}");
+}
+
+body depth_search recurse_visible(d)
+{
+    depth        => "${d}";
+    exclude_dirs => { "\..*" };
+}
+
+########################################################################
+# Handle a directory recursively, including the dir itself             #
+########################################################################
+body depth_search recurse_withroot(d)
+{
+    depth           => "${d}";
+    include_basedir => "true";
+}
+
+################################################
+# Same as recurse but without xdev
+# and including the current dir
+################################################
+body depth_search recurse_with_current(d)
+
+{
+    depth           => "${d}";
+    include_basedir => "true";
+    xdev            => "false";
+}
+
+#
+# Select files older than X months
+#
+body file_select ncf_months_old(months)
+{
+    mtime       => irange(0,ago(0,"${months}",0,0,0,0));
+    file_result => "mtime";
+}
+
+#
+# Select files older than X hours
+#
+body file_select ncf_hours_old(hours)
+{
+    mtime       => irange(0,ago(0,0,0,"${hours}",0,0));
+    file_result => "mtime";
+}
+
+#
+# Select files older than X minutes
+#
+body file_select ncf_minutes_old(minutes)
+{
+    mtime       => irange(0,ago(0,0,0,0,"${minutes}",0));
+    file_result => "mtime";
+}
+
+# DEPRECATED - for compatibility
+body file_select rudder_common_minutes_old(minutes)
+{
+    mtime       => irange(0,ago(0,0,0,0,"${minutes}",0));
+    file_result => "mtime";
+}
+
+########################################################################
+# Select a file using a date AND a pattern                             #
+########################################################################
+body file_select date_pattern(age, pattern)
+{
+    mtime       => irange("0", ago(0,0,"${age}",0,0,0));
+    leaf_name   => { "${pattern}" };
+    file_result => "leaf_name.mtime";
+}

@@ -16,8 +16,6 @@
 #
 #####################################################################################
 
-# @agent_version >=3.6
-#
 # This collection of bundles manage time related calculations
 #
 #
@@ -168,7 +166,6 @@ bundle agent schedule_generic(job_id, agent_periodicity, max_execution_delay, jo
 
 }
 
-
 # Simple Periodic Scheduler, it raises a class on a regular perioridicity, based on a user friendly definition.
 #
 # job_id: a string to identify this job
@@ -226,4 +223,3 @@ bundle agent schedule_simple_generic(job_id, agent_periodicity,
     any::
       "any" usebundle => schedule_generic("${job_id}", "${agent_periodicity}", "${max_execution_delay}", "${job_periodicity}", "${minutes_from_start}");
 }
-

@@ -16,7 +16,6 @@
 #
 #####################################################################################
 
-
 # @name Log for Rudder
 # @description Logging output for Rudder reports
 #
@@ -31,9 +30,7 @@
 
 bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix, args)
 {
-
   vars:
-
       "c_old_class_prefix"     string => canonify("${old_class_prefix}");
       # When ${class_prefix} itself contains ${class_prefix}, it uses the previous value when calling
       # _rudder_common_reports_generic. We reset it at the beginning of the bundle execution
@@ -76,6 +73,29 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
     info.!class_prefix_size_ok::
       # Since the class_prefix is too long, i'm not outputing it (it would fill several lines of text with no added value)
       "${configuration.info}: Class prefix is too long - fallbacking to old_class_prefix ${old_class_prefix} for reporting";
+}
+
+# @name Logger for Rudder - legacy interface (DEPRECATED)
+# @deprecated Use [log_rudder](#log_rudder) instead.
+# @description Logging output for Rudder reports. This interface is for compatiblity with older generic methods and techniques, and is replaced by log_rudder.
+#
+# @parameter message              The common part of the message to display
+# @parameter old_class_prefix     The prefix of the class for different states (0.x version, empty to force new style logging only)
+#
+# @class_prefix    logger_rudder
+# @class_parameter old_class_prefix
+
+bundle agent logger_rudder(message, old_class_prefix)
+{
+  vars:
+      "empty_slist" slist => { cf_null };
+
+  methods:
+      "legacy logger_rudder wrapper" usebundle => log_rudder("${message}", "", "${old_class_prefix}", "", @{empty_slist});
+
+  reports:
+    cfengine::
+      "WARNING: DEPRECATED logger_rudder interface called. Please use log_rudder instead (${old_class_prefix}: ${message})";
 }
 
 # bundle backported from rudder (prefixed with _ to avoid conflicts)
@@ -214,14 +234,12 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
         ifvarclass => "${class_prefix}_repaired";
 }
 
-
 ######################################################################
 ##### Reporting for the pre/post hooks
 ##### These methods should not be used for normal generic method usage
 ##### because they do not respect the stop on repair for audit mode
 ######################################################################
 
-#
 # Automatically create reports based on existing classes starting by
 # class_prefix (as defined by the body classes rudder_common_classes)
 # Difference with _rudder_common_reports_generic : it remaps _repaired
@@ -354,13 +372,15 @@ bundle agent _rudder_common_report_hooks(technique_name, status, identifier, com
 #
 # Define the current Technique we are doing report on
 # Must be called before the reporting
-bundle agent _method_reporting_context(c_name, c_key) {
+bundle agent _method_reporting_context(c_name, c_key)
+{
   vars:
     "report_data.component_name" string => "${c_name}";
     "report_data.component_key"  string => "${c_key}" ;
 }
 
-bundle agent rudder_reporting_context(d_id, r_id, t_name) {
+bundle agent rudder_reporting_context(d_id, r_id, t_name)
+{
   vars:
     "report_data.technique_name" string => "${t_name}";
     "report_data.directive_id"   string => "${d_id}";
@@ -368,14 +388,15 @@ bundle agent rudder_reporting_context(d_id, r_id, t_name) {
     "report_data.identifier"     string => "${r_id}@@${d_id}@@0";
 }
 
-
-bundle agent rudder_reporting_context_id(id, t_name) {
+bundle agent rudder_reporting_context_id(id, t_name)
+{
   vars:
     "report_data.technique_name" string => "${t_name}";
     "report_data.identifier"     string => "${id}";
 }
 
-bundle agent clean_reporting_context {
+bundle agent clean_reporting_context
+{
   vars:
     "report_data.component_name" string => "";
     "report_data.component_key"  string => "";
@@ -385,25 +406,17 @@ bundle agent clean_reporting_context {
     "report_data.identifier"     string => "";
 }
 
-bundle agent disable_reporting {
+bundle agent disable_reporting
+{
   vars:
     "report_data.should_report" string => "false";
 }
 
-bundle agent enable_reporting {
+bundle agent enable_reporting
+{
   vars:
     "report_data.should_report" string => "true";
 }
-
-
-
-
-#####################################################################
-
-
-
-
-
 
 #
 # Automatically defines classes bases on a given prefix
@@ -411,11 +424,11 @@ bundle agent enable_reporting {
 #
 body classes rudder_common_classes(prefix)
 {
-        promise_kept     => { "${prefix}_kept"    , "${prefix}_ok" };
-        promise_repaired => { "${prefix}_repaired", "${prefix}_ok" };
-        repair_failed    => { "${prefix}_failed"  , "${prefix}_error" };
-        repair_denied    => { "${prefix}_denied"  , "${prefix}_error" };
-        repair_timeout   => { "${prefix}_timeout" , "${prefix}_error" };
+    promise_kept     => { "${prefix}_kept"    , "${prefix}_ok" };
+    promise_repaired => { "${prefix}_repaired", "${prefix}_ok" };
+    repair_failed    => { "${prefix}_failed"  , "${prefix}_error" };
+    repair_denied    => { "${prefix}_denied"  , "${prefix}_error" };
+    repair_timeout   => { "${prefix}_timeout" , "${prefix}_error" };
 }
 
 #
@@ -425,13 +438,13 @@ body classes rudder_common_classes(prefix)
 #
 body classes rudder_common_classes_persist(prefix, persist)
 {
-        promise_kept     => { "${prefix}_kept"    , "${prefix}_ok" };
-        promise_repaired => { "${prefix}_repaired", "${prefix}_ok" };
-        repair_failed    => { "${prefix}_failed"  , "${prefix}_error" };
-        repair_denied    => { "${prefix}_denied"  , "${prefix}_error" };
-        repair_timeout   => { "${prefix}_timeout" , "${prefix}_error" };
+    promise_kept     => { "${prefix}_kept"    , "${prefix}_ok" };
+    promise_repaired => { "${prefix}_repaired", "${prefix}_ok" };
+    repair_failed    => { "${prefix}_failed"  , "${prefix}_error" };
+    repair_denied    => { "${prefix}_denied"  , "${prefix}_error" };
+    repair_timeout   => { "${prefix}_timeout" , "${prefix}_error" };
 
-        persist_time     => ${persist};
+    persist_time     => ${persist};
 }
 
 #
@@ -440,19 +453,19 @@ body classes rudder_common_classes_persist(prefix, persist)
 #
 body classes rudder_always_classes_persist(always, persist)
 {
-  promise_kept     => { "${always}" };
-  promise_repaired => { "${always}" };
-  repair_failed    => { "${always}" };
-  repair_denied    => { "${always}" };
-  repair_timeout   => { "${always}" };
+    promise_kept     => { "${always}" };
+    promise_repaired => { "${always}" };
+    repair_failed    => { "${always}" };
+    repair_denied    => { "${always}" };
+    repair_timeout   => { "${always}" };
 
-  persist_time     => "${persist}";
+    persist_time     => "${persist}";
 }
 
 # DEPRECATED - for compatibility
 body classes _rudder_always_classes_persist(always, persist)
 {
-  inherit_from => rudder_always_classes_persist("${always}", "${persist}");
+    inherit_from => rudder_always_classes_persist("${always}", "${persist}");
 }
 
 ################################################
@@ -481,7 +494,7 @@ body classes _rudder_always_classes_persist(always, persist)
 bundle agent rudder_common_report(technique_name, status, identifier, component_name, component_key, message)
 {
   methods:
-    "report" usebundle => rudder_common_report_index("${technique_name}", "${status}", "${identifier}", "${component_name}", "${component_key}", "${message}", "");
+      "report" usebundle => rudder_common_report_index("${technique_name}", "${status}", "${identifier}", "${component_name}", "${component_key}", "${message}", "");
 }
 
 #
@@ -556,8 +569,6 @@ bundle agent rudder_common_report_index(technique_name, status, identifier, comp
         comment => "Reporting for ${technique_name} message ${message} for index ${index}";
 }
 
-
-#
 # Automatically create reports based on existing classes starting by
 # class_prefix (as defined by the body classes rudder_common_classes)
 # Takes 6 parameters
