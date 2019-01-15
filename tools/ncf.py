@@ -301,7 +301,7 @@ def parse_function_call_class_context(function_call):
   return function_name + '(' + ','.join(function_args) + ')'
 
 
-def parse_technique_methods(technique_file):
+def parse_technique_methods(technique_file, gen_methods):
   res = []
 
   # Check file exists
@@ -391,10 +391,12 @@ def parse_technique_methods(technique_file):
         promise_class_context = class_context_and(class_context, ifvarclass_context)
 
       if not (method_name.startswith("_") or method_name.startswith("log")): 
+        if promiser == "method_call":
+          promiser = gen_methods[method_name]["name"]
         if args:
-          res.append({'class_context': promise_class_context, 'promiser': promiser, 'method_name': method_name, 'args': args})
+          res.append({'class_context': promise_class_context, 'component': promiser, 'method_name': method_name, 'args': args})
         else:
-          res.append({'class_context': promise_class_context, 'promiser': promiser, 'method_name': method_name})
+          res.append({'class_context': promise_class_context, 'component': promiser, 'method_name': method_name})
 
   return res
 
@@ -577,10 +579,10 @@ def generate_technique_content(technique, methods):
       arg_value = ""
     class_context = canonify_class_context(method_call['class_context'])
 
-    if 'promiser' in method_call:
-      promiser = method_call['promiser']
+    if 'component' in method_call:
+      promiser = regex.sub(r'\\"', method_call["component"])
     else:
-      promiser = "method_call"
+      promiser = regex.sub(r'\\"', method_name)
 
     # Set bundle context, first escape paramters
     content.append('    "'+promiser+'_context_' + str(report_unique_id) + '" usebundle => '+ generate_reporting_context(method_info, method_call) + ";")
@@ -601,7 +603,7 @@ def generate_technique_content(technique, methods):
 def generate_reporting_context(method_info, method_call):
   # regex to match quote characters not preceded by a backslash
   regex = re.compile(r'(?<!\\)"', flags=re.UNICODE )
-  class_parameter_name  = regex.sub(r'\\"', method_info["name"])
+  class_parameter_name  = regex.sub(r'\\"', method_call["component"])
   class_parameter_value = generate_reporting_class_parameter(method_info, method_call)
   return '_method_reporting_context("'+class_parameter_name+'", "'+class_parameter_value+'")'
 
@@ -617,13 +619,16 @@ def generate_reporting_class_parameter(method_info, method_call):
 ###########################################
 
 def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
+  methods_data = get_all_generic_methods_metadata(alt_path)
+  methods = methods_data["data"]["generic_methods"]
   all_metadata = {}
 
   if alt_path != '': sys.stderr.write("INFO: Alternative source path added: %s\n" % alt_path)
 
   filenames = get_all_techniques_filenames(alt_path)
+  method_errors = methods_data["errors"]
+  warnings = methods_data["warnings"]
   errors = []
-  warnings = []
 
   for file in filenames:
     with codecs.open(file, encoding="utf-8") as fd:
@@ -634,7 +639,7 @@ def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
       warnings.extend(result["warnings"])
 
       if include_methods_calls:
-        method_calls = parse_technique_methods(file)
+        method_calls = parse_technique_methods(file, methods)
         metadata['method_calls'] = method_calls
       
       all_metadata[metadata['bundle_name']] = metadata
@@ -645,7 +650,7 @@ def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
       errors.append(error)
       continue # skip this file, it doesn't have the right tags in - yuk!
 
-  return { "data": { "techniques" : all_metadata }, "errors": format_errors(errors), "warnings": warnings }
+  return { "data": { "techniques" : all_metadata, "generic_methods" : methods }, "errors": method_errors + format_errors(errors), "warnings": warnings }
 
 
 def get_agents_support(method, content):

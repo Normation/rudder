@@ -9,16 +9,16 @@ bundle agent bla_rudder_reporting
 
     !(cfengine)::
       "dummy_report" usebundle => _classes_noop("service_start_${bla.apache_package_name}");
-      "dummy_report_1" usebundle => _method_reporting_context("Service start", "${bla.apache_package_name}");
+      "dummy_report_1" usebundle => _method_reporting_context("ph2", "${bla.apache_package_name}");
       "dummy_report" usebundle => log_rudder("Service start ${bla.apache_package_name} if cfengine", "${bla.apache_package_name}", "service_start_${bla.apache_package_name}", "${class_prefix}", @{args});
 
     !(cfengine)::
       "dummy_report" usebundle => _classes_noop("package_install_openssh_server");
-      "dummy_report_2" usebundle => _method_reporting_context("Package install", "openssh-server");
+      "dummy_report_2" usebundle => _method_reporting_context("ph3", "openssh-server");
       "dummy_report" usebundle => log_rudder("Package install openssh-server if cfengine", "openssh-server", "package_install_openssh_server", "${class_prefix}", @{args});
 
     !(cfengine)::
       "dummy_report" usebundle => _classes_noop("command_execution__bin_echo__test_");
-      "dummy_report_3" usebundle => _method_reporting_context("Command execution", "/bin/echo \"test\"");
+      "dummy_report_3" usebundle => _method_reporting_context("ph4", "/bin/echo \"test\"");
       "dummy_report" usebundle => log_rudder("Command execution /bin/echo \"test\" if cfengine", "/bin/echo \"test\"", "command_execution__bin_echo__test_", "${class_prefix}", @{args});
 }
