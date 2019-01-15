@@ -459,13 +459,20 @@ $scope.getTechniques = function () {
     success(function(response, status, headers, config) {
 
       if (response.data !== undefined && response.data.techniques !== undefined) {
+
+        $scope.generic_methods = response.data.generic_methods;
+        $scope.methodsByCategory = $scope.groupMethodsByCategory();
+        $scope.authenticated = true;
+        if (response.data.usingRudder !== undefined) {
+          usingRudder = response.data.usingRudder;
+        }
         $.each( response.data.techniques, function(techniqueName, technique_raw) {
           var technique = toTechUI(technique_raw);
           $scope.techniques.push(technique);
         });
         $scope.getSessionStorage();
       } else {
-        errorNotification( "Error while fetching techniques", "Data received via api are invalid")
+        errorNotification( "Error while fetching methods and techniques", "Data received via api are invalid")
       }
 
       // Display single errors
@@ -473,34 +480,9 @@ $scope.getTechniques = function () {
         errorNotification(error.message,error.details)
       })
     } ).
-    error(handle_error(" while fetching techniques"));
+    error(handle_error(" while fetching methods and techniques"));
 };
 
-// Call ncf api to get genereric methods and then after that get Techniques
-$scope.getMethodsAndTechniques = function () {
-  var data = {params: {path: $scope.path}}
-  $http.get('/ncf/api/generic_methods', data).
-    success(function(response, status, headers, config) {
-      if (response.data !== undefined && response.data.generic_methods !== undefined) {
-        $scope.generic_methods = response.data.generic_methods;
-        $scope.constraints = response.data.constraints;
-        $scope.methodsByCategory = $scope.groupMethodsByCategory();
-        $scope.authenticated = true;
-        if (response.data.usingRudder !== undefined) {
-          usingRudder = response.data.usingRudder;
-        }
-        // Once we have our methods we can fetch our techniques which depends on them
-        $scope.getTechniques();
-      } else {
-        errorNotification( "Error while fetching generic methods", "Data received via api are invalid")
-      }
-      // Display single errors
-      $.each( response.errors, function(index, error) {
-        errorNotification(error.message,error.details)
-      });
-    } ).
-    error(handle_error(" while fetching generic methods"));
-};
 
 // Group methods by category, a category of a method is the first word in its name
 $scope.groupMethodsByCategory = function () {
@@ -795,6 +777,7 @@ $scope.onImportFileChange = function (fileEl) {
         return  v;
       })
       , 'deprecated'     : bundle.deprecated
+      , "component"      : bundle.name
     }
     defineMethodClassContext(call)
     return angular.copy(call)
@@ -1248,7 +1231,7 @@ $scope.onImportFileChange = function (fileEl) {
   };
 
   $scope.reloadData = function() {
-    $scope.getMethodsAndTechniques();
+    $scope.getTechniques();
   }
 
   $scope.reloadPage = function() {
