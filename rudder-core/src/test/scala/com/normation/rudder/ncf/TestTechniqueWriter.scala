@@ -94,7 +94,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     , ParameterId("service_name")
     , "service_start"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
-    , ""
+    , "Service start"
   ) ::
   GenericMethod(
       BundleName("package_install")
@@ -103,7 +103,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     , ParameterId("package_name")
     , "package_install"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil
-    , ""
+    , "Package install"
   ) ::
   GenericMethod(
       BundleName("command_execution")
@@ -117,8 +117,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("_logger")
     , "_logger"
-    , MethodParameter(ParameterId("command"),"") :: MethodParameter(ParameterId("command"),"") :: Nil
-    , ParameterId("command")
+    , MethodParameter(ParameterId("message"),"") :: MethodParameter(ParameterId("old_class_prefix"),"") :: Nil
+    , ParameterId("message")
     , "_logger"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil
     , ""
@@ -133,31 +133,37 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
             BundleName("package_install_version")
           , Map((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
           , "any"
+          , "Customized component"
         ) ::
         MethodCall(
             BundleName("command_execution")
           , Map((ParameterId("command"),"Write-Host \"testing special characters ` è &é 'à é \""))
           , "windows"
+          , "Command execution"
         ) ::
         MethodCall(
             BundleName("service_start")
           , Map((ParameterId("service_name"),"${node.properties[apache_package_name]}"))
           , "package_install_version_${node.properties[apache_package_name]}_repaired"
+          , "Customized component"
         ) ::
         MethodCall(
             BundleName("package_install")
           , Map((ParameterId("package_name"),"openssh-server"))
           , "redhat"
+          , "Package install"
         ) ::
         MethodCall(
             BundleName("command_execution")
           , Map((ParameterId("command"),"/bin/echo \"testing special characters ` è &é 'à é \""))
           , "cfengine-community"
+          , "Command execution"
         ) ::
         MethodCall(
             BundleName("_logger")
-          , Map((ParameterId("component"),"NA"),(ParameterId("value"),"NA"))
+          , Map((ParameterId("message"),"NA"),(ParameterId("old_class_prefix"),"NA"))
           , "any"
+          , "Not sure we should test it ..."
         ) :: Nil
       , new Version("1.0")
       , "This Technique exists only to see if Rudder creates Technique correctly."
@@ -199,6 +205,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
             BundleName("package_install_version")
           , Map((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
           , "any"
+          , "Test component$&é)à\\'\""
         ) :: Nil
       , new Version("1.0")
       , "This Technique exists only to see if Rudder creates Technique correctly."
