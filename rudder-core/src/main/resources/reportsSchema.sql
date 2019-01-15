@@ -79,7 +79,6 @@ CREATE TABLE RudderSysEvents (
 );
 
 
-CREATE INDEX nodeid_idx                   ON RudderSysEvents (nodeId);
 CREATE INDEX executionTimeStamp_idx       ON RudderSysEvents (executionTimeStamp);
 CREATE INDEX composite_node_execution_idx ON RudderSysEvents (nodeId, executionTimeStamp);
 CREATE INDEX component_idx                ON RudderSysEvents (component);
