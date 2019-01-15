@@ -1080,6 +1080,7 @@ case class RestExtractorService (
     for {
       methodId        <- CompleteJson.extractJsonString(json, "method_name", s => Full(BundleName(s)))
       condition       <- CompleteJson.extractJsonString(json, "class_context")
+      component       <- CompleteJson.extractJsonString(json, "component")
       parameterValues <- CompleteJson.extractJsonArray(json \ "args"){
                            case JString(value) => Full(value)
                            case s => Failure(s"Invalid format of method call when extracting from json, expecting and array but got : ${s}")
@@ -1087,7 +1088,7 @@ case class RestExtractorService (
 
       parameters = methods.get(methodId).toList.flatMap(_.parameters.map(_.id)).zip(parameterValues).toMap
     } yield {
-      MethodCall(methodId, parameters, condition)
+      MethodCall(methodId, parameters, condition, component)
     }
   }
 
