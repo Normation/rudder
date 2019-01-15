@@ -5,10 +5,10 @@
 bundle agent content_escaping_test
 {
   methods:
-    "method_call_context_0" usebundle => _method_reporting_context("Package install version", "apache2");
-    "method_call" usebundle => package_install_version("apache2", "2.2.11"),
+    "Install a package with correct version_context_0" usebundle => _method_reporting_context("Install a package with correct version", "apache2");
+    "Install a package with correct version" usebundle => package_install_version("apache2", "2.2.11"),
       ifvarclass => concat("any");
-    "method_call_context_1" usebundle => _method_reporting_context("File replace lines", "/etc/httpd/conf/httpd.conf");
-    "method_call" usebundle => file_replace_lines("/etc/httpd/conf/httpd.conf", "ErrorLog \"/var/log/httpd/error_log\"", "ErrorLog \"/projet/logs/httpd/error_log\""),
+    "Edit conf file_context_1" usebundle => _method_reporting_context("Edit conf file", "/etc/httpd/conf/httpd.conf");
+    "Edit conf file" usebundle => file_replace_lines("/etc/httpd/conf/httpd.conf", "ErrorLog \"/var/log/httpd/error_log\"", "ErrorLog \"/projet/logs/httpd/error_log\""),
       ifvarclass => concat("redhat");
 }

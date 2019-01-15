@@ -21,22 +21,23 @@ class TestNcfRudder(unittest.TestCase):
     self.test_technique_file = os.path.realpath('test_technique.cf')
     with open(self.test_technique_file) as fd:
       self.technique_content = fd.read()
+    self.all_methods = ncf.get_all_generic_methods_metadata()["data"]["generic_methods"]  
     self.technique_metadata = ncf.parse_technique_metadata(self.technique_content)['result']
-    method_calls = ncf.parse_technique_methods(self.test_technique_file)
+    method_calls = ncf.parse_technique_methods(self.test_technique_file, self.all_methods)
     self.technique_metadata['method_calls'] = method_calls
 
     self.test_reporting = os.path.realpath('test_technique_reporting.cf')
     with open(self.test_reporting) as fd:
       self.reporting_content = fd.read()
     self.reporting_metadata = ncf.parse_technique_metadata(self.reporting_content)['result']
-    reporting_method_calls = ncf.parse_technique_methods(self.test_reporting)
+    reporting_method_calls = ncf.parse_technique_methods(self.test_reporting, self.all_methods)
     self.reporting_metadata['method_calls'] = reporting_method_calls
 
     self.test_reporting_with_var = os.path.realpath('test_technique_with_variable.cf')
     with open(self.test_reporting_with_var) as fd:
       self.reporting_with_var_content = fd.read()
     self.reporting_with_var_metadata = ncf.parse_technique_metadata(self.reporting_with_var_content)['result']
-    reporting_with_var_method_calls = ncf.parse_technique_methods(self.test_reporting_with_var)
+    reporting_with_var_method_calls = ncf.parse_technique_methods(self.test_reporting_with_var, self.all_methods)
     self.reporting_with_var_metadata['method_calls'] = reporting_with_var_method_calls
 
 
@@ -44,7 +45,7 @@ class TestNcfRudder(unittest.TestCase):
     with open(self.test_any_technique) as fd:
       self.any_technique_content = fd.read()
     self.any_technique_metadata = ncf.parse_technique_metadata(self.any_technique_content)['result']
-    any_technique_method_calls = ncf.parse_technique_methods(self.test_any_technique)
+    any_technique_method_calls = ncf.parse_technique_methods(self.test_any_technique, self.all_methods)
     self.any_technique_metadata['method_calls'] = any_technique_method_calls
 
     self.rudder_reporting_file = os.path.realpath('test_technique_rudder_reporting.cf')
@@ -53,13 +54,15 @@ class TestNcfRudder(unittest.TestCase):
 
     # Testing Techniques with quote
     self.test_technique_with_quote_file = os.path.realpath('test_technique_with_quote.cf')
-    self.technique_with_quote_content = open(self.test_technique_with_quote_file).read()
+    with open(self.test_technique_with_quote_file) as fd:
+      self.technique_with_quote_content = fd.read()
     self.technique_with_quote_metadata = ncf.parse_technique_metadata(self.technique_with_quote_content)['result']
-    method_with_quote_calls = ncf.parse_technique_methods(self.test_technique_with_quote_file)
+    method_with_quote_calls = ncf.parse_technique_methods(self.test_technique_with_quote_file, self.all_methods)
     self.technique_with_quote_metadata['method_calls'] = method_with_quote_calls
 
     self.test_expected_reports_with_quote_csv_file = os.path.realpath('test_expected_reports_with_quote.csv')
-    self.test_expected_reports_with_quote_csv_content = open(self.test_expected_reports_with_quote_csv_file).read()
+    with open(self.test_expected_reports_with_quote_csv_file) as fd:
+      self.test_expected_reports_with_quote_csv_content = fd.read() 
 
   def test_expected_reports_from_technique(self):
     expected_reports_string = ncf_rudder.get_technique_expected_reports(self.technique_metadata)
@@ -93,7 +96,7 @@ class TestNcfRudder(unittest.TestCase):
   # Testing Techniques with quotes
   def test_expected_reports_with_quote(self):
     expected_reports_string = ncf_rudder.get_technique_expected_reports(self.technique_with_quote_metadata)
-    self.assertEquals(expected_reports_string, self.test_expected_reports_with_quote_csv_content)
+    self.assertEqual(expected_reports_string, self.test_expected_reports_with_quote_csv_content)
 
   def test_rudder_reporting_content(self):
 
@@ -109,17 +112,17 @@ class TestNcfRudder(unittest.TestCase):
     expected_result.append('')
     expected_result.append('    !(debian)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("service_start_apache2");')
-    expected_result.append('      "dummy_report_1" usebundle => _method_reporting_context("Service start", "apache2");')
+    expected_result.append('      "dummy_report_1" usebundle => _method_reporting_context("ph2", "apache2");')
     expected_result.append('      "dummy_report" usebundle => log_rudder("Service start apache2 if debian", "apache2", "service_start_apache2", "${class_prefix}", @{args});')
     expected_result.append('')
     expected_result.append('    !(service_start_apache2_repaired)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("package_install_openssh_server");')
-    expected_result.append('      "dummy_report_2" usebundle => _method_reporting_context("Package install", "openssh-server");')
+    expected_result.append('      "dummy_report_2" usebundle => _method_reporting_context("ph3", "openssh-server");')
     expected_result.append('      "dummy_report" usebundle => log_rudder("Package install openssh-server if service_start_apache2_repaired", "openssh-server", "package_install_openssh_server", "${class_prefix}", @{args});')
     expected_result.append('')
     expected_result.append('    !(!service_start_apache2_repaired.debian)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("command_execution__bin_date");')
-    expected_result.append('      "dummy_report_3" usebundle => _method_reporting_context("Command execution", "/bin/date");')
+    expected_result.append('      "dummy_report_3" usebundle => _method_reporting_context("ph4", "/bin/date");')
     expected_result.append('      "dummy_report" usebundle => log_rudder("Command execution /bin/date if !service_start_apache2_repaired.debian", "/bin/date", "command_execution__bin_date", "${class_prefix}", @{args});')
     expected_result.append('}')
 
@@ -166,7 +169,7 @@ class TestNcfRudder(unittest.TestCase):
     expected_result.append('')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("file_create_${sys.workdir}_module_env"),')
     expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
-    expected_result.append('      "dummy_report_1" usebundle => _method_reporting_context("File create", "${sys.workdir}/module/env"),')
+    expected_result.append('      "dummy_report_1" usebundle => _method_reporting_context("ph2", "${sys.workdir}/module/env"),')
     expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
     expected_result.append('      "dummy_report" usebundle => log_rudder("File create ${sys.workdir}/module/env if directory_create_${sys.workdir}_module_repaired", "${sys.workdir}/module/env", "file_create_${sys.workdir}_module_env", "${class_prefix}", @{args}),')
     expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
@@ -210,20 +213,20 @@ class TestNcfRudder(unittest.TestCase):
 
   def test_canonify(self):
     result = ncf.canonify("ascii @&_ string")
-    self.assertEquals(result, "ascii_____string")
+    self.assertEqual(result, "ascii_____string")
 
     # python/ncf reads UTF-8 files and produces u'' strings in python2 and '' strings in python3
     # python2 tests
     if sys.version_info[0] == 2:
       # unicode in source file -> interpreted as unicode with u'' -> correct iso in python string (ncf builder use case)
       result = ncf.canonify(u'héhé')
-      self.assertEquals(result, 'h__h__')
+      self.assertEqual(result, 'h__h__')
 
     # python3 tests
     if sys.version_info[0] == 3:
       # unicode in source file -> correct unicode in python string (ncf builder use case)
       result = ncf.canonify('héhé')
-      self.assertEquals(result, "h__h__")
+      self.assertEqual(result, "h__h__")
 
 
 if __name__ == '__main__':
