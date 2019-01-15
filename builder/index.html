@@ -21,6 +21,7 @@
         <script src="js/cfengine_classes.js"></script>
         <script src="js/class_utils.js"></script>
         <script src="js/ui-bootstrap-tpls-0.14.3.min.js"></script>
+        <script src="js/showdown-1.9.0.min.js"></script>
         <script type="text/ng-template" id="deprecatedMethod.html">
           <div>This generic method is <b>deprecated</b>.</div>
         </script>
@@ -314,7 +315,7 @@
                                     <i class="fas fa-clone"></i>
                                   </button>
                                   <button type="button" ng-click="removeMethod($index);$event.stopPropagation();" class="icon-margin text-danger method-action">
-                                    <i class="fas fa-eraser"></i>
+                                    <i class="fas fa-times-circle"></i>
                                   </button>
                                   <button type="button" class="icon-margin text-classic method-action">
                                     <i class="glyphicon " ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
@@ -331,9 +332,13 @@
                                          popover-trigger="mouseenter" popover-append-to-body="true">
                                       <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
                                     </span>
-                                    <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method_call)}}">
-                                      <i class="glyphicon glyphicon-info-sign text-primary method-action"></i>
-                                    </a>
+                                    <span class="cursor-help"
+                                    popover-title="{{getMethodName(method_call)}}"
+                                    uib-popover="{{getMethodDescription(method_call)}}"
+                                    popover-trigger="mouseenter"
+                                    popover-append-to-body="true"
+                                    ><i class="glyphicon glyphicon-info-sign text-primary method-action cursor-help"></i>
+                                    </span>
                                   </div>
                                   <span class="input-group-addon method-actions"  ng-if="method_call.class_context === 'any'">
                                     <button type="button" uib-tooltip="Clone this method" tooltip-append-to-body="true" popup-trigger="click" popup-open-delay="500" ng-click="cloneMethod($index);$event.stopPropagation();" class="icon-margin  text-success method-action">
@@ -390,10 +395,19 @@
                               popover-placement="bottom" popover-trigger="mouseenter" popover-append-to-body="true">
                           <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
                         </span>
+                        <span class="cursor-help"
+                        popover-title="{{getMethodName(selectedMethod)}}"
+                        uib-popover="{{getMethodDescription(selectedMethod)}}"
+                        popover-placement="bottom"
+                        popover-trigger="mouseenter"
+                        popover-append-to-body="true"
+                        ><i class="glyphicon glyphicon-info-sign text-primary method-action cursor-help"></i>
+                        </span>
                         <i class="{{getIconClassByAgentType(selectedMethod.method_name)}}"></i>
                         <button ng-disabled="! canResetMethod()" class="btn btn-primary btn-outline pull-right top-margin" ng-click="resetMethod()">Reset <i class="fas fa-undo-alt"></i></button>
                     </h3>
-
+                    <button ng-if="getMethodDocumentation(selectedMethod) !== undefined" class="btn btn-primary" ng-class="{ 'btn-outline' : !selectedMethod.showDoc}" ng-click="$event.stopPropagation(); selectedMethod.showDoc = !selectedMethod.showDoc">{{selectedMethod.showDoc ? "Hide" : "Show"}} docs <i class="fa fa-book"></i></button>
+                    <div class="markdown" ng-if="getMethodDocumentation(selectedMethod) !== undefined && selectedMethod.showDoc" ng-bind-html="getMethodDocumentation(selectedMethod)"></div>
                     <div class="form-group condition-form">
                       <label for="component">Report component:</label>
                       <input type="text" style="cursor:text" name="component" class="form-control" ng-model="selectedMethod.component"/>
@@ -573,6 +587,9 @@
                                 <br style="clear:both"/>
                                 <small class="pull-left method-margin" >
                                     {{method.description}}
+                                    <br ng-if="method.documentation !== undefined"/>
+                                    <button ng-if="method.documentation !== undefined" class="btn btn-primary btn-xs btn-outline" ng-click="$event.stopPropagation(); method.showDoc = !method.showDoc">{{method.showDoc ? "Hide" : "Show"}} <i class="fa fa-book"></i></button>
+                                    <div class="markdown" ng-if="method.documentation !== undefined && method.showDoc" ng-bind-html="method.documentation"></div>
                                 </small>
                             </h4>
                         </div>
