@@ -24,7 +24,7 @@
     </FILES>
   </AGENT>
   <SECTIONS>
-    <SECTION component="true" multivalued="true" name="Package install version">
+    <SECTION component="true" multivalued="true" name="Test component$&amp;é)à\'&quot;">
       <REPORTKEYS>
         <VALUE>${node.properties[apache_package_name]}</VALUE>
       </REPORTKEYS>

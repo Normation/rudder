@@ -65,6 +65,7 @@ final case class MethodCall(
     methodId   : BundleName
   , parameters : Map[ParameterId,String]
   , condition  : String
+  , component  : String
 )
 
 final case class GenericMethod(
