@@ -2,7 +2,7 @@
 
 // Helpers functions
 
-
+var converter = new showdown.Converter();
 // Swap two two items in an array based on their index
 function swapTwoArrayItems(array, index1, index2) {
     var item = array[index1];
@@ -461,6 +461,11 @@ $scope.getTechniques = function () {
       if (response.data !== undefined && response.data.techniques !== undefined) {
 
         $scope.generic_methods = response.data.generic_methods;
+
+        $.each( response.data.generic_methods, function(methodName, method) {
+          method.documentation = converter.makeHtml(method.documentation)
+          $scope.generic_methods[methodName] = method;
+        });
         $scope.methodsByCategory = $scope.groupMethodsByCategory();
         $scope.authenticated = true;
         if (response.data.usingRudder !== undefined) {
@@ -860,11 +865,18 @@ $scope.onImportFileChange = function (fileEl) {
     }
   };
 
-
   // Get the desciption of a method call in definition of the generic method
   $scope.getMethodDescription = function(method_call) {
     if (method_call.method_name in $scope.generic_methods ) {
       return $scope.generic_methods[method_call.method_name].description;
+    } else {
+      return "";
+    }
+  };
+
+  $scope.getMethodDocumentation = function(method_call) {
+    if (method_call.method_name in $scope.generic_methods ) {
+      return $scope.generic_methods[method_call.method_name].documentation;
     } else {
       return "";
     }
