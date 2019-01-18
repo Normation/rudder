@@ -3,7 +3,6 @@ use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PEnumMapping, PToken};
 use std::collections::HashMap;
 use std::collections::HashSet;
-//use std::slice::Iter;
 use std::collections::hash_set::Iter;
 
 // As single enum can be derived into different set through multiple mappings

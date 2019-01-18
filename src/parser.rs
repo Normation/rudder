@@ -232,16 +232,41 @@ pub struct PCode<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Error {
+pub enum PError {
+    // TODO check if it is possible to add parameters
+    Unknown, // Used by tests only
     InvalidFormat,
     UnterminatedString,
+    InvalidEscape,
+    UnterminatedCurly,
+    InvalidName,
+    EnumSyntax,
 }
 
+// PARSER Helpers
+
+// Call this one When you are sure nothing else can match
+macro_rules! or_fail (
+    ($i:expr, $submac:ident!( $($args:tt)* ), $code:expr) => (return_error!($i, ErrorKind::Custom($code as u32), $submac!($($args)*)););
+    ($i:expr, $f:expr, $code:expr ) => (or_fail!($i,call!($f),$code));
+);
+
+// Call this one if you don't know if something else may match
+macro_rules! or_error (
+    ($i:expr, $submac:ident!( $($args:tt)* ), $code:expr) => (add_return_error!($i, ErrorKind::Custom($code as u32), $submac!($($args)*)););
+    ($i:expr, $f:expr, $code:expr ) => (or_error!($i,call!($f),$code));
+);
+
+// same as named but with implicit input type
+macro_rules! pnamed (
+    ($name:ident<$o:ty>, $submac:ident!( $($args:tt)* )) => (nom::named!($name<PInput,$o>, $submac!($($args)*)););
+    (pub $name:ident<$o:ty>, $submac:ident!( $($args:tt)* )) => (nom::named!(pub $name<PInput,$o>, $submac!($($args)*)););
+);
+
 // PARSERS adapter for str instead of byte{]
-//
 
 // eat char separators instead of u8
-named!(space_s<PInput,PInput>, eat_separator!(&" \t\r\n"[..]));
+pnamed!(space_s<PInput>, eat_separator!(&" \t\r\n"[..]));
 
 // ws! for chars instead of u8
 // TODO add a strip comment
@@ -253,31 +278,21 @@ macro_rules! sp (
     )
 );
 
-// simplify error repoting in parsers
-macro_rules! fail (
-    ($i:expr, $code:expr, $submac:ident!( $($args:tt)* )) => (return_error!($i, ErrorKind::Custom($code as u32), $submac!($($args)*)););
-    //($i:expr, $code:expr, $f:expr ) => (return_error!($i, ErrorKind::Custom($code as u32), call!($f)););
-);
-//macro_rules! error (
-//    ($i:expr, $code:expr, $submac:ident!( $($args:tt)* )) => (add_return_error!($i, ErrorKind::Custom($code as u32), $submac!($($args)*)););
-//    //($i:expr, $code:expr, $f:expr ) => (add_return_error!($i, ErrorKind::Custom($code as u32), call!($f)););
-//);
-
 // PARSERS
 //
 
-named!(header<PInput,PHeader>,
+pnamed!(header<PHeader>,
     do_parse!(
         opt!(preceded!(tag!("#!/"),take_until_and_consume!("\n"))) >>
         // strict parser so that this does not diverge and anything can read the line
-        fail!(Error::InvalidFormat,tag!("@format=")) >>
-        version: fail!(Error::InvalidFormat,map_res!(take_until!("\n"), |s:PInput| s.fragment.parse::<u32>())) >>
-        fail!(Error::InvalidFormat,tag!("\n")) >>
+        or_fail!(tag!("@format="),PError::InvalidFormat) >>
+        version: or_fail!(map_res!(take_until!("\n"), |s:PInput| s.fragment.parse::<u32>()),PError::InvalidFormat) >>
+        or_fail!(tag!("\n"),PError::InvalidFormat) >>
         (PHeader { version })
     )
 );
 
-named!(pub identifier<PInput,PToken>,
+pnamed!(pub identifier<PToken>,
     map!(
         // TODO accept _
         verify!(alphanumeric, |x:PInput| {
@@ -289,18 +304,11 @@ named!(pub identifier<PInput,PToken>,
     )
 );
 
-//    // Convert to IResult<&[u8], &[u8], ErrorStr>
-//    impl From<u32> for PHeader {
-//      fn from(i: u32) -> Self {
-//        PHeader {version:1}
-//      }
-//    }
 // string
-named!(escaped_string<PInput,String>,
-//       fix_error!(PHeader,
+pnamed!(escaped_string<String>,
     delimited!(
         tag!("\""), 
-        escaped_transform!(
+        or_fail!(escaped_transform!(
             take_until_either1!("\\\""),
             '\\',
             alt!(
@@ -310,23 +318,23 @@ named!(escaped_string<PInput,String>,
                 tag!("r")  => { |_| "\r" } |
                 tag!("t")  => { |_| "\t" }
             )
-        ),
-        fail!(Error::UnterminatedString,tag!("\""))
+        ),PError::InvalidEscape),
+        or_fail!(tag!("\""),PError::UnterminatedString)
     )
 );
 
-named!(unescaped_string<PInput,String>,
+pnamed!(unescaped_string<String>,
     delimited!(
         // TODO string containing """
         tag!("\"\"\""),
-        map!(take_until!("\"\"\""), { |x:PInput| x.to_string() }),
-        fail!(Error::UnterminatedString,tag!("\"\"\""))
+        map!(or_fail!(take_until!("\"\"\""),PError::UnterminatedString), { |x:PInput| x.to_string() }),
+        tag!("\"\"\"")
     )
 );
 
 // Value
 //
-named!(typed_value<PInput,PValue>,
+pnamed!(typed_value<PValue>,
     // TODO other types
     alt!(
         unescaped_string  => { |x| PValue::String(x) }
@@ -335,24 +343,24 @@ named!(typed_value<PInput,PValue>,
 );
 
 // Enums
-named!(pub penum<PInput,PEnum>,
+pnamed!(pub penum<PEnum>,
     sp!(do_parse!(
         global: opt!(tag!("global")) >>
         tag!("enum") >>
-        name: identifier >>
+        name: or_fail!(identifier,PError::InvalidName) >>
         tag!("{") >>
-        items: sp!(separated_list!(tag!(","), identifier)) >>
-        tag!("}") >>
+        items: or_fail!(sp!(separated_list!(tag!(","), identifier)),PError::EnumSyntax) >>
+        or_fail!(tag!("}"),PError::UnterminatedCurly) >>
         (PEnum {global: global.is_some(), name, items})
     ))
 );
 
-named!(pub enum_mapping<PInput,PEnumMapping>,
+pnamed!(pub enum_mapping<PEnumMapping>,
     sp!(do_parse!(
         tag!("enum") >>
-        from: identifier >>
+        from: or_fail!(identifier,PError::InvalidName) >>
         tag!("~>") >>
-        to: identifier >>
+        to: or_fail!(identifier,PError::InvalidName) >>
         tag!("{") >>
         mapping: sp!(separated_list!(
                 tag!(","),
@@ -366,7 +374,7 @@ named!(pub enum_mapping<PInput,PEnumMapping>,
     ))
 );
 
-named!(pub enum_expression<PInput,PEnumExpression>,
+pnamed!(pub enum_expression<PEnumExpression>,
     alt!(enum_or_expression
        | enum_and_expression
        | enum_not_expression
@@ -375,7 +383,7 @@ named!(pub enum_expression<PInput,PEnumExpression>,
     )
 );
 
-named!(enum_atom<PInput,PEnumExpression>,
+pnamed!(enum_atom<PEnumExpression>,
     sp!(alt!(
         delimited!(tag!("("),enum_expression,tag!(")"))
       | do_parse!(
@@ -400,7 +408,7 @@ named!(enum_atom<PInput,PEnumExpression>,
     ))
 );
 
-named!(enum_or_expression<PInput,PEnumExpression>,
+pnamed!(enum_or_expression<PEnumExpression>,
     sp!(do_parse!(
         left: alt!(enum_and_expression | enum_not_expression | enum_atom) >>
         tag!("||") >>
@@ -409,7 +417,7 @@ named!(enum_or_expression<PInput,PEnumExpression>,
     ))
 );
 
-named!(enum_and_expression<PInput,PEnumExpression>,
+pnamed!(enum_and_expression<PEnumExpression>,
     sp!(do_parse!(
         left: alt!(enum_not_expression | enum_atom) >>
         tag!("&&") >>
@@ -418,7 +426,7 @@ named!(enum_and_expression<PInput,PEnumExpression>,
     ))
 );
 
-named!(enum_not_expression<PInput,PEnumExpression>,
+pnamed!(enum_not_expression<PEnumExpression>,
     sp!(do_parse!(
         tag!("!") >>
         right: enum_atom >>
@@ -427,7 +435,7 @@ named!(enum_not_expression<PInput,PEnumExpression>,
 );
 
 // comments
-named!(comment_line<PInput,PToken>,
+pnamed!(comment_line<PToken>,
     map!(
         preceded!(tag!("##"),
             alt!(take_until_and_consume!("\n")
@@ -437,12 +445,12 @@ named!(comment_line<PInput,PToken>,
         |x| x.into()
     )
 );
-named!(comment_block<PInput,PComment>,
+pnamed!(comment_block<PComment>,
   many1!(comment_line)
 );
 
 // metadata
-named!(metadata<PInput,PMetadata>,
+pnamed!(metadata<PMetadata>,
   sp!(do_parse!(char!('@') >>
     key: identifier >>
     char!('=') >>
@@ -452,7 +460,7 @@ named!(metadata<PInput,PMetadata>,
 );
 
 // type
-named!(typename<PInput,PType>,
+pnamed!(typename<PType>,
   alt!(
     tag!("string")      => { |_| PType::TString }  |
     tag!("int")         => { |_| PType::TInteger } |
@@ -462,7 +470,7 @@ named!(typename<PInput,PType>,
 );
 
 // Parameters
-named!(parameter<PInput,PParameter>,
+pnamed!(parameter<PParameter>,
   sp!(do_parse!(
     ptype: opt!(sp!(terminated!(typename, char!(':')))) >>
     name: identifier >>
@@ -472,7 +480,7 @@ named!(parameter<PInput,PParameter>,
 );
 
 // ResourceDef
-named!(resource_def<PInput,PResourceDef>,
+pnamed!(resource_def<PResourceDef>,
   sp!(do_parse!(
     tag!("resource") >>
     name: identifier >>
@@ -486,7 +494,7 @@ named!(resource_def<PInput,PResourceDef>,
 );
 
 // ResourceRef
-named!(resource_ref<PInput,PResourceRef>,
+pnamed!(resource_ref<PResourceRef>,
   sp!(do_parse!(
     name: identifier >>
     params: opt!(sp!(do_parse!(tag!("(") >>
@@ -500,7 +508,7 @@ named!(resource_ref<PInput,PResourceRef>,
 );
 
 // statements
-named!(statement<PInput,PStatement>,
+pnamed!(statement<PStatement>,
   alt!(
       // state call
       sp!(do_parse!(
@@ -552,7 +560,7 @@ named!(statement<PInput,PStatement>,
 );
 
 // state definition
-named!(state<PInput,PStateDef>,
+pnamed!(state<PStateDef>,
   sp!(do_parse!(
       resource_name: identifier >>
       tag!("state") >>
@@ -570,7 +578,7 @@ named!(state<PInput,PStateDef>,
 );
 
 // a file
-named!(declaration<PInput,PDeclaration>,
+pnamed!(declaration<PDeclaration>,
     sp!(alt_complete!(
           resource_def    => { |x| PDeclaration::Resource(x) }
         | metadata      => { |x| PDeclaration::Metadata(x) }
@@ -581,7 +589,7 @@ named!(declaration<PInput,PDeclaration>,
       ))
 );
 
-named!(pub parse<PInput,PFile>,
+pnamed!(pub parse<PFile>,
   do_parse!(
     header: header >>
     code: many0!(declaration) >>
@@ -604,6 +612,19 @@ mod tests {
         match r {
             Ok((x, y)) => Ok((*x.fragment, y)),
             Err(e) => Err(e),
+        }
+    }
+
+    // Adapter to simplify writing tests
+    fn maperr<'a, O>(
+        r: Result<(PInput<'a>, O), Err<PInput<'a>, u32>>,
+    ) -> Result<(PInput<'a>, O), u32> {
+        match r {
+            Err(Err::Failure(Context::Code(_,ErrorKind::Custom(e)))) => Err(e),
+            Err(Err::Error(Context::Code(_,ErrorKind::Custom(e)))) => Err(e),
+            Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
+            Err(_) => Err(PError::Unknown as u32),
+            Ok((x,y)) => Ok((x,y)),
         }
     }
 
@@ -1085,5 +1106,15 @@ mod tests {
                 }
             ))
         );
+    }
+
+    #[test]
+    fn test_errors() {
+        assert_eq!(maperr(header(pinput("", "@format=21.5\n"))),Err(PError::InvalidFormat as u32));
+        assert_eq!(maperr(escaped_string(pinput("", "\"2hello"))),Err(PError::UnterminatedString as u32));
+        assert_eq!(maperr(unescaped_string(pinput("", "\"\"\"hello\"\""))),Err(PError::UnterminatedString as u32));
+        assert_eq!(maperr(typed_value(pinput("", "\"\"\"hello\"\""))),Err(PError::UnterminatedString as u32));
+        assert_eq!(maperr(typed_value(pinput("", "\"hello\\x\""))),Err(PError::InvalidEscape as u32));
+        assert_eq!(maperr(typed_value(pinput("", "\"hello\\"))),Err(PError::InvalidEscape as u32));
     }
 }

@@ -12,9 +12,9 @@ maplit = "^1.0"
 
 [dependencies.nom]
 version = "^4.1"
-features = ["verbose-errors"]
+#features = ["verbose-errors"]
 
 [dependencies.nom_locate]
 version = "^0.3"
-features = ["verbose-errors"]
+#features = ["verbose-errors"]
 path = "../nom_locate"
