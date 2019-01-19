@@ -16,13 +16,6 @@
 #
 #####################################################################################
 
-# Define base characteristics for the framework
-# First, the path where the framework is installed
-bundle common me
-{
-  vars:
-      "framework_path" string => "${sys.workdir}/inputs";
-}
 # Inputs bundle
 # This bundle figures out which .cf files to include.
 # As a first implementation, it loads all the .cf files in the whole directory tree
@@ -30,22 +23,22 @@ bundle common me
 bundle common inputs
 {
   vars:
-      "list_compatible_inputs" string => "NCF_CACHE_PATH=${sys.workdir}/state /bin/sh ${me.framework_path}/10_ncf_internals/list-compatible-inputs";
+      "list_compatible_inputs" string => "NCF_CACHE_PATH=${sys.workdir}/state /bin/sh ${sys.inputdir}/10_ncf_internals/list-compatible-inputs";
 
       # this list contains everything that is in the 10_ncf_internals
-      "ncf_internals"          string => execresult("${list_compatible_inputs} ${sys.cf_version} ${me.framework_path} 10_ncf_internals", "useshell");
+      "ncf_internals"          string => execresult("${list_compatible_inputs} ${sys.cf_version} ${sys.inputdir} 10_ncf_internals", "useshell");
 
       # Here, we get all the generic files of the framework (basics, methods, it ops knowledge)
       # without their full path as it may break the 4K limit
       # see https://cfengine.com/dev/issues/2912
-      "generic_framework"      string => execresult("${list_compatible_inputs} ${sys.cf_version} ${me.framework_path} 20_cfe_basics 30_generic_methods 40_it_ops_knowledge", "useshell");
+      "generic_framework"      string => execresult("${list_compatible_inputs} ${sys.cf_version} ${sys.inputdir} 20_cfe_basics 30_generic_methods 40_it_ops_knowledge", "useshell");
 
       # The Techniques and Services part are choosen separatly, as we may not want to load
       # them all automatically in the future
       # This fetches the techniques cf files
-      "techniques"            string  => execresult("${list_compatible_inputs} ${sys.cf_version} ${me.framework_path} 50_techniques", "useshell");
+      "techniques"            string  => execresult("${list_compatible_inputs} ${sys.cf_version} ${sys.inputdir} 50_techniques", "useshell");
       # This fetches the services cf files
-      "services"              string  => execresult("${list_compatible_inputs} ${sys.cf_version} ${me.framework_path} 60_services", "useshell");
+      "services"              string  => execresult("${list_compatible_inputs} ${sys.cf_version} ${sys.inputdir} 60_services", "useshell");
 
       # We have to convert the result of the find into lists so that they can be use in the 
       # inputs list
