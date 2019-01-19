@@ -1,9 +1,10 @@
 #[macro_use]
 mod error;
-mod context;
-mod enums;
+//mod context;
+//mod enums;
 //mod string;
 mod parser;
+mod analyser;
 
 use nom::IResult;
 use std::fmt::Debug;
@@ -41,27 +42,10 @@ fn parse<'a>(filename: &'a str, content: &'a str) -> Result<parser::PFile<'a>> {
     }
 }
 
-fn analyse(ast: parser::PFile) -> Result<()> {
-    let mut enumlist = enums::EnumList::new();
-    // check header version
-    if ast.header.version != 0 { panic!("Multiple format not supported yet"); }
-    for decl in ast.code {
-        match decl {
-            parser::PDeclaration::Comment(_) => {},
-            parser::PDeclaration::Metadata(_) => {},
-            parser::PDeclaration::Resource(_) => {},
-            parser::PDeclaration::State(_) => {},
-            parser::PDeclaration::Enum(e) => enumlist.add_enum(e)?,
-            parser::PDeclaration::Mapping(e) => enumlist.add_mapping(e)?,
-        }
-    }
-    Ok(())
-}
-
 fn main() {
     let filename = "test.ncf";
     let content = fs::read_to_string(filename).expect(&format!("Something went wrong reading the file {}", filename));
-    match parse(filename, &content).and_then(analyse) {
+    match parse(filename, &content).and_then(analyser::analyse) {
         Err(e) => println!("There was an error: {}", e),
         Ok(_) => println!("Everything went OK"),
     }

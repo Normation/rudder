@@ -1,4 +1,4 @@
-use crate::context::{VarContext, VarKind};
+use super::context::{VarContext, VarKind};
 use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PEnumMapping, PToken};
 use std::collections::HashMap;
