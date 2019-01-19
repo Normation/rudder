@@ -6,7 +6,8 @@ use std::fmt;
 pub enum PError {
     //          message file    line  column
     Compilation(String, String, u32, usize),
-    //Parsing(nom::Err),
+    //      message file    line  column
+    Parsing(String, String, u32, usize),
     //       message file    line  column
     Warning(String, String, u32, usize),
 }
@@ -42,6 +43,7 @@ impl fmt::Display for PError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             PError::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
+            PError::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
             PError::Warning(msg, _, _, _) => write!(f, "Compilation warning: {}", msg),
         }
     }

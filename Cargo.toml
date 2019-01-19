@@ -9,6 +9,7 @@ edition = "2018"
 #nom_locate = { path = "../my-crate-directory" }
 #derivative = "^1.0"
 maplit = "^1.0"
+enum_primitive = "*"
 
 [dependencies.nom]
 version = "^4.1"

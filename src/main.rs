@@ -8,6 +8,8 @@ mod parser;
 use nom::IResult;
 use std::fmt::Debug;
 use std::fs;
+use crate::error::*;
+use enum_primitive::*;
 
 // MAIN
 //
@@ -18,10 +20,52 @@ fn dump<T: Debug>(res: IResult<parser::PInput, T>) {
     }
 }
 
+fn parser_err(context: &nom::Context<parser::PInput,u32>) -> Result<parser::PFile<'static>>{
+    match context {
+        nom::Context::Code(i,e) => {
+            let (file,line,col) = parser::PToken::from(*i).position();
+            match e {
+                nom::ErrorKind::Custom(err) => Err(PError::Parsing(format!("Error: {} at {}:{}:{}",parser::PError::from_u32(*err).unwrap(),file,line,col),file,line,col)),
+                e => Err(PError::Parsing(format!("Unprocessed parsing error '{:?}' at {}:{}:{}, please fill a BUG with context on when this happened",e, file,line,col), file,line,col)),
+            }
+        }
+    }
+}
+
+fn parse<'a>(filename: &'a str, content: &'a str) -> Result<parser::PFile<'a>> {
+    match parser::parse(parser::pinput(filename, content)) {
+        Ok((_,pfile)) => Ok(pfile),
+        Err(nom::Err::Failure(context)) => parser_err(&context),
+        Err(nom::Err::Error(context)) => parser_err(&context),
+        Err(nom::Err::Incomplete(_)) => panic!("Incomplete should never happen"),
+    }
+}
+
+fn analyse(ast: parser::PFile) -> Result<()> {
+    let mut enumlist = enums::EnumList::new();
+    // check header version
+    if ast.header.version != 0 { panic!("Multiple format not supported yet"); }
+    for decl in ast.code {
+        match decl {
+            parser::PDeclaration::Comment(_) => {},
+            parser::PDeclaration::Metadata(_) => {},
+            parser::PDeclaration::Resource(_) => {},
+            parser::PDeclaration::State(_) => {},
+            parser::PDeclaration::Enum(e) => enumlist.add_enum(e)?,
+            parser::PDeclaration::Mapping(e) => enumlist.add_mapping(e)?,
+        }
+    }
+    Ok(())
+}
+
 fn main() {
     let filename = "test.ncf";
-    let content = fs::read_to_string(filename).expect("Something went wrong reading the file");
-    dump(parser::parse(parser::pinput(filename, &content)));
+    let content = fs::read_to_string(filename).expect(&format!("Something went wrong reading the file {}", filename));
+    match parse(filename, &content).and_then(analyse) {
+        Err(e) => println!("There was an error: {}", e),
+        Ok(_) => println!("Everything went OK"),
+    }
+    //dump(parser::parse(parser::pinput(filename, &content)));
 
     // file = parameter
     // str = open read file

@@ -1,11 +1,12 @@
 use nom::types::CompleteStr;
 use nom::*;
-//use nom_locate::position;
 use nom_locate::LocatedSpan;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
+use enum_primitive::*;
 
+// TODO parse and store comments
 // TODO add more types
 // TODO lifetime = 'src
 // TODO store position in strings
@@ -230,16 +231,36 @@ pub struct PCode<'a> {
     code: Vec<PDeclaration<'a>>,
 }
 
+// enum_from primitive alows recreating PError from u32 easily (ie without writing tons of
+// boilerplate) This would be useless if we had ErrorKind(PError) return codes but this
+// would mean writing a lot of fix_error! calls in parsers
+enum_from_primitive! {
 #[derive(Debug, PartialEq)]
 pub enum PError {
     // TODO check if it is possible to add parameters
-    Unknown, // Used by tests only
+    Unknown, // Should be used by tests only
     InvalidFormat,
     UnterminatedString,
     InvalidEscape,
     UnterminatedCurly,
     InvalidName,
     EnumExpression,
+} }
+
+impl fmt::Display for PError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(
+            match self {
+                PError::Unknown             => "Unknown error, this should not happen except in tests",
+                PError::InvalidFormat       => "Invalid format",
+                PError::UnterminatedString  => "Unterminated string",
+                PError::InvalidEscape       => "Invalide escape character after \\ in string",
+                PError::UnterminatedCurly   => "Unterminated curly brace",
+                PError::InvalidName         => "Invalid identifier name",
+                PError::EnumExpression      => "Invalid enum expression",
+            }
+        )
+    }
 }
 
 // PARSER Helpers
@@ -250,11 +271,11 @@ macro_rules! or_fail (
     ($i:expr, $f:expr, $code:expr ) => (or_fail!($i,call!($f),$code));
 );
 
-// Call this one if you don't know if something else may match
-macro_rules! or_error (
-    ($i:expr, $submac:ident!( $($args:tt)* ), $code:expr) => (add_return_error!($i, ErrorKind::Custom($code as u32), $submac!($($args)*)););
-    ($i:expr, $f:expr, $code:expr ) => (or_error!($i,call!($f),$code));
-);
+//// Call this one if you don't know if something else may match
+//macro_rules! or_error (
+//    ($i:expr, $submac:ident!( $($args:tt)* ), $code:expr) => (add_return_error!($i, ErrorKind::Custom($code as u32), $submac!($($args)*)););
+//    ($i:expr, $f:expr, $code:expr ) => (or_error!($i,call!($f),$code));
+//);
 
 // same as named but with implicit input type
 macro_rules! pnamed (
@@ -635,12 +656,12 @@ mod tests {
     // Adapter to simplify writing tests
     fn maperr<'a, O>(
         r: Result<(PInput<'a>, O), Err<PInput<'a>, u32>>,
-    ) -> Result<(PInput<'a>, O), u32> {
+    ) -> Result<(PInput<'a>, O), PError> {
         match r {
-            Err(Err::Failure(Context::Code(_,ErrorKind::Custom(e)))) => Err(e),
-            Err(Err::Error(Context::Code(_,ErrorKind::Custom(e)))) => Err(e),
+            Err(Err::Failure(Context::Code(_,ErrorKind::Custom(e)))) => Err(PError::from_u32(e).unwrap()),
+            Err(Err::Error(Context::Code(_,ErrorKind::Custom(e)))) => Err(PError::from_u32(e).unwrap()),
             Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
-            Err(_) => Err(PError::Unknown as u32),
+            Err(_) => Err(PError::Unknown),
             Ok((x,y)) => Ok((x,y)),
         }
     }
@@ -1139,18 +1160,18 @@ mod tests {
 
     #[test]
     fn test_errors() {
-        assert_eq!(maperr(header(pinput("", "@format=21.5\n"))),Err(PError::InvalidFormat as u32));
-        assert_eq!(maperr(escaped_string(pinput("", "\"2hello"))),Err(PError::UnterminatedString as u32));
-        assert_eq!(maperr(unescaped_string(pinput("", "\"\"\"hello\"\""))),Err(PError::UnterminatedString as u32));
-        assert_eq!(maperr(typed_value(pinput("", "\"\"\"hello\"\""))),Err(PError::UnterminatedString as u32));
-        assert_eq!(maperr(typed_value(pinput("", "\"hello\\x\""))),Err(PError::InvalidEscape as u32));
-        assert_eq!(maperr(typed_value(pinput("", "\"hello\\"))),Err(PError::InvalidEscape as u32));
-        assert_eq!(maperr(penum(pinput("", "enum 2abc { a, b, c }"))),Err(PError::InvalidName as u32));
-        assert_eq!(maperr(penum(pinput("", "enum abc { a, b, }"))),Err(PError::UnterminatedCurly as u32));
-        assert_eq!(maperr(penum(pinput("", "enum abc { a, b"))),Err(PError::UnterminatedCurly as u32));
-        assert_eq!(maperr(enum_mapping(pinput("", "enum abc ~> { a -> b"))),Err(PError::InvalidName as u32));
-        assert_eq!(maperr(enum_mapping(pinput("", "enum abc ~> def { a -> b"))),Err(PError::UnterminatedCurly as u32));
-        assert_eq!(maperr(enum_expression(pinput("", "a=~b:"))),Err(PError::EnumExpression as u32));
-        assert_eq!(maperr(enum_expression(pinput("", "a=~"))),Err(PError::EnumExpression as u32));
+        assert_eq!(maperr(header(pinput("", "@format=21.5\n"))),Err(PError::InvalidFormat));
+        assert_eq!(maperr(escaped_string(pinput("", "\"2hello"))),Err(PError::UnterminatedString));
+        assert_eq!(maperr(unescaped_string(pinput("", "\"\"\"hello\"\""))),Err(PError::UnterminatedString));
+        assert_eq!(maperr(typed_value(pinput("", "\"\"\"hello\"\""))),Err(PError::UnterminatedString));
+        assert_eq!(maperr(typed_value(pinput("", "\"hello\\x\""))),Err(PError::InvalidEscape));
+        assert_eq!(maperr(typed_value(pinput("", "\"hello\\"))),Err(PError::InvalidEscape));
+        assert_eq!(maperr(penum(pinput("", "enum 2abc { a, b, c }"))),Err(PError::InvalidName));
+        assert_eq!(maperr(penum(pinput("", "enum abc { a, b, }"))),Err(PError::UnterminatedCurly));
+        assert_eq!(maperr(penum(pinput("", "enum abc { a, b"))),Err(PError::UnterminatedCurly));
+        assert_eq!(maperr(enum_mapping(pinput("", "enum abc ~> { a -> b"))),Err(PError::InvalidName));
+        assert_eq!(maperr(enum_mapping(pinput("", "enum abc ~> def { a -> b"))),Err(PError::UnterminatedCurly));
+        assert_eq!(maperr(enum_expression(pinput("", "a=~b:"))),Err(PError::EnumExpression));
+        assert_eq!(maperr(enum_expression(pinput("", "a=~"))),Err(PError::EnumExpression));
     }
 }
