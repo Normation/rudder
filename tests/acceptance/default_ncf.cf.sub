@@ -13,14 +13,6 @@ bundle common ncf_inputs
 
       "default_files_relative" slist => splitstring("${generic_framework}", "\n", 10000);
       "default_files"         slist => maplist("${ncf_tree}/${this}", default_files_relative);
-
-}
-
-# Load a custom ncf.conf for tests
-bundle common ncf_configuration {
-  vars:
-      "ncf_configuration_basedir" string => dirname("${this.promise_filename}");
-      "ncf_configuration_file" string => "${ncf_configuration_basedir}/ncf.conf";
 }
 
 bundle common test_utils {

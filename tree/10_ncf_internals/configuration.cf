@@ -20,97 +20,39 @@
 # This bundle will read the ncf specific configuration and expose it as CFEngine variables
 # Conventions:
 #   The variables will be usable in the context configuration.variablename
-bundle agent configuration
+bundle common configuration
 {
-
   vars:
-      # We expand the template in the agent folder, so that it is not
-      # overwritten by the policy server expanded version, and if there are multiple
-      # agents on the node, each conf file does not compete
-      "ncf_configuration_file"  string => "${sys.workdir}/ncf.conf.cache";
+      "fatal" string => "[FATAL]";
+      "error" string => "[ERROR]";
+      "info"  string => "[INFO]";
+      "debug" string => "[DEBUG]";
+      "trace" string => "[TRACE]";
 
-    pass1.!ncf_override_conf_file_defined::
-      "ncf_configuration_basedir"     string => dirname("${this.promise_filename}");
-
-      "ncf_configuration_file_source" string => "${ncf_configuration_basedir}/../ncf.conf";
-
-    pass1.ncf_override_conf_file_defined::
-      "ncf_configuration_file_source" string => "${ncf_configuration.ncf_configuration_file}";
-
-    pass2::
-      # Read all entries from the configuration file
-      "num_entries" int => readstringarray("ncf_config","${ncf_configuration_file}","#[^\n]*","=",100,8000),
-        ifvarclass      => "ncf_conf_cache_file_edited_ok";
-
-      # See ncf.conf for reference about these variables
-      "enabled_loggers"            slist => splitstring("${ncf_config[loggers][1]}",",","10");
-      "enabled_abort_handlers"     slist => splitstring("${ncf_config[abort_handlers][1]}",",","10");
-      "cfengine_port"              string => "${ncf_config[cfengine_port][1]}";
-      "flag_file"                  string => "${ncf_config[flag_file][1]}";
-
-      # Add a default empty list to allow skipping those handlers
-    pass2.enabled_loggers_empty::
-      "enabled_loggers"            slist => {};
-    pass2.enabled_abort_handlers_empty::
-      "enabled_abort_handlers"     slist => {};
-    pass2.!enabled_loggers_defined::
-      "enabled_loggers"            slist => { "_log_default" };
-    pass2.!enabled_abort_handlers_defined::
-      "enabled_abort_handlers"     slist => { "_abort_default" };
-    pass2.!cfengine_port_defined::
-      "cfengine_port"              string => "5308";
-    pass2.!flag_file_defined::
-      "flag_file"                  string => "/var/rudder/agent-data/flags.json";
-
-    any::
-      # Constants
-      "fatal"                     string => "[FATAL]";
-      "error"                     string => "[ERROR]";
-      "info"                      string => "[INFO]";
-      "debug"                     string => "[DEBUG]";
-      "trace"                     string => "[TRACE]";
+    rudder_policies::
+      "enabled_loggers"        slist => { "log_rudder" };
+      "enabled_abort_handlers" slist => { "_abort_default", "abort_rudder" };
+      "cfengine_port"         string => "5309";
+      "flag_file"             string => "/var/rudder/agent-data/flags.json";
+    !rudder_policies::
+      "enabled_loggers"        slist => { "_log_default" };
+      "enabled_abort_handlers" slist => { "_abort_default" };
+      "cfengine_port"         string => "5308";
+      "flag_file"             string => "/var/cfengine-community/state/flags.json";
 
   classes:
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
-
-      "ncf_override_conf_file_defined" expression => fileexists("${ncf_configuration.ncf_configuration_file}");
-
-      # Define ncf verbosity classes according to classes
+      # Define verbosity classes according to classes
       # defined by the agent after verbosity options (-I, -v, -d)
-      "info"         expression => "inform_mode",
-                          scope => "namespace";
-      "debug"        expression => "verbose_mode",
-                          scope => "namespace";
-      "trace"        expression => "debug_mode",
-                          scope => "namespace";
+      "info"  expression => "inform_mode",
+                   scope => "namespace";
+      "debug" expression => "verbose_mode",
+                   scope => "namespace";
+      "trace" expression => "debug_mode",
+                   scope => "namespace";
 
-      # Make ncf log level incremental
-      "debug"        expression => "trace",
-                          scope => "namespace";
-      "info"         expression => "debug",
-                          scope => "namespace";
-
-    pass2::
-      # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
-      # and it will always be evaluated to true otherwise
-      # Using the source variable for empty check to allow trailing comma
-      "enabled_loggers_defined"        expression => strcmp("${enabled_loggers}", "${enabled_loggers}");
-      "enabled_loggers_empty"          expression => strcmp("${ncf_config[loggers][1]}", "");
-      "enabled_abort_handlers_defined" expression => strcmp("${enabled_abort_handlers}", "${enabled_abort_handlers}");
-      "enabled_abort_handlers_empty"   expression => strcmp("${ncf_config[abort_handlers][1]}", "");
-      "cfengine_port_defined"                 not => strcmp("${cfengine_port}", "${ncf_config[cfengine_port][1]}");
-      "flag_file_defined"                     not => strcmp("${flag_file}", "${ncf_config[flag_file][1]}");
-
-  # We cannot use the generic method to expand template, as it relies on the logger,
-  # which is not yet defined
-  files:
-    pass2::
-      "${configuration.ncf_configuration_file}"
-        create          => "true",
-        edit_template   => "${configuration.ncf_configuration_file_source}",
-        template_method => "mustache",
-        classes         => classes_generic("ncf_conf_cache_file_edited");
-
+      # Make log level incremental
+      "debug" expression => "trace",
+                   scope => "namespace";
+      "info"  expression => "debug",
+                   scope => "namespace";
 }
