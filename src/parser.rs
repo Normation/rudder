@@ -6,7 +6,6 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 
-// TODO Error management
 // TODO add more types
 // TODO lifetime = 'src
 // TODO store position in strings
@@ -240,7 +239,7 @@ pub enum PError {
     InvalidEscape,
     UnterminatedCurly,
     InvalidName,
-    EnumSyntax,
+    EnumExpression,
 }
 
 // PARSER Helpers
@@ -263,13 +262,23 @@ macro_rules! pnamed (
     (pub $name:ident<$o:ty>, $submac:ident!( $($args:tt)* )) => (nom::named!(pub $name<PInput,$o>, $submac!($($args)*)););
 );
 
-// PARSERS adapter for str instead of byte{]
+// PARSERS adapter for str instead of byte
 
-// eat char separators instead of u8
-pnamed!(space_s<PInput>, eat_separator!(&" \t\r\n"[..]));
+// eat char separators and comments
+pnamed!(space_s<&str>, 
+    do_parse!(
+        eat_separator!(&" \t\r\n"[..]) >>
+        opt!(delimited!(
+            tag!("#"),
+            opt!(preceded!(not!(tag!("#")),take_until!("\n"))),
+            tag!("\n")
+        )) >>
+        eat_separator!(&" \t\r\n"[..]) >>
+        ("")
+    )
+);
 
-// ws! for chars instead of u8
-// TODO add a strip comment
+// ws! for chars instead of u8 and comments
 macro_rules! sp (
     ($i:expr, $($args:tt)*) => (
         {
@@ -349,7 +358,7 @@ pnamed!(pub penum<PEnum>,
         tag!("enum") >>
         name: or_fail!(identifier,PError::InvalidName) >>
         tag!("{") >>
-        items: or_fail!(sp!(separated_list!(tag!(","), identifier)),PError::EnumSyntax) >>
+        items: sp!(separated_list!(tag!(","), identifier)) >>
         or_fail!(tag!("}"),PError::UnterminatedCurly) >>
         (PEnum {global: global.is_some(), name, items})
     ))
@@ -369,12 +378,17 @@ pnamed!(pub enum_mapping<PEnumMapping>,
                     tag!("->"),
                     alt!(identifier|map!(tag!("*"),|x| x.into())))
             )) >>
-        tag!("}") >>
+        or_fail!(tag!("}"),PError::UnterminatedCurly) >>
         (PEnumMapping {from, to, mapping})
     ))
 );
 
 pnamed!(pub enum_expression<PEnumExpression>,
+    // an expression must be exact (ie full string) as this parser can be used in isolation
+    or_fail!(exact!(sub_enum_expression),PError::EnumExpression)
+);
+
+pnamed!(sub_enum_expression<PEnumExpression>,
     alt!(enum_or_expression
        | enum_and_expression
        | enum_not_expression
@@ -385,7 +399,7 @@ pnamed!(pub enum_expression<PEnumExpression>,
 
 pnamed!(enum_atom<PEnumExpression>,
     sp!(alt!(
-        delimited!(tag!("("),enum_expression,tag!(")"))
+        delimited!(tag!("("),sub_enum_expression,tag!(")"))
       | do_parse!(
             var: identifier >>
             tag!("=~") >>
@@ -446,135 +460,138 @@ pnamed!(comment_line<PToken>,
     )
 );
 pnamed!(comment_block<PComment>,
-  many1!(comment_line)
+    many1!(comment_line)
 );
 
 // metadata
 pnamed!(metadata<PMetadata>,
-  sp!(do_parse!(char!('@') >>
-    key: identifier >>
-    char!('=') >>
-    value: typed_value >>
-    (PMetadata {key, value})
-  ))
+    sp!(do_parse!(char!('@') >>
+        key: identifier >>
+        char!('=') >>
+        value: typed_value >>
+        (PMetadata {key, value})
+    ))
 );
 
 // type
 pnamed!(typename<PType>,
-  alt!(
-    tag!("string")      => { |_| PType::TString }  |
-    tag!("int")         => { |_| PType::TInteger } |
-    tag!("struct")      => { |_| PType::TStruct }  |
-    tag!("list")        => { |_| PType::TList }
-  )
+    alt!(
+        tag!("string")      => { |_| PType::TString }  |
+        tag!("int")         => { |_| PType::TInteger } |
+        tag!("struct")      => { |_| PType::TStruct }  |
+        tag!("list")        => { |_| PType::TList }
+    )
 );
 
 // Parameters
 pnamed!(parameter<PParameter>,
-  sp!(do_parse!(
-    ptype: opt!(sp!(terminated!(typename, char!(':')))) >>
-    name: identifier >>
-    default: opt!(sp!(preceded!(tag!("="),typed_value))) >>
-    (PParameter {ptype, name, default})
-  ))
+    sp!(do_parse!(
+        ptype: opt!(sp!(terminated!(typename, char!(':')))) >>
+        name: identifier >>
+        default: opt!(sp!(preceded!(tag!("="),typed_value))) >>
+        (PParameter {ptype, name, default})
+    ))
 );
 
 // ResourceDef
 pnamed!(resource_def<PResourceDef>,
-  sp!(do_parse!(
-    tag!("resource") >>
-    name: identifier >>
-    tag!("(") >>
-    parameters: separated_list!(
-        tag!(","),
-        parameter) >>
-    tag!(")") >>
-    (PResourceDef {name, parameters})
-  ))
+    sp!(do_parse!(
+        tag!("resource") >>
+        name: identifier >>
+        tag!("(") >>
+        parameters: separated_list!(
+            tag!(","),
+            parameter) >>
+        tag!(")") >>
+        (PResourceDef {name, parameters})
+    ))
 );
 
 // ResourceRef
 pnamed!(resource_ref<PResourceRef>,
-  sp!(do_parse!(
-    name: identifier >>
-    params: opt!(sp!(do_parse!(tag!("(") >>
-        parameters: separated_list!(
-            tag!(","),
-            typed_value) >>
-        tag!(")") >>
-        (parameters) ))) >>
-    (PResourceRef {name, parameters: params.unwrap_or(vec![])})
-  ))
+    sp!(do_parse!(
+        name: identifier >>
+        params: opt!(sp!(do_parse!(tag!("(") >>
+            parameters: separated_list!(
+                tag!(","),
+                typed_value) >>
+            tag!(")") >>
+            (parameters) ))) >>
+        (PResourceRef {name, parameters: params.unwrap_or(vec![])})
+    ))
 );
 
 // statements
 pnamed!(statement<PStatement>,
-  alt!(
-      // state call
-      sp!(do_parse!(
-          outcome: opt!(terminated!(identifier,tag!("="))) >>
-          mode: alt!(
-                    tag!("?") => { |_| PCallMode::Condition } |
-                    pair!(tag!("not"), tag!("!")) => { |_| PCallMode::CheckNot }     |
-                    tag!("!") => { |_| PCallMode::Check }     |
-                    value!(PCallMode::Enforce)
-                ) >>
-          resource: resource_ref >>
-          tag!(".") >>
-          state: identifier >>
-          tag!("(") >>
-          parameters: separated_list!(
-              tag!(","),
-              typed_value) >>
-          tag!(")") >>
-          (PStatement::StateCall(outcome,mode,resource,state,parameters))
-      ))
-    | comment_block => { |x| PStatement::Comment(x) }
-      // case
-    | sp!(do_parse!(
-          tag!("case") >>
-          tag!("{") >>
-          cases: separated_list!(tag!(","),
-                    do_parse!(
-                        expr: enum_expression >>
-                        tag!("=>") >>
-                        stmt: statement >>
-                        ((expr,Box::new(stmt)))
-                )) >>
-          (PStatement::Case(cases))
-      ))
-      // if
-    | sp!(do_parse!(
-          tag!("if") >>
-          expr: enum_expression >>
-          tag!("=>") >>
-          stmt: statement >>
-          (PStatement::Case( vec![(expr,Box::new(stmt)), (PEnumExpression::Default,Box::new(PStatement::Log(PToken::new("","TODO"))))] ))
-      ))
-      // Flow statements
-    | tag!("fail!")    => { |_| PStatement::Fail(PToken::new("","TODO")) } // TODO proper message
-    | tag!("return!!") => { |_| PStatement::Return(PToken::new("","TODO")) } // TODO proper message
-    | tag!("log!")     => { |_| PStatement::Log(PToken::new("","TODO")) } // TODO proper message
-    | tag!("noop!")    => { |_| PStatement::Noop }
-  )
+    alt!(
+        // state call
+        sp!(do_parse!(
+            outcome: opt!(terminated!(identifier,tag!("="))) >>
+            mode: alt!(
+                      tag!("?") => { |_| PCallMode::Condition } |
+                      pair!(tag!("not"), tag!("!")) => { |_| PCallMode::CheckNot }     |
+                      tag!("!") => { |_| PCallMode::Check }     |
+                      value!(PCallMode::Enforce)
+                  ) >>
+            resource: resource_ref >>
+            tag!(".") >>
+            state: identifier >>
+            tag!("(") >>
+            parameters: separated_list!(
+                tag!(","),
+                typed_value) >>
+            tag!(")") >>
+            (PStatement::StateCall(outcome,mode,resource,state,parameters))
+        ))
+      | comment_block => { |x| PStatement::Comment(x) }
+        // case
+      | sp!(do_parse!(
+            tag!("case") >>
+            tag!("{") >>
+            cases: separated_list!(tag!(","),
+                      do_parse!(
+                          // flatmap to take until '=>' then parse expression separately for better
+                          // error management (enum_expression must not leave any unparsed token)
+                          expr: flat_map!(take_until!("=>"),enum_expression) >>
+                          tag!("=>") >>
+                          stmt: statement >>
+                          ((expr,Box::new(stmt)))
+                  )) >>
+            (PStatement::Case(cases))
+        ))
+        // if
+      | sp!(do_parse!(
+            tag!("if") >>
+            // same comment as above
+            expr: flat_map!(take_until!("=>"),enum_expression) >>
+            tag!("=>") >>
+            stmt: statement >>
+            (PStatement::Case( vec![(expr,Box::new(stmt)), (PEnumExpression::Default,Box::new(PStatement::Log(PToken::new("","TODO"))))] ))
+        ))
+        // Flow statements
+      | tag!("fail!")    => { |_| PStatement::Fail(PToken::new("","TODO")) } // TODO proper message
+      | tag!("return!!") => { |_| PStatement::Return(PToken::new("","TODO")) } // TODO proper message
+      | tag!("log!")     => { |_| PStatement::Log(PToken::new("","TODO")) } // TODO proper message
+      | tag!("noop!")    => { |_| PStatement::Noop }
+    )
 );
 
 // state definition
 pnamed!(state<PStateDef>,
-  sp!(do_parse!(
-      resource_name: identifier >>
-      tag!("state") >>
-      name: identifier >>
-      tag!("(") >>
-      parameters: separated_list!(
-         tag!(","),
-         parameter) >>
-     tag!(")") >>
-     tag!("{") >>
-     statements: many0!(statement) >>
-     tag!("}") >>
-     (PStateDef {name, resource_name, parameters, statements })
-  ))
+    sp!(do_parse!(
+        resource_name: identifier >>
+        tag!("state") >>
+        name: identifier >>
+        tag!("(") >>
+        parameters: separated_list!(
+           tag!(","),
+           parameter) >>
+       tag!(")") >>
+       tag!("{") >>
+       statements: many0!(statement) >>
+       tag!("}") >>
+       (PStateDef {name, resource_name, parameters, statements })
+    ))
 );
 
 // a file
@@ -590,12 +607,12 @@ pnamed!(declaration<PDeclaration>,
 );
 
 pnamed!(pub parse<PFile>,
-  do_parse!(
-    header: header >>
-    code: many0!(declaration) >>
-    eof!() >>
-    (PFile {header, code} )
-  )
+    do_parse!(
+        header: header >>
+        code: many0!(declaration) >>
+        eof!() >>
+        (PFile {header, code} )
+    )
 );
 
 // TESTS
@@ -773,6 +790,18 @@ mod tests {
                 )))
             ))
         );
+    }
+
+    #[test]
+    fn test_comment_out() {
+          assert_eq!(
+              mapok(penum(pinput("", "enum abc#comment\n { a, b, c }"))),
+              mapok(penum(pinput("", "enum abc { a, b, c }")))
+          );
+          assert_eq!(
+              mapok(penum(pinput("", "enum abc#\n { a, b, c }"))),
+              mapok(penum(pinput("", "enum abc { a, b, c }")))
+          );
     }
 
     #[test]
@@ -1116,5 +1145,12 @@ mod tests {
         assert_eq!(maperr(typed_value(pinput("", "\"\"\"hello\"\""))),Err(PError::UnterminatedString as u32));
         assert_eq!(maperr(typed_value(pinput("", "\"hello\\x\""))),Err(PError::InvalidEscape as u32));
         assert_eq!(maperr(typed_value(pinput("", "\"hello\\"))),Err(PError::InvalidEscape as u32));
+        assert_eq!(maperr(penum(pinput("", "enum 2abc { a, b, c }"))),Err(PError::InvalidName as u32));
+        assert_eq!(maperr(penum(pinput("", "enum abc { a, b, }"))),Err(PError::UnterminatedCurly as u32));
+        assert_eq!(maperr(penum(pinput("", "enum abc { a, b"))),Err(PError::UnterminatedCurly as u32));
+        assert_eq!(maperr(enum_mapping(pinput("", "enum abc ~> { a -> b"))),Err(PError::InvalidName as u32));
+        assert_eq!(maperr(enum_mapping(pinput("", "enum abc ~> def { a -> b"))),Err(PError::UnterminatedCurly as u32));
+        assert_eq!(maperr(enum_expression(pinput("", "a=~b:"))),Err(PError::EnumExpression as u32));
+        assert_eq!(maperr(enum_expression(pinput("", "a=~"))),Err(PError::EnumExpression as u32));
     }
 }
