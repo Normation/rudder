@@ -164,7 +164,6 @@ bundle agent _rudder_common_report(technique_name, class_prefix, status, identif
 # Warning, any modification here should also be ported to _rudder_common_generic_hooks
 bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)
 {
-  methods:
 
   # We cannot allow for empty component_name
   defaults:
