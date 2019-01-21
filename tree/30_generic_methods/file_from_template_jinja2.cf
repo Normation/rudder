@@ -263,11 +263,14 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "copy classes"        usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
       "copy new classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-    pass3::
+    pass3.state_dumped::
+      # In non audit mode, we need to force enforce mode to remove the temp files.
+      "remove_dry_run_mode" usebundle => push_dry_run_mode("false");
       "clean data file"     usebundle => file_remove("${datastate_file}"),
                            ifvarclass => "state_dumped_${destination_canon}_ok";
       "clean template file" usebundle => file_remove("${destination_tmp}"),
                            ifvarclass => "state_dumped_${destination_canon}_ok";
+      "restore dry-run"     usebundle => pop_dry_run_mode();
 
     pass3::
       "failure" usebundle  => _classes_failure("${old_class_prefix}"),
