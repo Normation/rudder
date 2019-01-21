@@ -74,10 +74,10 @@ bundle agent directory_absent(target, recursive)
 
     # If target was not empty, we need to trigger an error manually as the files promise will be kept
     # Because of https://tracker.mender.io/browse/CFE-1570
-    pass3.directory_exists_after.has_promiser_stack::
+    pass3.directory_exists_after::
       "fail_if_not_empty"   usebundle  => _classes_failure("${class_prefix}");
       "clean_if_not_empty"  usebundle  => _classes_sanitize("${class_prefix}");
-    pass3.directory_exists_after.!has_promiser_stack::
+
       "fail_if_not_empty"   usebundle  => _classes_failure("${old_class_prefix}");
       "clean_if_not_empty"  usebundle  => _classes_sanitize("${old_class_prefix}");
 

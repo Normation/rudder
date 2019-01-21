@@ -58,6 +58,6 @@ bundle agent user_home(login, home)
     args_defined::
       "report_success"
         usebundle => _log_v3("User ${login} home set to ${home}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-          ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
+          ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
 }
 

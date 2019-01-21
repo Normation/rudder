@@ -57,7 +57,7 @@ bundle agent user_shell(login, shell)
     args_defined::
       "report_success"
         usebundle => _log_v3("User ${login} shell set to ${shell}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-          ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
+          ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
 
 }
 
