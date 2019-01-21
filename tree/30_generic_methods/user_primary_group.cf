@@ -67,6 +67,6 @@ bundle agent user_primary_group(login, primary_group)
     args_defined:: 
       "report_success"
         usebundle => _log_v3("User ${login} primary_group set to ${primary_group}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
+        ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
 }
 
