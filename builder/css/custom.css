@@ -73,9 +73,11 @@ hr {
   }
 }
 .btn-xs {
-  padding: 5px 5px 1px;
+  padding: 1px 5px;
 }
-
+.generic-methods-list .btn-xs {
+  margin-top: 4px;
+}
 .btn.btn-success{
   background-color: #9bc832;
   border-color: #8fb92a;
@@ -286,7 +288,10 @@ html, body, .Override.container{
 .table-ncf {
     font-size: 14px;
 }
-
+.table-ncf > thead .input-group {
+  width: 100%;
+  float: left;
+}
 .table-ncf > tbody > tr > td {
   word-break: break-all;
 }
@@ -749,6 +754,29 @@ input.form-control.parameter{
 .text-info input.form-control.parameter{
   margin-top: 1px
 }
+
+.generic-methods{
+  display: flex;
+  flex-direction: column;
+}
+.generic-methods-container{
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  /* for Firefox */
+  min-height: 0;
+}
+.generic-methods-header .panel-group {
+  margin-bottom: 0;
+}
+.generic-methods-list{
+  flex-grow: 1;
+  overflow: auto;
+  /* for Firefox */
+  min-height: 0;
+  padding: 20px 10px 20px 0px;
+}
+
 
 @-webkit-keyframes saving {
   0% {
