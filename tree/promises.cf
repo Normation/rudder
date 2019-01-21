@@ -37,15 +37,12 @@ bundle common inputs
       # them all automatically in the future
       # This fetches the techniques cf files
       "techniques"            string  => execresult("${list_compatible_inputs} ${sys.cf_version} ${sys.inputdir} 50_techniques", "useshell");
-      # This fetches the services cf files
-      "services"              string  => execresult("${list_compatible_inputs} ${sys.cf_version} ${sys.inputdir} 60_services", "useshell");
 
       # We have to convert the result of the find into lists so that they can be use in the 
       # inputs list
       "ncf_internals_files"     slist => splitstring("${ncf_internals}", "\n", 10000);
       "generic_framework_files" slist => splitstring("${generic_framework}", "\n", 10000);
       "techniques_files"        slist => splitstring("${techniques}", "\n", 10000);
-      "services_files"          slist => splitstring("${services}", "\n", 10000);    
 }
 
 ##############################################################################
@@ -83,14 +80,11 @@ body common control
     inputs => {
                @(inputs.ncf_internals_files),
                @(inputs.generic_framework_files),
-               "service_mapping.cf",
                @(inputs.techniques_files),
-               @(inputs.services_files),
               };
 
     bundlesequence => { 
                         "initialization",
-                        "dispatcher",
                         "end",
                       };
 }

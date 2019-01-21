@@ -1,5 +1,0 @@
-bundle common cfengine
-{
-  vars:
-    "splay" string => "2";
-}
