@@ -177,7 +177,7 @@
 #
 #
 # # will display the current properties key/value pair
-# {% for key, value in vars.variable_prefix.dict_name.properties %}
+# {% for key, value in vars.variable_prefix.dict_name.properties.items() %}
 # {{ key }} -> {{ value }}
 # {% endfor %}
 #
