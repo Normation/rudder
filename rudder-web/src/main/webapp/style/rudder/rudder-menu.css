@@ -3128,7 +3128,7 @@ table a > i.fa-pencil:hover{
 
 /* DATEPICKERS */
 #ui-datepicker-div{
-  z-index:999 !important;
+  z-index: 9999 !important;
   background-color: #fff;
   border: 1px solid #ccc;
 }
@@ -3145,7 +3145,11 @@ table a > i.fa-pencil:hover{
 
 .ui-datepicker .ui-datepicker-prev,
 .ui-datepicker .ui-datepicker-next {
-6px 8px}
+    position: absolute;
+    padding: 2px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+}
 .ui-datepicker .ui-datepicker-prev {
   left: 5px;
 }
