@@ -164,3 +164,7 @@
 .radio > label > input{
   top: -2px;
 }
+
+#desactivateAction > input {
+  text-transform: capitalize;
+}
