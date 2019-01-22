@@ -178,9 +178,7 @@ class CreateOrCloneRulePopup(
   private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup() : JsCmd = {
-      JsRaw("""
-        $('#createRulePopup').bsModal('hide');
-      """)
+    JsRaw("""$('#createRulePopup').bsModal('hide');""")
   }
   /**
    * Update the form when something happened
@@ -207,7 +205,7 @@ class CreateOrCloneRulePopup(
           , isEnabledStatus = !clonedRule.isDefined
       )
 
-      woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.get )) match {
+      var createRule = woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.get )) match {
           case Full(x) =>
             onSuccessCallback(rule) & closePopup()
           case Empty =>
@@ -219,6 +217,7 @@ class CreateOrCloneRulePopup(
             formTracker.addFormError(error(m))
             onFailure & onFailureCallback()
       }
+      createRule & JsRaw(s"""localStorage.setItem('Active_Rule_Tab', 0)""")
     }
   }
 
