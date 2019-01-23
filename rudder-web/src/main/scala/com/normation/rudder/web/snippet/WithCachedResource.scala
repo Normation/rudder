@@ -39,6 +39,7 @@ package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.PluginsInfo
 import com.normation.plugins.PluginName
+import bootstrap.liftweb.StaticResourceRewrite
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.Full
@@ -65,7 +66,6 @@ object WithCachedResource extends DispatchSnippet {
   def dispatch: DispatchIt = {
     case _ =>  render
   }
-
 
   val pluginResourceRegex = """/?toserve/([\w-]+)/.+""".r
 
@@ -110,6 +110,15 @@ object WithCachedResource extends DispatchSnippet {
        updateUrl(e, "href") openOr e
      case e: Elem if(e.label == "script" || e.label == "img") =>
        updateUrl(e, "src")  openOr e
+     // iframe is speciale in the way we update the url
+     case e: Elem if(e.label == "iframe") =>
+       attrStr(e.attributes, "src") map { src =>
+         e.copy(attributes =
+           MetaData.update(e.attributes,
+             e.scope,
+             new UnprefixedAttribute("src", src.split("#").mkString(s"?version=${StaticResourceRewrite.prefix}#"), Null))
+         )
+       } openOr e
      case e => e
     })
   }

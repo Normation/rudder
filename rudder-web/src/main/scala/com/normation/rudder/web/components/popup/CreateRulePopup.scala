@@ -55,7 +55,6 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.rule.category.RuleCategory
-import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.web.ChooseTemplate
 
 class CreateOrCloneRulePopup(
@@ -204,8 +203,7 @@ class CreateOrCloneRulePopup(
           , isEnabledStatus = !clonedRule.isDefined
       )
 
-      woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.actor, reason.map( _.get )) match {
-      var createRule = woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.get )) match {
+      val createRule = woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.actor, reason.map( _.get )) match {
           case Full(x) =>
             onSuccessCallback(rule) & closePopup()
           case Empty =>
