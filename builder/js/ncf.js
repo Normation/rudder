@@ -661,7 +661,7 @@ $scope.onImportFileChange = function (fileEl) {
     //If this function returns true, the category is displayed. Else, it is hidden by filters.
     var deprecatedFilter = $scope.filter.showDeprecated || $scope.checkDeprecatedFilter(methods);
     var agentTypeFilter  = false;
-    var nameFilter = methods.some(function(m) {return m.name.includes($scope.filter.text)});
+    var nameFilter = methods.some(function(m) {return m.name.toLowerCase().includes($scope.filter.text.toLowerCase())});
     var i = 0;
     switch($scope.filter.compatibility){
       case "dsc":
