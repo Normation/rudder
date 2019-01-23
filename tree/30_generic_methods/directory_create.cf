@@ -34,6 +34,7 @@ bundle agent directory_create(target)
       "old_class_prefix"  string => canonify("directory_create_${target}");
       "full_class_prefix" string => canonify("directory_create_${target}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "args"              slist => { "${target}" };
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
