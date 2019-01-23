@@ -55,7 +55,6 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.rule.category.RuleCategory
-import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.web.ChooseTemplate
 
 class CreateOrCloneRulePopup(
@@ -64,7 +63,7 @@ class CreateOrCloneRulePopup(
   , selectedCategory  : RuleCategoryId
   , onSuccessCallback : (Rule) => JsCmd = { (rule : Rule) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
-       ) extends DispatchSnippet with Loggable {
+) extends DispatchSnippet with Loggable {
 
   // Load the template from the popup
   def templatePath = List("templates-hidden", "Popup", "createRule")
@@ -73,6 +72,7 @@ class CreateOrCloneRulePopup(
        error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
      case Full(n) => n
   }
+
   def popupTemplate = ChooseTemplate(
       List("templates-hidden", "Popup", "createRule")
     , "rule-createrulepopup"
@@ -166,10 +166,10 @@ class CreateOrCloneRulePopup(
       , categoryHierarchyDisplayer.getRuleCategoryHierarchy(rootRuleCategory, None).map { case (id, name) => (id.value -> name)}
       , selectedCategory.value
     ) {
-    override def className = "form-control col-lg-12 col-sm-12 col-xs-12"
-    override def validations =
-      valMinLen(1, "Please select a category") _ :: Nil
-  }
+      override def className = "form-control col-lg-12 col-sm-12 col-xs-12"
+      override def validations =
+        valMinLen(1, "Please select a category") _ :: Nil
+    }
 
   private[this] val formTracker = new FormTracker(ruleName :: ruleShortDescription :: reason.toList)
 
@@ -178,9 +178,7 @@ class CreateOrCloneRulePopup(
   private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup() : JsCmd = {
-      JsRaw("""
-        $('#createRulePopup').bsModal('hide');
-      """)
+    JsRaw("""$('#createRulePopup').bsModal('hide');""")
   }
   /**
    * Update the form when something happened
@@ -206,7 +204,7 @@ class CreateOrCloneRulePopup(
           , isEnabledStatus = !clonedRule.isDefined
       )
 
-      woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.actor, reason.map( _.get )) match {
+      val createRule = woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.actor, reason.map( _.get )) match {
           case Full(x) =>
             onSuccessCallback(rule) & closePopup()
           case Empty =>
@@ -218,6 +216,7 @@ class CreateOrCloneRulePopup(
             formTracker.addFormError(error(m))
             onFailure & onFailureCallback()
       }
+      createRule & JsRaw(s"""localStorage.setItem('Active_Rule_Tab', 0)""")
     }
   }
 

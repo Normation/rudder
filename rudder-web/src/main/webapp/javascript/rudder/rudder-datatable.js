@@ -346,13 +346,13 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
     , "sTitle": "Name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var data = oData;
-        var action = "showForm";
-        if (! actionsColumn) {
-          action = "showEditForm"
-        }
         // Define the elem and its callback
-        var elem = callbackElement(oData, action);
+        var elem = callbackElement(oData, "showForm");
         elem.text(data.name);
+
+        elem.click(function(){
+          localStorage.setItem('Active_Rule_Tab', 1);
+        });
 
         // Row parameters
         var parent = $(nTd).parent();
@@ -412,6 +412,9 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData, "showForm");
         elem.append('<div id="compliance-bar-'+oData.id+'"><center><img class="ajaxloader svg-loader" src="'+resourcesPath+'/images/ajax-loader.svg" /></center></div>');
+        elem.click(function(){
+          localStorage.setItem('Active_Rule_Tab', 1);
+        });
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
@@ -428,6 +431,9 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         var elem = callbackElement(oData, "showRecentChanges");
         var id = "Changes-"+oData.id;
         elem.append('<div id="'+id+'"></div>');
+        elem.click(function(){
+          localStorage.setItem('Active_Rule_Tab', 1);
+        });
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
@@ -445,7 +451,8 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         elem.button();
         elem.addClass("btn btn-default btn-xs");
         elem.click( function() {
-          data.callback("showEditForm");
+          data.callback("showForm");
+          localStorage.setItem('Active_Rule_Tab', 0);
         } );
         elem.text("Edit");
         $(nTd).empty();

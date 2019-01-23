@@ -152,6 +152,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
       case Empty => <div id={htmlId_editRuleDiv}></div>
       case Full(form) => form.dispatch(dispatch)(NodeSeq.Empty)
     }
+
   }
 
   def onCreateRule(changeMsgEnabled : Boolean)(rule : Rule, action : String) : JsCmd = {
