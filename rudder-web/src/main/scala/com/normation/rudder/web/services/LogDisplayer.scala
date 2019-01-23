@@ -211,12 +211,12 @@ case class ReportLine (
 
       JsObj(
           ( "executionDate", executionDate.toString("yyyy-MM-dd HH:mm:ss") )
-        , ( "severity", severity )
-        , ( "ruleName", ruleName )
-        , ( "directiveName",  directiveName )
-        , ( "component", component )
-        , ( "value", value )
-        , ( "message", message )
+        , ( "severity"     , severity )
+        , ( "ruleName"     , escapeHTML(ruleName) )
+        , ( "directiveName", escapeHTML(directiveName) )
+        , ( "component"    , escapeHTML(component) )
+        , ( "value"        , escapeHTML(value) )
+        , ( "message"      , escapeHTML(message) )
       )
 
     }
