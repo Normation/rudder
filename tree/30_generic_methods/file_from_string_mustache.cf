@@ -34,16 +34,27 @@ bundle agent file_from_string_mustache(template, destination)
     "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"               slist => { "${template}", "${destination}" };
+    "content"           string => "EMPTY_RUDDER_TEMPLATE";
     "content"           string => string_mustache("${template}", datastate());
+
+  classes:
+    "content_not_updated" expression => strcmp("${content}", "EMPTY_RUDDER_TEMPLATE");
 
   files:
     "${destination}"
       create        => "true",
       edit_line     => insert_lines("${content}"),
       edit_defaults => ncf_empty_select("true"),
-      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+      ifvarclass    => "!content_not_updated";
 
   methods:
+    content_not_updated::
+      "error if the content is not properly updated"
+        usebundle => _classes_failure("${old_class_prefix}");
+      "error if the content is not properly updated"
+        usebundle => _classes_failure("${class_prefix}");
     any::
-      "report"          usebundle => _log("Build file ${destination} from string template", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log("Build file ${destination} from string template", "${old_class_prefix}", "${class_prefix}", @{args});
+
 }
