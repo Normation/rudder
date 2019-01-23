@@ -37,11 +37,13 @@
 
 package com.normation.rudder.web.snippet
 
+import bootstrap.liftweb.StaticResourceRewrite
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.Full
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.LiftRules
+
 import scala.xml.Elem
 import scala.xml.MetaData
 import scala.xml.NodeSeq
@@ -74,13 +76,21 @@ object WithCachedResource extends DispatchSnippet {
           )
         } openOr e
      case e: Elem if(e.label == "script" || e.label == "img") =>
-        attrStr(e.attributes, "src") map { src =>
-          e.copy(attributes =
-             MetaData.update(e.attributes,
-                             e.scope,
-                             new UnprefixedAttribute("src", LiftRules.attachResourceId(src), Null))
-          )
-        } openOr e
+       attrStr(e.attributes, "src") map { src =>
+         e.copy(attributes =
+           MetaData.update(e.attributes,
+             e.scope,
+             new UnprefixedAttribute("src", LiftRules.attachResourceId(src), Null))
+         )
+       } openOr e
+     case e: Elem if(e.label == "iframe") =>
+       attrStr(e.attributes, "src") map { src =>
+         e.copy(attributes =
+           MetaData.update(e.attributes,
+             e.scope,
+             new UnprefixedAttribute("src", src.split("#").mkString(s"?version=${StaticResourceRewrite.prefix}#"), Null))
+         )
+       } openOr e
      case e => e
     })
   }
