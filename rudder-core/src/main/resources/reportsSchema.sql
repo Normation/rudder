@@ -255,8 +255,8 @@ CREATE TABLE archivedNodeCompliance (
 CREATE TABLE nodecompliancelevels (
   nodeId             text NOT NULL CHECK (nodeId <> '')
 , runTimestamp       timestamp with time zone NOT NULL
-, ruleId             text NOT NULL CHECK (nodeId <> '')
-, directiveId        text NOT NULL CHECK (nodeId <> '')
+, ruleId             text NOT NULL CHECK (ruleId <> '')
+, directiveId        text NOT NULL CHECK (directiveId <> '')
 , pending            int DEFAULT 0
 , success            int DEFAULT 0
 , repaired           int DEFAULT 0
