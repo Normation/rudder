@@ -820,46 +820,48 @@ class LDAPEntityMapper(
     if(e.isA(OC_API_ACCOUNT)) {
       //OK, translate
       for {
-        id    <- e(A_API_UUID).map( ApiAccountId(_) ) ?~! s"Missing required id (attribute name ${A_API_UUID}) in entry ${e}"
-        name  <- e(A_NAME).map( ApiAccountName(_) ) ?~! s"Missing required name (attribute name ${A_NAME}) in entry ${e}"
-        token <- e(A_API_TOKEN).map( ApiToken(_) ) ?~! s"Missing required token (attribute name ${A_API_TOKEN}) in entry ${e}"
-        creationDatetime <- e.getAsGTime(A_CREATION_DATETIME) ?~! s"Missing required creation timestamp (attribute name ${A_CREATION_DATETIME}) in entry ${e}"
+        id                    <- e(A_API_UUID).map( ApiAccountId(_) ) ?~! s"Missing required id (attribute name ${A_API_UUID}) in entry ${e}"
+        name                  <- e(A_NAME).map( ApiAccountName(_) ) ?~! s"Missing required name (attribute name ${A_NAME}) in entry ${e}"
+        token                 <- e(A_API_TOKEN).map( ApiToken(_) ) ?~! s"Missing required token (attribute name ${A_API_TOKEN}) in entry ${e}"
+        creationDatetime      <- e.getAsGTime(A_CREATION_DATETIME) ?~! s"Missing required creation timestamp (attribute name ${A_CREATION_DATETIME}) in entry ${e}"
         tokenCreationDatetime <- e.getAsGTime(A_API_TOKEN_CREATION_DATETIME) ?~! s"Missing required token creation timestamp (attribute name ${A_API_TOKEN_CREATION_DATETIME}) in entry ${e}"
-        isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
-        description = e(A_DESCRIPTION).getOrElse("")
+        isEnabled             =  e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
+        description           =  e(A_DESCRIPTION).getOrElse("")
         // expiration date is optionnal
-        expirationDate = e.getAsGTime(A_API_EXPIRATION_DATETIME)
+        expirationDate        =  e.getAsGTime(A_API_EXPIRATION_DATETIME)
         //api authz kind/acl are not optionnal, but may be missing for Rudder < 4.3 migration
         //in that case, use the defaultACL
-        authz <- e(A_API_AUTHZ_KIND) match {
-                   case None    =>
-                     logger.warn(s"Missing API authorizations level kind for token '${name.value}' with id '${id.value}'")
-                     Full(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
-                   case Some(s) => ApiAuthorizationKind.parse(s) match {
-                     case Left(error) => Failure(error)
-                     case Right(kind) => kind match {
-                       case ApiAuthorizationKind.ACL =>
-                         //parse acl
-                         e(A_API_ACL) match {
-                           case None    =>
-                             logger.debug(s"API authorizations level kind for token '${name.value}' with id '${id.value}' is 'ACL' but it doesn't have any ACLs conigured")
-                             Full(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
-                           case Some(s) => unserApiAcl(s) match {
-                             case Right(x)  => Full(ApiAuthorization.ACL(x))
-                             case Left(msg) => Failure(msg)
-                           }
-                         }
-                       case ApiAuthorizationKind.None => Full(ApiAuthorization.None)
-                       case ApiAuthorizationKind.RO   => Full(ApiAuthorization.RO  )
-                       case ApiAuthorizationKind.RW   => Full(ApiAuthorization.RW  )
-                     }
-                   }
-                 }
+        accountType           =  e(A_API_KIND) match {
+                                   case None    => ApiAccountType.PublicApi // this is the default
+                                   case Some(s) => ApiAccountType.values.find( _.name == s ).getOrElse(ApiAccountType.PublicApi)
+                                 }
+        authz                 <- e(A_API_AUTHZ_KIND) match {
+                                   case None    =>
+                                     if(accountType == ApiAccountType.PublicApi) {
+                                       logger.warn(s"Missing API authorizations level kind for token '${name.value}' with id '${id.value}'")
+                                     }
+                                     Full(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
+                                   case Some(s) => ApiAuthorizationKind.parse(s) match {
+                                     case Left(error) => Failure(error)
+                                     case Right(kind) => kind match {
+                                       case ApiAuthorizationKind.ACL =>
+                                         //parse acl
+                                         e(A_API_ACL) match {
+                                           case None    =>
+                                             logger.debug(s"API authorizations level kind for token '${name.value}' with id '${id.value}' is 'ACL' but it doesn't have any ACLs conigured")
+                                             Full(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
+                                           case Some(s) => unserApiAcl(s) match {
+                                             case Right(x)  => Full(ApiAuthorization.ACL(x))
+                                             case Left(msg) => Failure(msg)
+                                           }
+                                         }
+                                       case ApiAuthorizationKind.None => Full(ApiAuthorization.None)
+                                       case ApiAuthorizationKind.RO   => Full(ApiAuthorization.RO  )
+                                       case ApiAuthorizationKind.RW   => Full(ApiAuthorization.RW  )
+                                     }
+                                   }
+                                 }
       } yield {
-        val accountType = e(A_API_KIND) match {
-          case None    => ApiAccountType.PublicApi // this is the default
-          case Some(s) => ApiAccountType.values.find( _.name == s ).getOrElse(ApiAccountType.PublicApi)
-        }
 
         def warnOnIgnoreAuthz(): Unit = {
           if(e(A_API_AUTHZ_KIND).isDefined || e(A_API_EXPIRATION_DATETIME).isDefined) {
