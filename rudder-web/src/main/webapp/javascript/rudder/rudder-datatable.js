@@ -540,7 +540,8 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).addClass("listopen tw-bs");
         $(nTd).empty();
-        $(nTd).text(oData.rule);
+        //rule name is escaped server side, avoid double escape with .text()
+        $(nTd).html(oData.rule);
         if (! oData.isSystem) {
           var editIcon = $("<i>");
           editIcon.addClass("fa fa-pencil");
@@ -737,7 +738,8 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
     , "sTitle": "Directive"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).empty();
-        $(nTd).append(document.createTextNode(oData.directive));
+        //directive name is escaped server side, avoid double escape with document.createTextNode()
+        $(nTd).append(oData.directive);
         $(nTd).addClass("listopen tw-bs");
         var tooltipIcon = $("<i>");
         tooltipIcon.addClass("fa fa-question-circle icon-info");
@@ -953,9 +955,11 @@ function createNodeComponentValueTable(contextPath) {
         for (index in sData) {
           var elem = $("<li></li>");
           if(sData.length > 1) {
-            elem.text('['+ sData[index].status+'] '+ sData[index].value);
+            //message  is escaped server side, avoid double escape with .text()
+            elem.html('['+ sData[index].status+'] '+ sData[index].value);
           } else {
-            elem.text(sData[index].value);
+            //message  is escaped server side, avoid double escape with .text()
+            elem.html(sData[index].value);
           }
           list.append(elem);
         }
