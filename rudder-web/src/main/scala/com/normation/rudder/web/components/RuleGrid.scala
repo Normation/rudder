@@ -658,7 +658,7 @@ class RuleGrid(
     val t4 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: category: ${t4-t3}ms")
 
-    // Callback to use on links, parameter define the tab to open "showForm" for compliance, "showEditForm" to edit form
+    // Callback to use on links
     val callback = for {
       callback <- detailsCallbackLink
       ajax = SHtml.ajaxCall(JsVar("action"), (tab: String) => callback(line.rule,tab))
