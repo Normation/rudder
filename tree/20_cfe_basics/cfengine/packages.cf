@@ -108,18 +108,11 @@ bundle common rpm_knowledge
 
 bundle common redhat_no_locking_knowledge {
   vars:
-    redhat_setopt_available::
+    # Option was introduced in rhel 6.1
+    redhat.!(redhat_3|redhat_4|redhat_5|redhat_6_0)::
       "no_locking_option" string => "--setopt=exit_on_lock=True";
-    !redhat_setopt_available::
+    redhat_3|redhat_4|redhat_5|redhat_6_0::
       "no_locking_option" string => "";
-
-
-  classes:
-    # Use the class 'agent' as a guard, to prevent the command to be executed during cf-promises/cf-serverd
-    # Class agent is a hard class set by cf-agent
-    redhat.agent::
-      "redhat_setopt_available" not => returnszero("LANG=C ${paths.path[yum]} --setopt=exit_on_lock=True 2>&1 | ${paths.path[grep]} -q -E '(Command line error: no such option: --setopt|Main config did not have a exit_on_lock attr. before setopt)'", "useshell");
-
 }
 bundle common redhat_knowledge
 # This common bundle has useful information about Red Hat and its
