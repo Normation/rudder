@@ -90,7 +90,7 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
     val json = {
       JsObj(
           "id" -> changeRequest.id.value
-        , "name" -> changeRequest.info.name
+        , "name" -> escapeHTML(changeRequest.info.name)
         , "creator" -> changeRequest.owner
         , "step" -> (workflowStateMap.get(changeRequest.id).map(_.value).getOrElse("Unknown"): String)
         , "lastModification" -> date
