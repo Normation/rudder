@@ -303,7 +303,7 @@ class DSCTechniqueWriter(
     def toDscFormat(call : MethodCall) : Result[String]= {
 
       def naReport(method : GenericMethod, expectedReportingValue : String) =
-        s"""_rudder_common_report_na -componentName "${method.name}" -componentKey "${expectedReportingValue}" -message "Not applicable" ${genericParams}"""
+        s"""_rudder_common_report_na -componentName "${call.component}" -componentKey "${expectedReportingValue}" -message "Not applicable" ${genericParams}"""
       for {
 
         // First translate parameters to Dsc values
@@ -331,7 +331,7 @@ class DSCTechniqueWriter(
           }).mkString(" ")
 
         effectiveCall =
-          s"""$$local_classes = Merge-ClassContext $$local_classes $$(${call.methodId.validDscName} ${methodParams} ${genericParams}).get_item("classes")"""
+          s"""$$local_classes = Merge-ClassContext $$local_classes $$(${call.methodId.validDscName} ${methodParams} -componentName "${call.component}" ${genericParams}).get_item("classes")"""
 
         // Check if method exists
         method <- methods.get(call.methodId) match {
