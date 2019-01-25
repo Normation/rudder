@@ -40,12 +40,16 @@ package com.normation.inventory.provisioning.endpoint
 import java.nio.file.ClosedWatchServiceException
 
 import better.files._
-import net.liftweb.common.Full
+import monix.eval.Task
+import monix.execution.Scheduler
 import monix.execution.Scheduler._
+import monix.execution.cancelables.SerialCancelable
+import net.liftweb.common.Full
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.blocking
 import scala.concurrent.duration.FiniteDuration
+import scala.language.postfixOps
 import scala.util.control.NonFatal
 
 
@@ -70,17 +74,32 @@ final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
     }
   }
 }
-
 object Watchers {
-  def apply(incoming: File, updates: File, processFile: File => Unit): Watchers = {
+
+  def apply(incoming: File, updates: File, checkProcess: File => Unit): Watchers = {
     def newWatcher(directory: File): FileMonitor = {
       new FileMonitor(directory, recursive = false) {
         private var stopRequired = false
 
-        // we need *only* "modify" to get both create and when file
-        // already exists and overwrite. If we also overwrite "onCreate", we
-        // get TWO notification for each file creation :/
-        override def onModify(file: File, count: Int): Unit = processFile(file)
+        /*
+         * when a file is written, depending about how it is handle, by what process, and at which rate,
+         * we can have form 1 create only to 1 create and lots of modify events.
+         * And there is no "file finally close" event (see LinuxWatchService implementation to be sur).
+         * So we need two things:
+         * - one thing to wait for a file to be available for write
+         * - one thing to filter out events for
+         * This is handled by ProcessFile object
+         */
+        override def onCreate(file: File, count: Int): Unit = onModify(file, count)
+        override def onModify(file: File, count: Int): Unit = {
+          // we want to avoid processing some file
+          val ext = file.extension(includeDot = false, includeAll = false).getOrElse("")
+          if( ext == "gz" || ext == "xml" || ext == "ocs" || ext == "sign") {
+            checkProcess(file)
+          } else {
+            InventoryLogger.debug(s"watcher ignored file ${file.name} (unrecognized extension: '${ext}')")
+          }
+        }
 
         // When we call "stop" on the FileMonitor, it always throws a ClosedWatchServiceException.
         // It seems to be because the "run" in start continue to try to execute its
@@ -130,7 +149,6 @@ class InventoryFileWatcher(
     }
   }
 
-  val sign = if(sigExtension.charAt(0) == '.') sigExtension else "."+sigExtension
 
   val incoming = File(incomingInventoryPath)
   logDirPerm(incoming, "Incoming")
@@ -142,17 +160,18 @@ class InventoryFileWatcher(
   logDirPerm(failed, "Failed")
 
   implicit val scheduler = monix.execution.Scheduler.io("inventory-wait-sig")
+  val fileProcessor = new ProcessFile(inventoryProcessor, received, failed, waitForSig, sigExtension)
 
   var watcher = Option.empty[Watchers]
 
   def startWatcher(): Either[Throwable, Unit] = this.synchronized {
     watcher match {
       case Some(w) => // does nothing
-         InventoryLogger.info(s"Starting incoming inventory watcher ignored (already started).")
+        InventoryLogger.info(s"Starting incoming inventory watcher ignored (already started).")
         Right(())
 
       case None    =>
-        val w = Watchers(incoming, updated, processFile)
+        val w = Watchers(incoming, updated, fileProcessor.addFile)
         w.start() match {
           case Right(()) =>
             InventoryLogger.info(s"Incoming inventory watcher started - process existing inventories")
@@ -188,6 +207,51 @@ class InventoryFileWatcher(
     }
   }
 
+
+}
+
+
+class ProcessFile(
+    inventoryProcessor: InventoryProcessor
+  , received          : File
+  , failed            : File
+  , waitForSig        : FiniteDuration
+  , sigExtension      : String // signature file extension, most likely ".sign"
+)(implicit scheduler: Scheduler) {
+  import scala.concurrent.duration._
+
+  val sign = if(sigExtension.charAt(0) == '.') sigExtension else "."+sigExtension
+
+  /*
+   * This is the map of be processed file based on received events.
+   * Each time we receive a new event, we cancel the previous one and replace by the new (for the same file).
+   * The task is configured to be processed after some delay.
+   *
+   * That's a var, must be accessed synchroniously: only change it through `remove` and `addFile`
+   */
+  private var toBeProcessed = Map.empty[File, SerialCancelable]
+
+  private def remove(file: File): Unit = synchronized {
+    toBeProcessed = (toBeProcessed - file)
+  }
+
+  val newTask = (f:File) => Task (processFile(f) ).delayExecution(500 millis).doOnFinish (_ => Task (remove(f)))
+
+  def addFile(file: File): Unit =  synchronized {
+    toBeProcessed.get(file) match {
+      case None =>
+          // the delay here is to let some time pass to let the file be fully written
+          // the timeout is the max time allowed for file to be full written. Not that
+          // these files will be proccessed by agent run latter.
+          toBeProcessed = (toBeProcessed + (file -> SerialCancelable(newTask(file).runAsync)))
+
+        case Some(ref) =>
+          ref := newTask(file).runAsync
+
+      }
+  }
+
+
   /*
    * The logic is:
    * - when a file is created, we look if it's a sig or an inventory (ends by .sign or not)
@@ -197,11 +261,43 @@ class InventoryFileWatcher(
    *   timeout and process, else do nothing.
    */
   def processFile(file: File): Unit = {
+    // the part that deals with sending to processor and then deplacing files
+    // where they belong
+    def sendToProcessor(inventory: File, signature: Option[File]): Unit = {
+      // we don't manage race condition very well, so we have cases where
+      // we can have two things trying to move
+      def safeMove[T](chunk: =>T): Unit = {
+        try {
+          chunk
+        } catch {
+          case ex: NoSuchElementException => // ignore
+            InventoryLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The was already deleted.")
+        }
+      }
+      inventoryProcessor.saveInventory(() => inventory.newInputStream, inventory.name, signature.map(s => () => s.newInputStream)) match {
+        case Full(InventoryProcessStatus.Accepted(report)) =>
+          //move to received dir
+          safeMove(signature.map(s => s.moveTo(received / s.name, overwrite = true)))
+          safeMove(inventory.moveTo(received / inventory.name, overwrite = true))
+        case _ => // error (no need to log: already done in the processor)
+          safeMove(signature.map(s => s.moveTo(failed / s.name, overwrite = true)))
+          safeMove(inventory.moveTo(failed / inventory.name, overwrite = true))
+      }
+    }
+
     InventoryLogger.trace(s"Processing new file: ${file.pathAsString}")
-    if(file.name.endsWith(sign)) { // a signature
+    // We need to only try to do things on fully-written file.
+    // The canocic way seems to be to try to get a write lock on the file and see if
+    // it works. We assume that once we successfully get the lock, it means that
+    // the file is written (so we can immediately release it).
+    if(file.name.endsWith(".gz")) {
+      val dest = File(file.parent, file.nameWithoutExtension(includeAll = false))
+      file.unGzipTo(dest)
+      file.delete()
+    } else if(file.name.endsWith(sign)) { // a signature
       val p = file.pathAsString
-      val inventory = File(p.substring(0, p.length - sign.size))
-      if(inventory.exists && inventory.isRegularFile) {
+      val inventory = File(file.parent, file.nameWithoutExtension(includeAll = false))
+      if(inventory.exists) {
         // process !
         InventoryLogger.info(s"Watch new inventory file '${inventory.name}' with signature available: process.")
         sendToProcessor(inventory, Some(file))
@@ -225,27 +321,4 @@ class InventoryFileWatcher(
       }
     }
   }
-
-  def sendToProcessor(inventory: File, signature: Option[File]): Unit = {
-    // we don't manage race condition very well, so we have cases where
-    // we can have two things trying to move
-    def safeMove[T](chunk: =>T): Unit = {
-      try {
-        chunk
-      } catch {
-        case ex: NoSuchElementException => // ignore
-          InventoryLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The was already deleted.")
-      }
-    }
-    inventoryProcessor.saveInventory(() => inventory.newInputStream, inventory.name, signature.map(s => () => s.newInputStream)) match {
-      case Full(InventoryProcessStatus.Accepted(report)) =>
-        //move to received dir
-        safeMove(signature.map(s => s.moveTo(received / s.name, overwrite = true)))
-        safeMove(inventory.moveTo(received / inventory.name, overwrite = true))
-      case _ => // error (no need to log: already done in the processor)
-        safeMove(signature.map(s => s.moveTo(failed / s.name, overwrite = true)))
-        safeMove(inventory.moveTo(failed / inventory.name, overwrite = true))
-    }
-  }
-
 }
