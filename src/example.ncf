@@ -20,8 +20,12 @@ ntp state configuration ()
 {
   # Object variable not yet implemented
   #obj = file("/tmp")
-  # Data variable not yes implemented
+  # Data variable (not yet implemented)
   #var= "value"
+  # Sinite choice data variable (not yet implemented)
+  #var=case { 
+  #  os =~ Redhat => "value", ...
+  #}
   # condition/set variable not yet implemented
   #os=system/Redhat
   # choose exactly one

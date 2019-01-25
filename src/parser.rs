@@ -227,8 +227,8 @@ pub enum PDeclaration<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct PCode<'a> {
-    header: PHeader,
-    code: Vec<PDeclaration<'a>>,
+    pub header: PHeader,
+    pub code: Vec<PDeclaration<'a>>,
 }
 
 // enum_from primitive alows recreating PError from u32 easily (ie without writing tons of

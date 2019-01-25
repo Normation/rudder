@@ -3,7 +3,7 @@ use std::fmt;
 // Error management
 
 #[derive(Debug, PartialEq)]
-pub enum PError {
+pub enum Error {
     //          message file    line  column
     Compilation(String, String, u32, usize),
     //      message file    line  column
@@ -13,14 +13,14 @@ pub enum PError {
 }
 
 // Error management definitions
-pub type Result<T> = std::result::Result<T, PError>;
-//pub type OptResult<T> = std::result::Result<Option<T>, PError>;
+pub type Result<T> = std::result::Result<T, Error>;
+//pub type OptResult<T> = std::result::Result<Option<T>, Error>;
 
 //#[macro_export]
 macro_rules! fail {
     ($origin:expr, $ ( $ arg : tt ) *) => ({
         let (file,line,col) = $origin.position();
-        return Err(PError::Compilation(std::fmt::format( format_args!( $ ( $ arg ) * ) ),
+        return Err(Error::Compilation(std::fmt::format( format_args!( $ ( $ arg ) * ) ),
                                        file,
                                        line,
                                        col
@@ -31,7 +31,7 @@ macro_rules! fail {
 macro_rules! warn {
     ($origin:expr, $ ( $ arg : tt ) *) => ({
         let (file,line,col) = $origin.position();
-        PError::Warning(std::fmt::format( format_args!( $ ( $ arg ) * ) ),
+        Error::Warning(std::fmt::format( format_args!( $ ( $ arg ) * ) ),
                                        file,
                                        line,
                                        col
@@ -39,12 +39,12 @@ macro_rules! warn {
     });
 }
 
-impl fmt::Display for PError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            PError::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
-            PError::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
-            PError::Warning(msg, _, _, _) => write!(f, "Compilation warning: {}", msg),
+            Error::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
+            Error::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
+            Error::Warning(msg, _, _, _) => write!(f, "Compilation warning: {}", msg),
         }
     }
 }

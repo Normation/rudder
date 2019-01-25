@@ -394,7 +394,7 @@ impl<'a> EnumList<'a> {
               .join(" && ")
     }
 
-    pub fn evaluate(&self, context: &'a VarContext<'a>, expressions: &Vec<EnumExpression>, case: PToken<'a>) -> Vec<PError> {
+    pub fn evaluate(&self, context: &'a VarContext<'a>, expressions: &Vec<EnumExpression>, case: PToken<'a>) -> Vec<Error> {
         let mut warns = Vec::new();
         let mut variables = HashMap::new();
         expressions.iter().for_each(|e| self.list_variable_enum(&mut variables, &e));
