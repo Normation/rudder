@@ -31,12 +31,14 @@ fn parse<'a>(filename: &'a str, content: &'a str) -> Result<parser::PFile<'a>> {
 }
 
 fn main() {
+    let mut gc = globalcontext::GlobalContext::new();
     let filename = "test.ncf";
     let content = fs::read_to_string(filename).expect(&format!("Something went wrong reading the file {}", filename));
-//    match parse(filename, &content).and_then(analyser::analyse) {
-//        Err(e) => println!("There was an error: {}", e),
-//        Ok(_) => println!("Everything went OK"),
-//    }
+    let file = match parse(filename, &content) {
+        Err(e) => panic!("There was an error: {}", e),
+        Ok(o) => o,
+    };
+    gc.add_pfile(filename, file);
 
     // file = parameter
     // str = open read file

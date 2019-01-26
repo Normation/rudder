@@ -37,29 +37,74 @@ impl<'a> GlobalContext<'a> {
         }
     }
 
-    pub fn add_pfile(&mut self, file: PCode<'a>) -> Result<()> {
+    pub fn add_pfile(&mut self, filename: &'a str, file: PFile<'a>) -> Result<()> {
         if file.header.version != 0 { panic!("Multiple format not supported yet"); }
-        let mut current_metadata = HashMap::new();
+        let mut current_metadata: HashMap<PToken<'a>,PValue<'a>>= HashMap::new();
         for decl in file.code {
             match decl {
                 PDeclaration::Comment(c) => {
                     // comment are concatenated and are considered metadata
+                    if current_metadata.contains_key(&PToken::new("comment",filename)) {
+                        current_metadata.entry(PToken::new("comment",filename)).and_modify(|e| { *e = match e {
+                            PValue::String(s) => PValue::String(c.iter().fold(s.to_string(), { |mut i,st| { i.push_str(st); i } })),
+                            _ => panic!("Comment is not a string, this should not happen"),
+                        }});
+                    } else {
+                        current_metadata.insert("comment".into(), PValue::String(c.iter().fold(String::from(""), { |mut i,s| { i.push_str(s); i } })));
+                    }
                 },
                 PDeclaration::Metadata(m) => {
                     // metadata must not be called "comment"
+                    if m.key == PToken::from("comment") {
+                        fail!(m.key, "Metadata name '{}' is forbidden", m.key);
+                    }
+                    if current_metadata.contains_key(&m.key) {
+                        fail!(m.key, "Metadata name '{}' is already defined at {}", m.key, current_metadata.entry(m.key).key());
+                    }
+                    current_metadata.insert(m.key, m.value);
                 },
                 PDeclaration::Resource(rd) => {
                     if self.resources.contains_key(&rd.name) {
-                        let key = self.resources.entry(rd.name).key();
-                        fail!(rd.name, "Resource {} has already been defined in {}", rd.name, key);
+                        fail!(rd.name, "Resource {} has already been defined in {}", rd.name, self.resources.entry(rd.name).key());
                     }
-                    //self.resources.insert(rd.name,(current_metadata,rd));
+                    let resource = Resources {
+                        metadata: current_metadata,
+                        parameters: rd.parameters,
+                        states: HashMap::new(),
+                    };
+                    self.resources.insert(rd.name, resource);
+                    // Reset metadata
                     current_metadata = HashMap::new();
                 },
                 PDeclaration::State(st) => {
+                    if let Some(rd) = self.resources.get_mut(&st.resource_name) {
+                        if rd.states.contains_key(&st.name) {
+                            fail!(st.name, "State {} for resource {} has already been defined in {}", st.name, st.resource_name, rd.states.entry(st.name).key());
+                        }
+                        let state = StateDef {
+                            metadata: current_metadata,
+                            parameters: st.parameters,
+                            statements: st.statements,
+                        };
+                        rd.states.insert(st.name, state);
+                        // Reset metadata
+                        current_metadata = HashMap::new();
+                    } else {
+                        fail!(st.resource_name, "Resource {} has not been defined for {}", st.resource_name, st.name);
+                    }
                 },
-                PDeclaration::Enum(e) => self.enumlist.add_enum(e)?,
-                PDeclaration::Mapping(em) => self.enumlist.add_mapping(em)?,
+                PDeclaration::Enum(e) => {
+                    self.enumlist.add_enum(e)?;
+                    // Discard metadata
+                    // TODO warn if there is nome ignored metadata
+                    current_metadata = HashMap::new();
+                },
+                PDeclaration::Mapping(em) => {
+                    self.enumlist.add_mapping(em)?;
+                    // Discard metadata
+                    // TODO warn if there is nome ignored metadata
+                    current_metadata = HashMap::new();
+                },
             }
         }
         Ok(())

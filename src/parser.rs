@@ -33,7 +33,7 @@ pub struct PToken<'a> {
 
 // Create from strings
 impl<'a> PToken<'a> {
-    fn new(name: &'a str, input: &'a str) -> Self {
+    pub fn new(name: &'a str, input: &'a str) -> Self {
         PToken {
             val: LocatedSpan::new(CompleteStr(input), name),
         }
@@ -225,11 +225,6 @@ pub enum PDeclaration<'a> {
     Mapping(PEnumMapping<'a>),
 }
 
-#[derive(Debug, PartialEq)]
-pub struct PCode<'a> {
-    pub header: PHeader,
-    pub code: Vec<PDeclaration<'a>>,
-}
 
 // enum_from primitive alows recreating PError from u32 easily (ie without writing tons of
 // boilerplate) This would be useless if we had ErrorKind(PError) return codes but this
