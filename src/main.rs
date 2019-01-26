@@ -15,7 +15,7 @@ fn parser_err(context: &nom::Context<parser::PInput,u32>) -> Result<parser::PFil
             let (file,line,col) = parser::PToken::from(*i).position();
             match e {
                 nom::ErrorKind::Custom(err) => Err(Error::Parsing(format!("Error: {} at {}:{}:{}",parser::PError::from_u32(*err).unwrap(),file,line,col),file,line,col)),
-                e => Err(Error::Parsing(format!("Unprocessed parsing error '{:?}' at {}:{}:{}, please fill a BUG with context on when this happened",e, file,line,col), file,line,col)),
+                e => Err(Error::Parsing(format!("Unprocessed parsing error '{:?}' {:?} at {}:{}:{}, please fill a BUG with context on when this happened",e,i, file,line,col), file,line,col)),
             }
         }
     }
@@ -38,12 +38,12 @@ fn main() {
         Err(e) => panic!("There was an error: {}", e),
         Ok(o) => o,
     };
-    gc.add_pfile(filename, file);
-
-    // file = parameter
-    // str = open read file
-    // ast1 = parser::parse(str)
-    // ast2 = analyser::analyse(ast1)
-    // ast3 = optimizer::optimise(ast2)
-    // generator::generate(ast3)
+    match gc.add_pfile(filename, file) {
+        Err(e) => panic!("There was an error: {}", e),
+        Ok(()) => {},
+    };
+    // analyse
+    // optimize
+    // generate
+    gc.generate_cfengine();
 }

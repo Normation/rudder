@@ -7,8 +7,8 @@ use crate::parser::*;
 use self::enums::EnumList;
 use self::context::VarContext;
 use std::collections::HashMap;
-
-
+use std::fs::File;
+use std::io::Write;
 
 pub struct GlobalContext<'a> {
     enumlist: EnumList<'a>,
@@ -28,9 +28,14 @@ struct StateDef<'a> {
     statements: Vec<PStatement<'a>>, //TODO ?
 }
 
+struct Parameter<'a> {
+    pub name: PToken<'a>,
+    pub ptype: PType,
+    pub default: Option<PValue<'a>>,
+}
+
 impl<'a> GlobalContext<'a> {
-    pub fn new() -> GlobalContext<'static> {
-        GlobalContext {
+    pub fn new() -> GlobalContext<'static> { GlobalContext {
             enumlist:  EnumList::new(),
             resources: HashMap::new(),
             variables: VarContext::new_global(),
@@ -106,6 +111,28 @@ impl<'a> GlobalContext<'a> {
                     current_metadata = HashMap::new();
                 },
             }
+        }
+        Ok(())
+    }
+
+    pub fn generate_cfengine(&self) -> Result<()> { // TODO separate via trait ?
+        let mut files: HashMap<&str,String> = HashMap::new();
+        for (rn, res) in self.resources.iter() {
+            for (sn, state) in res.states.iter() {
+                let mut content = match files.get(sn.file()) {
+                    Some(s) => s.to_string(),
+                    None => String::new(),
+                };
+                content.push_str(&format!("bundle agent {}_{}\n",rn,sn)); // TODO parameters
+                content.push_str("{\n  methods:\n");
+
+                content.push_str("}\n");
+                files.insert(sn.file(), content.to_string()); // TODO there is something smelly with this to_string
+            }
+        }
+        for (name, content) in files.iter() {
+            let mut file = File::create(format!("{}.cf", name )).unwrap();
+            file.write_all(content.as_bytes()).unwrap();
         }
         Ok(())
     }

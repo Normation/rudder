@@ -52,6 +52,7 @@ impl<'a> PToken<'a> {
     pub fn fragment(&self) -> &'a str {
         &self.val.fragment
     }
+    pub fn file(&self) -> &'a str { &self.val.extra }
 }
 // Convert from str (lossy, used for terse tests)
 impl<'a> From<&'a str> for PToken<'a> {
@@ -614,21 +615,21 @@ pnamed!(state<PStateDef>,
 pnamed!(declaration<PDeclaration>,
     sp!(alt_complete!(
           resource_def    => { |x| PDeclaration::Resource(x) }
-        | metadata      => { |x| PDeclaration::Metadata(x) }
-        | state         => { |x| PDeclaration::State(x) }
-        | comment_block => { |x| PDeclaration::Comment(x) }
-        | penum         => { |x| PDeclaration::Enum(x) }
-        | enum_mapping  => { |x| PDeclaration::Mapping(x) }
+        | metadata        => { |x| PDeclaration::Metadata(x) }
+        | state           => { |x| PDeclaration::State(x) }
+        | comment_block   => { |x| PDeclaration::Comment(x) }
+        | penum           => { |x| PDeclaration::Enum(x) }
+        | enum_mapping    => { |x| PDeclaration::Mapping(x) }
       ))
 );
 
 pnamed!(pub parse<PFile>,
-    do_parse!(
+    sp!(do_parse!(
         header: header >>
         code: many0!(declaration) >>
         eof!() >>
         (PFile {header, code} )
-    )
+    ))
 );
 
 // TESTS
