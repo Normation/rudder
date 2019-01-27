@@ -7,6 +7,7 @@ use std::collections::hash_set::Iter;
 
 // As single enum can be derived into different set through multiple mappings
 // However a single enum can have only one parent
+#[derive(Debug)]
 pub struct EnumList<'a> {
     // Map an enum name to another one which has a derived definition
     //                    to         from

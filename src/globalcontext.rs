@@ -10,24 +10,28 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 
+#[derive(Debug)]
 pub struct GlobalContext<'a> {
     enumlist: EnumList<'a>,
     resources: HashMap<PToken<'a>,Resources<'a>>,
     variables: VarContext<'a>,
 }
 
+#[derive(Debug)]
 struct Resources<'a> {
     metadata: HashMap<PToken<'a>,PValue<'a>>, 
     parameters: Vec<PParameter<'a>>, // TODO ?
     states: HashMap<PToken<'a>,StateDef<'a>>,
 }
 
+#[derive(Debug)]
 struct StateDef<'a> {
     metadata: HashMap<PToken<'a>,PValue<'a>>, 
     parameters: Vec<PParameter<'a>>, //TODO ?
     statements: Vec<PStatement<'a>>, //TODO ?
 }
 
+#[derive(Debug)]
 struct Parameter<'a> {
     pub name: PToken<'a>,
     pub ptype: PType,
@@ -51,11 +55,11 @@ impl<'a> GlobalContext<'a> {
                     // comment are concatenated and are considered metadata
                     if current_metadata.contains_key(&PToken::new("comment",filename)) {
                         current_metadata.entry(PToken::new("comment",filename)).and_modify(|e| { *e = match e {
-                            PValue::String(s) => PValue::String(c.iter().fold(s.to_string(), { |mut i,st| { i.push_str(st); i } })),
+                            PValue::String(st) => PValue::String(c.iter().fold(st.to_string(), { |i,s| i+*s })),
                             _ => panic!("Comment is not a string, this should not happen"),
                         }});
                     } else {
-                        current_metadata.insert("comment".into(), PValue::String(c.iter().fold(String::from(""), { |mut i,s| { i.push_str(s); i } })));
+                        current_metadata.insert("comment".into(), PValue::String(c.iter().fold(String::from(""), { |i,s| i+*s })));
                     }
                 },
                 PDeclaration::Metadata(m) => {
@@ -101,13 +105,13 @@ impl<'a> GlobalContext<'a> {
                 PDeclaration::Enum(e) => {
                     self.enumlist.add_enum(e)?;
                     // Discard metadata
-                    // TODO warn if there is nome ignored metadata
+                    // TODO warn if there is some ignored metadata
                     current_metadata = HashMap::new();
                 },
                 PDeclaration::Mapping(em) => {
                     self.enumlist.add_mapping(em)?;
                     // Discard metadata
-                    // TODO warn if there is nome ignored metadata
+                    // TODO warn if there is some ignored metadata
                     current_metadata = HashMap::new();
                 },
             }
@@ -123,9 +127,26 @@ impl<'a> GlobalContext<'a> {
                     Some(s) => s.to_string(),
                     None => String::new(),
                 };
-                content.push_str(&format!("bundle agent {}_{}\n",rn,sn)); // TODO parameters
+                let params = state.parameters.iter()
+                                             .chain(res.parameters.iter())
+                                             .map(|p| p.name.fragment())
+                                             .collect::<Vec<&str>>()
+                                             .join(",");
+                content.push_str(&format!("bundle agent {}_{} ({})\n",rn.fragment(),sn.fragment(),params));
                 content.push_str("{\n  methods:\n");
-
+                for st in state.statements.iter() {
+                    match st {
+                        PStatement::StateCall(_out,_mode,res,call,params) => {
+                            let param_str = res.parameters.iter()
+                                               .chain(params.iter())
+                                               .map(parameter_to_cfengine)
+                                               .collect::<Vec<String>>()
+                                               .join(",");
+                            content.push_str(&format!("    \"method_call\" usebundle => {}_{}({});\n",res.name.fragment(),call.fragment(),param_str));
+                        },
+                        _ => {},
+                    }
+                }
                 content.push_str("}\n");
                 files.insert(sn.file(), content.to_string()); // TODO there is something smelly with this to_string
             }
@@ -138,3 +159,9 @@ impl<'a> GlobalContext<'a> {
     }
 }
 
+fn parameter_to_cfengine(param: &PValue) -> String {
+    match param {
+        PValue::String(s) => format!("\"{}\"",s),
+        _ => "XXX".to_string(), // TODO remove _
+    }
+}

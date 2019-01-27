@@ -4,6 +4,7 @@ use nom_locate::LocatedSpan;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
+use std::ops::Add;
 use enum_primitive::*;
 
 // TODO parse and store comments
@@ -86,6 +87,13 @@ impl<'a> Hash for PToken<'a> {
 impl<'a> fmt::Display for PToken<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "'{}' at {}", self.val.fragment, self.position_str())
+    }
+}
+// For easy concatenating of tokens
+impl<'a> Add<PToken<'a>> for String {
+    type Output = String;
+    fn add(self, other: PToken) -> String {
+        self + *other.val.fragment
     }
 }
 // TODO Deref or AsRef ?
