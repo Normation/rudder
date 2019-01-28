@@ -377,7 +377,9 @@ object DisplayNode extends Loggable {
       <h4 class="tablemargin">General</h4>
 
         <div class="tablepadding">
-          <b>Hostname:</b> {sm.node.main.hostname}<br/>
+          {/* style "inline-block" is for selection by triple-click of the whole content in firefox, need something else for chrome */}
+          <b>Hostname:</b> <p style="display:inline-block">{sm.node.main.hostname}</p><br/>
+          <b>Rudder node ID:</b> <p style="display:inline-block">{sm.node.main.id.value}</p><br/>
           <b>Machine type:</b> {displayMachineType(sm.machine)}<br/>
           <b>Manufacturer:</b> {sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}<br/>
           <b>Total physical memory (RAM):</b> {sm.node.ram.map( _.toStringMo).getOrElse("-")}<br/>
@@ -386,12 +388,6 @@ object DisplayNode extends Loggable {
           <b>Time Zone:</b> {sm.node.timezone.map(x =>
               if(x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})"
             ).getOrElse("unknown")}<br/>
-          { sm.machine.map( _.id.value).map( machineId =>
-              <div>
-                <b>Rudder Machine ID:</b> {machineId} <br/>
-              </div>
-            ).getOrElse(<span class="error">Machine Information are missing for that node</span>)
-          }
         </div>
 
       <h4 class="tablemargin">Operating system details</h4>
@@ -429,7 +425,12 @@ object DisplayNode extends Loggable {
           <b>Rudder agent version:</b> {sm.node.agents.map(_.version.map(_.value)).headOption.flatten.getOrElse("Not found")
           }<br/>
           <b>Agent name:</b> {sm.node.agents.map(_.agentType.displayName).mkString(";")}<br/>
-          <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
+          { sm.machine.map( _.id.value).map( machineId =>
+              <div>
+                <b>Machine ID:</b> {machineId}
+              </div>
+            ).getOrElse(<span class="error">Machine Information are missing for that node</span>)
+          }<br/>
           { displayPolicyServerInfos(sm) }<br/>
           {
             sm.node.agents.headOption match {
