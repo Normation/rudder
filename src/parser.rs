@@ -1,50 +1,28 @@
 mod token;
 mod macros;
+mod error;
 
-use std::fmt;
 use nom::*;
 use enum_primitive::*;
-use crate::error;
 use self::macros::*;
 use self::token::PInput;
+use self::error::{PError,error_type};
 pub use self::token::Token;
 pub use self::token::pinput;
+
+/// All structures are public to be analysed by other modules
 
 // TODO parse and store comments
 // TODO add more types
 // TODO lifetime = 'src
 // TODO store position in strings
-// TODO tests for high level parsers
 // TODO _ in identifiers
 // TODO reserve keywords
 
-fn parser_err(context: &Context<PInput,u32>) -> error::Result<PFile<'static>>{
-    match context {
-        Context::Code(i,e) => {
-            let (file,line,col) = Token::from(*i).position();
-            match e {
-                ErrorKind::Custom(err) => Err(error::Error::Parsing(format!("Error: {} at {}:{}:{}",PError::from_u32(*err).unwrap(),file,line,col),file,line,col)),
-                e => Err(error::Error::Parsing(format!("Unprocessed parsing error '{:?}' {:?} at {}:{}:{}, please fill a BUG with context on when this happened",e,i, file,line,col), file,line,col)),
-            }
-        }
-    }
+/// The parse function that should be called when parsing a file
+pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Result<PFile<'a>> {
+    error_type(pfile(pinput(filename, content)))
 }
-
-pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> error::Result<PFile<'a>> {
-    match pfile(pinput(filename, content)) {
-        Ok((_,file)) => Ok(file),
-        Err(Err::Failure(context)) => parser_err(&context),
-        Err(Err::Error(context)) => parser_err(&context),
-        Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
-    }
-}
-
-
-
-
-
-/// All structures are public to be analysed by other modules
-
 
 /// A source file header consists of a single line '@format=<version>'.
 /// Shebang accepted.
@@ -66,7 +44,7 @@ pnamed!(header<PHeader>,
 
 /// A comment starts with a ## and ends with the end of line.
 /// Such comment is parsed and kept contrarily to comment starting with '#'.
-type PComment<'a> = Token<'a>;
+pub type PComment<'a> = Token<'a>;
 pnamed!(pcomment<PComment>,
     map!(
         preceded!(tag!("##"),
@@ -503,38 +481,6 @@ pnamed!(pub pfile<PFile>,
     ))
 );
 
-// enum_from primitive allows recreating PError from u32 easily (ie without writing tons of
-// boilerplate) This would be useless if we had ErrorKind(PError) return codes but this
-// would mean writing a lot of fix_error! calls in parsers
-enum_from_primitive! {
-#[derive(Debug, PartialEq)]
-pub enum PError {
-    // TODO check if it is possible to add parameters
-    Unknown, // Should be used by tests only
-    InvalidFormat,
-    UnterminatedString,
-    InvalidEscape,
-    UnterminatedCurly,
-    InvalidName,
-    EnumExpression,
-} }
-
-impl fmt::Display for PError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(
-            match self {
-                PError::Unknown             => "Unknown error, this should not happen except in tests",
-                PError::InvalidFormat       => "Invalid format",
-                PError::UnterminatedString  => "Unterminated string",
-                PError::InvalidEscape       => "Invalide escape character after \\ in string",
-                PError::UnterminatedCurly   => "Unterminated curly brace",
-                PError::InvalidName         => "Invalid identifier name",
-                PError::EnumExpression      => "Invalid enum expression",
-            }
-        )
-    }
-}
-
 
 // TESTS
 //
@@ -567,19 +513,72 @@ mod tests {
     }
 
     #[test]
-    fn test_strings() {
+    fn test_headers() {
         assert_eq!(
-            mapok(escaped_string(pinput("", "\"1hello\\n\\\"Herman\\\"\n\""))),
-            Ok(("", "1hello\n\"Herman\"\n".to_string()))
+            mapok(header(pinput("", "#!/bin/bash\n@format=1\n"))),
+            Ok(("", PHeader { version: 1 }))
         );
         assert_eq!(
-            mapok(unescaped_string(pinput(
-                "",
-                "\"\"\"2hello\\n\"Herman\"\n\"\"\""
-            ))),
-            Ok(("", "2hello\\n\"Herman\"\n".to_string()))
+            mapok(header(pinput("", "@format=21\n"))),
+            Ok(("", PHeader { version: 21 }))
         );
-        assert!(escaped_string(pinput("", "\"2hello\\n\\\"Herman\\\"\n")).is_err());
+        assert!(header(pinput("", "@format=21.5\n")).is_err());
+    }
+
+    #[test]
+    fn test_pcomment() {
+        assert_eq!(
+            mapok(pcomment(pinput("", "##hello Herman\n"))),
+            Ok(("", "hello Herman".into()))
+        );
+        assert_eq!(
+            mapok(pcomment(pinput("", "##hello Herman\nHola"))),
+            Ok(("Hola", "hello Herman".into()))
+        );
+        assert_eq!(
+            mapok(pcomment(pinput("", "##hello Herman!"))),
+            Ok(("", "hello Herman!".into()))
+        );
+        assert_eq!(
+            mapok(pcomment(pinput("", "##hello\nHerman\n"))),
+            Ok(("Herman\n", "hello".into()))
+        );
+        assert!(pcomment(pinput("", "hello\nHerman\n")).is_err());
+    }
+
+    #[test]
+    fn test_comment_out() {
+        assert_eq!(
+            mapok(penum(pinput("", "enum abc#comment\n { a, b, c }"))),
+            mapok(penum(pinput("", "enum abc { a, b, c }")))
+        );
+        assert_eq!(
+            mapok(penum(pinput("", "enum abc#\n { a, b, c }"))),
+            mapok(penum(pinput("", "enum abc { a, b, c }")))
+        );
+    }
+
+    #[test]
+    fn test_pidentifier() {
+        assert_eq!(
+            mapok(pidentifier(pinput("", "simple "))),
+            Ok((" ", "simple".into()))
+        );
+        assert_eq!(
+            mapok(pidentifier(pinput("", "simple?"))),
+            Ok(("?", "simple".into()))
+        );
+        assert_eq!(
+            mapok(pidentifier(pinput("", "simpl3 "))),
+            Ok((" ", "simpl3".into()))
+        );
+        // TODO accept _
+        //        assert_eq!(
+        //            mapok(pidentifier(pinput("", "simple_word "))),
+        //            Ok((" ", "simple_word".into()))
+        //        );
+        assert!(pidentifier(pinput("", "%imple ")).is_err());
+        assert!(pidentifier(pinput("", "5imple ")).is_err());
     }
 
     #[test]
@@ -714,36 +713,32 @@ mod tests {
     }
 
     #[test]
-    fn test_comment_out() {
-          assert_eq!(
-              mapok(penum(pinput("", "enum abc#comment\n { a, b, c }"))),
-              mapok(penum(pinput("", "enum abc { a, b, c }")))
-          );
-          assert_eq!(
-              mapok(penum(pinput("", "enum abc#\n { a, b, c }"))),
-              mapok(penum(pinput("", "enum abc { a, b, c }")))
-          );
+    fn test_strings() {
+        assert_eq!(
+            mapok(escaped_string(pinput("", "\"1hello\\n\\\"Herman\\\"\n\""))),
+            Ok(("", "1hello\n\"Herman\"\n".to_string()))
+        );
+        assert_eq!(
+            mapok(unescaped_string(pinput(
+                "",
+                "\"\"\"2hello\\n\"Herman\"\n\"\"\""
+            ))),
+            Ok(("", "2hello\\n\"Herman\"\n".to_string()))
+        );
+        assert!(escaped_string(pinput("", "\"2hello\\n\\\"Herman\\\"\n")).is_err());
     }
 
     #[test]
-    fn test_pcomment() {
+    fn test_value() {
+        // TODO other types
         assert_eq!(
-            mapok(pcomment(pinput("", "##hello Herman\n"))),
-            Ok(("", "hello Herman".into()))
+            mapok(pvalue(pinput("", "\"\"\"This is a string\"\"\""))),
+            Ok(("", PValue::String("This is a string".to_string())))
         );
         assert_eq!(
-            mapok(pcomment(pinput("", "##hello Herman\nHola"))),
-            Ok(("Hola", "hello Herman".into()))
+            mapok(pvalue(pinput("", "\"This is a string bis\""))),
+            Ok(("", PValue::String("This is a string bis".to_string())))
         );
-        assert_eq!(
-            mapok(pcomment(pinput("", "##hello Herman!"))),
-            Ok(("", "hello Herman!".into()))
-        );
-        assert_eq!(
-            mapok(pcomment(pinput("", "##hello\nHerman\n"))),
-            Ok(("Herman\n", "hello".into()))
-        );
-        assert!(pcomment(pinput("", "hello\nHerman\n")).is_err());
     }
 
     #[test]
@@ -768,29 +763,6 @@ mod tests {
                 }
             ))
         );
-    }
-
-    #[test]
-    fn test_pidentifier() {
-        assert_eq!(
-            mapok(pidentifier(pinput("", "simple "))),
-            Ok((" ", "simple".into()))
-        );
-        assert_eq!(
-            mapok(pidentifier(pinput("", "simple?"))),
-            Ok(("?", "simple".into()))
-        );
-        assert_eq!(
-            mapok(pidentifier(pinput("", "simpl3 "))),
-            Ok((" ", "simpl3".into()))
-        );
-        // TODO accept _
-        //        assert_eq!(
-        //            mapok(pidentifier(pinput("", "simple_word "))),
-        //            Ok((" ", "simple_word".into()))
-        //        );
-        assert!(pidentifier(pinput("", "%imple ")).is_err());
-        assert!(pidentifier(pinput("", "5imple ")).is_err());
     }
 
     #[test]
@@ -887,32 +859,6 @@ mod tests {
     }
 
     #[test]
-    fn test_value() {
-        // TODO other types
-        assert_eq!(
-            mapok(pvalue(pinput("", "\"\"\"This is a string\"\"\""))),
-            Ok(("", PValue::String("This is a string".to_string())))
-        );
-        assert_eq!(
-            mapok(pvalue(pinput("", "\"This is a string bis\""))),
-            Ok(("", PValue::String("This is a string bis".to_string())))
-        );
-    }
-
-    #[test]
-    fn test_headers() {
-        assert_eq!(
-            mapok(header(pinput("", "#!/bin/bash\n@format=1\n"))),
-            Ok(("", PHeader { version: 1 }))
-        );
-        assert_eq!(
-            mapok(header(pinput("", "@format=21\n"))),
-            Ok(("", PHeader { version: 21 }))
-        );
-        assert!(header(pinput("", "@format=21.5\n")).is_err());
-    }
-
-    #[test]
     fn test_presource_ref() {
         assert_eq!(
             mapok(presource_ref(pinput("", "hello()"))),
@@ -1003,6 +949,22 @@ mod tests {
     }
 
     #[test]
+    fn test_pstate_def() {
+        assert_eq!(
+            mapok(pstate_def(pinput("", "resource state configuration() {}"))),
+            Ok((
+                "",
+                PStateDef {
+                    name: "configuration".into(),
+                    resource_name: "resource".into(),
+                    parameters: vec![],
+                    statements: vec![]
+                }
+            ))
+        );
+    }
+
+    #[test]
     fn test_pdeclaration() {
         assert_eq!(
             mapok(pdeclaration(pinput("","ntp state configuration ()\n{\n  file(\"/tmp\").permissions(\"root\", \"root\", \"g+w\")\n}\n"))),
@@ -1023,22 +985,6 @@ mod tests {
                     ]
                 })
             )));
-    }
-
-    #[test]
-    fn test_state() {
-        assert_eq!(
-            mapok(pstate_def(pinput("", "resource state configuration() {}"))),
-            Ok((
-                "",
-                PStateDef {
-                    name: "configuration".into(),
-                    resource_name: "resource".into(),
-                    parameters: vec![],
-                    statements: vec![]
-                }
-            ))
-        );
     }
 
     #[test]

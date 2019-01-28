@@ -10,7 +10,7 @@ pub enum Error {
     //      message file    line  column
     Parsing(String, String, u32, usize),
     //   Error list
-    List(Vec<Error>),
+    List(Vec<(String, String, u32, usize)>),
 }
 
 // Error management definitions
@@ -45,7 +45,7 @@ impl fmt::Display for Error {
         match self {
             Error::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
             Error::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
-            Error::List(_) => write!(f, "TODO print error list"),
+            Error::List(v) => write!(f, "Compilation errors: {}", v.iter().map(|x| x.0.as_ref()).collect::<Vec<&str>>().join("\n")),
         }
     }
 }
