@@ -2,7 +2,7 @@ use nom::types::CompleteStr;
 use nom::*;
 use crate::context::{VarContext, VarKind};
 use crate::error::*;
-use crate::parser::{PEnum, PEnumExpression, PEnumMapping, PToken};
+use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
 use std::collections::HashMap;
 
 // interpolated string

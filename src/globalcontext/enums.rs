@@ -1,6 +1,6 @@
 use super::context::{VarContext, VarKind};
 use crate::error::*;
-use crate::parser::{PEnum, PEnumExpression, PEnumMapping, PToken};
+use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::hash_set::Iter;
@@ -11,22 +11,22 @@ use std::collections::hash_set::Iter;
 pub struct EnumList<'a> {
     // Map an enum name to another one which has a derived definition
     //                    to         from
-    mapping_path: HashMap<PToken<'a>, PToken<'a>>,
+    mapping_path: HashMap<Token<'a>, Token<'a>>,
     // Map an enum content to another one
     //         enum    from       to          mapping from       to
-    mappings: HashMap<(PToken<'a>, PToken<'a>), HashMap<PToken<'a>, PToken<'a>>>,
+    mappings: HashMap<(Token<'a>, Token<'a>), HashMap<Token<'a>, Token<'a>>>,
     // List values for a given enum
     //             enum       global values
-    enums: HashMap<PToken<'a>, (bool, HashSet<PToken<'a>>)>,
+    enums: HashMap<Token<'a>, (bool, HashSet<Token<'a>>)>,
     // List global values (they must not be redefined)
     //                    value      enum
-    global_values: HashMap<PToken<'a>, PToken<'a>>,
+    global_values: HashMap<Token<'a>, Token<'a>>,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum EnumExpression<'a> {
     //       variable   enum        value
-    Compare(PToken<'a>, PToken<'a>, PToken<'a>),
+    Compare(Token<'a>, Token<'a>, Token<'a>),
     And(Box<EnumExpression<'a>>, Box<EnumExpression<'a>>),
     Or(Box<EnumExpression<'a>>, Box<EnumExpression<'a>>),
     Not(Box<EnumExpression<'a>>),
@@ -145,7 +145,7 @@ impl<'a> EnumList<'a> {
                 }
                 // store mapping into final hashmap
                 let mut mapping = HashMap::new();
-                let mut items: Vec<PToken> = Vec::new();
+                let mut items: Vec<Token> = Vec::new();
                 for v in values {
                     match pmapping.get(v).or_else(|| pmapping.get(&"*".into())) {
                         Some(t) => {
@@ -186,12 +186,12 @@ impl<'a> EnumList<'a> {
 
     // return an iterator over an enum
     // !NO CHECK the enum must exist
-    fn enum_iter(&'a self, e: PToken<'a>) -> Iter<'a,PToken<'a>> {
+    fn enum_iter(&'a self, e: Token<'a>) -> Iter<'a,Token<'a>> {
         self.enums.get(&e).unwrap().1.iter()
     }
 
     // find enum path from e1 fo e2
-    fn find_path(&'a self, e1: PToken<'a>, e2: PToken<'a>) -> Option<Vec<PToken<'a>>> {
+    fn find_path(&'a self, e1: Token<'a>, e2: Token<'a>) -> Option<Vec<Token<'a>>> {
         // terminate recursion
         if e1 == e2 {
             Some(vec![e1])
@@ -211,7 +211,7 @@ impl<'a> EnumList<'a> {
     }
 
     // Find oldest ancestor of e1
-    fn find_elder(&self, e1: PToken<'a>) -> PToken<'a> {
+    fn find_elder(&self, e1: Token<'a>) -> Token<'a> {
         match self.mapping_path.get(&e1) {
             None => e1,
             Some(e) => self.find_elder(*e),
@@ -300,7 +300,7 @@ impl<'a> EnumList<'a> {
     }
 
     // used only by is_ancestor (path is destroyed)
-    fn transform_value(&self, mut path: Vec<PToken<'a>>, value: PToken<'a>) -> PToken<'a> {
+    fn transform_value(&self, mut path: Vec<Token<'a>>, value: Token<'a>) -> Token<'a> {
         // <1 should not happen
         if path.len() <= 1 {
             return value;
@@ -316,7 +316,7 @@ impl<'a> EnumList<'a> {
         self.transform_value(path, *v)
     }
     // return true is e1::v1 is an ancestor of e2::v2
-    fn is_ancestor(&self, e1: PToken<'a>, v1: PToken<'a>, e2: PToken<'a>, v2: PToken<'a>) -> bool {
+    fn is_ancestor(&self, e1: Token<'a>, v1: Token<'a>, e2: Token<'a>, v2: Token<'a>) -> bool {
         match self.find_path(e1, e2) {
             Some(path) => self.transform_value(path, v1) == v2,
             None => false,
@@ -326,7 +326,7 @@ impl<'a> EnumList<'a> {
     // evaluate a boolean expression given a set of variable=enum:value
     fn eval(
         &self,
-        values: &HashMap<PToken<'a>, (PToken<'a>, PToken<'a>)>,
+        values: &HashMap<Token<'a>, (Token<'a>, Token<'a>)>,
         expr: &EnumExpression,
     ) -> bool {
         match expr {
@@ -346,7 +346,7 @@ impl<'a> EnumList<'a> {
     // this is recursive, pass it an empty hashmap at first call
     fn list_variable_enum(
         &self,
-        variables: &mut HashMap<PToken<'a>, PToken<'a>>,
+        variables: &mut HashMap<Token<'a>, Token<'a>>,
         expr: &'a EnumExpression,
     ) {
         match expr {
@@ -388,14 +388,14 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    fn describe(&self, values: HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>) -> String {
+    fn describe(&self, values: HashMap<Token<'a>,(Token<'a>,Token<'a>)>) -> String {
         values.iter()
               .map(|(key,(e,val))| format!("{}=~{}:{}",key.fragment(),e.fragment(),val.fragment()))
               .collect::<Vec<String>>()
               .join(" && ")
     }
 
-    pub fn evaluate(&self, context: &'a VarContext<'a>, expressions: &Vec<EnumExpression>, case: PToken<'a>) -> Vec<Error> {
+    pub fn evaluate(&self, context: &'a VarContext<'a>, expressions: &Vec<EnumExpression>, case: Token<'a>) -> Vec<Error> {
         let mut warns = Vec::new();
         let mut variables = HashMap::new();
         expressions.iter().for_each(|e| self.list_variable_enum(&mut variables, &e));
@@ -418,25 +418,25 @@ impl<'a> EnumList<'a> {
 }
 
 enum AltVal<'a> {
-    Constant(PToken<'a>),
-    Iterator(Iter<'a,PToken<'a>>),
+    Constant(Token<'a>),
+    Iterator(Iter<'a,Token<'a>>),
 }
 struct ContextIteraror<'a> {
     // enum reference
     enumlist: &'a EnumList<'a>,
     // variables to vary
-    varlist: Vec<PToken<'a>>,
+    varlist: Vec<Token<'a>>,
     //                 name        value or iterator
-    iterators: HashMap<PToken<'a>, AltVal<'a>>,
+    iterators: HashMap<Token<'a>, AltVal<'a>>,
     // current iteration         enum       value
-    current: HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>,
+    current: HashMap<Token<'a>,(Token<'a>,Token<'a>)>,
     // true before first iteration
     first: bool,
 }
 
 impl<'a> ContextIteraror<'a> {
-    fn new(enumlist: &'a EnumList<'a>, context: &'a VarContext<'a>, variable_list: HashMap<PToken<'a>, PToken<'a>>) -> ContextIteraror<'a> {
-        let varlist: Vec<PToken<'a>> = variable_list.keys().cloned().collect();
+    fn new(enumlist: &'a EnumList<'a>, context: &'a VarContext<'a>, variable_list: HashMap<Token<'a>, Token<'a>>) -> ContextIteraror<'a> {
+        let varlist: Vec<Token<'a>> = variable_list.keys().cloned().collect();
         let mut iterators = HashMap::new();
         let mut current = HashMap::new();
         for v in &varlist {
@@ -462,7 +462,7 @@ impl<'a> ContextIteraror<'a> {
 }
 
 impl<'a> Iterator for ContextIteraror<'a> {
-    type Item = HashMap<PToken<'a>,(PToken<'a>,PToken<'a>)>;
+    type Item = HashMap<Token<'a>,(Token<'a>,Token<'a>)>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.first {
             self.first = false;
@@ -508,13 +508,13 @@ mod tests {
         e.add_enum(penum(pinput("", string)).unwrap().1)
     }
     fn add_enum_mapping<'a>(e: &mut EnumList<'a>, string: &'a str) -> Result<()> {
-        e.add_mapping(enum_mapping(pinput("", string)).unwrap().1)
+        e.add_mapping(penum_mapping(pinput("", string)).unwrap().1)
     }
     fn parse_enum_expression(string: &str) -> PEnumExpression {
-        enum_expression(pinput("", string)).unwrap().1
+        penum_expression(pinput("", string)).unwrap().1
     }
-    fn ident(string: &str) -> PToken {
-        identifier(pinput("", string)).unwrap().1
+    fn ident(string: &str) -> Token {
+        pidentifier(pinput("", string)).unwrap().1
     }
 
     #[test]
@@ -686,28 +686,28 @@ mod tests {
     fn test_eval() {
         let (e, c) = init_tests();
         assert!(e.eval(
-            &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
+            &hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")) },
             &e.canonify_expression(&c, &parse_enum_expression("ubuntu"))
                 .unwrap()
         ));
         assert!(e.eval(
-            &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
+            &hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")) },
             &e.canonify_expression(&c, &parse_enum_expression("debian"))
                 .unwrap()
         ));
         assert!(!e.eval(
-            &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
+            &hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")) },
             &e.canonify_expression(&c, &parse_enum_expression("os:debian"))
                 .unwrap()
         ));
         assert!(e.eval(
-            &hashmap! { PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")) },
+            &hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")) },
             &e.canonify_expression(&c, &parse_enum_expression("!os:debian"))
                 .unwrap()
         ));
-        assert!(!e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")), PToken::from("out") => (PToken::from("outcome"),PToken::from("kept")) }, 
+        assert!(!e.eval(&hashmap!{ Token::from("os") => (Token::from("os"),Token::from("ubuntu")), Token::from("out") => (Token::from("outcome"),Token::from("kept")) }, 
                        &e.canonify_expression(&c, &parse_enum_expression("os:debian && out =~ outcome:kept")).unwrap()));
-        assert!(e.eval(&hashmap!{ PToken::from("os") => (PToken::from("os"),PToken::from("ubuntu")), PToken::from("out") => (PToken::from("outcome"),PToken::from("kept")) }, 
+        assert!(e.eval(&hashmap!{ Token::from("os") => (Token::from("os"),Token::from("ubuntu")), Token::from("out") => (Token::from("outcome"),Token::from("kept")) }, 
                        &e.canonify_expression(&c, &parse_enum_expression("os:debian || out =~ outcome:kept")).unwrap()));
     }
 
@@ -719,7 +719,7 @@ mod tests {
             let ex = parse_enum_expression("os:debian");
             let exp = e.canonify_expression(&c, &ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
-            assert_eq!(var1, hashmap! { PToken::from("os") => PToken::from("os") });
+            assert_eq!(var1, hashmap! { Token::from("os") => Token::from("os") });
         }
         {
             let mut var1 = HashMap::new();
@@ -728,7 +728,7 @@ mod tests {
             e.list_variable_enum(&mut var1, &exp);
             assert_eq!(
                 var1,
-                hashmap! { PToken::from("os") => PToken::from("os"), PToken::from("out") => PToken::from("outcome") }
+                hashmap! { Token::from("os") => Token::from("os"), Token::from("out") => Token::from("outcome") }
             );
         }
         {
@@ -736,7 +736,7 @@ mod tests {
             let ex = parse_enum_expression("family:debian && os:ubuntu");
             let exp = e.canonify_expression(&c, &ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
-            assert_eq!(var1, hashmap! { PToken::from("os") => PToken::from("os") });
+            assert_eq!(var1, hashmap! { Token::from("os") => Token::from("os") });
         }
         {
             let mut var1 = HashMap::new();
@@ -746,7 +746,7 @@ mod tests {
             let ex2 = parse_enum_expression("os:debian && out =~ outcome:kept");
             let exp2 = e.canonify_expression(&c, &ex2).unwrap();
             e.list_variable_enum(&mut var1, &exp2);
-            assert_eq!(var1, hashmap! { PToken::from("os") => PToken::from("os"), PToken::from("out") => PToken::from("outcome") });
+            assert_eq!(var1, hashmap! { Token::from("os") => Token::from("os"), Token::from("out") => Token::from("outcome") });
         }
     }
 
@@ -764,7 +764,7 @@ mod tests {
     #[test]
     fn test_evaluate() {
         let (e, c) = init_tests();
-        let case = PToken::from("case");
+        let case = Token::from("case");
         let mut exprs = Vec::new();
         let ex1 = parse_enum_expression("family:debian || family:redhat");
         exprs.push(e.canonify_expression(&c, &ex1).unwrap());

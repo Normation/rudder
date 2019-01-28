@@ -13,27 +13,27 @@ use std::io::Write;
 #[derive(Debug)]
 pub struct GlobalContext<'a> {
     enumlist: EnumList<'a>,
-    resources: HashMap<PToken<'a>,Resources<'a>>,
+    resources: HashMap<Token<'a>,Resources<'a>>,
     variables: VarContext<'a>,
 }
 
 #[derive(Debug)]
 struct Resources<'a> {
-    metadata: HashMap<PToken<'a>,PValue<'a>>, 
+    metadata: HashMap<Token<'a>,PValue<'a>>, 
     parameters: Vec<PParameter<'a>>, // TODO ?
-    states: HashMap<PToken<'a>,StateDef<'a>>,
+    states: HashMap<Token<'a>,StateDef<'a>>,
 }
 
 #[derive(Debug)]
 struct StateDef<'a> {
-    metadata: HashMap<PToken<'a>,PValue<'a>>, 
+    metadata: HashMap<Token<'a>,PValue<'a>>, 
     parameters: Vec<PParameter<'a>>, //TODO ?
     statements: Vec<PStatement<'a>>, //TODO ?
 }
 
 #[derive(Debug)]
 struct Parameter<'a> {
-    pub name: PToken<'a>,
+    pub name: Token<'a>,
     pub ptype: PType,
     pub default: Option<PValue<'a>>,
 }
@@ -48,23 +48,23 @@ impl<'a> GlobalContext<'a> {
 
     pub fn add_pfile(&mut self, filename: &'a str, file: PFile<'a>) -> Result<()> {
         if file.header.version != 0 { panic!("Multiple format not supported yet"); }
-        let mut current_metadata: HashMap<PToken<'a>,PValue<'a>>= HashMap::new();
+        let mut current_metadata: HashMap<Token<'a>,PValue<'a>>= HashMap::new();
         for decl in file.code {
             match decl {
                 PDeclaration::Comment(c) => {
                     // comment are concatenated and are considered metadata
-                    if current_metadata.contains_key(&PToken::new("comment",filename)) {
-                        current_metadata.entry(PToken::new("comment",filename)).and_modify(|e| { *e = match e {
-                            PValue::String(st) => PValue::String(c.iter().fold(st.to_string(), { |i,s| i+*s })),
+                    if current_metadata.contains_key(&Token::new("comment",filename)) {
+                        current_metadata.entry(Token::new("comment",filename)).and_modify(|e| { *e = match e {
+                            PValue::String(st) => PValue::String(st.to_string()+c),
                             _ => panic!("Comment is not a string, this should not happen"),
                         }});
                     } else {
-                        current_metadata.insert("comment".into(), PValue::String(c.iter().fold(String::from(""), { |i,s| i+*s })));
+                        current_metadata.insert("comment".into(), PValue::String(c.to_string()));
                     }
                 },
                 PDeclaration::Metadata(m) => {
                     // metadata must not be called "comment"
-                    if m.key == PToken::from("comment") {
+                    if m.key == Token::from("comment") {
                         fail!(m.key, "Metadata name '{}' is forbidden", m.key);
                     }
                     if current_metadata.contains_key(&m.key) {
@@ -127,11 +127,11 @@ impl<'a> GlobalContext<'a> {
                     Some(s) => s.to_string(),
                     None => String::new(),
                 };
-                let params = state.parameters.iter()
-                                             .chain(res.parameters.iter())
-                                             .map(|p| p.name.fragment())
-                                             .collect::<Vec<&str>>()
-                                             .join(",");
+                let params = res.parameters.iter()
+                                           .chain(state.parameters.iter())
+                                           .map(|p| p.name.fragment())
+                                           .collect::<Vec<&str>>()
+                                           .join(",");
                 content.push_str(&format!("bundle agent {}_{} ({})\n",rn.fragment(),sn.fragment(),params));
                 content.push_str("{\n  methods:\n");
                 for st in state.statements.iter() {

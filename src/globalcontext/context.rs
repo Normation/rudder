@@ -1,5 +1,5 @@
 use crate::error::*;
-use crate::parser::PToken;
+use crate::parser::Token;
 use std::collections::HashMap;
 
 // variable kind
@@ -8,7 +8,7 @@ pub enum VarKind<'a> {
     //       Resource type (File, ...)
     Resource(String),
     //   Enum          value
-    Enum(PToken<'a>, Option<PToken<'a>>),
+    Enum(Token<'a>, Option<Token<'a>>),
     Generic(VarType<'a>),
 }
 
@@ -19,14 +19,14 @@ pub enum VarType<'a> {
     String(Option<String>),
     // to make sure we have a reference in this struct because there will be one some day
     #[allow(dead_code)]
-    XX(PToken<'a>),
+    XX(Token<'a>),
     //    List(Option<String>), // TODO string -> real type
     //    Dict(Option<String>), // TODO string -> real type
 }
 
 #[derive(Debug)]
 pub struct VarContext<'a> {
-    variables: HashMap<PToken<'a>, VarKind<'a>>,
+    variables: HashMap<Token<'a>, VarKind<'a>>,
     global_context: Option<&'a VarContext<'a>>,
 }
 
@@ -47,9 +47,9 @@ impl<'a> VarContext<'a> {
 
     pub fn new_enum_variable(
         &mut self,
-        name: PToken<'a>,
-        enum1: PToken<'a>,
-        value: Option<PToken<'a>>,
+        name: Token<'a>,
+        enum1: Token<'a>,
+        value: Option<Token<'a>>,
     ) -> Result<()> {
         if self.variables.contains_key(&name) {
             fail!(
@@ -77,7 +77,7 @@ impl<'a> VarContext<'a> {
         Ok(())
     }
 
-    pub fn get_variable(&self, name: PToken<'a>) -> Option<&VarKind> {
+    pub fn get_variable(&self, name: Token<'a>) -> Option<&VarKind> {
         self.variables
             .get(&name)
             .or_else(|| match self.global_context {
@@ -87,10 +87,10 @@ impl<'a> VarContext<'a> {
     }
 }
 
-//    fn new_enum_variable(&mut self, name: PToken<'a>, enum1: PToken<'a>, value: Option<PToken<'a>>) -> Result<()>;
-//    //fn pub fn new_genric_variable(&mut self, name: PToken<'a>, value: Option<PValue>) -> Result;
-//    //fn new_resource_variable(name: PToken, type: Option<PToken>, value: Option<PToken>) -> Result
-//    fn get_variable(&self, name: PToken) -> Option<VarKind>;
+//    fn new_enum_variable(&mut self, name: Token<'a>, enum1: Token<'a>, value: Option<Token<'a>>) -> Result<()>;
+//    //fn pub fn new_genric_variable(&mut self, name: Token<'a>, value: Option<PValue>) -> Result;
+//    //fn new_resource_variable(name: Token, type: Option<Token>, value: Option<Token>) -> Result
+//    fn get_variable(&self, name: Token) -> Option<VarKind>;
 
 #[cfg(test)]
 mod tests {
@@ -98,8 +98,8 @@ mod tests {
     use crate::parser::*;
 
     // test utilities
-    fn ident(string: &str) -> PToken {
-        identifier(pinput("", string)).unwrap().1
+    fn ident(string: &str) -> Token {
+        pidentifier(pinput("", string)).unwrap().1
     }
 
     #[test]
