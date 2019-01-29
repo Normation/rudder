@@ -122,7 +122,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
         None
       , "rules_grid_zone"
       , detailsCallbackLink(changeMsgEnabled)
-      , (rule : Rule ) => onCreateRule(changeMsgEnabled)(rule,"showEditForm")
+      , (rule : Rule ) => onCreateRule(changeMsgEnabled)(rule,"showForm")
       , showPopup
       , DisplayColumn.Force(true)
       , DisplayColumn.FromConfig
@@ -181,7 +181,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
                 case JString(action) =>
                   onCreateRule(changeMsgEnabled)(rule,action)
                 case _ =>
-                  onCreateRule(changeMsgEnabled)(rule,"showEditForm")
+                  onCreateRule(changeMsgEnabled)(rule,"showForm")
               }
 
             case _ => Noop
