@@ -1,5 +1,9 @@
 @format=0
 
+resource file(p)
+
+file state permissions(u,g,m) { }
+
 resource ntp ()
 
 ntp state configuration ()

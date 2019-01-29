@@ -14,10 +14,13 @@ pub use self::token::pinput;
 
 // TODO parse and store comments
 // TODO add more types
+// TODO add more or_fail!
 // TODO lifetime = 'src
 // TODO store position in strings
 // TODO _ in identifiers
 // TODO reserve keywords
+// TODO PIdentifier -> Identifier
+// TODO iterators, variable definition
 
 /// The parse function that should be called when parsing a file
 pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Result<PFile<'a>> {
@@ -352,10 +355,10 @@ pub enum PStatement<'a> {
     Comment(PComment<'a>),
     StateCall(
         Option<PIdentifier<'a>>, // outcome
-        PCallMode,          // mode
-        PResourceRef<'a>,   // resource
+        PCallMode,               // mode
+        PResourceRef<'a>,        // resource
         PIdentifier<'a>,         // state name
-        Vec<PValue<'a>>,    // parameters
+        Vec<PValue<'a>>,         // parameters
     ),
     //   list of condition          then
     Case(Vec<(PEnumExpression<'a>, Box<PStatement<'a>>)>),

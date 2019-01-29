@@ -6,7 +6,10 @@ mod globalcontext;
 use std::fs;
 
 // MAIN
-//
+
+// next step:
+// - error list reporting
+// - cfengine case
 
 fn main() {
     let mut gc = globalcontext::GlobalContext::new();
@@ -21,6 +24,10 @@ fn main() {
         Ok(()) => {},
     };
     // analyse
+    match gc.analyze() {
+        Err(e) => panic!("There was an error: {}", e),
+        Ok(()) => {},
+    };
     // optimize
     // generate
     gc.generate_cfengine();

@@ -10,6 +10,8 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 
+// TODO out of order enum mapping definition
+
 #[derive(Debug)]
 pub struct GlobalContext<'a> {
     enumlist: EnumList<'a>,
@@ -20,14 +22,14 @@ pub struct GlobalContext<'a> {
 #[derive(Debug)]
 struct Resources<'a> {
     metadata: HashMap<Token<'a>,PValue<'a>>, 
-    parameters: Vec<PParameter<'a>>, // TODO ?
+    parameters: Vec<Parameter<'a>>, // TODO ?
     states: HashMap<Token<'a>,StateDef<'a>>,
 }
 
 #[derive(Debug)]
 struct StateDef<'a> {
     metadata: HashMap<Token<'a>,PValue<'a>>, 
-    parameters: Vec<PParameter<'a>>, //TODO ?
+    parameters: Vec<Parameter<'a>>, //TODO ?
     statements: Vec<PStatement<'a>>, //TODO ?
 }
 
@@ -37,6 +39,37 @@ struct Parameter<'a> {
     pub ptype: PType,
     pub default: Option<PValue<'a>>,
 }
+impl<'a> Parameter<'a> {
+    fn new(p: PParameter<'a>) -> Parameter<'a> {
+        let ptype = match p.ptype {
+            Some(t) => t,
+            None => {
+                if let Some(val) = &p.default {
+                    // guess from default
+                    match val {
+                        PValue::String(_) => PType::TString,
+                        _ => panic!("Unknown value type"), // TODO remove
+                    }
+                } else {
+                    // Nothing -> String
+                    PType::TString
+                }
+            },
+        };
+        Parameter { name: p.name, ptype, default: p.default }
+    }
+
+    fn value_match(&self, param_ref: &PValue) -> Result<()> {
+        match (&self.ptype, param_ref) {
+            (PType::TString, PValue::String(_)) => Ok(()),
+            (t,_v) => fail!(Token::new("x","y"), "Parameter is not of the type {:?}", t), // TODO we need a Token to position PValues and a display trait
+        }
+    }
+}
+
+// TODO type inference
+// TODO check that parameter type match parameter default
+// TODO put default parameter in calls
 
 impl<'a> GlobalContext<'a> {
     pub fn new() -> GlobalContext<'static> { GlobalContext {
@@ -78,7 +111,7 @@ impl<'a> GlobalContext<'a> {
                     }
                     let resource = Resources {
                         metadata: current_metadata,
-                        parameters: rd.parameters,
+                        parameters: rd.parameters.into_iter().map(Parameter::new).collect(),
                         states: HashMap::new(),
                     };
                     self.resources.insert(rd.name, resource);
@@ -92,7 +125,7 @@ impl<'a> GlobalContext<'a> {
                         }
                         let state = StateDef {
                             metadata: current_metadata,
-                            parameters: st.parameters,
+                            parameters: st.parameters.into_iter().map(Parameter::new).collect(),
                             statements: st.statements,
                         };
                         rd.states.insert(st.name, state);
@@ -119,6 +152,66 @@ impl<'a> GlobalContext<'a> {
         Ok(())
     }
 
+    fn state_call_check(&self, statement: &PStatement) -> Result<()> {
+        match statement {
+            PStatement::StateCall(_out, _mode, res, name, params) => {
+                match self.resources.get(&res.name) {
+                    None => fail!(res.name, "Resource type {} does not exist", res.name),
+                    Some(resource) => {
+                        // Assume default parameter replacement and type inference if any has already be done
+                        match_parameters(&resource.parameters, &res.parameters, res.name)?;
+                        match resource.states.get(&name) {
+                            None => fail!(name, "State {} does not exist for resource {}", name, res.name),
+                            Some(state) => {
+                                // Assume default parameter replacement and type inference if any has already be done
+                                match_parameters(&state.parameters, &params, *name)?;
+                            }
+                        }
+                    },
+                }
+            },
+            PStatement::Case(cases) => {
+                for (_cond, st) in cases.iter() {
+                    self.state_call_check(st)?;
+                }
+            },
+            _ => {},
+        }
+        Ok(())
+    }
+
+    fn enum_expression_check(&self, statement: &PStatement) -> Result<()> {
+        match statement {
+            PStatement::Case(cases) => {
+                let exp_list = cases.iter()
+                                    .map(|(cond,_)| self.enumlist.canonify_expression(&self.variables, cond))
+                                    .collect::<Result<Vec<_>>>()?;
+                self.enumlist.evaluate(&self.variables, &exp_list, Token::new("","")); // TODO no local context ?
+                                                                                     // TODO local token
+                                                                                     // TODO report error
+            },
+            _ => {},
+        }
+        Ok(())
+    }
+
+    pub fn analyze(&self) -> Result<()> {
+        for (rn, resource) in self.resources.iter() {
+            for (sn, state) in resource.states.iter() {
+                for st in state.statements.iter() {
+                    // check for resources and state existence
+                    // check for matching parameter and type
+                    self.state_call_check(st)?;
+                    // check for enum expression validity and completeness
+                    self.enum_expression_check(st)?;
+                }
+            }
+        }
+        // TODO check for string syntax and interpolation validity
+        Ok(())
+    }
+
+    // TODO generate only one file
     pub fn generate_cfengine(&self) -> Result<()> { // TODO separate via trait ?
         let mut files: HashMap<&str,String> = HashMap::new();
         for (rn, res) in self.resources.iter() {
@@ -144,6 +237,7 @@ impl<'a> GlobalContext<'a> {
                                                .join(",");
                             content.push_str(&format!("    \"method_call\" usebundle => {}_{}({});\n",res.name.fragment(),call.fragment(),param_str));
                         },
+                        // TODO case
                         _ => {},
                     }
                 }
@@ -157,6 +251,16 @@ impl<'a> GlobalContext<'a> {
         }
         Ok(())
     }
+}
+
+fn match_parameters(pdef: &Vec<Parameter>, pref: &Vec<PValue>, identifier: Token) -> Result<()> {
+    if pdef.len() != pref.len() {
+        fail!(identifier, "Error in call to {}, parameter count do not match, expecting {}, you gave {}", identifier, pdef.len(), pref.len());
+    }
+    pdef.iter()
+        .zip(pref.iter())
+        .map(|(p,v)| p.value_match(v))
+        .collect()
 }
 
 fn parameter_to_cfengine(param: &PValue) -> String {
