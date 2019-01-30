@@ -21,6 +21,7 @@ pub use self::token::pinput;
 // TODO reserve keywords
 // TODO PIdentifier -> Identifier
 // TODO iterators, variable definition
+// TODO trailing comma
 
 /// The parse function that should be called when parsing a file
 pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Result<PFile<'a>> {
@@ -140,15 +141,17 @@ pub enum PEnumExpression<'a> {
 }
 pnamed!(pub penum_expression<PEnumExpression>,
     // an expression must be exact (ie full string) as this parser can be used in isolation
-    or_fail!(exact!(sub_enum_expression),PError::EnumExpression)
+    or_fail!(exact!(
+        do_parse!(s: sub_enum_expression >> space_s >> (s))
+    ),PError::EnumExpression)
 );
 pnamed!(sub_enum_expression<PEnumExpression>,
-    alt!(enum_or_expression
+    sp!(alt!(enum_or_expression
        | enum_and_expression
        | enum_not_expression
        | enum_atom
        | tag!("default") => { |_| PEnumExpression::Default }
-    )
+    ))
 );
 pnamed!(enum_atom<PEnumExpression>,
     sp!(alt!(
@@ -361,7 +364,7 @@ pub enum PStatement<'a> {
         Vec<PValue<'a>>,         // parameters
     ),
     //   list of condition          then
-    Case(Vec<(PEnumExpression<'a>, Box<PStatement<'a>>)>),
+    Case(Vec<(PEnumExpression<'a>, Vec<PStatement<'a>>)>),
     // Stop engine
     Fail(Token<'a>),
     // Inform the user of something
@@ -399,9 +402,18 @@ pnamed!(pstatement<PStatement>,
                           // error management (penum_expression must not leave any unparsed token)
                           expr: flat_map!(take_until!("=>"),penum_expression) >>
                           tag!("=>") >>
-                          stmt: pstatement >>
-                          ((expr,Box::new(stmt)))
+                          stmt: alt!(
+                              pstatement => { |x| vec![x] } |
+                              do_parse!(
+                                  tag!("{") >>
+                                  vec: many0!(pstatement) >>
+                                  tag!("}") >>
+                                  (vec)
+                              )
+                          ) >>
+                          ((expr,stmt))
                   )) >>
+            tag!("}") >>
             (PStatement::Case(cases))
         ))
         // if
@@ -411,7 +423,7 @@ pnamed!(pstatement<PStatement>,
             expr: flat_map!(take_until!("=>"),penum_expression) >>
             tag!("=>") >>
             stmt: pstatement >>
-            (PStatement::Case( vec![(expr,Box::new(stmt)), (PEnumExpression::Default,Box::new(PStatement::Log(Token::new("","TODO"))))] ))
+            (PStatement::Case( vec![(expr,vec![stmt]), (PEnumExpression::Default,vec![PStatement::Log(Token::new("","TODO"))])] ))
         ))
         // Flow statements
       | tag!("fail!")    => { |_| PStatement::Fail(Token::new("","TODO")) } // TODO proper message
@@ -948,6 +960,16 @@ mod tests {
         assert_eq!(
             mapok(pstatement(pinput("", "##hello Herman\n"))),
             Ok(("", PStatement::Comment("hello Herman".into())))
+        );
+        assert_eq!(
+            mapok(pstatement(pinput("", "case { ubuntu => f().g(), debian => a().b() }"))),
+            Ok(("", PStatement::Case(vec![
+                (penum_expression(pinput("","ubuntu")).unwrap().1,
+                 vec![pstatement(pinput("", "f().g()")).unwrap().1]),
+                (penum_expression(pinput("","debian")).unwrap().1,
+                 vec![pstatement(pinput("", "a().b()")).unwrap().1]),
+                ])
+            ))
         );
     }
 

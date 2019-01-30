@@ -70,6 +70,7 @@ impl<'a> Parameter<'a> {
 // TODO type inference
 // TODO check that parameter type match parameter default
 // TODO put default parameter in calls
+// TODO forbid case within case
 
 impl<'a> GlobalContext<'a> {
     pub fn new() -> GlobalContext<'static> { GlobalContext {
@@ -138,12 +139,16 @@ impl<'a> GlobalContext<'a> {
                     }
                 },
                 PDeclaration::Enum(e) => {
+                    if e.global {
+                        self.variables.new_enum_variable(e.name, e.name, None)?;
+                    }
                     self.enumlist.add_enum(e)?;
                     // Discard metadata
                     // TODO warn if there is some ignored metadata
                     current_metadata = HashMap::new();
                 },
                 PDeclaration::Mapping(em) => {
+                    // TODO add a global variable for global mapping
                     self.enumlist.add_mapping(em)?;
                     // Discard metadata
                     // TODO warn if there is some ignored metadata
@@ -173,8 +178,10 @@ impl<'a> GlobalContext<'a> {
                 }
             },
             PStatement::Case(cases) => {
-                for (_cond, st) in cases.iter() {
-                    self.state_call_check(st)?;
+                for (_cond, vst) in cases.iter() {
+                    for st in vst.iter() {
+                        self.state_call_check(st)?;
+                    }
                 }
             },
             _ => {},
@@ -230,18 +237,7 @@ impl<'a> GlobalContext<'a> {
                 content.push_str(&format!("bundle agent {}_{} ({})\n",rn.fragment(),sn.fragment(),params));
                 content.push_str("{\n  methods:\n");
                 for st in state.statements.iter() {
-                    match st {
-                        PStatement::StateCall(_out,_mode,res,call,params) => {
-                            let param_str = res.parameters.iter()
-                                               .chain(params.iter())
-                                               .map(parameter_to_cfengine)
-                                               .collect::<Vec<String>>()
-                                               .join(",");
-                            content.push_str(&format!("    \"method_call\" usebundle => {}_{}({});\n",res.name.fragment(),call.fragment(),param_str));
-                        },
-                        // TODO case
-                        _ => {},
-                    }
+                    content.push_str(&format_statement(st));
                 }
                 content.push_str("}\n");
                 files.insert(sn.file(), content.to_string()); // TODO there is something smelly with this to_string
@@ -252,6 +248,26 @@ impl<'a> GlobalContext<'a> {
             file.write_all(content.as_bytes()).unwrap();
         }
         Ok(())
+    }
+}
+
+fn format_statement(st: &PStatement) -> String {
+    match st {
+        PStatement::StateCall(_out,_mode,res,call,params) => {
+            let param_str = res.parameters.iter()
+                .chain(params.iter())
+                .map(parameter_to_cfengine)
+                .collect::<Vec<String>>()
+                .join(",");
+            format!("      \"method_call\" usebundle => {}_{}({});\n",res.name.fragment(),call.fragment(),param_str)
+        },
+        PStatement::Case(vec) => {
+            let mut out = String::new();
+            vec.iter().map(|(case,vst)|
+                format!("{}\n{}", "TODO", vst.iter().map(|st| format_statement(st)).collect::<Vec<String>>().join(""))
+            ).collect::<Vec<String>>().join("")
+        },
+        _ => String::new(), // TODO ?
     }
 }
 

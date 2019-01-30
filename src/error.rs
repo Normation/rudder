@@ -57,8 +57,7 @@ impl fmt::Display for Error {
         match self {
             Error::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
             Error::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
-            Error::List(v) => write!(f, "Many errors: {}",
-                                     v.iter().map(|x| format!("{}",x)).collect::<Vec<String>>().join("\n")),
+            Error::List(v) => write!(f, "{}", v.iter().map(|x| format!("{}",x)).collect::<Vec<String>>().join("\n")),
         }
     }
 }
