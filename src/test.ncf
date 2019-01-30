@@ -8,5 +8,6 @@ resource ntp ()
 
 ntp state configuration ()
 {
-  file("/tmp").permissions("root", "root", "g+w")
+  file1("/tmp").permissions("root", "root", "g+w")
+  file2("/tmp").permissions("root", "root", "g+w")
 }

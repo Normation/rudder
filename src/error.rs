@@ -10,7 +10,7 @@ pub enum Error {
     //      message file    line  column
     Parsing(String, String, u32, usize),
     //   Error list
-    List(Vec<(String, String, u32, usize)>),
+    List(Vec<Error>),
 }
 
 // Error management definitions
@@ -39,13 +39,26 @@ macro_rules! warn {
     });
 }
 
+// transforms an iterator of error result into a result of list error
+// Only (), because it throws out Ok
+pub fn fix_results<I>(res: I) -> Result<()>
+where I: Iterator<Item=Result<()>>  {
+    let err_list = res.filter_map(|r| r.err())
+                      .collect::<Vec<Error>>();
+    if err_list.len() == 0 {
+        Ok(())
+    } else {
+        Err(Error::List(err_list))
+    }
+}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
             Error::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
-            Error::List(v) => write!(f, "Compilation errors: {}", v.iter().map(|x| x.0.as_ref()).collect::<Vec<&str>>().join("\n")),
+            Error::List(v) => write!(f, "Many errors: {}",
+                                     v.iter().map(|x| format!("{}",x)).collect::<Vec<String>>().join("\n")),
         }
     }
 }

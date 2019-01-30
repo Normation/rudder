@@ -82,15 +82,17 @@ impl<'a> GlobalContext<'a> {
     pub fn add_pfile(&mut self, filename: &'a str, file: PFile<'a>) -> Result<()> {
         if file.header.version != 0 { panic!("Multiple format not supported yet"); }
         let mut current_metadata: HashMap<Token<'a>,PValue<'a>>= HashMap::new();
-        for decl in file.code {
+        fix_results(file.code.into_iter().map(|decl| {
             match decl {
                 PDeclaration::Comment(c) => {
                     // comment are concatenated and are considered metadata
-                    if current_metadata.contains_key(&Token::new("comment",filename)) {
-                        current_metadata.entry(Token::new("comment",filename)).and_modify(|e| { *e = match e {
-                            PValue::String(st) => PValue::String(st.to_string()+c),
-                            _ => panic!("Comment is not a string, this should not happen"),
-                        }});
+                    if current_metadata.contains_key(&Token::new("comment", filename)) {
+                        current_metadata.entry(Token::new("comment", filename)).and_modify(|e| {
+                            *e = match e {
+                                PValue::String(st) => PValue::String(st.to_string() + c),
+                                _ => panic!("Comment is not a string, this should not happen"),
+                            }
+                        });
                     } else {
                         current_metadata.insert("comment".into(), PValue::String(c.to_string()));
                     }
@@ -110,7 +112,7 @@ impl<'a> GlobalContext<'a> {
                         fail!(rd.name, "Resource {} has already been defined in {}", rd.name, self.resources.entry(rd.name).key());
                     }
                     let resource = Resources {
-                        metadata: current_metadata,
+                        metadata: current_metadata.drain().collect(), // Move the content without moving the structure
                         parameters: rd.parameters.into_iter().map(Parameter::new).collect(),
                         states: HashMap::new(),
                     };
@@ -124,7 +126,7 @@ impl<'a> GlobalContext<'a> {
                             fail!(st.name, "State {} for resource {} has already been defined in {}", st.name, st.resource_name, rd.states.entry(st.name).key());
                         }
                         let state = StateDef {
-                            metadata: current_metadata,
+                            metadata: current_metadata.drain().collect(), // Move the content without moving the structure
                             parameters: st.parameters.into_iter().map(Parameter::new).collect(),
                             statements: st.statements,
                         };
@@ -147,9 +149,9 @@ impl<'a> GlobalContext<'a> {
                     // TODO warn if there is some ignored metadata
                     current_metadata = HashMap::new();
                 },
-            }
-        }
-        Ok(())
+            };
+            Ok(())
+        }))
     }
 
     fn state_call_check(&self, statement: &PStatement) -> Result<()> {
@@ -196,19 +198,19 @@ impl<'a> GlobalContext<'a> {
     }
 
     pub fn analyze(&self) -> Result<()> {
-        for (rn, resource) in self.resources.iter() {
-            for (sn, state) in resource.states.iter() {
-                for st in state.statements.iter() {
+        fix_results(self.resources.iter().flat_map(|(_rn, resource)|
+            resource.states.iter().flat_map(|(_sn, state)|
+                state.statements.iter().map(|st| {
                     // check for resources and state existence
                     // check for matching parameter and type
                     self.state_call_check(st)?;
                     // check for enum expression validity and completeness
                     self.enum_expression_check(st)?;
-                }
-            }
-        }
+                    Ok(())
+                })
+            )
+        ))
         // TODO check for string syntax and interpolation validity
-        Ok(())
     }
 
     // TODO generate only one file
