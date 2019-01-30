@@ -2,8 +2,8 @@ use nom::types::CompleteStr;
 use nom_locate::LocatedSpan;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
 use std::ops::Add;
+use std::ops::Deref;
 
 /// All parsers take PInput objects
 /// All input are Located Complete str
@@ -56,7 +56,9 @@ impl<'a> Token<'a> {
     }
 
     /// Extract the file name of the token
-    pub fn file(&self) -> &'a str { &self.val.extra }
+    pub fn file(&self) -> &'a str {
+        &self.val.extra
+    }
 }
 
 /// Convert from str (lossy, no file name nor position, use in terse tests only)

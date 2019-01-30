@@ -1,6 +1,5 @@
 #![macro_use]
 /// Parser tools
-
 use super::PInput;
 use nom::*;
 

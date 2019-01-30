@@ -1,14 +1,14 @@
-mod token;
-mod macros;
 mod error;
+mod macros;
+mod token;
 
-use nom::*;
-use enum_primitive::*;
+use self::error::{error_type, PError};
 use self::macros::*;
-use self::token::PInput;
-use self::error::{PError,error_type};
-pub use self::token::Token;
 pub use self::token::pinput;
+use self::token::PInput;
+pub use self::token::Token;
+use enum_primitive::*;
+use nom::*;
 
 /// All structures are public to be analysed by other modules
 
@@ -19,7 +19,7 @@ pub use self::token::pinput;
 // TODO store position in strings
 // TODO _ in identifiers
 // TODO reserve keywords
-// TODO PIdentifier -> Identifier
+// TODO Token -> Identifier
 // TODO iterators, variable definition
 // TODO trailing comma
 
@@ -34,7 +34,8 @@ pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Resu
 pub struct PHeader {
     pub version: u32,
 }
-pnamed!(header<PHeader>,
+pnamed!(
+    header<PHeader>,
     do_parse!(
         opt!(preceded!(tag!("#!/"),take_until_and_consume!("\n"))) >>
         // strict parser so that this does not diverge and anything can read the line
@@ -45,15 +46,16 @@ pnamed!(header<PHeader>,
     )
 );
 
-
 /// A comment starts with a ## and ends with the end of line.
 /// Such comment is parsed and kept contrarily to comment starting with '#'.
 pub type PComment<'a> = Token<'a>;
-pnamed!(pcomment<PComment>,
+pnamed!(
+    pcomment<PComment>,
     map!(
-        preceded!(tag!("##"),
-            alt!(take_until_and_consume!("\n")
-                |rest // This is in case we are at the end of the file without \n
+        preceded!(
+            tag!("##"),
+            alt!(
+                take_until_and_consume!("\n") | rest // This is in case we are at the end of the file without \n
             )
         ),
         |x| x.into()
@@ -61,8 +63,7 @@ pnamed!(pcomment<PComment>,
 );
 
 /// An identifier is a word that contains alphanumeric chars but does not start with a digit.
-pub type PIdentifier<'a> = Token<'a>;
-pnamed!(pub pidentifier<PIdentifier>,
+pnamed!(pub pidentifier<Token>,
     map!(
         // TODO accept _
         verify!(alphanumeric, |x:PInput| {
@@ -80,8 +81,8 @@ pnamed!(pub pidentifier<PIdentifier>,
 #[derive(Debug, PartialEq)]
 pub struct PEnum<'a> {
     pub global: bool,
-    pub name: PIdentifier<'a>,
-    pub items: Vec<PIdentifier<'a>>,
+    pub name: Token<'a>,
+    pub items: Vec<Token<'a>>,
 }
 pnamed!(pub penum<PEnum>,
     sp!(do_parse!(
@@ -102,9 +103,9 @@ pnamed!(pub penum<PEnum>,
 /// The new enum as the same properties as the original one .
 #[derive(Debug, PartialEq)]
 pub struct PEnumMapping<'a> {
-    pub from: PIdentifier<'a>,
-    pub to: PIdentifier<'a>,
-    pub mapping: Vec<(PIdentifier<'a>, PIdentifier<'a>)>,
+    pub from: Token<'a>,
+    pub to: Token<'a>,
+    pub mapping: Vec<(Token<'a>, Token<'a>)>,
 }
 pnamed!(pub penum_mapping<PEnumMapping>,
     sp!(do_parse!(
@@ -133,7 +134,7 @@ pnamed!(pub penum_mapping<PEnumMapping>,
 #[derive(Debug, PartialEq)]
 pub enum PEnumExpression<'a> {
     //             variable                 enum              value/item
-    Compare(Option<PIdentifier<'a>>, Option<PIdentifier<'a>>, PIdentifier<'a>),
+    Compare(Option<Token<'a>>, Option<Token<'a>>, Token<'a>),
     And(Box<PEnumExpression<'a>>, Box<PEnumExpression<'a>>),
     Or(Box<PEnumExpression<'a>>, Box<PEnumExpression<'a>>),
     Not(Box<PEnumExpression<'a>>),
@@ -145,7 +146,8 @@ pnamed!(pub penum_expression<PEnumExpression>,
         do_parse!(s: sub_enum_expression >> space_s >> (s))
     ),PError::EnumExpression)
 );
-pnamed!(sub_enum_expression<PEnumExpression>,
+pnamed!(
+    sub_enum_expression<PEnumExpression>,
     sp!(alt!(enum_or_expression
        | enum_and_expression
        | enum_not_expression
@@ -153,51 +155,58 @@ pnamed!(sub_enum_expression<PEnumExpression>,
        | tag!("default") => { |_| PEnumExpression::Default }
     ))
 );
-pnamed!(enum_atom<PEnumExpression>,
+pnamed!(
+    enum_atom<PEnumExpression>,
     sp!(alt!(
-        delimited!(tag!("("),sub_enum_expression,tag!(")"))
-      | do_parse!(
-            var: pidentifier >>
-            tag!("=~") >>
-            penum: opt!(terminated!(pidentifier,tag!(":"))) >>
-            value: pidentifier >>
-            (PEnumExpression::Compare(Some(var),penum,value))
-        )
-      | do_parse!(
-            var: pidentifier >>
-            tag!("!~") >>
-            penum: opt!(terminated!(pidentifier,tag!(":"))) >>
-            value: pidentifier >>
-            (PEnumExpression::Not(Box::new(PEnumExpression::Compare(Some(var),penum,value))))
-        )
-      | do_parse!(
-            penum: opt!(terminated!(pidentifier,tag!(":"))) >>
-            value: pidentifier >>
-            (PEnumExpression::Compare(None,penum,value))
-        )
+        delimited!(tag!("("), sub_enum_expression, tag!(")"))
+            | do_parse!(
+                var: pidentifier
+                    >> tag!("=~")
+                    >> penum: opt!(terminated!(pidentifier, tag!(":")))
+                    >> value: pidentifier
+                    >> (PEnumExpression::Compare(Some(var), penum, value))
+            )
+            | do_parse!(
+                var: pidentifier
+                    >> tag!("!~")
+                    >> penum: opt!(terminated!(pidentifier, tag!(":")))
+                    >> value: pidentifier
+                    >> (PEnumExpression::Not(Box::new(PEnumExpression::Compare(
+                        Some(var),
+                        penum,
+                        value
+                    ))))
+            )
+            | do_parse!(
+                penum: opt!(terminated!(pidentifier, tag!(":")))
+                    >> value: pidentifier
+                    >> (PEnumExpression::Compare(None, penum, value))
+            )
     ))
 );
-pnamed!(enum_or_expression<PEnumExpression>,
+pnamed!(
+    enum_or_expression<PEnumExpression>,
     sp!(do_parse!(
-        left: alt!(enum_and_expression | enum_not_expression | enum_atom) >>
-        tag!("||") >>
-        right: alt!(enum_or_expression | enum_and_expression | enum_not_expression | enum_atom) >>
-        (PEnumExpression::Or(Box::new(left),Box::new(right)))
+        left: alt!(enum_and_expression | enum_not_expression | enum_atom)
+            >> tag!("||")
+            >> right:
+                alt!(enum_or_expression | enum_and_expression | enum_not_expression | enum_atom)
+            >> (PEnumExpression::Or(Box::new(left), Box::new(right)))
     ))
 );
-pnamed!(enum_and_expression<PEnumExpression>,
+pnamed!(
+    enum_and_expression<PEnumExpression>,
     sp!(do_parse!(
-        left: alt!(enum_not_expression | enum_atom) >>
-        tag!("&&") >>
-        right: alt!(enum_and_expression | enum_not_expression | enum_atom) >>
-        (PEnumExpression::And(Box::new(left),Box::new(right)))
+        left: alt!(enum_not_expression | enum_atom)
+            >> tag!("&&")
+            >> right: alt!(enum_and_expression | enum_not_expression | enum_atom)
+            >> (PEnumExpression::And(Box::new(left), Box::new(right)))
     ))
 );
-pnamed!(enum_not_expression<PEnumExpression>,
+pnamed!(
+    enum_not_expression<PEnumExpression>,
     sp!(do_parse!(
-        tag!("!") >>
-        right: enum_atom >>
-        (PEnumExpression::Not(Box::new(right)))
+        tag!("!") >> right: enum_atom >> (PEnumExpression::Not(Box::new(right)))
     ))
 );
 
@@ -209,7 +218,8 @@ pub enum PType {
     TStruct,
     TList,
 }
-pnamed!(ptype<PType>,
+pnamed!(
+    ptype<PType>,
     alt!(
         tag!("string")      => { |_| PType::TString }  |
         tag!("int")         => { |_| PType::TInteger } |
@@ -219,30 +229,38 @@ pnamed!(ptype<PType>,
 );
 
 /// An escaped string is a string delimited by '"' and that support backslash escapes.
-pnamed!(escaped_string<String>,
+pnamed!(
+    escaped_string<String>,
     delimited!(
         tag!("\""),
-        or_fail!(escaped_transform!(
-            take_until_either1!("\\\""),
-            '\\',
-            alt!(
-                tag!("\\") => { |_| "\\" } |
-                tag!("\"") => { |_| "\"" } |
-                tag!("n")  => { |_| "\n" } |
-                tag!("r")  => { |_| "\r" } |
-                tag!("t")  => { |_| "\t" }
-            )
-        ),PError::InvalidEscape),
-        or_fail!(tag!("\""),PError::UnterminatedString)
+        or_fail!(
+            escaped_transform!(
+                take_until_either1!("\\\""),
+                '\\',
+                alt!(
+                    tag!("\\") => { |_| "\\" } |
+                    tag!("\"") => { |_| "\"" } |
+                    tag!("n")  => { |_| "\n" } |
+                    tag!("r")  => { |_| "\r" } |
+                    tag!("t")  => { |_| "\t" }
+                )
+            ),
+            PError::InvalidEscape
+        ),
+        or_fail!(tag!("\""), PError::UnterminatedString)
     )
 );
 
 /// An unescaped string is a litteral string delimited by '"""'.
-pnamed!(unescaped_string<String>,
+pnamed!(
+    unescaped_string<String>,
     delimited!(
         // TODO string containing """ ?
         tag!("\"\"\""),
-        map!(or_fail!(take_until!("\"\"\""),PError::UnterminatedString), { |x:PInput| x.to_string() }),
+        map!(
+            or_fail!(take_until!("\"\"\""), PError::UnterminatedString),
+            { |x: PInput| x.to_string() }
+        ),
         tag!("\"\"\"")
     )
 );
@@ -257,7 +275,8 @@ pub enum PValue<'a> {
     //VInteger(u64),
     //...
 }
-pnamed!(pvalue<PValue>,
+pnamed!(
+    pvalue<PValue>,
     // TODO other types
     alt!(
         unescaped_string  => { |x| PValue::String(x) }
@@ -269,15 +288,13 @@ pnamed!(pvalue<PValue>,
 /// Currently metadata is not used by the compiler, just parsed, but that may change.
 #[derive(Debug, PartialEq)]
 pub struct PMetadata<'a> {
-    pub key: PIdentifier<'a>,
+    pub key: Token<'a>,
     pub value: PValue<'a>,
 }
-pnamed!(pmetadata<PMetadata>,
-    sp!(do_parse!(char!('@') >>
-        key: pidentifier >>
-        char!('=') >>
-        value: pvalue >>
-        (PMetadata {key, value})
+pnamed!(
+    pmetadata<PMetadata>,
+    sp!(do_parse!(
+        char!('@') >> key: pidentifier >> char!('=') >> value: pvalue >> (PMetadata { key, value })
     ))
 );
 
@@ -286,54 +303,63 @@ pnamed!(pmetadata<PMetadata>,
 /// Type can be guessed from default.
 #[derive(Debug, PartialEq)]
 pub struct PParameter<'a> {
-    pub name: PIdentifier<'a>,
+    pub name: Token<'a>,
     pub ptype: Option<PType>,
     pub default: Option<PValue<'a>>,
 }
-pnamed!(pparameter<PParameter>,
+pnamed!(
+    pparameter<PParameter>,
     sp!(do_parse!(
-        ptype: opt!(sp!(terminated!(ptype, char!(':')))) >>
-        name: pidentifier >>
-        default: opt!(sp!(preceded!(tag!("="),pvalue))) >>
-        (PParameter {ptype, name, default})
+        ptype: opt!(sp!(terminated!(ptype, char!(':'))))
+            >> name: pidentifier
+            >> default: opt!(sp!(preceded!(tag!("="), pvalue)))
+            >> (PParameter {
+                ptype,
+                name,
+                default
+            })
     ))
 );
 
 /// A resource definition defines how a resource is uniquely identified.
 #[derive(Debug, PartialEq)]
 pub struct PResourceDef<'a> {
-    pub name: PIdentifier<'a>,
+    pub name: Token<'a>,
     pub parameters: Vec<PParameter<'a>>,
 }
-pnamed!(presource_def<PResourceDef>,
+pnamed!(
+    presource_def<PResourceDef>,
     sp!(do_parse!(
-        tag!("resource") >>
-        name: pidentifier >>
-        tag!("(") >>
-        parameters: separated_list!(
-            tag!(","),
-            pparameter) >>
-        tag!(")") >>
-        (PResourceDef {name, parameters})
+        tag!("resource")
+            >> name: pidentifier
+            >> tag!("(")
+            >> parameters: separated_list!(tag!(","), pparameter)
+            >> tag!(")")
+            >> (PResourceDef { name, parameters })
     ))
 );
 
 /// A resource reference identifies a unique resource.
 #[derive(Debug, PartialEq)]
 pub struct PResourceRef<'a> {
-    pub name: PIdentifier<'a>,
+    pub name: Token<'a>,
     pub parameters: Vec<PValue<'a>>,
 }
-pnamed!(presource_ref<PResourceRef>,
+pnamed!(
+    presource_ref<PResourceRef>,
     sp!(do_parse!(
-        name: pidentifier >>
-        params: opt!(sp!(do_parse!(tag!("(") >>
-            parameters: separated_list!(
-                tag!(","),
-                pvalue) >>
-            tag!(")") >>
-            (parameters) ))) >>
-        (PResourceRef {name, parameters: params.unwrap_or(vec![])})
+        name: pidentifier
+            >> params:
+                opt!(sp!(do_parse!(
+                    tag!("(")
+                        >> parameters: separated_list!(tag!(","), pvalue)
+                        >> tag!(")")
+                        >> (parameters)
+                )))
+            >> (PResourceRef {
+                name,
+                parameters: params.unwrap_or(vec![])
+            })
     ))
 );
 
@@ -344,7 +370,8 @@ pub enum PCallMode {
     Condition,
     Audit,
 }
-pnamed!(pcall_mode<PCallMode>,
+pnamed!(
+    pcall_mode<PCallMode>,
     sp!(alt!(
         tag!("?")                     => { |_| PCallMode::Condition } |
         tag!("!")                     => { |_| PCallMode::Audit }     |
@@ -357,11 +384,11 @@ pnamed!(pcall_mode<PCallMode>,
 pub enum PStatement<'a> {
     Comment(PComment<'a>),
     StateCall(
-        Option<PIdentifier<'a>>, // outcome
-        PCallMode,               // mode
-        PResourceRef<'a>,        // resource
-        PIdentifier<'a>,         // state name
-        Vec<PValue<'a>>,         // parameters
+        Option<Token<'a>>, // outcome
+        PCallMode,         // mode
+        PResourceRef<'a>,  // resource
+        Token<'a>,         // state name
+        Vec<PValue<'a>>,   // parameters
     ),
     //   list of condition          then
     Case(Vec<(PEnumExpression<'a>, Vec<PStatement<'a>>)>),
@@ -370,12 +397,13 @@ pub enum PStatement<'a> {
     // Inform the user of something
     Log(Token<'a>),
     // Return a specific outcome
-    Return(PIdentifier<'a>),
+    Return(Token<'a>),
     // Do nothing
     Noop,
     // TODO condition instance, resource instance, variable definition
 }
-pnamed!(pstatement<PStatement>,
+pnamed!(
+    pstatement<PStatement>,
     alt!(
         // state call
         sp!(do_parse!(
@@ -437,25 +465,29 @@ pnamed!(pstatement<PStatement>,
 /// It is composed of one or more statements.
 #[derive(Debug, PartialEq)]
 pub struct PStateDef<'a> {
-    pub name: PIdentifier<'a>,
-    pub resource_name: PIdentifier<'a>,
+    pub name: Token<'a>,
+    pub resource_name: Token<'a>,
     pub parameters: Vec<PParameter<'a>>,
     pub statements: Vec<PStatement<'a>>,
 }
-pnamed!(pstate_def<PStateDef>,
+pnamed!(
+    pstate_def<PStateDef>,
     sp!(do_parse!(
-        resource_name: pidentifier >>
-        tag!("state") >>
-        name: pidentifier >>
-        tag!("(") >>
-        parameters: separated_list!(
-           tag!(","),
-           pparameter) >>
-       tag!(")") >>
-       tag!("{") >>
-       statements: many0!(pstatement) >>
-       tag!("}") >>
-       (PStateDef {name, resource_name, parameters, statements })
+        resource_name: pidentifier
+            >> tag!("state")
+            >> name: pidentifier
+            >> tag!("(")
+            >> parameters: separated_list!(tag!(","), pparameter)
+            >> tag!(")")
+            >> tag!("{")
+            >> statements: many0!(pstatement)
+            >> tag!("}")
+            >> (PStateDef {
+                name,
+                resource_name,
+                parameters,
+                statements
+            })
     ))
 );
 
@@ -469,15 +501,16 @@ pub enum PDeclaration<'a> {
     Enum(PEnum<'a>),
     Mapping(PEnumMapping<'a>),
 }
-pnamed!(pdeclaration<PDeclaration>,
+pnamed!(
+    pdeclaration<PDeclaration>,
     sp!(alt_complete!(
-          presource_def    => { |x| PDeclaration::Resource(x) }
-        | pmetadata        => { |x| PDeclaration::Metadata(x) }
-        | pstate_def       => { |x| PDeclaration::State(x) }
-        | pcomment         => { |x| PDeclaration::Comment(x) }
-        | penum            => { |x| PDeclaration::Enum(x) }
-        | penum_mapping    => { |x| PDeclaration::Mapping(x) }
-      ))
+        presource_def    => { |x| PDeclaration::Resource(x) }
+      | pmetadata        => { |x| PDeclaration::Metadata(x) }
+      | pstate_def       => { |x| PDeclaration::State(x) }
+      | pcomment         => { |x| PDeclaration::Comment(x) }
+      | penum            => { |x| PDeclaration::Enum(x) }
+      | penum_mapping    => { |x| PDeclaration::Mapping(x) }
+    ))
 );
 
 /// A PFile is the result of a single file parsing
@@ -495,7 +528,6 @@ pnamed!(pub pfile<PFile>,
         (PFile {header, code} )
     ))
 );
-
 
 // TESTS
 //
@@ -519,11 +551,15 @@ mod tests {
         r: Result<(PInput<'a>, O), Err<PInput<'a>, u32>>,
     ) -> Result<(PInput<'a>, O), PError> {
         match r {
-            Err(Err::Failure(Context::Code(_,ErrorKind::Custom(e)))) => Err(PError::from_u32(e).unwrap()),
-            Err(Err::Error(Context::Code(_,ErrorKind::Custom(e)))) => Err(PError::from_u32(e).unwrap()),
+            Err(Err::Failure(Context::Code(_, ErrorKind::Custom(e)))) => {
+                Err(PError::from_u32(e).unwrap())
+            }
+            Err(Err::Error(Context::Code(_, ErrorKind::Custom(e)))) => {
+                Err(PError::from_u32(e).unwrap())
+            }
             Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
             Err(_) => Err(PError::Unknown),
-            Ok((x,y)) => Ok((x,y)),
+            Ok((x, y)) => Ok((x, y)),
         }
     }
 
@@ -962,12 +998,21 @@ mod tests {
             Ok(("", PStatement::Comment("hello Herman".into())))
         );
         assert_eq!(
-            mapok(pstatement(pinput("", "case { ubuntu => f().g(), debian => a().b() }"))),
-            Ok(("", PStatement::Case(vec![
-                (penum_expression(pinput("","ubuntu")).unwrap().1,
-                 vec![pstatement(pinput("", "f().g()")).unwrap().1]),
-                (penum_expression(pinput("","debian")).unwrap().1,
-                 vec![pstatement(pinput("", "a().b()")).unwrap().1]),
+            mapok(pstatement(pinput(
+                "",
+                "case { ubuntu => f().g(), debian => a().b() }"
+            ))),
+            Ok((
+                "",
+                PStatement::Case(vec![
+                    (
+                        penum_expression(pinput("", "ubuntu")).unwrap().1,
+                        vec![pstatement(pinput("", "f().g()")).unwrap().1]
+                    ),
+                    (
+                        penum_expression(pinput("", "debian")).unwrap().1,
+                        vec![pstatement(pinput("", "a().b()")).unwrap().1]
+                    ),
                 ])
             ))
         );
@@ -1014,18 +1059,57 @@ mod tests {
 
     #[test]
     fn test_errors() {
-        assert_eq!(maperr(header(pinput("", "@format=21.5\n"))),Err(PError::InvalidFormat));
-        assert_eq!(maperr(escaped_string(pinput("", "\"2hello"))),Err(PError::UnterminatedString));
-        assert_eq!(maperr(unescaped_string(pinput("", "\"\"\"hello\"\""))),Err(PError::UnterminatedString));
-        assert_eq!(maperr(pvalue(pinput("", "\"\"\"hello\"\""))),Err(PError::UnterminatedString));
-        assert_eq!(maperr(pvalue(pinput("", "\"hello\\x\""))),Err(PError::InvalidEscape));
-        assert_eq!(maperr(pvalue(pinput("", "\"hello\\"))),Err(PError::InvalidEscape));
-        assert_eq!(maperr(penum(pinput("", "enum 2abc { a, b, c }"))),Err(PError::InvalidName));
-        assert_eq!(maperr(penum(pinput("", "enum abc { a, b, }"))),Err(PError::UnterminatedCurly));
-        assert_eq!(maperr(penum(pinput("", "enum abc { a, b"))),Err(PError::UnterminatedCurly));
-        assert_eq!(maperr(penum_mapping(pinput("", "enum abc ~> { a -> b"))),Err(PError::InvalidName));
-        assert_eq!(maperr(penum_mapping(pinput("", "enum abc ~> def { a -> b"))),Err(PError::UnterminatedCurly));
-        assert_eq!(maperr(penum_expression(pinput("", "a=~b:"))),Err(PError::EnumExpression));
-        assert_eq!(maperr(penum_expression(pinput("", "a=~"))),Err(PError::EnumExpression));
+        assert_eq!(
+            maperr(header(pinput("", "@format=21.5\n"))),
+            Err(PError::InvalidFormat)
+        );
+        assert_eq!(
+            maperr(escaped_string(pinput("", "\"2hello"))),
+            Err(PError::UnterminatedString)
+        );
+        assert_eq!(
+            maperr(unescaped_string(pinput("", "\"\"\"hello\"\""))),
+            Err(PError::UnterminatedString)
+        );
+        assert_eq!(
+            maperr(pvalue(pinput("", "\"\"\"hello\"\""))),
+            Err(PError::UnterminatedString)
+        );
+        assert_eq!(
+            maperr(pvalue(pinput("", "\"hello\\x\""))),
+            Err(PError::InvalidEscape)
+        );
+        assert_eq!(
+            maperr(pvalue(pinput("", "\"hello\\"))),
+            Err(PError::InvalidEscape)
+        );
+        assert_eq!(
+            maperr(penum(pinput("", "enum 2abc { a, b, c }"))),
+            Err(PError::InvalidName)
+        );
+        assert_eq!(
+            maperr(penum(pinput("", "enum abc { a, b, }"))),
+            Err(PError::UnterminatedCurly)
+        );
+        assert_eq!(
+            maperr(penum(pinput("", "enum abc { a, b"))),
+            Err(PError::UnterminatedCurly)
+        );
+        assert_eq!(
+            maperr(penum_mapping(pinput("", "enum abc ~> { a -> b"))),
+            Err(PError::InvalidName)
+        );
+        assert_eq!(
+            maperr(penum_mapping(pinput("", "enum abc ~> def { a -> b"))),
+            Err(PError::UnterminatedCurly)
+        );
+        assert_eq!(
+            maperr(penum_expression(pinput("", "a=~b:"))),
+            Err(PError::EnumExpression)
+        );
+        assert_eq!(
+            maperr(penum_expression(pinput("", "a=~"))),
+            Err(PError::EnumExpression)
+        );
     }
 }

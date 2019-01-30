@@ -2,7 +2,6 @@ use std::fmt;
 
 // Error management
 
-
 #[derive(Debug, PartialEq)]
 pub enum Error {
     //          message file    line  column
@@ -42,10 +41,11 @@ macro_rules! warn {
 // transforms an iterator of error result into a result of list error
 // Only (), because it throws out Ok
 pub fn fix_results<I>(res: I) -> Result<()>
-where I: Iterator<Item=Result<()>>  {
-    let err_list = res.filter_map(|r| r.err())
-                      .collect::<Vec<Error>>();
-    if err_list.len() == 0 {
+where
+    I: Iterator<Item = Result<()>>,
+{
+    let err_list = res.filter_map(|r| r.err()).collect::<Vec<Error>>();
+    if err_list.is_empty() {
         Ok(())
     } else {
         Err(Error::List(err_list))
@@ -57,7 +57,14 @@ impl fmt::Display for Error {
         match self {
             Error::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
             Error::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
-            Error::List(v) => write!(f, "{}", v.iter().map(|x| format!("{}",x)).collect::<Vec<String>>().join("\n")),
+            Error::List(v) => write!(
+                f,
+                "{}",
+                v.iter()
+                    .map(|x| format!("{}", x))
+                    .collect::<Vec<String>>()
+                    .join("\n")
+            ),
         }
     }
 }

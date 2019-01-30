@@ -1,9 +1,9 @@
 use super::context::{VarContext, VarKind};
 use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
+use std::collections::hash_set::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::collections::hash_set::Iter;
 
 // As single enum can be derived into different set through multiple mappings
 // However a single enum can have only one parent
@@ -40,11 +40,11 @@ impl<'a> EnumExpression<'a> {
     }
     pub fn position(&self) -> (String, u32, usize) {
         match self {
-            EnumExpression::Compare(_,_,v) => v.position(),
-            EnumExpression::And(a,_) => a.position(),
-            EnumExpression::Or(a,_) => a.position(),
+            EnumExpression::Compare(_, _, v) => v.position(),
+            EnumExpression::And(a, _) => a.position(),
+            EnumExpression::Or(a, _) => a.position(),
             EnumExpression::Not(a) => a.position(),
-            EnumExpression::Default => (String::from("unknown"),0,0),
+            EnumExpression::Default => (String::from("unknown"), 0, 0),
         }
     }
 }
@@ -75,8 +75,12 @@ impl<'a> EnumList<'a> {
             );
         }
         // check that enum is not empty
-        if e.items.len() == 0 {
-            fail!(e.name, "Enums must have at least one item, {} is empty", e.name);
+        if e.items.is_empty() {
+            fail!(
+                e.name,
+                "Enums must have at least one item, {} is empty",
+                e.name
+            );
         }
         let parent_enum = self.mapping_path.get(&e.name);
         for v in &e.items {
@@ -91,19 +95,16 @@ impl<'a> EnumList<'a> {
             }
             // check for global uniqueness
             // defined in parent is allowed, twice in the same mapping is allowed
-            match self.global_values.get(v) {
-                Some(e0) => {
-                    if parent_enum.is_none() || (parent_enum.unwrap() != e0 && e.name != *e0) {
-                        fail!(
-                            v,
-                            "Value {} from enum {} already declared in the global enum {}",
-                            v,
-                            e.name,
-                            e0
-                        );
-                    }
+            if let Some(e0) = self.global_values.get(v) {
+                if parent_enum.is_none() || (parent_enum.unwrap() != e0 && e.name != *e0) {
+                    fail!(
+                        v,
+                        "Value {} from enum {} already declared in the global enum {}",
+                        v,
+                        e.name,
+                        e0
+                    );
                 }
-                None => (),
             }
             // store globaly uniques
             if e.global {
@@ -186,8 +187,8 @@ impl<'a> EnumList<'a> {
 
     // return an iterator over an enum
     // !NO CHECK the enum must exist
-    fn enum_iter(&'a self, e: Token<'a>) -> Iter<'a,Token<'a>> {
-        self.enums.get(&e).unwrap().1.iter()
+    fn enum_iter(&'a self, e: Token<'a>) -> Iter<'a, Token<'a>> {
+        self.enums[&e].1.iter()
     }
 
     // find enum path from e1 fo e2
@@ -307,13 +308,8 @@ impl<'a> EnumList<'a> {
         }
         let e0 = path.remove(0);
         let e1 = path[0];
-        let v = self
-            .mappings
-            .get(&(e0, e1))
-            .unwrap() // should not fail since all enums must be defined
-            .get(&value)
-            .unwrap(); // should not fail since all values must be defined
-        self.transform_value(path, *v)
+        let v = self.mappings[&(e0, e1)][&value];
+        self.transform_value(path, v)
     }
     // return true is e1::v1 is an ancestor of e2::v2
     fn is_ancestor(&self, e1: Token<'a>, v1: Token<'a>, e2: Token<'a>, v2: Token<'a>) -> bool {
@@ -388,28 +384,38 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    fn describe(&self, values: HashMap<Token<'a>,(Token<'a>,Token<'a>)>) -> String {
-        values.iter()
-              .map(|(key,(e,val))| format!("{}=~{}:{}",key.fragment(),e.fragment(),val.fragment()))
-              .collect::<Vec<String>>()
-              .join(" && ")
+    fn describe(&self, values: &HashMap<Token<'a>, (Token<'a>, Token<'a>)>) -> String {
+        values
+            .iter()
+            .map(|(key, (e, val))| {
+                format!("{}=~{}:{}", key.fragment(), e.fragment(), val.fragment())
+            })
+            .collect::<Vec<String>>()
+            .join(" && ")
     }
 
-    pub fn evaluate(&self, context: &'a VarContext<'a>, expressions: &Vec<EnumExpression>, case: Token<'a>) -> Vec<Error> {
+    pub fn evaluate(
+        &self,
+        context: &'a VarContext<'a>,
+        expressions: &[EnumExpression],
+        case: Token<'a>,
+    ) -> Vec<Error> {
         let mut warns = Vec::new();
         let mut variables = HashMap::new();
-        expressions.iter().for_each(|e| self.list_variable_enum(&mut variables, &e));
-        let it = ContextIteraror::new(self, context, variables);        
+        expressions
+            .iter()
+            .for_each(|e| self.list_variable_enum(&mut variables, &e));
+        let it = ContextIteraror::new(self, context, variables);
         for values in it {
-            let mut matched_exp = expressions.iter().filter(|e| self.eval(&values,e));
+            let mut matched_exp = expressions.iter().filter(|e| self.eval(&values, e));
             match matched_exp.next() {
                 // Missing case
-                None => warns.push(warn!(case, "Missing case in {}, '{}' is never processed", case, self.describe(values))),
+                None => warns.push(warn!(case, "Missing case in {}, '{}' is never processed", case, self.describe(&values))),
                 Some(e1) => match matched_exp.next() {
                     // Single matching case
                     None => {},
                     // Overlapping cases
-                    Some(e2) => warns.push(warn!(case,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(values)))
+                    Some(e2) => warns.push(warn!(case,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(&values)))
                 },
             }
         }
@@ -419,7 +425,7 @@ impl<'a> EnumList<'a> {
 
 enum AltVal<'a> {
     Constant(Token<'a>),
-    Iterator(Iter<'a,Token<'a>>),
+    Iterator(Iter<'a, Token<'a>>),
 }
 struct ContextIteraror<'a> {
     // enum reference
@@ -429,40 +435,50 @@ struct ContextIteraror<'a> {
     //                 name        value or iterator
     iterators: HashMap<Token<'a>, AltVal<'a>>,
     // current iteration         enum       value
-    current: HashMap<Token<'a>,(Token<'a>,Token<'a>)>,
+    current: HashMap<Token<'a>, (Token<'a>, Token<'a>)>,
     // true before first iteration
     first: bool,
 }
 
 impl<'a> ContextIteraror<'a> {
-    fn new(enumlist: &'a EnumList<'a>, context: &'a VarContext<'a>, variable_list: HashMap<Token<'a>, Token<'a>>) -> ContextIteraror<'a> {
+    fn new(
+        enumlist: &'a EnumList<'a>,
+        context: &'a VarContext<'a>,
+        variable_list: HashMap<Token<'a>, Token<'a>>,
+    ) -> ContextIteraror<'a> {
         let varlist: Vec<Token<'a>> = variable_list.keys().cloned().collect();
         let mut iterators = HashMap::new();
         let mut current = HashMap::new();
         for v in &varlist {
             match context.get_variable(*v) {
                 // known value
-                Some(VarKind::Enum(e,Some(val))) => {
-                    current.insert(*v, (*e,*val));
+                Some(VarKind::Enum(e, Some(val))) => {
+                    current.insert(*v, (*e, *val));
                     iterators.insert(*v, AltVal::Constant(*val));
-                },
+                }
                 // iterable value
-                Some(VarKind::Enum(e,None)) => {
+                Some(VarKind::Enum(e, None)) => {
                     let mut it = enumlist.enum_iter(*e);
-                    current.insert(*v, (*e,*(it.next().unwrap()))); // enums must always have at least one value
+                    current.insert(*v, (*e, *(it.next().unwrap()))); // enums must always have at least one value
                     iterators.insert(*v, AltVal::Iterator(it));
-                },
+                }
                 // impossible values
                 None => panic!("BUG This missing var should have already been detected"),
                 Some(_) => panic!("BUG This mistyped var should have already been detected"),
             };
         }
-        ContextIteraror { enumlist, varlist, iterators, current, first: true }
+        ContextIteraror {
+            enumlist,
+            varlist,
+            iterators,
+            current,
+            first: true,
+        }
     }
 }
 
 impl<'a> Iterator for ContextIteraror<'a> {
-    type Item = HashMap<Token<'a>,(Token<'a>,Token<'a>)>;
+    type Item = HashMap<Token<'a>, (Token<'a>, Token<'a>)>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.first {
             self.first = false;
@@ -477,17 +493,17 @@ impl<'a> Iterator for ContextIteraror<'a> {
                     None => true, // restart this iterator with current enum
                     Some(val) => {
                         // get next value in iterator and return
-                        self.current.entry(*v).and_modify(|e| {e.1=*val});
+                        self.current.entry(*v).and_modify(|e| e.1 = *val);
                         return Some(self.current.clone());
-                    },
+                    }
                 },
-                _ => panic!("BUG some value disapeared"),
+                _ => panic!("BUG some value disappeared"),
             };
             if reset {
-                if let Some((e,_)) = self.current.get(v) {
+                if let Some((e, _)) = self.current.get(v) {
                     // restart iterator and update current
                     let mut it = self.enumlist.enum_iter(*e);
-                    self.current.insert(*v, (*e,*(it.next().unwrap())));
+                    self.current.insert(*v, (*e, *(it.next().unwrap())));
                     self.iterators.insert(*v, AltVal::Iterator(it));
                 } // no else, it has been checked many times
             }
@@ -746,7 +762,10 @@ mod tests {
             let ex2 = parse_enum_expression("os:debian && out =~ outcome:kept");
             let exp2 = e.canonify_expression(&c, &ex2).unwrap();
             e.list_variable_enum(&mut var1, &exp2);
-            assert_eq!(var1, hashmap! { Token::from("os") => Token::from("os"), Token::from("out") => Token::from("outcome") });
+            assert_eq!(
+                var1,
+                hashmap! { Token::from("os") => Token::from("os"), Token::from("out") => Token::from("outcome") }
+            );
         }
     }
 
@@ -758,7 +777,7 @@ mod tests {
         let exp = e.canonify_expression(&c, &ex).unwrap();
         e.list_variable_enum(&mut varlist, &exp);
         let it = ContextIteraror::new(&e, &c, varlist);
-        assert_eq!(it.count(),15);
+        assert_eq!(it.count(), 15);
     }
 
     #[test]
