@@ -3,6 +3,14 @@ mod enums;
 pub  mod generators;
 //mod strings;
 
+///
+/// AST is a big chunk.
+/// It contains everything parsed and analysed.
+/// First level submodules are for structures contains in AST.
+/// The generator submodule contains a generator trait used to generate code.
+/// It is then split into one module per agent.
+///
+
 use self::context::VarContext;
 use self::enums::EnumList;
 use crate::error::*;
@@ -12,8 +20,8 @@ use std::collections::HashMap;
 // TODO out of order enum mapping definition
 
 #[derive(Debug)]
-pub struct GlobalContext<'a> {
-    enumlist: EnumList<'a>,
+pub struct AST<'a> {
+    enumlist: EnumList<'a>, //TODO Alt<HashMap,EnumList>
     resources: HashMap<Token<'a>, Resources<'a>>,
     variables: VarContext<'a>,
 }
@@ -23,6 +31,7 @@ struct Resources<'a> {
     metadata: HashMap<Token<'a>, PValue<'a>>,
     parameters: Vec<Parameter<'a>>,
     states: HashMap<Token<'a>, StateDef<'a>>,
+    //TODO child: HashSet<Token>
 }
 
 enum Alt<T,U> {
@@ -82,16 +91,18 @@ impl<'a> Parameter<'a> {
 // TODO analyse Resource tree (and disable recursion)
 // TODO default must be the last entry in a case
 
-impl<'a> GlobalContext<'a> {
-    pub fn new() -> GlobalContext<'static> {
-        GlobalContext {
+impl<'a> AST<'a> {
+    pub fn new() -> AST<'static> {
+        AST {
             enumlist: EnumList::new(),
             resources: HashMap::new(),
             variables: VarContext::new_global(),
         }
     }
 
-    pub fn add_pfile(&mut self, filename: &'a str, file: PFile<'a>) -> Result<()> {
+    /// Add a file parsed with the top level parser.
+    /// Call this once for each file before calling finalize.
+    pub fn add_parsed_file(&mut self, filename: &'a str, file: PFile<'a>) -> Result<()> {
         if file.header.version != 0 {
             panic!("Multiple format not supported yet");
         }
@@ -195,6 +206,13 @@ impl<'a> GlobalContext<'a> {
         }))
     }
 
+    /// Produce the final AST data structure.
+    /// Call this when all files have been added.
+    /// This does everything that could not be done with partial data (ex: global binding)
+    pub fn finalize(&mut self) -> Result<()> {
+        Ok(())
+    }
+
     fn state_call_check(&self, statement: &PStatement) -> Result<()> {
         match statement {
             PStatement::StateCall(_out, _mode, res, name, params) => {
@@ -238,9 +256,8 @@ impl<'a> GlobalContext<'a> {
                     .map(|(cond, _)| self.enumlist.canonify_expression(&self.variables, cond))
                     .collect::<Result<Vec<_>>>()?;
                 self.enumlist
-                    .evaluate(&self.variables, &exp_list, Token::new("", "")); // TODO no local context ?
+                    .evaluate(&self.variables, &exp_list, Token::new("", ""))?; // TODO no local context ?
                                                                                // TODO local token
-                                                                               // TODO report error
             }
             _ => {}
         }

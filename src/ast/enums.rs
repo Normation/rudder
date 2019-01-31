@@ -404,27 +404,25 @@ impl<'a> EnumList<'a> {
         context: &'a VarContext<'a>,
         expressions: &[EnumExpression],
         case: Token<'a>,
-    ) -> Vec<Error> {
-        let mut warns = Vec::new();
+    ) -> Result<()> {
         let mut variables = HashMap::new();
         expressions
             .iter()
             .for_each(|e| self.list_variable_enum(&mut variables, &e));
         let it = ContextIteraror::new(self, context, variables);
-        for values in it {
+        fix_results(it.map(|values| {
             let mut matched_exp = expressions.iter().filter(|e| self.eval(&values, e));
             match matched_exp.next() {
                 // Missing case
-                None => warns.push(warn!(case, "Missing case in {}, '{}' is never processed", case, self.describe(&values))),
+                None => fail!(case, "Missing case in {}, '{}' is never processed", case, self.describe(&values)),
                 Some(e1) => match matched_exp.next() {
                     // Single matching case
-                    None => {},
+                    None => Ok(()),
                     // Overlapping cases
-                    Some(e2) => warns.push(warn!(case,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(&values)))
+                    Some(e2) => fail!(case,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(&values)),
                 },
             }
-        }
-        warns
+        }))
     }
 }
 
@@ -790,14 +788,25 @@ mod tests {
         let (e, c) = init_tests();
         let case = Token::from("case");
         let mut exprs = Vec::new();
-        let ex1 = parse_enum_expression("family:debian || family:redhat");
-        exprs.push(e.canonify_expression(&c, &ex1).unwrap());
-        assert_eq!(e.evaluate(&c, &exprs, case).len(), 1);
-        let ex1 = parse_enum_expression("os:aix");
-        exprs.push(e.canonify_expression(&c, &ex1).unwrap());
-        assert_eq!(e.evaluate(&c, &exprs, case), Vec::new());
-        let ex2 = parse_enum_expression(" family:redhat");
-        exprs.push(e.canonify_expression(&c, &ex2).unwrap());
-        assert_eq!(e.evaluate(&c, &exprs, case).len(), 2);
+
+        let ex = parse_enum_expression("family:debian || family:redhat");
+        exprs.push(e.canonify_expression(&c, &ex).unwrap());
+        let result = e.evaluate(&c, &exprs, case);
+        assert!(result.is_err());
+        if let Error::List(errs) = result.unwrap_err() {
+            assert_eq!(errs.len(), 1);
+        }
+
+        let ex = parse_enum_expression("os:aix");
+        exprs.push(e.canonify_expression(&c, &ex).unwrap());
+        assert_eq!(e.evaluate(&c, &exprs, case), Ok(()));
+
+        let ex = parse_enum_expression(" family:redhat");
+        exprs.push(e.canonify_expression(&c, &ex).unwrap());
+        let result = e.evaluate(&c, &exprs, case);
+        assert!(result.is_err());
+        if let Error::List(errs) = result.unwrap_err() {
+            assert_eq!(errs.len(), 2);
+        }
     }
 }

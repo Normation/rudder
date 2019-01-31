@@ -1,5 +1,5 @@
 use super::Generator;
-use super::super::GlobalContext;
+use super::super::AST;
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -46,13 +46,13 @@ impl CFEngine {
         }
     }
 
-    fn format_case(&mut self, gc: &GlobalContext, case: &PEnumExpression) -> String {
+    fn format_case(&mut self, gc: &AST, case: &PEnumExpression) -> String {
         let expr = self.format_case_expr(gc, case);
         let result = format!("    {}::\n",&expr);
         self.current_cases.push(expr);
         result
     }
-    fn format_case_expr(&mut self, gc: &GlobalContext, case: &PEnumExpression) -> String {
+    fn format_case_expr(&mut self, gc: &AST, case: &PEnumExpression) -> String {
         match case {
             PEnumExpression::And(e1, e2) => format!("({}).({})", self.format_case_expr(gc,e1), self.format_case_expr(gc,e2)),
             PEnumExpression::Or(e1, e2) => format!("({})|({})", self.format_case_expr(gc,e1), self.format_case_expr(gc,e2)),
@@ -86,7 +86,7 @@ impl CFEngine {
     }
 
     // TODO underscore escapement
-    fn format_statement(&mut self, gc: &GlobalContext, st: &PStatement) -> String {
+    fn format_statement(&mut self, gc: &AST, st: &PStatement) -> String {
         match st {
             PStatement::StateCall(out, mode, res, call, params) => {
                 if let Some(var) = out {
@@ -130,9 +130,9 @@ impl CFEngine {
 
 impl Generator for CFEngine {
     // TODO generate only one file
-    fn generate_one(&mut self, gc: &GlobalContext, file: &str) -> Result<()> { Ok(()) }
+    fn generate_one(&mut self, gc: &AST, file: &str) -> Result<()> { Ok(()) }
 
-    fn generate_all(&mut self, gc: &GlobalContext) -> Result<()> {
+    fn generate_all(&mut self, gc: &AST) -> Result<()> {
         let mut files: HashMap<&str, String> = HashMap::new();
         for (rn, res) in gc.resources.iter() {
             for (sn, state) in res.states.iter() {

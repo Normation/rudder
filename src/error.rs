@@ -1,6 +1,16 @@
-use std::fmt;
+///
+/// We write our own error type to have a consistent error type through all our code.
+/// We translate other types to this one when necessary.
+/// All case contain 4 elements:
+/// - the detailed error message
+/// - the file,line and column where the error can be found / fixed
+/// The we have 3 types
+/// - Parsing error: originating from nom, irrecoverable
+/// - Compilation error: usually we can skip what we are doing and go to next iteration
+/// - List: aggregate compilation errors so that user can fix them all ant once
+///
 
-// Error management
+use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
@@ -12,10 +22,12 @@ pub enum Error {
     List(Vec<Error>),
 }
 
-// Error management definitions
+/// Redefine our own result type with fixed error type for readability.
 pub type Result<T> = std::result::Result<T, Error>;
-//pub type OptResult<T> = std::result::Result<Option<T>, Error>;
 
+/// This macro returns from current function/closure with an error.
+/// When writing an iteration, use this within a map so we can continue on
+/// next iteration and aggregate errors.
 macro_rules! fail {
     ($origin:expr, $ ( $ arg : tt ) *) => ({
         let (file,line,col) = $origin.position();
@@ -26,20 +38,10 @@ macro_rules! fail {
                                       ))
     });
 }
-// TODO remove
-macro_rules! warn {
-    ($origin:expr, $ ( $ arg : tt ) *) => ({
-        let (file,line,col) = $origin.position();
-        Error::Compilation(std::fmt::format( format_args!( $ ( $ arg ) * ) ),
-                                       file,
-                                       line,
-                                       col
-                                      )
-    });
-}
 
-// transforms an iterator of error result into a result of list error
-// Only (), because it throws out Ok
+/// Transforms an iterator of error result into a result of list error.
+/// This is useful to aggregate and give the proper output type to rRsults given by map.
+/// Only support Result<()>, because it throws out Ok cases
 pub fn fix_results<I>(res: I) -> Result<()>
 where
     I: Iterator<Item = Result<()>>,
@@ -52,6 +54,7 @@ where
     }
 }
 
+/// Display errors to the final user
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
