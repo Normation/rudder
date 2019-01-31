@@ -60,6 +60,11 @@ impl<'a> EnumList<'a> {
         }
     }
 
+    // panic if the enum doesn't exist
+    pub fn is_global(&self, e: Token<'a>) -> bool {
+        self.enums[&e].0
+    }
+
     // Insert a simple declared enum
     pub fn add_enum(&mut self, e: PEnum<'a>) -> Result<()> {
         let mut list = HashSet::new();

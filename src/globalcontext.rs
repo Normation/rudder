@@ -1,5 +1,6 @@
 mod context;
 mod enums;
+pub  mod generators;
 //mod strings;
 
 use self::context::VarContext;
@@ -7,8 +8,6 @@ use self::enums::EnumList;
 use crate::error::*;
 use crate::parser::*;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Write;
 
 // TODO out of order enum mapping definition
 
@@ -24,6 +23,11 @@ struct Resources<'a> {
     metadata: HashMap<Token<'a>, PValue<'a>>,
     parameters: Vec<Parameter<'a>>,
     states: HashMap<Token<'a>, StateDef<'a>>,
+}
+
+enum Alt<T,U> {
+    First(T),
+    Second(U)
 }
 
 #[derive(Debug)]
@@ -75,6 +79,8 @@ impl<'a> Parameter<'a> {
 // TODO check that parameter type match parameter default
 // TODO put default parameter in calls
 // TODO forbid case within case
+// TODO analyse Resource tree (and disable recursion)
+// TODO default must be the last entry in a case
 
 impl<'a> GlobalContext<'a> {
     pub fn new() -> GlobalContext<'static> {
@@ -257,79 +263,8 @@ impl<'a> GlobalContext<'a> {
         // TODO check for string syntax and interpolation validity
     }
 
-    // TODO generate only one file
-    pub fn generate_cfengine(&self) -> Result<()> {
-        // TODO separate via trait ?
-        let mut files: HashMap<&str, String> = HashMap::new();
-        for (rn, res) in self.resources.iter() {
-            for (sn, state) in res.states.iter() {
-                let mut content = match files.get(sn.file()) {
-                    Some(s) => s.to_string(),
-                    None => String::new(),
-                };
-                let params = res
-                    .parameters
-                    .iter()
-                    .chain(state.parameters.iter())
-                    .map(|p| p.name.fragment())
-                    .collect::<Vec<&str>>()
-                    .join(",");
-                content.push_str(&format!(
-                    "bundle agent {}_{} ({})\n",
-                    rn.fragment(),
-                    sn.fragment(),
-                    params
-                ));
-                content.push_str("{\n  methods:\n");
-                for st in state.statements.iter() {
-                    content.push_str(&format_statement(st));
-                }
-                content.push_str("}\n");
-                files.insert(sn.file(), content.to_string()); // TODO there is something smelly with this to_string
-            }
-        }
-        for (name, content) in files.iter() {
-            let mut file = File::create(format!("{}.cf", name)).unwrap();
-            file.write_all(content.as_bytes()).unwrap();
-        }
-        Ok(())
-    }
 }
 
-fn format_statement(st: &PStatement) -> String {
-    match st {
-        PStatement::StateCall(_out, _mode, res, call, params) => {
-            let param_str = res
-                .parameters
-                .iter()
-                .chain(params.iter())
-                .map(parameter_to_cfengine)
-                .collect::<Vec<String>>()
-                .join(",");
-            format!(
-                "      \"method_call\" usebundle => {}_{}({});\n",
-                res.name.fragment(),
-                call.fragment(),
-                param_str
-            )
-        }
-        PStatement::Case(vec) => vec
-            .iter()
-            .map(|(case, vst)| {
-                format!(
-                    "{}\n{}",
-                    "TODO",
-                    vst.iter()
-                        .map(|st| format_statement(st))
-                        .collect::<Vec<String>>()
-                        .join("")
-                )
-            })
-            .collect::<Vec<String>>()
-            .join(""),
-        _ => String::new(), // TODO ?
-    }
-}
 
 fn match_parameters(pdef: &[Parameter], pref: &[PValue], identifier: Token) -> Result<()> {
     if pdef.len() != pref.len() {
@@ -347,9 +282,3 @@ fn match_parameters(pdef: &[Parameter], pref: &[PValue], identifier: Token) -> R
         .collect()
 }
 
-fn parameter_to_cfengine(param: &PValue) -> String {
-    match param {
-        PValue::String(s) => format!("\"{}\"", s),
-        _ => "XXX".to_string(), // TODO remove _
-    }
-}
