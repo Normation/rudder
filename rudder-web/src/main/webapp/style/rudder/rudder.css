@@ -684,10 +684,6 @@ table.noMarginGrid {
   width:auto !important;
   white-space: normal;
 }
-.content-wrapper #reportsGrid td .progress-bar {
-  float: inherit;
-  display: inline-block;
-}
 
 .dataTables_wrapper_bottom {
   overflow: hidden;
