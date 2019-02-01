@@ -12,7 +12,7 @@ pub  mod generators;
 ///
 
 use self::context::VarContext;
-use self::enums::EnumList;
+use self::enums::{EnumList,EnumExpression};
 use crate::error::*;
 use crate::parser::*;
 use std::collections::HashMap;
@@ -34,16 +34,38 @@ struct Resources<'a> {
     //TODO child: HashSet<Token>
 }
 
+// Represents 2 alternative data structure types
+// This is meant to hold in the same structure the data before and after it has been processed.
+// Once the data is in the second state, there is no reason to go back to first state
+#[derive(Debug)]
 enum Alt<T,U> {
-    First(T),
-    Second(U)
+    // Fist state (usually before calling finalize)
+    Temporary(T),
+    // Second state (usually after calling finalize)
+    Final(U),
+}
+
+impl <T,U> Alt<T,U> {
+    fn temporary(&mut self) -> &mut T {
+        match self {
+            Alt::Temporary(t) => t,
+            _ => panic!("BUG! You must call temporary on a Temporary Alt"),
+        }
+    }
+    fn get_final(&self) -> &U {
+        match self {
+            Alt::Final(u) => u,
+            _ => panic!("BUG! You must get final on a Final Alt"),
+        }
+    }
 }
 
 #[derive(Debug)]
 struct StateDef<'a> {
     metadata: HashMap<Token<'a>, PValue<'a>>,
     parameters: Vec<Parameter<'a>>,
-    statements: Vec<PStatement<'a>>, //TODO ?
+    statements: Alt<Vec<PStatement<'a>>,Vec<Statement<'a>>>,
+    variables: VarContext<'a>,
 }
 
 #[derive(Debug)]
@@ -81,6 +103,54 @@ impl<'a> Parameter<'a> {
             (PType::TString, PValue::String(_)) => Ok(()),
             (t, _v) => fail!(Token::new("x", "y"), "Parameter is not of the type {:?}", t), // TODO we need a Token to position PValues and a display trait
         }
+    }
+}
+
+#[derive(Debug)]
+enum Statement<'a> {
+    Comment(PComment<'a>),
+    StateCall(
+        Option<Token<'a>>, // outcome
+        PCallMode,         // mode
+        PResourceRef<'a>,  // resource
+        Token<'a>,         // state name
+        Vec<PValue<'a>>,   // parameters
+    ),
+    //   list of condition          then
+    Case(Vec<(EnumExpression<'a>, Vec<Statement<'a>>)>),
+    // Stop engine
+    Fail(Token<'a>),
+    // Inform the user of something
+    Log(Token<'a>),
+    // Return a specific outcome
+    Return(Token<'a>),
+    // Do nothing
+    Noop,
+}
+impl<'a> Statement<'a> {
+    fn fom_pstatement<'b>(enum_list: &'b EnumList<'a>, gc: Option<&'b VarContext<'a>>, c: &'b VarContext<'a>, st: PStatement<'a>) -> Result<Statement<'a>> {
+        Ok(match st {
+            PStatement::Comment(c) => Statement::Comment(c),
+            PStatement::StateCall(out,mode,res,st,params) => Statement::StateCall(out,mode,res,st,params),
+            PStatement::Fail(f) => Statement::Fail(f),
+            PStatement::Log(l) => Statement::Log(l),
+            PStatement::Return(r) => Statement::Return(r),
+            PStatement::Noop => Statement::Noop,
+            PStatement::Case(v) => Statement::Case(
+                fix_vec_results(
+                    v.into_iter().map(|(exp, sts)|
+                        Ok((
+                            enum_list.canonify_expression(gc, c, exp)?,
+                            fix_vec_results(
+                                sts.into_iter().map(|st| {
+                                    Statement::fom_pstatement(enum_list, gc, c, st)
+                                })
+                            )?
+                        ))
+                    )
+                )?
+            ),
+        })
     }
 }
 
@@ -171,7 +241,8 @@ impl<'a> AST<'a> {
                         let state = StateDef {
                             metadata: current_metadata.drain().collect(), // Move the content without moving the structure
                             parameters: st.parameters.into_iter().map(Parameter::new).collect(),
-                            statements: st.statements,
+                            statements: Alt::Temporary(st.statements),
+                            variables: VarContext::new(),
                         };
                         rd.states.insert(st.name, state);
                         // Reset metadata
@@ -209,12 +280,24 @@ impl<'a> AST<'a> {
     /// Produce the final AST data structure.
     /// Call this when all files have been added.
     /// This does everything that could not be done with partial data (ex: global binding)
-    pub fn finalize(&mut self) -> Result<()> {
-        Ok(())
+    pub fn finalize(self) -> Result<Self> {
+        let AST { enum_list, mut resources, variables } = self;
+         fix_results(resources.iter_mut().flat_map(|(_rn, resource)| {
+            resource.states.iter_mut().map(|(_sn, state)| {
+                let sts: Vec<PStatement> = state.statements.temporary().drain(..).collect(); // copy of the temporary vector to work around mut borrowing
+                state.statements = Alt::Final(
+                    fix_vec_results(sts.into_iter().map(|st| {
+                        Statement::fom_pstatement(&enum_list, Some(&variables), &state.variables, st)
+                    }))?
+                );
+                Ok(())
+            })
+        }))?;
+        Ok(AST { enum_list, resources, variables })
     }
 
     fn state_call_check(&self, statement: &PStatement) -> Result<()> {
-        match statement {
+        /*match statement {
             PStatement::StateCall(_out, _mode, res, name, params) => {
                 match self.resources.get(&res.name) {
                     None => fail!(res.name, "Resource type {} does not exist", res.name),
@@ -236,66 +319,42 @@ impl<'a> AST<'a> {
                     }
                 }
             }
-            PStatement::Case(cases) => {
-                for (_cond, vst) in cases.iter() {
-                    for st in vst.iter() {
-                        self.state_call_check(st)?;
-                    }
-                }
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    fn enum_expression_check(&self, statement: &PStatement) -> Result<()> {
-        /*match statement {
-            PStatement::Case(cases) => {
-                let exp_list = cases
-                    .iter()
-                    .map(|(cond, _)| self.enum_list.canonify_expression(Some(&self.variables), &self.variables, *cond.clone()))
-                    .collect::<Result<Vec<_>>>()?;
-                self.enum_list
-                    .evaluate(None, &self.variables, &exp_list, Token::new("", ""))?; // TODO no local context ?
-                                                                               // TODO local token
-            }
-            _ => {}
         }*/
         Ok(())
     }
 
     pub fn analyze(&self) -> Result<()> {
-        fix_results(self.resources.iter().flat_map(|(_rn, resource)| {
-            resource.states.iter().flat_map(|(_sn, state)| {
-                state.statements.iter().map(|st| {
-                    // check for resources and state existence
-                    // check for matching parameter and type
-                    self.state_call_check(st)?;
-                    // check for enum expression validity and completeness
-                    self.enum_expression_check(st)?;
-                    Ok(())
-                })
+        /*fix_results(self.resources.iter().flat_map(|(_rn, resource)| {
+        resource.states.iter().flat_map(|(_sn, state)| {
+            state.statements.get_final().iter().map(|st| {
+                // check for resources and state existence
+                // check for matching parameter and type
+                self.state_call_check(st)?;
+                // check for enum expression validity and completeness
+                self.enum_expression_check(st)?;
+                Ok(())
             })
-        }))
+        })
+    }))*/
+        Ok(())
         // TODO check for string syntax and interpolation validity
     }
-
 }
 
 
 fn match_parameters(pdef: &[Parameter], pref: &[PValue], identifier: Token) -> Result<()> {
-    if pdef.len() != pref.len() {
-        fail!(
-            identifier,
-            "Error in call to {}, parameter count do not match, expecting {}, you gave {}",
-            identifier,
-            pdef.len(),
-            pref.len()
-        );
-    }
-    pdef.iter()
-        .zip(pref.iter())
-        .map(|(p, v)| p.value_match(v))
-        .collect()
+if pdef.len() != pref.len() {
+fail!(
+    identifier,
+    "Error in call to {}, parameter count do not match, expecting {}, you gave {}",
+    identifier,
+    pdef.len(),
+    pref.len()
+);
+}
+pdef.iter()
+.zip(pref.iter())
+.map(|(p, v)| p.value_match(v))
+.collect()
 }
 

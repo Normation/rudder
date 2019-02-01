@@ -155,9 +155,9 @@ impl Generator for CFEngine {
                     params
                 ));
                 content.push_str("{\n  methods:\n");
-                for st in state.statements.iter() {
+                /*for st in state.statements.iter() {
                     content.push_str(&self.format_statement(gc, st));
-                }
+                }*/
                 content.push_str("}\n");
                 files.insert(sn.file(), content.to_string()); // TODO there is something smelly with this to_string
             }

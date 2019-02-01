@@ -30,9 +30,9 @@ fn main() {
         Err(e) => panic!("There was an error during code insertion:\n{}", e),
         Ok(()) => {}
     };
-    match ast.finalize() {
+    ast = match ast.finalize() {
         Err(e) => panic!("There was an error during code structure check:\n{}", e),
-        Ok(()) => {}
+        Ok(a) => a,
     };
     match ast.analyze() {
         Err(e) => panic!("There was an error during code analyse:\n{}", e),

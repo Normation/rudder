@@ -224,10 +224,10 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    pub fn canonify_expression(
-        &'a self,
-        upper_context: Option<&'a VarContext>,
-        context: &'a VarContext,
+    pub fn canonify_expression<'b>(
+        &'b self,
+        upper_context: Option<&'b VarContext<'a>>,
+        context: &'b VarContext<'a>,
         expr: PEnumExpression<'a>,
     ) -> Result<EnumExpression<'a>> {
         match expr {
