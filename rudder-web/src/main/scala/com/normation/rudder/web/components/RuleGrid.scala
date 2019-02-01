@@ -724,7 +724,7 @@ case class RuleLine (
   /* Would love to have a reflexive way to generate that map ...  */
   override val json  = {
 
-      val reasonField =  reasons.map(r => ( "reasons" -> Str(r)))
+      val reasonField =  reasons.map(r => ( "reasons" -> escapeHTML(r)))
 
       val cbCallbackField = checkboxCallback.map(cb => ( "checkboxCallback" -> cb))
 
