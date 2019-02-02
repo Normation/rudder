@@ -1427,13 +1427,17 @@ function createEventLogTable(gridId, data, contextPath, refresh, pickEventLogsIn
 }
 
 function computeCompliancePercent (complianceArray) {
+  return computeComplianceOK(complianceArray).percent;
+}
+
+function computeComplianceOK (complianceArray) {
   if (Array.isArray(complianceArray)) {
     return {
      percent : complianceArray[1].percent + complianceArray[9].percent + complianceArray[3].percent + complianceArray[2].percent + complianceArray[10].percent
     , number :complianceArray[1].number + complianceArray[9].number + complianceArray[3].number + complianceArray[2].number + complianceArray[10].number
     }
   } else {
-    return 0;
+    return { percent: 0, number: 0};
   }
 }
 /*
@@ -1474,7 +1478,7 @@ function buildComplianceBar(compliance, minPxSize) {
   var auditError           = compliance[12]; // - 2
   var badPolicyMode        = compliance[13]; // - 3
 
-  var okStatus = computeCompliancePercent(compliance)
+  var okStatus = computeComplianceOK(compliance)
   var unexpected =
   { percent : missing.percent + unknown.percent + badPolicyMode.percent
   , number : missing.number + unknown.number + badPolicyMode.number
@@ -1545,7 +1549,7 @@ function buildComplianceBar(compliance, minPxSize) {
     }
     content.append('<div class="progress-bar progress-bar-unknown progress-bar-striped" style="width:'+complianceBars[3].width+'" title="'+text.join("\n")+'">'+complianceBars[3].value+'</div>');
   }
-  
+
   if(pending.number != 0) {
     var tooltip = pending.percent.toFixed(precision);
     content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="width:'+complianceBars[4].width+'" title="Applying: '+tooltip+'%">'+complianceBars[4].value+'</div>');
@@ -1555,7 +1559,7 @@ function buildComplianceBar(compliance, minPxSize) {
     var tooltip = reportsDisabled.percent.toFixed(precision);
     content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+complianceBars[5].width+'" title="Reports Disabled: '+tooltip+'%">'+complianceBars[5].value+'</div>')
   }
-  
+
   if(noreport.number != 0) {
     var tooltip = noreport.percent.toFixed(precision);
     content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+complianceBars[6].width+'" title="No report: '+tooltip+'%">'+complianceBars[6].value+'</div>');
