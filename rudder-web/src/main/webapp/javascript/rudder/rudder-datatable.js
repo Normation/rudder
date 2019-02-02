@@ -1474,6 +1474,10 @@ function createEventLogTable(gridId, data, contextPath, refresh, pickEventLogsIn
 }
 
 function computeCompliancePercent (complianceArray) {
+  return computeComplianceOK(complianceArray).percent;
+}
+
+function computeComplianceOK (complianceArray) {
   if (Array.isArray(complianceArray)) {
     // Enforce N/A (1) + Audit N/A (9) + Repaired (3) + Enforce success (2) + Audit success (10)
     return {
@@ -1481,7 +1485,7 @@ function computeCompliancePercent (complianceArray) {
     , number :complianceArray[1].number + complianceArray[9].number + complianceArray[3].number + complianceArray[2].number + complianceArray[10].number
     }
   } else {
-    return 0;
+    return { percent: 0, number: 0};
   }
 }
 /*
@@ -1527,7 +1531,7 @@ function buildComplianceBar(compliance, minPxSize) {
     var auditError           = compliance[12]; // - 2
     var badPolicyMode        = compliance[13]; // - 3
 
-    var okStatus = computeCompliancePercent(compliance);
+    var okStatus = computeComplianceOK(compliance);
     var unexpected =
     { percent : missing.percent + unknown.percent + badPolicyMode.percent
     , number : missing.number + unknown.number + badPolicyMode.number
@@ -1681,7 +1685,6 @@ function computeSmallBarsSizeAndPercent (compliances, minVal, minPxSize) {
     var compliancePercent = compliance.val;
     // Full compliance value (integer and decimal) we need that to check that we do have a value, we only ignore 0
     var realValue = compliancePercent+ compliance.dec;
-    console.log(compliance);
     if((compliancePercent < minVal) && (realValue > 0 || compliance.number > 0)){
       res.percent += compliancePercent;
       res.pixelSize += minPxSize;
