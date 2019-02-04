@@ -5,7 +5,7 @@ mod parser;
 
 use std::fs;
 use crate::parser::parse_file;
-use crate::ast::AST;
+use crate::ast::{PreAST,AST};
 use crate::ast::generators::*;
 // MAIN
 
@@ -16,7 +16,7 @@ use crate::ast::generators::*;
 // - strings
 
 fn main() {
-    let mut ast = AST::new();
+    let mut pre_ast = PreAST::new();
     let filename = "test.ncf";
     let content = fs::read_to_string(filename).expect(&format!(
         "Something went wrong reading the file {}",
@@ -26,11 +26,11 @@ fn main() {
         Err(e) => panic!("There was an error during parsing:\n{}", e),
         Ok(o) => o,
     };
-    match ast.add_parsed_file(filename, file) {
+    match pre_ast.add_parsed_file(filename, file) {
         Err(e) => panic!("There was an error during code insertion:\n{}", e),
         Ok(()) => {}
     };
-    ast = match ast.finalize() {
+    let ast = match AST::from_pre_ast(pre_ast) {
         Err(e) => panic!("There was an error during code structure check:\n{}", e),
         Ok(a) => a,
     };

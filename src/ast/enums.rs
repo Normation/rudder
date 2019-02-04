@@ -60,6 +60,10 @@ impl<'a> EnumList<'a> {
         }
     }
 
+    pub fn exists(&self, e: Token<'a>) -> bool {
+        self.enums.contains_key(&e)
+    }
+
     // panic if the enum doesn't exist
     pub fn is_global(&self, e: Token<'a>) -> bool {
         self.enums[&e].0

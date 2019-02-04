@@ -1,6 +1,6 @@
 mod context;
 mod enums;
-pub  mod generators;
+pub mod generators;
 //mod strings;
 
 ///
@@ -20,12 +20,25 @@ use std::collections::HashMap;
 // TODO out of order enum mapping definition
 
 #[derive(Debug)]
+pub struct PreAST<'a> {
+    enum_list: EnumList<'a>,
+    enum_mapping: Vec<PEnumMapping<'a>>,// TODO Medatata
+    pre_resources: HashMap<Token<'a>, PreResources<'a>>,
+    variables: VarContext<'a>,
+}
+#[derive(Debug)]
 pub struct AST<'a> {
-    enum_list: EnumList<'a>, //TODO Alt<HashMap,EnumList>
+    enum_list: EnumList<'a>,
     resources: HashMap<Token<'a>, Resources<'a>>,
     variables: VarContext<'a>,
 }
 
+#[derive(Debug)]
+struct PreResources<'a> {
+    metadata: HashMap<Token<'a>, PValue<'a>>,
+    parameters: Vec<Parameter<'a>>,
+    pre_states: Vec<(HashMap<Token<'a>, PValue<'a>>, PStateDef<'a>)>,
+}
 #[derive(Debug)]
 struct Resources<'a> {
     metadata: HashMap<Token<'a>, PValue<'a>>,
@@ -34,37 +47,11 @@ struct Resources<'a> {
     //TODO child: HashSet<Token>
 }
 
-// Represents 2 alternative data structure types
-// This is meant to hold in the same structure the data before and after it has been processed.
-// Once the data is in the second state, there is no reason to go back to first state
-#[derive(Debug)]
-enum Alt<T,U> {
-    // Fist state (usually before calling finalize)
-    Temporary(T),
-    // Second state (usually after calling finalize)
-    Final(U),
-}
-
-impl <T,U> Alt<T,U> {
-    fn temporary(&mut self) -> &mut T {
-        match self {
-            Alt::Temporary(t) => t,
-            _ => panic!("BUG! You must call temporary on a Temporary Alt"),
-        }
-    }
-    fn get_final(&self) -> &U {
-        match self {
-            Alt::Final(u) => u,
-            _ => panic!("BUG! You must get final on a Final Alt"),
-        }
-    }
-}
-
 #[derive(Debug)]
 struct StateDef<'a> {
     metadata: HashMap<Token<'a>, PValue<'a>>,
     parameters: Vec<Parameter<'a>>,
-    statements: Alt<Vec<PStatement<'a>>,Vec<Statement<'a>>>,
+    statements: Vec<Statement<'a>>,
     variables: VarContext<'a>,
 }
 
@@ -161,11 +148,12 @@ impl<'a> Statement<'a> {
 // TODO analyse Resource tree (and disable recursion)
 // TODO default must be the last entry in a case
 
-impl<'a> AST<'a> {
-    pub fn new() -> AST<'static> {
-        AST {
+impl<'a> PreAST<'a> {
+    pub fn new() -> PreAST<'static> {
+        PreAST {
             enum_list: EnumList::new(),
-            resources: HashMap::new(),
+            enum_mapping: Vec::new(),
+            pre_resources: HashMap::new(),
             variables: VarContext::new(),
         }
     }
@@ -210,41 +198,26 @@ impl<'a> AST<'a> {
                     current_metadata.insert(m.key, m.value);
                 }
                 PDeclaration::Resource(rd) => {
-                    if self.resources.contains_key(&rd.name) {
+                    if self.pre_resources.contains_key(&rd.name) {
                         fail!(
                             rd.name,
                             "Resource {} has already been defined in {}",
                             rd.name,
-                            self.resources.entry(rd.name).key()
+                            self.pre_resources.entry(rd.name).key()
                         );
                     }
-                    let resource = Resources {
+                    let resource = PreResources {
                         metadata: current_metadata.drain().collect(), // Move the content without moving the structure
                         parameters: rd.parameters.into_iter().map(Parameter::new).collect(),
-                        states: HashMap::new(),
+                        pre_states: Vec::new(),
                     };
-                    self.resources.insert(rd.name, resource);
+                    self.pre_resources.insert(rd.name, resource);
                     // Reset metadata
                     current_metadata = HashMap::new();
                 }
                 PDeclaration::State(st) => {
-                    if let Some(rd) = self.resources.get_mut(&st.resource_name) {
-                        if rd.states.contains_key(&st.name) {
-                            fail!(
-                                st.name,
-                                "State {} for resource {} has already been defined in {}",
-                                st.name,
-                                st.resource_name,
-                                rd.states.entry(st.name).key()
-                            );
-                        }
-                        let state = StateDef {
-                            metadata: current_metadata.drain().collect(), // Move the content without moving the structure
-                            parameters: st.parameters.into_iter().map(Parameter::new).collect(),
-                            statements: Alt::Temporary(st.statements),
-                            variables: VarContext::new(),
-                        };
-                        rd.states.insert(st.name, state);
+                    if let Some(rd) = self.pre_resources.get_mut(&st.resource_name) {
+                        rd.pre_states.push((current_metadata.drain().collect(), st));
                         // Reset metadata
                         current_metadata = HashMap::new();
                     } else {
@@ -266,8 +239,7 @@ impl<'a> AST<'a> {
                     current_metadata = HashMap::new();
                 }
                 PDeclaration::Mapping(em) => {
-                    // TODO add a global variable for global mapping
-                    self.enum_list.add_mapping(em)?;
+                    self.enum_mapping.push(em);
                     // Discard metadata
                     // TODO warn if there is some ignored metadata
                     current_metadata = HashMap::new();
@@ -276,24 +248,70 @@ impl<'a> AST<'a> {
             Ok(())
         }))
     }
+}
 
+impl<'a> AST<'a> {
     /// Produce the final AST data structure.
     /// Call this when all files have been added.
     /// This does everything that could not be done with partial data (ex: global binding)
-    pub fn finalize(self) -> Result<Self> {
-        let AST { enum_list, mut resources, variables } = self;
-         fix_results(resources.iter_mut().flat_map(|(_rn, resource)| {
-            resource.states.iter_mut().map(|(_sn, state)| {
-                let sts: Vec<PStatement> = state.statements.temporary().drain(..).collect(); // copy of the temporary vector to work around mut borrowing
-                state.statements = Alt::Final(
-                    fix_vec_results(sts.into_iter().map(|st| {
-                        Statement::fom_pstatement(&enum_list, Some(&variables), &state.variables, st)
-                    }))?
-                );
+    pub fn from_pre_ast(pre_ast: PreAST<'a>) -> Result<AST<'a>> {
+        let PreAST { mut enum_list, mut enum_mapping, pre_resources, variables: global_variables } = pre_ast;
+        // fill enum_list iteratively
+        let mut map_count = enum_mapping.len();
+        loop {
+            let mut new_enum_mapping = Vec::new();
+            fix_results(enum_mapping.into_iter().map(|em| {
+                if enum_list.exists(em.from) {
+                    enum_list.add_mapping(em)?;
+                } else {
+                    new_enum_mapping.push(em);
+                }
                 Ok(())
-            })
+            }))?;
+            if new_enum_mapping.is_empty() {
+                break;
+            } else if map_count == new_enum_mapping.len() {
+                fix_results(new_enum_mapping.iter().map(|em|
+                    fail!(em.to, "Enum {} doesn't exist when trying to define mapping {}", em.from, em.to)
+                ))?;
+            }
+            enum_mapping = new_enum_mapping;
+        }
+        // create new resources struct
+        let mut resources = HashMap::new();
+        fix_results(pre_resources.into_iter().map(|(rn,rd)| {
+            let PreResources { metadata, parameters, pre_states } = rd;
+            let mut states = HashMap::new();
+            // insert resource states
+            fix_results(pre_states.into_iter().map(|(meta,st)| {
+                if states.contains_key(&st.name) {
+                    fail!(  st.name,
+                            "State {} for resource {} has already been defined in {}",
+                            st.name,
+                            st.resource_name,
+                            states.entry(st.name).key()
+                    );
+                } else {
+                    let mut variables = VarContext::new();
+                    let statements = fix_vec_results(st.statements.into_iter().map(|st0| {
+                        Statement::fom_pstatement(&enum_list, Some(&global_variables), &variables, st0)
+                    }))?;
+                    let state = StateDef {
+                        metadata: meta,
+                        parameters: st.parameters.into_iter().map(Parameter::new).collect(),
+                        statements,
+                        variables,
+                    };
+                    states.insert(st.name, state);
+                }
+                Ok(())
+            }))?;
+            let resource = Resources { metadata, parameters, states };
+            resources.insert(rn,resource);
+            Ok(())
         }))?;
-        Ok(AST { enum_list, resources, variables })
+
+        Ok(AST { enum_list, resources, variables: global_variables })
     }
 
     fn state_call_check(&self, statement: &PStatement) -> Result<()> {
