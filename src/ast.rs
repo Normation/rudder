@@ -21,7 +21,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct AST<'a> {
-    enumlist: EnumList<'a>, //TODO Alt<HashMap,EnumList>
+    enum_list: EnumList<'a>, //TODO Alt<HashMap,EnumList>
     resources: HashMap<Token<'a>, Resources<'a>>,
     variables: VarContext<'a>,
 }
@@ -94,9 +94,9 @@ impl<'a> Parameter<'a> {
 impl<'a> AST<'a> {
     pub fn new() -> AST<'static> {
         AST {
-            enumlist: EnumList::new(),
+            enum_list: EnumList::new(),
             resources: HashMap::new(),
-            variables: VarContext::new_global(),
+            variables: VarContext::new(),
         }
     }
 
@@ -187,16 +187,16 @@ impl<'a> AST<'a> {
                 }
                 PDeclaration::Enum(e) => {
                     if e.global {
-                        self.variables.new_enum_variable(e.name, e.name, None)?;
+                        self.variables.new_enum_variable(None, e.name, e.name, None)?;
                     }
-                    self.enumlist.add_enum(e)?;
+                    self.enum_list.add_enum(e)?;
                     // Discard metadata
                     // TODO warn if there is some ignored metadata
                     current_metadata = HashMap::new();
                 }
                 PDeclaration::Mapping(em) => {
                     // TODO add a global variable for global mapping
-                    self.enumlist.add_mapping(em)?;
+                    self.enum_list.add_mapping(em)?;
                     // Discard metadata
                     // TODO warn if there is some ignored metadata
                     current_metadata = HashMap::new();
@@ -253,10 +253,10 @@ impl<'a> AST<'a> {
             PStatement::Case(cases) => {
                 let exp_list = cases
                     .iter()
-                    .map(|(cond, _)| self.enumlist.canonify_expression(&self.variables, cond))
+                    .map(|(cond, _)| self.enum_list.canonify_expression(Some(&self.variables), &self.variables, cond))
                     .collect::<Result<Vec<_>>>()?;
-                self.enumlist
-                    .evaluate(&self.variables, &exp_list, Token::new("", ""))?; // TODO no local context ?
+                self.enum_list
+                    .evaluate(None, &self.variables, &exp_list, Token::new("", ""))?; // TODO no local context ?
                                                                                // TODO local token
             }
             _ => {}
