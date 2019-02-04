@@ -1,3 +1,11 @@
 #!/bin/bash
 
 find . -name '*.py' | xargs python2 -m pylint -E --disable=C,R --persistent=n
+
+# check exec rights for hooks
+[ -x rudder-core/src/main/resources/hooks.d/node-post-deletion/10-clean-policies ] || exit 1
+[ -x rudder-core/src/main/resources/hooks.d/policy-generation-finished/50-reload-policy-file-server ] || exit 1
+[ -x rudder-core/src/main/resources/hooks.d/policy-generation-node-ready/10-cf-promise-check ] || exit 1
+[ -x rudder-core/src/main/resources/hooks.d/policy-generation-node-ready/90-change-perm ] || exit 1
+
+
