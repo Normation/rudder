@@ -249,18 +249,18 @@ impl<'a> AST<'a> {
     }
 
     fn enum_expression_check(&self, statement: &PStatement) -> Result<()> {
-        match statement {
+        /*match statement {
             PStatement::Case(cases) => {
                 let exp_list = cases
                     .iter()
-                    .map(|(cond, _)| self.enum_list.canonify_expression(Some(&self.variables), &self.variables, cond))
+                    .map(|(cond, _)| self.enum_list.canonify_expression(Some(&self.variables), &self.variables, *cond.clone()))
                     .collect::<Result<Vec<_>>>()?;
                 self.enum_list
                     .evaluate(None, &self.variables, &exp_list, Token::new("", ""))?; // TODO no local context ?
                                                                                // TODO local token
             }
             _ => {}
-        }
+        }*/
         Ok(())
     }
 
