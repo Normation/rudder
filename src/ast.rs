@@ -1,5 +1,6 @@
 mod context;
 mod enums;
+mod preast;
 pub mod generators;
 //mod strings;
 
@@ -16,16 +17,11 @@ use self::enums::{EnumList,EnumExpression};
 use crate::error::*;
 use crate::parser::*;
 use std::collections::HashMap;
+use self::preast::PreResources;
+pub use self::preast::PreAST;
 
 // TODO out of order enum mapping definition
 
-#[derive(Debug)]
-pub struct PreAST<'a> {
-    enum_list: EnumList<'a>,
-    enum_mapping: Vec<PEnumMapping<'a>>,// TODO Medatata
-    pre_resources: HashMap<Token<'a>, PreResources<'a>>,
-    variables: VarContext<'a>,
-}
 #[derive(Debug)]
 pub struct AST<'a> {
     enum_list: EnumList<'a>,
@@ -33,12 +29,6 @@ pub struct AST<'a> {
     variables: VarContext<'a>,
 }
 
-#[derive(Debug)]
-struct PreResources<'a> {
-    metadata: HashMap<Token<'a>, PValue<'a>>,
-    parameters: Vec<Parameter<'a>>,
-    pre_states: Vec<(HashMap<Token<'a>, PValue<'a>>, PStateDef<'a>)>,
-}
 #[derive(Debug)]
 struct Resources<'a> {
     metadata: HashMap<Token<'a>, PValue<'a>>,
@@ -56,10 +46,10 @@ struct StateDef<'a> {
 }
 
 #[derive(Debug)]
-struct Parameter<'a> {
-    pub name: Token<'a>,
-    pub ptype: PType,
-    pub default: Option<PValue<'a>>,
+pub struct Parameter<'a> {
+    name: Token<'a>,
+    ptype: PType,
+    default: Option<PValue<'a>>,
 }
 impl<'a> Parameter<'a> {
     fn new(p: PParameter<'a>) -> Parameter<'a> {
@@ -148,107 +138,6 @@ impl<'a> Statement<'a> {
 // TODO analyse Resource tree (and disable recursion)
 // TODO default must be the last entry in a case
 
-impl<'a> PreAST<'a> {
-    pub fn new() -> PreAST<'static> {
-        PreAST {
-            enum_list: EnumList::new(),
-            enum_mapping: Vec::new(),
-            pre_resources: HashMap::new(),
-            variables: VarContext::new(),
-        }
-    }
-
-    /// Add a file parsed with the top level parser.
-    /// Call this once for each file before calling finalize.
-    pub fn add_parsed_file(&mut self, filename: &'a str, file: PFile<'a>) -> Result<()> {
-        if file.header.version != 0 {
-            panic!("Multiple format not supported yet");
-        }
-        let mut current_metadata: HashMap<Token<'a>, PValue<'a>> = HashMap::new();
-        fix_results(file.code.into_iter().map(|decl| {
-            match decl {
-                PDeclaration::Comment(c) => {
-                    // comment are concatenated and are considered metadata
-                    if current_metadata.contains_key(&Token::new("comment", filename)) {
-                        current_metadata
-                            .entry(Token::new("comment", filename))
-                            .and_modify(|e| {
-                                *e = match e {
-                                    PValue::String(st) => PValue::String(st.to_string() + c),
-                                    _ => panic!("Comment is not a string, this should not happen"),
-                                }
-                            });
-                    } else {
-                        current_metadata.insert("comment".into(), PValue::String(c.to_string()));
-                    }
-                }
-                PDeclaration::Metadata(m) => {
-                    // metadata must not be called "comment"
-                    if m.key == Token::from("comment") {
-                        fail!(m.key, "Metadata name '{}' is forbidden", m.key);
-                    }
-                    if current_metadata.contains_key(&m.key) {
-                        fail!(
-                            m.key,
-                            "Metadata name '{}' is already defined at {}",
-                            m.key,
-                            current_metadata.entry(m.key).key()
-                        );
-                    }
-                    current_metadata.insert(m.key, m.value);
-                }
-                PDeclaration::Resource(rd) => {
-                    if self.pre_resources.contains_key(&rd.name) {
-                        fail!(
-                            rd.name,
-                            "Resource {} has already been defined in {}",
-                            rd.name,
-                            self.pre_resources.entry(rd.name).key()
-                        );
-                    }
-                    let resource = PreResources {
-                        metadata: current_metadata.drain().collect(), // Move the content without moving the structure
-                        parameters: rd.parameters.into_iter().map(Parameter::new).collect(),
-                        pre_states: Vec::new(),
-                    };
-                    self.pre_resources.insert(rd.name, resource);
-                    // Reset metadata
-                    current_metadata = HashMap::new();
-                }
-                PDeclaration::State(st) => {
-                    if let Some(rd) = self.pre_resources.get_mut(&st.resource_name) {
-                        rd.pre_states.push((current_metadata.drain().collect(), st));
-                        // Reset metadata
-                        current_metadata = HashMap::new();
-                    } else {
-                        fail!(
-                            st.resource_name,
-                            "Resource {} has not been defined for {}",
-                            st.resource_name,
-                            st.name
-                        );
-                    }
-                }
-                PDeclaration::Enum(e) => {
-                    if e.global {
-                        self.variables.new_enum_variable(None, e.name, e.name, None)?;
-                    }
-                    self.enum_list.add_enum(e)?;
-                    // Discard metadata
-                    // TODO warn if there is some ignored metadata
-                    current_metadata = HashMap::new();
-                }
-                PDeclaration::Mapping(em) => {
-                    self.enum_mapping.push(em);
-                    // Discard metadata
-                    // TODO warn if there is some ignored metadata
-                    current_metadata = HashMap::new();
-                }
-            };
-            Ok(())
-        }))
-    }
-}
 
 impl<'a> AST<'a> {
     /// Produce the final AST data structure.
@@ -314,9 +203,9 @@ impl<'a> AST<'a> {
         Ok(AST { enum_list, resources, variables: global_variables })
     }
 
-    fn state_call_check(&self, statement: &PStatement) -> Result<()> {
-        /*match statement {
-            PStatement::StateCall(_out, _mode, res, name, params) => {
+    fn binding_check(&self, statement: &Statement) -> Result<()> {
+        match statement {
+            Statement::StateCall(_out, _mode, res, name, params) => {
                 match self.resources.get(&res.name) {
                     None => fail!(res.name, "Resource type {} does not exist", res.name),
                     Some(resource) => {
@@ -331,30 +220,29 @@ impl<'a> AST<'a> {
                             ),
                             Some(state) => {
                                 // Assume default parameter replacement and type inference if any has already be done
-                                match_parameters(&state.parameters, &params, *name)?;
+                                match_parameters(&state.parameters, &params, *name)
                             }
                         }
                     }
                 }
-            }
-        }*/
-        Ok(())
+            },
+            _ => Ok(()),
+        }
     }
 
     pub fn analyze(&self) -> Result<()> {
-        /*fix_results(self.resources.iter().flat_map(|(_rn, resource)| {
-        resource.states.iter().flat_map(|(_sn, state)| {
-            state.statements.get_final().iter().map(|st| {
-                // check for resources and state existence
-                // check for matching parameter and type
-                self.state_call_check(st)?;
-                // check for enum expression validity and completeness
-                self.enum_expression_check(st)?;
-                Ok(())
+        fix_results(self.resources.iter().flat_map(|(_rn, resource)| {
+            resource.states.iter().flat_map(|(_sn, state)| {
+                state.statements.iter().map(|st| {
+                    // check for resources and state existence
+                    // check for matching parameter and type
+                    self.binding_check(st)?;
+                    //TODO check for enum expression validity
+                    //self.enum_expression_check(st)?;
+                    Ok(())
+                })
             })
-        })
-    }))*/
-        Ok(())
+        }))
         // TODO check for string syntax and interpolation validity
     }
 }
