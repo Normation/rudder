@@ -13,6 +13,8 @@ resource ntp ()
 
 ntp state configuration ()
 {
+  file("/tmp").permissions("root", "root", "g+w")
+
   case {
     ubuntu => file("/tmp").permissions("root", "root", "g+w"),
     debian => file("/tmp").permissions("user", "user", "g+w")

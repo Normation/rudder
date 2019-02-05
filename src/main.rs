@@ -3,14 +3,13 @@ mod error;
 mod ast;
 mod parser;
 
-use std::fs;
-use crate::parser::parse_file;
-use crate::ast::{PreAST,AST};
 use crate::ast::generators::*;
+use crate::ast::{PreAST, AST};
+use crate::parser::parse_file;
+use std::fs;
 // MAIN
 
 // TODO next step:
-// - Alt + finalize
 // - outcome
 // - cfengine cases
 // - strings

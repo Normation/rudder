@@ -5,11 +5,10 @@ use crate::error::*;
 use crate::parser::*;
 use std::collections::HashMap;
 
-
 #[derive(Debug)]
 pub struct PreAST<'a> {
     pub enum_list: EnumList<'a>,
-    pub enum_mapping: Vec<PEnumMapping<'a>>,// TODO Medatata
+    pub enum_mapping: Vec<PEnumMapping<'a>>, // TODO Medatata
     pub pre_resources: HashMap<Token<'a>, PreResources<'a>>,
     pub variables: VarContext<'a>,
 }
@@ -104,7 +103,8 @@ impl<'a> PreAST<'a> {
                 }
                 PDeclaration::Enum(e) => {
                     if e.global {
-                        self.variables.new_enum_variable(None, e.name, e.name, None)?;
+                        self.variables
+                            .new_enum_variable(None, e.name, e.name, None)?;
                     }
                     self.enum_list.add_enum(e)?;
                     // Discard metadata

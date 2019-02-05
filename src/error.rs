@@ -9,7 +9,6 @@
 /// - Compilation error: usually we can skip what we are doing and go to next iteration
 /// - List: aggregate compilation errors so that user can fix them all ant once
 ///
-
 use std::fmt;
 
 #[derive(Debug, PartialEq)]
@@ -43,8 +42,8 @@ macro_rules! fail {
 /// This is useful to aggregate and give the proper output type to rRsults given by map.
 /// Only support Result<()>, because it throws out Ok cases
 pub fn fix_results<I>(res: I) -> Result<()>
-    where
-        I: Iterator<Item = Result<()>>,
+where
+    I: Iterator<Item = Result<()>>,
 {
     let err_list = res.filter_map(|r| r.err()).collect::<Vec<Error>>();
     if err_list.is_empty() {
@@ -54,15 +53,17 @@ pub fn fix_results<I>(res: I) -> Result<()>
     }
 }
 /// Same a fix_results but knows how to extract a vector of values from the result list
-pub fn fix_vec_results<I,T>(res: I) -> Result<Vec<T>>
-    where
-        I: Iterator<Item = Result<T>>,
+pub fn fix_vec_results<I, T>(res: I) -> Result<Vec<T>>
+where
+    I: Iterator<Item = Result<T>>,
 {
-    let (vals,errs): (Vec<Result<T>>,Vec<Result<T>>) = res.partition(|r| r.is_ok());
+    let (vals, errs): (Vec<Result<T>>, Vec<Result<T>>) = res.partition(|r| r.is_ok());
     if errs.is_empty() {
         Ok(vals.into_iter().map(|r| r.unwrap()).collect())
     } else {
-        Err(Error::List(errs.into_iter().map(|r| r.err().unwrap()).collect()))
+        Err(Error::List(
+            errs.into_iter().map(|r| r.err().unwrap()).collect(),
+        ))
     }
 }
 

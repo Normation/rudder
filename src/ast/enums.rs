@@ -1,4 +1,5 @@
 use super::context::{VarContext, VarKind};
+use super::Statement;
 use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
 use std::collections::hash_set::Iter;
@@ -408,24 +409,24 @@ impl<'a> EnumList<'a> {
         &self,
         upper_context: Option<&'a VarContext>,
         context: &'a VarContext<'a>,
-        expressions: &[EnumExpression],
-        case: Token<'a>,
+        cases: &Vec<(EnumExpression<'a>, Vec<Statement<'a>>)>,
+        case_name: Token<'a>,
     ) -> Result<()> {
         let mut variables = HashMap::new();
-        expressions
+        cases
             .iter()
-            .for_each(|e| self.list_variable_enum(&mut variables, &e));
+            .for_each(|(e, _)| self.list_variable_enum(&mut variables, &e));
         let it = ContextIterator::new(self, upper_context, context, variables);
         fix_results(it.map(|values| {
-            let mut matched_exp = expressions.iter().filter(|e| self.eval(&values, e));
+            let mut matched_exp = cases.iter().filter(|(e,_)| self.eval(&values, e));
             match matched_exp.next() {
                 // Missing case
-                None => fail!(case, "Missing case in {}, '{}' is never processed", case, self.describe(&values)),
-                Some(e1) => match matched_exp.next() {
+                None => fail!(case_name, "Missing case in {}, '{}' is never processed", case_name, self.describe(&values)),
+                Some((e1,_)) => match matched_exp.next() {
                     // Single matching case
                     None => Ok(()),
                     // Overlapping cases
-                    Some(e2) => fail!(case,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(&values)),
+                    Some((e2,_)) => fail!(case_name,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(&values)),
                 },
             }
         }))
@@ -797,7 +798,7 @@ mod tests {
         let mut exprs = Vec::new();
 
         let ex = parse_enum_expression("family:debian || family:redhat");
-        exprs.push(e.canonify_expression(None, &c, ex).unwrap());
+        exprs.push((e.canonify_expression(None, &c, ex).unwrap(), Vec::new()));
         let result = e.evaluate(None, &c, &exprs, case);
         assert!(result.is_err());
         if let Error::List(errs) = result.unwrap_err() {
@@ -805,11 +806,11 @@ mod tests {
         }
 
         let ex = parse_enum_expression("os:aix");
-        exprs.push(e.canonify_expression(None, &c, ex).unwrap());
+        exprs.push((e.canonify_expression(None, &c, ex).unwrap(), Vec::new()));
         assert_eq!(e.evaluate(None, &c, &exprs, case), Ok(()));
 
         let ex = parse_enum_expression(" family:redhat");
-        exprs.push(e.canonify_expression(None, &c, ex).unwrap());
+        exprs.push((e.canonify_expression(None, &c, ex).unwrap(), Vec::new()));
         let result = e.evaluate(None, &c, &exprs, case);
         assert!(result.is_err());
         if let Error::List(errs) = result.unwrap_err() {

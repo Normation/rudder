@@ -1,5 +1,5 @@
+use super::super::*;
 use super::Generator;
-use super::super::AST;
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -8,13 +8,12 @@ use std::io::Write;
 use crate::error::*;
 use crate::parser::*;
 
-
 pub struct CFEngine {
     current_cases: Vec<String>, //TODO
     // match enum variables with class prefixes
-    var_prefixes: HashMap<String,String>,
+    var_prefixes: HashMap<String, String>,
     // already used class prefix
-    prefixes: HashMap<String,u32>,
+    prefixes: HashMap<String, u32>,
 }
 
 impl CFEngine {
@@ -46,49 +45,57 @@ impl CFEngine {
         }
     }
 
-    fn format_case(&mut self, gc: &AST, case: &PEnumExpression) -> String {
+    fn format_case(&mut self, gc: &AST, case: &EnumExpression) -> String {
         let expr = self.format_case_expr(gc, case);
-        let result = format!("    {}::\n",&expr);
+        let result = format!("    {}::\n", &expr);
         self.current_cases.push(expr);
         result
     }
-    fn format_case_expr(&mut self, gc: &AST, case: &PEnumExpression) -> String {
+    fn format_case_expr(&mut self, gc: &AST, case: &EnumExpression) -> String {
         match case {
-            PEnumExpression::And(e1, e2) => format!("({}).({})", self.format_case_expr(gc,e1), self.format_case_expr(gc,e2)),
-            PEnumExpression::Or(e1, e2) => format!("({})|({})", self.format_case_expr(gc,e1), self.format_case_expr(gc,e2)),
-            PEnumExpression::Not(e1) => format!("!({})", self.format_case_expr(gc,e1)),
-            PEnumExpression::Compare(var, e, item) => {
+            EnumExpression::And(e1, e2) => format!(
+                "({}).({})",
+                self.format_case_expr(gc, e1),
+                self.format_case_expr(gc, e2)
+            ),
+            EnumExpression::Or(e1, e2) => format!(
+                "({})|({})",
+                self.format_case_expr(gc, e1),
+                self.format_case_expr(gc, e2)
+            ),
+            EnumExpression::Not(e1) => format!("!({})", self.format_case_expr(gc, e1)),
+            EnumExpression::Compare(var, e, item) => {
                 "TODO".to_string()
-//                let e1 = e.unwrap();
-//                if gc.enumlist.is_global(e1) {
-//                    // find global class with exception
-//                    "TODO".to_string()
-//                } else {
-//                    // concat var name + item
-//                    let prefix = self.prefixes[var.unwrap().fragment()];
-//                    // TODO there may still be some conflicts with var or enum containing '_'
-//                    format!("{}_{}_{}", prefix, e1.fragment(), item.fragment())
-//                }
-            },
-            PEnumExpression::Default => {
+                //                let e1 = e.unwrap();
+                //                if gc.enumlist.is_global(e1) {
+                //                    // find global class with exception
+                //                    "TODO".to_string()
+                //                } else {
+                //                    // concat var name + item
+                //                    let prefix = self.prefixes[var.unwrap().fragment()];
+                //                    // TODO there may still be some conflicts with var or enum containing '_'
+                //                    format!("{}_{}_{}", prefix, e1.fragment(), item.fragment())
+                //                }
+            }
+            EnumExpression::Default => {
                 // extract current cases and build an opposite expression
                 if self.current_cases.is_empty() {
                     "any".to_string()
                 } else {
                     self.current_cases
                         .iter()
-                        .map(|x| format!("!({})",x))
+                        .map(|x| format!("!({})", x))
                         .collect::<Vec<_>>()
                         .join(".")
                 }
-            },
+            }
         }
     }
 
     // TODO underscore escapement
-    fn format_statement(&mut self, gc: &AST, st: &PStatement) -> String {
+    fn format_statement(&mut self, gc: &AST, st: &Statement) -> String {
         match st {
-            PStatement::StateCall(out, mode, res, call, params) => {
+            Statement::StateCall(out, mode, res, call, params) => {
                 if let Some(var) = out {
                     self.new_var(var);
                 }
@@ -106,10 +113,10 @@ impl CFEngine {
                     call.fragment(),
                     param_str
                 )
-            },
-            PStatement::Case(vec) => {
+            }
+            Statement::Case(vec) => {
                 self.reset_cases();
-                vec .iter()
+                vec.iter()
                     .map(|(case, vst)| {
                         format!(
                             "{}{}",
@@ -122,7 +129,7 @@ impl CFEngine {
                     })
                     .collect::<Vec<String>>()
                     .join("")
-            },
+            }
             _ => String::new(), // TODO ?
         }
     }
@@ -130,7 +137,9 @@ impl CFEngine {
 
 impl Generator for CFEngine {
     // TODO generate only one file
-    fn generate_one(&mut self, gc: &AST, file: &str) -> Result<()> { Ok(()) }
+    fn generate_one(&mut self, gc: &AST, file: &str) -> Result<()> {
+        Ok(())
+    }
 
     fn generate_all(&mut self, gc: &AST) -> Result<()> {
         let mut files: HashMap<&str, String> = HashMap::new();
@@ -155,9 +164,9 @@ impl Generator for CFEngine {
                     params
                 ));
                 content.push_str("{\n  methods:\n");
-                /*for st in state.statements.iter() {
+                for st in state.statements.iter() {
                     content.push_str(&self.format_statement(gc, st));
-                }*/
+                }
                 content.push_str("}\n");
                 files.insert(sn.file(), content.to_string()); // TODO there is something smelly with this to_string
             }

@@ -70,9 +70,14 @@ impl<'a> VarContext<'a> {
     }
 
     // return a copy to avoid reference lifetime problem later
-    pub fn get_variable(&self, upper_context: Option<&VarContext<'a>>, name: Token<'a>) -> Option<VarKind<'a>> {
+    pub fn get_variable(
+        &self,
+        upper_context: Option<&VarContext<'a>>,
+        name: Token<'a>,
+    ) -> Option<VarKind<'a>> {
         self.variables
-            .get(&name).cloned()
+            .get(&name)
+            .cloned()
             .or_else(|| match upper_context {
                 None => None,
                 Some(gc) => gc.get_variable(None, name),
@@ -109,7 +114,12 @@ mod tests {
             .new_enum_variable(Some(&gc), ident("var3"), ident("enum2"), None)
             .is_ok());
         assert!(c
-            .new_enum_variable(Some(&gc), ident("var4"), ident("enum1"), Some(ident("ubuntu")))
+            .new_enum_variable(
+                Some(&gc),
+                ident("var4"),
+                ident("enum1"),
+                Some(ident("ubuntu"))
+            )
             .is_ok());
 
         assert_eq!(
