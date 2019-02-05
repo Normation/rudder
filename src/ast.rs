@@ -83,14 +83,15 @@ impl<'a> Parameter<'a> {
 }
 
 #[derive(Debug)]
-enum Statement<'a> {
+pub enum Statement<'a> {
     Comment(PComment<'a>),
+    VariableDefinition(Token<'a>, PValue<'a>), // TODO value
     StateCall(
-        Option<Token<'a>>, // outcome
         PCallMode,         // mode
         PResourceRef<'a>,  // resource
         Token<'a>,         // state name
         Vec<PValue<'a>>,   // parameters
+        Option<Token<'a>>, // outcome
     ),
     //   list of condition          then
     Case(Vec<(EnumExpression<'a>, Vec<Statement<'a>>)>),
@@ -107,13 +108,21 @@ impl<'a> Statement<'a> {
     fn fom_pstatement<'b>(
         enum_list: &'b EnumList<'a>,
         gc: Option<&'b VarContext<'a>>,
-        c: &'b VarContext<'a>,
+        c: &'b mut VarContext<'a>,
         st: PStatement<'a>,
     ) -> Result<Statement<'a>> {
         Ok(match st {
             PStatement::Comment(c) => Statement::Comment(c),
-            PStatement::StateCall(out, mode, res, st, params) => {
-                Statement::StateCall(out, mode, res, st, params)
+            PStatement::VariableDefinition(var,val) => {
+                // TODO c.insert_var(var,val)
+                Statement::VariableDefinition(var,val)
+            },
+            PStatement::StateCall(mode, res, st, params, out) => {
+                if let Some(out_var) = out {
+                    // outcome must be defined, token comes from internal compilation, no value known a compile time
+                    c.new_enum_variable(gc, out_var, Token::new("internal","outcome"), None);
+                }
+                Statement::StateCall(mode, res, st, params, out)
             }
             PStatement::Fail(f) => Statement::Fail(f),
             PStatement::Log(l) => Statement::Log(l),
@@ -204,7 +213,7 @@ impl<'a> AST<'a> {
                         Statement::fom_pstatement(
                             &enum_list,
                             Some(&global_variables),
-                            &variables,
+                            &mut variables,
                             st0,
                         )
                     }))?;
@@ -236,7 +245,7 @@ impl<'a> AST<'a> {
 
     fn binding_check(&self, statement: &Statement) -> Result<()> {
         match statement {
-            Statement::StateCall(_out, _mode, res, name, params) => {
+            Statement::StateCall(_mode, res, name, params, _out) => {
                 match self.resources.get(&res.name) {
                     None => fail!(res.name, "Resource type {} does not exist", res.name),
                     Some(resource) => {

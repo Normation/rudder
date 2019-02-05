@@ -6,13 +6,17 @@ use std::collections::hash_set::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+// TODO there can be only one mapping per item that defines an identical descendant
+
 // As single enum can be derived into different set through multiple mappings
 // However a single enum can have only one parent
 #[derive(Debug)]
 pub struct EnumList<'a> {
     // Map an enum name to another one which has a derived definition
-    //                    to         from
-    mapping_path: HashMap<Token<'a>, Token<'a>>,
+    //                            to         from
+    reverse_mapping_path: HashMap<Token<'a>, Token<'a>>,
+    //                           from       to
+    direct_mapping_path: HashMap<Token<'a>, Vec<Token<'a>>>,
     // Map an enum content to another one
     //         enum    from       to          mapping from       to
     mappings: HashMap<(Token<'a>, Token<'a>), HashMap<Token<'a>, Token<'a>>>,
@@ -54,7 +58,8 @@ impl<'a> EnumList<'a> {
     // Constructor
     pub fn new() -> EnumList<'static> {
         EnumList {
-            mapping_path: HashMap::new(),
+            reverse_mapping_path: HashMap::new(),
+            direct_mapping_path: HashMap::new(),
             mappings: HashMap::new(),
             enums: HashMap::new(),
             global_values: HashMap::new(),
@@ -92,7 +97,7 @@ impl<'a> EnumList<'a> {
                 e.name
             );
         }
-        let parent_enum = self.mapping_path.get(&e.name);
+        let parent_enum = self.reverse_mapping_path.get(&e.name);
         for v in &e.items {
             // Check for local uniqueness (not for mapping)
             if list.contains(v) && parent_enum.is_none() {
@@ -177,7 +182,12 @@ impl<'a> EnumList<'a> {
                         ),
                     }
                 }
-                self.mapping_path.insert(e.to, e.from);
+                self.reverse_mapping_path.insert(e.to, e.from);
+                if self.direct_mapping_path.contains_key(&e.from) {
+                    self.direct_mapping_path.get_mut(&e.from).unwrap().push(e.to);
+                } else {
+                    self.direct_mapping_path.insert(e.from, vec![e.to]);
+                }
                 self.mappings.insert((e.from, e.to), mapping);
                 self.add_enum(PEnum {
                     global: *global,
@@ -197,18 +207,18 @@ impl<'a> EnumList<'a> {
 
     // return an iterator over an enum
     // !NO CHECK the enum must exist
-    fn enum_iter(&'a self, e: Token<'a>) -> Iter<'a, Token<'a>> {
+    pub fn enum_iter(&'a self, e: Token<'a>) -> Iter<'a, Token<'a>> {
         self.enums[&e].1.iter()
     }
 
-    // find enum path from e1 fo e2
+    // find ascending enum path from e1 fo e2
     fn find_path(&'a self, e1: Token<'a>, e2: Token<'a>) -> Option<Vec<Token<'a>>> {
         // terminate recursion
         if e1 == e2 {
             Some(vec![e1])
         } else {
             // traverse mapping path starting from the end
-            match self.mapping_path.get(&e2) {
+            match self.reverse_mapping_path.get(&e2) {
                 None => None,
                 Some(e) => match self.find_path(e1, *e) {
                     None => None,
@@ -223,10 +233,25 @@ impl<'a> EnumList<'a> {
 
     // Find oldest ancestor of e1
     fn find_elder(&self, e1: Token<'a>) -> Token<'a> {
-        match self.mapping_path.get(&e1) {
+        match self.reverse_mapping_path.get(&e1) {
             None => e1,
             Some(e) => self.find_elder(*e),
         }
+    }
+
+    // find the last descendant that hash the same name
+    pub fn find_descendant_enum(&self, e1: Token<'a>, item: Token<'a>) -> Token<'a> {
+        match self.direct_mapping_path.get(&e1) {
+            None => return e1,
+            Some(e2) =>
+                for to in e2 {
+                    let new_item = self.mappings.get(&(e1, *to)).unwrap().get(&item).unwrap();
+                    if *new_item == item {
+                        return self.find_descendant_enum(*to, item);
+                    }
+                }
+        }
+        e1
     }
 
     pub fn canonify_expression<'b>(
@@ -260,7 +285,7 @@ impl<'a> EnumList<'a> {
                             None => fail!(value, "Global enum value {} does not exist", value),
                             Some(var1) => match context.get_variable(upper_context, var1) {
                                 Some(VarKind::Enum(t, _)) => t,
-                                _ => fail!(var1, "Variable {} desn't have an enum type", var1),
+                                _ => fail!(var1, "Variable {} doesn't exist or doesn't have an enum type", var1),
                             },
                         },
                     },
@@ -323,7 +348,7 @@ impl<'a> EnumList<'a> {
         self.transform_value(path, v)
     }
     // return true is e1::v1 is an ancestor of e2::v2
-    fn is_ancestor(&self, e1: Token<'a>, v1: Token<'a>, e2: Token<'a>, v2: Token<'a>) -> bool {
+    pub fn is_ancestor(&self, e1: Token<'a>, v1: Token<'a>, e2: Token<'a>, v2: Token<'a>) -> bool {
         match self.find_path(e1, e2) {
             Some(path) => self.transform_value(path, v1) == v2,
             None => false,
@@ -661,6 +686,15 @@ mod tests {
         assert_eq!(e.find_elder("type".into()), "os".into());
         assert_eq!(e.find_elder("outcome".into()), "outcome".into());
     }
+
+    #[test]
+    fn test_descendant() {
+        let (e, _) = init_tests();
+        assert_eq!(e.find_descendant_enum("os".into(), "debian".into()), "family".into());
+        assert_eq!(e.find_descendant_enum("os".into(), "ubuntu".into()), "os".into());
+        assert_eq!(e.find_descendant_enum("outcome".into(), "kept".into()), "outcome".into());
+    }
+
 
     #[test]
     fn test_canonify() {

@@ -10,7 +10,7 @@ use crate::parser::*;
 
 pub struct CFEngine {
     current_cases: Vec<String>, //TODO
-    // match enum variables with class prefixes
+    // match enum local variables with class prefixes
     var_prefixes: HashMap<String, String>,
     // already used class prefix
     prefixes: HashMap<String, u32>,
@@ -65,17 +65,25 @@ impl CFEngine {
             ),
             EnumExpression::Not(e1) => format!("!({})", self.format_case_expr(gc, e1)),
             EnumExpression::Compare(var, e, item) => {
-                "TODO".to_string()
-                //                let e1 = e.unwrap();
-                //                if gc.enumlist.is_global(e1) {
-                //                    // find global class with exception
-                //                    "TODO".to_string()
-                //                } else {
-                //                    // concat var name + item
-                //                    let prefix = self.prefixes[var.unwrap().fragment()];
-                //                    // TODO there may still be some conflicts with var or enum containing '_'
-                //                    format!("{}_{}_{}", prefix, e1.fragment(), item.fragment())
-                //                }
+                if gc.enum_list.is_global(*e) {
+                    let final_enum = gc.enum_list.find_descendant_enum(*e, *item);
+                    if *e == final_enum {
+                        item.fragment().to_string()
+                    } else {
+                        let others = gc.enum_list
+                                       .enum_iter(*e)
+                                       .filter(|i|
+                                           (**i != *item) && gc.enum_list.is_ancestor(*e, **i, final_enum, *item))
+                                       .map(|i| i.fragment())
+                                       .collect::<Vec<_>>();
+                        format!("{}.!({})", item.fragment().to_string(), (&others[..]).join("|"))
+                    }
+                } else {
+                    // concat var name + item
+                    let prefix = &self.var_prefixes[var.fragment()];
+                    // TODO there may still be some conflicts with var or enum containing '_'
+                    format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
+                }
             }
             EnumExpression::Default => {
                 // extract current cases and build an opposite expression
@@ -95,7 +103,7 @@ impl CFEngine {
     // TODO underscore escapement
     fn format_statement(&mut self, gc: &AST, st: &Statement) -> String {
         match st {
-            Statement::StateCall(out, mode, res, call, params) => {
+            Statement::StateCall(mode, res, call, params, out) => {
                 if let Some(var) = out {
                     self.new_var(var);
                 }

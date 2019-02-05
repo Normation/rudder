@@ -10,8 +10,7 @@ use std::fs;
 // MAIN
 
 // TODO next step:
-// - outcome
-// - cfengine cases
+// - variables
 // - strings
 
 fn main() {

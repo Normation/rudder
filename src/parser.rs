@@ -383,12 +383,14 @@ pnamed!(
 #[derive(Debug, PartialEq)]
 pub enum PStatement<'a> {
     Comment(PComment<'a>),
+    VariableDefinition(Token<'a>, PValue<'a>), // TODO function call et al. (with default)
     StateCall(
-        Option<Token<'a>>, // outcome
         PCallMode,         // mode
         PResourceRef<'a>,  // resource
         Token<'a>,         // state name
         Vec<PValue<'a>>,   // parameters
+        Option<Token<'a>>, // outcome
+        // TODO Option<PStatement<'a>>, // error management
     ),
     //   list of condition          then
     Case(Vec<(PEnumExpression<'a>, Vec<PStatement<'a>>)>),
@@ -407,7 +409,6 @@ pnamed!(
     alt!(
         // state call
         sp!(do_parse!(
-            outcome: opt!(terminated!(pidentifier,tag!("="))) >>
             mode: pcall_mode >>
             resource: presource_ref >>
             tag!(".") >>
@@ -417,7 +418,14 @@ pnamed!(
                 tag!(","),
                 pvalue) >>
             tag!(")") >>
-            (PStatement::StateCall(outcome,mode,resource,state,parameters))
+            outcome: opt!(sp!(preceded!(tag!("as"),pidentifier))) >>
+            (PStatement::StateCall(mode,resource,state,parameters,outcome))
+        ))
+      | sp!(do_parse!(
+            variable: pidentifier >>
+            tag!("=") >>
+            value: pvalue >>
+            (PStatement::VariableDefinition(variable,value))
         ))
       | pcomment => { |x| PStatement::Comment(x) }
         // case
@@ -455,7 +463,7 @@ pnamed!(
         ))
         // Flow statements
       | tag!("fail!")    => { |_| PStatement::Fail(Token::new("","TODO")) } // TODO proper message
-      | tag!("return!!") => { |_| PStatement::Return(Token::new("","TODO")) } // TODO proper message
+      | tag!("return!") => { |_| PStatement::Return(Token::new("","TODO")) } // TODO proper message
       | tag!("log!")     => { |_| PStatement::Log(Token::new("","TODO")) } // TODO proper message
       | tag!("noop!")    => { |_| PStatement::Noop }
     )
@@ -473,21 +481,21 @@ pub struct PStateDef<'a> {
 pnamed!(
     pstate_def<PStateDef>,
     sp!(do_parse!(
-        resource_name: pidentifier
-            >> tag!("state")
-            >> name: pidentifier
-            >> tag!("(")
-            >> parameters: separated_list!(tag!(","), pparameter)
-            >> tag!(")")
-            >> tag!("{")
-            >> statements: many0!(pstatement)
-            >> tag!("}")
-            >> (PStateDef {
+        resource_name: pidentifier >>
+        tag!("state") >>
+        name: pidentifier >>
+        tag!("(") >>
+        parameters: separated_list!(tag!(","), pparameter) >>
+        tag!(")") >>
+        tag!("{") >>
+        statements: many0!(pstatement) >>
+        tag!("}") >>
+        (PStateDef {
                 name,
                 resource_name,
                 parameters,
                 statements
-            })
+        })
     ))
 );
 
@@ -963,14 +971,14 @@ mod tests {
             Ok((
                 "",
                 PStatement::StateCall(
-                    None,
                     PCallMode::Enforce,
                     PResourceRef {
                         name: "resource".into(),
                         parameters: vec![]
                     },
                     "state".into(),
-                    vec![]
+                    Vec::new(),
+                    None,
                 )
             ))
         );
@@ -979,7 +987,6 @@ mod tests {
             Ok((
                 "",
                 PStatement::StateCall(
-                    None,
                     PCallMode::Enforce,
                     PResourceRef {
                         name: "resource".into(),
@@ -989,7 +996,8 @@ mod tests {
                     vec![
                         PValue::String("p1".to_string()),
                         PValue::String("p2".to_string())
-                    ]
+                    ],
+                    None,
                 )
             ))
         );
@@ -1045,12 +1053,13 @@ mod tests {
                     parameters: vec![],
                     statements: vec![
                         PStatement::StateCall(
-                            None, PCallMode::Enforce,
+                            PCallMode::Enforce,
                             PResourceRef {
                                 name: "file".into(), 
                                 parameters: vec![PValue::String("/tmp".to_string())] }, 
                             "permissions".into(),
-                            vec![PValue::String("root".to_string()), PValue::String("root".to_string()), PValue::String("g+w".to_string())]
+                            vec![PValue::String("root".to_string()), PValue::String("root".to_string()), PValue::String("g+w".to_string())],
+                            None,
                         )
                     ]
                 })
