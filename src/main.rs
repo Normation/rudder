@@ -10,17 +10,15 @@ use std::fs;
 // MAIN
 
 // TODO next step:
-// - variables
 // - strings
-// - more parser error
+// - variables
+// - more parser error and tests
 
 fn main() {
     let mut pre_ast = PreAST::new();
     let filename = "test.ncf";
-    let content = fs::read_to_string(filename).unwrap_or_else(|_| panic!(
-        "Something went wrong reading the file {}",
-        filename
-    ));
+    let content = fs::read_to_string(filename)
+        .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
     let file = match parse_file(filename, &content) {
         Err(e) => panic!("There was an error during parsing:\n{}", e),
         Ok(o) => o,
@@ -41,7 +39,7 @@ fn main() {
     // optimize ?
 
     let mut cfe = CFEngine::new();
-    match cfe.generate(&ast,None) {
+    match cfe.generate(&ast, None) {
         Err(e) => panic!("There was an error during code generation:\n{}", e),
         Ok(()) => {}
     };

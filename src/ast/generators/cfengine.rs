@@ -40,8 +40,7 @@ impl CFEngine {
 
     fn parameter_to_cfengine(&mut self, param: &PValue) -> String {
         match param {
-            PValue::String(s) => format!("\"{}\"", s),
-            _ => "XXX".to_string(), // TODO remove _
+            PValue::String(_, s, val) => format!("\"{}\"", s),
         }
     }
 
@@ -70,13 +69,20 @@ impl CFEngine {
                     if *e == final_enum {
                         item.fragment().to_string()
                     } else {
-                        let others = gc.enum_list
-                                       .enum_iter(*e)
-                                       .filter(|i|
-                                           (**i != *item) && gc.enum_list.is_ancestor(*e, **i, final_enum, *item))
-                                       .map(|i| i.fragment())
-                                       .collect::<Vec<_>>();
-                        format!("{}.!({})", item.fragment().to_string(), (&others[..]).join("|"))
+                        let others = gc
+                            .enum_list
+                            .enum_iter(*e)
+                            .filter(|i| {
+                                (**i != *item)
+                                    && gc.enum_list.is_ancestor(*e, **i, final_enum, *item)
+                            })
+                            .map(|i| i.fragment())
+                            .collect::<Vec<_>>();
+                        format!(
+                            "{}.!({})",
+                            item.fragment().to_string(),
+                            (&others[..]).join("|")
+                        )
                     }
                 } else {
                     // concat var name + item
@@ -113,7 +119,7 @@ impl CFEngine {
                     .iter()
                     .chain(params.iter())
                     .map(|x| self.parameter_to_cfengine(x))
-                       .collect::<Vec<String>>()
+                    .collect::<Vec<String>>()
                     .join(",");
                 format!(
                     "      \"method_call\" usebundle => {}_{}({});\n",
@@ -149,7 +155,9 @@ impl Generator for CFEngine {
         for (rn, res) in gc.resources.iter() {
             for (sn, state) in res.states.iter() {
                 if let Some(file_name) = file {
-                    if file_name != sn.file() { continue }
+                    if file_name != sn.file() {
+                        continue;
+                    }
                 }
                 self.reset_context();
                 let mut content = match files.get(sn.file()) {

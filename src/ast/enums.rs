@@ -5,6 +5,7 @@ use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
 use std::collections::hash_set::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::iter::FromIterator;
 
 // TODO there can be only one mapping per item that defines an identical descendant
 // TODO default is always true but not redundant with other true values
@@ -195,7 +196,10 @@ impl<'a> EnumList<'a> {
                 }
                 self.reverse_mapping_path.insert(e.to, e.from);
                 if self.direct_mapping_path.contains_key(&e.from) {
-                    self.direct_mapping_path.get_mut(&e.from).unwrap().push(e.to);
+                    self.direct_mapping_path
+                        .get_mut(&e.from)
+                        .unwrap()
+                        .push(e.to);
                 } else {
                     self.direct_mapping_path.insert(e.from, vec![e.to]);
                 }
@@ -254,13 +258,14 @@ impl<'a> EnumList<'a> {
     pub fn find_descendant_enum(&self, e1: Token<'a>, item: Token<'a>) -> Token<'a> {
         match self.direct_mapping_path.get(&e1) {
             None => return e1,
-            Some(e2) =>
+            Some(e2) => {
                 for to in e2 {
                     let new_item = self.mappings[&(e1, *to)][&item];
                     if new_item == item {
                         return self.find_descendant_enum(*to, item);
                     }
                 }
+            }
         }
         e1
     }
@@ -298,7 +303,11 @@ impl<'a> EnumList<'a> {
                             None => fail!(value, "Global enum value {} does not exist", value),
                             Some(var1) => match context.get_variable(upper_context, var1) {
                                 Some(VarKind::Enum(t, _)) => t,
-                                _ => fail!(var1, "Variable {} doesn't exist or doesn't have an enum type", var1),
+                                _ => fail!(
+                                    var1,
+                                    "Variable {} doesn't exist or doesn't have an enum type",
+                                    var1
+                                ),
                             },
                         },
                     },
@@ -393,11 +402,7 @@ impl<'a> EnumList<'a> {
     /// and put them into the 'variables' hashset
     /// this is recursive mutable, pass it an empty hashset at first call
     /// Only used by evaluate.
-    fn list_variable_enum(
-        &self,
-        variables: &mut HashSet<Token<'a>>,
-        expr: &'a EnumExpression,
-    ) {
+    fn list_variable_enum(&self, variables: &mut HashSet<Token<'a>>, expr: &'a EnumExpression) {
         match expr {
             EnumExpression::Default => (),
             EnumExpression::Not(e) => self.list_variable_enum(variables, e),
@@ -458,9 +463,15 @@ impl<'a> EnumList<'a> {
         case_name: Token<'a>,
     ) -> Result<()> {
         let mut variables = HashSet::new();
-        cases.iter()
-             .for_each(|(e, _)| self.list_variable_enum(&mut variables, &e));
-        let it = ContextIterator::new(self, upper_context, context, variables.into_iter().collect());
+        cases
+            .iter()
+            .for_each(|(e, _)| self.list_variable_enum(&mut variables, &e));
+        let it = ContextIterator::new(
+            self,
+            upper_context,
+            context,
+            variables.into_iter().collect(),
+        );
         fix_results(it.map(|values| {
             let mut matched_exp = cases.iter().filter(|(e,_)| self.eval(&values, e));
             match matched_exp.next() {
@@ -720,11 +731,19 @@ mod tests {
     #[test]
     fn test_descendant() {
         let (e, _) = init_tests();
-        assert_eq!(e.find_descendant_enum("os".into(), "debian".into()), "family".into());
-        assert_eq!(e.find_descendant_enum("os".into(), "ubuntu".into()), "os".into());
-        assert_eq!(e.find_descendant_enum("outcome".into(), "kept".into()), "outcome".into());
+        assert_eq!(
+            e.find_descendant_enum("os".into(), "debian".into()),
+            "family".into()
+        );
+        assert_eq!(
+            e.find_descendant_enum("os".into(), "ubuntu".into()),
+            "os".into()
+        );
+        assert_eq!(
+            e.find_descendant_enum("outcome".into(), "kept".into()),
+            "outcome".into()
+        );
     }
-
 
     #[test]
     fn test_canonify() {
@@ -810,7 +829,10 @@ mod tests {
             let ex = parse_enum_expression("os:debian");
             let exp = e.canonify_expression(None, &c, ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
-            assert_eq!(var1, HashSet::from_iter(vec![ Token::from("os") ].into_iter()));
+            assert_eq!(
+                var1,
+                HashSet::from_iter(vec![Token::from("os")].into_iter())
+            );
         }
         {
             let mut var1 = HashSet::new();
@@ -819,7 +841,7 @@ mod tests {
             e.list_variable_enum(&mut var1, &exp);
             assert_eq!(
                 var1,
-                HashSet::from_iter(vec![ Token::from("os"), Token::from("out")])
+                HashSet::from_iter(vec![Token::from("os"), Token::from("out")])
             );
         }
         {
@@ -827,7 +849,7 @@ mod tests {
             let ex = parse_enum_expression("family:debian && os:ubuntu");
             let exp = e.canonify_expression(None, &c, ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
-            assert_eq!(var1, HashSet::from_iter(vec![ Token::from("os") ]));
+            assert_eq!(var1, HashSet::from_iter(vec![Token::from("os")]));
         }
         {
             let mut var1 = HashSet::new();
@@ -839,7 +861,7 @@ mod tests {
             e.list_variable_enum(&mut var1, &exp2);
             assert_eq!(
                 var1,
-                HashSet::from_iter(vec![ Token::from("os"), Token::from("out") ])
+                HashSet::from_iter(vec![Token::from("os"), Token::from("out")])
             );
         }
     }

@@ -58,8 +58,7 @@ impl<'a> Parameter<'a> {
                 if let Some(val) = &p.default {
                     // guess from default
                     match val {
-                        PValue::String(_) => PType::TString,
-                        _ => panic!("Unknown value type"), // TODO remove
+                        PValue::String(_, _, _) => PType::TString,
                     }
                 } else {
                     // Nothing -> String
@@ -76,7 +75,7 @@ impl<'a> Parameter<'a> {
 
     fn value_match(&self, param_ref: &PValue) -> Result<()> {
         match (&self.ptype, param_ref) {
-            (PType::TString, PValue::String(_)) => Ok(()),
+            (PType::TString, PValue::String(_, _, _)) => Ok(()),
             (t, _v) => fail!(Token::new("x", "y"), "Parameter is not of the type {:?}", t), // TODO we need a Token to position PValues and a display trait
         }
     }
@@ -113,14 +112,14 @@ impl<'a> Statement<'a> {
     ) -> Result<Statement<'a>> {
         Ok(match st {
             PStatement::Comment(c) => Statement::Comment(c),
-            PStatement::VariableDefinition(var,val) => {
+            PStatement::VariableDefinition(var, val) => {
                 // TODO c.insert_var(var,val)
-                Statement::VariableDefinition(var,val)
-            },
+                Statement::VariableDefinition(var, val)
+            }
             PStatement::StateCall(mode, res, st, params, out) => {
                 if let Some(out_var) = out {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
-                    c.new_enum_variable(gc, out_var, Token::new("internal","outcome"), None)?;
+                    c.new_enum_variable(gc, out_var, Token::new("internal", "outcome"), None)?;
                 }
                 Statement::StateCall(mode, res, st, params, out)
             }

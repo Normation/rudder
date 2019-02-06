@@ -230,57 +230,92 @@ pnamed!(
 
 /// An escaped string is a string delimited by '"' and that support backslash escapes.
 pnamed!(
-    escaped_string<String>,
-    delimited!(
-        tag!("\""),
-        or_fail!(
-            escaped_transform!(
-                take_until_either1!("\\\""),
-                '\\',
-                alt!(
-                    tag!("\\") => { |_| "\\" } |
-                    tag!("\"") => { |_| "\"" } |
-                    tag!("n")  => { |_| "\n" } |
-                    tag!("r")  => { |_| "\r" } |
-                    tag!("t")  => { |_| "\t" }
+    //              opener unescaped str
+    escaped_string<(Token, String)>,
+    do_parse!(
+        prefix: tag!("\"")
+            >> content:
+                or_fail!(
+                    escaped_transform!(
+                        take_until_either1!("\\\""),
+                        '\\',
+                        alt!(
+                            tag!("\\") => { |_| "\\" } |
+                            tag!("\"") => { |_| "\"" } |
+                            tag!("n")  => { |_| "\n" } |
+                            tag!("r")  => { |_| "\r" } |
+                            tag!("t")  => { |_| "\t" }
+                        )
+                    ),
+                    PError::InvalidEscape
                 )
-            ),
-            PError::InvalidEscape
-        ),
-        or_fail!(tag!("\""), PError::UnterminatedString)
+            >> or_fail!(tag!("\""), PError::UnterminatedString)
+            >> ((prefix.into(), content))
     )
 );
 
-/// An unescaped string is a litteral string delimited by '"""'.
+/// An unescaped string is a literal string delimited by '"""'.
 pnamed!(
-    unescaped_string<String>,
-    delimited!(
-        // TODO string containing """ ?
-        tag!("\"\"\""),
-        map!(
-            or_fail!(take_until!("\"\"\""), PError::UnterminatedString),
-            { |x: PInput| x.to_string() }
-        ),
-        tag!("\"\"\"")
+    //                opener unescaped str
+    unescaped_string<(Token, String)>,
+    do_parse!(
+        prefix: tag!("\"\"\"")
+            >> content:
+                map!(
+                    or_fail!(take_until!("\"\"\""), PError::UnterminatedString),
+                    { |x: PInput| x.to_string() }
+                )
+            >> tag!("\"\"\"")
+            >> ((prefix.into(), content))
+    )
+);
+
+/// All strings are interpolated
+pnamed!(
+    interpolated_string<(String,Vec<Token>)>,
+    do_parse!(
+        varlist: many0!(do_parse!(
+            prefix: take_until!("$") >>
+            tag!("$") >>
+            variable: alt!(
+                tag!("$") => {|_| None}
+              | delimited!(tag!("{"),pidentifier,tag!("}")) => {|x| Some(x)}
+            ) >>
+            (prefix,variable)
+        )) >>
+        rest: rest >>
+        ( {
+            let mut format_vec = Vec::new();
+            let mut var_vec = Vec::new();
+            varlist.into_iter().for_each(|(s,v)| {
+                format_vec.push(*s.fragment);
+                match v {
+                    None => format_vec.push("$"),
+                    Some(var) => {
+                        format_vec.push("{}");
+                        var_vec.push(var);
+                    },
+                }
+            });
+            format_vec.push(*rest.fragment);
+            (format_vec.as_slice().join(""), var_vec)
+        } )
     )
 );
 
 /// PValue is a typed value of the content of a variable or a parameter.
 #[derive(Debug, PartialEq)]
 pub enum PValue<'a> {
-    String(String),
-    // to make sure we have a reference in this struct because there will be one some day
-    #[allow(dead_code)]
-    XX(Token<'a>),
-    //VInteger(u64),
-    //...
+    //     delimiter  formatter variables
+    String(Token<'a>, String, Vec<Token<'a>>),
 }
+
 pnamed!(
     pvalue<PValue>,
     // TODO other types
     alt!(
-        unescaped_string  => { |x| PValue::String(x) }
-      | escaped_string    => { |x| PValue::String(x) }
+        unescaped_string  => { |(x,y)| PValue::String(x,y,Vec::new()) }
+      | escaped_string    => { |(x,y)| PValue::String(x,y,Vec::new()) }
     )
 );
 
@@ -385,12 +420,12 @@ pub enum PStatement<'a> {
     Comment(PComment<'a>),
     VariableDefinition(Token<'a>, PValue<'a>), // TODO function call et al. (with default)
     StateCall(
-        PCallMode,         // mode
-        PResourceRef<'a>,  // resource
-        Token<'a>,         // state name
-        Vec<PValue<'a>>,   // parameters
+        PCallMode,        // mode
+        PResourceRef<'a>, // resource
+        Token<'a>,        // state name
+        Vec<PValue<'a>>,  // parameters
         Option<Token<'a>>, // outcome
-        // TODO Option<PStatement<'a>>, // error management
+                          // TODO Option<PStatement<'a>>, // error management
     ),
     //   list of condition          then
     Case(Vec<(PEnumExpression<'a>, Vec<PStatement<'a>>)>),
@@ -481,21 +516,21 @@ pub struct PStateDef<'a> {
 pnamed!(
     pstate_def<PStateDef>,
     sp!(do_parse!(
-        resource_name: pidentifier >>
-        tag!("state") >>
-        name: pidentifier >>
-        tag!("(") >>
-        parameters: separated_list!(tag!(","), pparameter) >>
-        tag!(")") >>
-        tag!("{") >>
-        statements: many0!(pstatement) >>
-        tag!("}") >>
-        (PStateDef {
+        resource_name: pidentifier
+            >> tag!("state")
+            >> name: pidentifier
+            >> tag!("(")
+            >> parameters: separated_list!(tag!(","), pparameter)
+            >> tag!(")")
+            >> tag!("{")
+            >> statements: many0!(pstatement)
+            >> tag!("}")
+            >> (PStateDef {
                 name,
                 resource_name,
                 parameters,
                 statements
-        })
+            })
     ))
 );
 
@@ -775,16 +810,28 @@ mod tests {
     fn test_strings() {
         assert_eq!(
             mapok(escaped_string(pinput("", "\"1hello\\n\\\"Herman\\\"\n\""))),
-            Ok(("", "1hello\n\"Herman\"\n".to_string()))
+            Ok(("", ("\"".into(), "1hello\n\"Herman\"\n".to_string())))
         );
         assert_eq!(
             mapok(unescaped_string(pinput(
                 "",
                 "\"\"\"2hello\\n\"Herman\"\n\"\"\""
             ))),
-            Ok(("", "2hello\\n\"Herman\"\n".to_string()))
+            Ok(("", ("\"\"\"".into(), "2hello\\n\"Herman\"\n".to_string())))
         );
         assert!(escaped_string(pinput("", "\"2hello\\n\\\"Herman\\\"\n")).is_err());
+        assert_eq!(
+            mapok(interpolated_string(pinput("", "hello herman"))),
+            Ok(("",("hello herman".into(),Vec::new())))
+        );
+        assert_eq!(
+            mapok(interpolated_string(pinput("", "hello herman 10$$"))),
+            Ok(("",("hello herman 10$".into(),Vec::new())))
+        );
+        assert_eq!(
+            mapok(interpolated_string(pinput("", "hello herman ${variable1} ${var2}"))),
+            Ok(("",("hello herman {} {}".into(),vec!["variable1".into(),"var2".into()])))
+        );
     }
 
     #[test]
@@ -792,11 +839,17 @@ mod tests {
         // TODO other types
         assert_eq!(
             mapok(pvalue(pinput("", "\"\"\"This is a string\"\"\""))),
-            Ok(("", PValue::String("This is a string".to_string())))
+            Ok((
+                "",
+                PValue::String("\"\"\"".into(), "This is a string".to_string(), Vec::new())
+            ))
         );
         assert_eq!(
             mapok(pvalue(pinput("", "\"This is a string bis\""))),
-            Ok(("", PValue::String("This is a string bis".to_string())))
+            Ok((
+                "",
+                PValue::String("\"".into(), "This is a string bis".to_string(), Vec::new())
+            ))
         );
     }
 
@@ -808,7 +861,7 @@ mod tests {
                 "",
                 PMetadata {
                     key: "key".into(),
-                    value: PValue::String("value".to_string())
+                    value: PValue::String("\"".into(), "value".to_string(), Vec::new())
                 }
             ))
         );
@@ -818,7 +871,7 @@ mod tests {
                 "",
                 PMetadata {
                     key: "key".into(),
-                    value: PValue::String("value".to_string())
+                    value: PValue::String("\"".into(), "value".to_string(), Vec::new())
                 }
             ))
         );
@@ -866,7 +919,11 @@ mod tests {
                 PParameter {
                     name: "hello".into(),
                     ptype: Some(PType::TString),
-                    default: Some(PValue::String("default".to_string())),
+                    default: Some(PValue::String(
+                        "\"".into(),
+                        "default".to_string(),
+                        Vec::new()
+                    )),
                 }
             ))
         );
@@ -946,8 +1003,8 @@ mod tests {
                 PResourceRef {
                     name: "hello".into(),
                     parameters: vec![
-                        PValue::String("p1".to_string()),
-                        PValue::String("p2".to_string())
+                        PValue::String("\"".into(), "p1".to_string(), Vec::new()),
+                        PValue::String("\"".into(), "p2".to_string(), Vec::new())
                     ]
                 }
             ))
@@ -994,8 +1051,8 @@ mod tests {
                     },
                     "state".into(),
                     vec![
-                        PValue::String("p1".to_string()),
-                        PValue::String("p2".to_string())
+                        PValue::String("\"".into(), "p1".to_string(), Vec::new()),
+                        PValue::String("\"".into(), "p2".to_string(), Vec::new())
                     ],
                     None,
                 )
@@ -1056,9 +1113,9 @@ mod tests {
                             PCallMode::Enforce,
                             PResourceRef {
                                 name: "file".into(), 
-                                parameters: vec![PValue::String("/tmp".to_string())] }, 
+                                parameters: vec![PValue::String("\"".into(), "/tmp".to_string(), Vec::new())] },
                             "permissions".into(),
-                            vec![PValue::String("root".to_string()), PValue::String("root".to_string()), PValue::String("g+w".to_string())],
+                            vec![PValue::String("\"".into(), "root".to_string(), Vec::new()), PValue::String("\"".into(), "root".to_string(), Vec::new()), PValue::String("\"".into(), "g+w".to_string(), Vec::new())],
                             None,
                         )
                     ]

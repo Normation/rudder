@@ -50,12 +50,17 @@ impl<'a> PreAST<'a> {
                             .entry(Token::new("comment", filename))
                             .and_modify(|e| {
                                 *e = match e {
-                                    PValue::String(st) => PValue::String(st.to_string() + c),
-                                    _ => panic!("Comment is not a string, this should not happen"),
+                                    // no variables in comment
+                                    PValue::String(tag, st, _) => {
+                                        PValue::String(*tag, st.to_string() + c, Vec::new())
+                                    }
                                 }
                             });
                     } else {
-                        current_metadata.insert("comment".into(), PValue::String(c.to_string()));
+                        current_metadata.insert(
+                            "comment".into(),
+                            PValue::String(c, c.to_string(), Vec::new()),
+                        );
                     }
                 }
                 PDeclaration::Metadata(m) => {
