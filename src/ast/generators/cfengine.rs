@@ -103,7 +103,7 @@ impl CFEngine {
     // TODO underscore escapement
     fn format_statement(&mut self, gc: &AST, st: &Statement) -> String {
         match st {
-            Statement::StateCall(mode, res, call, params, out) => {
+            Statement::StateCall(_mode, res, call, params, out) => {
                 if let Some(var) = out {
                     self.new_var(var);
                 }
@@ -113,7 +113,7 @@ impl CFEngine {
                     .iter()
                     .chain(params.iter())
                     .map(|x| self.parameter_to_cfengine(x))
-                    .collect::<Vec<String>>()
+                       .collect::<Vec<String>>()
                     .join(",");
                 format!(
                     "      \"method_call\" usebundle => {}_{}({});\n",
@@ -144,15 +144,13 @@ impl CFEngine {
 }
 
 impl Generator for CFEngine {
-    // TODO generate only one file
-    fn generate_one(&mut self, gc: &AST, file: &str) -> Result<()> {
-        Ok(())
-    }
-
-    fn generate_all(&mut self, gc: &AST) -> Result<()> {
+    fn generate(&mut self, gc: &AST, file: Option<&str>) -> Result<()> {
         let mut files: HashMap<&str, String> = HashMap::new();
         for (rn, res) in gc.resources.iter() {
             for (sn, state) in res.states.iter() {
+                if let Some(file_name) = file {
+                    if file_name != sn.file() { continue }
+                }
                 self.reset_context();
                 let mut content = match files.get(sn.file()) {
                     Some(s) => s.to_string(),

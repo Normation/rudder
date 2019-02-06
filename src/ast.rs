@@ -120,7 +120,7 @@ impl<'a> Statement<'a> {
             PStatement::StateCall(mode, res, st, params, out) => {
                 if let Some(out_var) = out {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
-                    c.new_enum_variable(gc, out_var, Token::new("internal","outcome"), None);
+                    c.new_enum_variable(gc, out_var, Token::new("internal","outcome"), None)?;
                 }
                 Statement::StateCall(mode, res, st, params, out)
             }
@@ -166,7 +166,7 @@ impl<'a> AST<'a> {
         loop {
             let mut new_enum_mapping = Vec::new();
             fix_results(enum_mapping.into_iter().map(|em| {
-                if enum_list.exists(em.from) {
+                if enum_list.enum_exists(em.from) {
                     enum_list.add_mapping(em)?;
                 } else {
                     new_enum_mapping.push(em);
@@ -198,6 +198,7 @@ impl<'a> AST<'a> {
             } = rd;
             let mut states = HashMap::new();
             // insert resource states
+            #[allow(clippy::map_entry)]
             fix_results(pre_states.into_iter().map(|(meta, st)| {
                 if states.contains_key(&st.name) {
                     fail!(

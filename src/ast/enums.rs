@@ -7,9 +7,13 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 // TODO there can be only one mapping per item that defines an identical descendant
+// TODO default is always true but not redundant with other true values
 
-// As single enum can be derived into different set through multiple mappings
-// However a single enum can have only one parent
+/// As single enum can be derived into different set through multiple mappings
+/// However a single enum can have only one parent (single ascending path, multiple descending paths)
+
+/// Structure that contains all enums
+/// It can get complex because it contains hashmap for all possible way we may way to query them
 #[derive(Debug)]
 pub struct EnumList<'a> {
     // Map an enum name to another one which has a derived definition
@@ -28,6 +32,7 @@ pub struct EnumList<'a> {
     global_values: HashMap<Token<'a>, Token<'a>>,
 }
 
+/// A boolean expression that can be defined using enums
 #[derive(Debug, PartialEq)]
 pub enum EnumExpression<'a> {
     //       variable   enum        value
@@ -39,23 +44,26 @@ pub enum EnumExpression<'a> {
 }
 
 impl<'a> EnumExpression<'a> {
+    /// print the expression position in source code for user output
     pub fn position_str(&self) -> String {
-        let (file, line, col) = self.position();
+        // TODO keep position in default
+        let (file, line, col) = self.position().unwrap_or((String::from("unknown"), 0, 0));
         format!("{}:{}:{}", file, line, col)
     }
-    pub fn position(&self) -> (String, u32, usize) {
+    /// extract the position triplet
+    pub fn position(&self) -> Option<(String, u32, usize)> {
         match self {
-            EnumExpression::Compare(_, _, v) => v.position(),
-            EnumExpression::And(a, _) => a.position(),
-            EnumExpression::Or(a, _) => a.position(),
+            EnumExpression::Compare(_, _, v) => Some(v.position()),
+            EnumExpression::And(a, b) => a.position().or_else(|| b.position()),
+            EnumExpression::Or(a, b) => a.position().or_else(|| b.position()),
             EnumExpression::Not(a) => a.position(),
-            EnumExpression::Default => (String::from("unknown"), 0, 0),
+            EnumExpression::Default => None,
         }
     }
 }
 
 impl<'a> EnumList<'a> {
-    // Constructor
+    /// Default constructor
     pub fn new() -> EnumList<'static> {
         EnumList {
             reverse_mapping_path: HashMap::new(),
@@ -66,16 +74,18 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    pub fn exists(&self, e: Token<'a>) -> bool {
+    /// Returns true if a given enum exists
+    pub fn enum_exists(&self, e: Token<'a>) -> bool {
         self.enums.contains_key(&e)
     }
 
-    // panic if the enum doesn't exist
+    /// Returns true if the given enum is global
+    /// Be careful: it panics if the enum doesn't exist!
     pub fn is_global(&self, e: Token<'a>) -> bool {
         self.enums[&e].0
     }
 
-    // Insert a simple declared enum
+    /// Insert a simple enum content (not a mapping) into the global structure
     pub fn add_enum(&mut self, e: PEnum<'a>) -> Result<()> {
         let mut list = HashSet::new();
         // Check for set name duplicate
@@ -98,9 +108,9 @@ impl<'a> EnumList<'a> {
             );
         }
         let parent_enum = self.reverse_mapping_path.get(&e.name);
-        for v in &e.items {
+        for v in e.items {
             // Check for local uniqueness (not for mapping)
-            if list.contains(v) && parent_enum.is_none() {
+            if list.contains(&v) && parent_enum.is_none() {
                 fail!(
                     v,
                     "Value {} already declared in the same enum {}",
@@ -110,7 +120,7 @@ impl<'a> EnumList<'a> {
             }
             // check for global uniqueness
             // defined in parent is allowed, twice in the same mapping is allowed
-            if let Some(e0) = self.global_values.get(v) {
+            if let Some(e0) = self.global_values.get(&v) {
                 if parent_enum.is_none() || (parent_enum.unwrap() != e0 && e.name != *e0) {
                     fail!(
                         v,
@@ -125,17 +135,18 @@ impl<'a> EnumList<'a> {
             if e.global {
                 // If the value already exist, update its enum
                 // WARN: but do not update its position
-                self.global_values.insert(*v, e.name);
+                self.global_values.insert(v, e.name);
             }
             // keep value
-            list.insert(*v);
+            list.insert(v);
         }
         // store data
         self.enums.insert(e.name, (e.global, list));
         Ok(())
     }
 
-    // insert a enum defined from a mapping
+    /// Insert an enum defined from a mapping into the global structure
+    #[allow(clippy::map_entry)]
     pub fn add_mapping(&mut self, e: PEnumMapping<'a>) -> Result<()> {
         // From must exist
         match self.enums.get(&e.from) {
@@ -205,13 +216,13 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    // return an iterator over an enum
-    // !NO CHECK the enum must exist
+    /// Return an iterator over an enum content
+    /// Be careful: it panics if the enum doesn't exist!
     pub fn enum_iter(&'a self, e: Token<'a>) -> Iter<'a, Token<'a>> {
         self.enums[&e].1.iter()
     }
 
-    // find ascending enum path from e1 fo e2
+    /// Find ascending enum path from enum e1 to enum e2
     fn find_path(&'a self, e1: Token<'a>, e2: Token<'a>) -> Option<Vec<Token<'a>>> {
         // terminate recursion
         if e1 == e2 {
@@ -231,7 +242,7 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    // Find oldest ancestor of e1
+    /// Find oldest ancestor of enum e1 following ascending path
     fn find_elder(&self, e1: Token<'a>) -> Token<'a> {
         match self.reverse_mapping_path.get(&e1) {
             None => e1,
@@ -239,14 +250,14 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    // find the last descendant that hash the same name
+    /// Find the last descendant enum of e1 that has the same name as item
     pub fn find_descendant_enum(&self, e1: Token<'a>, item: Token<'a>) -> Token<'a> {
         match self.direct_mapping_path.get(&e1) {
             None => return e1,
             Some(e2) =>
                 for to in e2 {
-                    let new_item = self.mappings.get(&(e1, *to)).unwrap().get(&item).unwrap();
-                    if *new_item == item {
+                    let new_item = self.mappings[&(e1, *to)][&item];
+                    if new_item == item {
                         return self.find_descendant_enum(*to, item);
                     }
                 }
@@ -254,6 +265,8 @@ impl<'a> EnumList<'a> {
         e1
     }
 
+    /// Transforms a parsed enum expression onto its final form using all enum definitions
+    /// It needs a variable context (local and global) to check for proper variable existence
     pub fn canonify_expression<'b>(
         &'b self,
         upper_context: Option<&'b VarContext<'a>>,
@@ -336,7 +349,8 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    // used only by is_ancestor (path is destroyed)
+    /// Transforms a value name into its ancestor following an ancestor path
+    /// only used by is_ancestor (path is destroyed)
     fn transform_value(&self, mut path: Vec<Token<'a>>, value: Token<'a>) -> Token<'a> {
         // <1 should not happen
         if path.len() <= 1 {
@@ -347,7 +361,7 @@ impl<'a> EnumList<'a> {
         let v = self.mappings[&(e0, e1)][&value];
         self.transform_value(path, v)
     }
-    // return true is e1::v1 is an ancestor of e2::v2
+    /// Returns true is e1:v1 is an ancestor of e2:v2
     pub fn is_ancestor(&self, e1: Token<'a>, v1: Token<'a>, e2: Token<'a>, v2: Token<'a>) -> bool {
         match self.find_path(e1, e2) {
             Some(path) => self.transform_value(path, v1) == v2,
@@ -355,7 +369,8 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    // evaluate a boolean expression given a set of variable=enum:value
+    /// Evaluate a boolean expression (final version) given a set of variable=enum:value
+    /// We need the variables to have a real value to evaluate to a boolean
     fn eval(
         &self,
         values: &HashMap<Token<'a>, (Token<'a>, Token<'a>)>,
@@ -374,11 +389,13 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    // list variable,enum that are used in an expression
-    // this is recursive, pass it an empty hashmap at first call
+    /// List all variables that are used in an expression,
+    /// and put them into the 'variables' hashset
+    /// this is recursive mutable, pass it an empty hashset at first call
+    /// Only used by evaluate.
     fn list_variable_enum(
         &self,
-        variables: &mut HashMap<Token<'a>, Token<'a>>,
+        variables: &mut HashSet<Token<'a>>,
         expr: &'a EnumExpression,
     ) {
         match expr {
@@ -395,13 +412,13 @@ impl<'a> EnumList<'a> {
             EnumExpression::Compare(var, enum1, _) => {
                 match variables.get(var) {
                     None => {
-                        variables.insert(*var, *enum1);
+                        variables.insert(*var);
                     }
                     Some(e) => {
                         if e != enum1 {
                             match self.find_path(*enum1, *e) {
                                 Some(_) => {
-                                    variables.insert(*var, *enum1);
+                                    variables.insert(*var);
                                 }
                                 // Not sure this is necessary
                                 None => {
@@ -420,6 +437,7 @@ impl<'a> EnumList<'a> {
         }
     }
 
+    /// Describe a set a variable values as a valid expression for the user
     fn describe(&self, values: &HashMap<Token<'a>, (Token<'a>, Token<'a>)>) -> String {
         values
             .iter()
@@ -430,18 +448,19 @@ impl<'a> EnumList<'a> {
             .join(" && ")
     }
 
+    /// Evaluates a set of expressions possible outcome to check for missing cases and redundancy
+    /// Variable context is here to guess variable type and to properly evaluate variables that are constant
     pub fn evaluate(
         &self,
         upper_context: Option<&'a VarContext>,
         context: &'a VarContext<'a>,
-        cases: &Vec<(EnumExpression<'a>, Vec<Statement<'a>>)>,
+        cases: &[(EnumExpression<'a>, Vec<Statement<'a>>)],
         case_name: Token<'a>,
     ) -> Result<()> {
-        let mut variables = HashMap::new();
-        cases
-            .iter()
-            .for_each(|(e, _)| self.list_variable_enum(&mut variables, &e));
-        let it = ContextIterator::new(self, upper_context, context, variables);
+        let mut variables = HashSet::new();
+        cases.iter()
+             .for_each(|(e, _)| self.list_variable_enum(&mut variables, &e));
+        let it = ContextIterator::new(self, upper_context, context, variables.into_iter().collect());
         fix_results(it.map(|values| {
             let mut matched_exp = cases.iter().filter(|(e,_)| self.eval(&values, e));
             match matched_exp.next() {
@@ -458,10 +477,15 @@ impl<'a> EnumList<'a> {
     }
 }
 
+/// Type to store either a constant value or an iterable value
+/// only used by ContextIterator
 enum AltVal<'a> {
     Constant(Token<'a>),
     Iterator(Iter<'a, Token<'a>>),
 }
+/// Iterator that can iterate over all possible value set that a variable set can take
+/// Ex: if var1 and var2 are variables of an enum type with 3 item
+///     it will produce 9 possible value combinations
 struct ContextIterator<'a> {
     // enum reference
     enum_list: &'a EnumList<'a>,
@@ -476,13 +500,15 @@ struct ContextIterator<'a> {
 }
 
 impl<'a> ContextIterator<'a> {
+    /// Create the iterator from the global enum_list
+    /// a variable context (for type and constants) and the list of variables to take
+    /// (since the context may contain variables that are not used in the expression)
     fn new(
         enum_list: &'a EnumList<'a>,
         upper_context: Option<&'a VarContext>,
         context: &'a VarContext<'a>,
-        variable_list: HashMap<Token<'a>, Token<'a>>,
+        var_list: Vec<Token<'a>>,
     ) -> ContextIterator<'a> {
-        let var_list: Vec<Token<'a>> = variable_list.keys().cloned().collect();
         let mut iterators = HashMap::new();
         let mut current = HashMap::new();
         for v in &var_list {
@@ -515,6 +541,10 @@ impl<'a> ContextIterator<'a> {
 
 impl<'a> Iterator for ContextIterator<'a> {
     type Item = HashMap<Token<'a>, (Token<'a>, Token<'a>)>;
+    /// Iterate: we store an iterator for each variables
+    /// - we increment the first iterator
+    /// - if it ended reset it and increment the next iterator
+    /// - continue until we reach the end of the last iterator
     fn next(&mut self) -> Option<Self::Item> {
         if self.first {
             self.first = false;
@@ -776,31 +806,31 @@ mod tests {
     fn test_varlist() {
         let (e, c) = init_tests();
         {
-            let mut var1 = HashMap::new();
+            let mut var1 = HashSet::new();
             let ex = parse_enum_expression("os:debian");
             let exp = e.canonify_expression(None, &c, ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
-            assert_eq!(var1, hashmap! { Token::from("os") => Token::from("os") });
+            assert_eq!(var1, HashSet::from_iter(vec![ Token::from("os") ].into_iter()));
         }
         {
-            let mut var1 = HashMap::new();
+            let mut var1 = HashSet::new();
             let ex = parse_enum_expression("os:debian && out =~ outcome:kept");
             let exp = e.canonify_expression(None, &c, ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
             assert_eq!(
                 var1,
-                hashmap! { Token::from("os") => Token::from("os"), Token::from("out") => Token::from("outcome") }
+                HashSet::from_iter(vec![ Token::from("os"), Token::from("out")])
             );
         }
         {
-            let mut var1 = HashMap::new();
+            let mut var1 = HashSet::new();
             let ex = parse_enum_expression("family:debian && os:ubuntu");
             let exp = e.canonify_expression(None, &c, ex).unwrap();
             e.list_variable_enum(&mut var1, &exp);
-            assert_eq!(var1, hashmap! { Token::from("os") => Token::from("os") });
+            assert_eq!(var1, HashSet::from_iter(vec![ Token::from("os") ]));
         }
         {
-            let mut var1 = HashMap::new();
+            let mut var1 = HashSet::new();
             let ex1 = parse_enum_expression("family:debian && os:ubuntu");
             let exp1 = e.canonify_expression(None, &c, ex1).unwrap();
             e.list_variable_enum(&mut var1, &exp1);
@@ -809,7 +839,7 @@ mod tests {
             e.list_variable_enum(&mut var1, &exp2);
             assert_eq!(
                 var1,
-                hashmap! { Token::from("os") => Token::from("os"), Token::from("out") => Token::from("outcome") }
+                HashSet::from_iter(vec![ Token::from("os"), Token::from("out") ])
             );
         }
     }
@@ -817,11 +847,11 @@ mod tests {
     #[test]
     fn test_iterator() {
         let (e, c) = init_tests();
-        let mut varlist = HashMap::new();
+        let mut varlist = HashSet::new();
         let ex = parse_enum_expression("os:debian && out =~ outcome:kept");
         let exp = e.canonify_expression(None, &c, ex).unwrap();
         e.list_variable_enum(&mut varlist, &exp);
-        let it = ContextIterator::new(&e, None, &c, varlist);
+        let it = ContextIterator::new(&e, None, &c, varlist.into_iter().collect());
         assert_eq!(it.count(), 15);
     }
 

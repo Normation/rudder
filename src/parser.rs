@@ -358,7 +358,7 @@ pnamed!(
                 )))
             >> (PResourceRef {
                 name,
-                parameters: params.unwrap_or(vec![])
+                parameters: params.unwrap_or_else(Vec::new)
             })
     ))
 );

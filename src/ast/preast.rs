@@ -5,6 +5,9 @@ use crate::error::*;
 use crate::parser::*;
 use std::collections::HashMap;
 
+/// PreAST is a structure that looks like ans AST but is not an AST
+/// We need all global data to create the final AST
+/// So we store them in a PreAST and create the final AST once we have everything
 #[derive(Debug)]
 pub struct PreAST<'a> {
     pub enum_list: EnumList<'a>,
@@ -13,6 +16,7 @@ pub struct PreAST<'a> {
     pub variables: VarContext<'a>,
 }
 
+/// PreResource is the Resource structure for PreAST
 #[derive(Debug)]
 pub struct PreResources<'a> {
     pub metadata: HashMap<Token<'a>, PValue<'a>>,
@@ -31,7 +35,7 @@ impl<'a> PreAST<'a> {
     }
 
     /// Add a file parsed with the top level parser.
-    /// Call this once for each file before calling finalize.
+    /// Call this once for each file before creating AST.
     pub fn add_parsed_file(&mut self, filename: &'a str, file: PFile<'a>) -> Result<()> {
         if file.header.version != 0 {
             panic!("Multiple format not supported yet");
