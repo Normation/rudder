@@ -1,4 +1,4 @@
-use super::{PFile, PInput, Token};
+use super::{PInput, Token};
 use crate::error;
 use enum_primitive::*;
 use nom::*;
@@ -54,9 +54,9 @@ fn format_error(context: &Context<PInput, u32>) -> error::Error {
 
 /// Extract error from a parsing result and transforms it to the project's global error type.
 // type conversion can be hard to follow
-pub fn error_type<'a>(res: IResult<PInput<'a>, PFile<'a>, u32>) -> error::Result<PFile<'a>> {
+pub fn fix_error_type<T>(res: IResult<PInput, T, u32>) -> error::Result<T> {
     match res {
-        Ok((_, file)) => Ok(file),
+        Ok((_, t)) => Ok(t),
         Err(Err::Failure(context)) => Err(format_error(&context)),
         Err(Err::Error(context)) => Err(format_error(&context)),
         Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),

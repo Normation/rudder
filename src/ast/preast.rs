@@ -1,6 +1,6 @@
 use super::context::VarContext;
 use super::enums::EnumList;
-use super::Parameter;
+use super::{Parameter,Value};
 use crate::error::*;
 use crate::parser::*;
 use std::collections::HashMap;
@@ -19,9 +19,10 @@ pub struct PreAST<'a> {
 /// PreResource is the Resource structure for PreAST
 #[derive(Debug)]
 pub struct PreResources<'a> {
-    pub metadata: HashMap<Token<'a>, PValue<'a>>,
+    pub metadata: HashMap<Token<'a>, Value<'a>>,
     pub parameters: Vec<Parameter<'a>>,
-    pub pre_states: Vec<(HashMap<Token<'a>, PValue<'a>>, PStateDef<'a>)>,
+    //                   metadata                       state
+    pub pre_states: Vec<(HashMap<Token<'a>, Value<'a>>, PStateDef<'a>)>,
 }
 
 impl<'a> PreAST<'a> {
@@ -50,16 +51,15 @@ impl<'a> PreAST<'a> {
                             .entry(Token::new("comment", filename))
                             .and_modify(|e| {
                                 *e = match e {
-                                    // no variables in comment
-                                    PValue::String(tag, st, _) => {
-                                        PValue::String(*tag, st.to_string() + c, Vec::new())
+                                    PValue::String(tag, st) => {
+                                        PValue::String(*tag, st.to_string() + c)
                                     }
                                 }
                             });
                     } else {
                         current_metadata.insert(
                             "comment".into(),
-                            PValue::String(c, c.to_string(), Vec::new()),
+                            PValue::String(c, c.to_string()),
                         );
                     }
                 }
@@ -87,9 +87,11 @@ impl<'a> PreAST<'a> {
                             self.pre_resources.entry(rd.name).key()
                         );
                     }
+                    let metadata = fix_map_results(current_metadata.drain() // Move the content without moving the structure
+                                                   .map(|(k,v)| Ok((k,Value::from_pvalue(v)?))))?;
                     let resource = PreResources {
-                        metadata: current_metadata.drain().collect(), // Move the content without moving the structure
-                        parameters: rd.parameters.into_iter().map(Parameter::new).collect(),
+                        metadata,
+                        parameters: fix_vec_results(rd.parameters.into_iter().map(Parameter::from_pparameter))?,
                         pre_states: Vec::new(),
                     };
                     self.pre_resources.insert(rd.name, resource);
@@ -98,7 +100,9 @@ impl<'a> PreAST<'a> {
                 }
                 PDeclaration::State(st) => {
                     if let Some(rd) = self.pre_resources.get_mut(&st.resource_name) {
-                        rd.pre_states.push((current_metadata.drain().collect(), st));
+                        let metadata = fix_map_results(current_metadata.drain() // Move the content without moving the structure
+                            .map(|(k,v)| Ok((k,Value::from_pvalue(v)?))))?;
+                        rd.pre_states.push((metadata, st));
                         // Reset metadata
                         current_metadata = HashMap::new();
                     } else {

@@ -10,6 +10,8 @@
 /// - List: aggregate compilation errors so that user can fix them all ant once
 ///
 use std::fmt;
+use std::collections::HashMap;
+use std::hash::Hash;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
@@ -54,10 +56,25 @@ where
 }
 /// Same a fix_results but knows how to extract a vector of values from the result list
 pub fn fix_vec_results<I, T>(res: I) -> Result<Vec<T>>
-where
-    I: Iterator<Item = Result<T>>,
+    where
+        I: Iterator<Item = Result<T>>,
 {
     let (vals, errs): (Vec<Result<T>>, Vec<Result<T>>) = res.partition(|r| r.is_ok());
+    if errs.is_empty() {
+        Ok(vals.into_iter().map(|r| r.unwrap()).collect())
+    } else {
+        Err(Error::List(
+            errs.into_iter().map(|r| r.err().unwrap()).collect(),
+        ))
+    }
+}
+/// Same a fix_vec_results but for hashmap
+pub fn fix_map_results<I, T, U>(res: I) -> Result<HashMap<T,U>>
+    where
+        I: Iterator<Item = Result<(T,U)>>,
+        T: Eq + Hash,
+{
+    let (vals, errs): (Vec<Result<(T,U)>>, Vec<Result<(T,U)>>) = res.partition(|r| r.is_ok());
     if errs.is_empty() {
         Ok(vals.into_iter().map(|r| r.unwrap()).collect())
     } else {

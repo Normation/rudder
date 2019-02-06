@@ -6,7 +6,6 @@ use std::fs::File;
 use std::io::Write;
 
 use crate::error::*;
-use crate::parser::*;
 
 pub struct CFEngine {
     current_cases: Vec<String>, //TODO
@@ -38,9 +37,10 @@ impl CFEngine {
         self.var_prefixes = HashMap::new();
     }
 
-    fn parameter_to_cfengine(&mut self, param: &PValue) -> String {
+    fn parameter_to_cfengine(&mut self, param: &Value) -> String {
         match param {
-            PValue::String(_, s, val) => format!("\"{}\"", s),
+            // TODO quote escape, dollar escape, vars inclusion
+            Value::String(_, s, vars) => format!("\"{}\"", s),
         }
     }
 
@@ -109,13 +109,12 @@ impl CFEngine {
     // TODO underscore escapement
     fn format_statement(&mut self, gc: &AST, st: &Statement) -> String {
         match st {
-            Statement::StateCall(_mode, res, call, params, out) => {
+            Statement::StateCall(_mode, res, res_parameters, call, params, out) => {
                 if let Some(var) = out {
                     self.new_var(var);
                 }
                 // TODO setup mode and output var by calling ... bundle
-                let param_str = res
-                    .parameters
+                let param_str = res_parameters
                     .iter()
                     .chain(params.iter())
                     .map(|x| self.parameter_to_cfengine(x))
@@ -123,7 +122,7 @@ impl CFEngine {
                     .join(",");
                 format!(
                     "      \"method_call\" usebundle => {}_{}({});\n",
-                    res.name.fragment(),
+                    res.fragment(),
                     call.fragment(),
                     param_str
                 )

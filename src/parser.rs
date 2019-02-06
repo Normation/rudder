@@ -2,7 +2,7 @@ mod error;
 mod macros;
 mod token;
 
-use self::error::{error_type, PError};
+use self::error::{fix_error_type, PError};
 use self::macros::*;
 pub use self::token::pinput;
 use self::token::PInput;
@@ -16,16 +16,20 @@ use nom::*;
 // TODO add more types
 // TODO add more or_fail!
 // TODO lifetime = 'src
-// TODO store position in strings
 // TODO _ in identifiers
 // TODO reserve keywords
-// TODO Token -> Identifier
 // TODO iterators, variable definition
 // TODO trailing comma
+// TODO move expression parsing out to enable multiple error reports
 
 /// The parse function that should be called when parsing a file
 pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Result<PFile<'a>> {
-    error_type(pfile(pinput(filename, content)))
+    fix_error_type(pfile(pinput(filename, content)))
+}
+
+/// Parse a string for interpolation
+pub fn parse_string(content: &str) -> crate::error::Result<(String,Vec<String>)> {
+    fix_error_type(interpolated_string(pinput("", content)))
 }
 
 /// A source file header consists of a single line '@format=<version>'.
@@ -272,7 +276,7 @@ pnamed!(
 
 /// All strings are interpolated
 pnamed!(
-    interpolated_string<(String,Vec<Token>)>,
+    interpolated_string<(String,Vec<String>)>,
     do_parse!(
         varlist: many0!(do_parse!(
             prefix: take_until!("$") >>
@@ -293,7 +297,7 @@ pnamed!(
                     None => format_vec.push("$"),
                     Some(var) => {
                         format_vec.push("{}");
-                        var_vec.push(var);
+                        var_vec.push(var.fragment().into());
                     },
                 }
             });
@@ -306,16 +310,16 @@ pnamed!(
 /// PValue is a typed value of the content of a variable or a parameter.
 #[derive(Debug, PartialEq)]
 pub enum PValue<'a> {
-    //     delimiter  formatter variables
-    String(Token<'a>, String, Vec<Token<'a>>),
+    //     position   value
+    String(Token<'a>, String),
 }
 
 pnamed!(
     pvalue<PValue>,
     // TODO other types
     alt!(
-        unescaped_string  => { |(x,y)| PValue::String(x,y,Vec::new()) }
-      | escaped_string    => { |(x,y)| PValue::String(x,y,Vec::new()) }
+        unescaped_string  => { |(x,y)| PValue::String(x,y) }
+      | escaped_string    => { |(x,y)| PValue::String(x,y) }
     )
 );
 
@@ -375,13 +379,8 @@ pnamed!(
 );
 
 /// A resource reference identifies a unique resource.
-#[derive(Debug, PartialEq)]
-pub struct PResourceRef<'a> {
-    pub name: Token<'a>,
-    pub parameters: Vec<PValue<'a>>,
-}
 pnamed!(
-    presource_ref<PResourceRef>,
+    presource_ref<(Token,Vec<PValue>)>,
     sp!(do_parse!(
         name: pidentifier
             >> params:
@@ -391,10 +390,7 @@ pnamed!(
                         >> tag!(")")
                         >> (parameters)
                 )))
-            >> (PResourceRef {
-                name,
-                parameters: params.unwrap_or_else(Vec::new)
-            })
+            >> ((name, params.unwrap_or_else(Vec::new)))
     ))
 );
 
@@ -420,12 +416,13 @@ pub enum PStatement<'a> {
     Comment(PComment<'a>),
     VariableDefinition(Token<'a>, PValue<'a>), // TODO function call et al. (with default)
     StateCall(
-        PCallMode,        // mode
-        PResourceRef<'a>, // resource
-        Token<'a>,        // state name
-        Vec<PValue<'a>>,  // parameters
+        PCallMode,         // mode
+        Token<'a>,         // resource
+        Vec<PValue<'a>>,   // resource parameters
+        Token<'a>,         // state name
+        Vec<PValue<'a>>,   // parameters
         Option<Token<'a>>, // outcome
-                          // TODO Option<PStatement<'a>>, // error management
+                           // TODO Option<PStatement<'a>>, // error management
     ),
     //   list of condition          then
     Case(Vec<(PEnumExpression<'a>, Vec<PStatement<'a>>)>),
@@ -454,7 +451,7 @@ pnamed!(
                 pvalue) >>
             tag!(")") >>
             outcome: opt!(sp!(preceded!(tag!("as"),pidentifier))) >>
-            (PStatement::StateCall(mode,resource,state,parameters,outcome))
+            (PStatement::StateCall(mode,resource.0,resource.1,state,parameters,outcome))
         ))
       | sp!(do_parse!(
             variable: pidentifier >>
@@ -841,14 +838,14 @@ mod tests {
             mapok(pvalue(pinput("", "\"\"\"This is a string\"\"\""))),
             Ok((
                 "",
-                PValue::String("\"\"\"".into(), "This is a string".to_string(), Vec::new())
+                PValue::String("\"\"\"".into(), "This is a string".to_string())
             ))
         );
         assert_eq!(
             mapok(pvalue(pinput("", "\"This is a string bis\""))),
             Ok((
                 "",
-                PValue::String("\"".into(), "This is a string bis".to_string(), Vec::new())
+                PValue::String("\"".into(), "This is a string bis".to_string())
             ))
         );
     }
@@ -861,7 +858,7 @@ mod tests {
                 "",
                 PMetadata {
                     key: "key".into(),
-                    value: PValue::String("\"".into(), "value".to_string(), Vec::new())
+                    value: PValue::String("\"".into(), "value".to_string())
                 }
             ))
         );
@@ -871,7 +868,7 @@ mod tests {
                 "",
                 PMetadata {
                     key: "key".into(),
-                    value: PValue::String("\"".into(), "value".to_string(), Vec::new())
+                    value: PValue::String("\"".into(), "value".to_string())
                 }
             ))
         );
@@ -921,8 +918,7 @@ mod tests {
                     ptype: Some(PType::TString),
                     default: Some(PValue::String(
                         "\"".into(),
-                        "default".to_string(),
-                        Vec::new()
+                        "default".to_string()
                     )),
                 }
             ))
@@ -980,43 +976,33 @@ mod tests {
             mapok(presource_ref(pinput("", "hello()"))),
             Ok((
                 "",
-                PResourceRef {
-                    name: "hello".into(),
-                    parameters: vec![]
-                }
+                ("hello".into(), vec![])
             ))
         );
         assert_eq!(
             mapok(presource_ref(pinput("", "hello3 "))),
             Ok((
                 "",
-                PResourceRef {
-                    name: "hello3".into(),
-                    parameters: vec![]
-                }
+                ("hello3".into(), vec![])
             ))
         );
         assert_eq!(
             mapok(presource_ref(pinput("", "hello ( \"p1\", \"p2\" )"))),
             Ok((
                 "",
-                PResourceRef {
-                    name: "hello".into(),
-                    parameters: vec![
-                        PValue::String("\"".into(), "p1".to_string(), Vec::new()),
-                        PValue::String("\"".into(), "p2".to_string(), Vec::new())
+                ("hello".into(),
+                 vec![
+                        PValue::String("\"".into(), "p1".to_string()),
+                        PValue::String("\"".into(), "p2".to_string())
                     ]
-                }
+                )
             ))
         );
         assert_eq!(
             mapok(presource_ref(pinput("", "hello2 ( )"))),
             Ok((
                 "",
-                PResourceRef {
-                    name: "hello2".into(),
-                    parameters: vec![]
-                }
+                ("hello2".into(), vec![])
             ))
         );
     }
@@ -1029,10 +1015,8 @@ mod tests {
                 "",
                 PStatement::StateCall(
                     PCallMode::Enforce,
-                    PResourceRef {
-                        name: "resource".into(),
-                        parameters: vec![]
-                    },
+                    "resource".into(),
+                    vec![],
                     "state".into(),
                     Vec::new(),
                     None,
@@ -1045,14 +1029,12 @@ mod tests {
                 "",
                 PStatement::StateCall(
                     PCallMode::Enforce,
-                    PResourceRef {
-                        name: "resource".into(),
-                        parameters: vec![]
-                    },
+                    "resource".into(),
+                    vec![],
                     "state".into(),
                     vec![
-                        PValue::String("\"".into(), "p1".to_string(), Vec::new()),
-                        PValue::String("\"".into(), "p2".to_string(), Vec::new())
+                        PValue::String("\"".into(), "p1".to_string()),
+                        PValue::String("\"".into(), "p2".to_string())
                     ],
                     None,
                 )
@@ -1111,11 +1093,10 @@ mod tests {
                     statements: vec![
                         PStatement::StateCall(
                             PCallMode::Enforce,
-                            PResourceRef {
-                                name: "file".into(), 
-                                parameters: vec![PValue::String("\"".into(), "/tmp".to_string(), Vec::new())] },
+                            "file".into(),
+                            vec![PValue::String("\"".into(), "/tmp".to_string())],
                             "permissions".into(),
-                            vec![PValue::String("\"".into(), "root".to_string(), Vec::new()), PValue::String("\"".into(), "root".to_string(), Vec::new()), PValue::String("\"".into(), "g+w".to_string(), Vec::new())],
+                            vec![PValue::String("\"".into(), "root".to_string()), PValue::String("\"".into(), "root".to_string()), PValue::String("\"".into(), "g+w".to_string())],
                             None,
                         )
                     ]

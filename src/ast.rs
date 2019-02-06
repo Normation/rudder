@@ -30,7 +30,7 @@ pub struct AST<'a> {
 
 #[derive(Debug)]
 struct Resources<'a> {
-    metadata: HashMap<Token<'a>, PValue<'a>>,
+    metadata: HashMap<Token<'a>, Value<'a>>,
     parameters: Vec<Parameter<'a>>,
     states: HashMap<Token<'a>, StateDef<'a>>,
     //TODO child: HashSet<Token>
@@ -38,27 +38,43 @@ struct Resources<'a> {
 
 #[derive(Debug)]
 struct StateDef<'a> {
-    metadata: HashMap<Token<'a>, PValue<'a>>,
+    metadata: HashMap<Token<'a>, Value<'a>>,
     parameters: Vec<Parameter<'a>>,
     statements: Vec<Statement<'a>>,
     variables: VarContext<'a>,
 }
 
 #[derive(Debug)]
+pub enum Value<'a> {
+    //     position   format  variables
+    String(Token<'a>, String, Vec<String>),
+}
+impl<'a> Value<'a> {
+    pub fn from_pvalue(pvalue: PValue<'a>) -> Result<Value<'a>> {
+        match pvalue {
+            PValue::String(pos, s) => {
+                let (f,v) = parse_string(&s[..])?;
+                Ok(Value::String(pos, f, v))
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Parameter<'a> {
     name: Token<'a>,
     ptype: PType,
-    default: Option<PValue<'a>>,
+    default: Option<Value<'a>>,
 }
 impl<'a> Parameter<'a> {
-    fn new(p: PParameter<'a>) -> Parameter<'a> {
+    fn from_pparameter(p: PParameter<'a>) -> Result<Parameter<'a>> {
         let ptype = match p.ptype {
             Some(t) => t,
             None => {
                 if let Some(val) = &p.default {
                     // guess from default
                     match val {
-                        PValue::String(_, _, _) => PType::TString,
+                        PValue::String(_, _) => PType::TString,
                     }
                 } else {
                     // Nothing -> String
@@ -66,16 +82,20 @@ impl<'a> Parameter<'a> {
                 }
             }
         };
-        Parameter {
+        let value = match p.default {
+            None => None,
+            Some(v) => Some(Value::from_pvalue(v)?),
+        };
+        Ok(Parameter {
             name: p.name,
             ptype,
-            default: p.default,
-        }
+            default: value,
+        })
     }
 
-    fn value_match(&self, param_ref: &PValue) -> Result<()> {
+    fn value_match(&self, param_ref: &Value) -> Result<()> {
         match (&self.ptype, param_ref) {
-            (PType::TString, PValue::String(_, _, _)) => Ok(()),
+            (PType::TString, Value::String(_,_,_)) => Ok(()),
             (t, _v) => fail!(Token::new("x", "y"), "Parameter is not of the type {:?}", t), // TODO we need a Token to position PValues and a display trait
         }
     }
@@ -84,12 +104,13 @@ impl<'a> Parameter<'a> {
 #[derive(Debug)]
 pub enum Statement<'a> {
     Comment(PComment<'a>),
-    VariableDefinition(Token<'a>, PValue<'a>), // TODO value
+    VariableDefinition(Token<'a>, Value<'a>),
     StateCall(
         PCallMode,         // mode
-        PResourceRef<'a>,  // resource
+        Token<'a>,         // resource
+        Vec<Value<'a>>,    // resource parameters
         Token<'a>,         // state name
-        Vec<PValue<'a>>,   // parameters
+        Vec<Value<'a>>,    // parameters
         Option<Token<'a>>, // outcome
     ),
     //   list of condition          then
@@ -114,14 +135,16 @@ impl<'a> Statement<'a> {
             PStatement::Comment(c) => Statement::Comment(c),
             PStatement::VariableDefinition(var, val) => {
                 // TODO c.insert_var(var,val)
-                Statement::VariableDefinition(var, val)
+                Statement::VariableDefinition(var, Value::from_pvalue(val)?)
             }
-            PStatement::StateCall(mode, res, st, params, out) => {
+            PStatement::StateCall(mode, res, res_params, st, params, out) => {
                 if let Some(out_var) = out {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
                     c.new_enum_variable(gc, out_var, Token::new("internal", "outcome"), None)?;
                 }
-                Statement::StateCall(mode, res, st, params, out)
+                let res_parameters = fix_vec_results(res_params.into_iter().map(|v| Value::from_pvalue(v)))?;
+                let parameters = fix_vec_results(params.into_iter().map(|v| Value::from_pvalue(v)))?;
+                Statement::StateCall(mode, res, res_parameters, st, parameters, out)
             }
             PStatement::Fail(f) => Statement::Fail(f),
             PStatement::Log(l) => Statement::Log(l),
@@ -219,7 +242,7 @@ impl<'a> AST<'a> {
                     }))?;
                     let state = StateDef {
                         metadata: meta,
-                        parameters: st.parameters.into_iter().map(Parameter::new).collect(),
+                        parameters: fix_vec_results(st.parameters.into_iter().map(Parameter::from_pparameter))?,
                         statements,
                         variables,
                     };
@@ -245,18 +268,18 @@ impl<'a> AST<'a> {
 
     fn binding_check(&self, statement: &Statement) -> Result<()> {
         match statement {
-            Statement::StateCall(_mode, res, name, params, _out) => {
-                match self.resources.get(&res.name) {
-                    None => fail!(res.name, "Resource type {} does not exist", res.name),
+            Statement::StateCall(_mode, res, res_params, name, params, _out) => {
+                match self.resources.get(res) {
+                    None => fail!(res, "Resource type {} does not exist", res),
                     Some(resource) => {
                         // Assume default parameter replacement and type inference if any has already be done
-                        match_parameters(&resource.parameters, &res.parameters, res.name)?;
+                        match_parameters(&resource.parameters, res_params, *res)?;
                         match resource.states.get(&name) {
                             None => fail!(
                                 name,
                                 "State {} does not exist for resource {}",
                                 name,
-                                res.name
+                                res
                             ),
                             Some(state) => {
                                 // Assume default parameter replacement and type inference if any has already be done
@@ -306,7 +329,7 @@ impl<'a> AST<'a> {
     }
 }
 
-fn match_parameters(pdef: &[Parameter], pref: &[PValue], identifier: Token) -> Result<()> {
+fn match_parameters(pdef: &[Parameter], pref: &[Value], identifier: Token) -> Result<()> {
     if pdef.len() != pref.len() {
         fail!(
             identifier,
