@@ -1,0 +1,81 @@
+<!--
+Copyright 2011 Normation SAS
+
+This file is part of Rudder.
+
+Rudder is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+In accordance with the terms of section 7 (7. Additional Terms.) of
+the GNU General Public License version 3, the copyright holders add
+the following Additional permissions:
+Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+Public License version 3, when you create a Related Module, this
+Related Module is not considered as a part of the work and may be
+distributed under the license agreement of your choice.
+A "Related Module" means a set of sources files including their
+documentation that, without modification of the Source Code, enables
+supplementary functions or services in addition to those offered by
+the Software.
+
+Rudder is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.normation.inventory</groupId>
+  <artifactId>inventory-parent</artifactId>
+  <packaging>pom</packaging>
+
+  <parent>
+    <groupId>com.normation</groupId>
+    <artifactId>parent-pom</artifactId>
+    <version>5.1.0~alpha1-SNAPSHOT</version>
+  </parent>
+
+  <description>
+    This is the parent project for LDAP Inventory
+    It defines two main submodule: one for all
+    general data structure and services defined for
+    inventory, and one which managed provisioning.
+  </description>
+
+  <modules>
+    <!-- Domain definition, not related with any backend-->
+    <module>inventory-api</module>
+    <!-- Persistance service and implementation for LDAP -->
+    <module>inventory-repository</module>
+    <!-- Provisionning services and data structures -->
+    <module>inventory-provisioning-core</module>
+    <!-- Fusion Inventory parsing -->
+    <module>inventory-fusion</module>
+    <!-- Default implementation for a provisionning WebService. -->
+    <module>inventory-provisioning-web</module>
+  </modules>
+
+  <repositories>
+    <repository>
+      <id>rudder-release</id>
+      <url>http://www.rudder-project.org/maven-releases/</url>
+      <layout>default</layout>
+      <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+    <repository>
+      <id>rudder-snapshot</id>
+      <url>http://www.rudder-project.org/maven-snapshots/</url>
+      <layout>default</layout>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+  </repositories>
+
+</project>

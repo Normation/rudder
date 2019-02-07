@@ -1,0 +1,529 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<REQUEST>
+  <CONTENT>
+    <ACCESSLOG>
+      <LOGDATE>2017-05-18 08:15:10</LOGDATE>
+    </ACCESSLOG>
+    <BIOS>
+      <ASSETTAG />  <BDATE>12/01/2006</BDATE>
+      <BMANUFACTURER>innotek GmbH</BMANUFACTURER>
+      <BVERSION>VirtualBox</BVERSION>
+      <MMANUFACTURER>Oracle Corporation</MMANUFACTURER>
+      <MMODEL>VirtualBox</MMODEL>
+      <MSN>0</MSN>
+      <SKUNUMBER />  <SMANUFACTURER>innotek GmbH</SMANUFACTURER>
+      <SMODEL>VirtualBox</SMODEL>
+      <SSN>35CF3BF8-17FE-4454-B941-2D541357F8F2</SSN>
+    </BIOS>
+    <CONTROLLERS>
+      <CAPTION>82371AB/EB/MB PIIX4 IDE</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371AB/EB/MB PIIX4 IDE</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>7111</PRODUCTID>
+      <TYPE>Intel(R) 82371AB/EB PCI Bus Master IDE Controller</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82540EM Gigabit Ethernet Controller</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>PRO/1000 MT Desktop Adapter</NAME>
+      <PCISUBSYSTEMID>8086:001e</PCISUBSYSTEMID>
+      <PRODUCTID>100e</PRODUCTID>
+      <TYPE>Intel(R) PRO/1000 MT Desktop Adapter</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>440FX - 82441FX PMC [Natoma]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>440FX - 82441FX PMC [Natoma]</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>1237</PRODUCTID>
+      <TYPE>Intel 82441FX Pentium(R) Pro Processor to PCI bridge</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371SB PIIX3 ISA [Natoma/Triton II]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371SB PIIX3 ISA [Natoma/Triton II]</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>7000</PRODUCTID>
+      <TYPE>Intel 82371SB PCI to ISA bridge</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>VirtualBox Graphics Adapter</CAPTION>
+      <MANUFACTURER>InnoTek Systemberatung GmbH</MANUFACTURER>
+      <NAME>VirtualBox Graphics Adapter</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>beef</PRODUCTID>
+      <TYPE>VirtualBox Graphics Adapter</TYPE>
+      <VENDORID>80ee</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>VirtualBox Guest Service</CAPTION>
+      <MANUFACTURER>InnoTek Systemberatung GmbH</MANUFACTURER>
+      <NAME>VirtualBox Guest Service</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>cafe</PRODUCTID>
+      <TYPE>VirtualBox Device</TYPE>
+      <VENDORID>80ee</VENDORID>
+    </CONTROLLERS>
+    <CPUS>
+      <CORE>2</CORE>
+      <DESCRIPTION>Intel64 Family 6 Model 58 Stepping 9</DESCRIPTION>
+      <FAMILYNUMBER>6</FAMILYNUMBER>
+      <MANUFACTURER>Intel</MANUFACTURER>
+      <MODEL>58</MODEL>
+      <NAME>Intel(R) Core(TM) i7-3740QM CPU @ 2.70GHz</NAME>
+      <SPEED>2700</SPEED>
+      <STEPPING>9</STEPPING>
+      <THREAD>1</THREAD>
+    </CPUS>
+    <DRIVES>
+      <DESCRIPTION>Local Fixed Disk</DESCRIPTION>
+      <FILESYSTEM>NTFS</FILESYSTEM>
+      <FREE>52017</FREE>
+      <LABEL>Windows 2008R2</LABEL>
+      <LETTER>C:</LETTER>
+      <SERIAL>E010FDE8</SERIAL>
+      <SYSTEMDRIVE>1</SYSTEMDRIVE>
+      <TOTAL>59999</TOTAL>
+      <TYPE>Local Disk</TYPE>
+      <VOLUMN>Windows 2008R2</VOLUMN>
+    </DRIVES>
+    <DRIVES>
+      <DESCRIPTION>CD-ROM Disc</DESCRIPTION>
+      <LETTER>E:</LETTER>
+      <SYSTEMDRIVE></SYSTEMDRIVE>
+      <TYPE>Compact Disc</TYPE>
+    </DRIVES>
+    <ENVS>
+      <KEY>ComSpec</KEY>
+      <VAL>%SystemRoot%\system32\cmd.exe</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>FP_NO_HOST_CHECK</KEY>
+      <VAL>NO</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>OS</KEY>
+      <VAL>Windows_NT</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>Path</KEY>
+      <VAL>%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PATHEXT</KEY>
+      <VAL>.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_ARCHITECTURE</KEY>
+      <VAL>AMD64</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TEMP</KEY>
+      <VAL>%SystemRoot%\TEMP</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TMP</KEY>
+      <VAL>%SystemRoot%\TEMP</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USERNAME</KEY>
+      <VAL>SYSTEM</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>windir</KEY>
+      <VAL>%SystemRoot%</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PSModulePath</KEY>
+      <VAL>%SystemRoot%\system32\WindowsPowerShell\v1.0\Modules\</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>NUMBER_OF_PROCESSORS</KEY>
+      <VAL>2</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_LEVEL</KEY>
+      <VAL>6</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_IDENTIFIER</KEY>
+      <VAL>Intel64 Family 6 Model 58 Stepping 9, GenuineIntel</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_REVISION</KEY>
+      <VAL>3a09</VAL>
+    </ENVS>
+    <HARDWARE>
+      <ARCHNAME>MSWin32-x64-multi-thread</ARCHNAME>
+      <CHASSIS_TYPE>Other</CHASSIS_TYPE>
+      <CHECKSUM>131071</CHECKSUM>
+      <DEFAULTGATEWAY>10.0.2.2</DEFAULTGATEWAY>
+      <DNS>10.0.2.3</DNS>
+      <ETIME>11</ETIME>
+      <IPADDR>10.0.2.15/192.168.51.3</IPADDR>
+      <LASTLOGGEDUSER>vagrant</LASTLOGGEDUSER>
+      <MEMORY>255</MEMORY>
+      <NAME>agent1</NAME>
+      <OSNAME>Microsoft Windows Server 2008 R2 Standard </OSNAME>
+      <OSVERSION>6.1.7600</OSVERSION>
+      <PROCESSORN>1</PROCESSORN>
+      <PROCESSORS>2700</PROCESSORS>
+      <PROCESSORT>Intel(R) Core(TM) i7-3740QM CPU @ 2.70GHz</PROCESSORT>
+      <USERID>vagrant</USERID>
+      <UUID>F83BCF35-FE17-5444-B941-2D541357F8F2</UUID>
+      <VMSYSTEM>VirtualBox</VMSYSTEM>
+      <WINCOMPANY>Vagrant Inc.</WINCOMPANY>
+      <WINLANG>1033</WINLANG>
+      <WINPRODID>00477-179-0000007-84079</WINPRODID>
+      <WINPRODKEY>HMG6P-C7VGP-47GJ9-TWBD4-2YYCD</WINPRODKEY>
+      <WORKGROUP>WORKGROUP</WORKGROUP>
+    </HARDWARE>
+    <INPUTS>
+      <CAPTION>Enhanced (101- or 102-key)</CAPTION>
+      <DESCRIPTION>Standard PS/2 Keyboard</DESCRIPTION>
+      <LAYOUT>00000409</LAYOUT>
+      <NAME>Enhanced (101- or 102-key)</NAME>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>Microsoft PS/2 Mouse</CAPTION>
+      <DESCRIPTION>Microsoft PS/2 Mouse</DESCRIPTION>
+      <INTERFACE>PS/2</INTERFACE>
+      <MANUFACTURER>Microsoft</MANUFACTURER>
+      <NAME>Microsoft PS/2 Mouse</NAME>
+      <POINTINGTYPE>2</POINTINGTYPE>
+    </INPUTS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-544</ID>
+      <NAME>Administrators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-551</ID>
+      <NAME>Backup Operators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-574</ID>
+      <NAME>Certificate Service DCOM Access</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-569</ID>
+      <NAME>Cryptographic Operators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-562</ID>
+      <NAME>Distributed COM Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-573</ID>
+      <NAME>Event Log Readers</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-546</ID>
+      <NAME>Guests</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-568</ID>
+      <NAME>IIS_IUSRS</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-556</ID>
+      <NAME>Network Configuration Operators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-559</ID>
+      <NAME>Performance Log Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-558</ID>
+      <NAME>Performance Monitor Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-547</ID>
+      <NAME>Power Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-550</ID>
+      <NAME>Print Operators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-555</ID>
+      <NAME>Remote Desktop Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-552</ID>
+      <NAME>Replicator</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-545</ID>
+      <NAME>Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_USERS>
+      <ID>S-1-5-21-3519012758-524343287-2491837546-500</ID>
+      <NAME>Administrator</NAME>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>S-1-5-21-3519012758-524343287-2491837546-1000</ID>
+      <NAME>vagrant</NAME>
+    </LOCAL_USERS>
+    <NETWORKS>
+      <DESCRIPTION>Intel(R) PRO/1000 MT Desktop Adapter</DESCRIPTION>
+      <IPADDRESS>10.0.2.15</IPADDRESS>
+      <IPDHCP>10.0.2.2</IPDHCP>
+      <IPGATEWAY>10.0.2.2</IPGATEWAY>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>10.0.2.0</IPSUBNET>
+      <MACADDR>08:00:27:79:8A:76</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;0&amp;18</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>Intel(R) PRO/1000 MT Desktop Adapter</DESCRIPTION>
+      <IPADDRESS6>fe80::603e:5a81:67bd:dc36</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:79:8A:76</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;0&amp;18</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>Intel(R) PRO/1000 MT Desktop Adapter #2</DESCRIPTION>
+      <IPADDRESS>192.168.51.3</IPADDRESS>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>192.168.51.0</IPSUBNET>
+      <MACADDR>08:00:27:B2:4E:60</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;0&amp;40</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>Intel(R) PRO/1000 MT Desktop Adapter #2</DESCRIPTION>
+      <IPADDRESS6>fe80::60e3:fe35:466a:aaad</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:B2:4E:60</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;0&amp;40</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <OPERATINGSYSTEM>
+      <ARCH>64-bit</ARCH>
+      <BOOT_TIME>2017-05-18 00:12:35</BOOT_TIME>
+      <DNS_DOMAIN></DNS_DOMAIN>
+      <FQDN>agent1</FQDN>
+      <FULL_NAME>Microsoft Windows Server 2008 R2 Standard </FULL_NAME>
+      <INSTALL_DATE>2014-10-02 15:07:08</INSTALL_DATE>
+      <KERNEL_NAME>MSWin32</KERNEL_NAME>
+      <KERNEL_VERSION>6.1.7600</KERNEL_VERSION>
+      <NAME>Windows</NAME>
+      <SERVICE_PACK />  <TIMEZONE>
+        <NAME>Pacific Standard Time</NAME>
+        <OFFSET>-0700</OFFSET>
+      </TIMEZONE>
+    </OPERATINGSYSTEM>
+    <PRINTERS>
+      <DRIVER>Microsoft XPS Document Writer</DRIVER>
+      <NAME>Microsoft XPS Document Writer</NAME>
+      <NETWORK>0</NETWORK>
+      <PORT>XPSPort:</PORT>
+      <PRINTPROCESSOR>winprint</PRINTPROCESSOR>
+      <RESOLUTION>600x600</RESOLUTION>
+      <SHARED>0</SHARED>
+      <STATUS>Idle</STATUS>
+    </PRINTERS>
+    <RUDDER>
+      <AGENT>
+        <AGENT_NAME>dsc</AGENT_NAME>
+        <AGENT_CERT>-----BEGIN CERTIFICATE-----
+MIIE0zCCArugAwIBAgIJAJqeHdZEkElqMA0GCSqGSIb3DQEBCwUAMBExDzANBgNV
+BAMMBkFHRU5UMTAeFw0xNzA2MDcxMzA1NTlaFw0yNzA2MDUxMzA1NTlaMBExDzAN
+BgNVBAMMBkFHRU5UMTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAOPd
+mhaXZcezSjgTi6Zn38alftrYwfAyuKoznll4oM2T5DkYaZ2Lyclvv7jar/4ozUsA
+Jmzw6O8QjCiaufVkHCytGJoQmtRPhywgOp0S0vqUVCXsdfh5dhwZ3Qjy107M6Z6E
+6lyjggsgGZM23LBUNjsMyY7FefSHGpLpeWXgX/1CW4XeBaBq6mzo5A/1N3iyKLL4
+yOGcNli11H4snlmqGJ+YDfNfCIeTkx2wdFftOxRkPFZ1TETmZSt5idrNvGU2IOnp
+tXnT1kN/iknW6ZLu0wLRGe/b0Hde6ZqfPZLdrBn2oeMBvkM4eOl5GpFIFQa0uSEh
+tr57vCqC6KSVvejjNr2VwKs11+9Bkdim6h7ndX74tFrR3N7cBczkXYoc+tlP2MHX
+t/DqXxkB3OhmDVfmlzC/CV9M5rE7GSpWRx8O46wYrkf+6J1Z4p0rOjZNDPolEJWY
+KxKzS//34wgqPfqY7iSav7ElpAFcZRFFfIKldpjpM2M5Gul0dXpBMEqHkmlcRDMT
+VBrHYuTyyXhtdApdVZXDocfAma7UOkis5WcVn2+6O/pI88yVXkkgK4lSNOPBMgc0
+6XLI2YgoGB3hnpGTfKbTbj3uGV8AI2/N3x91gGXRu4EtrvYtiiuxmpT1NJLmHVAA
+vkfQwNm+CFqXzNDn+OPOM+cgsc08Qd++UXUmOI5lAgMBAAGjLjAsMAsGA1UdDwQE
+AwIEsDAdBgNVHQ4EFgQU+S14UemkyCDsEaa5Gto8Qt9xIFEwDQYJKoZIhvcNAQEL
+BQADggIBADTLZLpX/ffSNzxgla7MsboBFVW8JzaFtG8JOe+oYxeI9nHCB6M6fJao
+hBhF7nUA0MyjIoEMfFVPF7LUTf3k0XvJNvXMJGNxlye1jsIKTWJo29ESERUc9eRk
+LDIC6fbWV0PVjo1VolxnKZoLznOIRITPxAxfmn48n2/YJ5eGT8MF4cgTTpIP0cbD
+I7UDDB1GRpLfu/K42Ll4CrTAbLABtdcGv4Rn4CtDXu+KrSpOJG675S6UhjT7ozjj
+J/QDV8XcNWW0BF+2w2zzJsmSo8NjExuNXgsVh29uhCPQGYrjO03xBtz1GmWKX8wS
+RGqgVQI0dHHlcfYSLaaA/zkwU9wkvmiwUS7ODMfYSrCTVNBkRvV/oIKmN9mY9I3R
+//wCOPI18kk6fONEHjOng9NJD6LGVlGrnR+k3MFVWqORuvIUFEhD4YynHPZqu1g8
+60ePwvw8pouI4yoRtCQBZEw2rgnS0bGiY3bpou3sTq+eLxQs/3DmvJkhLGzgfeai
+MFMym+kchpMxU69krkiZXDWwkXxo3txXnPevPx12pQKBSQJONfeADDok6GQYEOeH
+GvNfE6prJSpDchFWdRKK3/RcknoKwq0hDyFICOhZkb3Zc4oWknDgJz/huorU/nnb
+QHjxOfVdBMBBXq0oHSUsOzf9rIxMlWQmCQyNDB6qD+bXZnAZp7j7
+-----END CERTIFICATE-----
+</AGENT_CERT>
+        <OWNER>agent1\vagrant</OWNER>
+        <POLICY_SERVER_HOSTNAME>192.168.42.0</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID></AGENT>
+      <AGENT_CAPABILITIES></AGENT_CAPABILITIES>
+      <HOSTNAME>agent1</HOSTNAME>
+      <SERVER_ROLES></SERVER_ROLES>
+      <UUID>2C15A03F-782C-4970-AF45-7A75DFBA4F59</UUID>
+    </RUDDER>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>FusionInventory-Agent</GUID>
+      <HELPLINK>https://github.com/fusioninventory/fusioninventory-agent</HELPLINK>
+      <INSTALLDATE>18/05/2017</INSTALLDATE>
+      <NAME>FusionInventory Agent 2.3.19 (x64 edition)</NAME>
+      <PUBLISHER>FusionInventory Team</PUBLISHER>
+      <UNINSTALL_STRING>C:\Program Files\FusionInventory-Agent\Uninstall.exe</UNINSTALL_STRING>
+      <VERSION>2.3.19</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Mozilla Maintenance Service</COMMENTS>
+      <FROM>registry</FROM>
+      <GUID>MozillaMaintenanceService</GUID>
+      <INSTALLDATE>18/05/2017</INSTALLDATE>
+      <NAME>Mozilla Maintenance Service</NAME>
+      <PUBLISHER>Mozilla</PUBLISHER>
+      <UNINSTALL_STRING>&quot;C:\Program Files (x86)\Mozilla Maintenance Service\uninstall.exe&quot;</UNINSTALL_STRING>
+      <VERSION>53.0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>Oracle VM VirtualBox Guest Additions</GUID>
+      <INSTALLDATE>02/10/2014</INSTALLDATE>
+      <NAME>Oracle VM VirtualBox Guest Additions 4.3.12</NAME>
+      <PUBLISHER>Oracle Corporation</PUBLISHER>
+      <UNINSTALL_STRING>C:\Program Files\Oracle\VirtualBox Guest Additions\uninst.exe</UNINSTALL_STRING>
+      <URL_INFO_ABOUT>http://www.virtualbox.org</URL_INFO_ABOUT>
+      <VERSION>4.3.12.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <INSTALLDATE>14/07/2009</INSTALLDATE>
+      <NAME>Internet Explorer (64bit)</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <VERSION>8.0.7600.16385</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <GUID>Bitvise SSH Server</GUID>
+      <INSTALLDATE>02/10/2014</INSTALLDATE>
+      <NAME>Bitvise SSH Server 6.07 (remove only)</NAME>
+      <UNINSTALL_STRING>&quot;C:\Program Files\Bitvise SSH Server\uninst.exe&quot; &quot;Bitvise SSH Server&quot;</UNINSTALL_STRING>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <COMMENTS>Mozilla Firefox 53.0.2 (x86 fr)</COMMENTS>
+      <FROM>registry</FROM>
+      <GUID>Mozilla Firefox 53.0.2 (x86 fr)</GUID>
+      <HELPLINK>https://support.mozilla.org</HELPLINK>
+      <INSTALLDATE>18/05/2017</INSTALLDATE>
+      <NAME>Mozilla Firefox 53.0.2 (x86 fr)</NAME>
+      <PUBLISHER>Mozilla</PUBLISHER>
+      <UNINSTALL_STRING>&quot;C:\Program Files (x86)\Mozilla Firefox\uninstall\helper.exe&quot;</UNINSTALL_STRING>
+      <URL_INFO_ABOUT>https://www.mozilla.org</URL_INFO_ABOUT>
+      <VERSION>53.0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <GUID>Notepad++</GUID>
+      <INSTALLDATE>18/05/2017</INSTALLDATE>
+      <NAME>Notepad++ (32-bit x86)</NAME>
+      <PUBLISHER>Notepad++ Team</PUBLISHER>
+      <UNINSTALL_STRING>C:\Program Files (x86)\Notepad++\uninstall.exe</UNINSTALL_STRING>
+      <URL_INFO_ABOUT>http://notepad-plus-plus.org/</URL_INFO_ABOUT>
+      <VERSION>7.4.1</VERSION>
+      <VERSION_MAJOR>7</VERSION_MAJOR>
+      <VERSION_MINOR>41</VERSION_MINOR>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <GUID>{FC526514-AFD9-4A5C-8677-56241539609D}</GUID>
+      <INSTALLDATE>18/05/2017</INSTALLDATE>
+      <NAME>NXLog-CE</NAME>
+      <PUBLISHER>NXLog Ltd</PUBLISHER>
+      <UNINSTALL_STRING>MsiExec.exe /X{FC526514-AFD9-4A5C-8677-56241539609D}</UNINSTALL_STRING>
+      <VERSION>2.9.1716</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <INSTALLDATE>14/07/2009</INSTALLDATE>
+      <NAME>Internet Explorer</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <VERSION>8.0.7600.16385</VERSION>
+    </SOFTWARES>
+    <STORAGES>
+      <DESCRIPTION>Disk drive</DESCRIPTION>
+      <DISKSIZE>64424</DISKSIZE>
+      <FIRMWARE>1.0</FIRMWARE>
+      <INTERFACE>IDE</INTERFACE>
+      <MANUFACTURER>(Standard disk drives)</MANUFACTURER>
+      <MODEL>VBOX HARDDISK</MODEL>
+      <NAME>\\.\PHYSICALDRIVE0</NAME>
+      <SCSI_COID>0</SCSI_COID>
+      <SCSI_LUN>0</SCSI_LUN>
+      <SCSI_UNID>0</SCSI_UNID>
+      <SERIAL>VB76069151-9438868b</SERIAL>
+      <SERIALNUMBER>VB76069151-9438868b</SERIALNUMBER>
+      <TYPE>Fixed hard disk media</TYPE>
+    </STORAGES>
+    <STORAGES>
+      <DESCRIPTION>CD-ROM Drive</DESCRIPTION>
+      <MANUFACTURER>(Standard CD-ROM drives)</MANUFACTURER>
+      <MODEL>VBOX CD-ROM ATA Device</MODEL>
+      <NAME>VBOX CD-ROM ATA Device</NAME>
+      <SCSI_COID>1</SCSI_COID>
+      <SCSI_LUN>0</SCSI_LUN>
+      <SCSI_UNID>0</SCSI_UNID>
+      <SERIALNUMBER />  <TYPE>UNKNOWN</TYPE>
+    </STORAGES>
+    <USERS>
+      <DOMAIN>AGENT1</DOMAIN>
+      <LOGIN>vagrant</LOGIN>
+    </USERS>
+    <VERSIONCLIENT>FusionInventory-Agent_v2.3.19</VERSIONCLIENT>
+    <VERSIONPROVIDER>
+      <COMMENTS>Provided by Teclib</COMMENTS>
+      <COMMENTS>Installer built with Appveyor on Sat Feb 18 09:34:43 UTC 2017</COMMENTS>
+      <NAME>FusionInventory</NAME>
+      <PERL_EXE>c:\Program Files\FusionInventory-Agent\perl\bin\perl.exe</PERL_EXE>
+      <PERL_VERSION>v5.22.2</PERL_VERSION>
+      <PROGRAM>fusioninventory-agent</PROGRAM>
+      <VERSION>2.3.19</VERSION>
+    </VERSIONPROVIDER>
+    <VIDEOS>
+      <NAME>VirtualBox Graphics Adapter</NAME>
+    </VIDEOS>
+  </CONTENT>
+  <DEVICEID>agent1-2017-05-18-08-15-03</DEVICEID>
+  <QUERY>INVENTORY</QUERY>
+</REQUEST>

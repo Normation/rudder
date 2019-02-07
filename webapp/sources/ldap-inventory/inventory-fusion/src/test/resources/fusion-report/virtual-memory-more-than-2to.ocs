@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<REQUEST>
+  <CONTENT>
+    <OPERATINGSYSTEM>
+      <FULL_NAME>Debian GNU/Linux 5.0.8 (lenny)</FULL_NAME>
+      <KERNEL_NAME>linux</KERNEL_NAME>
+      <KERNEL_VERSION>2.6.26-2-686</KERNEL_VERSION>
+      <NAME>Debian</NAME>
+      <VERSION>5.0.8</VERSION>
+    </OPERATINGSYSTEM>
+    <PROCESSES>
+      <CMD>someserver</CMD>
+      <CPUUSAGE>24.9</CPUUSAGE>
+      <MEM>35.8</MEM>
+      <PID>123456</PID>
+      <STARTED>2016-08-01 18:15</STARTED>
+      <TTY>?</TTY>
+      <USER>somespecialuser</USER>
+      <VIRTUALMEMORY>2297795780</VIRTUALMEMORY>
+    </PROCESSES>
+    <RUDDER>
+      <AGENT>
+        <AGENT_NAME>cfengine-community</AGENT_NAME>
+        <CFENGINE_KEY>-----BEGIN RSA PUBLIC KEY-----plop-----END RSA PUBLIC KEY-----
+        </CFENGINE_KEY>
+        <OWNER>root</OWNER>
+        <POLICY_SERVER_HOSTNAME>192.168.110.47</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+      </AGENT>
+      <HOSTNAME>debian-6-64.labo.normation.com</HOSTNAME>
+      <UUID>b9a71482-5030-4699-984d-b03d28bbbf36</UUID>
+    </RUDDER>
+  </CONTENT>
+  <QUERY>INVENTORY</QUERY>
+  <DEVICEID>foo</DEVICEID>
+</REQUEST>
