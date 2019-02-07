@@ -1,0 +1,701 @@
+<!--
+Copyright 2011 Normation SAS
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.normation</groupId>
+  <artifactId>parent-pom</artifactId>
+  <version>5.1.0~alpha1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <!-- ====================================  PROJECT INFORMATION  ==================================== -->
+
+  <description>
+    This is the master parent pom, which knows all common dependencies, generic infos about resources,users.
+    For now, it includes (Normation) private resources.
+  </description>
+
+  <organization>
+    <name>Normation SAS</name>
+    <url>http://www.normation.com/</url>
+  </organization>
+
+  <developers>
+    <developer>
+      <id>ncharles</id>
+      <name>Nicolas Charles</name>
+      <timezone>+1</timezone>
+      <email>nicolas.charles [at] normation.com</email>
+    </developer>
+    <developer>
+      <id>fanf42</id>
+      <name>Francois Armand</name>
+      <timezone>+1</timezone>
+    </developer>
+    <developer>
+      <id>jooooooon</id>
+      <name>Jonathan Clarke</name>
+      <timezone>+1</timezone>
+    </developer>
+  </developers>
+
+  <!-- ====================================  /PROJECT INFORMATION  ==================================== -->
+
+  <!-- ====================================  PROJECT REPOS  ==================================== -->
+
+  <repositories>
+    <repository>
+      <id>maven_central</id>
+      <name>Default maven repository</name>
+      <url>http://repo1.maven.org/maven2/</url>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+    <repository>
+      <id>rudder-release</id>
+      <url>http://www.rudder-project.org/maven-releases/</url>
+      <layout>default</layout>
+      <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+    <repository>
+      <id>rudder-snapshot</id>
+      <url>http://www.rudder-project.org/maven-snapshots/</url>
+      <layout>default</layout>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+  </repositories>
+
+  <!-- ====================================  /PROJECT REPOS  ==================================== -->
+
+  <!-- ====================================  PROJECT BUILD  ==================================== -->
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>snapshots.nexus.normation.com</id>
+      <name>Normation internal nexus repository for snapshots</name>
+      <url>http://nexus.normation.com/nexus/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>releases.nexus.normation.com</id>
+      <name>Normation internal nexus repository for release</name>
+      <url>http://nexus.normation.com/nexus/content/repositories/releases</url>
+    </repository>
+  </distributionManagement>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>${scala-maven-plugin-version}</version>
+      </plugin>
+    </plugins>
+  </reporting>
+
+  <build>
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ssh</artifactId>
+        <version>2.6</version>
+      </extension>
+    </extensions>
+    <plugins>
+      <plugin>
+
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>cobertura-maven-plugin</artifactId>
+        <version>2.6</version>
+
+        <configuration>
+          <formats>
+            <format>html</format>
+            <format>xml</format>
+          </formats>
+        </configuration>
+      </plugin>
+       <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>${scala-maven-plugin-version}</version>
+        <executions>
+          <execution>
+            <id>scala-compile-first</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>add-source</goal>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>scala-test-compile</id>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <scalaCompatVersion>${scala-binary-version}</scalaCompatVersion>
+          <compilerPlugins>
+            <compilerPlugin>
+              <groupId>com.github.ghik</groupId>
+              <artifactId>silencer-plugin_${scala-binary-version}</artifactId>
+              <version>${silencer-lib-version}</version>
+            </compilerPlugin>
+          </compilerPlugins>
+          <args>
+            <!-- require java8, cf http://www.rudder-project.org/redmine/issues/9917 -->
+            <arg>-target:jvm-1.8</arg>
+            <!-- needed for cats resolution of implicits -->
+            <arg>-Ypartial-unification</arg>
+            <arg>-dependencyfile</arg>
+            <arg>${basedir}/.scala_dependencies</arg>
+            <!-- standard warning, most of the one from https://tpolecat.github.io/2017/04/25/scalac-flags.html -->
+            <!-- corresponding scala line:
+              -Ypartial-unification  -language:existentials -language:higherKinds -language:implicitConversions
+              -Xlint:_,-nullary-unit,-missing-interpolator -Yno-adapted-args -Ywarn-dead-code -Ywarn-extra-implicit -Ywarn-inaccessible
+              -Ywarn-infer-any -Ywarn-nullary-override -Ywarn-numeric-widen -Ywarn-unused:imports -Ywarn-unused:locals -Ywarn-unused:privates
+            -->
+            <arg>-deprecation</arg>                  <!-- Emit warning and location for usages of deprecated APIs. -->
+            <arg>-explaintypes</arg>                 <!-- Explain type errors in more detail. -->
+            <arg>-feature</arg>                      <!-- Emit warning and location for usages of features that should be imported explicitly. -->
+            <arg>-unchecked</arg>                    <!-- Enable additional warnings where generated code depends on assumptions. -->
+            <arg>-language:existentials</arg>        <!-- Existential types (besides wildcard types) can be written and inferred -->
+            <arg>-language:higherKinds</arg>         <!-- Allow higher-kinded types -->
+            <arg>-language:implicitConversions</arg> <!-- Allow definition of implicit functions called views -->
+            <arg>-Xcheckinit</arg>                   <!--  Wrap field accessors to throw an exception on uninitialized access. -->
+            <arg>-Xfuture</arg>                      <!-- Turn on future language features. -->
+            <arg>-Xlint:_,-nullary-unit,-missing-interpolator</arg> <!-- Xlint, minus nullary-units and missing interpolator (which brings false positive in Rudder) -->
+            <arg>-Yno-adapted-args</arg>             <!-- Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver. -->
+            <arg>-Ywarn-dead-code</arg>              <!-- Warn when dead code is identified. -->
+            <arg>-Ywarn-extra-implicit</arg>         <!-- Warn when more than one implicit parameter section is defined. -->
+            <arg>-Ywarn-inaccessible</arg>           <!-- Warn about inaccessible types in method signatures. -->
+            <arg>-Ywarn-infer-any</arg>              <!-- Warn when a type argument is inferred to be `Any`. -->
+            <arg>-Ywarn-nullary-override</arg>       <!-- Warn when non-nullary `def f()' overrides nullary `def f'. -->
+            <arg>-Ywarn-numeric-widen</arg>          <!-- Warn when numerics are widened. -->
+            <arg>-Ywarn-unused:imports</arg>         <!-- Warn if an import selector is not referenced. -->
+            <arg>-Ywarn-unused:locals</arg>          <!-- Warn if a local definition is unused. -->
+            <arg>-Ywarn-unused:privates</arg>        <!-- Warn if a private member is unused. -->
+          </args>
+          <jvmArgs>
+            <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>
+            <jvmArg>-Xms${jvmArg-Xmx}</jvmArg>
+            <jvmArg>-Xss${jvmArg-Xss}</jvmArg>
+            <jvmArg>${jvmArg-arg0}</jvmArg>
+            <jvmArg>${jvmArg-arg1}</jvmArg>
+            <jvmArg>${jvmArg-arg2}</jvmArg>
+            <jvmArg>${jvmArg-arg3}</jvmArg>
+            <jvmArg>${jvmArg-arg4}</jvmArg>
+            <jvmArg>${jvmArg-arg5}</jvmArg>
+            <jvmArg>${jvmArg-arg6}</jvmArg>
+            <jvmArg>${jvmArg-arg7}</jvmArg>
+            <jvmArg>${jvmArg-arg8}</jvmArg>
+            <jvmArg>${jvmArg-arg9}</jvmArg>
+          </jvmArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.zeroturnaround</groupId>
+        <artifactId>jrebel-maven-plugin</artifactId>
+        <version>1.1.3</version>
+        <executions>
+          <execution>
+            <id>generate-rebel-xml</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.codehaus.plexus</groupId>
+            <artifactId>plexus-utils</artifactId>
+            <version>1.4.1</version>
+              <scope>runtime</scope>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.7.0</version>
+        <configuration>
+          <!-- require java8, cf http://www.rudder-project.org/redmine/issues/8963 -->
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+    <pluginManagement>
+    <plugins>
+      <!-- configure jar everywhere -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.1.0</version>
+        <configuration>
+          <archive>
+            <addMavenDescriptor>false</addMavenDescriptor>
+            <manifestEntries>
+              <!-- let built-by be empty - we can't remove it -->
+              <Built-By>${project.organization.name}</Built-By>
+              <Build-Time>${maven.build.timestamp}</Build-Time>
+              <version>${project.version}</version>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <archive>
+            <addMavenDescriptor>false</addMavenDescriptor>
+            <manifestEntries>
+              <!-- let built-by be empty - we can't remove it -->
+              <Built-By>${project.organization.name}</Built-By>
+              <!-- And yes, manifest file must start with upper case... -->
+              <Build-Time>${maven.build.timestamp}</Build-Time>
+              <Version>${project.version}</Version>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.eclipse.m2e</groupId>
+        <artifactId>lifecycle-mapping</artifactId>
+        <version>1.0.0</version>
+        <configuration>
+          <lifecycleMappingMetadata>
+            <pluginExecutions>
+              <pluginExecution>
+                <pluginExecutionFilter>
+                  <groupId>org.zeroturnaround</groupId>
+                  <artifactId>jrebel-maven-plugin</artifactId>
+                  <versionRange>[0.1,)</versionRange>
+                  <goals>
+                    <goal>generate</goal>
+                  </goals>
+                </pluginExecutionFilter>
+                <action>
+                  <execute/>
+                </action>
+              </pluginExecution>
+              <pluginExecution>
+                <pluginExecutionFilter>
+                  <groupId>net.alchim31.maven</groupId>
+                  <artifactId>scala-maven-plugin</artifactId>
+                  <versionRange>[0.1,)</versionRange>
+                  <goals>
+                    <goal>add-source</goal>
+                    <goal>compile</goal>
+                    <goal>testCompile</goal>
+                  </goals>
+                </pluginExecutionFilter>
+                <action>
+                  <configurator>
+                    <id>org.maven.ide.eclipse.scala</id>
+                  </configurator>
+                </action>
+              </pluginExecution>
+            </pluginExecutions>
+          </lifecycleMappingMetadata>
+        </configuration>
+      </plugin>
+    </plugins>
+    </pluginManagement>
+  </build>
+
+  <!-- ====================================  /PROJECT BUILD  ==================================== -->
+
+  <!-- ==================================== PROJECT PROPERTIES  ==================================== -->
+
+  <properties>
+    <!-- we use UTF-8 for everything -->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- Maven plugin version -->
+    <scala-maven-plugin-version>3.2.2</scala-maven-plugin-version>
+
+    <!-- Libraries version that MUST be used in all children project -->
+
+    <current-year>2018</current-year>
+    <rudder-major-version>5.1</rudder-major-version>
+    <rudder-version>5.1.0~alpha1-SNAPSHOT</rudder-version>
+    <spring-run-dep-version>5.1.0~alpha1-SNAPSHOT</spring-run-dep-version>
+
+    <scala-version>2.12.6</scala-version>
+    <scala-binary-version>2.12</scala-binary-version>
+    <lift-version>3.3.0</lift-version>
+    <slf4j-version>1.7.25</slf4j-version>
+    <logback-version>1.2.3</logback-version>
+    <junit-version>4.12</junit-version>
+    <jodatime-version>2.10</jodatime-version>
+    <jodaconvert-version>2.1.1</jodaconvert-version>
+    <commons-io-version>2.6</commons-io-version>
+    <commons-codec-version>1.11</commons-codec-version>
+    <commons-lang-version>2.6</commons-lang-version>
+    <spring-version>5.0.8.RELEASE</spring-version>
+    <spring-security-version>5.0.7.RELEASE</spring-security-version>
+    <jgit-version>5.0.2.201807311906-r</jgit-version>
+    <cglib-version>3.2.7</cglib-version>
+    <asm-version>5.2</asm-version>
+    <bcpkix-jdk15on-version>1.60</bcpkix-jdk15on-version>
+    <monix-version>2.3.3</monix-version>
+    <silencer-lib-version>1.2</silencer-lib-version>
+    <!--
+      These one must be updated to work together
+      We declare cats in "test" here, because it is not directly needed
+      in any project before rudder.
+    -->
+    <cats-version>1.2.0</cats-version>
+    <specs2-version>4.3.4</specs2-version>
+    <doobie-version>0.5.3</doobie-version>
+    <fs2-version>0.10.5</fs2-version>
+    <http4s-version>0.18.16</http4s-version>
+    <shapeless-version>2.3.3</shapeless-version>
+    <cats-effect-version>1.0.0-RC</cats-effect-version>
+    <!--
+      Hack to make scalac jvm parameters like RAM configurable.
+      With that, one can override Xmx or add jvm parameters either
+      in command line invocation: mvn compile -DjvmArg-Xmx="4G"
+      or in ~/.m2/settings.xml with profiles.
+    -->
+
+    <jvmArg-Xmx>1G</jvmArg-Xmx>
+    <jvmArg-Xss>32m</jvmArg-Xss>
+    <jvmArg-arg0/>
+    <jvmArg-arg1/>
+    <jvmArg-arg2/>
+    <jvmArg-arg3/>
+    <jvmArg-arg4/>
+    <jvmArg-arg5/>
+    <jvmArg-arg6/>
+    <jvmArg-arg7/>
+    <jvmArg-arg8/>
+    <jvmArg-arg9/>
+
+  </properties>
+
+  <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
+
+  <!--
+    This allows to use homogeneous version of scalaz everywhere.
+    Yep, we need to explicitly specify them all.
+  -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-library</artifactId>
+        <version>${scala-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-reflect</artifactId>
+        <version>${scala-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.typelevel</groupId>
+        <artifactId>cats-core_${scala-binary-version}</artifactId>
+        <version>${cats-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>co.fs2</groupId>
+        <artifactId>fs2-core_${scala-binary-version}</artifactId>
+        <version>${fs2-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.tpolecat</groupId>
+        <artifactId>doobie-core_${scala-binary-version}</artifactId>
+        <version>${doobie-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.monix</groupId>
+        <artifactId>monix-reactive_${scala-binary-version}</artifactId>
+        <version>${monix-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.typelevel</groupId>
+        <artifactId>cats-effect_${scala-binary-version}</artifactId>
+        <version>${cats-effect-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.chuusai</groupId>
+        <artifactId>shapeless_${scala-binary-version}</artifactId>
+        <version>${shapeless-version}</version>
+      </dependency>
+
+      <!--
+        lift-web
+      -->
+      <dependency>
+        <groupId>net.liftweb</groupId>
+        <artifactId>lift-common_${scala-binary-version}</artifactId>
+        <version>${lift-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+          <exclusion>
+            <artifactId>log4j</artifactId>
+            <groupId>log4j</groupId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>net.liftweb</groupId>
+        <artifactId>lift-json_${scala-binary-version}</artifactId>
+        <version>${lift-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.liftweb</groupId>
+        <artifactId>lift-util_${scala-binary-version}</artifactId>
+        <version>${lift-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.liftweb</groupId>
+        <artifactId>lift-webkit_${scala-binary-version}</artifactId>
+        <version>${lift-version}</version>
+      </dependency>
+      <!-- joda time -->
+      <dependency>
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <version>${jodatime-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.joda</groupId>
+        <artifactId>joda-convert</artifactId>
+        <version>${jodaconvert-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${bcpkix-jdk15on-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>${bcpkix-jdk15on-version}</version>
+      </dependency>
+
+
+      <!-- commons -->
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${commons-io-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-lang</groupId>
+        <artifactId>commons-lang</artifactId>
+        <version>${commons-lang-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${commons-codec-version}</version>
+      </dependency>
+
+      <!-- spring -->
+      <dependency>
+        <groupId>org.ow2.asm</groupId>
+        <artifactId>asm</artifactId>
+        <version>${asm-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-context</artifactId>
+        <version>${spring-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-core</artifactId>
+        <version>${spring-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <!-- Needed to use spring configuration by annotation -->
+      <dependency>
+        <groupId>cglib</groupId>
+        <artifactId>cglib</artifactId>
+        <version>${cglib-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <!--  test -->
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.specs2</groupId>
+        <artifactId>specs2-core_${scala-binary-version}</artifactId>
+        <version>${specs2-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.specs2</groupId>
+        <artifactId>specs2-matcher-extra_${scala-binary-version}</artifactId>
+        <version>${specs2-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.specs2</groupId>
+        <artifactId>specs2-junit_${scala-binary-version}</artifactId>
+        <version>${specs2-version}</version>
+      </dependency>
+      <!-- No httpclient / commons-logging for jgit -->
+      <dependency>
+        <groupId>org.eclipse.jgit</groupId>
+        <artifactId>org.eclipse.jgit</artifactId>
+        <version>${jgit-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <!-- the slf4j commons-logging replacement -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>jcl-over-slf4j</artifactId>
+        <version>${slf4j-version}</version>
+      </dependency>
+      <!-- using slf4j native backend -->
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-core</artifactId>
+        <version>${logback-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>${logback-version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- almost used in all projects -->
+    <dependency>
+      <groupId>com.github.ghik</groupId>
+      <artifactId>silencer-lib_${scala-binary-version}</artifactId>
+      <version>${silencer-lib-version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>ca.mrvisser</groupId>
+      <artifactId>sealerate_${scala-binary-version}</artifactId>
+      <version>0.0.5</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- joda-time is used in all projects -->
+    <dependency>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
+      <version>${jodatime-version}</version>
+    </dependency>
+    <!--  test -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.specs2</groupId>
+      <artifactId>specs2-core_${scala-binary-version}</artifactId>
+      <version>${specs2-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.specs2</groupId>
+      <artifactId>specs2-matcher-extra_${scala-binary-version}</artifactId>
+      <version>${specs2-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.specs2</groupId>
+      <artifactId>specs2-junit_${scala-binary-version}</artifactId>
+      <version>${specs2-version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!--
+        included to use slf4j native backend
+        If you want to use another backend,
+        exclude these dependencies from parent
+    -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <version>${logback-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback-version}</version>
+    </dependency>
+  </dependencies>
+
+</project>
