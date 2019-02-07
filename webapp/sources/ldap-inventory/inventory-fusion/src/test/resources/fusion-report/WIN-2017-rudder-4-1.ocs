@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<REQUEST>
+  <CONTENT>
+<VMS>
+</VMS>
+<USERSLIST>
+<USER>Invité</USER>
+<USER>demo</USER>
+<USER>Administrateur</USER>
+</USERSLIST>
+    <ACCESSLOG>
+      <LOGDATE>2017-05-09 18:15:19</LOGDATE>
+    </ACCESSLOG>
+    <BIOS>
+      <ASSETTAG />  <BDATE>12/01/2006</BDATE>
+      <BMANUFACTURER>innotek GmbH</BMANUFACTURER>
+      <BVERSION>VirtualBox</BVERSION>
+      <MMANUFACTURER>Oracle Corporation</MMANUFACTURER>
+      <MMODEL>VirtualBox</MMODEL>
+      <MSN>0</MSN>
+      <SKUNUMBER />  <SMANUFACTURER>innotek GmbH</SMANUFACTURER>
+      <SMODEL>VirtualBox</SMODEL>
+      <SSN>0</SSN>
+    </BIOS>
+    <CONTROLLERS>
+      <CAPTION>82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>2829</PRODUCTID>
+      <TYPE>Contrôleur Serial ATA standard AHCI 1.0</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>KeyLargo/Intrepid USB</CAPTION>
+      <MANUFACTURER>Apple Inc.</MANUFACTURER>
+      <NAME>KeyLargo/Intrepid USB</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>003f</PRODUCTID>
+      <TYPE>Contrôleur hôte USB OpenHCD standard</TYPE>
+      <VENDORID>106b</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82540EM Gigabit Ethernet Controller</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>PRO/1000 MT Desktop Adapter</NAME>
+      <PCISUBSYSTEMID>8086:001e</PCISUBSYSTEMID>
+      <PRODUCTID>100e</PRODUCTID>
+      <TYPE>Carte Intel(R) PRO/1000 MT pour station de travail</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>VirtualBox Guest Service</CAPTION>
+      <MANUFACTURER>InnoTek Systemberatung GmbH</MANUFACTURER>
+      <NAME>VirtualBox Guest Service</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>cafe</PRODUCTID>
+      <TYPE>VirtualBox Device</TYPE>
+      <VENDORID>80ee</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>440FX - 82441FX PMC [Natoma]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>440FX - 82441FX PMC [Natoma]</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>1237</PRODUCTID>
+      <TYPE>Pont Intel 82441FX Processeur Pentium(R) Pro vers PCI</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82801FB/FBM/FR/FW/FRW (ICH6 Family) High Definition Audio Controller</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82801FB/FBM/FR/FW/FRW (ICH6 Family) High Definition Audio Controller</NAME>
+      <PCISUBSYSTEMID>8384:7680</PCISUBSYSTEMID>
+      <PRODUCTID>2668</PRODUCTID>
+      <TYPE>Contrôleur audio haute définition</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371SB PIIX3 ISA [Natoma/Triton II]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371SB PIIX3 ISA [Natoma/Triton II]</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>7000</PRODUCTID>
+      <TYPE>Pont Intel 82371SB PCI vers ISA</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>VirtualBox Graphics Adapter</CAPTION>
+      <MANUFACTURER>InnoTek Systemberatung GmbH</MANUFACTURER>
+      <NAME>VirtualBox Graphics Adapter</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>beef</PRODUCTID>
+      <TYPE>VirtualBox Graphics Adapter</TYPE>
+      <VENDORID>80ee</VENDORID>
+    </CONTROLLERS>
+    <CPUS>
+      <CORE>1</CORE>
+      <DESCRIPTION>Intel64 Family 6 Model 69 Stepping 1</DESCRIPTION>
+      <FAMILYNUMBER>6</FAMILYNUMBER>
+      <MANUFACTURER>Intel</MANUFACTURER>
+      <MODEL>69</MODEL>
+      <NAME>Intel(R) Core(TM) i5-4200U CPU @ 1.60GHz</NAME>
+      <SPEED>1600</SPEED>
+      <STEPPING>1</STEPPING>
+      <THREAD>1</THREAD>
+    </CPUS>
+    <DRIVES>
+      <DESCRIPTION>Disque fixe local</DESCRIPTION>
+      <FILESYSTEM>NTFS</FILESYSTEM>
+      <FREE>11002</FREE>
+      <LABEL></LABEL>
+      <LETTER>C:</LETTER>
+      <SERIAL>E478E77B</SERIAL>
+      <SYSTEMDRIVE>1</SYSTEMDRIVE>
+      <TOTAL>20555</TOTAL>
+      <TYPE>Local Disk</TYPE>
+      <VOLUMN></VOLUMN>
+    </DRIVES>
+    <DRIVES>
+      <DESCRIPTION>Disque CD-ROM</DESCRIPTION>
+      <LETTER>D:</LETTER>
+      <SYSTEMDRIVE></SYSTEMDRIVE>
+      <TYPE>Compact Disc</TYPE>
+    </DRIVES>
+    <ENVS>
+      <KEY>ComSpec</KEY>
+      <VAL>%SystemRoot%\system32\cmd.exe</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>FP_NO_HOST_CHECK</KEY>
+      <VAL>NO</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>OS</KEY>
+      <VAL>Windows_NT</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>Path</KEY>
+      <VAL>%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;C:\Program Files\Cfengine\bin\</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PATHEXT</KEY>
+      <VAL>.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_ARCHITECTURE</KEY>
+      <VAL>AMD64</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TEMP</KEY>
+      <VAL>%SystemRoot%\TEMP</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TMP</KEY>
+      <VAL>%SystemRoot%\TEMP</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USERNAME</KEY>
+      <VAL>SYSTEM</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>windir</KEY>
+      <VAL>%SystemRoot%</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PSModulePath</KEY>
+      <VAL>%SystemRoot%\system32\WindowsPowerShell\v1.0\Modules\</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>NUMBER_OF_PROCESSORS</KEY>
+      <VAL>1</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_LEVEL</KEY>
+      <VAL>6</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_IDENTIFIER</KEY>
+      <VAL>Intel64 Family 6 Model 69 Stepping 1, GenuineIntel</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_REVISION</KEY>
+      <VAL>4501</VAL>
+    </ENVS>
+    <HARDWARE>
+      <ARCHNAME>MSWin32-x64-multi-thread</ARCHNAME>
+      <CHASSIS_TYPE>Other</CHASSIS_TYPE>
+      <CHECKSUM>131071</CHECKSUM>
+      <DEFAULTGATEWAY>10.0.2.2</DEFAULTGATEWAY>
+      <DNS>10.0.2.3</DNS>
+      <ETIME>19</ETIME>
+      <IPADDR>10.0.2.15/192.168.43.10</IPADDR>
+      <LASTLOGGEDUSER>vagrant</LASTLOGGEDUSER>
+      <MEMORY>2047</MEMORY>
+      <NAME>WIN-UC3QD07D2PO</NAME>
+      <OSNAME>Microsoft Windows Server 2008 R2 Standard </OSNAME>
+      <OSVERSION>6.1.7600</OSVERSION>
+      <PROCESSORN>1</PROCESSORN>
+      <PROCESSORS>1600</PROCESSORS>
+      <PROCESSORT>Intel(R) Core(TM) i5-4200U CPU @ 1.60GHz</PROCESSORT>
+      <USERID>vagrant</USERID>
+      <UUID>B1F2330E-9D66-0C4E-B9CC-CD455F007AC1</UUID>
+      <VMSYSTEM>VirtualBox</VMSYSTEM>
+      <WINLANG>1036</WINLANG>
+      <WINOWNER>Utilisateur Windows</WINOWNER>
+      <WINPRODID>00477-179-0000007-84674</WINPRODID>
+      <WINPRODKEY>HMG6P-C7VGP-47GJ9-TWBD4-2YYCD</WINPRODKEY>
+      <WORKGROUP>WORKGROUP</WORKGROUP>
+    </HARDWARE>
+    <INPUTS>
+      <CAPTION>Étendu (101 ou 102 touches)</CAPTION>
+      <DESCRIPTION>Clavier standard PS/2</DESCRIPTION>
+      <LAYOUT>0000040C</LAYOUT>
+      <NAME>Étendu (101 ou 102 touches)</NAME>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>Souris Microsoft PS/2</CAPTION>
+      <DESCRIPTION>Souris Microsoft PS/2</DESCRIPTION>
+      <INTERFACE>PS/2</INTERFACE>
+      <MANUFACTURER>Microsoft</MANUFACTURER>
+      <NAME>Souris Microsoft PS/2</NAME>
+      <POINTINGTYPE>2</POINTINGTYPE>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>Périphérique d’entrée USB</CAPTION>
+      <DESCRIPTION>Périphérique d’entrée USB</DESCRIPTION>
+      <INTERFACE>USB</INTERFACE>
+      <MANUFACTURER>(Périphériques système standard)</MANUFACTURER>
+      <NAME>Périphérique d’entrée USB</NAME>
+      <POINTINGTYPE>2</POINTINGTYPE>
+    </INPUTS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-574</ID>
+      <NAME>Accès DCOM service de certificats</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-544</ID>
+      <NAME>Administrateurs</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-552</ID>
+      <NAME>Duplicateurs</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-568</ID>
+      <NAME>IIS_IUSRS</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-546</ID>
+      <NAME>Invités</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-573</ID>
+      <NAME>Lecteurs des journaux d’événements</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-569</ID>
+      <NAME>Opérateurs de chiffrement</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-556</ID>
+      <NAME>Opérateurs de configuration réseau</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-551</ID>
+      <NAME>Opérateurs de sauvegarde</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-550</ID>
+      <NAME>Opérateurs d’impression</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-545</ID>
+      <NAME>Utilisateurs</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-547</ID>
+      <NAME>Utilisateurs avec pouvoir</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-558</ID>
+      <NAME>Utilisateurs de l’Analyseur de performances</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-555</ID>
+      <NAME>Utilisateurs du Bureau à distance</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-559</ID>
+      <NAME>Utilisateurs du journal de performances</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-562</ID>
+      <NAME>Utilisateurs du modèle COM distribué</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_USERS>
+      <ID>S-1-5-21-3455907242-2152756475-1308380486-500</ID>
+      <NAME>Administrateur</NAME>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>S-1-5-21-3455907242-2152756475-1308380486-1001</ID>
+      <NAME>demo</NAME>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>S-1-5-21-3455907242-2152756475-1308380486-1000</ID>
+      <NAME>vagrant</NAME>
+    </LOCAL_USERS>
+    <NETWORKS>
+      <DESCRIPTION>Carte Intel(R) PRO/1000 MT pour station de travail</DESCRIPTION>
+      <IPADDRESS>10.0.2.15</IPADDRESS>
+      <IPDHCP>10.0.2.2</IPDHCP>
+      <IPGATEWAY>10.0.2.2</IPGATEWAY>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>10.0.2.0</IPSUBNET>
+      <MACADDR>08:00:27:E2:3A:B7</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;0&amp;18</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>Carte Intel(R) PRO/1000 MT pour station de travail</DESCRIPTION>
+      <IPADDRESS6>fe80::95e:ef68:9f33:1690</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:E2:3A:B7</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;0&amp;18</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>Carte Intel(R) PRO/1000 MT pour station de travail #2</DESCRIPTION>
+      <IPADDRESS>192.168.43.10</IPADDRESS>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>192.168.43.0</IPSUBNET>
+      <MACADDR>08:00:27:A6:80:AA</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;0&amp;40</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>Carte Intel(R) PRO/1000 MT pour station de travail #2</DESCRIPTION>
+      <IPADDRESS6>fe80::6810:6ee7:237f:9c7f</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:A6:80:AA</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;0&amp;40</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <OPERATINGSYSTEM>
+      <ARCH>64-bit</ARCH>
+      <BOOT_TIME>2017-05-09 13:17:07</BOOT_TIME>
+      <DNS_DOMAIN></DNS_DOMAIN>
+      <FQDN>WIN-UC3QD07D2PO</FQDN>
+      <FULL_NAME>Microsoft Windows Server 2008 R2 Standard </FULL_NAME>
+      <INSTALL_DATE>2017-04-04 16:56:36</INSTALL_DATE>
+      <KERNEL_NAME>MSWin32</KERNEL_NAME>
+      <KERNEL_VERSION>6.1.7600</KERNEL_VERSION>
+      <NAME>Windows</NAME>
+      <SERVICE_PACK /></OPERATINGSYSTEM>
+    <PRINTERS>
+      <DRIVER>Microsoft XPS Document Writer</DRIVER>
+      <NAME>Microsoft XPS Document Writer</NAME>
+      <NETWORK>0</NETWORK>
+      <PORT>XPSPort:</PORT>
+      <PRINTPROCESSOR>winprint</PRINTPROCESSOR>
+      <RESOLUTION>600x600</RESOLUTION>
+      <SHARED>0</SHARED>
+      <STATUS>Idle</STATUS>
+    </PRINTERS>
+    <RUDDER>
+      <AGENT>
+        <AGENT_NAME>cfengine-nova</AGENT_NAME>
+        <CFENGINE_KEY>-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEArHBxshmpqEuF9X6UR0hdkgL1ZzUfwEnbnBRHxVRgymsfFkI2H3G4
+h2rgMcJlwx7RTMlfpI81IS7F5AUlMZygTROXX/rKpMXqK4ss+X6M3mSCsGfk1S8E
+VYXyQ7VOXLzQdvJGiqgr0vAKg3UIMl5Du5PmopO84KZF7zSut4beIFNA8qSlAi3s
+Nc2TGS5RJrEIhvFT/aZ05hmG2FMxScdgGsA5vG02FUaL32Xxp4aZjXCmbt0M1wGi
+cY1jyDuuNXpGE2rmPxb0LHQXdTo342DJl+tJmPUxoMsqCf3r0S4W+rNEw14gAbFe
+Wyrmdk0V6uvRM2mc/soF63RCeZ+MmMOmZQIDAQAB
+-----END RSA PUBLIC KEY-----
+        </CFENGINE_KEY>
+        <OWNER>win-uc3qd07d2po\vagrant</OWNER>
+        <POLICY_SERVER_HOSTNAME>192.168.43.2</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+      </AGENT>
+      <HOSTNAME>WIN-UC3QD07D2PO</HOSTNAME>
+      <UUID>D02D7F7A-49DC-443C-A98D-F3265E8721F9</UUID>
+    </RUDDER>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>FusionInventory-Agent</GUID>
+      <HELPLINK>http://forge.fusioninventory.org/projects/fusioninventory-agent</HELPLINK>
+      <NAME>FusionInventory Agent 2.3.17 (x64 edition)</NAME>
+      <PUBLISHER>FusionInventory Team</PUBLISHER>
+      <UNINSTALL_STRING>C:\Program Files\FusionInventory-Agent\Uninstall.exe</UNINSTALL_STRING>
+      <VERSION>2.3.17</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>Oracle VM VirtualBox Guest Additions</GUID>
+      <NAME>Oracle VM VirtualBox Guest Additions 5.0.32</NAME>
+      <PUBLISHER>Oracle Corporation</PUBLISHER>
+      <UNINSTALL_STRING>C:\Program Files\Oracle\VirtualBox Guest Additions\uninst.exe</UNINSTALL_STRING>
+      <URL_INFO_ABOUT>http://www.virtualbox.org</URL_INFO_ABOUT>
+      <VERSION>5.0.32.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>{1EF75B76-EBA6-4342-87F8-043CA9BBB3FD}</GUID>
+      <INSTALLDATE>09/05/2017</INSTALLDATE>
+      <NAME>CFEngine Nova</NAME>
+      <PUBLISHER>CFEngine AS</PUBLISHER>
+      <UNINSTALL_STRING>MsiExec.exe /I{1EF75B76-EBA6-4342-87F8-043CA9BBB3FD}</UNINSTALL_STRING>
+      <VERSION>3.7.4.65534</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <NAME>Internet Explorer (64bit)</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <VERSION>8.0.7600.16385</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <GUID>{22FA28AB-3C1B-438B-A8B5-E23892C8B567}</GUID>
+      <INSTALLDATE>09/05/2017</INSTALLDATE>
+      <NAME>NXLOG-CE</NAME>
+      <PUBLISHER>nxsec.com</PUBLISHER>
+      <UNINSTALL_STRING>MsiExec.exe /X{22FA28AB-3C1B-438B-A8B5-E23892C8B567}</UNINSTALL_STRING>
+      <VERSION>2.8.1248</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <NAME>Internet Explorer</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <VERSION>8.0.7600.16385</VERSION>
+    </SOFTWARES>
+    <SOUNDS>
+      <CAPTION>Périphérique High Definition Audio</CAPTION>
+      <DESCRIPTION>Périphérique High Definition Audio</DESCRIPTION>
+      <MANUFACTURER>Microsoft</MANUFACTURER>
+      <NAME>Périphérique High Definition Audio</NAME>
+    </SOUNDS>
+    <STORAGES>
+      <DESCRIPTION>Lecteur de disque</DESCRIPTION>
+      <DISKSIZE>21661</DISKSIZE>
+      <FIRMWARE>1.0</FIRMWARE>
+      <INTERFACE>IDE</INTERFACE>
+      <MANUFACTURER>(Lecteurs de disque standard)</MANUFACTURER>
+      <MODEL>VBOX HARDDISK</MODEL>
+      <NAME>\\.\PHYSICALDRIVE0</NAME>
+      <SCSI_COID>0</SCSI_COID>
+      <SCSI_LUN>0</SCSI_LUN>
+      <SCSI_UNID>0</SCSI_UNID>
+      <SERIAL>VB320f0b43-8fc6de1d</SERIAL>
+      <SERIALNUMBER>VB320f0b43-8fc6de1d</SERIALNUMBER>
+      <TYPE>Fixed hard disk media</TYPE>
+    </STORAGES>
+    <STORAGES>
+      <DESCRIPTION>Lecteur de CD-ROM</DESCRIPTION>
+      <MANUFACTURER>(Lecteurs de CD-ROM standard)</MANUFACTURER>
+      <MODEL>VBOX CD-ROM ATA Device</MODEL>
+      <NAME>VBOX CD-ROM ATA Device</NAME>
+      <SCSI_COID>1</SCSI_COID>
+      <SCSI_LUN>0</SCSI_LUN>
+      <SCSI_UNID>0</SCSI_UNID>
+      <SERIALNUMBER />  <TYPE>UNKNOWN</TYPE>
+    </STORAGES>
+    <USBDEVICES>
+      <CAPTION>USB Tablet</CAPTION>
+      <MANUFACTURER>VirtualBox</MANUFACTURER>
+      <NAME>USB Tablet</NAME>
+      <PRODUCTID>0021</PRODUCTID>
+      <VENDORID>80EE</VENDORID>
+    </USBDEVICES>
+    <USERS>
+      <DOMAIN>WIN-UC3QD07D2PO</DOMAIN>
+      <LOGIN>vagrant</LOGIN>
+    </USERS>
+    <VERSIONCLIENT>FusionInventory-Agent_v2.3.17</VERSIONCLIENT>
+    <VIDEOS>
+      <NAME>VirtualBox Graphics Adapter</NAME>
+    </VIDEOS>
+  </CONTENT>
+  <DEVICEID>WIN-UC3QD07D2PO-2017-05-09-12-37-45</DEVICEID>
+<UUID>D02D7F7A-49DC-443C-A98D-F3265E8721F9</UUID>
+<USER>vagrant</USER>
+<AGENTSNAME>
+<AGENTNAME>Nova</AGENTNAME>
+</AGENTSNAME>
+<MACHINEID>B1F2330E-9D66-0C4E-B9CC-CD455F007AC1</MACHINEID>
+<CFKEY>-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEArHBxshmpqEuF9X6UR0hdkgL1ZzUfwEnbnBRHxVRgymsfFkI2H3G4
+h2rgMcJlwx7RTMlfpI81IS7F5AUlMZygTROXX/rKpMXqK4ss+X6M3mSCsGfk1S8E
+VYXyQ7VOXLzQdvJGiqgr0vAKg3UIMl5Du5PmopO84KZF7zSut4beIFNA8qSlAi3s
+Nc2TGS5RJrEIhvFT/aZ05hmG2FMxScdgGsA5vG02FUaL32Xxp4aZjXCmbt0M1wGi
+cY1jyDuuNXpGE2rmPxb0LHQXdTo342DJl+tJmPUxoMsqCf3r0S4W+rNEw14gAbFe
+Wyrmdk0V6uvRM2mc/soF63RCeZ+MmMOmZQIDAQAB
+-----END RSA PUBLIC KEY-----</CFKEY>
+<POLICY_SERVER>root</POLICY_SERVER>
+<SERVER_ROLES>
+</SERVER_ROLES>
+
+  <QUERY>INVENTORY</QUERY>
+</REQUEST>
