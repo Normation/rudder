@@ -8,7 +8,8 @@ use std::io::Write;
 use crate::error::*;
 
 pub struct CFEngine {
-    current_cases: Vec<String>, //TODO
+    // list of already formatted expression in current case
+    current_cases: Vec<String>,
     // match enum local variables with class prefixes
     var_prefixes: HashMap<String, String>,
     // already used class prefix
@@ -40,7 +41,13 @@ impl CFEngine {
     fn parameter_to_cfengine(&mut self, param: &Value) -> String {
         match param {
             // TODO quote escape, dollar escape, vars inclusion
-            Value::String(_, s, vars) => format!("\"{}\"", s),
+            Value::String(s) =>
+                "\"".to_owned() +
+                    s.format(|x:&str| x.replace("\\", "\\\\")            // backslash escape
+                                       .replace("\"", "\\\"")            // quote escape
+                                       .replace("$", "${const.dollar}"), // dollar escape
+                             |y:&str| "${".to_owned() + y + "}"
+                    ).as_str() + "\"",
         }
     }
 

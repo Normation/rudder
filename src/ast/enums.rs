@@ -414,30 +414,8 @@ impl<'a> EnumList<'a> {
                 self.list_variable_enum(variables, e1);
                 self.list_variable_enum(variables, e2);
             }
-            EnumExpression::Compare(var, enum1, _) => {
-                match variables.get(var) {
-                    None => {
-                        variables.insert(*var);
-                    }
-                    Some(e) => {
-                        if e != enum1 {
-                            match self.find_path(*enum1, *e) {
-                                Some(_) => {
-                                    variables.insert(*var);
-                                }
-                                // Not sure this is necessary
-                                None => {
-                                    if self.find_path(*e, *enum1).is_none() {
-                                        panic!(format!(
-                                            "Variable {} is both {} and {} which is not possible",
-                                            var, e, enum1
-                                        ));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            EnumExpression::Compare(var, _, _) => {
+                variables.insert(*var);
             }
         }
     }

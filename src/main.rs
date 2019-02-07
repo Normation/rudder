@@ -10,8 +10,8 @@ use std::fs;
 // MAIN
 
 // TODO next step:
-// - strings
 // - variables
+// - check that interpolated string contain valid variables
 // - more parser error and tests
 
 fn main() {

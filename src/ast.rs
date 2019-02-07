@@ -2,7 +2,6 @@ mod context;
 mod enums;
 pub mod generators;
 mod preast;
-//mod strings;
 
 ///
 /// AST is a big chunk.
@@ -19,8 +18,6 @@ use crate::error::*;
 use crate::parser::*;
 use std::collections::HashMap;
 
-// TODO out of order enum mapping definition
-
 #[derive(Debug)]
 pub struct AST<'a> {
     enum_list: EnumList<'a>,
@@ -33,7 +30,7 @@ struct Resources<'a> {
     metadata: HashMap<Token<'a>, Value<'a>>,
     parameters: Vec<Parameter<'a>>,
     states: HashMap<Token<'a>, StateDef<'a>>,
-    //TODO child: HashSet<Token>
+    //TODO children: HashSet<Token>
 }
 
 #[derive(Debug)]
@@ -45,17 +42,42 @@ struct StateDef<'a> {
 }
 
 #[derive(Debug)]
+pub struct StringObject<'a> {
+    pos: Token<'a>,
+    strs: Vec<String>,
+    vars: Vec<String>,
+}
+impl<'a> StringObject<'a> {
+    pub fn from_pstring(pos: Token<'a>, s: String) -> Result<StringObject> {
+        let (strs,vars) = parse_string2(&s[..])?;
+        Ok(StringObject {pos, strs, vars})
+    }
+    pub fn format<SF,VF>(&self, str_formatter: SF, var_formatter: VF) -> String
+        // string, is_a_suffix, is_a_prefix
+        where SF: Fn(&str) -> String,
+              VF: Fn(&str) -> String {
+        let mut output = String::new();
+        let (last, elts) = self.strs.split_last().unwrap(); // strs cannot be empty
+        let it = elts.iter().zip(self.vars.iter());
+        for (s,v) in it {
+            output.push_str(&str_formatter(s));
+            output.push_str(&var_formatter(v));
+        }
+        output.push_str(&str_formatter(last));
+        output
+    }
+    pub fn is_empty(&self) -> bool { self.vars.is_empty() }
+}
+
+#[derive(Debug)]
 pub enum Value<'a> {
     //     position   format  variables
-    String(Token<'a>, String, Vec<String>),
+    String(StringObject<'a>),
 }
 impl<'a> Value<'a> {
     pub fn from_pvalue(pvalue: PValue<'a>) -> Result<Value<'a>> {
         match pvalue {
-            PValue::String(pos, s) => {
-                let (f,v) = parse_string(&s[..])?;
-                Ok(Value::String(pos, f, v))
-            }
+            PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos,s)?)),
         }
     }
 }
@@ -95,7 +117,7 @@ impl<'a> Parameter<'a> {
 
     fn value_match(&self, param_ref: &Value) -> Result<()> {
         match (&self.ptype, param_ref) {
-            (PType::TString, Value::String(_,_,_)) => Ok(()),
+            (PType::TString, Value::String(_)) => Ok(()),
             (t, _v) => fail!(Token::new("x", "y"), "Parameter is not of the type {:?}", t), // TODO we need a Token to position PValues and a display trait
         }
     }
@@ -311,21 +333,37 @@ impl<'a> AST<'a> {
         }
     }
 
+    fn metadata_check(&self, metadata: &HashMap<Token<'a>, Value<'a>>) -> Result<()> {
+        fix_results(metadata.iter().map(|(k,v)| {
+            match v {
+                Value::String(s) => if !s.is_empty() {
+                    // we don't what else we can do so fail to keep a better behaviour for later
+                    fail!(k, "Metadata {} has a value that contains variables, this is not allowed", k);
+                }
+            }
+            Ok(())
+        }))
+    }
+
     pub fn analyze(&self) -> Result<()> {
-        fix_results(self.resources.iter().flat_map(|(_rn, resource)| {
-            resource.states.iter().flat_map(|(_sn, state)| {
-                state.statements.iter().map(move |st| {
-                    // Not sure why move is needed here
+        let mut errors = Vec::new();
+        for (_rn, resource) in self.resources.iter() {
+            // check that metadata does not contain any variable reference
+            errors.push(self.metadata_check(&resource.metadata));
+            for (_sn, state) in resource.states.iter() {
+                // check that metadata does not contain any variable reference
+                errors.push(self.metadata_check(&state.metadata));
+                for st in state.statements.iter() {
                     // check for resources and state existence
                     // check for matching parameter and type
-                    self.binding_check(st)?;
-                    //TODO check for enum expression validity
-                    self.enum_expression_check(&state.variables, st)?;
-                    Ok(())
-                })
-            })
-        }))
+                    errors.push(self.binding_check(st));
+                    // check for enum expression validity
+                    errors.push(self.enum_expression_check(&state.variables, st));
+                }
+            }
+        }
         // TODO check for string syntax and interpolation validity
+        fix_results(errors.into_iter())
     }
 }
 

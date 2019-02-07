@@ -31,6 +31,9 @@ pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Resu
 pub fn parse_string(content: &str) -> crate::error::Result<(String,Vec<String>)> {
     fix_error_type(interpolated_string(pinput("", content)))
 }
+pub fn parse_string2(content: &str) -> crate::error::Result<(Vec<String>,Vec<String>)> {
+    fix_error_type(interpolated_string2(pinput("", content)))
+}
 
 /// A source file header consists of a single line '@format=<version>'.
 /// Shebang accepted.
@@ -277,7 +280,7 @@ pnamed!(
 /// All strings are interpolated
 pnamed!(
     interpolated_string<(String,Vec<String>)>,
-    do_parse!(
+    exact!(do_parse!(
         varlist: many0!(do_parse!(
             prefix: take_until!("$") >>
             tag!("$") >>
@@ -304,7 +307,44 @@ pnamed!(
             format_vec.push(*rest.fragment);
             (format_vec.as_slice().join(""), var_vec)
         } )
-    )
+    ))
+);
+pnamed!(
+    interpolated_string2<(Vec<String>,Vec<String>)>,
+    exact!(do_parse!(
+        sections: many0!(do_parse!(
+            prefix: take_until!("$") >>
+            tag!("$") >>
+            variable: alt!(
+                tag!("$") => {|_| None}
+              | delimited!(tag!("{"),pidentifier,tag!("}")) => {|x| Some(x)}
+            ) >>
+            (prefix,variable)
+        )) >>
+        rest: rest >>
+        ( {
+            let mut format_vec = Vec::new();
+            let mut var_vec = Vec::new();
+            let mut current = String::new();
+            sections.into_iter().for_each(|(s,v)| {
+                match v {
+                    None => {
+                        current.push_str(*s.fragment);
+                        current.push_str("$");
+                    },
+                    Some(var) => {
+                        current.push_str(*s.fragment);
+                        format_vec.push(current.clone()); // TODO clone is easy but should not be necessary
+                        current = String::new();
+                        var_vec.push(var.fragment().into());
+                    },
+                }
+            });
+            current.push_str(*rest.fragment);
+            format_vec.push(current);
+            (format_vec, var_vec)
+        } )
+    ))
 );
 
 /// PValue is a typed value of the content of a variable or a parameter.
