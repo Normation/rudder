@@ -112,7 +112,7 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "canonified_path"   string => canonify("${file_path}");
-      "url"               string => "https://${def.policy_server}/rudder/relay-api/shared-files/${target_uuid}/${g.uuid}/${file_id}";
+      "url"               string => "https://${server_info.policy_server}/rudder/relay-api/shared-files/${target_uuid}/${g.uuid}/${file_id}";
 
       "hash"              string => execresult("sed -n '/^hash_value=/s/^hash_value=//p' ${file_path}.sign", "useshell"),
                       ifvarclass => "${canonified_path}_signed";
