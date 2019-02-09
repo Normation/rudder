@@ -152,7 +152,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       tagHere <- {
         checkInAgentTag(report,agentTag) match {
           case full : Full[String] => full
-          case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing rudder policy server attribute '${tag}' in report. This attribute is mandatory and must contains node local administrator login."
+          case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing rudder policy server attribute '${tag}' in report. This attribute is mandatory and must contain Rudder ID pour policy server."
         }
       }
     } yield {
