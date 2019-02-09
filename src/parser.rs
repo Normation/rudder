@@ -10,14 +10,17 @@ pub use self::token::Token;
 use enum_primitive::*;
 use nom::*;
 
-/// All structures are public to be analysed by other modules
+/// All structures are public to be read directly by other modules.
+/// Parsing errors must be avoided if possible since they are fatal.
+/// Keep the structure and handle the error in later analyser if possible.
 
 // TODO parse and store comments
 // TODO add more types
 // TODO add more or_fail!
 // TODO lifetime = 'src
 // TODO _ in identifiers
-// TODO reserve keywords
+// TODO namespace in identifiers
+// TODO reserve keywords (in analyser)
 // TODO iterators, variable definition
 // TODO trailing comma
 // TODO move expression parsing out to enable multiple error reports
@@ -28,11 +31,8 @@ pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Resu
 }
 
 /// Parse a string for interpolation
-pub fn parse_string(content: &str) -> crate::error::Result<(String,Vec<String>)> {
+pub fn parse_string(content: &str) -> crate::error::Result<(Vec<String>, Vec<String>)> {
     fix_error_type(interpolated_string(pinput("", content)))
-}
-pub fn parse_string2(content: &str) -> crate::error::Result<(Vec<String>,Vec<String>)> {
-    fix_error_type(interpolated_string2(pinput("", content)))
 }
 
 /// A source file header consists of a single line '@format=<version>'.
@@ -158,8 +158,8 @@ pnamed!(
     sp!(alt!(enum_or_expression
        | enum_and_expression
        | enum_not_expression
+       | tag!("default") => { |_| PEnumExpression::Default } // default looks like an atom so it comes first
        | enum_atom
-       | tag!("default") => { |_| PEnumExpression::Default }
     ))
 );
 pnamed!(
@@ -218,7 +218,7 @@ pnamed!(
 );
 
 /// A PType is the type a variable or a parameter can take.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum PType {
     TString,
     TInteger,
@@ -279,38 +279,7 @@ pnamed!(
 
 /// All strings are interpolated
 pnamed!(
-    interpolated_string<(String,Vec<String>)>,
-    exact!(do_parse!(
-        varlist: many0!(do_parse!(
-            prefix: take_until!("$") >>
-            tag!("$") >>
-            variable: alt!(
-                tag!("$") => {|_| None}
-              | delimited!(tag!("{"),pidentifier,tag!("}")) => {|x| Some(x)}
-            ) >>
-            (prefix,variable)
-        )) >>
-        rest: rest >>
-        ( {
-            let mut format_vec = Vec::new();
-            let mut var_vec = Vec::new();
-            varlist.into_iter().for_each(|(s,v)| {
-                format_vec.push(*s.fragment);
-                match v {
-                    None => format_vec.push("$"),
-                    Some(var) => {
-                        format_vec.push("{}");
-                        var_vec.push(var.fragment().into());
-                    },
-                }
-            });
-            format_vec.push(*rest.fragment);
-            (format_vec.as_slice().join(""), var_vec)
-        } )
-    ))
-);
-pnamed!(
-    interpolated_string2<(Vec<String>,Vec<String>)>,
+    interpolated_string<(Vec<String>,Vec<String>)>,
     exact!(do_parse!(
         sections: many0!(do_parse!(
             prefix: take_until!("$") >>
@@ -464,8 +433,8 @@ pub enum PStatement<'a> {
         Option<Token<'a>>, // outcome
                            // TODO Option<PStatement<'a>>, // error management
     ),
-    //   list of condition          then
-    Case(Vec<(PEnumExpression<'a>, Vec<PStatement<'a>>)>),
+    //   case keyword, list of condition          then
+    Case(Token<'a>, Vec<(PEnumExpression<'a>, Vec<PStatement<'a>>)>),
     // Stop engine
     Fail(Token<'a>),
     // Inform the user of something
@@ -502,7 +471,7 @@ pnamed!(
       | pcomment => { |x| PStatement::Comment(x) }
         // case
       | sp!(do_parse!(
-            tag!("case") >>
+            case: tag!("case") >>
             tag!("{") >>
             cases: separated_list!(tag!(","),
                       do_parse!(
@@ -522,16 +491,16 @@ pnamed!(
                           ((expr,stmt))
                   )) >>
             tag!("}") >>
-            (PStatement::Case(cases))
+            (PStatement::Case(case.into(), cases))
         ))
         // if
       | sp!(do_parse!(
-            tag!("if") >>
+            case: tag!("if") >>
             // same comment as above
             expr: flat_map!(take_until!("=>"),penum_expression) >>
             tag!("=>") >>
             stmt: pstatement >>
-            (PStatement::Case( vec![(expr,vec![stmt]), (PEnumExpression::Default,vec![PStatement::Log(Token::new("","TODO"))])] ))
+            (PStatement::Case(case.into(), vec![(expr,vec![stmt]), (PEnumExpression::Default,vec![PStatement::Log(Token::new("","TODO"))])] ))
         ))
         // Flow statements
       | tag!("fail!")    => { |_| PStatement::Fail(Token::new("","TODO")) } // TODO proper message
@@ -859,15 +828,15 @@ mod tests {
         assert!(escaped_string(pinput("", "\"2hello\\n\\\"Herman\\\"\n")).is_err());
         assert_eq!(
             mapok(interpolated_string(pinput("", "hello herman"))),
-            Ok(("",("hello herman".into(),Vec::new())))
+            Ok(("",(vec!["hello herman".into()],Vec::new())))
         );
         assert_eq!(
             mapok(interpolated_string(pinput("", "hello herman 10$$"))),
-            Ok(("",("hello herman 10$".into(),Vec::new())))
+            Ok(("",(vec!["hello herman 10$".into()],Vec::new())))
         );
         assert_eq!(
             mapok(interpolated_string(pinput("", "hello herman ${variable1} ${var2}"))),
-            Ok(("",("hello herman {} {}".into(),vec!["variable1".into(),"var2".into()])))
+            Ok(("",(vec!["hello herman ".into()," ".into(),"".into()],vec!["variable1".into(),"var2".into()])))
         );
     }
 
@@ -1091,7 +1060,7 @@ mod tests {
             ))),
             Ok((
                 "",
-                PStatement::Case(vec![
+                PStatement::Case("case".into(), vec![
                     (
                         penum_expression(pinput("", "ubuntu")).unwrap().1,
                         vec![pstatement(pinput("", "f().g()")).unwrap().1]

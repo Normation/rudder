@@ -10,9 +10,10 @@ use std::fs;
 // MAIN
 
 // TODO next step:
-// - variables
+// - solve some todo: resource children, enum default
+// - variables and types
 // - check that interpolated string contain valid variables
-// - more parser error and tests
+// - type and type checking
 
 fn main() {
     let mut pre_ast = PreAST::new();

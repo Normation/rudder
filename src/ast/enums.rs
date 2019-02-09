@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 
 // TODO there can be only one mapping per item that defines an identical descendant
-// TODO default is always true but not redundant with other true values
+// TODO handle boolean enums in expressions
 
 /// As single enum can be derived into different set through multiple mappings
 /// However a single enum can have only one parent (single ascending path, multiple descending paths)
@@ -59,6 +59,13 @@ impl<'a> EnumExpression<'a> {
             EnumExpression::Or(a, b) => a.position().or_else(|| b.position()),
             EnumExpression::Not(a) => a.position(),
             EnumExpression::Default => None,
+        }
+    }
+    // return true if this is just the expression 'default'
+    pub fn is_default(&self) -> bool {
+        match self {
+            EnumExpression::Default => true,
+            _ => false
         }
     }
 }
@@ -302,7 +309,7 @@ impl<'a> EnumList<'a> {
                         None => match var {
                             None => fail!(value, "Global enum value {} does not exist", value),
                             Some(var1) => match context.get_variable(upper_context, var1) {
-                                Some(VarKind::Enum(t, _)) => t,
+                                Some(VarKind::Enum(t, _)) => *t,
                                 _ => fail!(
                                     var1,
                                     "Variable {} doesn't exist or doesn't have an enum type",
@@ -339,7 +346,7 @@ impl<'a> EnumList<'a> {
                     // wrong enum type
                     Some(VarKind::Enum(t, _)) => {
                         // check variable enum type
-                        if self.find_path(t, e1).is_none() {
+                        if self.find_path(*t, e1).is_none() {
                             fail!(
                                 var1,
                                 "Variable {} is {} but expected to be {} or an ancestor",
@@ -450,6 +457,7 @@ impl<'a> EnumList<'a> {
             context,
             variables.into_iter().collect(),
         );
+        let mut default_used = false;
         fix_results(it.map(|values| {
             let mut matched_exp = cases.iter().filter(|(e,_)| self.eval(&values, e));
             match matched_exp.next() {
@@ -459,10 +467,19 @@ impl<'a> EnumList<'a> {
                     // Single matching case
                     None => Ok(()),
                     // Overlapping cases
-                    Some((e2,_)) => fail!(case_name,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(&values)),
+                    Some((e2,_)) => if !e1.is_default() && !e2.is_default() {
+                        fail!(case_name,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(&values))
+                    } else {
+                        default_used = true;
+                        Ok(())
+                    },
                 },
             }
-        }))
+        }))?;
+        if !default_used && cases.iter().any(|(e,_)| e.is_default()) {
+            fail!(case_name,"Default never matches in {}", case_name);
+        }
+        Ok(())
     }
 }
 
@@ -504,13 +521,13 @@ impl<'a> ContextIterator<'a> {
             match context.get_variable(upper_context, *v) {
                 // known value
                 Some(VarKind::Enum(e, Some(val))) => {
-                    current.insert(*v, (e, val));
-                    iterators.insert(*v, AltVal::Constant(val));
+                    current.insert(*v, (*e, *val));
+                    iterators.insert(*v, AltVal::Constant(*val));
                 }
                 // iterable value
                 Some(VarKind::Enum(e, None)) => {
-                    let mut it = enum_list.enum_iter(e);
-                    current.insert(*v, (e, *(it.next().unwrap()))); // enums must always have at least one value
+                    let mut it = enum_list.enum_iter(*e);
+                    current.insert(*v, (*e, *(it.next().unwrap()))); // enums must always have at least one value
                     iterators.insert(*v, AltVal::Iterator(it));
                 }
                 // impossible values
@@ -578,12 +595,15 @@ mod tests {
     fn add_penum<'a>(e: &mut EnumList<'a>, string: &'a str) -> Result<()> {
         e.add_enum(penum(pinput("", string)).unwrap().1)
     }
+
     fn add_enum_mapping<'a>(e: &mut EnumList<'a>, string: &'a str) -> Result<()> {
         e.add_mapping(penum_mapping(pinput("", string)).unwrap().1)
     }
+
     fn parse_enum_expression(string: &str) -> PEnumExpression {
         penum_expression(pinput("", string)).unwrap().1
     }
+
     fn ident(string: &str) -> Token {
         pidentifier(pinput("", string)).unwrap().1
     }
@@ -608,23 +628,23 @@ mod tests {
             &mut e,
             "global enum os { debian, ubuntu, redhat, centos, aix }",
         )
-        .unwrap();
+            .unwrap();
         add_enum_mapping(
             &mut e,
             "enum os ~> family { ubuntu->debian, centos->redhat, *->* }",
         )
-        .unwrap();
+            .unwrap();
         add_enum_mapping(
             &mut e,
             "enum family ~> type { debian->linux, redhat->linux, aix->unix }",
         )
-        .unwrap();
+            .unwrap();
         add_penum(&mut e, "enum outcome { kept, repaired, error }").unwrap();
         add_enum_mapping(
             &mut e,
             "enum outcome ~> okerr { kept->ok, repaired->ok, error->error }",
         )
-        .unwrap();
+            .unwrap();
         let mut gc = VarContext::new();
         gc.new_enum_variable(None, ident("os"), ident("os"), None)
             .unwrap();
@@ -793,9 +813,9 @@ mod tests {
             &e.canonify_expression(None, &c, parse_enum_expression("!os:debian"))
                 .unwrap()
         ));
-        assert!(!e.eval(&hashmap!{ Token::from("os") => (Token::from("os"),Token::from("ubuntu")), Token::from("out") => (Token::from("outcome"),Token::from("kept")) }, 
-                       &e.canonify_expression(None, &c, parse_enum_expression("os:debian && out =~ outcome:kept")).unwrap()));
-        assert!(e.eval(&hashmap!{ Token::from("os") => (Token::from("os"),Token::from("ubuntu")), Token::from("out") => (Token::from("outcome"),Token::from("kept")) }, 
+        assert!(!e.eval(&hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")), Token::from("out") => (Token::from("outcome"),Token::from("kept")) },
+                        &e.canonify_expression(None, &c, parse_enum_expression("os:debian && out =~ outcome:kept")).unwrap()));
+        assert!(e.eval(&hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")), Token::from("out") => (Token::from("outcome"),Token::from("kept")) },
                        &e.canonify_expression(None, &c, parse_enum_expression("os:debian || out =~ outcome:kept")).unwrap()));
     }
 
@@ -880,5 +900,24 @@ mod tests {
         if let Error::List(errs) = result.unwrap_err() {
             assert_eq!(errs.len(), 2);
         }
+    }
+
+    #[test]
+    fn test_default() {
+        let (e, c) = init_tests();
+        let case = Token::from("case");
+        let mut exprs = Vec::new();
+
+        let ex = parse_enum_expression("family:debian || family:redhat");
+        exprs.push((e.canonify_expression(None, &c, ex).unwrap(), Vec::new()));
+        let result = e.evaluate(None, &c, &exprs, case);
+        assert!(result.is_err());
+        if let Error::List(errs) = result.unwrap_err() {
+            assert_eq!(errs.len(), 1);
+        }
+
+        let ex = parse_enum_expression("default");
+        exprs.push((e.canonify_expression(None, &c, ex).unwrap(), Vec::new()));
+        assert_eq!(e.evaluate(None, &c, &exprs, case), Ok(()));
     }
 }

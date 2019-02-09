@@ -40,13 +40,13 @@ impl CFEngine {
 
     fn parameter_to_cfengine(&mut self, param: &Value) -> String {
         match param {
-            // TODO quote escape, dollar escape, vars inclusion
             Value::String(s) =>
+            // TODO variable reinterpret (rudlang systemvar to cfengine systemvar)
                 "\"".to_owned() +
                     s.format(|x:&str| x.replace("\\", "\\\\")            // backslash escape
                                        .replace("\"", "\\\"")            // quote escape
                                        .replace("$", "${const.dollar}"), // dollar escape
-                             |y:&str| "${".to_owned() + y + "}"
+                             |y:&str| "${".to_owned() + y + "}"          // variable inclusion
                     ).as_str() + "\"",
         }
     }
@@ -134,7 +134,7 @@ impl CFEngine {
                     param_str
                 )
             }
-            Statement::Case(vec) => {
+            Statement::Case(_case, vec) => {
                 self.reset_cases();
                 vec.iter()
                     .map(|(case, vst)| {

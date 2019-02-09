@@ -9,6 +9,11 @@ global enum os {
   debian
 }
 
+enum boolean {
+  true,
+  false
+}
+
 enum os ~> family {
   ubuntu -> debian,
   debian -> debian

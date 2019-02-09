@@ -1,28 +1,20 @@
 use crate::error::*;
-use crate::parser::Token;
+use crate::parser::{Token,PType};
+use super::Value;
 use std::collections::HashMap;
 
 // variable kind
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum VarKind<'a> {
-    //       Resource type (File, ...)
+    //       Resource type (File, ...) TODO resource with parameter
     Resource(String),
-    //   Enum          value
+    //   Enum          item value
     Enum(Token<'a>, Option<Token<'a>>),
-    Generic(VarType<'a>),
+    //     type     value
+    Generic(PType, Option<Value<'a>>),
 }
 
-// classic variable type
-// including value for a constant/known a compile time
-#[derive(Debug, PartialEq, Clone)]
-pub enum VarType<'a> {
-    String(Option<String>),
-    // to make sure we have a reference in this struct because there will be one some day
-    #[allow(dead_code)]
-    XX(Token<'a>),
-    //    List(Option<String>), // TODO string -> real type
-    //    Dict(Option<String>), // TODO string -> real type
-}
+// TODO forbid variables names like global enum items (or enum type)
 
 #[derive(Debug)]
 pub struct VarContext<'a> {
@@ -36,12 +28,10 @@ impl<'a> VarContext<'a> {
         }
     }
 
-    pub fn new_enum_variable(
+    fn new_var(
         &mut self,
         upper_context: Option<&VarContext<'a>>,
         name: Token<'a>,
-        enum1: Token<'a>,
-        value: Option<Token<'a>>,
     ) -> Result<()> {
         if self.variables.contains_key(&name) {
             fail!(
@@ -53,7 +43,7 @@ impl<'a> VarContext<'a> {
         }
         // Do not allow a local name to hide a global name
         match upper_context {
-            None => {}
+            None => {},
             Some(gc) => {
                 if gc.variables.contains_key(&name) {
                     fail!(
@@ -65,30 +55,49 @@ impl<'a> VarContext<'a> {
                 }
             }
         }
+        Ok(())
+    }
+
+    pub fn new_enum_variable(
+        &mut self,
+        upper_context: Option<&VarContext<'a>>,
+        name: Token<'a>,
+        enum1: Token<'a>,
+        value: Option<Token<'a>>,
+    ) -> Result<()> {
+        self.new_var(upper_context, name)?;
         self.variables.insert(name, VarKind::Enum(enum1, value));
         Ok(())
     }
 
-    // return a copy to avoid reference lifetime problem later
-    pub fn get_variable(
-        &self,
+    pub fn new_generic_variable(
+        &mut self,
         upper_context: Option<&VarContext<'a>>,
         name: Token<'a>,
-    ) -> Option<VarKind<'a>> {
+        ptype: PType,
+        value: Option<Value<'a>>,
+    ) -> Result<()> {
+        self.new_var(upper_context, name)?;
+        self.variables.insert(name, VarKind::Generic(ptype, value));
+        Ok(())
+    }
+
+
+    // return a copy to avoid reference lifetime problem later
+    pub fn get_variable<'b>(
+        &'b self,
+        upper_context: Option<&'b VarContext<'a>>,
+        name: Token<'a>,
+    ) -> Option<&'b VarKind<'a>> {
         self.variables
             .get(&name)
-            .cloned()
+            //.cloned()
             .or_else(|| match upper_context {
                 None => None,
                 Some(gc) => gc.get_variable(None, name),
             })
     }
 }
-
-//    fn new_enum_variable(&mut self, name: Token<'a>, enum1: Token<'a>, value: Option<Token<'a>>) -> Result<()>;
-//    //fn pub fn new_generic_variable(&mut self, name: Token<'a>, value: Option<PValue>) -> Result;
-//    //fn new_resource_variable(name: Token, type: Option<Token>, value: Option<Token>) -> Result
-//    fn get_variable(&self, name: Token) -> Option<VarKind>;
 
 #[cfg(test)]
 mod tests {
@@ -124,15 +133,15 @@ mod tests {
 
         assert_eq!(
             c.get_variable(Some(&gc), ident("var3")),
-            Some(VarKind::Enum(ident("enum2"), None))
+            Some(&VarKind::Enum(ident("enum2"), None))
         );
         assert_eq!(
             c.get_variable(Some(&gc), ident("var2")),
-            Some(VarKind::Enum(ident("enum1"), Some(ident("debian"))))
+            Some(&VarKind::Enum(ident("enum1"), Some(ident("debian"))))
         );
         assert_eq!(
             gc.get_variable(None, ident("var1")),
-            Some(VarKind::Enum(ident("enum1"), None))
+            Some(&VarKind::Enum(ident("enum1"), None))
         );
         assert_eq!(gc.get_variable(None, ident("var4")), None);
     }

@@ -41,7 +41,7 @@ struct StateDef<'a> {
     variables: VarContext<'a>,
 }
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 pub struct StringObject<'a> {
     pos: Token<'a>,
     strs: Vec<String>,
@@ -49,7 +49,7 @@ pub struct StringObject<'a> {
 }
 impl<'a> StringObject<'a> {
     pub fn from_pstring(pos: Token<'a>, s: String) -> Result<StringObject> {
-        let (strs,vars) = parse_string2(&s[..])?;
+        let (strs,vars) = parse_string(&s[..])?;
         Ok(StringObject {pos, strs, vars})
     }
     pub fn format<SF,VF>(&self, str_formatter: SF, var_formatter: VF) -> String
@@ -69,7 +69,7 @@ impl<'a> StringObject<'a> {
     pub fn is_empty(&self) -> bool { self.vars.is_empty() }
 }
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 pub enum Value<'a> {
     //     position   format  variables
     String(StringObject<'a>),
@@ -135,8 +135,8 @@ pub enum Statement<'a> {
         Vec<Value<'a>>,    // parameters
         Option<Token<'a>>, // outcome
     ),
-    //   list of condition          then
-    Case(Vec<(EnumExpression<'a>, Vec<Statement<'a>>)>),
+    //   keyword    list of condition          then
+    Case(Token<'a>, Vec<(EnumExpression<'a>, Vec<Statement<'a>>)>),
     // Stop engine
     Fail(Token<'a>),
     // Inform the user of something
@@ -172,8 +172,8 @@ impl<'a> Statement<'a> {
             PStatement::Log(l) => Statement::Log(l),
             PStatement::Return(r) => Statement::Return(r),
             PStatement::Noop => Statement::Noop,
-            PStatement::Case(v) => {
-                Statement::Case(fix_vec_results(v.into_iter().map(|(exp, sts)| {
+            PStatement::Case(case, v) => {
+                Statement::Case(case, fix_vec_results(v.into_iter().map(|(exp, sts)| {
                     Ok((
                         enum_list.canonify_expression(gc, c, exp)?,
                         fix_vec_results(
@@ -190,9 +190,8 @@ impl<'a> Statement<'a> {
 // TODO type inference
 // TODO check that parameter type match parameter default
 // TODO put default parameter in calls
-// TODO forbid case within case
 // TODO analyse Resource tree (and disable recursion)
-// TODO default must be the last entry in a case
+// TODO variable definition forbidden within cases
 
 impl<'a> AST<'a> {
     /// Produce the final AST data structure.
@@ -315,15 +314,48 @@ impl<'a> AST<'a> {
         }
     }
 
+    fn cases_check(&self, variables: &VarContext, statement: &Statement, first_level: bool) -> Result<()> {
+        match statement {
+            Statement::Case(keyword, cases) => {
+                if first_level {
+                    // default must be the last one
+                    match cases.split_last() {
+                        None => fail!(keyword, "Case list is empty in {}", keyword),
+                        Some((_last,case_list)) => {
+                            if case_list.iter().any(|(cond,_)| cond.is_default()) {
+                                fail!(keyword, "Default value must be the last case in { }", keyword)
+                            }
+                        }
+                    }
+                    fix_results(cases.iter().flat_map(|(_cond, sts)| {
+                        sts.iter()
+                            .map(|st| self.cases_check(variables, st, false))
+                    }))?;
+                } else {
+                    fail!(keyword,"Case within case are forbidden at the moment in {}", keyword); // just because it is hard to generate
+                }
+
+            },
+            Statement::VariableDefinition(_,_) => {
+                if !first_level {
+                    // TODO token
+                    fail!(Token::new("", ""),"Variable definition within case are forbidden at the moment"); // because it is hard to check that variables are always defined
+                }
+            },
+            _ => {}
+        }
+        Ok(())
+    }
+
     fn enum_expression_check(&self, variables: &VarContext, statement: &Statement) -> Result<()> {
         match statement {
-            Statement::Case(cases) => {
+            Statement::Case(case, cases) => {
                 self.enum_list.evaluate(
                     Some(&self.variables),
                     variables,
                     cases,
-                    Token::new("", ""),
-                )?; // TODO token
+                    *case,
+                )?;
                 fix_results(cases.iter().flat_map(|(_cond, sts)| {
                     sts.iter()
                         .map(|st| self.enum_expression_check(variables, st))
@@ -359,6 +391,8 @@ impl<'a> AST<'a> {
                     errors.push(self.binding_check(st));
                     // check for enum expression validity
                     errors.push(self.enum_expression_check(&state.variables, st));
+                    // check for case validity
+                    errors.push(self.cases_check(&state.variables, st, true));
                 }
             }
         }
