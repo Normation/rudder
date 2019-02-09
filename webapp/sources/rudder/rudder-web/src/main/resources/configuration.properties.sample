@@ -544,13 +544,6 @@ upload.root.directory=/var/rudder/files/
 rudder.dir.uploaded.file.sharing=/var/rudder/files/
 
 #
-#  Emergency stop
-#  path to the script/binary that allows emergency orchestrator stop
-#  DEPRECATED: feature no more available in Rudder UI.
-#
-bin.emergency.stop=/opt/rudder/bin/cfe-red-button.sh
-
-#
 # LDAP DIT configuration
 #
 # You must not modify the following properties, used to

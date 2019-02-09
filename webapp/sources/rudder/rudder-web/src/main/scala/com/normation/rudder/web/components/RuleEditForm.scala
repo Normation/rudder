@@ -588,14 +588,6 @@ class RuleEditForm(
 
   ///////////// success pop-up ///////////////
   private[this] def successPopup : JsCmd = {
-    def warning(warn : String) : NodeSeq = {
-        <div class="alert alert-warning col-lg-12 col-sm-12 col-xs-12 text-center" role="alert">
-            <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-            <span class="sr-only">Warning:</span>
-            {warn} No configuration policy will be deployed.
-        </div>
-    }
-
     val warningNotification =
       ((ruleTarget.excludedTarget.targets.size + ruleTarget.includedTarget.targets.size == 0), (selectedDirectiveIds.size == 0)) match{
         case (true, true)  => JsRaw("""createWarningNotification("This Rule is not applied to any Groups and does not have any Directives to apply.")""")

@@ -235,7 +235,6 @@ object RudderConfig extends Loggable {
   val RUDDER_REPORTS_EXECUTION_MAX_DAYS = config.getInt("rudder.batch.storeAgentRunTimes.maxDays") // In days : 5
   val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.batch.storeAgentRunTimes.updateInterval") // In seconds : 5
 
-  val BIN_EMERGENCY_STOP = config.getString("bin.emergency.stop")
   val HISTORY_INVENTORIES_ROOTDIR = config.getString("history.inventories.rootdir")
   val UPLOAD_ROOT_DIRECTORY = config.getString("upload.root.directory")
 
@@ -328,7 +327,6 @@ object RudderConfig extends Loggable {
   val cmdbQueryParser: CmdbQueryParser = queryParser
   val getBaseUrlService: GetBaseUrlService = baseUrlService
   val fileManager: FileManager = fileManagerImpl
-  val startStopOrchestrator: StartStopOrchestrator = startStopOrchestratorImpl
   val inventoryHistoryLogRepository: InventoryHistoryLogRepository = diffRepos
   val inventoryEventLogService: InventoryEventLogService = inventoryLogEventServiceImpl
   val ruleApplicationStatus: RuleApplicationStatusService = ruleApplicationStatusImpl
@@ -944,11 +942,6 @@ object RudderConfig extends Loggable {
     )
   }
   private[this] lazy val historizationJdbcRepository = new HistorizationJdbcRepository(doobie)
-  private[this] lazy val startStopOrchestratorImpl: StartStopOrchestrator = {
-    if (!(new File(BIN_EMERGENCY_STOP)).exists)
-      ApplicationLogger.error("The 'red button' program is not present at: '%s'. You will experience error when trying to use that functionnality".format(BIN_EMERGENCY_STOP))
-    new SystemStartStopOrchestrator(BIN_EMERGENCY_STOP)
-  }
 
   private[this] lazy val roLdap =
     new ROPooledSimpleAuthConnectionProvider(

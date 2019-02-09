@@ -295,7 +295,7 @@ class ProcessFile(
       file.unGzipTo(dest)
       file.delete()
     } else if(file.name.endsWith(sign)) { // a signature
-      val p = file.pathAsString
+      file.pathAsString
       val inventory = File(file.parent, file.nameWithoutExtension(includeAll = false))
       if(inventory.exists) {
         // process !
