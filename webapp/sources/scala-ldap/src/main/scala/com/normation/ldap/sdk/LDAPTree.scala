@@ -28,9 +28,6 @@ import com.unboundid.ldif.LDIFRecord
 import net.liftweb.common._
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.HashMap
-import scala.collection.mutable.ObservableMap
-import scala.collection.mutable.Subscriber
-import scala.collection.script._
 
 /*
  * An LDAP tree of entries.
@@ -45,28 +42,14 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
   selfTree =>
   lazy val parentDn = root.parentDn
 
-  //validation on children
-  private val _childrenValidation = new Subscriber[Message[(RDN,LDAPTree)],ObservableMap[RDN,LDAPTree]]() {
-    override def notify(pub: ObservableMap[RDN,LDAPTree],event: Message[(RDN, LDAPTree)]): Unit = {
-      event match {
-        case Update(loc,(rdn,tree)) =>
-          require(root.optDn == tree.root.parentDn,
-            "Bad child/parent DN : try to add children %s to entry %s".
-              format(tree.root.dn,selfTree.root.dn))
-          require(Some(rdn) == tree.root.rdn)
-        case _ => //nothing
-      }
-    }
-  }
-
-  var _children = new HashMap[RDN,LDAPTree]() /*with UpdateChildTree*/ with ObservableMap[RDN,LDAPTree]
-  // { override lazy val parentDn = selfTree.root.parentDn }
-
-  _children.subscribe(_childrenValidation)
+  var _children = new HashMap[RDN,LDAPTree]()
 
   override def children = Map() ++ _children
 
   def addChild(child:LDAPTree) : Unit = {
+    require(root.optDn == child.root.parentDn,
+      "Bad child/parent DN : try to add children %s to entry %s".
+        format(child.root.dn,selfTree.root.dn))
     child.root.rdn match {
       case Some(r) =>
         _children += ((r,child))
@@ -78,13 +61,6 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
   }
 
   def addChild(child:LDAPEntry) : Unit = addChild(LDAPTree(child))
-
-  def addChildren(children:Seq[LDAPTree]) : Unit = children.foreach { t => addChild(t) }
-  def setChildren(children:Seq[LDAPTree]) : Unit = {
-    _children.clear
-    children.foreach { t => addChild(t) }
-  }
-  def deleteChildren(rdns:Seq[RDN]): Unit = rdns.foreach { r => _children -= r }
 
   override def addChild(rdn:RDN, child:Tree[LDAPEntry]) : Unit = {
     addChild(LDAPTree(child))
@@ -116,23 +92,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
       _children.iterator.forall(e => e._2 == t._children(e._1))
     case _ => false
   }
-
-
-  /*
-   * Set opt on LDAPTree is forward to tree's root
-   */
-  def setOpt[A](a:Option[A], attributeName:String, f:A => String) : Unit =
-     root.setOpt(a, attributeName, f)
 }
-
-//trait UpdateChildTree extends MutMap[RDN,LDAPTree] {
-//  def parentDn : Option[DN]
-//  abstract override def += (kv: (RDN,LDAPTree)): this.type = {
-//    val (key, tree) = kv
-//    if(tree.parentDn == this.parentDn) super.+=(kv)
-//    else super.+=((key, LDAPTree(tree,this.parentDn)))
-//  }
-//}
 
 
 object LDAPTree {
@@ -166,7 +126,6 @@ object LDAPTree {
    */
   def overrideChildren(from:LDAPTree, to:LDAPTree) : Unit = {
     to._children = from._children
-    to._children.subscribe(to._childrenValidation)
   }
 
   //transtype Tree[LDAPEntry] => LDAPTree
