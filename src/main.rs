@@ -10,7 +10,6 @@ use std::fs;
 // MAIN
 
 // TODO next step:
-// - booleans
 // - forbidden identifiers
 // - move out expression parsing
 // - variables (string, boolean)

@@ -35,7 +35,7 @@ pub struct EnumList<'a> {
 /// A boolean expression that can be defined using enums
 #[derive(Debug, PartialEq)]
 pub enum EnumExpression<'a> {
-    //       variable   enum        value
+    //      variable   enum        value
     Compare(Token<'a>, Token<'a>, Token<'a>),
     And(Box<EnumExpression<'a>>, Box<EnumExpression<'a>>),
     Or(Box<EnumExpression<'a>>, Box<EnumExpression<'a>>),
@@ -306,7 +306,16 @@ impl<'a> EnumList<'a> {
                         Some(e) => *e,
                         // none -> try to guess from var
                         None => match var {
-                            None => fail!(value, "Global enum value {} does not exist", value),
+                            // None -> this may be a boolean
+                            // when using a boolean, value is a variable name since the parser doesn't know how to tell ethe difference
+                            None => match context.get_variable(upper_context, value) {
+                                Some(VarKind::Enum(t, _)) => if *t == Token::new("","boolean") {
+                                    *t
+                                } else {
+                                    fail!(value, "Variable {} must be compared with some enum in expression", value)
+                                },
+                                _ => fail!(value, "Global enum value {} does not exist", value),
+                            },
                             Some(var1) => match context.get_variable(upper_context, var1) {
                                 Some(VarKind::Enum(t, _)) => *t,
                                 _ => fail!(
@@ -321,21 +330,32 @@ impl<'a> EnumList<'a> {
                 // get var real name
                 let var1 = match var {
                     Some(v) => v,
-                    None => match self.enums.get(&e1) {
-                        // or get it from a global enum
-                        None => fail!(e1, "No such enum {}", e1),
-                        Some((false, _)) => {
-                            fail!(e1, "Enum {} is not global, you must provide a variable", e1)
+                    None => if e1 == Token::new("","boolean") {
+                        // special handling of booleans since they are messed up by the parser
+                        value
+                    } else {
+                        match self.enums.get(&e1) {
+                            // or get it from a global enum
+                            None => fail!(e1, "No such enum {}", e1),
+                            Some((false, _)) => {
+                                fail!(e1, "Enum {} is not global, you must provide a variable", e1)
+                            }
+                            Some((true, _)) => self.find_elder(e1),
                         }
-                        Some((true, _)) => self.find_elder(e1),
                     },
+                };
+                // TODO negative booleans expressions
+                let val = if e1 == Token::new("","boolean") {
+                    Token::new("internal","true")
+                } else {
+                    value
                 };
                 // check that enum exists and has value
                 match self.enums.get(&e1) {
                     None => fail!(e1, "Enum {} does not exist", e1),
                     Some((_, list)) => {
-                        if !list.contains(&value) {
-                            fail!(value, "Value {} is not defined in enum {}", value, e1)
+                        if !list.contains(&val) {
+                            fail!(val, "Value {} is not defined in enum {}", val, e1)
                         }
                     }
                 }
@@ -359,7 +379,7 @@ impl<'a> EnumList<'a> {
                     // not an enum
                     _ => fail!(var1, "Variable {} is not a {} enum", var1, e1),
                 }
-                Ok(EnumExpression::Compare(var1, e1, value))
+                Ok(EnumExpression::Compare(var1, e1, val))
             }
         }
     }
@@ -639,6 +659,7 @@ mod tests {
             "enum family ~> type { debian->linux, redhat->linux, aix->unix }",
         )
             .unwrap();
+        add_penum(&mut e, "enum boolean { true, false }").unwrap();
         add_penum(&mut e, "enum outcome { kept, repaired, error }").unwrap();
         add_enum_mapping(
             &mut e,
@@ -647,6 +668,8 @@ mod tests {
             .unwrap();
         let mut gc = VarContext::new();
         gc.new_enum_variable(None, ident("os"), ident("os"), None)
+            .unwrap();
+        gc.new_enum_variable(None, ident("abool"), ident("boolean"), None)
             .unwrap();
         gc.new_enum_variable(None, ident("out"), ident("outcome"), None)
             .unwrap();
@@ -747,6 +770,9 @@ mod tests {
     fn test_canonify() {
         let (e, c) = init_tests();
         assert!(e
+            .canonify_expression(None, &c, parse_enum_expression("abool"))
+            .is_ok());
+        assert!(e
             .canonify_expression(None, &c, parse_enum_expression("ubuntu"))
             .is_ok());
         assert!(e
@@ -793,6 +819,11 @@ mod tests {
     #[test]
     fn test_eval() {
         let (e, c) = init_tests();
+        assert!(e.eval(
+            &hashmap! { Token::from("abool") => (Token::from("boolean"),Token::from("true")) },
+            &e.canonify_expression(None, &c, parse_enum_expression("abool"))
+                .unwrap()
+        ));
         assert!(e.eval(
             &hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")) },
             &e.canonify_expression(None, &c, parse_enum_expression("ubuntu"))
