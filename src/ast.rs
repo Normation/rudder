@@ -16,7 +16,7 @@ pub use self::preast::PreAST;
 use self::preast::PreResources;
 use crate::error::*;
 use crate::parser::*;
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 
 #[derive(Debug)]
 pub struct AST<'a> {
@@ -30,7 +30,7 @@ struct Resources<'a> {
     metadata: HashMap<Token<'a>, Value<'a>>,
     parameters: Vec<Parameter<'a>>,
     states: HashMap<Token<'a>, StateDef<'a>>,
-    //TODO children: HashSet<Token>
+    children: HashSet<Token<'a>>,
 }
 
 #[derive(Debug)]
@@ -151,6 +151,7 @@ impl<'a> Statement<'a> {
         enum_list: &'b EnumList<'a>,
         gc: Option<&'b VarContext<'a>>,
         c: &'b mut VarContext<'a>,
+        children: &'b mut HashSet<Token<'a>>,
         st: PStatement<'a>,
     ) -> Result<Statement<'a>> {
         Ok(match st {
@@ -164,6 +165,7 @@ impl<'a> Statement<'a> {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
                     c.new_enum_variable(gc, out_var, Token::new("internal", "outcome"), None)?;
                 }
+                children.insert(res);
                 let res_parameters = fix_vec_results(res_params.into_iter().map(|v| Value::from_pvalue(v)))?;
                 let parameters = fix_vec_results(params.into_iter().map(|v| Value::from_pvalue(v)))?;
                 Statement::StateCall(mode, res, res_parameters, st, parameters, out)
@@ -178,7 +180,7 @@ impl<'a> Statement<'a> {
                         enum_list.canonify_expression(gc, c, exp)?,
                         fix_vec_results(
                             sts.into_iter()
-                                .map(|st| Statement::fom_pstatement(enum_list, gc, c, st)),
+                                .map(|st| Statement::fom_pstatement(enum_list, gc, c, children, st)),
                         )?,
                     ))
                 }))?)
@@ -190,8 +192,6 @@ impl<'a> Statement<'a> {
 // TODO type inference
 // TODO check that parameter type match parameter default
 // TODO put default parameter in calls
-// TODO analyse Resource tree (and disable recursion)
-// TODO variable definition forbidden within cases
 
 impl<'a> AST<'a> {
     /// Produce the final AST data structure.
@@ -240,6 +240,7 @@ impl<'a> AST<'a> {
                 pre_states,
             } = rd;
             let mut states = HashMap::new();
+            let mut children = HashSet::new();
             // insert resource states
             #[allow(clippy::map_entry)]
             fix_results(pre_states.into_iter().map(|(meta, st)| {
@@ -258,6 +259,7 @@ impl<'a> AST<'a> {
                             &enum_list,
                             Some(&global_variables),
                             &mut variables,
+                            &mut children,
                             st0,
                         )
                     }))?;
@@ -275,6 +277,7 @@ impl<'a> AST<'a> {
                 metadata,
                 parameters,
                 states,
+                children,
             };
             resources.insert(rn, resource);
             Ok(())
@@ -309,7 +312,14 @@ impl<'a> AST<'a> {
                         }
                     }
                 }
-            }
+            },
+            Statement::Case(_name, cases) => {
+                fix_results(cases.iter().map(|(_c,sts)|
+                    fix_results(sts.iter().map(|st|
+                        self.binding_check(st)
+                    ))
+                ))
+            },
             _ => Ok(()),
         }
     }
@@ -377,7 +387,25 @@ impl<'a> AST<'a> {
         }))
     }
 
+    fn children_check(&self, name: Token<'a>, children: &HashSet<Token<'a>>, depth: u32) -> Result<()> {
+        // This can be costly but since there is no guarantee the graph is connected solution is not obvious
+        for child in children {
+            if *child == name {
+                fail!(*child, "Resource {} is recursive because it configures itself via {}", name, *child);
+            } else {
+                // family > 100 children will have check skipped
+                if depth >= 100 {
+                    // must return OK to stop check in case of real recursion of one child (there is no error yet)
+                    return Ok(())
+                }
+                self.children_check(name, &self.resources[child].children, depth+1)?;
+            }
+        }
+        Ok(())
+    }
+
     pub fn analyze(&self) -> Result<()> {
+        // Analyze step 1: no prerequisite
         let mut errors = Vec::new();
         for (_rn, resource) in self.resources.iter() {
             // check that metadata does not contain any variable reference
@@ -395,6 +423,15 @@ impl<'a> AST<'a> {
                     errors.push(self.cases_check(&state.variables, st, true));
                 }
             }
+        }
+        // Stop here if there is any error
+        fix_results(errors.into_iter())?;
+
+        // Analyze step 2: step 1 must have passed
+        errors = Vec::new();
+        for (rname, resource) in self.resources.iter() {
+            // check that resource definition is not recursive
+            errors.push(self.children_check(*rname, &resource.children,0));
         }
         // TODO check for string syntax and interpolation validity
         fix_results(errors.into_iter())

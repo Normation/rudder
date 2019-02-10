@@ -19,9 +19,10 @@ pub enum PError {
     InvalidFormat,
     UnterminatedString,
     InvalidEscape,
-    UnterminatedCurly,
+    UnterminatedDelimiter,
     InvalidName,
     EnumExpression,
+    InvalidSeparator,
 } }
 
 /// Proper printing of errors.
@@ -31,10 +32,11 @@ impl fmt::Display for PError {
             PError::Unknown => "Unknown error, this should not happen except in tests",
             PError::InvalidFormat => "Invalid format",
             PError::UnterminatedString => "Unterminated string",
-            PError::InvalidEscape => "Invalide escape character after \\ in string",
-            PError::UnterminatedCurly => "Unterminated curly brace",
+            PError::InvalidEscape => "Invalid escape character after \\ in string",
+            PError::UnterminatedDelimiter => "Unterminated delimiter, expecting one of ),},]",
             PError::InvalidName => "Invalid identifier name",
             PError::EnumExpression => "Invalid enum expression",
+            PError::InvalidSeparator => "Invalid separator character at this place",
         })
     }
 }

@@ -16,7 +16,6 @@ use nom::*;
 
 // TODO parse and store comments
 // TODO add more types
-// TODO add more or_fail!
 // TODO lifetime = 'src
 // TODO _ in identifiers
 // TODO namespace in identifiers
@@ -96,9 +95,9 @@ pnamed!(pub penum<PEnum>,
         global: opt!(tag!("global")) >>
         tag!("enum") >>
         name: or_fail!(pidentifier,PError::InvalidName) >>
-        tag!("{") >>
+        or_fail!(tag!("{"),PError::InvalidSeparator) >>
         items: sp!(separated_list!(tag!(","), pidentifier)) >>
-        or_fail!(tag!("}"),PError::UnterminatedCurly) >>
+        or_fail!(tag!("}"),PError::UnterminatedDelimiter) >>
         (PEnum {global: global.is_some(), name, items})
     ))
 );
@@ -118,17 +117,17 @@ pnamed!(pub penum_mapping<PEnumMapping>,
     sp!(do_parse!(
         tag!("enum") >>
         from: or_fail!(pidentifier,PError::InvalidName) >>
-        tag!("~>") >>
+        or_fail!(tag!("~>"),PError::InvalidSeparator) >>
         to: or_fail!(pidentifier,PError::InvalidName) >>
-        tag!("{") >>
+        or_fail!(tag!("{"),PError::InvalidSeparator) >>
         mapping: sp!(separated_list!(
                 tag!(","),
                 separated_pair!(
-                    alt!(pidentifier|map!(tag!("*"),|x| x.into())),
-                    tag!("->"),
-                    alt!(pidentifier|map!(tag!("*"),|x| x.into())))
+                    or_fail!(alt!(pidentifier|map!(tag!("*"),|x| x.into())),PError::InvalidName),
+                    or_fail!(tag!("->"),PError::InvalidSeparator),
+                    or_fail!(alt!(pidentifier|map!(tag!("*"),|x| x.into())),PError::InvalidName))
             )) >>
-        or_fail!(tag!("}"),PError::UnterminatedCurly) >>
+        or_fail!(tag!("}"),PError::UnterminatedDelimiter) >>
         (PEnumMapping {from, to, mapping})
     ))
 );
@@ -165,7 +164,7 @@ pnamed!(
 pnamed!(
     enum_atom<PEnumExpression>,
     sp!(alt!(
-        delimited!(tag!("("), sub_enum_expression, tag!(")"))
+        delimited!(tag!("("), sub_enum_expression, or_fail!(tag!(")"),PError::UnterminatedDelimiter))
             | do_parse!(
                 var: pidentifier
                     >> tag!("=~")
@@ -286,7 +285,7 @@ pnamed!(
             tag!("$") >>
             variable: alt!(
                 tag!("$") => {|_| None}
-              | delimited!(tag!("{"),pidentifier,tag!("}")) => {|x| Some(x)}
+              | delimited!(tag!("{"),pidentifier,or_fail!(tag!("}"),PError::UnterminatedDelimiter)) => {|x| Some(x)}
             ) >>
             (prefix,variable)
         )) >>
@@ -342,7 +341,7 @@ pub struct PMetadata<'a> {
 pnamed!(
     pmetadata<PMetadata>,
     sp!(do_parse!(
-        char!('@') >> key: pidentifier >> char!('=') >> value: pvalue >> (PMetadata { key, value })
+        char!('@') >> key: pidentifier >> or_fail!(char!('='),PError::InvalidSeparator) >> value: pvalue >> (PMetadata { key, value })
     ))
 );
 
@@ -382,7 +381,7 @@ pnamed!(
             >> name: pidentifier
             >> tag!("(")
             >> parameters: separated_list!(tag!(","), pparameter)
-            >> tag!(")")
+            >> or_fail!(tag!(")"),PError::UnterminatedDelimiter)
             >> (PResourceDef { name, parameters })
     ))
 );
@@ -396,7 +395,7 @@ pnamed!(
                 opt!(sp!(do_parse!(
                     tag!("(")
                         >> parameters: separated_list!(tag!(","), pvalue)
-                        >> tag!(")")
+                        >> or_fail!(tag!(")"),PError::UnterminatedDelimiter)
                         >> (parameters)
                 )))
             >> ((name, params.unwrap_or_else(Vec::new)))
@@ -458,7 +457,7 @@ pnamed!(
             parameters: separated_list!(
                 tag!(","),
                 pvalue) >>
-            tag!(")") >>
+            or_fail!(tag!(")"),PError::UnterminatedDelimiter) >>
             outcome: opt!(sp!(preceded!(tag!("as"),pidentifier))) >>
             (PStatement::StateCall(mode,resource.0,resource.1,state,parameters,outcome))
         ))
@@ -484,13 +483,13 @@ pnamed!(
                               do_parse!(
                                   tag!("{") >>
                                   vec: many0!(pstatement) >>
-                                  tag!("}") >>
+                                  or_fail!(tag!("}"),PError::UnterminatedDelimiter) >>
                                   (vec)
                               )
                           ) >>
                           ((expr,stmt))
                   )) >>
-            tag!("}") >>
+            or_fail!(tag!("}"),PError::UnterminatedDelimiter) >>
             (PStatement::Case(case.into(), cases))
         ))
         // if
@@ -527,10 +526,10 @@ pnamed!(
             >> name: pidentifier
             >> tag!("(")
             >> parameters: separated_list!(tag!(","), pparameter)
-            >> tag!(")")
+            >> or_fail!(tag!(")"),PError::UnterminatedDelimiter)
             >> tag!("{")
             >> statements: many0!(pstatement)
-            >> tag!("}")
+            >> or_fail!(tag!("}"),PError::UnterminatedDelimiter)
             >> (PStateDef {
                 name,
                 resource_name,
@@ -1145,11 +1144,11 @@ mod tests {
         );
         assert_eq!(
             maperr(penum(pinput("", "enum abc { a, b, }"))),
-            Err(PError::UnterminatedCurly)
+            Err(PError::UnterminatedDelimiter)
         );
         assert_eq!(
             maperr(penum(pinput("", "enum abc { a, b"))),
-            Err(PError::UnterminatedCurly)
+            Err(PError::UnterminatedDelimiter)
         );
         assert_eq!(
             maperr(penum_mapping(pinput("", "enum abc ~> { a -> b"))),
@@ -1157,7 +1156,23 @@ mod tests {
         );
         assert_eq!(
             maperr(penum_mapping(pinput("", "enum abc ~> def { a -> b"))),
-            Err(PError::UnterminatedCurly)
+            Err(PError::UnterminatedDelimiter)
+        );
+        assert_eq!(
+            maperr(penum_mapping(pinput("", "enum abc > def { a -> b }"))),
+            Err(PError::InvalidSeparator)
+        );
+        assert_eq!(
+            maperr(penum_mapping(pinput("", "enum abc ~> def { a -> b, c d }"))),
+            Err(PError::InvalidSeparator)
+        );
+        assert_eq!(
+            maperr(penum_mapping(pinput("", "enum abc ~> def a -> b, c -> d }"))),
+            Err(PError::InvalidSeparator)
+        );
+        assert_eq!(
+            maperr(penum_mapping(pinput("", "enum abc ~> def { a -> b c -> d }"))),
+            Err(PError::UnterminatedDelimiter)
         );
         assert_eq!(
             maperr(penum_expression(pinput("", "a=~b:"))),
@@ -1166,6 +1181,14 @@ mod tests {
         assert_eq!(
             maperr(penum_expression(pinput("", "a=~"))),
             Err(PError::EnumExpression)
+        );
+        assert_eq!(
+            maperr(interpolated_string(pinput("", "hello${pouet "))),
+            Err(PError::UnterminatedDelimiter)
+        );
+        assert_eq!(
+            maperr(pmetadata(pinput("", "@x y"))),
+            Err(PError::InvalidSeparator)
         );
     }
 }

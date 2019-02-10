@@ -10,8 +10,10 @@ use std::fs;
 // MAIN
 
 // TODO next step:
-// - solve some todo: resource children, enum default
-// - variables and types
+// - booleans
+// - forbidden identifiers
+// - move out expression parsing
+// - variables (string, boolean)
 // - check that interpolated string contain valid variables
 // - type and type checking
 

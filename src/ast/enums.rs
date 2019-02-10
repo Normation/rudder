@@ -5,7 +5,6 @@ use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
 use std::collections::hash_set::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::iter::FromIterator;
 
 // TODO there can be only one mapping per item that defines an identical descendant
 // TODO handle boolean enums in expressions
@@ -590,6 +589,7 @@ mod tests {
     use super::*;
     use crate::parser::*;
     use maplit::hashmap;
+    use std::iter::FromIterator;
 
     // test utilities
     fn add_penum<'a>(e: &mut EnumList<'a>, string: &'a str) -> Result<()> {

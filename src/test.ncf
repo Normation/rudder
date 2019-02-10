@@ -2,16 +2,12 @@
 
 resource File(p)
 
-File state permissions(u,g,m) { }
+File state permissions(u,g,m) {
+}
 
 global enum os {
   ubuntu,
   debian
-}
-
-enum boolean {
-  true,
-  false
 }
 
 enum os ~> family {
@@ -19,6 +15,13 @@ enum os ~> family {
   debian -> debian
 }
 
+# Must be defined, needed by the compiler
+enum boolean {
+  true,
+  false
+}
+
+# Must be defined, needed by the compiler
 enum outcome {
   kept,
   repaired,
@@ -32,12 +35,12 @@ ntp state configuration ()
   File("/tmp").permissions("root", "x$${root}i${youpi}2", "g+w") as outvar
 
   case {
-    outvar =~ kept => file("/tmp").permissions("root", "root", "g+w"),
-    outvar =~ repaired => file("/tmp").permissions("user", "user", "g+w"),
-    outvar =~ error => file("/tmp").permissions("user", "user", "g+w")
+    outvar =~ kept => File("/tmp").permissions("root", "root", "g+w"),
+    outvar =~ repaired => File("/tmp").permissions("user", "user", "g+w"),
+    outvar =~ error => File("/tmp").permissions("user", "user", "g+w")
   }
   case {
-    ubuntu => file("/tmp").permissions("root", "root", "g+w"),
-    os:debian => file("/tmp").permissions("user", "user", "g+w")
+    ubuntu => File("/tmp").permissions("root", "root", "g+w"),
+    os:debian => File("/tmp").permissions("user", "user", "g+w")
   }
 }
