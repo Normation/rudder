@@ -44,3 +44,22 @@ bundle agent set_dry_run_mode(mode)
     debug.unset_mode::
       "${configuration.debug} Dry-run mode is not compatible with this agent, but only a disabling of dry-run has been requested. Ignoring.";
 }
+
+# Doesn't do anything - necessary for signature compatibility
+bundle agent dry_run_initialization {
+}
+
+
+bundle agent push_dry_run_mode(mode)
+{
+  methods:
+      "abort" usebundle => _abort("unsupported_dryrun", "Dry-run mode is not compatible with this agent. Stopping immediately to prevent any unwanted change."),
+                action  => immediate_ignore_dry_run;
+}
+
+bundle agent pop_dry_run_mode()
+{
+  methods:
+      "abort" usebundle => _abort("unsupported_dryrun", "Dry-run mode is not compatible with this agent. Stopping immediately to prevent any unwanted change."),
+                action  => immediate_ignore_dry_run;
+}
