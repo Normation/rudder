@@ -214,9 +214,6 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
 
   //////  Method to update attribute  //////
 
-  /** set (replace existing one if needed) given attribute */
-  def +=!(attribute:Attribute) = _backed.setAttribute(attribute) // e +=! attribute
-
   /**
    * set (replace existing one if needed) given attribute to given values
    * If only null or empty values are given, the
@@ -244,9 +241,6 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
 
   /** remove attribute */
   def -=(attributeName:String) = _backed.removeAttribute(attributeName)
-
-  /** remove given value from attribute, if exists. Remove attribute if it was its last value */
-  def -=(attributeName:String, values:String*) = _backed.removeAttributeValues(attributeName, values:_*)
 
   //////  Standard methods (toString/equal etc) and LDIF method  //////
 
@@ -291,13 +285,6 @@ object LDAPEntry {
   def apply(rdnAttribute:String,rdnValue:String,parentDn:String, attributes:Attribute*) : LDAPEntry = {
     require(rdnValue != null && rdnValue.length > 0)
     apply(new DN(s"${rdnAttribute}=${rdnValue},${parentDn}"),attributes)
-  }
-
-  def apply(dn:Option[DN],attributes:Attribute*):LDAPEntry = {
-    dn match {
-      case None => apply(NULL_DN,attributes)
-      case Some(d) => apply(d,attributes)
-    }
   }
 
   def apply(rdn:Option[RDN],parentDn:Option[DN],attributes:Attribute*):LDAPEntry = {
