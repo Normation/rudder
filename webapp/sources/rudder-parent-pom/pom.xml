@@ -361,7 +361,7 @@ limitations under the License.
     <rudder-version>4.3.10-SNAPSHOT</rudder-version>
     <spring-run-dep-version>4.3.10-SNAPSHOT</spring-run-dep-version>
 
-    <scala-version>2.12.6</scala-version>
+    <scala-version>2.12.7</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
     <lift-version>3.2.0</lift-version>
     <slf4j-version>1.7.25</slf4j-version>
