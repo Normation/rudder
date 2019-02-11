@@ -41,10 +41,10 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
 import com.normation.utils.StringUuidGenerator
-import monix.execution.Scheduler.{ global => scheduler }
-import scala.concurrent.duration._
-import com.normation.rudder.domain.logger.ScheduledJobLogger
-
+import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
+import scalaz.zio._
+import scalaz.zio.duration._
+import com.normation.zio._
 
 /**
  * A naive scheduler which checks every N seconds if inventories are updated.
@@ -54,25 +54,27 @@ class CheckInventoryUpdate(
     nodeInfoCacheImpl   : NodeInfoServiceCachedImpl
   , asyncDeploymentAgent: AsyncDeploymentActor
   , uuidGen             : StringUuidGenerator
-  , updateInterval      : FiniteDuration
+  , updateInterval      : Duration
 ) {
 
-  val logger = ScheduledJobLogger
+  val logger = ScheduledJobLoggerPure
 
   //start batch
   if(updateInterval < 1.second) {
-    logger.info(s"Disable automatic check for node inventories main information updates (update interval less than 1s)")
+    logger.logEffect.info(s"Disable automatic check for node inventories main information updates (update interval less than 1s)")
   } else {
-    logger.trace(s"***** starting check of node main inventories information update to trigger policy generation, every ${updateInterval.toString()} *****")
+    logger.logEffect.trace(s"***** starting check of node main inventories information update to trigger policy generation, every ${updateInterval.toString()} *****")
   }
 
-  scheduler.scheduleWithFixedDelay(30.second , updateInterval) {
-    if(!nodeInfoCacheImpl.isUpToDate()) {
-      logger.info("Update in node inventories main information detected: triggering a policy generation")
+  val prog = Task.effect {
+    if(!nodeInfoCacheImpl.isUpToDate().runNow) {
+      logger.logEffect.info("Update in node inventories main information detected: triggering a policy generation")
       asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor, "Main inventory information of at least one node were updated")
     } else {
-      logger.trace("No update in node inventories main information detected")
+      logger.logEffect.trace("No update in node inventories main information detected")
     }
-  }
+  }.catchAll(ex => logger.error(s"Error when trying to update node inventories information. Error is: ${ex.getClass.getName}: ${ex.getMessage}"))
+
+  ZioRuntime.unsafeRun(ZioRuntime.Environment.blocking.blocking(prog.delay(30.seconds).repeat(Schedule.spaced(updateInterval))).fork)
 }
 

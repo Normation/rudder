@@ -42,10 +42,11 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
-import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.rule.category.RuleCategory
+
+import com.normation.errors._
 
 /**
  * A category of the technique library.
@@ -79,7 +80,7 @@ trait ParseActiveTechniqueLibrary {
    * That method parse rules from the
    * file system for an archive with the given ID.
    */
-  def getArchive(archiveId:GitCommitId) : Box[ActiveTechniqueCategoryContent]
+  def getArchive(archiveId:GitCommitId) : IOResult[ActiveTechniqueCategoryContent]
 }
 
 /**
@@ -93,7 +94,7 @@ trait ParseRules {
    * That method parse rules from the
    * file system for an archive with the given ID.
    */
-  def getArchive(archiveId:GitCommitId) : Box[Seq[Rule]]
+  def getArchive(archiveId:GitCommitId) : IOResult[Seq[Rule]]
 }
 
 
@@ -108,7 +109,7 @@ trait ParseRuleCategories {
    * That method parse Rule category from the
    * file system for an archive with the given ID.
    */
-  def getArchive(archiveId:GitCommitId) : Box[RuleCategory]
+  def getArchive(archiveId:GitCommitId) : IOResult[RuleCategory]
 }
 
 
@@ -123,7 +124,7 @@ trait ParseGlobalParameters {
    * That method parse global parameters from the
    * file system for an archive with the given ID.
    */
-  def getArchive(archiveId:GitCommitId) : Box[Seq[GlobalParameter]]
+  def getArchive(archiveId:GitCommitId) : IOResult[Seq[GlobalParameter]]
 }
 
 /**
@@ -146,7 +147,7 @@ trait ParseGroupLibrary {
    * That method parse a group library from the
    * file system for an archive with the given ID.
    */
-  def getArchive(archiveId:GitCommitId) : Box[NodeGroupCategoryContent]
+  def getArchive(archiveId:GitCommitId) : IOResult[NodeGroupCategoryContent]
 }
 
 
@@ -158,7 +159,7 @@ trait ImportTechniqueLibrary {
    *
    * In case of error, we try to restore the old technique library.
    */
-  def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent, includeSystem: Boolean = false) : Box[Unit]
+  def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent, includeSystem: Boolean = false) : IOResult[Unit]
 }
 
 
@@ -170,5 +171,5 @@ trait ImportGroupLibrary {
    *
    * In case of error, we try to restore the old technique library.
    */
-  def swapGroupLibrary(rootCategory: NodeGroupCategoryContent, includeSystem: Boolean = false) : Box[Unit]
+  def swapGroupLibrary(rootCategory: NodeGroupCategoryContent, includeSystem: Boolean = false) : IOResult[Unit]
 }

@@ -44,37 +44,44 @@ import com.normation.inventory.services.provisioning._
 import com.normation.utils.StringUuidGenerator
 import java.net.InetAddress
 import java.util.Locale
-import net.liftweb.common._
+
+import com.normation.inventory.domain.InventoryError.Inconsistency
+import com.normation.errors._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.errors._
+
 import scala.xml._
 
 class FusionReportUnmarshaller(
-    uuidGen:StringUuidGenerator,
-    rootParsingExtensions:List[FusionReportParsingExtension] = Nil,
-    contentParsingExtensions:List[FusionReportParsingExtension] = Nil,
-    biosDateFormat : String = "MM/dd/yyyy",
-    slotMemoryUnit : String = "Mo",
-    ramUnit : String = "Mo",
-    swapUnit : String = "Mo",
-    fsSpaceUnit : String = "Mo",
+    uuidGen:StringUuidGenerator
+  , rootParsingExtensions:List[FusionReportParsingExtension] = Nil
+  , contentParsingExtensions:List[FusionReportParsingExtension] = Nil
+  , biosDateFormat : String = "MM/dd/yyyy"
+  , slotMemoryUnit : String = "Mo"
+  , ramUnit        : String = "Mo"
+  , swapUnit       : String = "Mo"
+  , fsSpaceUnit    : String = "Mo"
+  ,
     lastLoggedUserDatetimeFormat : String = "EEE MMM dd HH:mm"
-) extends ParsedReportUnmarshaller with Loggable {
+) extends ParsedReportUnmarshaller {
 
   import OptText.optText
 
   val userLoginDateTimeFormat = DateTimeFormat.forPattern(lastLoggedUserDatetimeFormat).withLocale(Locale.ENGLISH)
   val biosDateTimeFormat = DateTimeFormat.forPattern(biosDateFormat).withLocale(Locale.ENGLISH)
 
-  //extremelly specialized convert used for optionnal field only, that
+  //extremelly specialized convert used for optional field only, that
   //log the error in place of using a box
   private[this] def convert[T](input: Option[String], tag: String, format: String, conv: String => T): Option[T] = {
     try {
       input.map( s => conv(s))
     } catch {
       case ex: Exception =>
-        logger.warn(s"Ignoring '${tag}' content because it can't be converted to ${format}. Error is: ${ex.getMessage}")
+        InventoryLogger.logEffect.warn(s"Ignoring '${tag}' content because it can't be converted to ${format}. Error is: ${ex.getMessage}")
         None
     }
   }
@@ -97,27 +104,25 @@ class FusionReportUnmarshaller(
       Some(DateTime.parse(date,fmt))
     } catch {
       case e : IllegalArgumentException =>
-        logger.debug("error when parsing node %s, value %s ".format(n,date))
+        InventoryLogger.logEffect.debug(s"error when parsing node '${n}', value: ${date}")
       None
   } }
 
-  override def fromXmlDoc(reportName:String, doc:NodeSeq) : Box[InventoryReport] = {
+  override def fromXmlDoc(reportName:String, doc:NodeSeq) : IOResult[InventoryReport] = {
 
     // hostname is a little special and may fail
-    for {
+    (for {
       hostname <- getHostname(doc)
+      /*
+       * Fusion Inventory gives a device id, but we don't exactly understand
+       * how that id is generated and when/if it changes.
+       * At least, the presence of that tag is a good indicator
+       * that we have an actual Fusion Inventory report
+       */
+      deviceId <- ZIO.fromOption(optText(doc \ "DEVICEID")).mapError(_ => Inconsistency("The XML does not seems to be a Fusion Inventory report (no device id found)"))
     } yield {
 
       var report = {
-        /*
-         * Fusion Inventory gives a device id, but we don't exactly understand
-         * how that id is generated and when/if it changes.
-         * At least, the presence of that tag is a good indicator
-         * that we have an actual Fusion Inventory report
-         */
-        val deviceId = optText(doc \ "DEVICEID").getOrElse {
-          return Failure("The XML does not seems to be a Fusion Inventory report (no device id found)")
-        }
 
         //init a node inventory
         /*
@@ -145,7 +150,8 @@ class FusionReportUnmarshaller(
         //idems for VMs and applications
         val vms = List[MachineInventory]()
         val applications =  List[Software]()
-        val version= processVersion(doc\\("Request")\("VERSIONCLIENT"));
+        val version = processVersion(doc\\("Request")\("VERSIONCLIENT"))
+
         InventoryReport(
           reportName,
           deviceId,
@@ -174,7 +180,7 @@ class FusionReportUnmarshaller(
               case None => // can update the manufacturer
                 report = report.copy(machine = report.machine.copy(manufacturer = Some(x)))
               case Some(existingManufacturer) => //cannot update it
-                logger.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x}")
+                InventoryLogger.logEffect.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x}")
             }
           }
           systemSerialNumber.foreach{ x =>
@@ -182,7 +188,7 @@ class FusionReportUnmarshaller(
               case None => // can update the System Serial Number
                 report = report.copy(machine = report.machine.copy(systemSerialNumber = Some(x)))
               case Some(existingSystemSerialNumber) => //cannot update it
-                logger.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
+                InventoryLogger.logEffect.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
             }
           }
         }
@@ -236,13 +242,15 @@ class FusionReportUnmarshaller(
             softwareIds = demuxed.applications.map( _.id )
         )
       )
+      reportWithSoftwareIds
+    }).flatMap(reportWithSoftwareIds =>
       // <RUDDER> elements parsing must be done after software processing, because we get agent version from them
       processRudderElement(doc \\ "RUDDER", reportWithSoftwareIds)
-    }
+    )
   }
 
   // Use RUDDER/HOSTNAME first and if missing OS/FQDN
-  def getHostname(xml : NodeSeq): Box[String] = {
+  def getHostname(xml : NodeSeq): IOResult[String] = {
     def validHostname( hostname : String ) : Boolean = {
       val invalidList = "localhost" :: "127.0.0.1" :: "::1" :: Nil
       /* Invalid cases are:
@@ -256,18 +264,19 @@ class FusionReportUnmarshaller(
     (optTextHead(xml \\ "RUDDER" \ "HOSTNAME"), optTextHead(xml \\ "OPERATINGSYSTEM" \ "FQDN")) match {
       // Rudder tag
       case (Some(hostname), _             ) if validHostname(hostname) =>
-        Full(hostname)
+        hostname.succeed
 
       // OS tag
       case (_             , Some(hostname)) if validHostname(hostname) =>
-        Full(hostname)
+        hostname.succeed
       case (None          , None          )                            =>
-        Failure("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)")
+        InventoryError.Inconsistency("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)").fail
     }
   }
 
   /**
    * Parse Rudder Tag. In Rudder 4.3 and above, we don't need to parse anything but the <RUDDER> that looks like:
+   *
    * <RUDDER>
    *   <AGENT>
    *     <AGENT_NAME>cfengine-community</AGENT_NAME>
@@ -290,19 +299,18 @@ class FusionReportUnmarshaller(
    *
    * Because it is fully supported since Rudder 4.1 (so migration are OK).
    */
-  def processRudderElement(xml: NodeSeq, report: InventoryReport) : InventoryReport  = {
+  def processRudderElement(xml: NodeSeq, report: InventoryReport) : IOResult[InventoryReport]  = {
     // From an option and error message creates an option,
     // transform correctly option in a for comprehension
-    def boxFromOption[T]( opt : Option[T], errorMessage : String) : Box[T] = {
-      val box :  Box[T] = opt
-      box ?~! errorMessage
+    def boxFromOption[T]( opt : Option[T], errorMessage : String) : IOResult[T] = {
+      ZIO.fromOption(opt).mapError(_ => InventoryError.Inconsistency(errorMessage))
     }
 
     // Check that a seq contains only one or identical values, if not fails
-    def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : Box[T] = {
+    def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : IOResult[T] = {
       seq.distinct match {
-        case entry if entry.size != 1 => Failure(s"${errorMessage} (${entry.size} value(s) found in place of exactly 1)")
-        case entry if entry.size == 1 => Full(entry.head)
+        case entry if entry.size != 1 => InventoryError.Inconsistency(s"${errorMessage} (${entry.size} value(s) found in place of exactly 1)").fail
+        case entry if entry.size == 1 => entry.head.succeed
       }
     }
 
@@ -341,27 +349,35 @@ class FusionReportUnmarshaller(
       }
     }
 
-    // Fetch all the agents configuration
-    val agents = (xml \\ "AGENT").flatMap { agentXML =>
+    /*
+     * Process agents. We want to keep the maximum number of agents,
+     * ie if there's two agents, and XML for one is not valid, still
+     * keep the other.
+     *
+     * We build a list of Option[Agent] (but we log on console if an
+     * agent is ignored).
+     *
+     */
+    val agentList = ZIO.foreach(xml \\ "AGENT") { agentXML =>
       val agent = for {
          agentName <- boxFromOption(optText(agentXML \ "AGENT_NAME"), "could not parse agent name (tag AGENT_NAME) from rudder specific inventory")
-         agentType <- (AgentType.fromValue(agentName))
+         agentType <- ZIO.fromEither(AgentType.fromValue(agentName))
 
          rootUser  <- boxFromOption(optText(agentXML \\ "OWNER") ,"could not parse rudder user (tag OWNER) from rudder specific inventory")
          policyServerId <- boxFromOption(optText(agentXML \\ "POLICY_SERVER_UUID") ,"could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
 
          optCert = optText(agentXML \ "AGENT_CERT")
          optKey  = optText(agentXML \ "AGENT_KEY").orElse(optText(agentXML \ "CFENGINE_KEY"))
-         securityToken : SecurityToken <- agentType match {
+         securityToken <- agentType match {
            case Dsc => optCert match {
-             case Some(cert) => Full(Certificate(cert))
-             case None => Failure("could not parse agent certificate (tag AGENT_CERT), which is mandatory for dsc agent")
+             case Some(cert) => Certificate(cert).succeed
+             case None => Inconsistency("could not parse agent certificate (tag AGENT_CERT), which is mandatory for dsc agent").fail
            }
            case _         =>
-             (optCert,optKey) match {
-               case (Some(cert), _        ) => Full(Certificate(cert))
-               case (None      , Some(key)) => Full(PublicKey(key))
-               case (None      , None     ) => Failure("could not parse agent security Token (tag AGENT_KEY or CFENGINE_KEY or AGENT_CERT), which is mandatory for cfengine agent")
+             (optCert, optKey) match {
+               case (Some(cert), _        ) => Certificate(cert).succeed
+               case (None      , Some(key)) => PublicKey(key).succeed
+               case (None      , None     ) => Inconsistency("could not parse agent security Token (tag AGENT_KEY or CFENGINE_KEY or AGENT_CERT), which is mandatory for cfengine agent").fail
              }
          }
 
@@ -369,22 +385,19 @@ class FusionReportUnmarshaller(
 
         val version = findAgent(report.applications, agentType)
 
-        (AgentInfo(agentType,version,securityToken), rootUser, policyServerId)
+        Some((AgentInfo(agentType,version,securityToken), rootUser, policyServerId))
       }
-      agent match {
-        case eb: EmptyBox =>
-          val e = eb ?~! s"Error when parsing an <RUDDER><AGENT> entry in '${report.name}', that agent will be ignored."
-          logger.error(e.messageChain)
-          e
-        case Full(x) => Full(x)
+
+      agent.catchAll { eb =>
+        val e = Chained(s"Error when parsing an <RUDDER><AGENT> entry in '${report.name}', that agent will be ignored.", eb)
+        InventoryLogger.error(e.fullMsg) *> None.succeed
       }
     }
 
     ( for {
-        agentOK        <- if(agents.size < 1) {
-                            Failure(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag (missing or see previous errors)")
-                          } else {
-                            Full("ok")
+        agents         <- agentList.map(_.flatten)
+        agentOK        <- ZIO.when(agents.size < 1) {
+                            Inconsistency(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag (missing or see previous errors)").fail
                           }
         uuid           <- boxFromOption(optText(xml \ "UUID"), "could not parse uuid (tag UUID) from rudder specific inventory")
         rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
@@ -407,12 +420,9 @@ class FusionReportUnmarshaller(
             , serverRoles = serverRoles
           )
         )
-    } ) match {
-      case Full(report) => report
-      case eb:EmptyBox =>
-        val fail = eb ?~! s"Error when parsing <RUDDER> extention node in inventory report with name '${report.name}'. Rudder extension attribute won't be available in report."
-        logger.error(fail.messageChain)
-        report
+    } ) catchAll { eb =>
+        val fail = Chained(s"Error when parsing <RUDDER> extention node in inventory report with name '${report.name}'. Rudder extension attribute won't be available in report.", eb)
+        InventoryLogger.error(fail.fullMsg) *> report.succeed
     }
   }
 
@@ -470,7 +480,7 @@ class FusionReportUnmarshaller(
       val subnets = networks.flatMap( _.ifSubnet ).distinct
       val uniqIps = ips.distinct
       if(uniqIps.size < ips.size) {
-        logger.error(s"Network interface '${interface}' appears several time with same IPs. Taking only the first one, it is likelly a bug in fusion inventory.")
+        InventoryLogger.logEffect.error(s"Network interface '${interface}' appears several time with same IPs. Taking only the first one, it is likelly a bug in fusion inventory.")
       }
       referenceInterface.copy(ifAddresses = uniqIps, ifMask = masks, ifGateway = gateways, ifSubnet = subnets )
     }.toSeq
@@ -616,7 +626,7 @@ class FusionReportUnmarshaller(
           optText(xml\\"DATELASTLOGGEDUSER").map(date => userLoginDateTimeFormat.parseDateTime(date) )
         } catch {
           case e:IllegalArgumentException =>
-            logger.warn("Error when parsing date for last user loggin. Awaited format is %s, found: %s".format(lastLoggedUserDatetimeFormat,(xml\\"DATELASTLOGGEDUSER").text))
+            InventoryLogger.logEffect.warn("Error when parsing date for last user loggin. Awaited format is %s, found: %s".format(lastLoggedUserDatetimeFormat,(xml\\"DATELASTLOGGEDUSER").text))
             None
         }
     )
@@ -807,8 +817,8 @@ class FusionReportUnmarshaller(
     //volum or letter is mandatory
     letter.orElse(mount_point).orElse(volume) match {
       case None =>
-        logger.debug("Ignoring FileSystem entry because missing tag TYPE and LETTER")
-        logger.debug(d)
+        InventoryLogger.logEffect.debug("Ignoring FileSystem entry because missing tag TYPE and LETTER")
+        InventoryLogger.logEffect.debug(d)
         None
       case Some(mountPoint) =>
         Some(FileSystem(
@@ -839,8 +849,8 @@ class FusionReportUnmarshaller(
 
     optText(n\"DESCRIPTION").orElse(optText(n\"TYPE")) match {
       case None =>
-        logger.debug("Ignoring entry Network because tag DESCRIPTION is empty")
-        logger.debug(n)
+        InventoryLogger.logEffect.debug("Ignoring entry Network because tag DESCRIPTION is empty")
+        InventoryLogger.logEffect.debug(n)
         None
       case Some(desc) =>
         // in a single NETWORK element, we can have both IPV4 and IPV6
@@ -901,15 +911,15 @@ class FusionReportUnmarshaller(
 
     val bios = optText(b\"SMODEL") match {
       case None =>
-        logger.debug("Ignoring entry Bios because SMODEL is empty")
-        logger.debug(b)
+        InventoryLogger.logEffect.debug("Ignoring entry Bios because SMODEL is empty")
+        InventoryLogger.logEffect.debug(b)
         None
       case Some(model) =>
         val date = try {
           optText(b\"BDATE").map(d => biosDateTimeFormat.parseDateTime(d))
         } catch {
           case e:IllegalArgumentException =>
-            logger.warn("Error when parsing date for Bios. Awaited format is %s, found: %s".format(biosDateFormat,(b\"BDATE").text))
+            InventoryLogger.logEffect.warn("Error when parsing date for Bios. Awaited format is %s, found: %s".format(biosDateFormat,(b\"BDATE").text))
             None
         }
 
@@ -927,8 +937,8 @@ class FusionReportUnmarshaller(
   def processController(c: NodeSeq) : Option[Controller] = {
     optText(c\"NAME") match {
       case None =>
-        logger.debug("Ignoring entry Controller because tag NAME is empty")
-        logger.debug(c)
+        InventoryLogger.logEffect.debug("Ignoring entry Controller because tag NAME is empty")
+        InventoryLogger.logEffect.debug(c)
         None
       case Some(name) =>
         Some(Controller(
@@ -951,8 +961,8 @@ class FusionReportUnmarshaller(
     //add memory. Add all slots, but add capacity other than numSlot only for full slot
     val slot = optText(m\"NUMSLOTS") match {
       case None =>
-        logger.debug("Memory is missing tag NUMSLOTS, assigning a negative value for num slot")
-        logger.debug(m)
+        InventoryLogger.logEffect.debug("Memory is missing tag NUMSLOTS, assigning a negative value for num slot")
+        InventoryLogger.logEffect.debug(m)
         DUMMY_MEM_SLOT_NUMBER
       case Some(slot) =>  slot
     }
@@ -976,8 +986,8 @@ class FusionReportUnmarshaller(
   def processPort(p : NodeSeq) : Option[Port] = {
     optText(p\"NAME") match {
       case None =>
-        logger.debug("Ignoring entry Port because tag NAME is empty")
-        logger.debug(p)
+        InventoryLogger.logEffect.debug("Ignoring entry Port because tag NAME is empty")
+        InventoryLogger.logEffect.debug(p)
         None
       case Some(name) =>
         /*It seems that CAPTION and DESCRIPTION
@@ -1029,8 +1039,8 @@ class FusionReportUnmarshaller(
 
     name match {
       case None =>
-        logger.debug("Ignoring entry Slot because tags NAME and DESIGNATION are empty")
-        logger.debug(s)
+        InventoryLogger.logEffect.debug("Ignoring entry Slot because tags NAME and DESIGNATION are empty")
+        InventoryLogger.logEffect.debug(s)
         None
       case Some(sl) =>
         Some( Slot (
@@ -1054,8 +1064,8 @@ class FusionReportUnmarshaller(
 
     name match {
       case None =>
-        logger.debug("Ignoring entry Sound because tags NAME and MANUFACTURER are empty")
-        logger.debug(s)
+        InventoryLogger.logEffect.debug("Ignoring entry Sound because tags NAME and MANUFACTURER are empty")
+        InventoryLogger.logEffect.debug(s)
         None
       case Some(so) =>
         Some( Sound (
@@ -1073,8 +1083,8 @@ class FusionReportUnmarshaller(
      */
     optText(s\"NAME") match {
       case None =>
-        logger.debug("Ignoring entry Storage because tag NAME is empty")
-        logger.debug(s)
+        InventoryLogger.logEffect.debug("Ignoring entry Storage because tag NAME is empty")
+        InventoryLogger.logEffect.debug(s)
         None
       case Some(name) =>
         Some( Storage(
@@ -1099,8 +1109,8 @@ class FusionReportUnmarshaller(
   def processVideo(v : NodeSeq) : Option[Video] = {
     optText(v\"NAME").orElse(optText(v\"RESOLUTION")) match {
       case None =>
-        logger.debug("Ignoring entry Video because tag NAME is empty")
-        logger.debug(v)
+        InventoryLogger.logEffect.debug("Ignoring entry Video because tag NAME is empty")
+        InventoryLogger.logEffect.debug(v)
         None
       case Some(name) => Some( Video(
           name        = name
@@ -1115,8 +1125,8 @@ class FusionReportUnmarshaller(
   def processCpu(c : NodeSeq) : Option[Processor] = {
     optText(c\"NAME") match{
       case None =>
-        logger.debug("Ignoring entry CPU because tag MANIFACTURER and ARCH are empty")
-        logger.debug(c)
+        InventoryLogger.logEffect.debug("Ignoring entry CPU because tag MANIFACTURER and ARCH are empty")
+        InventoryLogger.logEffect.debug(c)
         None
       case Some(name) =>
         Some (
@@ -1140,8 +1150,8 @@ class FusionReportUnmarshaller(
   def processEnvironmentVariable(ev : NodeSeq) : Option[EnvironmentVariable] = {
     optText(ev\"KEY")  match {
     case None =>
-      logger.debug("Ignoring entry Envs because tag KEY is empty")
-      logger.debug(ev)
+      InventoryLogger.logEffect.debug("Ignoring entry Envs because tag KEY is empty")
+      InventoryLogger.logEffect.debug(ev)
       None
     case Some(key) =>
       Some (
@@ -1155,8 +1165,8 @@ class FusionReportUnmarshaller(
   def processVms(vm : NodeSeq) : Option[VirtualMachine] = {
     optText(vm\"UUID") match {
     case None =>
-      logger.debug("Ignoring entry VirtualMachine because tag UUID is empty")
-      logger.debug(vm)
+      InventoryLogger.logEffect.debug("Ignoring entry VirtualMachine because tag UUID is empty")
+      InventoryLogger.logEffect.debug(vm)
       None
     case Some(uuid) =>
         Some(
@@ -1176,8 +1186,8 @@ class FusionReportUnmarshaller(
   def processProcesses(proc : NodeSeq) : Option[Process] = {
      optInt(proc, "PID") match {
     case None =>
-      logger.debug("Ignoring entry Process because tag PID is invalid")
-      logger.debug(proc)
+      InventoryLogger.logEffect.debug("Ignoring entry Process because tag PID is invalid")
+      InventoryLogger.logEffect.debug(proc)
       None
     case Some(pid) =>
       Some (
@@ -1201,7 +1211,7 @@ class FusionReportUnmarshaller(
      case Some(date) => try {
          Some(DateTime.parse(date,fmt))
        } catch {
-         case e:IllegalArgumentException => logger.warn("error when parsing ACCESSLOG, reason %s".format(e.getMessage()))
+         case e:IllegalArgumentException => InventoryLogger.logEffect.warn("error when parsing ACCESSLOG, reason %s".format(e.getMessage()))
              None
        }
    }

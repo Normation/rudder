@@ -64,6 +64,8 @@ import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 object DirectiveEditForm {
 
   /**
@@ -132,8 +134,8 @@ class DirectiveEditForm(
     }
   }
 
-  val rules = roRuleRepo.getAll(false).getOrElse(Seq()).toList
-  val rootCategory = roRuleCategoryRepo.getRootCategory.getOrElse(throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report."))
+  val rules = roRuleRepo.getAll(false).toBox.getOrElse(Seq()).toList
+  val rootCategory = roRuleCategoryRepo.getRootCategory.toBox.getOrElse(throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report."))
   val directiveApp = new DirectiveApplicationManagement(directive,rules,rootCategory)
   def dispatch = {
     case "showForm" => { _ => showForm }

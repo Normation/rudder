@@ -63,9 +63,7 @@ import com.normation.utils.HashcodeCaching
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-
+import com.normation.errors._
 
 
 /**
@@ -95,17 +93,17 @@ final case class GitArchiveId(path: GitPath, commit: GitCommitId, commiter: Pers
 
 final case class ActiveTechniqueNotArchived(
     activeTechniqueId: ActiveTechniqueId
-  , cause            : Failure
+  , cause            : RudderError
 )
 
 final case class DirectiveNotArchived(
     directiveId: DirectiveId
-  , cause      : Failure
+  , cause      : RudderError
 )
 
 final case class CategoryNotArchived(
     categoryId: ActiveTechniqueCategoryId
-  , cause     : Failure
+  , cause     : RudderError
 )
 
 final case class NotArchivedElements(
@@ -130,20 +128,20 @@ trait ItemArchiveManager {
    * Save all items handled by that archive manager
    * and return an ID for the archive on success.
    */
-  def exportAll(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[(GitArchiveId, NotArchivedElements)]
+  def exportAll(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[(GitArchiveId, NotArchivedElements)]
 
-  def exportRules(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportRules(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitArchiveId]
 
   /**
    * Export the technique library.
    * The strategy in case some directive are in error is to ignore them, keeping error message so that they can be logged/displayed
    * at the end of the process.
    */
-  def exportTechniqueLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[(GitArchiveId, NotArchivedElements)]
+  def exportTechniqueLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[(GitArchiveId, NotArchivedElements)]
 
-  def exportGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitArchiveId]
 
-  def exportParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitArchiveId]
 
   /**
    * Import the archive with the given ID in Rudder.
@@ -153,57 +151,57 @@ trait ItemArchiveManager {
    * was required.
    *
    */
-  def importAll(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importAll(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId]
 
-  def importRules(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importRules(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId]
 
-  def importTechniqueLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importTechniqueLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId]
 
-  def importGroupLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importGroupLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId]
 
-  def importParameters(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importParameters(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId]
 
   /**
    * Import the item archive from HEAD (corresponding to last commit)
    */
   private[this] def lastGitCommitId = GitCommitId("HEAD")
 
-  def importHeadAll(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+  def importHeadAll(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId] = {
     importAll(lastGitCommitId, commiter, modId, actor, reason, includeSystem)
   }
 
-  def importHeadRules(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+  def importHeadRules(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId] = {
     importRules(lastGitCommitId, commiter, modId, actor, reason, includeSystem)
   }
 
-  def importHeadTechniqueLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+  def importHeadTechniqueLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId] = {
     importTechniqueLibrary(lastGitCommitId, commiter, modId, actor, reason, includeSystem)
   }
 
-  def importHeadGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+  def importHeadGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId] = {
     importGroupLibrary(lastGitCommitId, commiter, modId, actor, reason, includeSystem)
   }
 
-  def importHeadParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[GitCommitId]= {
+  def importHeadParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[GitCommitId]= {
     importParameters(lastGitCommitId, commiter, modId, actor, reason)
   }
 
   /**
    * Rollback method
    */
-  def rollback(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String],  rollbackedEvents :Seq[EventLog], target:EventLog, rollbackType:String, includeSystem:Boolean = false) : Box[GitCommitId]
+  def rollback(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String],  rollbackedEvents :Seq[EventLog], target:EventLog, rollbackType:String, includeSystem:Boolean = false) : IOResult[GitCommitId]
   /**
    * Get the list of tags for the archive type
    */
-  def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]]
+  def getFullArchiveTags : IOResult[Map[DateTime,GitArchiveId]]
 
-  def getGroupLibraryTags : Box[Map[DateTime,GitArchiveId]]
+  def getGroupLibraryTags : IOResult[Map[DateTime,GitArchiveId]]
 
-  def getTechniqueLibraryTags : Box[Map[DateTime,GitArchiveId]]
+  def getTechniqueLibraryTags : IOResult[Map[DateTime,GitArchiveId]]
 
-  def getRulesTags : Box[Map[DateTime,GitArchiveId]]
+  def getRulesTags : IOResult[Map[DateTime,GitArchiveId]]
 
-  def getParametersTags : Box[Map[DateTime,GitArchiveId]]
+  def getParametersTags : IOResult[Map[DateTime,GitArchiveId]]
 }
 
 
@@ -219,7 +217,7 @@ trait GitRuleArchiver {
    *
    * reason is an optional commit message to add to the standard one.
    */
-  def archiveRule(rule:Rule, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def archiveRule(rule:Rule, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Commit modification done in the Git repository for any
@@ -230,9 +228,9 @@ trait GitRuleArchiver {
    *
    * reason is an optional commit message to add to the standard one.
    */
-  def commitRules(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
+  def commitRules(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : IOResult[GitArchiveId]
 
-  def getTags() : Box[Map[DateTime,GitArchiveId]]
+  def getTags() : IOResult[Map[DateTime,GitArchiveId]]
 
   /**
    * Delete an archived rule.
@@ -241,7 +239,7 @@ trait GitRuleArchiver {
    *
    * reason is an optional commit message to add to the standard one.
    */
-  def deleteRule(ruleId:RuleId, gitCommitCr:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def deleteRule(ruleId:RuleId, gitCommitCr:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Get the root directory where rules are saved
@@ -270,20 +268,20 @@ trait GitActiveTechniqueCategoryArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def archiveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Delete an archived active technique category.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteActiveTechniqueCategory(uptcId:ActiveTechniqueCategoryId, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def deleteActiveTechniqueCategory(uptcId:ActiveTechniqueCategoryId, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Move an archived technique category from a
    * parent category to an other.
    */
-  def moveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def moveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Get the root directory where active technique categories are saved.
@@ -296,9 +294,9 @@ trait GitActiveTechniqueCategoryArchiver {
    * active technique library.
    * Return the git commit id.
    */
-  def commitActiveTechniqueLibrary(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
+  def commitActiveTechniqueLibrary(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : IOResult[GitArchiveId]
 
-  def getTags() : Box[Map[DateTime,GitArchiveId]]
+  def getTags() : IOResult[Map[DateTime,GitArchiveId]]
 }
 
 /**
@@ -320,20 +318,20 @@ trait GitActiveTechniqueArchiver {
    * If an error at the ActiveTechnique happens, the whole archive step is
    * in error.
    */
-  def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[(GitPath, Seq[DirectiveNotArchived])]
+  def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[(GitPath, Seq[DirectiveNotArchived])]
 
   /**
    * Delete an archived active technique.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteActiveTechnique(ptName:TechniqueName, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def deleteActiveTechnique(ptName:TechniqueName, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Move an archived technique from a
    * parent category to an other.
    */
-  def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[(GitPath, Seq[DirectiveNotArchived])]
+  def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[(GitPath, Seq[DirectiveNotArchived])]
 
   /**
    * Get the root directory where active technique categories are saved.
@@ -357,7 +355,7 @@ trait GitDirectiveArchiver {
     , catIds             : List[ActiveTechniqueCategoryId]
     , variableRootSection: SectionSpec
     , gitCommit          : Option[(ModificationId, PersonIdent,Option[String])]
-  ) : Box[GitPath]
+  ) : IOResult[GitPath]
 
   /**
    * Delete an archived directive.
@@ -369,7 +367,7 @@ trait GitDirectiveArchiver {
     , ptName     : TechniqueName
     , catIds     : List[ActiveTechniqueCategoryId]
     , gitCommit  : Option[(ModificationId, PersonIdent,Option[String])]
-  ) : Box[GitPath]
+  ) : IOResult[GitPath]
 
   /**
    * Get the root directory where directive are saved.
@@ -394,20 +392,20 @@ trait GitNodeGroupArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveNodeGroupCategory(groupCat:NodeGroupCategory, getParents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def archiveNodeGroupCategory(groupCat:NodeGroupCategory, getParents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Delete an archived node group category.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteNodeGroupCategory(groupCatId:NodeGroupCategoryId, getParents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def deleteNodeGroupCategory(groupCatId:NodeGroupCategoryId, getParents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Move an archived node group category from a
    * parent category to an other.
    */
-  def moveNodeGroupCategory(groupCat:NodeGroupCategory, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def moveNodeGroupCategory(groupCat:NodeGroupCategory, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Get the root directory where node group categories are saved.
@@ -419,9 +417,9 @@ trait GitNodeGroupArchiver {
    * category and groups.
    * Return the git commit id.
    */
-  def commitGroupLibrary(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
+  def commitGroupLibrary(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : IOResult[GitArchiveId]
 
-  def getTags() : Box[Map[DateTime,GitArchiveId]]
+  def getTags() : IOResult[Map[DateTime,GitArchiveId]]
 
   /**
    * Archive an active technique in a file system
@@ -429,20 +427,20 @@ trait GitNodeGroupArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveNodeGroup(nodeGroup:NodeGroup, parents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def archiveNodeGroup(nodeGroup:NodeGroup, parents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Delete an archived active technique.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteNodeGroup(nodeGroup:NodeGroupId, parents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def deleteNodeGroup(nodeGroup:NodeGroupId, parents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Move an archived technique from a
    * parent category to an other.
    */
-  def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
 }
 
@@ -457,7 +455,7 @@ trait GitParameterArchiver {
    *
    * reason is an optional commit message to add to the standard one.
    */
-  def archiveParameter(parameter:GlobalParameter, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def archiveParameter(parameter:GlobalParameter, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Commit modification done in the Git repository for any
@@ -468,9 +466,9 @@ trait GitParameterArchiver {
    *
    * reason is an optional commit message to add to the standard one.
    */
-  def commitParameters(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
+  def commitParameters(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : IOResult[GitArchiveId]
 
-  def getTags() : Box[Map[DateTime,GitArchiveId]]
+  def getTags() : IOResult[Map[DateTime,GitArchiveId]]
 
   /**
    * Delete an archived parameter.
@@ -479,7 +477,7 @@ trait GitParameterArchiver {
    *
    * reason is an optional commit message to add to the standard one.
    */
-  def deleteParameter(parameterName:ParameterName, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+  def deleteParameter(parameterName:ParameterName, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Get the root directory where parameter are saved

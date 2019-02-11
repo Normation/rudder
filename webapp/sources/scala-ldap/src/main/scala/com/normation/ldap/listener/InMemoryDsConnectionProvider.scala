@@ -20,10 +20,12 @@
 
 package com.normation.ldap.listener
 
-import com.unboundid.ldap.listener.{InMemoryDirectoryServerConfig,InMemoryDirectoryServer}
+import com.unboundid.ldap.listener.{InMemoryDirectoryServer, InMemoryDirectoryServerConfig}
 import com.unboundid.ldap.sdk.schema.Schema
 import com.normation.ldap.ldif._
 import com.normation.ldap.sdk._
+import scalaz.zio.blocking.Blocking
+import com.normation.zio._
 
 /**
  * A class that provides a connection provider which use an
@@ -37,6 +39,7 @@ class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
     //for example for bootstrap datas
   , bootstrapLDIFPaths : Seq[String] = Seq()
   , val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger()
+  , val blockingModule: Blocking
 ) extends LDAPConnectionProvider[CON] {
 
   /**
@@ -49,7 +52,7 @@ class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
   bootstrapLDIFPaths foreach { path => server.importFromLDIF(false, path) }
   server.startListening
 
-  def newConnection : CON = (new RwLDAPConnection(server.getConnection,ldifFileLogger)).asInstanceOf[CON]
+  def newConnection : CON = (new RwLDAPConnection(server.getConnection,ldifFileLogger,blockingModule)).asInstanceOf[CON]
 
   //////// implementation of LDAPConnectionProvider ////////
   private[this] var connection : Option[CON] = None
@@ -87,7 +90,7 @@ object InMemoryDsConnectionProvider {
     val schema = Schema.getSchema(schemaLDIFPaths:_*)
     val config = new InMemoryDirectoryServerConfig(baseDNs:_*)
     config.setSchema(schema)
-    new InMemoryDsConnectionProvider[CON](config,bootstrapLDIFPaths,ldifFileLogger)
+    new InMemoryDsConnectionProvider[CON](config,bootstrapLDIFPaths,ldifFileLogger, ZioRuntime.Environment)
   }
 
 

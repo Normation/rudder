@@ -38,8 +38,9 @@
 package com.normation.inventory.provisioning.endpoint
 
 
+import com.normation.errors.Chained
+import com.normation.zio.ZioRuntime
 import javax.servlet.http.HttpServletRequest
-import net.liftweb.common._
 import org.joda.time.format.PeriodFormat
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -49,6 +50,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.support.DefaultMultipartHttpServletRequest
+import scalaz.zio.syntax._
 
 object FusionReportEndpoint{
   val printer = PeriodFormat.getDefault
@@ -57,7 +59,7 @@ object FusionReportEndpoint{
 
 @Controller
 class FusionReportEndpoint(
-    inventoryProcessor: InventoryProcessor
+    inventoryProcessor  : InventoryProcessor
   , inventoryFileWatcher: InventoryFileWatcher
 ) {
 
@@ -81,8 +83,10 @@ class FusionReportEndpoint(
     method = Array(RequestMethod.GET)
   )
   def queueInfo() = {
-    // get the current size, the remaining of the answer is based on that
-    val current = inventoryProcessor.queueSize.get
+    // Get the current size, the remaining of the answer is based on that.
+    // The "+1" is because the fiber waiting for inventory give 1 slot,
+    // if don't "+1", we start at -1 when no inventories are here.
+    val current = inventoryProcessor.currentQueueSize + 1
     //must be coherent with can do, current = 49 < max = 50 => not saturated
     val saturated = current >= inventoryProcessor.maxQueueSize
     val code = if(saturated) HttpStatus.TOO_MANY_REQUESTS else HttpStatus.OK
@@ -116,9 +120,9 @@ class FusionReportEndpoint(
 
 
     def parseInventory(inventoryFile : MultipartFile, signatureFile : Option[MultipartFile]): ResponseEntity[String]= {
-
-      inventoryProcessor.saveInventory(() => inventoryFile.getInputStream, inventoryFile.getOriginalFilename, signatureFile.map(f => () => f.getInputStream)) match {
-        case Full(status) =>
+      // here, we are at the end of our world. Evaluate ZIO and see what happen.
+      ZioRuntime.unsafeRun(inventoryProcessor.saveInventory(SaveInventoryInfo(inventoryFile.getOriginalFilename, () => inventoryFile.getInputStream, signatureFile.map(f => () => f.getInputStream))).map {
+        status =>
           import com.normation.inventory.provisioning.endpoint.StatusLog.LogMessage
           status match {
             case InventoryProcessStatus.MissingSignature(_) => new ResponseEntity(status.msg, HttpStatus.UNAUTHORIZED)
@@ -126,10 +130,11 @@ class FusionReportEndpoint(
             case InventoryProcessStatus.QueueFull(_)        => new ResponseEntity(status.msg, HttpStatus.SERVICE_UNAVAILABLE)
             case InventoryProcessStatus.Accepted(_)         => new ResponseEntity(status.msg, HttpStatus.ACCEPTED)
           }
-        case eb: EmptyBox =>
-          val fail = eb ?~! s"Error when trying to process inventory '${inventoryFile.getOriginalFilename}'"
-          new ResponseEntity(fail.messageChain, HttpStatus.PRECONDITION_FAILED)
-      }
+      }.catchAll { eb =>
+        val fail = Chained(s"Error when trying to process inventory '${inventoryFile.getOriginalFilename}'", eb)
+        InventoryProcessingLogger.error(fail.fullMsg) *>
+        new ResponseEntity(fail.fullMsg, HttpStatus.PRECONDITION_FAILED).succeed
+      })
     }
 
     request match {
@@ -151,7 +156,7 @@ class FusionReportEndpoint(
             defaultBadAnswer("No inventory sent")
 
           case (Some(inventory), sig) => {
-            InventoryLogger.info(s"API got new inventory file '${inventory.getOriginalFilename}' with signature ${if(sig.isDefined) "" else "not "}available: process.")
+            InventoryProcessingLogger.info(s"API got new inventory file '${inventory.getOriginalFilename}' with signature ${if(sig.isDefined) "" else "not "}available: process.")
             parseInventory(inventory, sig)
           }
         }

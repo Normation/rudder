@@ -55,6 +55,8 @@ import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.web.components.RuleDisplayer
 import com.normation.rudder.web.components.DisplayColumn
 
+import com.normation.box._
+
 /**
  * Snippet for managing Rules.
  * It allows to see what Rules are available,
@@ -71,7 +73,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
   private[this] val currentRuleDisplayer = new LocalSnippet[RuleDisplayer]
 
   override def mainDispatch = {
-    RudderConfig.configService.rudder_ui_changeMessage_enabled match {
+    RudderConfig.configService.rudder_ui_changeMessage_enabled.toBox match {
       case Full(changeMsgEnabled) =>
         Map(
             "head" -> { _:NodeSeq => head(changeMsgEnabled) }
@@ -175,7 +177,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
       val json = parse(ruleData)
       json \ "ruleId" match {
         case JString(ruleId) =>
-          ruleRepository.get(RuleId(ruleId)) match {
+          ruleRepository.get(RuleId(ruleId)).toBox match {
             case Full(rule) =>
               json \ "action" match {
                 case JString(action) =>

@@ -39,10 +39,10 @@ package com.normation.cfclerk.xmlparsers
 
 import java.io.FileNotFoundException
 
+import com.normation.cfclerk.domain.LoadTechniqueError
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.cfclerk.exceptions.ParsingException
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.inventory.domain.AgentType
 import org.junit.runner._
@@ -64,16 +64,20 @@ class ParseTechniqueTest extends Specification {
 
   "When a technique has both root bundles/tmls and a 'cfengine-community' agent block, parsing should fails" >> {
     techniqueParser.parseXml(readFile("parseTechnique/technique_one_default_one_agent_id.xml"), id) must
-      throwA[ParsingException]("these agent configurations are declared several times: 'cfengine-community' ")
+      beLeft[LoadTechniqueError].like { case e =>
+        e.fullMsg must =~("these agent configurations are declared several times: 'cfengine-community' ")
+      }
   }
 
   "When a technique has two 'cfengine-community' agent block, parsing should fails" >> {
     techniqueParser.parseXml(readFile("parseTechnique/technique_2_agent_id.xml"), id) must
-      throwA[ParsingException]("these agent configurations are declared several times: 'cfengine-community' ")
+      beLeft[LoadTechniqueError].like { case e =>
+        e.fullMsg must =~("these agent configurations are declared several times: 'cfengine-community' ")
+      }
   }
 
   "A technique with an explicit agent block declared and no root bundles/tmls elements must have exactly one agent type (no default one added)" >> {
-    val technique = techniqueParser.parseXml(readFile("parseTechnique/technique_1_agent_no_default.xml"), id)
+    val technique = techniqueParser.parseXml(readFile("parseTechnique/technique_1_agent_no_default.xml"), id).getOrElse(throw new RuntimeException("That part should not fail"))
     technique.agentConfigs.map(_.agentType) must containTheSameElementsAs(List(AgentType.CfeCommunity))
   }
 

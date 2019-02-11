@@ -75,7 +75,6 @@ import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.utils.Control._
 import com.normation.utils.StringUuidGenerator
-import monix.eval.Task
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
@@ -92,6 +91,9 @@ import net.liftweb.json.JsonDSL.string2jvalue
 import scalaj.http.Http
 import scalaj.http.HttpConstants
 import scalaj.http.HttpOptions
+import scalaz.zio._
+import com.normation.box._
+import com.normation.zio.ZioRuntime
 
 /*
  * NodeApi implementation.
@@ -479,19 +481,19 @@ class NodeApiService4 (
                      }
       runs        <- roAgentRunsRepository.getNodesLastRun(Set(nodeId))
       inventory <- if(detailLevel.needFullInventory()) {
-                     inventoryRepository.get(nodeId, state).map(Some(_))
+                     inventoryRepository.get(nodeId, state).toBox
                    } else {
                      Full(None)
                    }
       software  <- if(detailLevel.needSoftware()) {
-                     for {
+                     (for {
                        software <- inventory match {
                                       case Some(i) => softwareRepository.getSoftware(i.node.softwareIds)
-                                      case None    => softwareRepository.getSoftwareByNode(Set(nodeId), state).flatMap( _.get(nodeId))
+                                      case None    => softwareRepository.getSoftwareByNode(Set(nodeId), state).map( _.get(nodeId).getOrElse(Seq()))
                                     }
                      } yield {
                        software
-                     }
+                     }).toBox
                    } else {
                      Full(Seq())
                    }
@@ -559,12 +561,12 @@ class NodeApiService6 (
       nodeIds     =  nodeFilter.getOrElse(nodeInfos.keySet).toSet
       runs        <- roAgentRunsRepository.getNodesLastRun(nodeIds)
       inventories <- if(detailLevel.needFullInventory()) {
-                       inventoryRepository.getAllInventories(state)
+                       inventoryRepository.getAllInventories(state).toBox
                      } else {
                        Full(Map[NodeId, FullInventory]())
                      }
       software    <- if(detailLevel.needSoftware()) {
-                       softwareRepository.getSoftwareByNode(nodeInfos.keySet, state)
+                       softwareRepository.getSoftwareByNode(nodeInfos.keySet, state).toBox
                      } else {
                        Full(Map[NodeId, Seq[Software]]())
                      }
@@ -626,7 +628,7 @@ class NodeApiService8 (
       newProperties  <- CompareProperties.updateProperties(node.properties, restNode.properties)
       updated        =  node.copy(properties = newProperties, policyMode = restNode.policyMode.getOrElse(node.policyMode), state=restNode.state.getOrElse(node.state))
       saved          <- if(updated == node) Full(node)
-                        else nodeRepository.updateNode(updated, modId, actor, reason)
+                        else nodeRepository.updateNode(updated, modId, actor, reason).toBox
     } yield {
       if(node != updated) {
         asyncRegenerate ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
@@ -671,22 +673,22 @@ class NodeApiService8 (
   }
 
   def runNode(nodeId: NodeId, classes : List[String]) : Box[OutputStream => Unit] = {
-    import monix.execution.Scheduler.Implicits.global
     val request = remoteRunRequest(nodeId,classes,true,true)
 
     val in = new PipedInputStream(pipeSize)
-    val out = new PipedOutputStream(in)
 
-    val response = Task( request.exec{ case (status,headers,is) =>
-      if (status >= 200 && status < 300) {
-        runResponse(is)(out)
-      } else {
-        out.write((s"Error ${status} occured when contacting internal remote-run API to apply " +
-                  s"classes on Node '${nodeId.value}': \n${HttpConstants.readString(is)}\n\n").getBytes)
-        out.flush
-      }
-    })
-    response.runAsync.onComplete { _ => out.close() }
+    val response = Task.bracket(Task.effect(new PipedOutputStream(in)))(out => Task.effect(out.close()).run.unit) { out =>
+      Task.effect( request.exec{ case (status,headers,is) =>
+        if (status >= 200 && status < 300) {
+          runResponse(is)(out)
+        } else {
+          out.write((s"Error ${status} occured when contacting internal remote-run API to apply " +
+                    s"classes on Node '${nodeId.value}': \n${HttpConstants.readString(is)}\n\n").getBytes)
+          out.flush
+        }
+      })
+    }
+    ZioRuntime.unsafeRun(response)
     Full(runResponse(in))
   }
 

@@ -42,12 +42,14 @@ import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import bootstrap.liftweb.RudderConfig
 
+import com.normation.box._
+
 class EventLogsViewer extends DispatchSnippet with Loggable {
   private[this] val repos     = RudderConfig.eventLogRepository
   private[this] val eventList = RudderConfig.eventListDisplayer
 
   def getLastEvents : Box[Seq[EventLog]] = {
-    repos.getEventLogByCriteria(None, Some(1000), Some("id DESC"))
+    repos.getEventLogByCriteria(None, Some(1000), Some("id DESC")).toBox
   }
 
   def dispatch = {

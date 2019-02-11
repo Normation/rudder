@@ -88,7 +88,7 @@ trait NodeChangesService {
    * The resulting list is sorted by interval start time, so that head is
    * before tail.
    *
-   * This is pure algo, so make all implementation use the same.
+   * This is success algo, so make all implementation use the same.
    *
    */
   final def getCurrentValidIntervals(since: Option[DateTime]): List[Interval] = {
@@ -98,7 +98,7 @@ trait NodeChangesService {
   }
 
   /*
-   * The following method is pure algorithm methods and we want that all
+   * The following method is success algorithm methods and we want that all
    * implementation of getChangesByInterval use them.
    */
 

@@ -48,6 +48,9 @@ import org.joda.time.format.DateTimeFormat
 import net.liftweb.util.Helpers
 import org.joda.time.format.DateTimeFormatterBuilder
 
+import com.normation.zio._
+import com.normation.box._
+
 /**
  * A rest api that allows to deploy promises.
  *
@@ -103,11 +106,12 @@ class RestGetGitCommitAsZip(
   }
 
   private[this] def getZip(commitId:String, paths:List[String], archiveType: String) = {
-    val rw = new RevWalk(repo.db)
+    val db = repo.db.runNow
+    val rw = new RevWalk(db)
 
     (for {
       revCommit <- try {
-                    val id = repo.db.resolve(commitId)
+                    val id = db.resolve(commitId)
                     Full(rw.parseCommit(id))
                   } catch {
                     case e:Exception => Failure("Error when retrieving commit revision for " + commitId, Full(e), Empty)
@@ -115,7 +119,7 @@ class RestGetGitCommitAsZip(
                     rw.dispose
                   }
       treeId    <- Helpers.tryo { revCommit.getTree.getId }
-      bytes     <- GitFindUtils.getZip(repo.db, treeId, paths)
+      bytes     <- GitFindUtils.getZip(db, treeId, paths).toBox
     } yield {
       (bytes, format.print(new DateTime(revCommit.getCommitTime.toLong * 1000)))
     }) match {

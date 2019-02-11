@@ -38,7 +38,6 @@
 package com.normation.inventory.ldap.core
 
 import com.normation.inventory.domain._
-import net.liftweb.common._
 import com.unboundid.ldap.sdk.DN
 
 
@@ -61,11 +60,11 @@ class InventoryDitServiceImpl(
     map(dit => (dit.BASE_DN,dit)).
     sortWith{ (x,y) => x._1.compareTo(y._1) >= 0 }
 
-  override def getDit(dn:DN) : Box[InventoryDit] = {
-    ( (Empty:Box[InventoryDit]) /: baseDns ) {
-      case (f:Full[_], _) => f
-      case (_, (baseDn,dit) ) if(baseDn.isAncestorOf(dn,true)) => Full(dit)
-      case _ => Empty
+  override def getDit(dn:DN) : Option[InventoryDit] = {
+    ( (Option.empty[InventoryDit]) /: baseDns ) {
+      case (Some(x), _) => Some(x)
+      case (_      , (baseDn,dit) ) if(baseDn.isAncestorOf(dn,true)) => Some(dit)
+      case _            => None
     }
   }
 

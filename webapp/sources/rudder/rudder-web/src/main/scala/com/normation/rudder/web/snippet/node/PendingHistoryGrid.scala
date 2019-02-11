@@ -56,6 +56,8 @@ import org.joda.time.DateTime
 import org.joda.time.format._
 import scala.xml._
 
+import com.normation.box._
+
 object PendingHistoryGrid extends Loggable {
 
   val history           = RudderConfig.inventoryHistoryLogRepository
@@ -216,7 +218,7 @@ object PendingHistoryGrid extends Loggable {
       val id = NodeId(arr(1))
       val version = ISODateTimeFormat.dateTimeParser.parseDateTime(arr(2))
       val isAcceptLine = arr(3) == "accepted"
-      history.get(id, version) match {
+      history.get(id, version).toBox match {
         case Failure(m,_,_) => Alert("Error while trying to display node history. Error message:" + m)
         case Empty => Alert("No history was retrieved for the chosen date")
         case Full(sm) =>

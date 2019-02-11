@@ -54,8 +54,10 @@ import net.liftweb.json._
 import com.normation.rudder.domain.servers.Srv
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.appconfig.ReadConfigService
+import com.normation.appconfig.ReadConfigService
 import com.normation.rudder.web.ChooseTemplate
+
+import com.normation.box._
 
 object NodeGrid {
   val logger = LoggerFactory.getLogger(classOf[NodeGrid])
@@ -247,11 +249,11 @@ class NodeGrid(
       arg    <- tryo(json.extract[JsonArg])
       status : InventoryStatus <- Box(InventoryStatus(arg.status))
       nodeId =  NodeId(arg.id)
-      sm     <- getNodeAndMachine.get(nodeId, status)
+      sm     <- getNodeAndMachine.get(nodeId, status).notOptional(s"Error when trying to find inventory for node '${nodeId.value}'").toBox
       nodeAndGlobalMode <- {
         nodeInfoService.getNodeInfo(nodeId) match {
           case Full(Some(node)) =>
-            configService.rudder_global_policy_mode() match {
+            configService.rudder_global_policy_mode().toBox match {
               case Full(mode)    => Full(Some((node,mode)))
               case eb : EmptyBox =>
                 val fail = eb ?~! s" Could not get global policy mode when getting node '${nodeId}' details"

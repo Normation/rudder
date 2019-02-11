@@ -52,6 +52,8 @@ import JsCmds._
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.AcceptedInventory
 
+import com.normation.box._
+
 /**
  * A simple service that displays a NodeDetail widget from
  * a list of LDIF entries
@@ -76,7 +78,7 @@ class NodeHistoryViewer extends StatefulSnippet {
 
         <div>
           <p>{SHtml.ajaxSelectObj[DateTime](dates, Full(selectedDate), onSelect _)}</p>
-          { diffRepos.get(uuid, selectedDate) match {
+          { diffRepos.get(uuid, selectedDate).toBox match {
               case Failure(m,_,_) => <div class="error">Error while trying to display node history. Error message: {m}</div>
               case Empty => <div class="error">No history was retrieved for the chosen date</div>
               case Full(sm) =>
@@ -96,7 +98,7 @@ class NodeHistoryViewer extends StatefulSnippet {
     if(newUuid != this.uuid) {
       this.uuid = newUuid
       this.hid =  JsNodeId(uuid,"hist_").toString
-      this.dates = diffRepos.versions(uuid).
+      this.dates = diffRepos.versions(uuid).toBox.
         getOrElse(throw new RuntimeException("Error when trying to parse version date. Please report as it is most likely a bug")).
         map(d => (d, d.toString()))
       if(dates.nonEmpty) { selectedDate = dates.head._1 }
@@ -113,7 +115,7 @@ class NodeHistoryViewer extends StatefulSnippet {
   }
 
   private def onSelect(date:DateTime) : JsCmd = {
-    diffRepos.get(uuid, date) match {
+    diffRepos.get(uuid, date).toBox match {
       case Failure(m,_,_) => Alert("Error while trying to display node history. Error message:" + m)
       case Empty => Alert("No history was retrieved for the chosen date")
       case Full(sm) =>

@@ -127,7 +127,7 @@ object JsonSelect {
    */
   protected[queries] def select(path: JsonPath, json: DocumentContext): Box[List[String]] = {
 
-    // so, this lib seems to be a whole can of unconsistancies on String quoting.
+    // so, this lib seems to be a whole can of inconsistancies on String quoting.
     // we would like to NEVER have quoted string if they are not in a JSON object
     // but to have them quoted in json object.
     def toJsonString(a: Any): String = {

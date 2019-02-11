@@ -60,6 +60,8 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.hooks.HookReturnCode.Interrupt
 import com.normation.rudder.hooks.HookReturnCode
 
+import com.normation.box._
+
 /**
  * A service used to display details about a server
  * inventory with tabs like:
@@ -121,7 +123,7 @@ object DisplayNode extends Loggable {
         });
         $$('.dataTables_filter input').attr("placeholder", "Filter");
             """)
-    ) match {
+    ).toBox match {
       case Empty => Alert("No software found for that server")
       case Failure(m,_,_) => Alert("Error when trying to fetch software. Reported message: "+m)
       case Full(js) => js

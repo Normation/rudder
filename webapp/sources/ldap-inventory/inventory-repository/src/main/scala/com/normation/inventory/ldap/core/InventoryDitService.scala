@@ -37,9 +37,7 @@
 
 package com.normation.inventory.ldap.core
 
-import net.liftweb.common.Box
 import com.normation.inventory.domain.InventoryStatus
-
 import com.unboundid.ldap.sdk.DN
 
 /**
@@ -61,7 +59,7 @@ trait InventoryDitService {
    */
   def getInventoryStatus(dit : InventoryDit) : InventoryStatus
 
-  def getDit(dn:DN) : Box[InventoryDit]
+  def getDit(dn:DN) : Option[InventoryDit]
 
   def getSoftwareBaseDN : DN
 }

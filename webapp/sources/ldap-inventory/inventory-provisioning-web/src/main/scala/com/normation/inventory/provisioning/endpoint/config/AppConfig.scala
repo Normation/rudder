@@ -53,10 +53,11 @@ import com.normation.utils.{StringUuidGenerator, StringUuidGeneratorImpl}
 import org.slf4j.LoggerFactory
 import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
 import java.security.Security
+import java.util.concurrent.TimeUnit
 
+import com.normation.zio.ZioRuntime
+import com.unboundid.ldap.sdk.DN
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-
-import scala.concurrent.duration._
 
 @Configuration
 @Import(Array(classOf[PropertyPlaceholderConfig]))
@@ -107,13 +108,13 @@ class AppConfig {
 
   //TODO: only have a root DN here !
   @Bean
-  def acceptedNodesDit = new InventoryDit(ACCEPTED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Accepted Servers")
+  def acceptedNodesDit = new InventoryDit(new DN(ACCEPTED_INVENTORIES_DN), new DN(SOFTWARE_INVENTORIES_DN), "Accepted Servers")
 
   @Bean
-  def pendingNodesDit = new InventoryDit(PENDING_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Pending Servers")
+  def pendingNodesDit = new InventoryDit(new DN(PENDING_INVENTORIES_DN), new DN(SOFTWARE_INVENTORIES_DN), "Pending Servers")
 
   @Bean
-  def removedNodesDit = new InventoryDit(REMOVED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Removed Servers")
+  def removedNodesDit = new InventoryDit(new DN(REMOVED_INVENTORIES_DN), new DN(SOFTWARE_INVENTORIES_DN), "Removed Servers")
 
   @Bean
   def inventoryDitService = new InventoryDitServiceImpl(pendingNodesDit,acceptedNodesDit, removedNodesDit)
@@ -149,6 +150,7 @@ class AppConfig {
     , host = SERVER
     , port = PORT
     , ldifFileLogger = new DefaultLDIFFileLogger(ldifTraceRootDir = LDIF_TRACELOG_ROOT_DIR)
+    , blockingModule = ZioRuntime.Environment
   )
 
   @Bean
@@ -158,6 +160,7 @@ class AppConfig {
     , host = SERVER
     , port = PORT
     , ldifFileLogger = new DefaultLDIFFileLogger(ldifTraceRootDir = LDIF_TRACELOG_ROOT_DIR)
+    , blockingModule = ZioRuntime.Environment
   )
 
   @Bean
@@ -283,13 +286,13 @@ class AppConfig {
       , INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
       , INVENTORY_ROOT_DIR + "/received"
       , INVENTORY_ROOT_DIR + "/failed"
-      , WATCHER_WAIT_FOR_SIG.seconds
+      , scalaz.zio.duration.Duration(WATCHER_WAIT_FOR_SIG.toLong, TimeUnit.SECONDS)
       , ".sign"
     )
     WATCHER_ENABLE.trim.toLowerCase match {
       case "true" => watcher.startWatcher()
       case _ => // don't start
-        InventoryLogger.debug(s"Not automatically incoming inventory watcher because 'inventories.watcher.enable'=${WATCHER_ENABLE}")
+        InventoryProcessingLogger.debug(s"Not automatically incoming inventory watcher because 'inventories.watcher.enable'=${WATCHER_ENABLE}")
     }
 
     watcher

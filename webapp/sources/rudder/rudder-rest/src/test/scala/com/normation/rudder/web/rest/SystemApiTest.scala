@@ -53,11 +53,10 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 
+import com.normation.zio._
 
 @RunWith(classOf[JUnitRunner])
 class SystemApiTests extends Specification with AfterAll with Loggable {
-
-  sequential
 
   "Testing system API info" should {
     "match the response defined below" in {
@@ -473,7 +472,7 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
   *  4. Compare the appropriate data
   */
 
-  val refCommit = RestTestSetUp.fakeRepo.db.findRef("master").toString
+  val refCommit = RestTestSetUp.fakeRepo.db.runNow.findRef("master").toString
 
   // I found no other way to get the commitId from a JGit ref object than parse its String representation
   val commitId = refCommit.slice(refCommit.indexOf('=') + 1, refCommit.indexOf(']'))

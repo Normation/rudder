@@ -54,8 +54,10 @@ import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
-import com.normation.rudder.appconfig.ReadConfigService
+import com.normation.appconfig.ReadConfigService
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+
+import com.normation.box._
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -86,7 +88,6 @@ class SrvGrid(
 
   /**
    * Display and init the display for the list of server
-   * @param servers : a sequence of the node to show
    * @param tableId : the id of the table
    * @param callback : Optionnal callback to use on node, if missing, replaced by a link to that node
    */
@@ -97,7 +98,7 @@ class SrvGrid(
     , refreshNodes : Option[ () => Seq[NodeInfo]] = None
    ) : NodeSeq = {
     val script = {
-      configService.rudder_global_policy_mode() match {
+      configService.rudder_global_policy_mode().toBox match {
         case Full(globalPolicyMode) => Script(OnLoad(initJs(tableId,nodes,globalPolicyMode,callback,refreshNodes)))
         case eb : EmptyBox =>
           val fail = eb ?~! "Could not find global policy Mode"
@@ -148,7 +149,7 @@ class SrvGrid(
 
     val lines = (for {
       lastReports <- runs
-      globalMode  <- configService.rudder_global_policy_mode()
+      globalMode  <- configService.rudder_global_policy_mode().toBox
     } yield {
       nodes.map(node => NodeLine(node, lastReports.get(node.id), callback, globalMode))
     }) match {

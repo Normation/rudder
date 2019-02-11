@@ -34,7 +34,7 @@
 *
 *************************************************************************************
 */
-package com.normation.rudder.appconfig
+package com.normation.appconfig
 
 import com.normation.ldap.sdk.BuildFilter.IS
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -42,16 +42,16 @@ import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.OC_PROPERTY
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.utils.Control._
-import net.liftweb.common.Box
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.eventlog.ModifyGlobalPropertyEventType
 import com.normation.rudder.repository.EventLogRepository
-import net.liftweb.common.Full
-import net.liftweb.common.Full
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.EventActor
+
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * A basic config repository, NOT typesafe.
@@ -61,28 +61,28 @@ import com.normation.eventlog.EventActor
 trait ConfigRepository {
 
 
-  def getConfigParameters(): Box[Seq[RudderWebProperty]]
+  def getConfigParameters(): IOResult[Seq[RudderWebProperty]]
 
-  def saveConfigParameter(parameter: RudderWebProperty, modifyGlobalPropertyInfo : Option[ModifyGlobalPropertyInfo] ): Box[RudderWebProperty]
+  def saveConfigParameter(parameter: RudderWebProperty, modifyGlobalPropertyInfo : Option[ModifyGlobalPropertyInfo] ): IOResult[RudderWebProperty]
 
 }
 
 
 class LdapConfigRepository(
-    rudderDit: RudderDit
-  , ldap     : LDAPConnectionProvider[RwLDAPConnection]
-  , mapper   : LDAPEntityMapper
+    rudderDit          : RudderDit
+  , ldap               : LDAPConnectionProvider[RwLDAPConnection]
+  , mapper             : LDAPEntityMapper
   , eventLogRepository : EventLogRepository
-  , uuidGen             : StringUuidGenerator
+  , uuidGen            : StringUuidGenerator
 ) extends ConfigRepository {
 
-  def getConfigParameters(): Box[Seq[RudderWebProperty]] = {
+  def getConfigParameters(): IOResult[Seq[RudderWebProperty]] = {
      for {
-      con     <- ldap
-      entries =  con.searchSub(rudderDit.APPCONFIG.dn, IS(OC_PROPERTY))
-      properties <- sequence(entries) { entry =>
-                   mapper.entry2RudderConfig(entry) ?~! "Error when transforming LDAP entry into an application parameter. Entry: %s".format(entry)
-                 }
+      con        <- ldap
+      entries    <- con.searchSub(rudderDit.APPCONFIG.dn, IS(OC_PROPERTY))
+      properties <- ZIO.foreach(entries) { entry =>
+                      mapper.entry2RudderConfig(entry).toIO.chainError(s"Error when transforming LDAP entry into an application parameter. Entry: ${entry}")
+                    }
     } yield {
       properties
     }
@@ -107,20 +107,20 @@ class LdapConfigRepository(
           for {
             con       <- ldap
             propEntry =  mapper.rudderConfig2Entry(property)
-            result    <- con.save(propEntry) ?~! "Error when saving parameter entry in repository: %s".format(propEntry)
+            result    <- con.save(propEntry).chainError(s"Error when saving parameter entry in repository: ${propEntry}")
             eventLog  <-
               modifyGlobalPropertyInfo match {
                 case Some(info) =>
                   val modId = ModificationId(uuidGen.newUuid)
                   eventLogRepository.saveModifyGlobalProperty(modId, info.actor, oldProperty, property, info.eventLogType, info.reason)
                 case _ =>
-                  Full("OK")
+                  UIO.unit
               }
           } yield {
             property
           }
         } else {
-          Full(property)
+          property.succeed
         }
       }
     } yield {

@@ -55,7 +55,7 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
-import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.rule.category.RuleCategoryId
 
 class CATEGORY(

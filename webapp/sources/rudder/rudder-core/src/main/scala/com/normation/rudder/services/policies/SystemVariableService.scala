@@ -37,33 +37,35 @@
 
 package com.normation.rudder.services.policies
 
+import com.normation.box._
+import com.normation.cfclerk.domain.SystemVariable
+import com.normation.cfclerk.domain.SystemVariableSpec
+import com.normation.cfclerk.domain.Variable
+import com.normation.cfclerk.services.MissingSystemVariable
 import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.inventory.domain.Certificate
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.PublicKey
+import com.normation.inventory.domain.ServerRole
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.services.servers.PolicyServerManagementService
-import com.normation.rudder.services.servers.RelaySynchronizationMethod
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.SyslogProtocol
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.services.servers.PolicyServerManagementService
+import com.normation.rudder.services.servers.RelaySynchronizationMethod
+import com.normation.zio._
 import net.liftweb.common.Box
+import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import net.liftweb.common.Empty
-import com.normation.cfclerk.domain.Variable
-import com.normation.cfclerk.domain.SystemVariable
 import net.liftweb.common.Loggable
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.ServerRole
-import com.normation.inventory.domain.PublicKey
-import com.normation.inventory.domain.Certificate
-
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]]
@@ -87,6 +89,21 @@ final case class ResolvedRudderServerRole(
     val name       : String
   , val configValue: Option[Iterable[String]]
 )
+
+object SystemVariableService {
+
+  // we use that variable to take care of an unexpected missing variable.
+  implicit class MissingSystemVariableCatch(optVar: Either[MissingSystemVariable, SystemVariableSpec]) {
+    def toVariable(initValues: Seq[String] = Seq()): SystemVariable = (optVar match {
+      case Left(MissingSystemVariable(name)) =>
+        ApplicationLogger.error(s"System variable '${name}' is missing. This is most likely denote a desynchronisation between your system variable and " +
+                                s"your Rudder version. Please check that both are well synchronized. If it's the case, please report that problem.")
+        SystemVariableSpec(name, "THIS IS DEFAULT GENERATED VARIABLE SPEC. THE CORRECT ONE WAS NOT FOUND. PLEASE SEE YOUR RUDDER LOG.")
+
+      case Right(spec) => spec
+    }).toVariable(initValues)
+  }
+}
 
 class SystemVariableServiceImpl(
     systemVariableSpecService    : SystemVariableSpecService
@@ -117,6 +134,8 @@ class SystemVariableServiceImpl(
   , getSyslogProtocol               : () => Box[SyslogProtocol]
 ) extends SystemVariableService with Loggable {
 
+  import SystemVariableService._
+
   //get the Rudder reports DB (postgres) database name from URI
   val reportsDbName = {
     reportsDbUri.split("""/""").toSeq.lastOption.getOrElse(throw new IllegalArgumentException(
@@ -124,14 +143,15 @@ class SystemVariableServiceImpl(
     )
   }
 
-  val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
-  val varCmdbEndpoint = systemVariableSpecService.get("CMDBENDPOINT").toVariable().copyWithSavedValue(cmdbEndPoint)
-  val varWebdavUser = systemVariableSpecService.get("DAVUSER").toVariable().copyWithSavedValue(webdavUser)
-  val varWebdavPassword = systemVariableSpecService.get("DAVPASSWORD").toVariable().copyWithSavedValue(webdavPassword)
-  val varSharedFilesFolder = systemVariableSpecService.get("SHARED_FILES_FOLDER").toVariable().copyWithSavedValue(sharedFilesFolder)
-  val varCommunityPort = systemVariableSpecService.get("COMMUNITYPORT").toVariable().copyWithSavedValue(communityPort.toString)
-  val syslogPortConfig = systemVariableSpecService.get("SYSLOGPORT").toVariable().copyWithSavedValue(syslogPort.toString)
-  val configurationRepositoryFolder = systemVariableSpecService.get("CONFIGURATION_REPOSITORY_FOLDER").toVariable().copyWithSavedValue(configurationRepository)
+
+  val varToolsFolder                = systemVariableSpecService.get("TOOLS_FOLDER"                   ).toVariable(Seq(toolsFolder))
+  val varCmdbEndpoint               = systemVariableSpecService.get("CMDBENDPOINT"                   ).toVariable(Seq(cmdbEndPoint))
+  val varWebdavUser                 = systemVariableSpecService.get("DAVUSER"                        ).toVariable(Seq(webdavUser))
+  val varWebdavPassword             = systemVariableSpecService.get("DAVPASSWORD"                    ).toVariable(Seq(webdavPassword))
+  val varSharedFilesFolder          = systemVariableSpecService.get("SHARED_FILES_FOLDER"            ).toVariable(Seq(sharedFilesFolder))
+  val varCommunityPort              = systemVariableSpecService.get("COMMUNITYPORT"                  ).toVariable(Seq(communityPort.toString))
+  val syslogPortConfig              = systemVariableSpecService.get("SYSLOGPORT"                     ).toVariable(Seq(syslogPort.toString))
+  val configurationRepositoryFolder = systemVariableSpecService.get("CONFIGURATION_REPOSITORY_FOLDER").toVariable(Seq(configurationRepository))
 
   // Compute the values for rudderServerRoleLdap, rudderServerRoleDb and rudderServerRoleRelayTop
   // if autodetect, then it is not defined, otherwise we parse it
@@ -149,17 +169,17 @@ class SystemVariableServiceImpl(
 
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]] = {
     logger.trace("Preparing the global system variables")
-    val denyBadClocks = getProp("DENYBADCLOCKS", getDenyBadClocks)
+    val denyBadClocks        = getProp("DENYBADCLOCKS"         , getDenyBadClocks)
 
     // To prevent breaking everything if technique still announce SKIPIDENTIFY, we set the default value
-    val skipIdentify = getProp("SKIPIDENTIFY", () => Full(false))
+    val skipIdentify         = getProp("SKIPIDENTIFY"          , () => Full(false))
 
-    val modifiedFilesTtl = getProp("MODIFIED_FILES_TTL", getModifiedFilesTtl)
-    val cfengineOutputsTtl = getProp("CFENGINE_OUTPUTS_TTL", getCfengineOutputsTtl)
-    val reportProtocol = getProp("RUDDER_SYSLOG_PROTOCOL", () => getSyslogProtocol().map(_.value))
+    val modifiedFilesTtl     = getProp("MODIFIED_FILES_TTL"    , getModifiedFilesTtl)
+    val cfengineOutputsTtl   = getProp("CFENGINE_OUTPUTS_TTL"  , getCfengineOutputsTtl)
+    val reportProtocol       = getProp("RUDDER_SYSLOG_PROTOCOL", () => getSyslogProtocol().map(_.value))
 
-    val relaySyncMethod      = getProp("RELAY_SYNC_METHOD", () => getSyncMethod().map(_.value))
-    val relaySyncPromises    = getProp("RELAY_SYNC_PROMISES", getSyncPromises)
+    val relaySyncMethod      = getProp("RELAY_SYNC_METHOD"     , () => getSyncMethod().map(_.value))
+    val relaySyncPromises    = getProp("RELAY_SYNC_PROMISES"   , getSyncPromises)
     val relaySyncSharedFiles = getProp("RELAY_SYNC_SHAREDFILES", getSyncSharedFiles)
 
     val sendMetricsValue = if (getSendMetrics().getOrElse(None).getOrElse(false)) {
@@ -244,7 +264,7 @@ class SystemVariableServiceImpl(
       ""
     }
 
-    val varRudderServerRole = systemVariableSpecService.get("RUDDER_SERVER_ROLES").toVariable().copyWithSavedValue(varRoleMappingValue)
+    val varRudderServerRole = systemVariableSpecService.get("RUDDER_SERVER_ROLES").toVariable(Seq(varRoleMappingValue))
 
     // we need to know the mapping between policy servers and their children - do it one time for all nodes.
     val childrenByPolicyServer = allNodeInfos.values.toList.groupBy( _.policyServerId )
@@ -262,7 +282,7 @@ class SystemVariableServiceImpl(
       "# This node doesn't have any specific role"
     }
 
-    val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable().copyWithSavedValue(varNodeRoleValue)
+    val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable(Seq(varNodeRoleValue))
 
     val authorizedNetworks = policyServerManagementService.getAuthorizedNetworks(nodeInfo.id) match {
       case eb:EmptyBox =>
@@ -321,9 +341,9 @@ class SystemVariableServiceImpl(
         // The heartbeat should be strictly shorter than the run execution, otherwise they may be skipped
         val heartbeat = runInterval.interval * heartBeatFrequency - 1
         val vars = {
-          systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(runInterval.interval.toString) ::
-          systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue(runInterval.splaytime.toString)  ::
-          systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(schedule) ::
+          systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable(Seq(runInterval.interval.toString)) ::
+          systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable(Seq(runInterval.splaytime.toString))  ::
+          systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable(Seq(schedule)) ::
           systemVariableSpecService.get("RUDDER_HEARTBEAT_INTERVAL").toVariable(Seq(heartbeat.toString)) ::
           systemVariableSpecService.get("RUDDER_REPORT_MODE").toVariable(Seq(globalComplianceMode.name)) ::
           Nil
@@ -397,16 +417,26 @@ class SystemVariableServiceImpl(
       val nodesWithCertificate = nodesAgentWithCertificate.flatMap {case (agent, node) =>
         agent.securityToken match {
           // A certificat, we return it
-          case cert:Certificate => Some((node, cert, cert.cert))
-          case _                => None
+          case cert:Certificate =>
+            // for the certificate part, we exec the IO. If we have failure, log it and return "None"
+            val parsedCert = cert.cert.either.runNow match {
+              case Left(err) =>
+                logger.error(s"Error when parsing certificate for node '${node.hostname}' [${node.id.value}]: ${err.fullMsg}")
+                None
+              case Right(x) =>
+                Some(x)
+            }
+            Some((node, cert, parsedCert))
+          case _                =>
+            None
         }
       }
       val varManagedNodesCertificate = systemVariableSpecService.get("MANAGED_NODES_CERT_PEM").toVariable(nodesWithCertificate.map(_._2.value))
 
-      val varManagedNodesCertDN = systemVariableSpecService.get("MANAGED_NODES_CERT_DN").toVariable(nodesWithCertificate.map(_._3.map(_.getSubject.toString).openOr("")))
+      val varManagedNodesCertDN = systemVariableSpecService.get("MANAGED_NODES_CERT_DN").toVariable(nodesWithCertificate.map(_._3.map(_.getSubject.toString).getOrElse("")))
 
       // get the CN, based on https://stackoverflow.com/questions/2914521/how-to-extract-cn-from-x509certificate-in-java
-      val varManagedNodesCertCN = systemVariableSpecService.get("MANAGED_NODES_CERT_CN").toVariable(nodesWithCertificate.map(_._3.map(_.getSubject.getRDNs().apply(0).getFirst().getValue().toString).openOr("")))
+      val varManagedNodesCertCN = systemVariableSpecService.get("MANAGED_NODES_CERT_CN").toVariable(nodesWithCertificate.map(_._3.map(_.getSubject.getRDNs().apply(0).getFirst().getValue().toString).getOrElse("")))
 
       val varManagedNodesCertUUID = systemVariableSpecService.get("MANAGED_NODES_CERT_UUID").toVariable(nodesWithCertificate.map(_._1.id.value))
 
@@ -541,9 +571,9 @@ class SystemVariableServiceImpl(
       //try to get the user configured value, else log an error and use the default value.
       val variable = systemVariableSpecService.get(specName).toVariable()
 
-      getter() match {
-        case Full(value) =>
-          variable.copyWithSavedValue(value.toString)
+      getter().flatMap(value => variable.copyWithSavedValue(value.toString).toBox) match {
+        case Full(v) =>
+          v
         case eb: EmptyBox =>
           val e = eb ?~! s"Error when trying to get the value configured by the user for system variable '${specName}'"
           logger.error(e.messageChain)

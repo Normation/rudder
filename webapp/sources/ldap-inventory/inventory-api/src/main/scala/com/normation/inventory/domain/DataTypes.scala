@@ -41,10 +41,14 @@ import com.normation.utils.Utils._
 import com.normation.utils.HashcodeCaching
 import org.bouncycastle.openssl.PEMParser
 import java.io.StringReader
+
+import com.normation.NamedZioLogger
+import com.normation.errors._
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
-import net.liftweb.common._
 import org.bouncycastle.cert.X509CertificateHolder
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * A file that contains all the simple data types, like Version,
@@ -97,16 +101,17 @@ final case class PublicKey(value : String) extends SecurityToken with HashcodeCa
       |-----END RSA PUBLIC KEY-----""".stripMargin
     }
   }
-  def publicKey : Box[java.security.PublicKey] = {
-    try {
-      val reader = new PEMParser(new StringReader(key))
+  def publicKey : IOResult[java.security.PublicKey] = {
+    IO.effect {
+      new PEMParser(new StringReader(key))
+    }.mapError { ex =>
+      InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex)
+    }.flatMap { reader =>
       reader.readObject() match {
         case a : SubjectPublicKeyInfo =>
-          Full(new JcaPEMKeyConverter().getPublicKey(a))
-        case _ => Failure(s"Key '${key}' cannot be parsed as a public key")
+          (new JcaPEMKeyConverter().getPublicKey(a)).succeed
+        case _ => InventoryError.Crypto(s"Key '${key}' cannot be parsed as a public key").fail
       }
-    } catch {
-      case e:Exception => Failure(s"Key '${key}' cannot be parsed as a public key")
     }
   }
 
@@ -124,16 +129,23 @@ final case class Certificate(value : String) extends SecurityToken with Hashcode
       |-----END CERTIFICATE-----""".stripMargin
     }
   }
-  def cert : Box[X509CertificateHolder] = {
-    try {
-      val reader = new PEMParser(new StringReader(key))
-      reader.readObject() match {
-        case a : X509CertificateHolder =>
-          Full(a)
-        case _ => Failure(s"Key '${key}' cannot be parsed as a valid certificate")
-      }
-    } catch {
-      case e:Exception => Failure(s"Key '${key}' cannot be parsed as a valid certificate")
+  def cert : IO[InventoryError, X509CertificateHolder] = {
+    for {
+      reader <- IO.effect {
+                  new PEMParser(new StringReader(key))
+                } mapError { e =>
+                  InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate", e)
+                }
+      obj    <- IO.effect(reader.readObject()).mapError { e =>
+                  InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate", e)
+                }
+      res    <- obj match {
+                  case a : X509CertificateHolder =>
+                    a.succeed
+                  case _ => InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate").fail
+                }
+    } yield {
+      res
     }
   }
 
@@ -164,3 +176,24 @@ final class Version(val value:String) extends Comparable[Version] {
   }
 
 }
+
+
+object InventoryLogger extends NamedZioLogger(){ val loggerName = "inventory-logger"}
+
+
+sealed trait InventoryError extends RudderError
+
+object InventoryError {
+
+  final case class Crypto(msg: String) extends InventoryError
+  final case class CryptoEx(hint: String, ex: Throwable) extends InventoryError {
+    def msg = hint + "; root exception was: " + ex.getMessage()
+  }
+  final case class AgentType(msg: String) extends InventoryError
+  final case class SecurityToken(msg: String) extends InventoryError
+  final case class Deserialisation(msg: String, ex: Throwable) extends InventoryError
+  final case class Inconsistency(msg: String) extends InventoryError
+  final case class System(msg: String) extends InventoryError
+}
+
+

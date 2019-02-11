@@ -43,10 +43,13 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.function.BiPredicate
 import java.util.function.Consumer
 
+import com.normation.NamedZioLogger
+import com.normation.box._
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
@@ -74,12 +77,14 @@ import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.write.NodePromisesPaths
 import com.normation.rudder.services.policies.write.PathComputer
-import com.normation.utils.Control.sequence
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
-import net.liftweb.common.Loggable
-import net.liftweb.common._
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import scalaz.zio._
 
 sealed trait DeletionResult
 object DeletionResult {
@@ -113,13 +118,16 @@ class RemoveNodeServiceImpl(
     , nodeInfoService           : NodeInfoService
     , fullNodeRepo              : LDAPFullInventoryRepository
     , actionLogger              : EventLogRepository
-    , groupLibMutex             : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
+    , nodeLibMutex              : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
     , nodeInfoServiceCache      : NodeInfoService with CachedRepository
     , nodeConfigurationsRepo    : UpdateExpectedReportsRepository
     , pathComputer              : PathComputer
     , HOOKS_D                   : String
     , HOOKS_IGNORE_SUFFIXES     : List[String]
-) extends RemoveNodeService with Loggable {
+) extends RemoveNodeService with NamedZioLogger {
+
+
+  override def loggerName: String = this.getClass.getName
 
   /*
    * This method is an helper that does the policy server lookup for
@@ -185,18 +193,18 @@ class RemoveNodeServiceImpl(
 
       val preRun = RunHooks.syncRun(preHooks, hookEnv, systemEnv)
       val timePreHooks  =  (System.currentTimeMillis - startPreHooks)
-      logger.debug(s"Node-pre-deletion scripts hooks ran in ${timePreHooks} ms")
+      logEffect.debug(s"Node-pre-deletion scripts hooks ran in ${timePreHooks} ms")
 
       preRun match {
         case a : HookReturnCode.Error => Full(PreHookFailed(a))
         case _ =>
           for {
-            moved  <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) } ?~! "Error when deleting a node"
+            moved  <- nodeLibMutex.writeLock {atomicDelete(nodeId, modId, actor) }.toBox ?~! "Error when deleting a node"
             closed <- nodeConfigurationsRepo.closeNodeConfigurations(nodeId)
 
             invLogDetails = InventoryLogDetails (nodeInfo.id,nodeInfo.inventoryDate, nodeInfo.hostname, nodeInfo.osDetails.fullName, actor.name)
             eventlog = DeleteNodeEventLog.fromInventoryLogDetails (None, actor, invLogDetails)
-            saved  <- actionLogger.saveEventLog(modId, eventlog)
+            saved  <- actionLogger.saveEventLog(modId, eventlog).toBox
 
             _ = nodeInfoServiceCache.clearCache
 
@@ -205,13 +213,13 @@ class RemoveNodeServiceImpl(
             postHooks     <- RunHooks.getHooks(HOOKS_D + "/node-post-deletion", HOOKS_IGNORE_SUFFIXES)
             runPostHook   = RunHooks.syncRun(postHooks, hookEnv, systemEnv)
             timePostHooks =  (System.currentTimeMillis - postHooksTime)
-            _             = logger.debug(s"Node-post-deletion scripts hooks ran in ${timePostHooks} ms")
+            _             = logEffect.debug(s"Node-post-deletion scripts hooks ran in ${timePostHooks} ms")
           } yield {
-            removeKeyCertification(nodeId) match {
+            removeKeyCertification(nodeId).toBox match {
               case Full(_) => //ok
               case eb: EmptyBox =>
                 val e = (eb ?~! "Error when removing the certification status of node key")
-                logger.warn(e.messageChain)
+                logEffect.warn(e.messageChain)
             }
             // try to delete cfengine key if needed
             deleteCfengineKey(nodeInfo)
@@ -223,7 +231,7 @@ class RemoveNodeServiceImpl(
           }
       }
     }
-    logger.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
+    logEffect.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
     nodeId.value match {
       case "root" => Failure("The root node cannot be deleted from the nodes list.")
       case _ => {
@@ -239,7 +247,7 @@ class RemoveNodeServiceImpl(
                              case Full(x) => Some(x)
                              case eb:EmptyBox => // if the policy server is not found, we must not fails (#11231)
                                val msg = (eb ?~! s"Error when trying to calculate node '${nodeId.value}' policy path").messageChain
-                               logger.warn(msg)
+                               logEffect.warn(msg)
                                None
                            }
           startPreHooks =  System.currentTimeMillis
@@ -252,10 +260,10 @@ class RemoveNodeServiceImpl(
     }
   }
 
-  private[this] def atomicDelete(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
+  private[this] def atomicDelete(nodeId : NodeId, modId: ModificationId, actor:EventActor) : IOResult[Seq[LDIFChangeRecord]] = {
     for {
-      cleanGroup            <- deleteFromGroups(nodeId, modId, actor) ?~! "Could not remove the node '%s' from the groups".format(nodeId.value)
-      cleanNode             <- deleteFromNodes(nodeId) ?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
+      cleanGroup            <- deleteFromGroups(nodeId, modId, actor).chainError("Could not remove the node '%s' from the groups".format(nodeId.value))
+      cleanNode             <- deleteFromNodes(nodeId).chainError("Could not remove the node '%s' from the nodes list".format(nodeId.value))
       moveNodeInventory     <- fullNodeRepo.move(nodeId, AcceptedInventory, RemovedInventory)
     } yield {
       cleanNode ++ moveNodeInventory
@@ -265,9 +273,9 @@ class RemoveNodeServiceImpl(
   /**
    * Deletes from ou=Node
    */
-  private def deleteFromNodes(nodeId:NodeId) : Box[Seq[LDIFChangeRecord]]= {
-    logger.debug("Trying to remove node %s from ou=Nodes".format(nodeId.value))
+  private def deleteFromNodes(nodeId:NodeId) : IOResult[Seq[LDIFChangeRecord]]= {
     for {
+      _      <- logPure.debug("Trying to remove node %s from ou=Nodes".format(nodeId.value))
       con    <- ldap
       dn     =  nodeDit.NODES.NODE.dn(nodeId.value)
       result <- con.delete(dn)
@@ -279,7 +287,7 @@ class RemoveNodeServiceImpl(
   /**
    * Uncertify node key if it was. Can be done once the node is deleted
    */
-  private def removeKeyCertification(nodeId: NodeId): Box[LDIFChangeRecord] = {
+  private def removeKeyCertification(nodeId: NodeId): IOResult[LDIFChangeRecord] = {
     for {
       con <- ldap
       res <- con.modify(deletedDit.NODES.NODE.dn(nodeId.value), new Modification(ModificationType.REPLACE, LDAPConstants.A_KEY_STATUS, UndefinedKey.value))
@@ -306,7 +314,7 @@ class RemoveNodeServiceImpl(
               Files.delete(p)
             } catch {
               case ex: Exception =>
-                logger.warn(s"Error when trying to remove CFEngine key for node '${nodeInfo.id.value}' at path: '${p.toString}': ${ex.getMessage}")
+                logEffect.warn(s"Error when trying to remove CFEngine key for node '${nodeInfo.id.value}' at path: '${p.toString}': ${ex.getMessage}")
             }
           }
         })
@@ -317,11 +325,12 @@ class RemoveNodeServiceImpl(
    * Look for the groups containing this node in their nodes list, and remove the node
    * from the list
    */
-  private def deleteFromGroups(nodeId: NodeId, modId: ModificationId, actor:EventActor): Box[Seq[ModifyNodeGroupDiff]]= {
-    logger.debug("Trying to remove node %s from all the groups were it is referenced".format(nodeId.value))
+  private def deleteFromGroups(nodeId: NodeId, modId: ModificationId, actor:EventActor): IOResult[Seq[ModifyNodeGroupDiff]]= {
+
     for {
+      _            <- logPure.debug("Trying to remove node %s from all the groups were it is referenced".format(nodeId.value))
       nodeGroupIds <- roNodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
-      deleted      <- sequence(nodeGroupIds) { nodeGroupId =>
+      deleted      <- ZIO.foreach(nodeGroupIds) { nodeGroupId =>
                         for {
                           nodeGroup    <- roNodeGroupRepository.getNodeGroup(nodeGroupId).map(_._1)
                           updatedGroup =  nodeGroup.copy(serverList = nodeGroup.serverList - nodeId)
@@ -330,7 +339,7 @@ class RemoveNodeServiceImpl(
                                             woNodeGroupRepository.updateSystemGroup(updatedGroup, modId, actor, msg)
                                           } else {
                                             woNodeGroupRepository.update(updatedGroup, modId, actor, msg)
-                                          }) ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
+                                          }).chainError("Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value))
                         } yield {
                           diff
                         }

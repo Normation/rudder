@@ -37,40 +37,41 @@
 
 package com.normation.rudder.web.components
 
+import bootstrap.liftweb.RudderConfig
+import com.normation.box._
 import com.normation.cfclerk.domain.Technique
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.repository._
-import net.liftweb.http.js._
-import JsCmds._
+import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import JE._
-import net.liftweb.common._
-import net.liftweb.http._
-import scala.xml._
-import net.liftweb.util.Helpers._
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.repository._
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.services.reports.NodeChanges
+import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.services.ComputePolicyMode
+import com.normation.rudder.web.services.JsTableData
+import com.normation.rudder.web.services.JsTableLine
 import com.normation.utils.Control.sequence
 import com.normation.utils.HashcodeCaching
-import com.normation.eventlog.ModificationId
-import bootstrap.liftweb.RudderConfig
-import net.liftweb.json.JArray
-import net.liftweb.json.JsonParser
-import net.liftweb.json.JString
-import net.liftweb.json.JObject
-import net.liftweb.json.JField
-import com.normation.rudder.web.services.JsTableLine
-import com.normation.rudder.web.services.JsTableData
+import net.liftweb.common._
+import net.liftweb.http._
 import net.liftweb.http.js.JE.AnonFunc
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js._
+import net.liftweb.json.JArray
+import net.liftweb.json.JField
+import net.liftweb.json.JObject
+import net.liftweb.json.JString
+import net.liftweb.json.JsonParser
+import net.liftweb.util.Helpers._
 import org.joda.time.Interval
-import com.normation.rudder.services.reports.NodeChanges
-import com.normation.rudder.domain.logger.TimingDebugLogger
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import ExecutionContext.Implicits.global
-import com.normation.rudder.rule.category.RuleCategory
-import com.normation.rudder.web.services.ComputePolicyMode
-import com.normation.rudder.web.ChooseTemplate
+import scala.xml._
 
 object RuleGrid {
   def staticInit =
@@ -169,11 +170,11 @@ class RuleGrid(
   import DisplayColumn._
   private[this] val showComplianceAndChangesColumn = columnCompliance match {
     case Force(display) => display
-    case FromConfig     => configService.rudder_ui_display_ruleComplianceColumns.openOr(true)
+    case FromConfig     => configService.rudder_ui_display_ruleComplianceColumns.toBox.openOr(true)
   }
   private[this] val showChangesGraph = showComplianceAndChangesColumn && (graphRecentChanges match {
     case Force(display) => display
-    case FromConfig => configService.display_changes_graph.openOr(true)
+    case FromConfig => configService.display_changes_graph.toBox.openOr(true)
   })
 
   def reportTemplate = ChooseTemplate(
@@ -194,7 +195,7 @@ class RuleGrid(
       val start = System.currentTimeMillis
 
       ( for {
-          rules           <- roRuleRepository.getAll(false).map { allRules => onlyRules match {
+          rules           <- roRuleRepository.getAll(false).toBox.map { allRules => onlyRules match {
                                case None => allRules
                                case Some(ids) => allRules.filter(rule => ids.contains(rule.id) )
                              } }
@@ -215,16 +216,16 @@ class RuleGrid(
                                 Noop
                               }
 
-          groupLib        <- getFullNodeGroupLib()
+          groupLib        <- getFullNodeGroupLib().toBox
           afterGroups     =  System.currentTimeMillis
           _               =  TimingDebugLogger.debug(s"Rule grid: fetching all Groups took ${afterGroups - afterNodeInfos}ms" )
 
-          directiveLib    <- getFullDirectiveLib()
+          directiveLib    <- getFullDirectiveLib().toBox
           afterDirectives =  System.currentTimeMillis
           _               =  TimingDebugLogger.debug(s"Rule grid: fetching all Directives took ${afterDirectives - afterGroups}ms" )
 
-          rootRuleCat     <- getRootRuleCategory()
-          globalMode      <- configService.rudder_global_policy_mode()
+          rootRuleCat     <- getRootRuleCategory().toBox
+          globalMode      <- configService.rudder_global_policy_mode().toBox
           newData         =  getRulesTableData(rules, nodeInfo, groupLib, directiveLib, rootRuleCat, globalMode)
           afterData       =  System.currentTimeMillis
           _               =  TimingDebugLogger.debug(s"Rule grid: transforming into data took ${afterData - afterDirectives}ms" )
@@ -260,10 +261,10 @@ class RuleGrid(
 
     (for {
       allNodeInfos <- getAllNodeInfos()
-      groupLib     <- getFullNodeGroupLib()
-      directiveLib <- getFullDirectiveLib()
-      ruleCat      <- getRootRuleCategory()
-      globalMode   <- configService.rudder_global_policy_mode()
+      groupLib     <- getFullNodeGroupLib().toBox
+      directiveLib <- getFullDirectiveLib().toBox
+      ruleCat      <- getRootRuleCategory().toBox
+      globalMode   <- configService.rudder_global_policy_mode().toBox
     } yield {
       getRulesTableData(rules.getOrElse(Seq()), allNodeInfos, groupLib, directiveLib, ruleCat, globalMode)
     }) match {
@@ -536,9 +537,9 @@ class RuleGrid(
                       logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' target problem: " + f.messageChain)
                     case _ => // Group Ok!
                }
-             } ) match {
+             } ).toBox match {
                case eb: EmptyBox =>
-                 val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.value}') because it's data are unconsistant."
+                 val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.value}') because it's data are inconsistant."
                  logger.warn(e.messageChain)
                  e.rootExceptionCause.foreach { ex =>
                    logger.warn("Exception was: ", ex)

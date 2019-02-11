@@ -21,13 +21,13 @@
 package com.normation.ldap.sdk
 package schema
 
-import org.junit._
-import org.junit.Assert._
 import org.junit.runner.RunWith
-import org.junit.runners.BlockJUnit4ClassRunner
+import org.specs2.mutable._
+import org.specs2.runner.JUnitRunner
 
-@RunWith(classOf[BlockJUnit4ClassRunner])
-class SchemaTest {
+
+@RunWith(classOf[JUnitRunner])
+class SchemaTest extends Specification {
 
   val OC = new LDAPSchema()
   /*
@@ -47,38 +47,26 @@ class SchemaTest {
      +=("L1_0_0_0", sup =  OC("L1_0_0")).
      +=("L1_2_0", sup =  OC("L1_2"))
 
-  @Test def demuxTest(): Unit = {
-
-    assertEquals(Set(), OC.demux())
-
+  "top" >> (
+    (OC.demux() must beEmpty) and
     //top
-    assertEquals(
-        Set(OC("TOP")),
-        OC.demux("top"))
+    (OC.demux("top") must containTheSameElementsAs(Seq(OC("TOP"))))
+  )
 
-    //same branch, only top
-    assertEquals(
-        Set(OC("L1_1")),
-        OC.demux("l1_1","top"))
+  "same branch, only top" >>
+    (OC.demux("l1_1","top") must containTheSameElementsAs(Seq(OC("L1_1"))))
 
-    //several time the same input
-    assertEquals(
-        Set(OC("L1_1")),
-        OC.demux("l1_1","top","l1_1","top","l1_1"))
+  "several time the same input" >>
+    (OC.demux("l1_1","top","l1_1","top","l1_1") must containTheSameElementsAs(Seq(OC("L1_1"))))
 
-    //same branch, different levels
-    assertEquals(
-        Set(OC("L1_0_0_0")),
-        OC.demux("top", "L1_0_0_0","L1_0","L1_0_0"))
+  "same branch, different levels" >>
+    (OC.demux("top", "L1_0_0_0","L1_0","L1_0_0") must containTheSameElementsAs(Seq(OC("L1_0_0_0"))))
 
-    //several branches, nothing in common safe top
-    assertEquals(
-        Set(OC("L1_0"),OC("L1_1"),OC("L1_2")),
-        OC.demux("top", "L1_0","L1_1","L1_2"))
+  "several branches, nothing in common safe top" >>
+    (OC.demux("top", "L1_0","L1_1","L1_2") must containTheSameElementsAs(Seq(OC("L1_0"),OC("L1_1"),OC("L1_2"))))
 
-    //several branches, several shared levels
-    assertEquals(
-        Set(OC("L1_0_0_0"),OC("L1_0_1"),OC("L1_0_2"),OC("L1_1"),OC("L1_2_0"),OC("L1_0_2")),
-        OC.demux("top", "L1_0","L1_1","L1_2","L1_0_0","L1_0_1","L1_0_2","L1_2_0","L1_0_0_0"))
-  }
+  "several branches, several shared levels" >>
+    (OC.demux("top", "L1_0","L1_1","L1_2","L1_0_0","L1_0_1","L1_0_2","L1_2_0","L1_0_0_0") must
+     containTheSameElementsAs(Seq(OC("L1_0_0_0"),OC("L1_0_1"),OC("L1_0_2"),OC("L1_1"),OC("L1_2_0")))
+    )
 }

@@ -38,24 +38,25 @@
 package com.normation.rudder.repository.xml
 
 import java.io.FileNotFoundException
-import scala.xml.Elem
-import scala.xml.XML
+
+import com.normation.NamedZioLogger
+import com.normation.errors._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.exceptions.ParsingException
 import com.normation.rudder.repository.LicenseRepository
 import org.xml.sax.SAXParseException
-import net.liftweb.common.Box
-import net.liftweb.common.Empty
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
 
-class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with Loggable {
+import scala.xml.Elem
+import scala.xml.XML
 
-  override def getAllLicense(): Box[Map[NodeId, CfeEnterpriseLicense]] = {
-    logger.debug(s"Loading document ${licenseFile}")
-    try {
+class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with NamedZioLogger {
+
+  override def loggerName: String = this.getClass.getName
+
+  override def getAllLicense(): IOResult[Map[NodeId, CfeEnterpriseLicense]] = {
+    logEffect.debug(s"Loading document ${licenseFile}")
+    IOResult.effect(s"Failed to load licenses from file: ${licenseFile}") {
       val doc = loadLicenseFile()
 
       val licenses = (for {
@@ -63,9 +64,7 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with 
       } yield {
         CfeEnterpriseLicense.parseXml(elt)
       })
-      Full(licenses.map(x => (x.uuid, x)).toMap)
-    } catch {
-      case ex: Exception => Failure(s"Failed to load licenses from file: ${licenseFile}", Full(ex), Empty)
+      licenses.map(x => (x.uuid, x)).toMap
     }
   }
 
@@ -78,13 +77,13 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with 
       XML.loadFile(licenseFile)
     } catch {
       case e : SAXParseException =>
-        logger.error("Cannot parse license file")
+        logEffect.error("Cannot parse license file")
         throw new ParsingException("Unexpected issue (unvalid xml?) with the config file " )
       case e : java.net.MalformedURLException =>
-        logger.error(s"Cannot read license file ${licenseFile}")
+        logEffect.error(s"Cannot read license file ${licenseFile}")
         throw new FileNotFoundException("License file not found : " + licenseFile )
       case e : java.io.FileNotFoundException =>
-        logger.debug(s"License file ${licenseFile} not found, this may be a problem if using the Windows Plugin")
+        logEffect.debug(s"License file ${licenseFile} not found, this may be a problem if using the Windows Plugin")
         <licenses/>
     }
   }

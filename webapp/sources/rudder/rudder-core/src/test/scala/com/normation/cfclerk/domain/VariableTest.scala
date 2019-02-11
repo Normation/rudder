@@ -37,27 +37,32 @@
 
 package com.normation.cfclerk.domain
 
+import java.io.FileNotFoundException
+
+import com.normation.cfclerk.domain.HashAlgoConstraint._
 import com.normation.cfclerk.xmlparsers._
+import com.normation.rudder.services.policies.write.CFEngineAgentSpecificGeneration
+import org.joda.time.format._
 import org.junit.runner.RunWith
+import org.specs2.mutable._
+import org.specs2.runner._
+import org.xml.sax.SAXParseException
 
 import scala.collection.mutable._
 import scala.xml._
-import org.xml.sax.SAXParseException
-import java.io.FileNotFoundException
-
-import com.normation.cfclerk.exceptions._
-import org.joda.time.format._
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
-import com.normation.cfclerk.domain.HashAlgoConstraint._
-import com.normation.rudder.services.policies.write.CFEngineAgentSpecificGeneration
 
 
 @RunWith(classOf[JUnitRunner])
 class VariableTest extends Specification {
   def variableSpecParser = new VariableSpecParser()
 
+
+  implicit class EitherToThrow[T](res: Either[LoadTechniqueError, T]) {
+    def orThrow = res match {
+      case Right(value) => value
+      case Left(error)  => throw new IllegalArgumentException(s"Variable error in test: ${error.fullMsg}")
+    }
+  }
 
   val nbVariables = 28
 
@@ -108,7 +113,7 @@ class VariableTest extends Specification {
       specNode <- elt.nonEmptyChildren
       if(!specNode.isInstanceOf[Text])
     } {
-      val (spec, other) = variableSpecParser.parseSectionVariableSpec("default section", specNode).openOrThrowException("I'm a failing test!")
+      val (spec, other) = variableSpecParser.parseSectionVariableSpec("default section", specNode).getOrElse(throw new IllegalArgumentException("I'm a failing test!"))
       variables += {
         //special case for reportkeys because name depends of section name, and here, we
         //don't have several sections
@@ -130,13 +135,13 @@ class VariableTest extends Specification {
   "SYSTEM_VARIABLE tag" should {
     "lead to an exception" in {
       val sysvar = (for {
-        elt <- (XML.load(ClassLoader.getSystemResourceAsStream("testSystemVariable.xml")) \\ "VARIABLES")
+        elt      <- (XML.load(ClassLoader.getSystemResourceAsStream("testSystemVariable.xml")) \\ "VARIABLES")
         specNode <- elt.nonEmptyChildren
         if(!specNode.isInstanceOf[Text])
       } yield {
         variableSpecParser.parseSectionVariableSpec("default section", specNode)
       })
-      (sysvar.size === 1) and (sysvar.head.isEmpty === true)
+      (sysvar.size === 1) and (sysvar.head must beLeft[LoadTechniqueError])
     }
   }
 
@@ -156,6 +161,7 @@ class VariableTest extends Specification {
 
   ///////////////// generic tests about variable construction, do not use files /////////////////
 
+
   "Unsetted Variable" should {
     implicit val variable = InputVariable(InputVariableSpec(refName, refDescription), Seq())
     haveName()
@@ -164,7 +170,7 @@ class VariableTest extends Specification {
 
   "Variable" should {
     val v = InputVariable(InputVariableSpec(refName, refDescription), Seq())
-    implicit val variable = v.copyWithSavedValue(refValue)
+    implicit val variable = v.copyWithSavedValue(refValue).orThrow
 
     haveName()
     haveDescription()
@@ -173,7 +179,7 @@ class VariableTest extends Specification {
 
   "Multivalued variable" should {
     val variable = InputVariable(InputVariableSpec(refName, refDescription, multivalued = true), Seq())
-    implicit val v = variable.copyWithSavedValues(listValue.split(";"))
+    implicit val v = variable.copyWithSavedValues(listValue.split(";")).orThrow
 
     haveName()
     haveDescription()
@@ -182,7 +188,7 @@ class VariableTest extends Specification {
 
   "Select variable" should {
     val variable = SelectVariable(SelectVariableSpec(refName, refDescription, valueslabels = refItem), Seq())
-    implicit val v = variable.copyWithSavedValue(refValue)
+    implicit val v = variable.copyWithSavedValue(refValue).orThrow
 
     haveName()
     haveDescription()
@@ -191,7 +197,7 @@ class VariableTest extends Specification {
 
   "Input variable" should {
     val variable = InputVariable(InputVariableSpec(refName, refDescription), Seq())
-    implicit val v = variable.copyWithSavedValue(refValue)
+    implicit val v = variable.copyWithSavedValue(refValue).orThrow
 
     haveName()
     haveDescription()
@@ -200,7 +206,7 @@ class VariableTest extends Specification {
 
   "Nulled variable" should {
     val variable = InputVariable(InputVariableSpec(refName, refDescription), Seq())
-    implicit val v = variable.copyWithSavedValue(null)
+    implicit val v = variable.copyWithSavedValue(null).orThrow
 
     haveName()
     haveDescription()
@@ -209,7 +215,7 @@ class VariableTest extends Specification {
 
   "Valid variable" should {
     val variable = InputVariable(InputVariableSpec(refName, refDescription), Seq())
-    implicit val v = variable.copyWithSavedValue(refValue)
+    implicit val v = variable.copyWithSavedValue(refValue).orThrow
 
     haveName()
     haveDescription()
@@ -220,7 +226,7 @@ class VariableTest extends Specification {
     val variable = InputVariable(InputVariableSpec(refName, refDescription,
       constraint = Constraint(BooleanVType)), Seq())
 
-    implicit val v = variable.copyWithSavedValue("true")
+    implicit val v = variable.copyWithSavedValue("true").orThrow
     haveName()
     haveDescription()
     haveValue(true)
@@ -230,7 +236,7 @@ class VariableTest extends Specification {
     val variable = InputVariable(InputVariableSpec(refName, refDescription,
       constraint = Constraint(BooleanVType)), Seq())
 
-    implicit val v = variable.copyWithSavedValue("false")
+    implicit val v = variable.copyWithSavedValue("false").orThrow
     haveValue(false)
   }
 
@@ -239,7 +245,7 @@ class VariableTest extends Specification {
       valueslabels = refItem), Seq())
 
     "throw a VariableException" in {
-      variable.copyWithSavedValue(unvalidValue) must throwA[VariableException]
+      variable.copyWithSavedValue(unvalidValue) must beLeft[LoadTechniqueError]
     }
 
     haveName()
@@ -271,14 +277,14 @@ class VariableTest extends Specification {
     beAnInput
     haveType("datetime")
 
-    haveValue(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue).toString)(dateVariable.copyWithSavedValue(dateValue))
+    haveValue(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue).toString)(dateVariable.copyWithSavedValue(dateValue).orThrow)
   }
 
   "Parsed variable having unvalid value" should {
     implicit val constrainedVariable = variables(itemName)
 
     "throw a VariableException" in {
-      constrainedVariable.copyWithSavedValue(unvalidValue) must throwA[VariableException]
+      constrainedVariable.copyWithSavedValue(unvalidValue) must beLeft[LoadTechniqueError]
     }
 
     //I *DO* think that that value should not have any values.
@@ -300,7 +306,7 @@ class VariableTest extends Specification {
     haveType("raw")
 
     "have correct content" in {
-      (rawVariable.copyWithSavedValue(rawValue).getValidatedValue(identity).openOrThrowException("Invalid content for the raw variable") must containTheSameElementsAs(Seq(rawValue)))
+      (rawVariable.copyWithSavedValue(rawValue).orThrow.getValidatedValue(identity).openOrThrowException("Invalid content for the raw variable") must containTheSameElementsAs(Seq(rawValue)))
     }
   }
 
@@ -308,7 +314,7 @@ class VariableTest extends Specification {
     implicit val simpleVariable = variables(simpleName)
     haveType("string")
     "correctly escape variable" in {
-      simpleVariable.copyWithSavedValue(rawValue).getValidatedValue(CFEngineAgentSpecificGeneration.escape).openOrThrowException("Invalid content for the escaped variable") must containTheSameElementsAs(Seq(escapedTo))
+      simpleVariable.copyWithSavedValue(rawValue).orThrow.getValidatedValue(CFEngineAgentSpecificGeneration.escape).openOrThrowException("Invalid content for the escaped variable") must containTheSameElementsAs(Seq(escapedTo))
     }
   }
 
@@ -551,7 +557,7 @@ class VariableTest extends Specification {
   }
 
   private[this] def saveHaveValue(value: String = refValue)(implicit variable: Variable) = {
-    haveValue(value)(variable.copyWithSavedValue(value))
+    haveValue(value)(variable.copyWithSavedValue(value).orThrow)
   }
 
   private[this] def haveNbValues(nbValues: Int)(implicit variable: Variable) = {

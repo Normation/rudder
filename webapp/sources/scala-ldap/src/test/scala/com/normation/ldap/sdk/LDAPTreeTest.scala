@@ -20,15 +20,16 @@
 
 package com.normation.ldap.sdk
 
-import org.junit.Test
-import org.junit.Assert._
-import org.junit.runner.RunWith
-import org.junit.runners.BlockJUnit4ClassRunner
 import com.unboundid.ldap.sdk.{RDN,DN}
 import DN.NULL_DN
+import com.normation.zio._
+import org.junit.runner.RunWith
+import org.specs2.mutable._
+import org.specs2.runner.JUnitRunner
 
-@RunWith(classOf[BlockJUnit4ClassRunner])
-class LDAPTreeTest {
+
+@RunWith(classOf[JUnitRunner])
+class LDAPTreeTest extends Specification {
 
   val rdn1 = new RDN("dc=top")
   val dn1 = new DN(rdn1,NULL_DN)
@@ -37,9 +38,8 @@ class LDAPTreeTest {
   val rdn3 = new RDN("cn=child")
   val dn3 = new DN(rdn3, dn2)
 
-  @Test
-  def testAddSubChild(): Unit = {
 
+  "ADding children in an LDAPTree" should {
     object tree extends LDAPTree {
       top =>
       override val root = LDAPEntry(dn1)
@@ -55,8 +55,6 @@ class LDAPTreeTest {
 
     }
 
-    assertEquals(dn1,tree.root.dn)
-    assertEquals(dn2,tree.c1.root.dn)
     println("tree: " + tree)
     tree.c1children.addChild(LDAPTree(LDAPEntry(dn3)))
 
@@ -64,11 +62,15 @@ class LDAPTreeTest {
     tree.c1children.addChild(LDAPTree(LDAPEntry(dn3)))
     println("add2 " + tree.toLDIFString())
 
+    "have the correct dn" in {
+      dn1 must beEqualTo(tree.root.dn) and (
+        dn2 must beEqualTo(tree.c1.root.dn)
+      )
+    }
   }
 
 
-  @Test
-  def buildTreeFromEntries(): Unit = {
+  "Building a tree from entries should lead to the correct result" >> {
     val rdn4 = new RDN("cn=child2")
     val entries = Seq(
         LDAPEntry(dn2),
@@ -77,14 +79,16 @@ class LDAPTreeTest {
         LDAPEntry(new DN(rdn4,dn2))
     )
 
-    val optTree = LDAPTree(entries)
-    assertTrue(optTree.isDefined)
-    val tree = optTree.openOrThrowException("this is for test")
-    assertEquals(1l, tree._children.size.toLong)
+    val optTree = ZioRuntime.unsafeRun(LDAPTree(entries).either)
+    val tree = optTree.getOrElse(throw new IllegalArgumentException("this is for test"))
     val mTree = tree._children(rdn2)
-    assertEquals(LDAPEntry(dn2), mTree.root)
-    assertEquals(2l, mTree.children.size.toLong)
-    assertEquals(LDAPEntry(dn3), mTree._children(rdn3).root)
-    assertEquals(LDAPEntry(new DN(rdn4,dn2)), mTree._children(rdn4).root)
+
+
+    (optTree must beRight[LDAPTree]) and
+    (tree._children.size.toLong must beEqualTo(1l)                         ) and
+    (mTree.root                 must beEqualTo(LDAPEntry(dn2))             ) and
+    (mTree.children.size.toLong must beEqualTo(2l)                         ) and
+    (mTree._children(rdn3).root must beEqualTo(LDAPEntry(dn3))             ) and
+    (mTree._children(rdn4).root must beEqualTo(LDAPEntry(new DN(rdn4,dn2))))
   }
 }

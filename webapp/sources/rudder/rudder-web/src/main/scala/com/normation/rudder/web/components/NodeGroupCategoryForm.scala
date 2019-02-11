@@ -53,6 +53,8 @@ import com.normation.rudder.repository._
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 
+import com.normation.box._
+
 /**
  * The form that deals with updating the server group category
  *
@@ -74,7 +76,7 @@ class NodeGroupCategoryForm(
   private[this] val uuidGen                   = RudderConfig.stringUuidGenerator
   private[this] val categoryHierarchyDisplayer= RudderConfig.categoryHierarchyDisplayer
 
-  val categories = roGroupCategoryRepository.getAllNonSystemCategories match {
+  val categories = roGroupCategoryRepository.getAllNonSystemCategories.toBox match {
     case eb:EmptyBox =>
       val f = eb  ?~! "Can not get Group root category"
       logger.error(f.messageChain)
@@ -85,7 +87,7 @@ class NodeGroupCategoryForm(
     case Full(cats) => cats.filter(x => x.id != _nodeGroupCategory.id)
   }
 
-  val parentCategory = roGroupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
+  val parentCategory = roGroupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id).toBox
 
   val parentCategoryId = parentCategory match {
     case Full(x) =>  x.id.value
@@ -200,7 +202,7 @@ class NodeGroupCategoryForm(
   }
 
   private[this] def onDelete() : JsCmd = {
-    woGroupCategoryRepository.delete(_nodeGroupCategory.id, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Node Group category deleted by user from UI")) match {
+    woGroupCategoryRepository.delete(_nodeGroupCategory.id, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Node Group category deleted by user from UI")).toBox match {
       case Full(id) =>
         JsRaw("""$('#removeActionDialog').bsModal('hide');""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
@@ -295,7 +297,7 @@ class NodeGroupCategoryForm(
         , ModificationId(uuidGen.newUuid)
         , CurrentUser.actor
         , Some("Node Group category saved by user from UI")
-      ) match {
+      ).toBox match {
         case Full(x) =>
           _nodeGroupCategory = x
           onSuccess & onSuccessCallback(nodeGroupCategory.id.value) & successPopup

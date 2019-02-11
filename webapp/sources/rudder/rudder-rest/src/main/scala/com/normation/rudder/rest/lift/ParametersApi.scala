@@ -68,6 +68,8 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JString
 import net.liftweb.json.JsonDSL._
 
+import com.normation.box._
+
 class ParameterApi (
     restExtractorService: RestExtractorService
   , apiV2               : ParameterApiService2
@@ -225,7 +227,7 @@ extends Loggable {
   def listParameters(req : Req) = {
     implicit val action = "listParameters"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    readParameter.getAllGlobalParameters match {
+    readParameter.getAllGlobalParameters.toBox match {
       case Full(parameters) =>
         toJsonResponse(None, ( "parameters" -> JArray(parameters.map(serialize(_,None)).toList)))
       case eb: EmptyBox =>
@@ -265,7 +267,7 @@ extends Loggable {
     implicit val action = "parameterDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
-    readParameter.getGlobalParameter(ParameterName(id)) match {
+    readParameter.getGlobalParameter(ParameterName(id)).notOptional(s"Could not find Parameter ${id}").toBox match {
       case Full(parameter) =>
         val jsonParameter = List(serialize(parameter,None))
         toJsonResponse(Some(id),("parameters" -> JArray(jsonParameter)))
@@ -282,7 +284,7 @@ extends Loggable {
     val actor = RestUtils.getActor(req)
     val parameterId = ParameterName(id)
 
-    readParameter.getGlobalParameter(parameterId) match {
+    readParameter.getGlobalParameter(parameterId).notOptional(s"Could not find Parameter ${id}").toBox match {
       case Full(parameter) =>
         val deleteParameterDiff = DeleteGlobalParameterDiff(parameter)
         createChangeRequestAndAnswer(id, deleteParameterDiff, parameter, Some(parameter), actor, req, GlobalParamModAction.Delete)
@@ -300,7 +302,7 @@ extends Loggable {
     val actor = getActor(req)
     val parameterId = ParameterName(id)
     logger.info(req)
-    readParameter.getGlobalParameter(parameterId) match {
+    readParameter.getGlobalParameter(parameterId).notOptional(s"Could not find Parameter ${id}").toBox match {
       case Full(parameter) =>
         restValues match {
           case Full(restParameter) =>

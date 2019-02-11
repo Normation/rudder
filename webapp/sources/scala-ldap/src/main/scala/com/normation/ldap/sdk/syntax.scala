@@ -18,16 +18,14 @@
 *************************************************************************************
 */
 
-package com.normation.ldap
+package com.normation.ldap.sdk
+
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.{ Entry => UEntry }
 import com.unboundid.ldap.sdk.{ LDAPConnection => ULDAPConnection }
 import com.unboundid.ldap.sdk.{ LDAPResult => ULDAPResult }
-import com.unboundid.ldap.sdk.RDN
 
-package object sdk {
-
-  import scala.language.implicitConversions
+object syntax {
 
   /**
    * Alias Unboundid.ldap.sdk.Entry and LDAPConnection to UnboundXXX so that the main
@@ -39,37 +37,21 @@ package object sdk {
   //without having naming clashes
   type LDAPResult = ULDAPResult
 
-  //we create an instance of RDN, used as a singleton object to access its static methods
-  //val RDN = new com.unboundid.ldap.sdk.RDN("invalid=attributeName")
 
-  //implicit conversion between an LDAP SDK entry and our enhanced one
-  implicit def unboundidEntry2ScalaEntry(e:UnboundidEntry) : LDAPEntry = LDAPEntry(e)
-
-  implicit def unboundidEntry2LDAPTree(e:UnboundidEntry) : LDAPTree = LDAPTree(LDAPEntry(e))
-
-  implicit def string2dn(dn:String) = new DN(dn)
-
-  implicit def dn2listRdn(dn:DN) = dn.getRDNs.toList
-  implicit def listRdn2dn(rdns:List[RDN]) = new DN(rdns.toSeq:_*)
-
-  implicit def searchScopeImplicit(s:SearchScope) : com.unboundid.ldap.sdk.SearchScope = {
-    import com.unboundid.ldap.sdk.SearchScope._
-    s match {
-      case One => ONE
-      case Base => BASE
-      case Sub => SUB
-      case SubordinateSubtree => SUBORDINATE_SUBTREE
+  implicit class SearchScopeTonbound(s: SearchScope) {
+    def toUnboundid = {
+      import com.unboundid.ldap.sdk.SearchScope._
+      s match {
+        case One                => ONE
+        case Base               => BASE
+        case Sub                => SUB
+        case SubordinateSubtree => SUBORDINATE_SUBTREE
+      }
     }
   }
 
-  implicit def string2SearchSceeope(scope:String) : SearchScope = {
-    scope.toLowerCase match {
-      case "one" => One
-      case "sub" | "subtree" => Sub
-      case "base" => Base
-      case "subordinatesubtree" => SubordinateSubtree
-      case x => throw new IllegalArgumentException(s"Can not recognize search scope '${scope}'. Possible values are one, sub, base, subordinateSubtree")
-    }
+  implicit class BooleanToLdapString(b: Boolean) {
+    def toLDAPString: String = LDAPBoolean(b).toLDAPString
   }
 
   /*
@@ -96,5 +78,4 @@ package object sdk {
     def compare(x:DN,y:DN) : Int = x.compareTo(y)
   }
 
-  implicit def boolean2LDAP(b:Boolean) : LDAPBoolean = LDAPBoolean(b)
 }

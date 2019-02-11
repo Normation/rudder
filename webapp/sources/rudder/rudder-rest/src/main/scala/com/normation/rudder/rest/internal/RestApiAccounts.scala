@@ -17,6 +17,8 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
 import org.joda.time.DateTime
 
+import com.normation.zio._
+
 class RestApiAccounts (
     readApi        : RoApiAccountRepository
   , writeApi       : WoApiAccountRepository
@@ -35,17 +37,18 @@ class RestApiAccounts (
 
   serve {
     case Get("secure" :: "apiaccounts" :: Nil, req) =>
-      readApi.getAllStandardAccounts match {
-        case Full(accountSeq) =>
+      readApi.getAllStandardAccounts.either.runNow match {
+        case Right(accountSeq) =>
           val accounts =
             (
               ("aclPluginEnabled" -> apiAuthService.aclEnabled) ~
               ("accounts"  -> JArray(accountSeq.toList.map(_.toJson)))
             )
           toJsonResponse(None,accounts)("getAllAccounts",true)
-        case eb : EmptyBox =>
-          logger.error(s"Could not get accounts cause : ${(eb ?~ "could not get account").msg}")
-          toJsonError(None,s"Could not get accounts cause : ${(eb ?~ "could not get account").msg}")("getAllAccounts",true)
+        case Left(err) =>
+          val msg = s"Could not get accounts cause : ${err.fullMsg}"
+          logger.error(msg)
+          toJsonError(None,msg)("getAllAccounts",true)
 
       }
 
@@ -71,23 +74,26 @@ class RestApiAccounts (
                 , now
                 , now
               )
-              writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor) match {
-                case Full(_) =>
+              writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
+                case Right(_) =>
                   val accounts = ("accounts" -> JArray(List(account.toJson)))
                   toJsonResponse(None,accounts)("updateAccount",true)
 
-                case eb : EmptyBox =>
-                  logger.error(s"Could not create account cause : ${(eb ?~ "could not save account").msg}")
-                  toJsonError(None,s"Could not create account cause : ${(eb ?~ "could not save account").msg}")("updateAccount",true)
+                case Left(err) =>
+                  val msg = s"Could not create account cause : ${err.fullMsg}"
+                  logger.error(msg)
+                  toJsonError(None,msg)("updateAccount",true)
               }
             } else {
-              logger.error(s"Could not create account cause : could not get account")
-              toJsonError(None,s"Could not create account cause : could not get account")("updateAccount",true)
+              val msg = s"Could not create account cause : could not get account"
+              logger.error(msg)
+              toJsonError(None,msg)("updateAccount",true)
             }
 
           case eb : EmptyBox =>
-            logger.error(s"Could not create account cause : ${(eb ?~ "could not extract data from JSON").msg}")
-            toJsonError(None,s"Could not create account cause : ${(eb ?~ "could not extract data from JSON").msg}")("updateAccount",true)
+            val msg = s"Could not create account cause : ${(eb ?~ "could not extract data from JSON").msg}"
+            logger.error(msg)
+            toJsonError(None, msg)("updateAccount",true)
         }
         case eb:EmptyBox=>
           logger.error("No Json data sent")
@@ -100,21 +106,24 @@ class RestApiAccounts (
         case Full(json) =>
         restExtractor.extractApiAccountFromJSON(json) match {
           case Full(restApiAccount) =>
-            readApi.getByToken(apiToken) match {
-              case Full(Some(account)) =>
+            readApi.getByToken(apiToken).either.runNow match {
+              case Right(Some(account)) =>
                 val updateAccount = restApiAccount.update(account)
                 save(updateAccount)
 
-              case Full(None) =>
-                logger.error(s"Could not update account with token $token cause : could not get account")
-                toJsonError(None,s"Could not update account with token $token cause : could not get account")("updateAccount",true)
-              case eb : EmptyBox =>
-                logger.error(s"Could not update account with token $token cause : ${(eb ?~ "could not get account").msg}")
-                toJsonError(None,s"Could not update account with token $token cause : ${(eb ?~ "could not get account").msg}")("updateAccount",true)
+              case Right(None) =>
+                val msg = s"Could not update account with token $token cause : could not get account"
+                logger.error(msg)
+                toJsonError(None,msg)("updateAccount",true)
+              case Left(err) =>
+                val msg = s"Could not update account with token $token cause : ${err.fullMsg}"
+                logger.error(msg)
+                toJsonError(None,msg)("updateAccount",true)
             }
           case eb : EmptyBox =>
-            logger.error(s"Could not update account with token $token cause : ${(eb ?~ "could not extract data from JSON").msg}")
-            toJsonError(None,s"Could not update account with token $token cause : ${(eb ?~ "could not extract data from JSON").msg}")("updateAccount",true)
+            val msg = s"Could not update account with token $token cause : ${(eb ?~ "could not extract data from JSON").msg}"
+            logger.error(msg)
+            toJsonError(None,msg)("updateAccount",true)
         }
         case eb:EmptyBox=>
           toJsonError(None, "No Json data sent")("updateAccount",true)
@@ -122,60 +131,63 @@ class RestApiAccounts (
 
     case Delete("secure" :: "apiaccounts" :: token :: Nil, req) =>
       val apiToken = ApiToken(token)
-      readApi.getByToken(apiToken) match {
-        case Full(Some(account)) =>
-          writeApi.delete(account.id, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor) match {
-            case Full(_) =>
+      readApi.getByToken(apiToken).either.runNow match {
+        case Right(Some(account)) =>
+          writeApi.delete(account.id, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
+            case Right(_) =>
               val accounts = ("accounts" -> JArray(List(account.toJson)))
               toJsonResponse(None,accounts)("deleteAccount",true)
 
-            case eb : EmptyBox =>
-              toJsonError(None,s"Could not delete account with token $token cause : ${(eb ?~ "could not delete account").msg}")("deleteAccount",true)
+            case Left(err) =>
+              toJsonError(None,s"Could not delete account with token $token cause : ${err.fullMsg}")("deleteAccount",true)
           }
 
-        case Full(None) =>
+        case Right(None) =>
           toJsonError(None,s"Could not delete account with token $token cause : could not get account")("deleteAccount",true)
-        case eb : EmptyBox =>
-          toJsonError(None,s"Could not delete account with token $token cause : ${(eb ?~ "could not get account").msg}")("deleteAccount",true)
+        case Left(err) =>
+          toJsonError(None,s"Could not delete account with token $token cause : ${err.fullMsg}")("deleteAccount",true)
       }
 
     case Post("secure" :: "apiaccounts" :: token :: "regenerate" :: Nil, req) =>
       val apiToken = ApiToken(token)
-      readApi.getByToken(apiToken) match {
-        case Full(Some(account)) =>
+      readApi.getByToken(apiToken).either.runNow match {
+        case Right(Some(account)) =>
           val newToken = ApiToken(tokenGenerator.newToken(tokenSize))
           val generationDate = DateTime.now
           writeApi.save(
               account.copy(token = newToken, tokenGenerationDate = generationDate)
             , ModificationId(uuidGen.newUuid)
-            , userService.getCurrentUser.actor) match {
-            case Full(account) =>
+            , userService.getCurrentUser.actor).either.runNow match {
+            case Right(account) =>
               val accounts = ("accounts" -> JArray(List(account.toJson)))
               toJsonResponse(None,accounts)("regenerateAccount",true)
 
-            case eb : EmptyBox =>
-              logger.error(s"Could not regenerate account with token $token cause : ${(eb ?~ "could not save account").msg}")
-              toJsonError(None,s"Could not regenerate account with token $token cause : ${(eb ?~ "could not save account").msg}")("regenerateAccount",true)
+            case Left(err) =>
+              val msg = s"Could not regenerate account with token $token cause : ${err.fullMsg}"
+              logger.error(msg)
+              toJsonError(None,s"Could not regenerate account with token $token cause : ${err.fullMsg}")("regenerateAccount",true)
           }
 
-        case Full(None) =>
-          logger.error(s"Could not regenerate account with token $token cause could not get account")
-          toJsonError(None,s"Could not regenerate account with token $token cause : could not get account")("regenerateAccount",true)
-        case eb : EmptyBox =>
-          logger.error(s"Could not regenerate account with token $token cause : ${(eb ?~ "could not get account").msg}")
-          toJsonError(None,s"Could not regenerate account with token $token cause : ${(eb ?~ "could not get account").msg}")("regenerateAccount",true)
+        case Right(None) =>
+          val msg = s"Could not regenerate account with token $token cause could not get account"
+          logger.error(msg)
+          toJsonError(None,msg)("regenerateAccount",true)
+        case Left(err) =>
+          val msg = s"Could not regenerate account with token $token cause : ${err.fullMsg}"
+          logger.error(msg)
+          toJsonError(None,msg)("regenerateAccount",true)
       }
 
   }
 
   def save(account:ApiAccount) : LiftResponse = {
-    writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor) match {
-      case Full(res) =>
+    writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
+      case Right(res) =>
         val accounts = ("accounts" -> JArray(List(res.toJson)))
         toJsonResponse(None,accounts)("updateAccount",true)
 
-      case eb : EmptyBox =>
-        toJsonError(None, s"Could not update account '${account.name.value}' cause : ${(eb ?~ "could not save account").msg}")("updateAccount",true)
+      case Left(err) =>
+        toJsonError(None, s"Could not update account '${account.name.value}' cause : ${err.fullMsg}")("updateAccount",true)
     }
   }
 

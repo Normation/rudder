@@ -40,28 +40,26 @@ package com.normation.rudder.services.policies.write
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
 import com.normation.cfclerk.domain.SystemVariableSpec
+import com.normation.cfclerk.domain.TechniqueFile
+import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.Variable
-import com.normation.cfclerk.exceptions.VariableException
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.NodeConfiguration
-import com.normation.templates.STVariable
-import com.normation.utils.Control.bestEffort
-import net.liftweb.common._
-import org.joda.time.DateTime
-
-import com.normation.inventory.domain.AgentType
-import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.Policy
-import com.normation.utils.Control.sequence
-import com.normation.cfclerk.domain.TechniqueGenerationMode
+import com.normation.templates.STVariable
 import com.normation.utils.Control
+import com.normation.utils.Control.bestEffort
+import com.normation.utils.Control.sequence
+import net.liftweb.common._
+import org.joda.time.DateTime
 
 trait PrepareTemplateVariables {
 
@@ -110,6 +108,8 @@ class PrepareTemplateVariablesImpl(
     , globalPolicyMode : GlobalPolicyMode
     , generationTime   : DateTime
   ) : Box[AgentNodeWritableConfiguration] = {
+
+    import com.normation.rudder.services.policies.SystemVariableService._
 
     val nodeId = agentNodeConfig.config.nodeInfo.id
     logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${nodeId.value})")
@@ -178,6 +178,7 @@ class PrepareTemplateVariablesImpl(
     val generationVariable = STVariable("GENERATIONTIMESTAMP", false, Seq(generationTimestamp), true)
 
     sequence(policies) { p =>
+      logger.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleOrder.value}/${p.directiveOrder.value} [${p.id.value}]")
       for {
         variables <- prepareVariables(agentNodeProps, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}"
       } yield {
@@ -251,19 +252,22 @@ class PrepareTemplateVariablesImpl(
                          }
                      }
                    }
+      validated   <- //return STVariable in place of Rudder variables
+                     sequence(variables.flatten.toList) { v =>
+                       for {
+                         agent <- agentRegister.findMap(agentNodeProps) { agent =>  v.getValidatedValue(agent.escape) ?~! s"Wrong value type for variable '${v.spec.name}'" } ?~!
+                                  s"Error when preparing variable for node with ID '${agentNodeProps.nodeId.value}' on Technique '${policy.technique.id.toString()}'"
+                       } yield {
+
+                         STVariable(
+                           name = v.spec.name
+                         , mayBeEmpty = v.spec.constraint.mayBeEmpty
+                         , values = agent
+                         , v.spec.isSystem
+                       ) }
+                     }
     } yield {
-      //return STVariable in place of Rudder variables
-      variables.flatten.map { v => STVariable(
-          name = v.spec.name
-        , mayBeEmpty = v.spec.constraint.mayBeEmpty
-        , values = agentRegister.findMap(agentNodeProps) { agent =>  v.getValidatedValue(agent.escape) ?~! s"Wrong value type for variable '${v.spec.name}'" } match {
-                      case Full(seq)   => seq
-                      case eb:EmptyBox =>
-                        val e = (eb ?~! s"Error when preparing variable for node with ID '${agentNodeProps.nodeId.value}' on Technique '${policy.technique.id.toString()}'")
-                        throw new VariableException(e.messageChain)
-                    }
-        , v.spec.isSystem
-      ) }
+      validated
     }
   }
 

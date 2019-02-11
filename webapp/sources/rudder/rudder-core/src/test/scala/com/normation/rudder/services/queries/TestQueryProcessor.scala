@@ -37,22 +37,25 @@
 
 package com.normation.rudder.services.queries
 
-import org.junit._
-import org.junit.Assert._
-import org.junit.runner.RunWith
-import org.junit.runners.BlockJUnit4ClassRunner
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.rudder.domain.queries._
-import net.liftweb.common._
-import com.normation.rudder.domain._
-import com.unboundid.ldap.sdk.DN
+import com.normation.errors._
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.ldap.core._
 import com.normation.ldap.ldif._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk._
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.domain.NodeId
-import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain._
+import com.normation.rudder.domain.queries._
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NaiveNodeInfoServiceCachedImpl
+import com.normation.utils.HashcodeCaching
+import com.normation.zio._
+import com.unboundid.ldap.sdk.DN
+import net.liftweb.common._
+import org.junit.Assert._
+import org.junit._
+import org.junit.runner.RunWith
+import org.junit.runners.BlockJUnit4ClassRunner
+import scalaz.zio.syntax._
 
 /*
  * Test query parsing.
@@ -97,7 +100,7 @@ class TestQueryProcessor extends Loggable {
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
   val rudderDit = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
 
-  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit, () => Failure("For test, no subgroup"))
+  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit, () => Inconsistancy("For test, no subgroup").fail)
 
   val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
   val ldapMapper = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null, inventoryMapper)
@@ -138,9 +141,10 @@ class TestQueryProcessor extends Loggable {
     //just check that we correctly loaded demo data in serve
     val s = (for {
       con <- ldap
+      res <- con.search(new DN("cn=rudder-configuration"), Sub, BuildFilter.ALL)
     } yield {
-      con.search("cn=rudder-configuration", Sub, BuildFilter.ALL).size
-    }).openOrThrowException("For tests")
+      res.size
+    }).runNow
 
     val expected = 42+37  //bootstrap + inventory-sample
     assert(expected == s, s"Not found the expected number of entries in test LDAP directory [expected: ${expected}, found: ${s}], perhaps the demo entries where not correctly loaded")
@@ -896,7 +900,7 @@ class TestQueryProcessor extends Loggable {
           format(name,found,ids),found.forall { f => ids.exists( f == _) })
 
       logger.debug("Testing with expected entries")
-      val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids)).openOrThrowException("For tests").entries.map { entry =>
+      val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids)).runNow.entries.map { entry =>
         NodeId(entry("nodeId").get)
       }).distinct.sortBy( _.value )
       assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected entries (process)\n Found: %s\n Wants: %s".

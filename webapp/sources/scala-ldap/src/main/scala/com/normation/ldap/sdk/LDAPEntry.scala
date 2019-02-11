@@ -29,7 +29,7 @@ import scala.collection.mutable.Buffer
 
 import org.slf4j.LoggerFactory
 
-
+import com.normation.ldap.sdk.syntax._
 
 /**
  * A Scala facade for LDAP Entry.
@@ -65,16 +65,16 @@ import org.slf4j.LoggerFactory
 class LDAPEntry(private val _backed: UnboundidEntry) {
 
   //copy constructor, needed for special case, when mixing LDAPEntry with other types
-  def this(e:LDAPEntry) = this(new UnboundidEntry(e._backed.dn,e._backed.getAttributes.asScala.toSeq:_*))
+  def this(e:LDAPEntry) = this(new UnboundidEntry(e._backed.getParsedDN, e._backed.getAttributes.asScala.toSeq:_*))
 
   //define a read only view of the backed entry, usefull in ldap connection to not have to override everything defined by Unboundid
   def backed = new com.unboundid.ldap.sdk.ReadOnlyEntry(_backed)
 
   //////  Helping methods to manipulate DN/RDN  //////
 
-  lazy val optDn : Option[DN]     = if(NULL_DN == dn) None else Some(dn)
+  lazy val optDn: Option[DN] = if(NULL_DN == dn) None else Some(dn)
 
-  private[this] lazy val listRdns : List[RDN]   = (dn)
+  private[this] lazy val listRdns : List[RDN] = dn.getRDNs.toList
 
   private val _parentDn : Option[DN] = listRdns match {
     case r::Nil => None
@@ -115,7 +115,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
   def attributes : Iterable[Attribute]  = _backed.getAttributes.asScala
 
   def typedAttributes(implicit shema:Schema) : Iterable[TypedAttribute] = {
-    _backed.attributes.map(a => TypedAttribute(a))
+    _backed.getAttributes.asScala.map(a => TypedAttribute(a))
   }
 
   /**
@@ -289,9 +289,9 @@ object LDAPEntry {
 
   def apply(rdn:Option[RDN],parentDn:Option[DN],attributes:Attribute*):LDAPEntry = {
     (rdn,parentDn) match {
-      case (Some(r),Some(p)) => apply(new DN(r,p),attributes)
-      case (Some(r), _) => apply(r::Nil,attributes)
-      case _ => apply(NULL_DN,attributes)
+      case (Some(r),Some(p)) => apply(new DN(r,p)      , attributes)
+      case (Some(r), _     ) => apply(new DN(r::Nil:_*), attributes)
+      case _                 => apply(NULL_DN          , attributes)
     }
   }
 
@@ -322,13 +322,13 @@ object LDAPEntry {
     val rule = com.unboundid.ldap.matchingrules.CaseExactStringMatchingRule.getInstance
 
     // Set the matching Rule on target entry
-    val target = LDAPEntry(targetEntry.backed.dn, targetEntry.backed.attributes.map { a =>
+    val target = LDAPEntry(targetEntry.backed.getParsedDN, targetEntry.backed.getAttributes.asScala.map { a =>
       if(ignoreCaseOnAttributes.contains(a.getName)) a
       else new Attribute(a.getName, rule, a.getValues:_*)
     })
 
     // Set matching Rule on source entry, as of unboundID 2.3.4, it is the one used to compare data
-    val origin = LDAPEntry(sourceEntry.backed.dn, sourceEntry.backed.attributes.map { a =>
+    val origin = LDAPEntry(sourceEntry.backed.getParsedDN, sourceEntry.backed.getAttributes.asScala.map { a =>
       if(ignoreCaseOnAttributes.contains(a.getName)) a
       else new Attribute(a.getName, rule, a.getValues:_*)
     })

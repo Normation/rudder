@@ -37,11 +37,13 @@
 
 package com.normation.cfclerk.services
 
-import com.normation.cfclerk.domain._
 import java.io.InputStream
-import net.liftweb.common._
-import scala.collection.SortedSet
+
+import com.normation.cfclerk.domain._
+import com.normation.errors._
 import com.normation.inventory.domain.AgentType
+
+import scala.collection.SortedSet
 
 class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends TechniqueRepository {
 
@@ -94,7 +96,7 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
   override def getTechniqueVersions(name:TechniqueName) : SortedSet[TechniqueVersion] = SortedSet.empty[TechniqueVersion]
 
   override def getTechniqueLibrary: RootTechniqueCategory = null
-  override def getTechniqueCategory(id: TechniqueCategoryId): Box[TechniqueCategory] = null
-  override def getParentTechniqueCategory_forTechnique(id: TechniqueId): Box[TechniqueCategory] = null
+  override def getTechniqueCategory(id: TechniqueCategoryId): IOResult[TechniqueCategory] = null
+  override def getParentTechniqueCategory_forTechnique(id: TechniqueId): IOResult[TechniqueCategory] = null
 
 }

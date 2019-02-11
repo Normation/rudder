@@ -45,6 +45,8 @@ import net.liftweb.common._
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 
+import com.normation.box._
+import scalaz.zio._
 
 /**
  *
@@ -69,31 +71,26 @@ class CheckInitXmlExport(
     (for {
       tagMap <- itemArchiveManager.getFullArchiveTags
       ident  <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
+      res    <- if(tagMap.isEmpty) {
+                  BootraspLogger.info("No full archive of configuration-repository items seems to have been done, initialising the system with one") *>
+                  itemArchiveManager.exportAll(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository sub-system"), false)
+                } else {
+                  BootraspLogger.trace("At least a full archive of configuration items done, no need for further initialisation") *>
+                  UIO.unit
+                }
 
     } yield {
-      if(tagMap.isEmpty) {
-        logger.info("No full archive of configuration-repository items seems to have been done, initialising the system with one")
-        itemArchiveManager.exportAll(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository sub-system"), false)
-      } else {
-        logger.trace("At least a full archive of configuration items done, no need for further initialisation")
-        Full("OK")
-      }
-    }) match {
-      case eb: EmptyBox =>
-        val fail = eb ?~! "Error when trying to get the list of archive tag"
-        logger.error(fail)
-        fail.rootExceptionCause.foreach { t =>
-          logger.error("Root exception was:", t)
-        }
-      case Full(eb:EmptyBox) =>
+      res
+    }).toBox match {
+      case eb:EmptyBox =>
         val fail = eb ?~! "Error when trying to initialise to configuration-repository sub-system with a first full archive"
-        logger.error(fail)
+        BootraspLogger.logEffect.error(fail)
         fail.rootExceptionCause.foreach { t =>
-          logger.error("Root exception was:", t)
+          BootraspLogger.logEffect.error("Root exception was:", t)
         }
 
-      case Full(Full(_)) =>
-        logger.info("First full archive of configuration-repository items done")
+      case Full(_) =>
+        BootraspLogger.logEffect.info("First full archive of configuration-repository items done")
     }
   }
 }

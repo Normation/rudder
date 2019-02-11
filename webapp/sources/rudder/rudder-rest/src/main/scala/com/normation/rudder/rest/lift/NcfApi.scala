@@ -52,6 +52,8 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.JValue
 
+import com.normation.box._
+
 class NcfApi(
     techniqueWriter     : TechniqueWriter
   , restExtractorService: RestExtractorService
@@ -59,7 +61,6 @@ class NcfApi(
 ) extends LiftApiModuleProvider[API] {
   val kind = "ncf"
 
-  import com.normation.rudder.ncf.ResultHelper.resultToBox
   import com.normation.rudder.rest.RestUtils._
   val dataName = "techniques"
 
@@ -85,15 +86,16 @@ class NcfApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid)
-      val response = for {
-        json      <- req.json ?~! "No JSON data sent"
-        methods   <- restExtractor.extractGenericMethod(json \ "methods")
-        methodMap = methods.map(m => (m.id,m)).toMap
-        technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap)
-        allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, authzToken.actor )
-      } yield {
-        json
-      }
+      val response =
+        for {
+          json      <- req.json ?~! "No JSON data sent"
+          methods   <- restExtractor.extractGenericMethod(json \ "methods")
+          methodMap =  methods.map(m => (m.id,m)).toMap
+          technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap)
+          allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, authzToken.actor ).toBox
+        } yield {
+          json
+        }
       val wrapper : ActionType = {
         case _ => response
       }
@@ -106,15 +108,16 @@ class NcfApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid)
-      val response = for {
-        json      <- req.json ?~! "No JSON data sent"
-        methods   <- restExtractor.extractGenericMethod(json \ "methods")
-        methodMap = methods.map(m => (m.id,m)).toMap
-        technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap)
-        allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, authzToken.actor)
-      } yield {
-        json
-      }
+      val response =
+        for {
+          json      <- req.json ?~! "No JSON data sent"
+          methods   <- restExtractor.extractGenericMethod(json \ "methods")
+          methodMap = methods.map(m => (m.id,m)).toMap
+          technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap)
+          allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, authzToken.actor).toBox
+        } yield {
+          json
+        }
       val wrapper : ActionType = {
         case _ => response
       }

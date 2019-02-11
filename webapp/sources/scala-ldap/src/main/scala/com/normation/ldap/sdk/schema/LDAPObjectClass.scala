@@ -18,18 +18,19 @@
 *************************************************************************************
 */
 
-package com.normation.ldap.sdk
-package schema
+package com.normation.ldap.sdk.schema
+
 import com.normation.utils.HashcodeCaching
 
 case class LDAPObjectClass(
-    val name : String,
-    val sup : LDAPObjectClass = LDAPObjectClass.TOP,
-    must: Set[String] = Set(),
-    may : Set[String] = Set())  extends HashcodeCaching {
+    name : String
+  , sup  : LDAPObjectClass = LDAPObjectClass.TOP
+  , must : Set[String] = Set()
+  , may  : Set[String] = Set()
+) extends HashcodeCaching {
 
   val mustAttr : Set[String] = must ++ { if(null == sup) Set.empty else sup.mustAttr }
-  val mayAttr : Set[String] = may ++ { if(null == sup) Set.empty else sup.mustAttr }
+  val mayAttr  : Set[String] = may  ++ { if(null == sup) Set.empty else sup.mayAttr  }
 
   val attributes = mustAttr ++ mayAttr
   assert(null != name && name.length != 0,"Name can't be null or empty")
@@ -41,13 +42,13 @@ object LDAPObjectClass {
   val TOP = new LDAPObjectClass("top", null, Set("objectClass"))
 }
 
-case class LDAPObjectClasses(val all:Set[LDAPObjectClass])  extends HashcodeCaching {
+case class LDAPObjectClasses(all: Set[LDAPObjectClass]) extends HashcodeCaching {
   assert(!all.isEmpty,"Object classes can't be empty (it should at least contains top)")
 
-  val names : Set[String] = all.map(_.name)
-  val attributes: Set[String]  = for { oc <- all ; x <- oc.attributes } yield x
-  val may: Set[String]  = for { oc <- all ; x <- oc.mayAttr  } yield x
-  val must: Set[String]  = for { oc <- all ; x <- oc.mustAttr } yield x
+  val names     : Set[String] = all.map(_.name)
+  val attributes: Set[String] = for { oc <- all ; x <- oc.attributes } yield x
+  val may       : Set[String] = for { oc <- all ; x <- oc.mayAttr    } yield x
+  val must      : Set[String] = for { oc <- all ; x <- oc.mustAttr   } yield x
 }
 
 object LDAPObjectClasses {

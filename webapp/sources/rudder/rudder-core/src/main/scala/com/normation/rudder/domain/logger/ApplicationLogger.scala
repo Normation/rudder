@@ -37,6 +37,7 @@
 
 package com.normation.rudder.domain.logger
 
+import com.normation.NamedZioLogger
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 
@@ -59,6 +60,10 @@ object PluginLogger extends Logger {
  */
 object ScheduledJobLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("scheduledJob")
+}
+
+object ScheduledJobLoggerPure extends NamedZioLogger {
+  val loggerName = "scheduledJob"
 }
 
 /**

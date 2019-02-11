@@ -51,6 +51,8 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.AuthorizationType
 
+import com.normation.box._
+
 /*
  * This object is just a service that check if a given rule/directive/etc has
  * already a change request on it to display a relevant information if it is
@@ -95,7 +97,7 @@ object PendingChangeRequestDisplayer extends Loggable{
     , id    : T
     , check : checkFunction[T]
   ) = {
-    if (RudderConfig.configService.rudder_workflow_enabled().getOrElse(false)) {
+    if (RudderConfig.configService.rudder_workflow_enabled().toBox.getOrElse(false)) {
       val crs = check(id,true)
       displayPendingChangeRequest(xml,crs)
     }  else {

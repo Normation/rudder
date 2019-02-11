@@ -787,7 +787,7 @@ avuP6rHqJ7Ki8doNxn+Omng7aOkD/wBWiKgM3W8LzVdTiXjjfLUdqt0jah/eJF8w
       <VERSION>6.02_1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <COMMENTS>Pure Perl implementation for parsing/writing xml files</COMMENTS>
+      <COMMENTS>success Perl implementation for parsing/writing xml files</COMMENTS>
       <NAME>p5-XML-TreePP</NAME>
       <VERSION>0.43</VERSION>
     </SOFTWARES>

@@ -37,20 +37,24 @@
 
 package com.normation.rudder.services.queries
 
+import cats.implicits._
+import com.normation.box._
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.{NodeGroup, NodeGroupId}
-import com.normation.ldap.sdk._
-import BuildFilter._
-import com.normation.rudder.domain.{RudderDit, RudderLDAPConstants}
-import RudderLDAPConstants._
-import com.normation.utils.Control.sequence
 import com.normation.inventory.ldap.core.LDAPConstants
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk._
+import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.logger.NodeLogger
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import net.liftweb.common._
+import scalaz.zio._
+import com.normation.ldap.sdk.syntax._
 
 /**
  * A service used to manage dynamic groups : find
@@ -89,10 +93,11 @@ class DynGroupServiceImpl(
 
   override def getAllDynGroups() : Box[Seq[NodeGroup]] = {
     for {
-      con <- ldap
-      dyngroupIds <- sequence(con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs:_*)) { entry =>
-         mapper.entry2NodeGroup(entry) ?~! "Can not map entry to a node group: %s".format(entry)
-      }
+      con         <- ldap
+      entries     <- con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs:_*)
+      dyngroupIds <- ZIO.foreach(entries) { entry =>
+                       mapper.entry2NodeGroup(entry).toIO.chainError(s"Can not map entry to a node group: ${entry}")
+                     }
     } yield {
       // The idea is to sort group to update groups with a query based on other groups content (objecttype group) at the end so their base group is already updated
       // This does not treat all cases (what happens when you have a group depending on a group which also depends on another group content)
@@ -100,7 +105,7 @@ class DynGroupServiceImpl(
       def numberOfQuery(group : NodeGroup) = group.query.map( _.criteria.filter(_.objectType.objectType == "group").size).getOrElse(0)
       dyngroupIds.sortBy(numberOfQuery)
     }
-  }
+  }.toBox
 }
 
 /**
@@ -178,7 +183,7 @@ class CheckPendingNodeInDynGroups(
      * one step of the algo
      */
     def recProcess(todo: List[DynGroup], blocked: List[DynGroup], done: List[(NodeGroupId, Set[NodeId])]): Box[List[(NodeGroupId, Set[NodeId])]] = {
-      import com.normation.rudder.domain.queries.{ And => CAnd}
+      import com.normation.rudder.domain.queries.{And => CAnd}
 
       NodeLogger.PendingNode.Policies.trace("TODO   :" + todo.show   )
       NodeLogger.PendingNode.Policies.trace("BLOCKED:" + blocked.show)

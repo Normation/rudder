@@ -69,6 +69,8 @@ import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.sitemap.Loc.TestAccess
 import org.reflections.Reflections
 
+import com.normation.zio._
+
 /*
  * Utilities about rights
  */
@@ -182,7 +184,7 @@ object FatalException {
         // use println to minimize the number of component that can fail
         if(e.isInstanceOf[java.lang.Error] || fatalException.contains(e.getClass.getName)) {
           System.err.println(s"[${format.print(System.currentTimeMillis())}] ERROR FATAL Rudder JVM caught an unhandled fatal exception. Rudder will now stop to " +
-                  "prevent further unconsistant behavior. This is likely a bug, please " +
+                  "prevent further inconsistant behavior. This is likely a bug, please " +
                   "contact Rudder developers. You can configure the list of fatal exception " +
                   "in /opt/rudder/etc/rudder-web.properties -> rudder.jvm.fatal.exceptions"
           )
@@ -445,7 +447,7 @@ class Boot extends Loggable {
     def utilitiesMenu = {
       // if we can't get the workflow property, default to false
       // (don't give rights if you don't know)
-      def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
+      def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.either.runNow.getOrElse(false)
       Menu("UtilitiesHome", <i class="fa fa-wrench"></i> ++ <span>Utilities</span>) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>
@@ -499,7 +501,7 @@ class Boot extends Loggable {
               , reason = None
             )
         )
-    ) match {
+    ).runNow match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to save the EventLog for application start"
         ApplicationLogger.error(e.messageChain)

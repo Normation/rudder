@@ -20,10 +20,14 @@
 
 package com.normation.ldap.sdk
 
-import com.normation.ldap.ldif.{LDIFFileLogger,DefaultLDIFFileLogger}
-import com.unboundid.ldap.sdk.{LDAPConnectionOptions,LDAPConnectionPool}
-import net.liftweb.common._
-
+import com.normation.ldap.ldif.{DefaultLDIFFileLogger, LDIFFileLogger}
+import com.unboundid.ldap.sdk.{LDAPConnectionOptions, LDAPConnectionPool}
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.ldap.sdk.LDAPIOResult._
+import scalaz.zio.blocking.Blocking
+import com.normation.errors._
+import com.normation.ldap.sdk.syntax._
 
 /**
  * A LDAP connection manager.
@@ -45,78 +49,49 @@ import net.liftweb.common._
  * } yield entry
  *
  */
-trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] extends Loggable {
-  import com.unboundid.ldap.sdk.LDAPException
+// a class to have an error coerced to LdapError
+final class InternalConnection[LDAP <: RoLDAPConnection](provider: LDAPConnectionProvider[LDAP]) {
+
+ def flatMap[A](f: LDAP => LDAPIOResult[A]): LDAPIOResult[A] = {
+    provider.withConLdap[A]( con => f(con))
+  }
+}
+
+trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
 
   protected def getInternalConnection() : LDAP
   protected def releaseInternalConnection(con:LDAP) : Unit
   protected def releaseDefuncInternalConnection(con:LDAP) : Unit
   protected def newConnection : LDAP
 
+
   /**
    * Use the LDAP connection provider to execute a method whose
    * return type is Unit.
-   *
-   * Ex :
-   * LDAPConnectionProvider { LDAPConnection =>
-   *   val entries = LDAPConnection.searchOne("dc=example,dc=org")
-   *   entries foreach { e =>
-   *     println(e.dn.toString)
-   *   }
-   * }
    */
-  def foreach(f: LDAP => Unit) : Box[Nothing] = {
-    withCon[Nothing] { con =>
-      f(con)
-      Empty
-    }
+  def foreach(f: LDAP => Unit) : IOResult[Unit] = {
+    withConLdap[Unit] { con => f(con) ; UIO.unit }
   }
 
   /**
-   * Use the LDAP connection provider to execute a method
-   * on the provided connection object with a return type
-   * DIFFERENT FROM Box[T]
-   *
-   * Ex: Retrieve the list of cn in a box, manage errors
-   *
-   * val names = {
-   *   LDAPConnectionProvider { LDAPConnection =>
-   *     LDAPConnection.searchOne("dc=example,dc=org").map(e => e.cn.getOrElse("no name"))
-   *   } match {
-   *     case f@Failure(_,_,_) => return f
-   *     case Empty => Seq[String]()
-   *     case Full(seq) => seq
-   *   }
-   * }
+   * map on connection provider
    */
-  def map[A](f: LDAP => A) : Box[A] = {
-    withCon[A] { con =>
-      Full(f(con))
-    }
+  def map[A](f: LDAP => A) : LDAPIOResult[A] = {
+    withConLdap[A] ( con => f(con).succeed )
   }
 
   /**
    * Use the LDAP connection provider to execute a method
    * on the connection object with a return type
-   * that is a box ; deals with exception management
+   * that is a ZIO ; deals with exception management
    *
-   * Ex: Get one entry (or a default one), manage errors
-   *
-   * val entry = {
-   *   LDAPConnectionProvider { LDAPConnection =>
-   *     LDAPConnection.get("dc=example,dc=org")
-   *   } match {
-   *     case f@Failure(_,_,_) => return f
-   *     case Empty => defaultEntry
-   *     case Full(e) => e
-   *   }
-   * }
    */
-  def flatMap[A](f: LDAP => Box[A]) : Box[A] = {
-    withCon[A] { con =>
-      f(con)
-    }
+  def flatMap[E <:RudderError, A](f: LDAP => IO[E, A]) : IOResult[A] = {
+    withCon[E, A] (con => f(con) )
   }
+
+
+  val internal = new InternalConnection[LDAP](this)
 
   /**
    * Cleanly close all the resources used by that
@@ -140,27 +115,29 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] extends Loggable {
    *   boxed version of the user method result, with exception
    *   transformed into Failure.
    */
-  protected def withCon[A](f: LDAP => Box[A]) : Box[A] = {
-    val con = try {
-       getInternalConnection
-    } catch {
-      case e:LDAPException => {
-        logger.error("Can't get a new LDAP connection",e)
-        return Failure("Can't get a new LDAP connection",Full(e),Empty)
-      }
-    }
-
-    try {
-      val res = f(con)
-      releaseInternalConnection(con)
-      res
-    } catch {
-      case e:LDAPException => {
-        logger.error("Can't execute LDAP request",e)
-        releaseDefuncInternalConnection(con)
-        Failure("Can't execute LDAP request",Full(e),Empty)
-      }
-    }
+  protected[sdk] def withCon[E <:RudderError, A](f: LDAP => IO[E, A]) : IOResult[A] = {
+    IO.bracket(
+      IO.effect(getInternalConnection).catchAll( ex =>
+        LDAPConnectionLogger.error("Can't get a new LDAP connection", ex) *>
+        IO.fail(LDAPRudderError.BackendException("Can't get a new LDAP connection", ex))
+      ):LDAPIOResult[LDAP]
+    )(con =>
+        IO.effect(releaseInternalConnection(con)).catchAll(ex =>
+          LDAPConnectionLogger.error("Can't release LDAP connection", ex)
+        )
+    )(f)
+  }
+  protected[sdk] def withConLdap[A](f: LDAP => LDAPIOResult[A]) : LDAPIOResult[A] = {
+    IO.bracket(
+      IO.effect(getInternalConnection).catchAll( ex =>
+        LDAPConnectionLogger.error("Can't get a new LDAP connection", ex) *>
+        IO.fail(LDAPRudderError.BackendException("Can't get a new LDAP connection", ex))
+      ):LDAPIOResult[LDAP]
+    )(con =>
+        IO.effect(releaseInternalConnection(con)).catchAll(ex =>
+          LDAPConnectionLogger.error("Can't release LDAP connection", ex)
+        )
+    )(f)
   }
 }
 
@@ -293,9 +270,10 @@ class ROAnonymousConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
-  override val useSchemaInfos : Boolean = false
+  override val useSchemaInfos : Boolean = false,
+  val blockingModule: Blocking
 ) extends AnonymousConnection with OneConnectionProvider[RoLDAPConnection] {
-  def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger)
+  def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule)
 }
 
 /**
@@ -306,9 +284,10 @@ class RWAnonymousConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
-  override val useSchemaInfos : Boolean = false
+  override val useSchemaInfos : Boolean = false,
+  val blockingModule: Blocking
 ) extends AnonymousConnection with OneConnectionProvider[RwLDAPConnection] {
-  def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger)
+  def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule)
 }
 
 
@@ -321,9 +300,10 @@ class ROPooledAnonymousConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  override val poolSize : Int = 2
+  override val poolSize : Int = 2,
+  val blockingModule: Blocking
 ) extends AnonymousConnection with PooledConnectionProvider[RoLDAPConnection] {
-  def newConnection = new RoLDAPConnection(pool.getConnection,ldifFileLogger)
+  def newConnection = new RoLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule)
 }
 
 /**
@@ -335,9 +315,10 @@ class RWPooledAnonymousConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  override val poolSize : Int = 2
+  override val poolSize : Int = 2,
+  val blockingModule: Blocking
 ) extends AnonymousConnection with PooledConnectionProvider[RwLDAPConnection] {
-  def newConnection = new RwLDAPConnection(pool.getConnection,ldifFileLogger)
+  def newConnection = new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule)
 }
 
 /**
@@ -351,9 +332,10 @@ class ROSimpleAuthConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
-  override val useSchemaInfos : Boolean = false
+  override val useSchemaInfos : Boolean = false,
+  val blockingModule: Blocking
 ) extends SimpleAuthConnection with OneConnectionProvider[RoLDAPConnection] {
-  def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger)
+  def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule)
 }
 
 /**
@@ -367,9 +349,10 @@ class RWSimpleAuthConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
-  override val useSchemaInfos : Boolean = false
+  override val useSchemaInfos : Boolean = false,
+  val blockingModule: Blocking
 ) extends SimpleAuthConnection with OneConnectionProvider[RwLDAPConnection]{
-  def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger)
+  def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule)
 }
 
 /**
@@ -383,9 +366,10 @@ class ROPooledSimpleAuthConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  override val poolSize : Int = 2
+  override val poolSize : Int = 2,
+  val blockingModule: Blocking
 ) extends SimpleAuthConnection with PooledConnectionProvider[RoLDAPConnection] {
-  def newConnection = new RoLDAPConnection(pool.getConnection,ldifFileLogger)
+  def newConnection = new RoLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule)
 }
 
 /**
@@ -399,7 +383,8 @@ class RWPooledSimpleAuthConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  override val poolSize : Int = 2
+  override val poolSize : Int = 2,
+  val blockingModule: Blocking
 ) extends SimpleAuthConnection with PooledConnectionProvider[RwLDAPConnection]{
-  def newConnection = new RwLDAPConnection(pool.getConnection,ldifFileLogger)
+  def newConnection = new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule)
 }

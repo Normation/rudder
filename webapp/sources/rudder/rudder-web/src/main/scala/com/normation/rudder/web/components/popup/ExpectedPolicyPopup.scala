@@ -52,6 +52,8 @@ import net.liftweb.util.Helpers._
 import scala.xml.NodeSeq
 import scala.xml.Text
 
+import com.normation.box._
+
 object ExpectedPolicyPopup {
 
   def expectedTechnique = ChooseTemplate(
@@ -103,7 +105,7 @@ class ExpectedPolicyPopup(
       allDynGroups <- dynGroupService.getAllDynGroups()
       dynGroups    <- checkDynGroup.findDynGroups(Set(nodeSrv.id), allDynGroups.toList) ?~! "Error when building the map of dynamic group to update by node"
       groupTargets =  dynGroups.getOrElse(nodeSrv.id, Seq())
-      rules        <- ruleRepository.getAll(includeSytem = false)
+      rules        <- ruleRepository.getAll(includeSytem = false).toBox
     } yield {
       val allNodes = Map( (nodeSrv.id , (nodeSrv.isPolicyServer, nodeSrv.serverRoles)) )
       val groups = groupTargets.map { x => (x, Set(nodeSrv.id)) }.toMap

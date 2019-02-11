@@ -76,6 +76,8 @@ import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 object RuleEditForm {
 
   /**
@@ -160,7 +162,7 @@ class RuleEditForm(
   private[this] val boxRootRuleCategory = getRootRuleCategory()
 
   private[this] def showForm(idToScroll  : String = "editRuleZonePortlet") : NodeSeq = {
-    (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos(), boxRootRuleCategory, configService.rudder_global_policy_mode()) match {
+    (getFullNodeGroupLib().toBox, getFullDirectiveLib().toBox, getAllNodeInfos(), boxRootRuleCategory.toBox, configService.rudder_global_policy_mode().toBox) match {
       case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory), Full(globalMode)) =>
 
         val form = {
@@ -241,7 +243,7 @@ class RuleEditForm(
 
   private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, globalMode : GlobalPolicyMode) : NodeSeq = {
 
-    val usedDirectiveIds = roRuleRepository.getAll().getOrElse(Seq()).flatMap { case r =>
+    val usedDirectiveIds = roRuleRepository.getAll().toBox.getOrElse(Seq()).flatMap { case r =>
       r.directiveIds.map( id => (id -> r.id))
     }.groupBy( _._1 ).mapValues( _.size).toSeq
 
@@ -507,7 +509,7 @@ class RuleEditForm(
     //if root is not defined, the error message is managed on showForm
     val values = boxRootRuleCategory.map { r =>
       categoryHierarchyDisplayer.getRuleCategoryHierarchy(r, None).map { case (id, name) => (id.value -> name)}
-    }.getOrElse(Nil)
+    }.toBox.getOrElse(Nil)
 
     new WBSelectField("Rule category", values, rule.categoryId.value) {
       override def className = "form-control"

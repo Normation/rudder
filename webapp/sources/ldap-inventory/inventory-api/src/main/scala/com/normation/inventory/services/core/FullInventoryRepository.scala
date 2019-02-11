@@ -37,8 +37,8 @@
 
 package com.normation.inventory.services.core
 
+import com.normation.errors._
 import com.normation.inventory.domain._
-import net.liftweb.common.Box
 
 trait ReadOnlyMachineRepository {
   /**
@@ -48,7 +48,7 @@ trait ReadOnlyMachineRepository {
    * it should not. In that case, return the machine with the most
    * prioritary status (Accepted > Pending > Removed)
    */
-  def get(id:MachineUuid) : Box[MachineInventory]
+  def get(id:MachineUuid) : IOResult[Option[MachineInventory]]
 
 }
 
@@ -72,7 +72,7 @@ trait WriteOnlyMachineRepository[R] {
    * that you will actually get a copy if there is already a machine
    * with a different inventoryStatus).0
    */
-  def save(machine:MachineInventory) : Box[R]
+  def save(machine:MachineInventory) : IOResult[R]
 
   /**
    * Delete the corresponding machine. Does not fail if the machine does
@@ -81,7 +81,7 @@ trait WriteOnlyMachineRepository[R] {
    * That method should take all action needed to assure that consistency
    * is kept, especially deleting reference to that machine.
    */
-  def delete(id:MachineUuid) : Box[R]
+  def delete(id:MachineUuid) : IOResult[R]
 
   /**
    * Change the status of a machine.
@@ -91,7 +91,7 @@ trait WriteOnlyMachineRepository[R] {
    * - changing the status of a machine should change all reference to the
    *   machine accordingly
    */
-  def move(id:MachineUuid, into : InventoryStatus) : Box[R]
+  def move(id:MachineUuid, into : InventoryStatus) : IOResult[R]
 }
 
 trait MachineRepository[R] extends ReadOnlyMachineRepository with WriteOnlyMachineRepository[R]
@@ -101,21 +101,21 @@ trait ReadOnlyFullInventoryRepository {
    * Retrieve a full ServerAndMachine.
    * TODO: allows to lazy-load some heavy parts, like software, machine elements, etc.
    */
-  def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[FullInventory]
-  def get(id:NodeId) : Box[FullInventory]
-  def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : Box[(MachineUuid, InventoryStatus)]
+  def get(id:NodeId, inventoryStatus : InventoryStatus) : IOResult[Option[FullInventory]]
+  def get(id:NodeId) : IOResult[Option[FullInventory]]
+  def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : IOResult[Option[(MachineUuid, InventoryStatus)]]
 
-  def getAllInventories(inventoryStatus : InventoryStatus): Box[Map[NodeId, FullInventory]]
+  def getAllInventories(inventoryStatus : InventoryStatus): IOResult[Map[NodeId, FullInventory]]
 
-  def getAllNodeInventories(inventoryStatus : InventoryStatus): Box[Map[NodeId, NodeInventory]]
+  def getAllNodeInventories(inventoryStatus : InventoryStatus): IOResult[Map[NodeId, NodeInventory]]
 }
 
 trait WriteOnlyFullInventoryRepository[R] {
-  def save(serverAndMachine:FullInventory) : Box[R]
-  def delete(id:NodeId, inventoryStatus : InventoryStatus) : Box[R]
-  def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[R]
+  def save(serverAndMachine:FullInventory) : IOResult[R]
+  def delete(id:NodeId, inventoryStatus : InventoryStatus) : IOResult[R]
+  def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : IOResult[R]
 
-  def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[R]
+  def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : IOResult[R]
 }
 
 trait FullInventoryRepository[R] extends ReadOnlyFullInventoryRepository with WriteOnlyFullInventoryRepository[R]

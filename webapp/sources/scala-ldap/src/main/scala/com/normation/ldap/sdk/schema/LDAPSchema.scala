@@ -18,8 +18,8 @@
 *************************************************************************************
 */
 
-package com.normation.ldap.sdk
-package schema
+package com.normation.ldap.sdk.schema
+
 /**
  * An object that stores all the object classes known
  * by  the application and gives utilities methods
@@ -122,7 +122,7 @@ class LDAPSchema {
    * And we pass the Set(top, A,B,C,D,E,F)
    * it returns Set(C,D,F)
    *
-   * @param name
+   * @param names
    * @return
    */
   def demux(names : String*) : S = {

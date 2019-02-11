@@ -37,8 +37,9 @@
 
 package com.normation.cfclerk.xmlparsers
 
+import com.normation.cfclerk.domain.LoadTechniqueError
+
 import scala.xml._
-import net.liftweb.common._
 import org.junit.Test
 import org.junit._
 import org.junit.Assert._
@@ -75,20 +76,19 @@ class TestXmlUtils {
   </root>
 
   //utility fonction that return the failure message or "no message" if Empty
-  private def msg[T](box:Box[T]) : String = box match {
-    case Full(x) => "Full box containing " + x
-    case Empty => "empty box"
-    case Failure(m,_,_) => m
+  private def msg[T](box:Either[LoadTechniqueError, T]) : String = box match {
+    case Right(x) => "Full box containing " + x
+    case Left(m) => m.fullMsg
   }
 
   private def sameNodes(searchNodeName:String, target:Node, treeScope:Boolean) : Unit = {
     val test = Utils.getUniqueNode(root, searchNodeName,treeScope)
-    assertEquals(msg(test), Full(target), test)
+    assertEquals(msg(test), Right(target), test)
   }
 
-  private def emptyRequestRes(searchNodeName:String, treeScope:Boolean) : Unit = {
+  private def errorNotUnique(searchNodeName:String, treeScope:Boolean) : Unit = {
     val test = Utils.getUniqueNode(root, searchNodeName,treeScope)
-    assertTrue(msg(test), test.isEmpty)
+    assertTrue(msg(test), test.isLeft)
   }
 
   @Test def testGetOne() : Unit = {
@@ -99,22 +99,22 @@ class TestXmlUtils {
 
     //B is unique only at the first level
     sameNodes(b_n, child_B(sub_A), false)
-    emptyRequestRes(b_n, true)
+    errorNotUnique(b_n, true)
 
     //A is not unique at any scope
-    emptyRequestRes(a_n, true)
-    emptyRequestRes(a_n, false)
+    errorNotUnique(a_n, true)
+    errorNotUnique(a_n, false)
 
     //X does not exist
-    emptyRequestRes(x_n, true)
-    emptyRequestRes(x_n, false)
+    errorNotUnique(x_n, true)
+    errorNotUnique(x_n, false)
 
     //Sub A does not exist at first level and is not unique in subtree
-    emptyRequestRes(subA_n, true)
-    emptyRequestRes(subA_n, false)
+    errorNotUnique(subA_n, true)
+    errorNotUnique(subA_n, false)
 
     //sub B does not exist at first level but is unique in subtree
-    emptyRequestRes(subB_n, false)
+    errorNotUnique(subB_n, false)
     sameNodes(subB_n, sub_B, true)
 
   }
