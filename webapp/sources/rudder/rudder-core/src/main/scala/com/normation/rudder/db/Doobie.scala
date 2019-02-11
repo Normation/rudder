@@ -81,7 +81,7 @@ object Doobie {
       case doobie.util.log.Success(s, a, e1, e2) =>
         val total = (e1 + e2).toMillis
         val msg = s"""Successful Statement Execution [${total} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
-          |  ${s.lines.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+          |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
           | arguments = [${a.mkString(", ")}]
         """.stripMargin
         if(total > 100) { //more than that => debug level, not trace
@@ -92,14 +92,14 @@ object Doobie {
 
       case ProcessingFailure(s, a, e1, e2, t) =>
         DoobieLogger.debug(s"""Failed Resultset Processing [${(e1 + e2).toMillis} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
-          |  ${s.lines.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+          |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
           | arguments = [${a.mkString(", ")}]
           |   failure = ${t.getMessage}
         """.stripMargin)
 
       case ExecFailure(s, a, e1, t) =>
         DoobieLogger.debug(s"""Failed Statement Execution [${e1.toMillis} ms exec (failed)]
-          |  ${s.lines.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+          |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
           | arguments = [${a.mkString(", ")}]
           |   failure = ${t.getMessage}
         """.stripMargin)
