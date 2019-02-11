@@ -5,6 +5,7 @@ use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
 use std::collections::hash_set::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::hash_map;
 
 // TODO there can be only one mapping per item that defines an identical descendant
 // TODO handle boolean enums in expressions
@@ -29,7 +30,7 @@ pub struct EnumList<'a> {
     enums: HashMap<Token<'a>, (bool, HashSet<Token<'a>>)>,
     // List global values (they must not be redefined)
     //                    value      enum
-    global_values: HashMap<Token<'a>, Token<'a>>,
+    pub global_values: HashMap<Token<'a>, Token<'a>>,
 }
 
 /// A boolean expression that can be defined using enums
@@ -81,6 +82,9 @@ impl<'a> EnumList<'a> {
         }
     }
 
+    pub fn iter(&self) -> hash_map::Iter<Token<'a>, (bool, HashSet<Token<'a>>)> {
+        self.enums.iter()
+    }
     /// Returns true if a given enum exists
     pub fn enum_exists(&self, e: Token<'a>) -> bool {
         self.enums.contains_key(&e)

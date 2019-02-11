@@ -404,24 +404,100 @@ impl<'a> AST<'a> {
         Ok(())
     }
 
+    // invalid enum
+    // invalid enum item
+    // invalid resource
+    // invalid state
+    // -> invalid identifier
+
+    // and invalid identifier is
+    // - invalid namespace TODO
+    // - a type name : string int struct list
+    // - an existing keyword in the language: if case enum global default resource state fail log return noop
+    // - a reserved keyword for future language: format comment dict json enforce condition audit let
+    fn invalid_identifier_check(&self, name: Token<'a>) -> Result<()> {
+        if vec!["string", "int", "struct", "list", "if", "case", "enum", "global",
+                "default", "resource", "state", "fail", "log", "return", "noop",
+                "format", "comment", "dict", "json", "enforce", "condition",
+                "audit let"].contains(&name.fragment()) {
+            fail!(name, "Name {} is a reserved keyword and cannot be used here", name);
+        }
+        Ok(())
+    }
+
+    // an invalid variable is :
+    // - invalid identifier
+    // - an enum name / except global enum var
+    // - a global enum item name
+    // - a resource name
+    // - true / false
+    fn invalid_variable_check(&self, name: Token<'a>, global: bool) -> Result<()> {
+        self.invalid_identifier_check(name)?;
+        if self.enum_list.enum_exists(name) {
+            if !global || !self.enum_list.is_global(name) { // there is a global variable for each global enum
+                fail!(name, "Variable name {} cannot be used because it is an enum name", name);
+            }
+        }
+        if let Some(e) = self.enum_list.global_values.get(&name) {
+            fail!(name, "Variable name {} cannot be used because it is an item of the global enum {}", name, e);
+        }
+        if self.resources.contains_key(&name) {
+            fail!(name, "Variable name {} cannot be used because it is an resource name", name);
+        }
+        if vec!["true", "false"].contains(&name.fragment()) {
+            fail!(name, "Variable name {} cannot be used because it is a boolean identifier", name);
+        }
+        Ok(())
+    }
+
+    // same a above but for the variable definition statement
+    fn invalid_variable_statement_check(&self, st: &Statement<'a>) -> Result<()> {
+        match st {
+            Statement::VariableDefinition(name, _) => self.invalid_variable_check(*name, false),
+            _ => Ok(()),
+        }
+    }
+
+
     pub fn analyze(&self) -> Result<()> {
         // Analyze step 1: no prerequisite
         let mut errors = Vec::new();
-        for (_rn, resource) in self.resources.iter() {
+        // analyze resources
+        for (rn, resource) in self.resources.iter() {
+            // check resource name
+            errors.push(self.invalid_identifier_check(*rn));
             // check that metadata does not contain any variable reference
             errors.push(self.metadata_check(&resource.metadata));
-            for (_sn, state) in resource.states.iter() {
+            for (sn, state) in resource.states.iter() {
+                // check status name
+                errors.push(self.invalid_identifier_check(*sn));
                 // check that metadata does not contain any variable reference
                 errors.push(self.metadata_check(&state.metadata));
                 for st in state.statements.iter() {
                     // check for resources and state existence
                     // check for matching parameter and type
                     errors.push(self.binding_check(st));
+                    // check for variable names in statements
+                    errors.push(self.invalid_variable_statement_check(st));
                     // check for enum expression validity
                     errors.push(self.enum_expression_check(&state.variables, st));
                     // check for case validity
                     errors.push(self.cases_check(&state.variables, st, true));
                 }
+            }
+        }
+        // analyze global vars
+        for (name,_value) in self.variables.iter() {
+            // check for invalid variable name
+            errors.push(self.invalid_variable_check(*name, true));
+        }
+        // analyse enums
+        for (e, (_global, items)) in self.enum_list.iter() {
+            // check for invalid enum name
+            errors.push(self.invalid_identifier_check(*e));
+            // check for invalid item name
+            for i in items.iter() {
+                errors.push(self.invalid_identifier_check(*i));
             }
         }
         // Stop here if there is any error

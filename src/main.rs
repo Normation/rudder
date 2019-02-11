@@ -10,7 +10,6 @@ use std::fs;
 // MAIN
 
 // TODO next step:
-// - forbidden identifiers
 // - move out expression parsing
 // - variables (string, boolean)
 // - check that interpolated string contain valid variables

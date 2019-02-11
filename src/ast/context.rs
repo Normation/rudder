@@ -2,6 +2,7 @@ use crate::error::*;
 use crate::parser::{Token,PType};
 use super::Value;
 use std::collections::HashMap;
+use std::collections::hash_map;
 
 // variable kind
 #[derive(Debug, PartialEq)]
@@ -26,6 +27,10 @@ impl<'a> VarContext<'a> {
         VarContext {
             variables: HashMap::new(),
         }
+    }
+
+    pub fn iter(&self) -> hash_map::Iter<Token<'a>, VarKind<'a>> {
+        self.variables.iter()
     }
 
     fn new_var(

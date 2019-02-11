@@ -17,7 +17,6 @@ use nom::*;
 // TODO parse and store comments
 // TODO add more types
 // TODO lifetime = 'src
-// TODO _ in identifiers
 // TODO namespace in identifiers
 // TODO reserve keywords (in analyser)
 // TODO iterators, variable definition
@@ -68,13 +67,15 @@ pnamed!(
     )
 );
 
-/// An identifier is a word that contains alphanumeric chars but does not start with a digit.
+/// An identifier is a word that contains alphanumeric chars.
+/// Be liberal here, they are checked again later
+/// TODO should we accept other chars ?
+/// TODO any reason an identifier should not start with a digit
 pnamed!(pub pidentifier<Token>,
     map!(
-        // TODO accept _
         verify!(alphanumeric, |x:PInput| {
             // check first char
-            let c=x.fragment.chars().next().unwrap_or(' '); // space is not a valid starting char so it can be used for None
+            let c=x.fragment.chars().next().unwrap_or(' '); // space is not a valid starting char so it can be used to mean None
             (c as u8 >= 0x41 && c as u8 <= 0x5A) || (c as u8 >= 0x61 && c as u8 <= 0x7A) || (c == '_')
         } ),
         |x| x.into()
