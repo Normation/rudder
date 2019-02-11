@@ -23,6 +23,8 @@ package com.normation.rudder.repository.ldap
 
 import java.util.concurrent.locks.ReadWriteLock
 
+import com.normation.ldap.sdk.IOLdap._
+
 /**
  * Pimp^Wextend my Java Lock
  */
@@ -39,7 +41,7 @@ trait ScalaLock {
     }
   }
 
-  def flatMap[T](f : this.type => Option[T]) : Option[T] = map(f)
+  def flatMap[T, F[T]](f : this.type => F[T]) : F[T] = map(f)
 
   def foreach(f: this.type => Unit): Unit = map(f)
 

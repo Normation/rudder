@@ -20,9 +20,10 @@
 
 package com.normation.ldap.sdk
 
-import com.normation.ldap.ldif.{LDIFFileLogger,DefaultLDIFFileLogger}
-import com.unboundid.ldap.sdk.{LDAPConnectionOptions,LDAPConnectionPool}
-import net.liftweb.common._
+import com.normation.ldap.ldif.{DefaultLDIFFileLogger, LDIFFileLogger}
+import com.unboundid.ldap.sdk.{LDAPConnectionOptions, LDAPConnectionPool}
+import com.normation.ldap.sdk.IOLdap._
+import net.liftweb.common.Loggable
 
 
 /**
@@ -65,10 +66,10 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] extends Loggable {
    *   }
    * }
    */
-  def foreach(f: LDAP => Unit) : Box[Nothing] = {
-    withCon[Nothing] { con =>
+  def foreach(f: LDAP => Unit) : IOLdap[Unit] = {
+    withCon[Unit] { con =>
       f(con)
-      Empty
+      ().successIOLdap()
     }
   }
 
@@ -89,9 +90,9 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] extends Loggable {
    *   }
    * }
    */
-  def map[A](f: LDAP => A) : Box[A] = {
+  def map[A](f: LDAP => A) : IOLdap[A] = {
     withCon[A] { con =>
-      Full(f(con))
+      f(con).successIOLdap()
     }
   }
 
@@ -112,7 +113,7 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] extends Loggable {
    *   }
    * }
    */
-  def flatMap[A](f: LDAP => Box[A]) : Box[A] = {
+  def flatMap[A](f: LDAP => IOLdap[A]) : IOLdap[A] = {
     withCon[A] { con =>
       f(con)
     }
@@ -140,13 +141,13 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] extends Loggable {
    *   boxed version of the user method result, with exception
    *   transformed into Failure.
    */
-  protected def withCon[A](f: LDAP => Box[A]) : Box[A] = {
+  protected def withCon[A](f: LDAP => IOLdap[A]) : IOLdap[A] = {
     val con = try {
        getInternalConnection
     } catch {
       case e:LDAPException => {
         logger.error("Can't get a new LDAP connection",e)
-        return Failure("Can't get a new LDAP connection",Full(e),Empty)
+        return LDAPConnectionError.BackendException("Can't get a new LDAP connection", e).failureIOLdap()
       }
     }
 
@@ -158,7 +159,7 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] extends Loggable {
       case e:LDAPException => {
         logger.error("Can't execute LDAP request",e)
         releaseDefuncInternalConnection(con)
-        Failure("Can't execute LDAP request",Full(e),Empty)
+        LDAPConnectionError.BackendException("Can't execute LDAP request", e).failureIOLdap()
       }
     }
   }

@@ -66,20 +66,19 @@ class LDAPGitRevisionProvider(
     (for {
       con <- ldap
       entry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_TECHNIQUE_LIB_VERSION)
-      refLib <- entry(A_TECHNIQUE_LIB_VERSION)
     } yield {
-      refLib
+      entry.flatMap(_(A_TECHNIQUE_LIB_VERSION))
     }) match {
-      case Full(id) => ObjectId.fromString(id)
-      case Empty =>
+      case Right(Some(id)) => ObjectId.fromString(id)
+      case Right(None) =>
         logger.info("No persisted version of the current technique reference library revision " +
           "to use where found, init to last available from Git repository")
         val id = getAvailableRevTreeId
         setCurrentRevTreeId(id)
         id
-      case f: Failure =>
-        logger.error("Error when trying to read persisted version of the current technique " +
-          "reference library revision to use. Use the last available from Git.", f)
+      case Left(e) =>
+        logger.error(s"Error when trying to read persisted version of the current technique " +
+          s"reference library revision to use. Using the last available from Git. Error was: ${e.messageChain}")
         val id = getAvailableRevTreeId
         setCurrentRevTreeId(id)
         id
@@ -102,8 +101,8 @@ class LDAPGitRevisionProvider(
   override def setCurrentRevTreeId(id: ObjectId): Unit = {
     ldap.foreach { con =>
       con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_OC) match {
-        case e: EmptyBox => logger.error("The root entry of the user template library was not found, the current revision won't be persisted")
-        case Full(root) =>
+        case Left(_)| Right(None) => logger.error("The root entry of the user template library was not found, the current revision won't be persisted")
+        case Right(Some(root)) =>
           root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
           root +=! (A_TECHNIQUE_LIB_VERSION, id.getName)
           con.save(root)

@@ -41,6 +41,7 @@ import scala.collection.mutable.Buffer
 import net.liftweb.common._
 import com.normation.ldap.sdk.{LDAPTree, LDAPEntry}
 import com.normation.inventory.domain.FullInventory
+import com.normation.ldap.sdk.IOLdap._
 
 class FullInventoryFromLdapEntriesImpl(
     inventoryDitService:InventoryDitService,
@@ -65,18 +66,13 @@ class FullInventoryFromLdapEntriesImpl(
     }
 
     for {
-      nodeTree <- LDAPTree(serverElts) ?~! "Error when building the tree of entries for the node"
-      node <- mapper.nodeFromTree(nodeTree)
-      optMachine <- LDAPTree(machineElts) match { //can be empty
-        case f:Failure => f
-        case Empty => Full(None)
-        case Full(t) => mapper.machineFromTree(t).map(m => Some(m) )
-      }
+      nodeTree   <- (LDAPTree(serverElts) ?~! "Error when building the tree of entries for the node").toBox
+      node       <- mapper.nodeFromTree(nodeTree)
+      optMachine <- if(machineElts.isEmpty) Full(None)
+                    else LDAPTree(machineElts).toBox.flatMap(t => mapper.machineFromTree(t).map(m => Some(m) ))
     } yield {
       FullInventory(node, optMachine)
     }
-
-
   }
 }
 

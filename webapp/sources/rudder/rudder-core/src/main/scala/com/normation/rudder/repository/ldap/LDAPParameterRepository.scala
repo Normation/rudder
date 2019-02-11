@@ -53,6 +53,8 @@ import com.normation.rudder.domain.archives.ParameterArchiveId
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import com.unboundid.ldif.LDIFChangeRecord
+import com.normation.ldap.sdk.IOLdap._
+import cats.implicits._
 
 class RoLDAPParameterRepository(
     val rudderDit   : RudderDit
@@ -66,37 +68,32 @@ class RoLDAPParameterRepository(
     for {
       locked  <- userLibMutex.readLock
       con     <- ldap
-      entry   <- con.get(rudderDit.PARAMETERS.parameterDN(parameterName))
-      param   <- mapper.entry2Parameter(entry) ?~! "Error when transforming LDAP entry into global parameter for name %s. Entry: %s".format(parameterName, entry)
+      entry   <- con.get(rudderDit.PARAMETERS.parameterDN(parameterName)).notOptional(s"Global parameter with name '${parameterName.value}' was not found")
+      param   <- (mapper.entry2Parameter(entry) ?~! "Error when transforming LDAP entry into global parameter for name %s. Entry: %s".format(parameterName, entry)).toIOLdap
     } yield {
       param
     }
-  }
+  }.toBox
 
-  def getAllGlobalParameters() : Box[Seq[GlobalParameter]] = {
+  private def getGP(search: RoLDAPConnection => IOLdap[Seq[LDAPEntry]]): Box[Seq[GlobalParameter]] = {
      for {
       locked  <- userLibMutex.readLock
       con     <- ldap
-      entries =  con.searchSub(rudderDit.PARAMETERS.dn, IS(OC_PARAMETER))
-      params  <- sequence(entries) { entry =>
-                   mapper.entry2Parameter(entry) ?~! "Error when transforming LDAP entry into global parameter. Entry: %s".format(entry)
+      entries <- search(con)
+      params  <- entries.toVector.traverse { entry =>
+                   (mapper.entry2Parameter(entry) ?~! "Error when transforming LDAP entry into global parameter. Entry: %s".format(entry)).toIOLdap
                  }
     } yield {
       params
     }
+  }.toBox
+
+  def getAllGlobalParameters() : Box[Seq[GlobalParameter]] = {
+     getGP(con => con.searchSub(rudderDit.PARAMETERS.dn, IS(OC_PARAMETER)))
   }
 
   def getAllOverridable() : Box[Seq[GlobalParameter]] = {
-    for {
-      locked  <- userLibMutex.readLock
-      con     <- ldap
-      entries =  con.searchSub(rudderDit.PARAMETERS.dn, AND(IS(OC_PARAMETER), EQ(A_PARAMETER_OVERRIDABLE, true.toLDAPString)))
-      params  <- sequence(entries) { entry =>
-                   mapper.entry2Parameter(entry) ?~! "Error when transforming LDAP entry into global parameter. Entry: %s".format(entry)
-                 }
-    } yield {
-      params
-    }
+    getGP(con => con.searchSub(rudderDit.PARAMETERS.dn, AND(IS(OC_PARAMETER), EQ(A_PARAMETER_OVERRIDABLE, true.toLDAPString))))
   }
 }
 
@@ -122,31 +119,29 @@ class WoLDAPParameterRepository(
       for {
         con             <- ldap
         doesntExists    <- roLDAPParameterRepository.getGlobalParameter(parameter.name) match {
-                              case Full(entry) => Failure("Cannot create a global parameter with name %s : there is already a parameter with the same name".format(parameter.name.value))
-                              case Empty => Full("OK")
-                              case e:Failure => e
+                              case Full(entry) => "Cannot create a global parameter with name %s : there is already a parameter with the same name".format(parameter.name.value).failureIOLdap()
+                              case Empty => "OK".successIOLdap()
+                              case e:Failure => e.toIOLdap
                            }
         paramEntry      =  mapper.parameter2Entry(parameter)
         result          <- userLibMutex.writeLock {
                               con.save(paramEntry) ?~! "Error when saving parameter entry in repository: %s".format(paramEntry)
                            }
-        diff            <- diffMapper.addChangeRecords2GlobalParameterDiff(
-                                paramEntry.dn
-                              , result)
-        loggedAction    <- actionLogger.saveAddGlobalParameter(modId, principal = actor, addDiff = diff, reason = reason) ?~! "Error when logging modification as an event"
-        autoArchive     <- if(autoExportOnModify) { //only persists if modification are present
+        diff            <- diffMapper.addChangeRecords2GlobalParameterDiff(paramEntry.dn, result).toIOLdap
+        loggedAction    <- (actionLogger.saveAddGlobalParameter(modId, principal = actor, addDiff = diff, reason = reason) ?~! "Error when logging modification as an event").toIOLdap
+        autoArchive     <- (if(autoExportOnModify) { //only persists if modification are present
                              for {
                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                archive  <- gitParameterArchiver.archiveParameter(parameter,Some((modId, commiter, reason)))
                              } yield {
                                archive
                              }
-                           } else Full("ok")
+                           } else Full("ok")).toIOLdap
       } yield {
         diff
       }
     }
-  }
+  }.toBox
 
   def updateParameter(
       parameter : GlobalParameter
@@ -157,7 +152,7 @@ class WoLDAPParameterRepository(
     repo.synchronized {
       for {
         con             <- ldap
-        oldParamEntry   <- roLDAPParameterRepository.getGlobalParameter(parameter.name) ?~! "Cannot update Global Parameter %s : there is no parameter with that name".format(parameter.name)
+        oldParamEntry   <- (roLDAPParameterRepository.getGlobalParameter(parameter.name) ?~! "Cannot update Global Parameter %s : there is no parameter with that name".format(parameter.name)).toIOLdap
         paramEntry      =  mapper.parameter2Entry(parameter)
         result          <- userLibMutex.writeLock {
                              con.save(paramEntry) ?~! "Error when saving parameter entry in repository: %s".format(paramEntry)
@@ -166,46 +161,47 @@ class WoLDAPParameterRepository(
                                 parameter.name
                               , paramEntry.dn
                               , oldParamEntry
-                              , result)
+                              , result
+                            ).toIOLdap
         loggedAction    <-  optDiff match {
-                               case None => Full("OK")
-                               case Some(diff) => actionLogger.saveModifyGlobalParameter(modId, principal = actor, modifyDiff = diff, reason = reason) ?~! "Error when logging modification as an event"
+                               case None => "OK".successIOLdap()
+                               case Some(diff) => (actionLogger.saveModifyGlobalParameter(modId, principal = actor, modifyDiff = diff, reason = reason) ?~! "Error when logging modification as an event").toIOLdap
                              }
         autoArchive     <- if(autoExportOnModify  && optDiff.isDefined) {//only persists if modification are present
-                             for {
+                             (for {
                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                archive  <- gitParameterArchiver.archiveParameter(parameter,Some((modId, commiter, reason)))
                              } yield {
                                archive
-                             }
-                           } else Full("ok")
+                             }).toIOLdap
+                           } else "ok".successIOLdap()
       } yield {
         optDiff
       }
     }
-  }
+  }.toBox
 
   def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteGlobalParameterDiff] = {
     for {
       con          <- ldap
-      oldParamEntry<- roLDAPParameterRepository.getGlobalParameter(parameterName) ?~! "Cannot delete Global Parameter %s : there is no parameter with that name".format(parameterName)
+      oldParamEntry<- (roLDAPParameterRepository.getGlobalParameter(parameterName) ?~! "Cannot delete Global Parameter %s : there is no parameter with that name".format(parameterName)).toIOLdap
       deleted      <- userLibMutex.writeLock {
                         con.delete(roLDAPParameterRepository.rudderDit.PARAMETERS.parameterDN(parameterName)) ?~! "Error when deleting Global Parameter with name %s".format(parameterName)
                       }
       diff         =  DeleteGlobalParameterDiff(oldParamEntry)
-      loggedAction <- actionLogger.saveDeleteGlobalParameter(modId, principal = actor, deleteDiff = diff, reason = reason)
+      loggedAction <- actionLogger.saveDeleteGlobalParameter(modId, principal = actor, deleteDiff = diff, reason = reason).toIOLdap
       autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
-                        for {
+                        (for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                           archive  <- gitParameterArchiver.deleteParameter(parameterName,Some((modId, commiter, reason)))
                         } yield {
                           archive
-                        }
-                      } else Full("ok")
+                        }).toIOLdap
+                      } else "ok".successIOLdap()
     } yield {
       diff
     }
-  }
+  }.toBox
 
   /**
    * Implementation logic:
@@ -220,17 +216,17 @@ class WoLDAPParameterRepository(
    */
   def swapParameters(newParameters:Seq[GlobalParameter]) : Box[ParameterArchiveId] = {
 
-    def saveParam(con:RwLDAPConnection, parameter:GlobalParameter) : Box[LDIFChangeRecord] = {
+    def saveParam(con:RwLDAPConnection, parameter:GlobalParameter) : IOLdap[LDIFChangeRecord] = {
       val entry = mapper.parameter2Entry(parameter)
       con.save(entry)
     }
     //restore the archive in case of error
-    def restore(con:RwLDAPConnection, previousParams:Seq[GlobalParameter]) = {
+    def restore(con:RwLDAPConnection, previousParams:Seq[GlobalParameter]): IOLdap[Seq[LDIFChangeRecord]] = {
       for {
         deleteParams  <- con.delete(rudderDit.PARAMETERS.dn)
-        savedBack     <- sequence(previousParams) { params =>
-                         saveParam(con,params)
-                      }
+        savedBack     <- previousParams.toVector.traverse { params =>
+                           saveParam(con,params)
+                         }
       } yield {
         savedBack
       }
@@ -242,40 +238,37 @@ class WoLDAPParameterRepository(
     val ou = rudderDit.ARCHIVES.parameterModel(id)
 
     for {
-        existingParams <- getAllGlobalParameters
-        con            <- ldap
-        //ok, now that's the dangerous part
-        swapParams      <- userLibMutex.writeLock { (for {
-                         //move old params to archive branch
-                         renamed     <- con.move(rudderDit.PARAMETERS.dn, ou.dn.getParent, Some(ou.dn.getRDN))
-                         //now, create back config param branch and save rules
-                         crOu        <- con.save(rudderDit.PARAMETERS.model)
-                         savedParams    <- sequence(newParameters) { rule =>
-                                           saveParam(con, rule)
-                                        }
+      existingParams <- getAllGlobalParameters.toIOLdap
+      con            <- ldap
+      //ok, now that's the dangerous part
+      swapParams      <- userLibMutex.writeLock { (for {
+                       //move old params to archive branch
+                       renamed     <- con.move(rudderDit.PARAMETERS.dn, ou.dn.getParent, Some(ou.dn.getRDN))
+                       //now, create back config param branch and save rules
+                       crOu        <- con.save(rudderDit.PARAMETERS.model)
+                       savedParams    <- newParameters.toVector.traverse { rule =>
+                                         saveParam(con, rule)
+                                      }
 
-                       } yield {
-                         id
-                       })  match {
-                         case ok:Full[_] => ok
-                         case eb:EmptyBox => //ok, so there, we have a problem
-                           val e = eb ?~! "Error when importing params, trying to restore old Parameters"
-                           logger.error(e)
-                           restore(con, existingParams) match {
-                             case _:Full[_] =>
-                               logger.info("Rollback parameters")
-                               e ?~! "Rollbacked imported parameters to previous state"
-                             case x:EmptyBox =>
-                               val m = "Error when rollbacking corrupted import for parameters, expect other errors. Archive ID: '%s'".format(id.value)
-                               e ?~! m
-                           }
+                     } yield {
+                       id
+                     })  match {
+                       case Right(value) => value.successIOLdap()
+                       case Left(e) => //ok, so there, we have a problem
+                         logger.error(s"Error when importing params, trying to restore old Parameters. Error was: ${e.messageChain}")
+                         restore(con, existingParams) match {
+                           case Right(value) =>
+                             logger.info("Rollback parameters")
+                             LDAPConnectionError.Chained("Rollbacked imported parameters to previous state", e).failureIOLdap()
+                           case Left(_) =>
+                             LDAPConnectionError.Chained("Error when rollbacking corrupted import for parameters, expect other errors. Archive ID: '%s'".format(id.value), e).failureIOLdap()
+                         }
 
-                       } }
-      } yield {
-        id
-      }
-
-  }
+                     } }
+    } yield {
+      id
+    }
+  }.toBox
 
   def deleteSavedParametersArchiveId(archiveId:ParameterArchiveId) : Box[Unit] = {
     repo.synchronized {
@@ -286,5 +279,5 @@ class WoLDAPParameterRepository(
         {}
       }
     }
-  }
+  }.toBox
 }

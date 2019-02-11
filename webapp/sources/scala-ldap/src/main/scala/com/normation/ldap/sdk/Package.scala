@@ -29,6 +29,8 @@ package object sdk {
 
   import scala.language.implicitConversions
 
+
+
   /**
    * Alias Unboundid.ldap.sdk.Entry and LDAPConnection to UnboundXXX so that the main
    * "entry" type is our own.

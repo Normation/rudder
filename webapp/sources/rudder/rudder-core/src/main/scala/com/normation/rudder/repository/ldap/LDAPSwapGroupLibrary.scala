@@ -53,7 +53,9 @@ import com.normation.rudder.repository.NodeGroupCategoryContent
 import com.normation.rudder.repository.ImportGroupLibrary
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 import com.normation.rudder.domain.policies.GroupTarget
-
+import com.normation.ldap.sdk.IOLdap._
+import cats.implicits._
+import com.normation.ldap.sdk.LDAPConnectionError
 
 
 trait LDAPImportLibraryUtil extends Loggable {
@@ -65,7 +67,7 @@ trait LDAPImportLibraryUtil extends Loggable {
     } yield {
       {}
     }
-  }
+  }.toBox
 
   //copy back system categories/groups if includeSystem is FALSE
   def copyBackSystemEntrie(con:RwLDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : Box[Unit] = {
@@ -93,39 +95,42 @@ trait LDAPImportLibraryUtil extends Loggable {
       relatives.map( rdns => recBuildDN(sourceLibraryDN, rdns.reverse))
     }
 
-    val entries = con.searchSub(targetArchiveDN, EQ(A_IS_SYSTEM,true.toLDAPString))
-    val allDNs  =  entries.map( _.dn ).toSet
-    //update DN to UserLib DN, remove root entry and entries without parent in that set
-    val updatedDNEntries =  (entries.collect {
-                              case entry if(entry.dn == targetArchiveDN) =>
-                                logger.trace("Skipping root entry, already taken into account")
-                                None
-                              case entry if(allDNs.exists( _ == entry.dn.getParent)) =>
-                                //change the DN to user lib
-                                setUserLibRoot(entry.dn) match {
-                                  case None =>
-                                    logger.error("Ignoring entry with DN '%s' because it does not belong to archive '%s'".format(entry.dn, targetArchiveDN))
-                                    None
-                                  case Some(dn) =>
-                                    Some(LDAPEntry(dn, entry.attributes))
-                                }
-                              case entry =>
-                                logger.error("Error when trying to save entry '%s' marked as system: its parent is not available, perhaps it is not marked as system?".format(entry.dn))
-                                None
-                            }).flatten
-
+    for {
+      entries <- con.searchSub(targetArchiveDN, EQ(A_IS_SYSTEM,true.toLDAPString))
+      allDNs  =  entries.map( _.dn ).toSet
+      //update DN to UserLib DN, remove root entry and entries without parent in that set
+      updatedDNEntries =  (entries.collect {
+                                case entry if(entry.dn == targetArchiveDN) =>
+                                  logger.trace("Skipping root entry, already taken into account")
+                                  None
+                                case entry if(allDNs.exists( _ == entry.dn.getParent)) =>
+                                  //change the DN to user lib
+                                  setUserLibRoot(entry.dn) match {
+                                    case None =>
+                                      logger.error("Ignoring entry with DN '%s' because it does not belong to archive '%s'".format(entry.dn, targetArchiveDN))
+                                      None
+                                    case Some(dn) =>
+                                      Some(LDAPEntry(dn, entry.attributes))
+                                  }
+                                case entry =>
+                                  logger.error("Error when trying to save entry '%s' marked as system: its parent is not available, perhaps it is not marked as system?".format(entry.dn))
+                                  None
+                              }).flatten
      //actually save system entries in User Lib
-     (sequence(updatedDNEntries.sortWith( (x,y) => DN.compare(x.dn.toString, y.dn.toString) < 0)) {
-       entry => con.save(entry) ?~! "Error when copying back system entry '%s' from archive '%s'".format(entry.dn, targetArchiveDN)
-     }).map { x => ; /*unit*/}
-  }
+       _ <- updatedDNEntries.sortWith( (x,y) => DN.compare(x.dn.toString, y.dn.toString) < 0).toVector.traverse { entry =>
+              con.save(entry) ?~! "Error when copying back system entry '%s' from archive '%s'".format(entry.dn, targetArchiveDN)
+            }
+    } yield {
+      ()
+    }
+  }.toBox
 
   //restore in case of error
-  def restoreArchive(con:RwLDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : Box[Unit] = {
+  def restoreArchive(con:RwLDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : IOLdap[Unit] = {
     for {
       delete    <- if(con.exists(sourceLibraryDN)) {
                      con.delete(sourceLibraryDN)
-                   } else Full("ok")
+                   } else "ok".successIOLdap()
       movedBack <- con.move(targetArchiveDN, sourceLibraryDN.getParent, Some(sourceLibraryDN.getRDN))
     } yield {
       () // unit is expected
@@ -167,11 +172,11 @@ class ImportGroupLibraryImpl(
 
     //as far atomic as we can :)
     //don't bother with system and consistency here, it is taken into account elsewhere
-    def atomicSwap(userLib:NodeGroupCategoryContent) : Box[NodeGroupLibraryArchiveId] = {
+    def atomicSwap(userLib:NodeGroupCategoryContent) : IOLdap[NodeGroupLibraryArchiveId] = {
       //save the new one
       //we need to keep the git commit id
-      def saveUserLib(con:RwLDAPConnection, userLib:NodeGroupCategoryContent) : Box[Unit] = {
-        def recSaveUserLib(parentDN:DN, content:NodeGroupCategoryContent) : Box[Unit] = {
+      def saveUserLib(con:RwLDAPConnection, userLib:NodeGroupCategoryContent) : IOLdap[Unit] = {
+        def recSaveUserLib(parentDN:DN, content:NodeGroupCategoryContent) : IOLdap[Unit] = {
           //start with the category
           //then with technique/directive for that category
           //then recurse on sub-categories
@@ -179,7 +184,7 @@ class ImportGroupLibraryImpl(
 
           for {
             category      <- con.save(categoryEntry) ?~! "Error when persisting category with DN '%s' in LDAP".format(categoryEntry.dn)
-            groups        <- sequence(content.groups.toSeq) { nodeGroup =>
+            groups        <- content.groups.toVector.traverse { nodeGroup =>
                                val nodeGroupEntry = rudderDit.GROUP.groupModel(
                                   nodeGroup.id.value,
                                   categoryEntry.dn,
@@ -194,7 +199,7 @@ class ImportGroupLibraryImpl(
 
                                con.save(nodeGroupEntry,true) ?~! "Error when persisting group entry with DN '%s' in LDAP".format(nodeGroupEntry.dn)
                              }
-            subCategories <- sequence(content.categories.toSeq) { cat =>
+            subCategories <- content.categories.toVector.traverse { cat =>
                                recSaveUserLib(categoryEntry.dn, cat)
                              }
           } yield {
@@ -211,23 +216,20 @@ class ImportGroupLibraryImpl(
       //the sequence of operation to actually perform the swap with rollback
       for {
         con      <- ldap
-        archived <- moveToArchive(con, rudderDit.GROUP.dn, targetArchiveDN)
+        archived <- moveToArchive(con, rudderDit.GROUP.dn, targetArchiveDN).toIOLdap
         finished <- {
                       (for {
                         saved  <- saveUserLib(con, userLib)
-                        system <-if(includeSystem) Full("OK")
-                                   else copyBackSystemEntrie(con, rudderDit.GROUP.dn, targetArchiveDN) ?~! "Error when copying back system entries in the imported library"
+                        system <- if(includeSystem) "OK".successIOLdap()
+                                  else (copyBackSystemEntrie(con, rudderDit.GROUP.dn, targetArchiveDN) ?~! "Error when copying back system entries in the imported library").toIOLdap
                       } yield {
                         system
-                      }) match {
-                           case Full(unit)  => Full(unit)
-                           case eb:EmptyBox =>
-                             logger.error("Error when trying to load archived active technique library. Rollbaching to previous one.")
-                             restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN) match {
-                               case eb2: EmptyBox => eb ?~! "Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value)
-                               case Full(_) => eb ?~! "Error when trying to load archived active technique library. A rollback to previous state was executed"
-                             }
-
+                      }).leftMap { e =>
+                        logger.error("Error when trying to load archived active technique library. Rollbaching to previous one.")
+                        restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN).fold(
+                          _ => LDAPConnectionError.Chained("Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value), e)
+                        , _ => LDAPConnectionError.Chained("Error when trying to load archived active technique library. A rollback to previous state was executed", e)
+                        )
                       }
                     }
       } yield {
@@ -242,7 +244,7 @@ class ImportGroupLibraryImpl(
      * - all ids must be uniques
      * + remove system library if we don't want them
      */
-    def checkUserLibConsistance(userLib:NodeGroupCategoryContent) : Box[NodeGroupCategoryContent] = {
+    def checkUserLibConsistance(userLib:NodeGroupCategoryContent) : IOLdap[NodeGroupCategoryContent] = {
       import scala.collection.mutable.{Set,Map}
       val nodeGroupIds = Set[NodeGroupId]()
       val nodeGroupNames = Map[String, NodeGroupId]()
@@ -308,7 +310,7 @@ class ImportGroupLibraryImpl(
         }
       }
 
-      Box(recSanitizeCategory(userLib, userLib.category, true)) ?~! "Error when trying to sanitize serialised user library for consistency errors"
+      (Box(recSanitizeCategory(userLib, userLib.category, true)) ?~! "Error when trying to sanitize serialised user library for consistency errors").toIOLdap
     }
 
     //all the logic for a library swap.
@@ -323,13 +325,10 @@ class ImportGroupLibraryImpl(
         deleted <- con.delete(dn)
       } yield {
         deleted
-      }) match {
-        case eb:EmptyBox =>
-          logger.warn("Error when deleting archived library in LDAP with DN '%s'".format(dn))
-        case _ => //
-      }
+      }).leftMap(e =>
+          logger.warn(s"Error when deleting archived library in LDAP with DN '${dn}': ${e.messageChain}")
+      )
       () // unit is expected
     }
-
-  }
+  }.toBox
 }

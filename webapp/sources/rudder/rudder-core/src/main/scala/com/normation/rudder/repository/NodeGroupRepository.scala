@@ -282,16 +282,6 @@ trait RoNodeGroupRepository {
    */
   def getCategoryHierarchy : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]]
 
-
-  /**
-   * retrieve the hierarchy of group category/group containing the selected node
-   * From a category id (should start from root) return Empty if no children nor items contains the targets, Full(category) otherwise, with both
-   * target and children filtered.
-   * Probably suboptimal
-   */
-  def findGroupHierarchy(categoryId : NodeGroupCategoryId, targets : Seq[RuleTarget])  : Box[NodeGroupCategory]
-
-
   /**
    * Return all categories
    * @return

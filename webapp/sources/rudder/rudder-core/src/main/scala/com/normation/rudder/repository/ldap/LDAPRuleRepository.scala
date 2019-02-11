@@ -54,8 +54,8 @@ import com.normation.rudder.domain.archives.RuleArchiveId
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.repository.EventLogRepository
-
+import com.normation.ldap.sdk.IOLdap._
+import cats.implicits._
 
 class RoLDAPRuleRepository(
     val rudderDit: RudderDit
@@ -73,40 +73,42 @@ class RoLDAPRuleRepository(
   def get(id:RuleId) : Box[Rule]  = {
     for {
       con     <- ldap
-      crEntry <- con.get(rudderDit.RULES.configRuleDN(id.value))
-      rule    <- mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, crEntry)
+      crEntry <- con.get(rudderDit.RULES.configRuleDN(id.value)).notOptional(s"Rule with id '${id.value}' was not found")
+      rule    <- (mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, crEntry)).toIOLdap
     } yield {
       rule
     }
-  }
+  }.toBox
 
   def getAll(includeSystem:Boolean = false) : Box[Seq[Rule]] = {
     val filter = if(includeSystem) IS(OC_RULE) else AND(IS(OC_RULE), EQ(A_IS_SYSTEM,false.toLDAPString))
     for {
-      con   <- ldap
-      rules <- sequence(con.searchOne(rudderDit.RULES.dn, filter)) { crEntry =>
-                 mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule. Entry: %s".format(crEntry)
-               }
+      con     <- ldap
+      entries <- con.searchOne(rudderDit.RULES.dn, filter)
+      rules   <- entries.toVector.traverse { crEntry =>
+                   (mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule. Entry: %s".format(crEntry)).toIOLdap
+                 }
     } yield {
       rules
     }
-  }
+  }.toBox
 
   def getIds(includeSystem:Boolean = false) : Box[Set[RuleId]] = {
     val filter = if(includeSystem) IS(OC_RULE) else AND(IS(OC_RULE), EQ(A_IS_SYSTEM,false.toLDAPString))
     for {
-      con <- ldap
-      ids <- sequence(con.searchOne(rudderDit.RULES.dn, filter, A_RULE_UUID)) { ruleEntry =>
-               for {
-                 id <- Box(ruleEntry(A_RULE_UUID)) ?~! s"Missing required attribute uuid in rule entry ${ruleEntry.dn.toString}"
-               } yield {
-                 RuleId(id)
-               }
-             }
+      con     <- ldap
+      entries <- con.searchOne(rudderDit.RULES.dn, filter, A_RULE_UUID)
+      ids     <- entries.toVector.traverse { ruleEntry =>
+                   for {
+                     id <- ruleEntry(A_RULE_UUID).successIOLdap().notOptional(s"Missing required attribute uuid in rule entry ${ruleEntry.dn.toString}")
+                   } yield {
+                     RuleId(id)
+                   }
+                 }
     } yield {
       ids.toSet
     }
-  }
+  }.toBox
 
 }
 
@@ -140,86 +142,84 @@ class WoLDAPRuleRepository(
   def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff] = {
     for {
       con          <- ldap
-      entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)) ?~! "rule with ID '%s' is not present".format(id.value)
-      oldCr        <- mapper.entry2Rule(entry) ?~! "Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry)
-      isSytem      <- if(oldCr.isSystem) Failure("Deleting system rule '%s (%s)' is forbiden".format(oldCr.name, oldCr.id.value)) else Full("OK")
+      entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)).notOptional("rule with ID '%s' is not present".format(id.value))
+      oldCr        <- (mapper.entry2Rule(entry) ?~! "Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry)).toIOLdap
+      isSytem      <- if(oldCr.isSystem) "Deleting system rule '%s (%s)' is forbiden".format(oldCr.name, oldCr.id.value).failureIOLdap() else "OK".successIOLdap()
       deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)) ?~! "Error when deleting rule with ID %s".format(id)
       diff         =  DeleteRuleDiff(oldCr)
-      loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
-      autoArchive  <- if(autoExportOnModify && deleted.size > 0  && !oldCr.isSystem) {
+      loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason).toIOLdap
+      autoArchive  <- (if(autoExportOnModify && deleted.size > 0  && !oldCr.isSystem) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                           archive  <- gitCrArchiver.deleteRule(id, Some((modId, commiter, reason)))
                         } yield {
                           archive
                         }
-                      } else Full("ok")
+                      } else Full("ok")).toIOLdap
     } yield {
       diff
     }
-  }
-
-
+  }.toBox
 
   def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[AddRuleDiff] = {
     repo.synchronized { for {
       con             <- ldap
       idDoesntExist   <- if(con.exists(rudderDit.RULES.configRuleDN(rule.id.value))) {
-                           Failure(s"Cannot create a rule with ID '${rule.id.value}' : there is already a rule with the same id")
+                           s"Cannot create a rule with ID '${rule.id.value}' : there is already a rule with the same id".failureIOLdap()
                          } else {
-                           Full(Unit)
+                           Unit.successIOLdap()
                          }
-      nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id)) Failure("Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name))
-                         else Full(Unit)
+      nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id)) "Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name).failureIOLdap()
+                         else Unit.successIOLdap()
       crEntry         =  mapper.rule2Entry(rule)
       result          <- con.save(crEntry) ?~! s"Error when saving rule entry in repository: ${crEntry}"
-      diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn,result)
-      loggedAction    <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason)
-      autoArchive     <- if(autoExportOnModify && !rule.isSystem) {
+      diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn,result).toIOLdap
+      loggedAction    <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason).toIOLdap
+      autoArchive     <- (if(autoExportOnModify && !rule.isSystem) {
                            for {
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                              archive  <- gitCrArchiver.archiveRule(rule, Some((modId, commiter, reason)))
                            } yield {
                              archive
                            }
-                         } else Full("ok")
+                         } else Full("ok")).toIOLdap
     } yield {
       diff
     } }
-  }
+  }.toBox
 
   private[this] def internalUpdate(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean) : Box[Option[ModifyRuleDiff]] = {
     repo.synchronized { for {
       con           <- ldap
-      existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)) ?~! s"Cannot update rule with id ${rule.id.value} : there is no rule with that id"
-      oldRule       <- mapper.entry2Rule(existingEntry) ?~! s"Error when transforming LDAP entry into a Rule for id ${rule.id.value}. Entry: ${existingEntry}"
+      existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)).notOptional(s"Cannot update rule with id ${rule.id.value} : there is no rule with that id")
+      oldRule       <- (mapper.entry2Rule(existingEntry) ?~! s"Error when transforming LDAP entry into a Rule for id ${rule.id.value}. Entry: ${existingEntry}").toIOLdap
       systemCheck   <- (oldRule.isSystem, systemCall) match {
-                       case (true, false) => Failure(s"System rule '${oldRule.name}' (${oldRule.id.value}) can not be modified")
-                       case (false, true) => Failure("You can't modify a non-system rule with updateSystem method")
-                       case _ => Full("OK")
+                       case (true, false) => s"System rule '${oldRule.name}' (${oldRule.id.value}) can not be modified".failureIOLdap()
+                       case (false, true) => "You can't modify a non-system rule with updateSystem method".failureIOLdap()
+                       case _ => "OK".successIOLdap()
                      }
-      nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id))
-                           Failure("Cannot update rule with name \"%s\" : this name is already in use.".format(rule.name))
-                         else Full(Unit)
+      nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id)) {
+                           "Cannot update rule with name \"%s\" : this name is already in use.".format(rule.name).failureIOLdap()
+                         } else Unit.successIOLdap()
       crEntry         =  mapper.rule2Entry(rule)
       result          <- con.save(crEntry, true) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
-      optDiff         <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result) ?~! "Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result)
+      optDiff         <- (diffMapper.modChangeRecords2RuleDiff(existingEntry,result) ?~! "Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result)).toIOLdap
       loggedAction    <- optDiff match {
-                           case None => Full("OK")
-                           case Some(diff) => actionLogger.saveModifyRule(modId, principal = actor, modifyDiff = diff, reason = reason)
+                           case None => "OK".successIOLdap()
+                           case Some(diff) => actionLogger.saveModifyRule(modId, principal = actor, modifyDiff = diff, reason = reason).toIOLdap
                          }
-      autoArchive     <- if(autoExportOnModify && optDiff.isDefined  && !rule.isSystem) {
+      autoArchive     <- (if(autoExportOnModify && optDiff.isDefined  && !rule.isSystem) {
                            for {
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                              archive  <- gitCrArchiver.archiveRule(rule, Some((modId, commiter, reason)))
                            } yield {
                              archive
                            }
-                         } else Full("ok")
+                         } else Full("ok")).toIOLdap
     } yield {
       optDiff
     } }
-  }
+  }.toBox
 
   def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
     internalUpdate(rule, modId, actor, reason, false)
@@ -244,16 +244,16 @@ class WoLDAPRuleRepository(
   def swapRules(newCrs:Seq[Rule]) : Box[RuleArchiveId] = {
 
     //save rules, taking care of serial value
-    def saveCR(con:RwLDAPConnection, rule:Rule) : Box[LDIFChangeRecord] = {
+    def saveCR(con:RwLDAPConnection, rule:Rule) : IOLdap[LDIFChangeRecord] = {
       val entry = mapper.rule2Entry(rule)
       con.save(entry)
     }
     //restore the archive in case of error
     //that method will be hard to achieve out of here due to serial
-    def restore(con:RwLDAPConnection, previousCRs:Seq[Rule]) = {
+    def restore(con:RwLDAPConnection, previousCRs:Seq[Rule]): IOLdap[Seq[LDIFChangeRecord]] = {
       for {
         deleteCR  <- con.delete(rudderDit.RULES.dn)
-        savedBack <- sequence(previousCRs) { rule =>
+        savedBack <- previousCRs.toVector.traverse { rule =>
                        saveCR(con,rule)
                      }
       } yield {
@@ -270,7 +270,7 @@ class WoLDAPRuleRepository(
     repo.synchronized {
 
       for {
-        existingCrs <- getAll(true)
+        existingCrs <- getAll(true).toIOLdap
         con         <- ldap
         //ok, now that's the dangerous part
         swapCr      <- (for {
@@ -278,35 +278,31 @@ class WoLDAPRuleRepository(
                          renamed     <- con.move(rudderDit.RULES.dn, ou.dn.getParent, Some(ou.dn.getRDN))
                          //now, create back config rule branch and save rules
                          crOu        <- con.save(rudderDit.RULES.model)
-                         savedCrs    <- sequence(newCrs) { rule =>
-                                        saveCR(con, rule)
-                                     }
+                         savedCrs    <- newCrs.toVector.traverse { rule =>
+                                          saveCR(con, rule)
+                                        }
                          //if include system is false, copy back system rule
-                         copyBack    <- sequence(existingCrs.filter( _.isSystem)) { syscr =>
+                         copyBack    <- existingCrs.filter( _.isSystem).toVector.traverse { syscr =>
                                           saveCR(con, syscr)
                                         }
                        } yield {
                          id
-                       }) match {
-                         case ok:Full[_] => ok
-                         case eb:EmptyBox => //ok, so there, we have a problem
-                           val e = eb ?~! "Error when importing CRs, trying to restore old CR"
-                           logger.error(e)
-                           restore(con, existingCrs) match {
-                             case _:Full[_] =>
-                               logger.info("Rollback rules")
-                               e ?~! "Rollbacked imported rules to previous state"
-                             case x:EmptyBox =>
-                               val m = "Error when rollbacking corrupted import for rules, expect other errors. Archive ID: '%s'".format(id.value)
-                               e ?~! m
-                           }
-
+                       }).leftMap { eb =>
+                           val e = LDAPConnectionError.Chained("Error when importing CRs, trying to restore old CR", eb)
+                           logger.error(e.messageChain)
+                           restore(con, existingCrs).fold(_ =>
+                               LDAPConnectionError.Chained("Error when rollbacking corrupted import for rules, expect other errors. Archive ID: '%s'".format(id.value), e)
+                            ,  _ => {
+                                 logger.info("Rollback rules")
+                                 LDAPConnectionError.Chained("Rollbacked imported rules to previous state", e)
+                               }
+                            )
                        }
       } yield {
         id
       }
     }
-  }
+  }.toBox
 
   def deleteSavedRuleArchiveId(archiveId:RuleArchiveId) : Box[Unit] = {
     repo.synchronized {
@@ -317,7 +313,5 @@ class WoLDAPRuleRepository(
         {}
       }
     }
-  }
-
-
+  }.toBox
 }

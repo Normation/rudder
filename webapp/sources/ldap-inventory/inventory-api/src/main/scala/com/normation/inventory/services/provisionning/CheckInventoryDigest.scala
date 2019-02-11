@@ -170,7 +170,7 @@ class InventoryDigestServiceV1(
     }
 
     repo.get(receivedInventory.node.main.id) match {
-      case Full(storedInventory) =>
+      case Full(Some(storedInventory)) =>
         val status = storedInventory.node.main.keyStatus
         val inventory  : NodeInventory = status match {
           case UndefinedKey =>

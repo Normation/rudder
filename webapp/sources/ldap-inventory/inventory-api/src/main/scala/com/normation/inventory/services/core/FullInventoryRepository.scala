@@ -48,7 +48,7 @@ trait ReadOnlyMachineRepository {
    * it should not. In that case, return the machine with the most
    * prioritary status (Accepted > Pending > Removed)
    */
-  def get(id:MachineUuid) : Box[MachineInventory]
+  def get(id:MachineUuid) : Box[Option[MachineInventory]]
 
 }
 
@@ -101,9 +101,9 @@ trait ReadOnlyFullInventoryRepository {
    * Retrieve a full ServerAndMachine.
    * TODO: allows to lazy-load some heavy parts, like software, machine elements, etc.
    */
-  def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[FullInventory]
-  def get(id:NodeId) : Box[FullInventory]
-  def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : Box[(MachineUuid, InventoryStatus)]
+  def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[Option[FullInventory]]
+  def get(id:NodeId) : Box[Option[FullInventory]]
+  def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : Box[Option[(MachineUuid, InventoryStatus)]]
 
   def getAllInventories(inventoryStatus : InventoryStatus): Box[Map[NodeId, FullInventory]]
 

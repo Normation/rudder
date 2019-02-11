@@ -43,9 +43,9 @@ import com.normation.ldap.sdk._
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.nodes._
 import net.liftweb.common._
-import com.normation.rudder.repository.EventLogRepository
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.rudder.domain.Constants
+import com.normation.ldap.sdk.IOLdap._
 
 class WoLDAPNodeRepository(
     nodeDit             : NodeDit
@@ -59,28 +59,28 @@ class WoLDAPNodeRepository(
     import com.normation.rudder.services.nodes.NodeInfoService.{nodeInfoAttributes => attrs}
     repo.synchronized { for {
       con           <- ldap
-      existingEntry <- con.get(nodeDit.NODES.NODE.dn(node.id.value), attrs:_*) ?~! s"Cannot update node with id ${node.id.value} : there is no node with that id"
-      oldNode       <- mapper.entryToNode(existingEntry) ?~! s"Error when transforming LDAP entry into a node for id ${node.id.value} . Entry: ${existingEntry}"
-      _             <- checkNodeModification(oldNode, node)
+      existingEntry <- con.get(nodeDit.NODES.NODE.dn(node.id.value), attrs:_*).notOptional(s"Cannot update node with id ${node.id.value} : there is no node with that id")
+      oldNode       <- (mapper.entryToNode(existingEntry) ?~! s"Error when transforming LDAP entry into a node for id ${node.id.value} . Entry: ${existingEntry}").toIOLdap
+      _             <- checkNodeModification(oldNode, node).toIOLdap
       // here goes the check that we are not updating policy server
       nodeEntry     =  mapper.nodeToEntry(node)
       result        <- con.save(nodeEntry, true, Seq()) ?~! s"Error when saving node entry in repository: ${nodeEntry}"
       // only record an event log if there is an actual change
       _             <- result match {
-                         case LDIFNoopChangeRecord(_) => Full("ok")
+                         case LDIFNoopChangeRecord(_) => "ok".successIOLdap()
                          case _                       =>
                            val diff = ModifyNodeDiff(oldNode, node)
-                           actionLogger.saveModifyNode(modId, actor, diff, reason)
+                           actionLogger.saveModifyNode(modId, actor, diff, reason).toIOLdap
                        }
     } yield {
       node
     } }
-  }
+  }.toBox
 
-    /**
-     * This method allows to check if the modification that will be made on a node are licit.
-     * (in particular on root node)
-     */
+  /**
+   * This method allows to check if the modification that will be made on a node are licit.
+   * (in particular on root node)
+   */
   def checkNodeModification(oldNode: Node, newNode: Node): Box[Unit] = {
     // use cats validation
     import cats.implicits._

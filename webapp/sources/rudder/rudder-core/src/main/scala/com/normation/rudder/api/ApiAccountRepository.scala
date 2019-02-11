@@ -47,8 +47,6 @@ import com.normation.ldap.sdk.BuildFilter
 import com.normation.rudder.domain.RudderLDAPConstants
 import net.liftweb.common.Loggable
 import net.liftweb.common.EmptyBox
-import net.liftweb.common.Empty
-import net.liftweb.common.Failure
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.rudder.domain.RudderLDAPConstants.A_API_UUID
 import com.normation.rudder.repository.ldap.LDAPDiffMapper
@@ -58,6 +56,8 @@ import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
 import org.joda.time.DateTime
 import com.normation.utils.StringUuidGenerator
+import com.normation.ldap.sdk.IOLdap._
+import com.normation.ldap.sdk.LDAPConnectionError
 
 /**
  * A repository to retrieve API Accounts
@@ -122,10 +122,10 @@ final class RoLDAPApiAccountRepository(
   override def getSystemAccount: ApiAccount = systemAPIAccount
 
   override def getAllStandardAccounts: Box[Seq[ApiAccount]] = {
-    for {
-      ldap <- ldapConnexion
+    (for {
+      ldap    <- ldapConnexion
+      entries <- ldap.searchOne(rudderDit.API_ACCOUNTS.dn, BuildFilter.IS(RudderLDAPConstants.OC_API_ACCOUNT))
     } yield {
-      val entries = ldap.searchOne(rudderDit.API_ACCOUNTS.dn, BuildFilter.IS(RudderLDAPConstants.OC_API_ACCOUNT))
       //map to ApiAccount in a "as much as possible" way
       val accounts = entries.flatMap ( e => mapper.entry2ApiAccount(e) match {
           case eb:EmptyBox =>
@@ -138,28 +138,24 @@ final class RoLDAPApiAccountRepository(
           }
       } )
       accounts
-    }
+    }).toBox
   }
 
   override def getByToken(token: ApiToken): Box[Option[ApiAccount]] = {
     if (token == systemAPIAccount.token) {
       Full(Some(systemAPIAccount))
     } else {
-      for {
+      (for {
         ldap     <- ldapConnexion
         //here, be careful to the semantic of get with a filter!
-        optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, token.value)) match {
-                    case f:Failure => f
-                    case Empty => Full(None)
-                    case Full(e) => Full(Some(e))
-                  }
+        optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, token.value))
         optRes   <- optEntry match {
-                      case None => Full(None)
-                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) )
+                      case None    => None.successIOLdap()
+                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) ).toIOLdap
                     }
       } yield {
         optRes
-      }
+      }).toBox
     }
   }
 
@@ -167,20 +163,16 @@ final class RoLDAPApiAccountRepository(
     if (id == systemAPIAccount.id) {
       Full(Some(systemAPIAccount))
     } else {
-      for {
+      (for {
         ldap     <- ldapConnexion
-        optEntry <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)) match {
-                      case f:Failure => f
-                      case Empty => Full(None)
-                      case Full(e) => Full(Some(e))
-                    }
+        optEntry <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id))
         optRes   <- optEntry match {
-                      case None => Full(None)
-                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) )
+                      case None    => None.successIOLdap()
+                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) ).toIOLdap
                     }
       } yield {
         optRes
-      }
+      }).toBox
     }
   }
 }
@@ -200,35 +192,29 @@ final class WoLDAPApiAccountRepository(
     , modId     : ModificationId
     , actor     : EventActor) : Box[ApiAccount] = {
     repo.synchronized {
-      for {
+      (for {
         ldap     <- ldapConnexion
-        existing <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) match {
-                      case f:Failure => f
-                      case Empty => Full(None)
-                      case Full(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
-                                        Full(e)
+        existing <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) map {
+                      case None    => None.successIOLdap()
+                      case Some(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
+                                        Some(e).successIOLdap()
                                       } else {
-                                        Failure("An account with given token but different id already exists")
+                                        LDAPConnectionError.Rudder("An account with given token but different id already exists").failureIOLdap()
                                       }
                     }
-        name     <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) match {
-                      case f:Failure => f
-                      case Empty => Full(None)
-                      case Full(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
-                                        Full(e)
+        name     <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) map {
+                      case None    => None.successIOLdap()
+                      case Some(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
+                                        Some(e).successIOLdap()
                                       } else {
-                                        Failure(s"An account with the same name ${principal.name.value} exists")
+                                        LDAPConnectionError.Rudder(s"An account with the same name ${principal.name.value} exists").failureIOLdap()
                                       }
                     }
-        optPrevious <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id)) match {
-                        case f:Failure => f
-                        case Empty => Full(None)
-                        case Full(e) => Full(Some(e))
-                      }
+        optPrevious <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id))
 
         entry =  mapper.apiAccount2Entry(principal)
         saved <- ldap.save(entry, removeMissingAttributes=true)
-        loggedAction <- optPrevious match {
+        loggedAction <- (optPrevious match {
                             // if there is a previous value, then it's an update
                             case Some(previous) =>
                               for {
@@ -254,10 +240,10 @@ final class WoLDAPApiAccountRepository(
                               } yield {
                                 action
                               }
-                       }
+                       }).toIOLdap
       } yield {
         principal
-      }
+      }).toBox
     }
   }
 
@@ -265,15 +251,18 @@ final class WoLDAPApiAccountRepository(
       id        : ApiAccountId
     , modId     : ModificationId
     , actor     : EventActor) : Box[ApiAccountId] = {
-    for {
+    (for {
       ldap         <- ldapConnexion
-      entry        <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)) ?~! "Api Account with ID '%s' is not present".format(id.value)
-      oldAccount   <- mapper.entry2ApiAccount(entry)
+      entry        <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)).flatMap {
+                        case None    => LDAPConnectionError.Rudder(s"Api Account with ID '${id.value}' is not present").failureIOLdap()
+                        case Some(x) => x.successIOLdap()
+                      }
+      oldAccount   <- mapper.entry2ApiAccount(entry).toIOLdap
       deleted      <- ldap.delete(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id))
       diff         =  DeleteApiAccountDiff(oldAccount)
-      loggedAction <- actionLogger.saveDeleteApiAccount(modId, principal = actor, deleteDiff = diff, None)
+      loggedAction <- actionLogger.saveDeleteApiAccount(modId, principal = actor, deleteDiff = diff, None).toIOLdap
     } yield {
       id
-    }
+    }).toBox
   }
 }
