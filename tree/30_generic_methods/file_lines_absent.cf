@@ -28,13 +28,17 @@
 bundle agent file_lines_absent(file, lines)
 {
   vars:
-      "old_class_prefix" string => canonify("file_lines_absent_${file}");
-      "args"              slist => { "${file}", "${lines}" };
+      "old_class_prefix"  string => canonify("file_lines_absent_${file}");
+      "args"               slist => { "${file}", "${lines}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_lines_absent_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
+  classes:
+      "file_exists"   expression => fileexists("${file}");
+
   files:
+    file_exists::
       "${file}"
         create        => "false",
         edit_line     => delete_lines_matching("${lines}"),
@@ -42,7 +46,15 @@ bundle agent file_lines_absent(file, lines)
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
+    file_exists::
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
       "report"   usebundle => _log_v3("Ensure line(s) '${lines}' absent from ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+ 
+    !file_exists::
+      "success"  usebundle => _classes_success("${class_prefix}");
+      "success"  usebundle => _classes_success("${old_class_prefix}");
+      "report"   usebundle => _log_v3("File ${file} does not exist - line(s) not present", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+
 }
