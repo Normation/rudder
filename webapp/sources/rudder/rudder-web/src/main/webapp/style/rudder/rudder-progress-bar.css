@@ -39,6 +39,10 @@
 /*
  * Colours for our progress bars
  */
+
+.content-wrapper .progress .progress-bar{
+  color: #fff;
+}
 .content-wrapper .progress-bar-reportsdisabled {
   background-color: #b4b4b4;
 }
