@@ -11,9 +11,9 @@ use std::fs;
 
 // TODO next step:
 // - move out expression parsing
-// - variables (string, boolean)
-// - check that interpolated string contain valid variables
-// - type and type checking
+// - variables (boolean)
+// - global variables
+// - type checking
 
 fn main() {
     let mut pre_ast = PreAST::new();

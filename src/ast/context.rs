@@ -7,12 +7,14 @@ use std::collections::hash_map;
 // variable kind
 #[derive(Debug, PartialEq)]
 pub enum VarKind<'a> {
-    //       Resource type (File, ...) TODO resource with parameter
-    Resource(String),
+    //       Resource type (File, ...) TODO do we want that ?
+    //Resource(String),
     //   Enum          item value
     Enum(Token<'a>, Option<Token<'a>>),
-    //     type     value
-    Generic(PType, Option<Value<'a>>),
+    //     type
+    Generic(PType),
+    //       value
+    Constant(Value<'a>),
 }
 
 // TODO forbid variables names like global enum items (or enum type)
@@ -75,15 +77,25 @@ impl<'a> VarContext<'a> {
         Ok(())
     }
 
-    pub fn new_generic_variable(
+    pub fn new_variable(
         &mut self,
         upper_context: Option<&VarContext<'a>>,
         name: Token<'a>,
         ptype: PType,
-        value: Option<Value<'a>>,
     ) -> Result<()> {
         self.new_var(upper_context, name)?;
-        self.variables.insert(name, VarKind::Generic(ptype, value));
+        self.variables.insert(name, VarKind::Generic(ptype));
+        Ok(())
+    }
+
+    pub fn new_constant(
+        &mut self,
+        upper_context: Option<&VarContext<'a>>,
+        name: Token<'a>,
+        value: Value<'a>,
+    ) -> Result<()> {
+        self.new_var(upper_context, name)?;
+        self.variables.insert(name, VarKind::Constant(value));
         Ok(())
     }
 
@@ -96,7 +108,7 @@ impl<'a> VarContext<'a> {
     ) -> Option<&'b VarKind<'a>> {
         self.variables
             .get(&name)
-            //.cloned()
+            //.cloned() TODO ??
             .or_else(|| match upper_context {
                 None => None,
                 Some(gc) => gc.get_variable(None, name),

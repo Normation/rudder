@@ -218,7 +218,7 @@ pnamed!(
 );
 
 /// A PType is the type a variable or a parameter can take.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PType {
     TString,
     TInteger,

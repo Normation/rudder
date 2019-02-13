@@ -32,6 +32,8 @@ resource ntp ()
 
 ntp state configuration ()
 {
+  x="pouet"
+  youpi = "youp${x}i"
   File("/tmp").permissions("root", "x$${root}i${youpi}2", "g+w") as outvar
 
   case {

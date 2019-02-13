@@ -22,6 +22,10 @@ ntp state configuration ()
   #obj = file("/tmp")
   # Data variable (not yet implemented)
   #var= "value"
+  #bool=expression
+  #var=f(x)
+  #var=measure(file)
+  #
   # Sinite choice data variable (not yet implemented)
   #var=case { 
   #  os =~ Redhat => "value", ...

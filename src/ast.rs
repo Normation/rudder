@@ -80,6 +80,23 @@ impl<'a> Value<'a> {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos,s)?)),
         }
     }
+
+    pub fn context_check(&self, gc: Option<&VarContext<'a>>, context: &VarContext<'a>) -> Result<()> {
+        match self {
+            Value::String(s) => fix_results(s.vars.iter().map(|v|
+                match context.get_variable(gc, Token::new("",v)) {
+                    None => fail!(s.pos, "Variable {} does not exist at {}",v, s.pos),
+                    _ => Ok(()),
+                }
+            )),
+        }
+    }
+
+    pub fn get_type(&self) -> PType {
+        match self {
+            Value::String(_) => PType::TString,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -150,24 +167,30 @@ impl<'a> Statement<'a> {
     fn fom_pstatement<'b>(
         enum_list: &'b EnumList<'a>,
         gc: Option<&'b VarContext<'a>>,
-        c: &'b mut VarContext<'a>,
+        context: &'b mut VarContext<'a>,
         children: &'b mut HashSet<Token<'a>>,
         st: PStatement<'a>,
     ) -> Result<Statement<'a>> {
         Ok(match st {
             PStatement::Comment(c) => Statement::Comment(c),
             PStatement::VariableDefinition(var, val) => {
-                // TODO c.insert_var(var,val)
-                Statement::VariableDefinition(var, Value::from_pvalue(val)?)
+                let value = Value::from_pvalue(val)?;
+                // check that definition use existing variables
+                value.context_check(gc, context)?;
+                context.new_variable(gc, var, value.get_type())?;
+                Statement::VariableDefinition(var, value)
             }
             PStatement::StateCall(mode, res, res_params, st, params, out) => {
                 if let Some(out_var) = out {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
-                    c.new_enum_variable(gc, out_var, Token::new("internal", "outcome"), None)?;
+                    context.new_enum_variable(gc, out_var, Token::new("internal", "outcome"), None)?;
                 }
                 children.insert(res);
                 let res_parameters = fix_vec_results(res_params.into_iter().map(|v| Value::from_pvalue(v)))?;
                 let parameters = fix_vec_results(params.into_iter().map(|v| Value::from_pvalue(v)))?;
+                // check that parameters use existing variables
+                fix_results(res_parameters.iter().map(|p| p.context_check(gc, context)))?;
+                fix_results(parameters.iter().map(|p| p.context_check(gc, context)))?;
                 Statement::StateCall(mode, res, res_parameters, st, parameters, out)
             }
             PStatement::Fail(f) => Statement::Fail(f),
@@ -177,10 +200,10 @@ impl<'a> Statement<'a> {
             PStatement::Case(case, v) => {
                 Statement::Case(case, fix_vec_results(v.into_iter().map(|(exp, sts)| {
                     Ok((
-                        enum_list.canonify_expression(gc, c, exp)?,
+                        enum_list.canonify_expression(gc, context, exp)?,
                         fix_vec_results(
                             sts.into_iter()
-                                .map(|st| Statement::fom_pstatement(enum_list, gc, c, children, st)),
+                                .map(|st| Statement::fom_pstatement(enum_list, gc, context, children, st)),
                         )?,
                     ))
                 }))?)
@@ -189,6 +212,7 @@ impl<'a> Statement<'a> {
     }
 }
 
+// TODO global variables
 // TODO type inference
 // TODO check that parameter type match parameter default
 // TODO put default parameter in calls
@@ -253,7 +277,11 @@ impl<'a> AST<'a> {
                         states.entry(st.name).key()
                     );
                 } else {
+                    let parameters = fix_vec_results(st.parameters.into_iter().map(Parameter::from_pparameter))?;
                     let mut variables = VarContext::new();
+                    for param in parameters.iter() {
+                        variables.new_variable(Some(&global_variables), param.name, param.ptype)?;
+                    }
                     let statements = fix_vec_results(st.statements.into_iter().map(|st0| {
                         Statement::fom_pstatement(
                             &enum_list,
@@ -265,7 +293,7 @@ impl<'a> AST<'a> {
                     }))?;
                     let state = StateDef {
                         metadata: meta,
-                        parameters: fix_vec_results(st.parameters.into_iter().map(Parameter::from_pparameter))?,
+                        parameters,
                         statements,
                         variables,
                     };
