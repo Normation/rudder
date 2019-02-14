@@ -38,7 +38,7 @@ ntp state configuration ()
 
   case {
     outvar =~ kept => File("/tmp").permissions("root", "root", "g+w"),
-    outvar =~ repaired => File("/tmp").permissions("user", "user", "g+w"),
+    outvar =~ repaired  => File("/tmp").permissions("user", "user", "g+w"),
     outvar =~ error => File("/tmp").permissions("user", "user", "g+w")
   }
   case {

@@ -8,7 +8,6 @@ use std::collections::HashSet;
 use std::collections::hash_map;
 
 // TODO there can be only one mapping per item that defines an identical descendant
-// TODO handle boolean enums in expressions
 
 /// As single enum can be derived into different set through multiple mappings
 /// However a single enum can have only one parent (single ascending path, multiple descending paths)
@@ -41,30 +40,30 @@ pub enum EnumExpression<'a> {
     And(Box<EnumExpression<'a>>, Box<EnumExpression<'a>>),
     Or(Box<EnumExpression<'a>>, Box<EnumExpression<'a>>),
     Not(Box<EnumExpression<'a>>),
-    Default,
+    Default(Token<'a>), // token for position handling only
 }
 
 impl<'a> EnumExpression<'a> {
     /// print the expression position in source code for user output
     pub fn position_str(&self) -> String {
         // TODO keep position in default
-        let (file, line, col) = self.position().unwrap_or((String::from("unknown"), 0, 0));
+        let (file, line, col) = self.position();
         format!("{}:{}:{}", file, line, col)
     }
     /// extract the position triplet
-    pub fn position(&self) -> Option<(String, u32, usize)> {
+    pub fn position(&self) -> (String, u32, usize) {
         match self {
-            EnumExpression::Compare(_, _, v) => Some(v.position()),
-            EnumExpression::And(a, b) => a.position().or_else(|| b.position()),
-            EnumExpression::Or(a, b) => a.position().or_else(|| b.position()),
+            EnumExpression::Compare(_, _, v) => v.position(),
+            EnumExpression::And(a, _) => a.position(),
+            EnumExpression::Or(a, _) => a.position(),
             EnumExpression::Not(a) => a.position(),
-            EnumExpression::Default => None,
+            EnumExpression::Default(a) => a.position(),
         }
     }
     // return true if this is just the expression 'default'
     pub fn is_default(&self) -> bool {
         match self {
-            EnumExpression::Default => true,
+            EnumExpression::Default(_) => true,
             _ => false
         }
     }
@@ -289,7 +288,7 @@ impl<'a> EnumList<'a> {
         expr: PEnumExpression<'a>,
     ) -> Result<EnumExpression<'a>> {
         match expr {
-            PEnumExpression::Default => Ok(EnumExpression::Default),
+            PEnumExpression::Default(t) => Ok(EnumExpression::Default(t)),
             PEnumExpression::Not(e) => Ok(EnumExpression::Not(Box::new(
                 self.canonify_expression(upper_context, context, *e)?,
             ))),
@@ -416,7 +415,7 @@ impl<'a> EnumList<'a> {
         expr: &EnumExpression,
     ) -> bool {
         match expr {
-            EnumExpression::Default => true,
+            EnumExpression::Default(_) => true,
             EnumExpression::Not(e) => !self.eval(values, &e),
             EnumExpression::Or(e1, e2) => self.eval(values, &e1) || self.eval(values, &e2),
             EnumExpression::And(e1, e2) => self.eval(values, &e1) && self.eval(values, &e2),
@@ -434,7 +433,7 @@ impl<'a> EnumList<'a> {
     /// Only used by evaluate.
     fn list_variable_enum(&self, variables: &mut HashSet<Token<'a>>, expr: &'a EnumExpression) {
         match expr {
-            EnumExpression::Default => (),
+            EnumExpression::Default(_) => (),
             EnumExpression::Not(e) => self.list_variable_enum(variables, e),
             EnumExpression::Or(e1, e2) => {
                 self.list_variable_enum(variables, e1);

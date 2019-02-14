@@ -18,8 +18,7 @@ use nom::*;
 // TODO add more types
 // TODO lifetime = 'src
 // TODO namespace in identifiers
-// TODO reserve keywords (in analyser)
-// TODO iterators, variable definition
+// TODO iterators
 // TODO trailing comma
 // TODO move expression parsing out to enable multiple error reports
 
@@ -31,6 +30,11 @@ pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Resu
 /// Parse a string for interpolation
 pub fn parse_string(content: &str) -> crate::error::Result<(Vec<String>, Vec<String>)> {
     fix_error_type(interpolated_string(pinput("", content)))
+}
+
+/// Parse an enum expression
+pub fn parse_enum_expression(content: PInput) -> crate::error::Result<(PEnumExpression)> {
+    fix_error_type(penum_expression(content))
 }
 
 /// A source file header consists of a single line '@format=<version>'.
@@ -145,7 +149,7 @@ pub enum PEnumExpression<'a> {
     And(Box<PEnumExpression<'a>>, Box<PEnumExpression<'a>>),
     Or(Box<PEnumExpression<'a>>, Box<PEnumExpression<'a>>),
     Not(Box<PEnumExpression<'a>>),
-    Default,
+    Default(Token<'a>),
 }
 pnamed!(pub penum_expression<PEnumExpression>,
     // an expression must be exact (ie full string) as this parser can be used in isolation
@@ -158,7 +162,7 @@ pnamed!(
     sp!(alt!(enum_or_expression
        | enum_and_expression
        | enum_not_expression
-       | tag!("default") => { |_| PEnumExpression::Default } // default looks like an atom so it comes first
+       | tag!("default") => { |t| PEnumExpression::Default(Token::from(t)) } // default looks like an atom so it comes first
        | enum_atom
     ))
 );
@@ -433,8 +437,8 @@ pub enum PStatement<'a> {
         Option<Token<'a>>, // outcome
                            // TODO Option<PStatement<'a>>, // error management
     ),
-    //   case keyword, list of condition          then
-    Case(Token<'a>, Vec<(PEnumExpression<'a>, Vec<PStatement<'a>>)>),
+    //   case keyword, list (condition   ,       then)
+    Case(Token<'a>, Vec<(PInput<'a>, Vec<PStatement<'a>>)>), // keep the pinput since it will be reparsed later
     // Stop engine
     Fail(Token<'a>),
     // Inform the user of something
@@ -475,9 +479,9 @@ pnamed!(
             tag!("{") >>
             cases: separated_list!(tag!(","),
                       do_parse!(
-                          // flatmap to take until '=>' then parse expression separately for better
+                          // only to take until '=>' to parse expression later for better
                           // error management (penum_expression must not leave any unparsed token)
-                          expr: flat_map!(take_until!("=>"),penum_expression) >>
+                          expr: take_until!("=>") >>
                           tag!("=>") >>
                           stmt: alt!(
                               pstatement => { |x| vec![x] } |
@@ -497,10 +501,10 @@ pnamed!(
       | sp!(do_parse!(
             case: tag!("if") >>
             // same comment as above
-            expr: flat_map!(take_until!("=>"),penum_expression) >>
+            expr: take_until!("=>") >>
             tag!("=>") >>
             stmt: pstatement >>
-            (PStatement::Case(case.into(), vec![(expr,vec![stmt]), (PEnumExpression::Default,vec![PStatement::Log(Token::new("","TODO"))])] ))
+            (PStatement::Case(case.into(), vec![(expr.into(),vec![stmt]), (pinput(expr.extra,"default"),vec![PStatement::Log(Token::new("","TODO"))])] ))
         ))
         // Flow statements
       | tag!("fail!")    => { |_| PStatement::Fail(Token::new("","TODO")) } // TODO proper message
@@ -1053,20 +1057,21 @@ mod tests {
             mapok(pstatement(pinput("", "##hello Herman\n"))),
             Ok(("", PStatement::Comment("hello Herman".into())))
         );
+        let st = "case { ubuntu => f().g(), debian => a().b() }";
         assert_eq!(
             mapok(pstatement(pinput(
                 "",
-                "case { ubuntu => f().g(), debian => a().b() }"
+                st
             ))),
             Ok((
                 "",
                 PStatement::Case("case".into(), vec![
                     (
-                        penum_expression(pinput("", "ubuntu")).unwrap().1,
+                        { let mut s = pinput("", "ubuntu "); s.offset=7; s},
                         vec![pstatement(pinput("", "f().g()")).unwrap().1]
                     ),
                     (
-                        penum_expression(pinput("", "debian")).unwrap().1,
+                        { let mut s = pinput("", "debian "); s.offset=26; s},
                         vec![pstatement(pinput("", "a().b()")).unwrap().1]
                     ),
                 ])

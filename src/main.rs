@@ -10,7 +10,6 @@ use std::fs;
 // MAIN
 
 // TODO next step:
-// - move out expression parsing
 // - variables (boolean)
 // - global variables
 // - type checking

@@ -198,7 +198,8 @@ impl<'a> Statement<'a> {
             PStatement::Return(r) => Statement::Return(r),
             PStatement::Noop => Statement::Noop,
             PStatement::Case(case, v) => {
-                Statement::Case(case, fix_vec_results(v.into_iter().map(|(exp, sts)| {
+                Statement::Case(case, fix_vec_results(v.into_iter().map(|(exp_str, sts)| {
+                    let exp = parse_enum_expression(exp_str)?;
                     Ok((
                         enum_list.canonify_expression(gc, context, exp)?,
                         fix_vec_results(
@@ -537,7 +538,6 @@ impl<'a> AST<'a> {
             // check that resource definition is not recursive
             errors.push(self.children_check(*rname, &resource.children,0));
         }
-        // TODO check for string syntax and interpolation validity
         fix_results(errors.into_iter())
     }
 }

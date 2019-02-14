@@ -98,7 +98,7 @@ impl CFEngine {
                     format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
                 }
             }
-            EnumExpression::Default => {
+            EnumExpression::Default(_) => {
                 // extract current cases and build an opposite expression
                 if self.current_cases.is_empty() {
                     "any".to_string()
