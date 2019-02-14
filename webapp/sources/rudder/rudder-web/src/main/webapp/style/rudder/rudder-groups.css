@@ -70,3 +70,11 @@
 #groupsTree > .page-title{
   padding-bottom:7px;
 }
+#serverGrid tr.head th {
+  padding: 4px 6px;
+}
+#SearchNodes {
+  float: left;
+  width: 100%;
+  margin-bottom: 10px;
+}

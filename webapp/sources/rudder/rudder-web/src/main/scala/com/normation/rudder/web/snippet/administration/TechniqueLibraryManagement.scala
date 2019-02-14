@@ -349,7 +349,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         showTechniqueDetails()
       case _ =>
         <div id={htmlId_bottomPanel}>
-          <div  class="centertext">
+          <div  class="text-center">
           Click on a Technique or a category from user library to
           display its details.</div>
         </div>

@@ -120,14 +120,14 @@ class RuleCompliance (
       <div class="section-title">Recent changes</div>
     </div>
     <div id="recentChanges">
-      <div class="alert alert-info " style="font-size: 14px">
-        <div style="width:90%;display:inline-block;">
-        <span class="glyphicon glyphicon-info-sign"></span>
-        Details of changes for each period are displayed below the graph. Click to change the selected period.
+      <div class="alert alert-info">
+        <div>
+          <span class="glyphicon glyphicon-info-sign"></span>
+          Details of changes for each period are displayed below the graph. Click to change the selected period.
         </div>
-        <div class="recentChange_refresh">
-          {SHtml.ajaxButton(<i class="fa fa-refresh"></i>, () => refresh() , ("class","btn btn-primary btn-refresh") , ("title","Refresh"))}
-        </div>
+          <div class="recentChange_refresh">
+            {SHtml.ajaxButton(<i class="fa fa-refresh"></i>, () => refresh() , ("class","btn btn-primary btn-refresh") , ("title","Refresh"))}
+          </div>
       </div>
 
       <div id="changesChartContainer">

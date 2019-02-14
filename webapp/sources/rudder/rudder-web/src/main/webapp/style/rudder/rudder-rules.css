@@ -82,14 +82,31 @@ label.rule-info + div{
 .new-icon.category + .btn.btn-box-tool > .fa{
   margin-left:0;
 }
-#recentChanges .btn-refresh{
-  margin:-6px -6px 0 0;
+.recentChange_refresh{
+  float: right;
+  position: absolute;
+  top: calc(50% - 17px);
+  right: 8px;
+}
+#recentChanges {
+  /** If we want to scroll correctly to recent changes we need to set a minimum height,
+      or else when the graph appear (just after the scroll) we will only the the recent change section title
+  */
+  min-height: 300px;
+}
+#recentChanges .alert-info{
+  position: relative;
+  margin-top: 10px;
 }
 
 .targetContainer {
   min-height: 65px;
 }
-
+#details .dataTables_wrapper{
+  margin: 10px 0 20px 0;
+  float: left;
+  width: 100%;
+}
 @media (min-width: 991px) and (max-width: 1300px){
   .new-icon.category:before{
     content:"Add";

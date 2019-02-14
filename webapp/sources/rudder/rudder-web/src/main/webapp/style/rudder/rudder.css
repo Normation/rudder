@@ -37,6 +37,20 @@
 @-moz-document url-prefix() {
   fieldset { display: table-cell; }
 }
+
+* {
+  margin:0;
+  padding: 0;
+  list-style: none;
+}
+
+html {
+  height:100%;
+}
+
+
+
+
 /**********************************
  *Node inventory details
  **********************************/
@@ -51,11 +65,6 @@
 }
 
 .details {
-  margin: 0px;
-  padding: 0px;
-}
-
-.sInventory table {
   margin: 0px;
   padding: 0px;
 }
@@ -85,16 +94,9 @@
   overflow: auto;
 }
 
-div.innerDetails {
-  display: none;
-  background : #DEDEDE;
-  padding-left:5%;
-}
-
 /**********************************
  * Node details
  **********************************/
-
 
 #nodeDetails {
  padding:10px;
@@ -116,30 +118,8 @@ div.innerDetails {
   float: left;
 }
 
-table.nomargin {
- margin: 0px;
- width: 100%;
-}
-td.crTree {
-  border-top: 0px;
-  width: 32%;
-  vertical-align: top;
-}
-
-td.nodeIndernal {
-  border-top: 0px;
-  width: 56%;
-  vertical-align: top;
-}
-
-.showParameters {
-  margin-top:5px;
-  margin-bottom:3px;
-  text-decoration:underline;
-}
-
 /**********************************
- *          formulaire            *
+ *            FORM                *
  **********************************/
 
 .directiveTechnicalInfo{
@@ -151,12 +131,8 @@ td.nodeIndernal {
    cursor: pointer;
 }
 
-.inner-portlet div.intro {
-   margin: 5px 0px 0px 0px !important;
-}
-
 div.intro {
-   margin: 0px 0px 0px 0px;
+   margin: 5px 0px 0px 0px;
    padding: 0px;
    width: 100%;
    font-size: 1em;
@@ -177,14 +153,6 @@ div.intro div ul {
    padding: 0 0 0 20px;
 }
 
-form a {
-   color: #333333;
-}
-
-form table a {
-   color: black;
-}
-
 form h2 {
    padding: 0 10px;
    font-size: 1.2em;
@@ -202,47 +170,8 @@ form h3 {
    margin-left:10px;
 }
 
-form hr {
-   margin: 0 15px;
-   width: 95%;
-   clear: both;
-}
-form select {
-   width: auto;
-   padding: 2px;
-   background-color: #f8f8f8;
-   border: 1px solid #b4b3a8;
-}
-form label.champ {
-   float: left;
-   padding-right: 20px;
-   width: 25%;
-   text-align: right;
-}
-form input {
-   width: 130px;
-   padding: 2px;
-   background-color: #f8f8f8;
-   border: 1px solid #b4b3a8;
-}
-
 td.directiveVarValue > input {
   width: 500px;
-}
-
-form input[type=checkbox] {
-   width:auto;
-   padding:0px;
-}
-
-form textarea {
-  padding: 2px;
-  border: 1px solid #b4b3a8;
-}
-
-form input.radio {
-  width: auto;
-  border: 0px;
 }
 
 .compositionCheckbox input {
@@ -261,74 +190,6 @@ button.ui-state-default {
 
 }
 
-.dangerButton {
-  color: #990000 !important;
-}
-
-.dangerButton:hover {
-  background-color: #B33630 !important;
-  background-image: linear-gradient(#DC5F59, #B33630) !important;
-  background-repeat: repeat-x !important;
-  border-color: #CD504A !important;
-  color: #FFFFFF !important;
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3) !important;
-}
-
-button.largeButton {
-  width:250px !important;
-}
-
-.popupButton button {
-   background: linear-gradient(#FAFAFA, #EAEAEA) repeat scroll 0 0 transparent;
-   border: 1px solid #b4b3a8;
-   transition: none 0s ease 0s;
-   margin: 2px 0px 2px 0px;
-}
-
-.popupButton button:hover {
-   background-color: #EEEBE7;
-   font-weight: bold;
-   color: #000;
-   background: none;
-   border-color: #FBCB09;
-}
-
-.popupButton input {
-   background-color: #f8f8f8;
-   border: 1px solid #b4b3a8;
-}
-
-form .center input {
-   color: #000;
-   background-color: #fba511;
-   border: 1px solid #ff7200;
-}
-form span.inputDetail {
-   color: #666;
-   font-weight: 500;
-}
-form div.entete {
-   margin: 10px;
-   background-color: #fff3c9;
-}
-form .entete p {
-   float: left;
-   margin: 5px;
-   padding: 0 5px;
-}
-form p.search {
-   float: right;
-}
-
-
-#searchControl {
-  margin-top:10px;
-}
-#searchControl span {
-  margin-left: 10px;
-  margin-right: 10px;
-}
-
 form select.selectComparator {
    width: 150px;
 }
@@ -344,28 +205,6 @@ form select.selectField {
 
 }
 
-.cursor{
-  cursor:pointer;
-}
-
-.listopen:before{
-  content:url('../../images/tableau/flecheDroiteGris.png');
-  padding-right: 3px;
-}
-
-.listclose:before{
-  content:url('../../images/tableau/flecheBasGris.png');
-  padding-right: 3px;
-}
-
-input.hasDatepicker {
-  width:90px;
-}
-
-button.ui-datepicker-trigger {
-  width: 25px !important;
-}
-
 form input.removeLineButton {
   padding: 0em 0.3em;
   width:18px !important;
@@ -376,290 +215,6 @@ input.deleteNetwork * {
 }
 #lift__noticesContainer___notice ul {
   padding: 10px 20px;
-}
-
-/**************************************
-Tableau
-**************************************/
-#acceptNodeGrid {
-  width:100%;
-  border-left: 1px solid #B4B3A8;
-  border-right: 1px solid #B4B3A8;
-}
-#acceptNodeGrid > tbody > tr > td:nth-child(5),#acceptNodeGrid > tbody > tr > td:nth-child(6){
-  text-align:center;
-}
-#pending_server_history {
-  width:100%;
-  border-left: 1px solid #B4B3A8;
-  border-right: 1px solid #B4B3A8;
-}
-
-.sgridbph{
-  border:0;
-  padding:0;
-  height:200px;
-}
-
-.titleId{
-  padding-left: 15px;
-}
-
-.tablewidth{
-  width:100%;
-}
-
-.reportTableTitleWidth{
-  width:auto;
-}
-
-.reportbiggerWidth{
-  width:110px;
-}
-.reportTitleWidth{
-  width:92px;
-}
-.autotablewidth{
-  width:auto;
-}
-.tablepadding{
-  padding-left:15px;
-  padding-top:5px;
-  line-height: normal;
-}
-.tablemargin{
-  margin-top:5px;
-}
-
-.dataTables_wrapper table {
-  width:100%;
-  border: 1px solid #e8e8e8;
-  border-top: none;
-  border-bottom: none;
-}
-
-.content-wrapper #grid_rules_grid_zone a{
-  color:#333;
-}
-#acceptNodeGrid_wrapper {
-  margin: 10px;
-}
-
-caption {
-   display: none;
-}
-
-th, tr, td {
-   padding: 4px 3px;
-   text-align: left;
-}
-tr.head, tr.foot {
-   color: #fff;
-   font-weight: bold;
-}
-tr.foot {
-   background: url(../images/tableau/cCentrebas.jpg) bottom left;
-}
-tr.head {
-  background-image: -webkit-linear-gradient(top, #888, #555);
-  background-image: -moz-linear-gradient(top, #888, #555);
-  background-color: #666;
-}
-
-.head th.first {
-   padding: 5px 10px;
-   background: url(../images/tableau/cGhaut.jpg) no-repeat top left;
-}
-.head th.last {
-   background: url(../images/tableau/cDhaut.jpg) no-repeat top right;
-}
-.foot td.first {
-   padding: 5px 10px;
-   background: url(../images/tableau/cGbas.jpg) no-repeat bottom left;
-}
-.foot td.last {
-   background: url(../images/tableau/cDbas.jpg) no-repeat bottom right;
-}
-th a {
-   color: #fff;
-   font-weight: bold;
-   text-decoration: none;
-}
-tr.color1 {
-   background-color: #eee;
-}
-
-tr.color2 {
-   background-color: #fff;
-}
-
-td.center, .center {
-  text-align : center;
-}
-
-td.right {
-  text-align : right;
-}
-
-.warning {
-  color: #c00;
-}
-
-a.warning {
-  color: #c00;
-  padding-left: 30px;
-}
-
-table.dataTable td img, table.dataTable th img {
-  float: none;
-  margin: 0;
-  padding: 4px 0 0 0;
-}
-
-
-.head th input, .foot td input {
-  padding: 0.1em;
-  background-color: #f8f8f8;
-  border: 1px solid #b4b3a8;
-}
-
-.field_errors, .error, .errors {
-  color: #c00800;
-}
-
-.field_errors {
-  margin-top:4px;
-}
-
-.field_errors li {
-  list-style-position:inside;
-}
-
-
-
-/**********************
-* Custom for DataTable
-***********************/
-
-.dataTables_filter {
-  text-align:right;
-  width:50%;
-  float:right;
-}
-
-.newFilter .dataTables_filter {
-  float:left;
-  text-align:left;
-}
-
-.dataTables_filter input {
-  padding: 2px;
-  border: 1px solid #ccc;
-}
-
-.newFilter .dataTables_filter input {
-  padding: 8px 5px;
-  border: 1px solid #ccc;
-}
-
-.dataTables_length {
-  width:27%;
-  float:left;
-}
-
-.dataTables_{
-  float:right;
-  width:50%;
-  text-align:right
-}
-
-.dataTables_pickstart, .dataTables_pickend, .dataTables_pickdates{
-  float:right;
-}
-input.pickStartInput, input.pickEndInput {
-  width: 135px !important;
-  margin: 5px;
-}
-
-.dataTables_refresh{
-  float:right;
-  width:15%;
-  text-align:right
-}
-
-.recentChange_refresh {
-  float: right;
-  width: 10%;
-  text-align: right;
-}
-
-.paginate {
-  width : 50%;
-  align:left;
-  height:20px;
-}
-.sorting span,.sorting_asc span,.sorting_desc span   {
-  float:right;
-  width:14px;
-}
-.sorting {
-  cursor: pointer;
-}
-.sorting_asc {
-  cursor: pointer;
-}
-.sorting_desc {
-  cursor: pointer;
-}
-
-/**********************************
- * Pagination nested
- **********************************/
-
-.dataTables_paginate {
-  float: right;
-  text-align: right;
-}
-
-.dataTables_info {
-  float: left;
-  width: 27%;
-  padding: 3px 0px 3px 0px;
-  color: #777;
-}
-table.noMarginGrid {
-  border-left : 0 ;
-  border-right : 0 ;
-}
-.noMarginGrid {
-  margin: 0;
-}
-#reportsGrid_wrapper {
-  margin: 0;
-}
-#explanationMessage{
-  display: inline-block;
-}
-
-/*
-.dataTables_wrapper_top {
-  padding: 6px;
-  overflow: hidden;
-  display: block;
-  border-top: 1px solid #B4B3A8;
-  border-left: 1px solid #B4B3A8;
-  border-right: 1px solid #B4B3A8;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-}
-*/
-.dataTables_wrapper_top {
-  padding: 6px;
-  overflow: hidden;
-  display: block;
-  border: 1px solid #e8e8e8;
-  border-bottom: none;
-  border-radius: 0;
 }
 
 @media screen and (min-width: 993px) {
@@ -685,18 +240,7 @@ table.noMarginGrid {
   white-space: normal;
 }
 
-.dataTables_wrapper_bottom {
-  overflow: hidden;
-  display: inline-block;
-  display: block;
-  border: 1px solid #e8e8e8;
-  border-top: none;
-}
-.dataTables_wrapper_bottom > div{
-  padding: 6px;
-}
 #grid_rules_grid_zone {
-  border-right: 1px solid #B4B3A8;
   width: 100%;
   table-layout: fixed;
 }
@@ -708,7 +252,6 @@ table.noMarginGrid {
   float: right;
 
 }
-
 
 .reportIcon {
   padding-left: 6px !important;
@@ -728,9 +271,7 @@ table.noMarginGrid {
 .cpiefsave{
   float:right;
 }
-.pimversionspad{
-  padding:20px;
-}
+
 .wbBaseField * {
   vertical-align: middle;
 }
@@ -747,8 +288,6 @@ table.noMarginGrid {
 .variableDefinition > span,
 .variableDefinition td,
 .variableDefinition input {
-  font-size: 12px;
-  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
   vertical-align: middle;
 }
 
@@ -765,11 +304,6 @@ fieldset.sectionFieldset {
 }
 
 fieldset.groupFieldset {
-  padding: 1px 10px 1px 10px;
-}
-
-fieldset.techniqueDetailsFieldset {
-  margin: 10px;
   padding: 1px 10px 1px 10px;
 }
 
@@ -828,22 +362,6 @@ div.foldedSection div.section-title:before {
 .lopaddscala{
   padding:0px
 }
-.createitem{
-  text-align: right;
-}
-
-td.directiveVarLabel {
-  width:25%;
-  margin-right:2px;
-  text-align: left;
-  font-size: 14px;
-  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
-}
-
-td.directiveVarLabel span {
-  font-size: 14px;
-  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
-}
 
 td.directiveVarValue  {
   width:70%;
@@ -854,27 +372,10 @@ td.directiveVarValue  {
   height: 300px;
 }
 
-/**********************************
- * Temporal information
- *********************************/
-.variableDefinition td {
-   border-top: 0px;
-}
 
 /*********************************
 * Search servers
 *********************************/
-
-.nodeheader {
-  font-weight: bold;
-  font-size: medium;
-  text-align: center;
-}
-
-.nodeheadercontent {
-
-}
-
 .paddscala{
   padding: 0px 0px 0px 15px;
 }
@@ -909,24 +410,11 @@ fieldset.searchNodes {
   clear: both;
 }
 
-.reasonNode {
-  padding:8px;
-  margin:5px;
-  width: 550px;
-  clear: both;
-}
-
-
 fieldset.groupCategoryUpdateComponent {
   padding:5px;
   margin:5px;
   width: 580px;
 
-}
-fieldset.groupUpdateComponent {
-  padding:8px;
-  margin:5px;
-  width: 580px;
 }
 
 tr.query_line, .query_line td {
@@ -942,80 +430,6 @@ tr.query_line, .query_line td {
 .composition span {
   display: inline-block;
 }
-
-.compositionRadio {
-  display: table-row-group !important;
-  text-align:left;
-}
-
-table#serverGrid tbody td {
-  border-left: solid 1px #ABABAB;
-  border-bottom: solid 1px #ABABAB;
-  border-top: 0px;
-}
-
-#serverGrid_wrapper table {
-  margin:0;
-}
-
-.dataTables_scrollHeadInner table {
-  margin:0px;
-}
-
-.dataTables_scrollHeadInner {
-  background:url("../../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
-}
-
-.dataTables_scrollBody table {
-  margin:0px;
-}
-
-#serverGrid_paginate_area {
-  float:left;
-}
-div.dataTables_scroll {
-  clear: both;
-}
-
-#serverGrid_info_area {
-  margin:0 0 0 5px;
-}
-
-#serverGrid_info_area div {
-  display:inline-block;
-}
-
-#serverGrid_tooManyResult {
-  width: 748px;
-  margin:0 0 0 10px;
-  border: solid 1px #ABABAB;
-}
-
-
-.paginate_button {
-  padding: 2px 6px;
-  margin: 0;
-  cursor: pointer;
-  font-size:12px;
-}
-
-.paginate_button:hover {
-  background-color: #FFF3C9;
-  text-decoration: underline;
-}
-
-.paginate_button_disabled {
-  padding: 2px 6px;
-  margin: 0;
-}
-
-.paginate_active {
-  padding: 1px 5px 2px 5px;
-  margin: 0;
-  color: #333333;
-  font-size:13px;
-}
-
 
 /************************
  * Search groups
@@ -1043,44 +457,9 @@ fieldset.groupCategory {
    padding: 5px 0 5px 0;
 }
 
-
-fieldset.crEditHierarchy {
-  width:45%;
-  margin:5px;
-  padding:5px;
-  display: inline-block;
-  vertical-align: top;
-}
-/* Firefox specific behavior cause bug https://bugzilla.mozilla.org/show_bug.cgi?id=504622 https://bugzilla.mozilla.org/show_bug.cgi?id=261037 */
-@-moz-document url-prefix() {
-  fieldset.crEditHierarchy {
-    display: table-column;
-  }
-}
-
 div.hierarchySpacer {
   width:5%;
   display: inline-block;
-}
-/*
-
-*/
-* {
-   margin:0;
-   padding: 0;
-   list-style: none;
-}
-
-html {
-   height:100%;
-}
-
-img {
-   border: none;
-}
-a:focus {
-   border: none;
-   outline: none;
 }
 
 /**************************************
@@ -1090,76 +469,11 @@ structure
   padding: 0 4px 0 4px;
 }
 
-div#prelude {
-   display: none;
-}
-
 div#navigation {
    float: left;
    background-color: #1e1e1e;
    border-top-right-radius: 10px;
    border-bottom-right-radius: 10px;
-}
-
-#deploymentLastStatus  {
-  float:left
-}
-
-#deploymentProcessing {
-  float:left
-}
-div.pendingModificationStatus {
-  float:right;
-  width:200px;
-  padding-bottom:10px;
-}
-
-div.pendingModificationStatus a {
-  font-size:1.1em;
-  color:white;
-}
-
-/**************************************
-header - haut de page
-**************************************/
-.logoutbutwidth{
-  width:130px;
-}
-div#infosUser {
-   padding: 10px 5px;
-   height: 30px;
-   color: #f79d10;
-}
-#infosUser p {
-   float: left;
-}
-#infosUser .whoUser {
-   margin-left: 30px;
-   font-size: 1.4em;
-   font-weight: bold;
-   color: #f79d10;
-}
-*html #infosUser .whoUser {
-   margin-left: 20px;
-}
-#infosUser .detailsUser {
-   padding-top: 0.2em;
-   font-size: 1.1em;
-   color: #999;
-}
-#infosUser .whoUser a {
-   margin: 0;
-   padding: 0;
-   color: #f79d10;
-   text-decoration: underline;
-}
-#infosUser .detailsUser a {
-   margin: 0;
-   padding: 0;
-   font-weight: normal;
-   color: #999;
-   text-decoration: underline;
-   cursor: pointer;
 }
 
 #documentation {
@@ -1173,22 +487,10 @@ div#infosUser {
   color: #999;
 }
 
-
 .automaticCleanDetail {
   padding : 5px 5px 0;
 } 
 
-#create-user {
-   border: none;
-   font-size: 1em;
-   font-weight: normal;
-   color: #f79d10;
-   text-decoration: none;
-}
-span.ui-button-text {
-   background: none;
-   border: none;
-}
 #opener {
    border: none;
    background: none;
@@ -1210,57 +512,6 @@ span.ui-button-text {
    text-decoration: none;
 }
 
-.deploymentButton {
-  background: #DDDDDD !important;
-}
-
-.modificationsDisplayer {
-  float:right;
-  margin-right: 50px;
-  margin-top: 10px;
-}
-
-.modificationsDisplayer span {
-  margin-right: 30px;
-  padding: 0;
-  font-weight: normal;
-  color: #FFFFFF;
-  font-size: 14px;
-  font-weight: bold;
-  clear : both;
-  float : left;
-}
-.modificationsDisplayer a{
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-/**************************************
-contenu
-**************************************/
-
-div#contenu {
-   margin: 0 auto;
-   position: relative;
-   float: left;
-   width: 94%;
-   padding-left: 3%;
-   background-color: #2e2d2d;
-}
-#contenu h1 {
-   margin: 0 0 5px 0;
-   color: #fff;
-}
-p#filAriane {
-   padding: 0 5px 10px 0;
-   font-size: 1em;
-   color: #f79d10;
-   background-color: #2e2d2d;
-}
-#filAriane a {
-   color: #f79d10;
-}
-
 /**************************************
 Home portlet
 **************************************/
@@ -1269,7 +520,6 @@ Home portlet
    width: 50%;
    float: left;
 }
-
 
 p img {
    float: none !important;
@@ -1330,21 +580,11 @@ table .innerDetails li{
 #actions_zone{
   margin:10px 10px 0px 5px;
 }
-.popcurs{
-  text-decoration: underline;
-  cursor:pointer;
-}
+
 .curspoint{
   cursor:pointer;
 }
-.newservertable{
-  max-height: 300px;
-  overflow-y: auto;
-}
-.newservercell{
-  overflow:scroll;
-  max-height: 100px;
-}
+
 
 #ui-dialog-title-addPopup{
   height: 25px;
@@ -1363,91 +603,6 @@ table .innerDetails li{
 .popupButton span {
   float: none;
 }
-#succesConfirmationDialog{
-  z-index : 9995;
-}
-/**************************************
-popin Login
-**************************************/
-
-#dialogLogOut {
-  display:none;
-}
-
-#dialogLogOut a:hover {
-   text-decoration: underline;
-}
-#login {
-   padding-right: 15px;
-}
-#login p {
-   font-size: 1.2em;
-   font-weight: 800;
-   text-align: center;
-}
-#login a {
-   color: #000;
-}
-#login a:hover {
-   text-decoration: none;
-}
-
-
-/**************************************
-popin Account
-**************************************/
-.userinfowidth{
-  width:130px;
-}
-#account h2 {
-   color: #f79d10;
-   font-size: 2em;
-   font-weight: 800;
-}
-#account div {
-   padding: 10px 10px 20px 10px;
-}
-#account p {
-   margin: 10px 0;
-   font-size: 1.2em;
-   font-weight: 800;
-}
-#account p.right {
-   margin-right: 10px;
-}
-#account p.right a {
-   font-size: 0.8em;
-}
-#account p.validateTips {
-   margin: 15px 0;
-}
-#account label {
-   float: left;
-   padding: 5px 10px 0 0;
-   width: 20%;
-   text-align: right;
-}
-#account input {
-   width: 210px;
-   border: 1px solid #b4b3a8;
-   background-color: #f8f8f8;
-}
-#account textarea {
-   margin-top: 5px;
-   width: 465px;
-   color: #666;
-}
-#account a {
-   color: #000;
-}
-#account a:hover {
-   text-decoration: none;
-}
-
-/**************************************
-popin Alert
-**************************************/
-
 
 /*****************************************
 * Popup creation groupe/category
@@ -1465,12 +620,8 @@ popin Alert
 }
 
 /*************************
-*   Divers
+*   Misc
 **************************/
-
-/*
- * Underlined, dotted grey: that text has a tooltip
- */
 .tooltip {
   color: #999;
   padding-top: 0px;
@@ -1531,46 +682,13 @@ td.complianceTd, td.parametersTd {
   height: 15px;
 }
 
-.mediumButton {
-  width: 65px !important;
-  height: 22px !important;
-  line-height: 10px;
-}
-
-.mediumButton span {
-  padding-top: 0px !important;
-  padding-bottom: 0px !important;
-  padding-left: 0px !important;
-  padding-right: 0px !important;
-}
-
-.mediumButton img {
-  height: 15px;
-}
-.autoWidthButton {
-  width: auto !important;
-}
-
 /* others */
-
-.errorscala{
-  border-bottom:1px solid red;
-  cursor:pointer;
-}
-.tree li.filteredNode {
-  display:none;
-}
 .deca{
   padding: 10px;
 }
 
 .inline{
   display:inline;
-}
-.iconscala{
-  float:left;
-  margin-right:5px;
-  margin-top:2px;
 }
 
 .err{
@@ -1586,10 +704,6 @@ td.complianceTd, td.parametersTd {
   float:left;
   margin-right:9px;
 }
-.erroricon{
-  float:left;
-  margin-right:10px;
-}
 .icon{
   float:left;
   margin-right:20px;
@@ -1597,9 +711,7 @@ td.complianceTd, td.parametersTd {
 .greenscala{
   color:green
 }
-.centertext{
-  text-align:center;
-}
+
 .greyscala{
   color: #999;
 }
@@ -1658,11 +770,6 @@ hr.spacer {
   width:67%;
 }
 
-.twoColPopup {
-  float:left;
-  width:66%;
-}
-
 .rudderBaseFieldClassName {
   width:99%;
 }
@@ -1671,35 +778,12 @@ hr.spacer {
   width:101%;
 }
 
-.twoColParentCategory {
-  float:left;
-  width:62%;
-  margin-right: 2px;
-}
-
 .threeCol {
   float:left;
   width:30%;
   margin-right: 4px;
 }
 
-.threeColReason {
-  float:left;
-  width:30%;
-  margin-right: 2px;
-  margin-bottom: 5px;
-}
-
-.threeColErrors {
-  float:left;
-  margin-right: 2px;
-}
-
-.smallCol {
-  float:left;
-  margin-right: 2px;
-  width:20%;
-}
 .largeCol {
   float:left;
   margin-right: 2px;
@@ -1730,14 +814,6 @@ legend {
   padding-right: 5px;
 }
 
-#createANewItem {
-  margin: 5px 0px 9px 0px;
-}
-
-#createANewItemContentForm div {
-/*   margin-top:3px; */
-}
-
 /************************************
 Portlet content for object details
 (for example, details about a Directive
@@ -1753,7 +829,6 @@ template, a Directive, etc)
   padding-right: 20px;
 }
 
-
 /************************************
 Descriptions
 ************************************/
@@ -1766,7 +841,6 @@ div.serverDetail {
   font-weight:bold;
   text-align:center;
 }
-
 
 div.tabInform {
   padding:5px;
@@ -1788,34 +862,14 @@ div.tabInform {
  *Directive display
 ************************************/
 
-.policyTitle {
-  font-size:1.3em;
-  font-weight:bold;
-  text-align:center;
-}
-
-.policyDescription {
-   font-weight:bold;
-}
-
-#policyDetails {
-  margin : 10px;
-  padding : 5px;
-  border: 1px solid #2d2d2d;
-}
-
-.directiveContainer {
-  margin : 5px;
-}
-
 .directiveTitle {
   font-weight:bold;
 }
 
 tr.parametersDescription {
-  border-bottom: 1px solid #ABABAB;
-  border-top: 0px;
+  background-color: #f9f9f9 !important;
   height: 30px;
+  border-top: 1px solid #e5e5e5 !important;
 }
 
 .parametersDescriptionDetails {
@@ -1828,46 +882,11 @@ tr.parametersDescription {
   padding:5px;
 }
 
-.emptyTd {
-  border: 0pt none !important;
-  background : #DEDEDE !important;
-}
-
-.reportTable {
-  border-bottom : 2pt ridge;
-}
-
-.detailReport {
-  border: 0pt none;
-}
-.firstTd {
-
-  border-left: 1px ridge #ABABAB !important;
-}
-
-td.nestedImg{
-  padding: 0px 3px !important;
-}
 .evlogviewpad li{
   list-style-type: disc;
 }
 .evloglmargin{
   margin: 7px;
-}
-.reportsList {
-  margin : 10px;
-  padding : 5px;
-}
-
-.reportsTitle {
-  font-size:1.3em;
-  font-weight:bold;
-}
-
-.reportsGroup {
-  margin : 10px;
-  padding : 5px;
-  border: 1px solid #2d2d2d;
 }
 
 .reportsNode {
@@ -1881,40 +900,18 @@ td.nestedImg{
   font-size: 1.1em;
 }
 
-.reportDetailsGroup {
-  padding: 0 20px;
-  border-left:1px dotted;
-  border-right:1px dotted;
+.field_errors, .error, .errors {
+  color: #c00800;
 }
 
-td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.AuditCompliant,td.Compliant,td.NotApplicable,td.Success{
-  background-color:#9bc832;
-  color: #fff;
+.field_errors {
+  margin-top:4px;
 }
-td.AuditNonCompliant,td.NonCompliant {
-  background-color:#ff7125;
-  color: #fff;
+
+.field_errors li {
+  list-style-position:inside;
 }
-td.Missing,td.EnforceError,td.AuditError,td.Error,td.Unexpected,td.BadPolicyMode {
-  background-color:#c9302c;
-  color: #fff;
-}
-td.Pending{
-  background-color: #5bc0de;
-  color: #fff;
-}
-td.Disabled, td.NoAnswer {
-  background-color: #b4b4b4;
-  color: #fff;
-}
-td.Repaired{
-  background-color: #F5DD4D;
-  color: #333;
-}
-td.details,.content-wrapper td.details{
-  border:none;
-  padding:0;
-}
+
 li.eventLogUpdatePolicy {
   list-style-position: inside;
   list-style-type: none;
@@ -1924,33 +921,10 @@ table.eventLogUpdatePolicy {
   margin-top: 0px;
   margin-left: 0px;
 }
-table.detailedReport {
-  margin : 0;
-  padding: 0 0 0 100px;
-  width: 100%
-}
-
-span.detailedReportTitle {
-  position:absolute;
-}
 
 table.fixedlayout{
   table-layout:fixed;
   word-wrap:break-word
-}
-
-tr.detailedReportLine, td.detailedReportLine {
-  padding: 0;
-  margin: 0;
-  border: 0;
-}
-
-td.severityWidth, th.severityWidth {
-  width: 200px;
-}
-
-tr.unfoldable {
-  cursor:pointer;
 }
 
 .diffOldValue {
@@ -1974,11 +948,6 @@ tr.unfoldable {
   vertical-align: middle;
 }
 
-.treefilternodecursor{
-  cursor:pointer;
-  cursor:hand;
-}
-
 .treeActiveTechniqueName , .treeActiveTechniqueCategoryName , .treeGroupCategoryName, .treeRuleCategoryName {
   color: #555
 }
@@ -1990,17 +959,6 @@ span.treeDirective.tooltipable,span.treeDirective.bsTooltip {
 
 i.jstree-icon.jstree-themeicon.fa.fa-file-text.jstree-themeicon-custom {
   color: #555;
-}
-
-.dataTable tr > td a{
-  text-decoration:none !important;
-  color: #333;
-}
-.dataTable tr > td a:hover{
-  color:#000 !important;
-}
-.dataTable tr > td .ui-state-hover a:hover{
-  color:#c77405 !important;
 }
 
 tr.disabledRule > td .rudder-labNodeel ~ a:after{
@@ -2025,15 +983,6 @@ a>.jstree-icon{
   background-position: 0!important;
 }
 
-.homePageBlock {
-  margin: 10px;
-}
-
-.homePageBlock li {
-  list-style-type: disc;
-  list-style-position:inside;
-}
-
 del {
   text-decoration: none;
   background: #FFD6D6;
@@ -2042,59 +991,6 @@ del {
 ins {
   text-decoration: none;
   background: #D6FFD6;
-}
-
-table thead th div.DataTables_sort_wrapper {
-  position: relative;
-  padding-right: 20px;
-  font-size: 13.2px;
-  line-height: initial;
-}
-table thead th div.DataTables_sort_wrapper span {
-  position: absolute;
-  top: 50%;
-  margin-top: -8px;
-  right: 0;
-}
-
-table thead th {
-  border-top: none !important;
-  border-right: none !important;
-}
-
-.fg-button {
-  border-top: 1px solid #B4B3A8;
-  border-right: none !important;
-  font-weight: normal !important;
-}
-
-.paginate_button_disabled, .paginate_button, .paginate_active {
-  border-top: 1px solid #B4B3A8;
-  border-bottom: 1px solid #B4B3A8;
-  border-left: 1px solid #B4B3A8;
-  border-right: none;
-  display:inline-block;
-}
-
-.dataTables_paginate .ui-state-default {
-  text-decoration: none !important;
-}
-
-.dataTables_wrapper table {
-  border-collapse: collapse;
-}
-
-#serverGrid_wrapper .dataTables_wrapper_top {
-  border-top-left-radius: 0px !important;
-  border-top-right-radius: 0px !important;
-}
-
-#SearchNodes {
-  margin: 0px 0px 10px 0px;
-}
-
-.dataTables_paginate .last {
-  border-right: 1px solid #B4B3A8 !important;
 }
 
 #allowedNetworksForm {
@@ -2169,16 +1065,6 @@ table thead th {
   border: 1px solid #2173a9;
 }
 /* --------------- */
-
-div.ac_results {
-  width: 304px !important;
-}
-
-.ac_over {
-  background-color: #414141 !important;
-  color: white !important;
-}
-
 fieldset {
   border: 1px solid #B4B3A8;
 }
@@ -2363,23 +1249,10 @@ input[type="number"] {
   margin-bottom:-3px;
 }
 
-
 .ui-button-disabled  {
     opacity: 0.5;
 }
 
-#recentChanges {
-  /** If we want to scroll correctly to recent changes we need to set a minimum height,
-      or else when the graph appear (just after the scroll) we will only the the recent change section title
-  */
-  min-height: 300px;
-}
-#recentChanges .alert-info{
-  font-size:14px;
-}
-#recentChanges .alert-info .glyphicon{
-  font-size:16px;
-}
 #selectedPeriod{
   font-size:14px;
 }
@@ -2570,9 +1443,4 @@ label span.text-fit{
   margin-top:0;
   font-size: 12px;
   font-family : "Helvetica Neue", Helvetica, Arial, sans-serif;
-}
-
-.modal h4 {
-    font-size: 18px;
-    font-weight: normal;
 }
