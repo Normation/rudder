@@ -37,6 +37,8 @@
 
 package com.normation.rudder.web.snippet.administration
 
+import java.nio.charset.StandardCharsets
+
 import net.liftweb.http._
 import net.liftweb.common._
 import bootstrap.liftweb.RudderConfig
@@ -66,6 +68,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 
+import scala.xml.Text
 /**
  * This class manage the displaying of user configured properties.
  *
@@ -110,6 +113,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "unexpectedReportInterpretation" => unexpectedReportInterpretation
     case "onloadScript" => _ => disableInputs
     case "nodeOnAcceptDefaults" => nodeOnAcceptDefaultsConfiguration
+    case "generationHookCfpromise" => generationHookCfpromise
+    case "generationHookTriggerNodeUpdate" => generationHookTriggerNodeUpdate
   }
 
   def changeMessageConfiguration = { xml : NodeSeq =>
@@ -735,6 +740,242 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(check()))
   }
 
+
+  def addDisabled(disabled: Boolean) = {
+    if (disabled) "* [disabled]" #> "disabled"
+    else PassThru
+  }
+
+  def generationHookCfpromise = { xml : NodeSeq =>
+    {
+      import java.io.File
+      val hook = new File("/opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check")
+
+      val disabled = !(hook.exists() && hook.canWrite())
+      val isEnabled = hook.canExecute()
+
+      var initIsEnabled = isEnabled
+      var currentIsEnabled = isEnabled
+      def noModif() = initIsEnabled == currentIsEnabled
+      def check() = {
+        S.notice("generationHookCfpromiseMsg","")
+        Run(s"""$$("#generationHookCfpromiseSubmit").attr("disabled",${noModif});""")
+      }
+      def submit() = {
+        val save = hook.setExecutable(currentIsEnabled)
+        S.notice("generationHookCfpromiseMsg", save match {
+          case true  =>
+            initIsEnabled = currentIsEnabled
+            Text("'check generated policies' property updated")
+          case false =>
+            <span class="error">There was an error when updating the value of the 'check generated policies' property</span>
+        } )
+        check
+      }
+
+      ( "#generationHookCfpromiseCheckbox" #> {
+          addDisabled(disabled)(SHtml.ajaxCheckbox(
+              isEnabled
+            , (b : Boolean) => { currentIsEnabled = b; check}
+            , ("id","generationHookCfpromiseCheckbox")
+          ) )
+        }&
+        "#generationHookCfpromiseSubmit " #> {
+          SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+        }&
+        "#generationHookCfpromiseSubmit *+" #> {
+          Script(check())
+        }
+      ) apply (xml)
+    }
+  }
+
+
+  def generationHookTriggerNodeUpdate : NodeSeq => NodeSeq = {
+    import better.files._
+    type Result[T] = Either[String, T]
+    val hookPath = "/opt/rudder/etc/hooks.d/policy-generation-finished/60-trigger-node-update"
+    val propPath = hookPath+".properties"
+    case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
+    object TriggerProp {
+      val MAX_NODES = "MAX_NODES"
+      val NODE_PERCENT = "NODE_PERCENT"
+      val propRegex ="""^(\w+)=(.*)$""".r
+    }
+
+    def findProp(path: String, name: String, lines: Seq[String]): Result[Int] = {
+      val prop = lines.collect { case TriggerProp.propRegex(n, v) if(name == n) => v }
+      prop.headOption match {
+        case Some(i) => try {
+                          Right(i.toInt)
+                        } catch {
+                          case ex:NumberFormatException => Left(s"Error: property '${name}' must be an int but is: '${i}'")
+                        }
+        case None => Left(s"Property '${name}' was not found in hook property file '${path}'")
+    } }
+
+    def readProp(): TriggerProp = {
+      (try { Right(File(propPath).lineIterator(StandardCharsets.UTF_8).toVector) }
+       catch {
+         case ex: Exception => Left(s"Error when trying to read properties for hook in '${propPath}': ${ex.getClass.getSimpleName}: ${ex.getMessage}")
+       }).fold(
+          msg   => TriggerProp(Left(msg), Left(msg))
+        , lines => TriggerProp(findProp(propPath, TriggerProp.MAX_NODES, lines), findProp(propPath, TriggerProp.NODE_PERCENT, lines))
+      )
+    }
+
+    def writeProp(maxNodes: Int, percent: Int): Result[Unit] = {
+      try {
+        val lines = File(propPath).lineIterator(StandardCharsets.UTF_8).toVector
+        val replaced = lines.map { case l => l match {
+          case TriggerProp.propRegex(k, v) => k match {
+            case TriggerProp.MAX_NODES    => s"${TriggerProp.MAX_NODES}=${maxNodes}"
+            case TriggerProp.NODE_PERCENT => s"${TriggerProp.NODE_PERCENT}=${percent}"
+            case _ => l
+          }
+          case _ => l
+        } }
+        File(propPath).writeText(replaced.mkString("\n"))(better.files.File.OpenOptions.default, StandardCharsets.UTF_8)
+        Right(())
+      } catch {
+        case ex: Exception =>
+          Left(s"Error when trying to read properties for hook in '${propPath}': ${ex.getMessage}")
+      }
+    }
+
+    def getPropPerm(isExec: Boolean) = {
+      // property file should be either rwxr--r-- or rw-r--r--
+      import java.nio.file.attribute.PosixFilePermission._
+      val perms = Set(OWNER_READ, OWNER_WRITE, GROUP_READ, OTHERS_READ)
+      if(isExec) perms + OWNER_EXECUTE
+      else perms
+    }
+
+    def saveAll(hook: File, isEnabled: Boolean, max: Int, percent: Int): Result[Unit] = {
+      for {
+        _ <- try {
+               Right(hook.setPermissions(getPropPerm(isEnabled)))
+             } catch {
+               case ex: Exception => Left(s"Error when saving hook state: ${ex.getMessage}")
+             }
+        _ <- writeProp(max, percent)
+      } yield {
+        ()
+      }
+    }
+
+    def hasError(hook: File, props: TriggerProp): Option[String] = {
+      (for {
+       _ <- if(hook.exists() && hook.isWriteable && hook.isRegularFile) { // ok
+                 Right("ok")
+               } else {
+                 Left(s"Please check that file '${hook.pathAsString}' exists and is readable and writtable.")
+               }
+       _ <- props.maxNodes
+       _ <- props.maxNodes
+      } yield {
+        ()
+      }).swap.toOption
+    }
+
+    (xml : NodeSeq) => {
+      val hook = File(hookPath)
+      var hookProps = readProp()
+
+      // initial errors
+      (hookProps.maxNodes :: hookProps.percent :: Nil).map(_.swap.toOption).flatten.distinct match {
+        case Nil => //nothing
+        case seq => S.notice("generationHookTriggerNodeUpdateMsg", seq.mkString("; "))
+      }
+
+      // if the hook file is missing, display an error message
+      hasError(hook, hookProps) match {
+        case Some(error) =>
+          ("#generationHookTriggerNodeUpdateForm" #> ("There was an error when trying to access the file. It can not be configured. " +
+                                                    s"Error was: ${error}"
+                                                    )
+          ) apply(xml)
+        case None =>
+          var isEnabled = hook.isExecutable
+          var currentIsEnabled = isEnabled
+          var currentMax = hookProps.maxNodes.getOrElse(1000)
+          var currentMaxStr = currentMax.toString
+          var currentPercent = hookProps.percent.getOrElse(1000)
+          var currentPercentStr = currentPercent.toString
+
+          def noModif() = {
+            isEnabled == currentIsEnabled && TriggerProp(Right(currentMax), Right(currentPercent)) == hookProps
+          }
+          def check() = {
+            val msg = scala.collection.mutable.Buffer[String]()
+            try {
+              currentMax = currentMaxStr.toInt
+              if(currentMax < 0) {
+                 msg += "Error: max number of nodes must be positive"
+              }
+            } catch {
+              case ex: NumberFormatException => msg += "Error: max number of node must be an int"
+            }
+            try {
+              currentPercent = currentPercentStr.toInt
+              if(currentPercent < 0 || currentPercent > 100) {
+                 msg += "Error: percent of nodes must be in interval [0,100]"
+              }
+            } catch {
+              case ex: NumberFormatException => msg += "Error: percent of nodes must be an int"
+            }
+            S.notice("generationHookTriggerNodeUpdateMsg", <span class="error">{msg.mkString("; ")}</span>)
+            Run(s"""$$("#generationHookTriggerNodeUpdateSubmit").attr("disabled",${noModif});""")
+          }
+
+          def submit() = {
+            S.notice("generationHookTriggerNodeUpdateMsg", saveAll(hook, currentIsEnabled, currentMax, currentPercent) match {
+              case Right(())  =>
+                isEnabled = currentIsEnabled
+                hookProps = TriggerProp(Right(currentMax), Right(currentPercent))
+                "'check generated policies' property updated"
+              case Left(s) =>
+                s"There was an error when updating the value of the 'check generated policies' property: ${s}"
+            } )
+            check
+          }
+
+          ( "#generationHookTriggerNodeUpdateCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                isEnabled
+              , (b : Boolean) => { currentIsEnabled = b; check}
+              , ("id","generationHookTriggerNodeUpdateCheckbox")
+            )
+          }&
+            "#generationHookTriggerNodeUpdateMaxNode" #> {
+              SHtml.ajaxText(
+                  currentMaxStr
+                , (s : String) => { currentMaxStr = s; check() }
+                , ("id","generationHookTriggerNodeUpdateMaxNode")
+                , ("class","form-control")
+                , ("type","number")
+              )
+            }&
+            "#generationHookTriggerNodeUpdateRatio" #> {
+              SHtml.ajaxText(
+                  currentPercentStr
+                , (s : String) => { currentPercentStr = s; check() }
+                , ("id","generationHookTriggerNodeUpdateRatio")
+                , ("class","form-control")
+                , ("type","number")
+              )
+            }&
+            "#generationHookTriggerNodeUpdateSubmit " #> {
+              SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+            }&
+            "#generationHookTriggerNodeUpdateSubmit *+" #> {
+              Script(check())
+            }
+          ) apply (xml)
+      }
+    }
+  }
+
   def sendMetricsConfiguration = { xml : NodeSeq =>
     ( configService.send_server_metrics match {
       case Full(value) =>
@@ -781,6 +1022,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         } )
     } ) apply (xml)
   }
+
   def displayGraphsConfiguration = { xml : NodeSeq =>
 
     ( configService.display_changes_graph() match {

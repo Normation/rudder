@@ -2,19 +2,5 @@
 
 find . -name '*.py' | xargs python2 -m pylint -E --disable=C,R --persistent=n
 
-
-function test_is_exec {
-  HOOKS_D="webapp/sources/rudder/rudder-core/src/main/resources/hooks.d"
-  if ! [ -x "${HOOKS_D}/${1}" ]; then
-   echo "Hooks is not executable: ${HOOKS_D}/${1}"
-   exit 1
-  fi
-}
-
-# check exec rights for hooks
-test_is_exec "node-post-deletion/10-clean-policies"
-test_is_exec "policy-generation-finished/50-reload-policy-file-server"
-test_is_exec "policy-generation-node-ready/10-cf-promise-check"
-test_is_exec "policy-generation-node-ready/90-change-perm"
-
-
+# hooks tests
+./webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh
