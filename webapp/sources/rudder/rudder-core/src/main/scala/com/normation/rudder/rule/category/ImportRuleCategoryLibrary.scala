@@ -47,7 +47,9 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.archives.RuleCategoryArchiveId
 import com.normation.rudder.repository.ldap._
-
+import com.normation.ldap.sdk.LdapResult._
+import cats.implicits._
+import com.normation.ldap.sdk.LdapResultError
 
 
 trait ImportRuleCategoryLibrary {
@@ -99,17 +101,17 @@ class ImportRuleCategoryLibraryImpl(
 
     //as far atomic as we can :)
     //don't bother with system and consistency here, it is taken into account elsewhere
-    def atomicSwap(rootCategory:RuleCategory) : Box[RuleCategoryArchiveId] = {
+    def atomicSwap(rootCategory:RuleCategory) : LdapResult[RuleCategoryArchiveId] = {
       //save the new one
       //we need to keep the git commit id
-      def saveUserLib(con:RwLDAPConnection) : Box[Unit] = {
-        def recSaveUserLib(parentDN:DN, content:RuleCategory) : Box[Unit] = {
+      def saveUserLib(con:RwLDAPConnection) : LdapResult[Unit] = {
+        def recSaveUserLib(parentDN:DN, content:RuleCategory) : LdapResult[Unit] = {
           //start with the category
           //then recurse on sub-categories
           val categoryEntry =  mapper.ruleCategory2ldap(content,parentDN)
           for {
             category      <- con.save(categoryEntry) ?~! s"Error when persisting category with DN '${categoryEntry.dn}' in LDAP"
-            subCategories <- sequence(content.childs) { cat =>
+            subCategories <- content.childs.traverse { cat =>
                                recSaveUserLib(categoryEntry.dn, cat)
                              }
           } yield {
@@ -130,19 +132,16 @@ class ImportRuleCategoryLibraryImpl(
         finished <- {
                       (for {
                         saved  <- saveUserLib(con)
-                        system <-if(includeSystem) Full("OK")
-                                   else copyBackSystemEntrie(con, rudderDit.RULECATEGORY.dn, targetArchiveDN) ?~! "Error when copying back system entries in the imported Rule category library"
+                        system <-if(includeSystem) "OK".success
+                                 else copyBackSystemEntrie(con, rudderDit.RULECATEGORY.dn, targetArchiveDN) ?~! "Error when copying back system entries in the imported Rule category library"
                       } yield {
                         system
-                      }) match {
-                           case Full(unit)  => Full(unit)
-                           case eb:EmptyBox =>
+                      }) leftMap { e =>
                              logger.error("Error when trying to load archived Rule category library. Rollbaching to previous one.")
-                             restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN) match {
-                               case eb2: EmptyBox => eb ?~! "Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value)
-                               case Full(_) => eb ?~! "Error when trying to load archived Rule category library. A rollback to previous state was executed"
-                             }
-
+                             restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN) fold(
+                               _ => LdapResultError.Chained(s"Error when trying to restore archive with ID '${archiveId.value}' for the active technique library", e)
+                             , _ => LdapResultError.Chained("Error when trying to load archived Rule category library. A rollback to previous state was executed", e)
+                             )
                       }
                     }
       } yield {
@@ -156,7 +155,7 @@ class ImportRuleCategoryLibraryImpl(
      * - all ids must be uniques
      * + remove system category if we don't want them
      */
-    def checkUserLibConsistance(rootCategory:RuleCategory) : Box[RuleCategory] = {
+    def checkUserLibConsistance(rootCategory:RuleCategory) : LdapResult[RuleCategory] = {
       import scala.collection.mutable.{Set,Map}
       val categoryIds = Set[RuleCategoryId]()
       // for a name, all Category already containing a child with that name.
@@ -188,28 +187,26 @@ class ImportRuleCategoryLibraryImpl(
           } }
       }
 
-      Box(recSanitizeCategory(rootCategory, rootCategory, true)) ?~! "Error when trying to sanitize serialised user library for consistency errors"
+      recSanitizeCategory(rootCategory, rootCategory, true).success.notOptional("Error when trying to sanitize serialised user library for consistency errors")
     }
 
     //all the logic for a library swap.
     for {
-          cleanLib <- checkUserLibConsistance(newRootCategory)
-          moved    <- groupLibMutex.writeLock { atomicSwap(cleanLib) } ?~! "Error when swapping serialised library and existing one in LDAP"
-        } yield {
-          //delete archive - not a real error if fails
-          val dn = rudderDit.ARCHIVES.RuleCategoryLibDN(moved)
-          (for {
-            con     <- ldap
-            deleted <- con.delete(dn)
-          } yield {
-            deleted
-          }) match {
-            case eb:EmptyBox =>
-              logger.warn("Error when deleting archived library in LDAP with DN '%s'".format(dn))
-            case _ => //
-          }
-          () // unit is expected
-        }
+      cleanLib <- checkUserLibConsistance(newRootCategory)
+      moved    <- groupLibMutex.writeLock { atomicSwap(cleanLib) } ?~! "Error when swapping serialised library and existing one in LDAP"
+    } yield {
+      //delete archive - not a real error if fails
+      val dn = rudderDit.ARCHIVES.RuleCategoryLibDN(moved)
+      (for {
+        con     <- ldap
+        deleted <- con.delete(dn)
+      } yield {
+        deleted
+      }) leftMap  { e =>
+        logger.warn("Error when deleting archived library in LDAP with DN '%s'".format(dn))
+      }
+      () // unit is expected
+    }
 
-  }
+  }.toBox
 }

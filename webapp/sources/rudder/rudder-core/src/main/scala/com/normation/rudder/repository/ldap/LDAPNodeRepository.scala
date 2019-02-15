@@ -34,18 +34,19 @@
 *
 *************************************************************************************
 */
-package com.normation.rudder.repository
-package ldap
+package com.normation.rudder.repository.ldap
 
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
+import com.normation.ldap.sdk.LdapResult._
 import com.normation.ldap.sdk._
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.nodes._
+import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.repository.WoNodeRepository
 import net.liftweb.common._
-import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.normation.rudder.domain.Constants
-import com.normation.ldap.sdk.IOLdap._
 
 class WoLDAPNodeRepository(
     nodeDit             : NodeDit
@@ -60,17 +61,17 @@ class WoLDAPNodeRepository(
     repo.synchronized { for {
       con           <- ldap
       existingEntry <- con.get(nodeDit.NODES.NODE.dn(node.id.value), attrs:_*).notOptional(s"Cannot update node with id ${node.id.value} : there is no node with that id")
-      oldNode       <- (mapper.entryToNode(existingEntry) ?~! s"Error when transforming LDAP entry into a node for id ${node.id.value} . Entry: ${existingEntry}").toIOLdap
-      _             <- checkNodeModification(oldNode, node).toIOLdap
+      oldNode       <- (mapper.entryToNode(existingEntry) ?~! s"Error when transforming LDAP entry into a node for id ${node.id.value} . Entry: ${existingEntry}").toLdapResult
+      _             <- checkNodeModification(oldNode, node).toLdapResult
       // here goes the check that we are not updating policy server
       nodeEntry     =  mapper.nodeToEntry(node)
       result        <- con.save(nodeEntry, true, Seq()) ?~! s"Error when saving node entry in repository: ${nodeEntry}"
       // only record an event log if there is an actual change
       _             <- result match {
-                         case LDIFNoopChangeRecord(_) => "ok".successIOLdap()
+                         case LDIFNoopChangeRecord(_) => "ok".success
                          case _                       =>
                            val diff = ModifyNodeDiff(oldNode, node)
-                           actionLogger.saveModifyNode(modId, actor, diff, reason).toIOLdap
+                           actionLogger.saveModifyNode(modId, actor, diff, reason).toLdapResult
                        }
     } yield {
       node
@@ -83,8 +84,8 @@ class WoLDAPNodeRepository(
    */
   def checkNodeModification(oldNode: Node, newNode: Node): Box[Unit] = {
     // use cats validation
-    import cats.implicits._
     import cats.data._
+    import cats.implicits._
 
     type ValidationResult = ValidatedNel[String, Unit]
     val ok = ().validNel

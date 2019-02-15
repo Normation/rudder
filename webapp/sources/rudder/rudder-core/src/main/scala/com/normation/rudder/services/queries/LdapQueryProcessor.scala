@@ -36,30 +36,35 @@
 
 package com.normation.rudder.services.queries
 
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.queries._
-import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
-import DereferencePolicy.NEVER
-import com.normation.ldap.sdk._
-import com.normation.inventory.domain._
-import com.normation.rudder.domain._
-import com.normation.inventory.ldap.core._
-import BuildFilter._
-import LDAPConstants._
-import net.liftweb.common._
-import com.normation.utils.Control.{pipeline, sequence}
 import java.util.regex.Pattern
 
-import com.normation.utils.HashcodeCaching
-import net.liftweb.util.Helpers
-import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.inventory.domain._
+import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core._
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk._
+import com.normation.rudder.domain._
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.queries._
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.LDAPNodeInfo
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.utils.Control.pipeline
+import com.normation.utils.Control.sequence
+import com.normation.utils.HashcodeCaching
+import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
+import com.unboundid.ldap.sdk.{LDAPConnection => _}
+import com.unboundid.ldap.sdk.{SearchScope => _}
+import com.unboundid.ldap.sdk._
+import net.liftweb.common._
+import net.liftweb.util.Helpers
 import org.slf4j.LoggerFactory
+import com.normation.ldap.sdk.LdapResult._
+import cats.implicits._
 
 /*
  * We have two type of filters:
- * * pure LDAP filters that can be directly translated to LDAP ones
+ * * success LDAP filters that can be directly translated to LDAP ones
  * * special filter, that may be almost anything, and at least
  *   need special (pre/post)-processing.
  */
@@ -241,6 +246,17 @@ class PendingNodesLDAPQueryChecker(
   }
 }
 
+
+sealed trait QueryProcessorError {
+  def msg: String
+}
+
+object QueryProcessorError {
+
+  // IO Errors
+  final case class LdapResult(msg: String, e: LdapResultError) extends QueryProcessorEror
+}
+
 /**
  * Generic interface for LDAP query processor.
  * Must be implemented differently depending of
@@ -270,7 +286,7 @@ class InternalLDAPQueryProcessor(
       select:Seq[String] = Seq(),
       limitToNodeIds:Option[Seq[NodeId]] = None, //
       debugId: Long = 0L
-  ) : Box[LdapQueryProcessorResult] = {
+  ) : LdapResult[LdapQueryProcessorResult] = {
 
     //normalize the query: remove duplicates, order elements (last one server)
     val normalizedQuery = normalize(query) match {
@@ -617,7 +633,7 @@ class InternalLDAPQueryProcessor(
 
   /**
    * That method allows to transform a list of extended filter to
-   * the corresponding list of pure LDAP filter and pure special filter.
+   * the corresponding list of success LDAP filter and success special filter.
    *
    * That method absolutly NOT modify standard filter with added filters
    * from special filter.
@@ -761,7 +777,7 @@ class InternalLDAPQueryProcessor(
    * After that point, we only know how to handle NODES, but
    * perhaps
    */
-  private def normalize(query:Query) : Box[LDAPNodeQuery] = {
+  private def normalize(query:Query) : LdapResult[LDAPNodeQuery] = {
     final case class LdapFilter(dnType: DnType, objectType: String, filter: ExtendedFilter)
     // A filter that must be used in a nodeinfo
     final case class NodeInfoFilter(criterion: NodeCriterionType, comparator: CriterionComparator, value: String)
@@ -795,9 +811,9 @@ class InternalLDAPQueryProcessor(
       }
     }
 
-    def checkAndSplitFilterType(q: Query): Box[Seq[Either[LdapFilter, NodeInfoFilter]]] = {
+    def checkAndSplitFilterType(q: Query): LdapResult[Seq[Either[LdapFilter, NodeInfoFilter]]] = {
         // Compute in one go all data for a filter, fails if one filter fails to build
-      sequence(q.criteria) {
+      q.criteria.traverse {
         case crit@CriterionLine(ot, a, comp, value) => {
           // objectType may be overriden in the attribute (for node state).
           val objectType =  a.overrideObjectType.getOrElse(ot.objectType)
@@ -815,20 +831,20 @@ class InternalLDAPQueryProcessor(
                                  filter <- comp match {
                                              case Regex    => ldap.buildRegex(a.name, value)
                                              case NotRegex => ldap.buildNotRegex(a.name, value)
-                                             case _        => Full(LDAPFilter(ldap.buildFilter(a.name, comp, value)))
+                                             case _        => LDAPFilter(ldap.buildFilter(a.name, comp, value)).success
                                            }
                                } yield {
                                  Left(LdapFilter(objectDnTypes(objectType),tpe, filter))
                                }
 
                              case node: NodeCriterionType =>
-                               Full(Right(NodeInfoFilter(node, comp, value)))
+                               Right(Right(NodeInfoFilter(node, comp, value)))
                            }
             } yield {
               res
             }
           } else {
-            Failure(s"The object type '${objectType}' is not know in criteria ${crit}")
+            s"The object type '${objectType}' is not know in criteria ${crit}".failure
           }
         }
       }
@@ -836,8 +852,8 @@ class InternalLDAPQueryProcessor(
 
     for {
       // Validate that we know the requested object type
-      okQueryType      <- if (objectTypes.isDefinedAt(query.returnType.value)) Full("ok")
-                          else Failure(s"The requested type '${query.returnType}' is not known. This is likely a bug. Please report it")
+      okQueryType      <- if (objectTypes.isDefinedAt(query.returnType.value)) "ok".success
+                          else s"The requested type '${query.returnType}' is not known. This is likely a bug. Please report it".failure
       buildFilters     <- checkAndSplitFilterType(query)
       ldapFilters      =  buildFilters.collect { case Left (x) => x }
       nodeInfoFilters  =  buildFilters.collect { case Right(x) => x }

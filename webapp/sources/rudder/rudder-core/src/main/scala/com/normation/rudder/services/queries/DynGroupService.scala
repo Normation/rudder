@@ -51,6 +51,8 @@ import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import net.liftweb.common._
+import com.normation.ldap.sdk.LdapResult._
+import cats.implicits._
 
 /**
  * A service used to manage dynamic groups : find
@@ -89,10 +91,11 @@ class DynGroupServiceImpl(
 
   override def getAllDynGroups() : Box[Seq[NodeGroup]] = {
     for {
-      con <- ldap
-      dyngroupIds <- sequence(con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs:_*)) { entry =>
-         mapper.entry2NodeGroup(entry) ?~! "Can not map entry to a node group: %s".format(entry)
-      }
+      con         <- ldap
+      entries     <- con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs:_*)
+      dyngroupIds <- entries.toVector.traverse { entry =>
+                       (mapper.entry2NodeGroup(entry) ?~! s"Can not map entry to a node group: ${entry}").toLdapResult
+                     }
     } yield {
       // The idea is to sort group to update groups with a query based on other groups content (objecttype group) at the end so their base group is already updated
       // This does not treat all cases (what happens when you have a group depending on a group which also depends on another group content)
@@ -100,7 +103,7 @@ class DynGroupServiceImpl(
       def numberOfQuery(group : NodeGroup) = group.query.map( _.criteria.filter(_.objectType.objectType == "group").size).getOrElse(0)
       dyngroupIds.sortBy(numberOfQuery)
     }
-  }
+  }.toBox
 }
 
 /**

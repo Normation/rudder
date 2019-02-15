@@ -37,16 +37,17 @@
 
 package com.normation.rudder.repository.ldap
 
-import org.eclipse.jgit.lib.ObjectId
-import com.normation.rudder.domain.RudderDit
-import net.liftweb.common._
-import com.normation.rudder.domain.RudderLDAPConstants.{ A_TECHNIQUE_LIB_VERSION, OC_ACTIVE_TECHNIQUE_LIB_VERSION }
-import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.inventory.ldap.core.LDAPConstants.A_OC
-import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.rudder.repository.xml.GitFindUtils
+import com.normation.cfclerk.services.GitRevisionProvider
+import com.normation.inventory.ldap.core.LDAPConstants.A_OC
+import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.domain.RudderLDAPConstants.A_TECHNIQUE_LIB_VERSION
+import com.normation.rudder.domain.RudderLDAPConstants.OC_ACTIVE_TECHNIQUE_LIB_VERSION
+import com.normation.rudder.repository.xml.GitFindUtils
+import net.liftweb.common._
+import org.eclipse.jgit.lib.ObjectId
 
 /**
  *
@@ -78,7 +79,7 @@ class LDAPGitRevisionProvider(
         id
       case Left(e) =>
         logger.error(s"Error when trying to read persisted version of the current technique " +
-          s"reference library revision to use. Using the last available from Git. Error was: ${e.messageChain}")
+          s"reference library revision to use. Using the last available from Git. Error was: ${e.msg}")
         val id = getAvailableRevTreeId
         setCurrentRevTreeId(id)
         id

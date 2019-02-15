@@ -23,7 +23,7 @@ package com.normation.rudder.repository.ldap
 
 import java.util.concurrent.locks.ReadWriteLock
 
-import com.normation.ldap.sdk.IOLdap._
+import com.normation.ldap.sdk.LdapResult._
 
 /**
  * Pimp^Wextend my Java Lock

@@ -37,39 +37,25 @@
 
 package com.normation.rudder.repository.ldap
 
-import com.unboundid.ldap.sdk.DN
-import com.normation.utils.Control._
+import com.normation.cfclerk.domain._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk._
-import com.normation.cfclerk.domain._
-import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.domain.{NodeDit, RudderDit}
-import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.nodes.JsonSerialisation._
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.services.queries._
-import org.joda.time.DateTime
-import net.liftweb.common._
-import Box.{tryo => _, _}
-import net.liftweb.util.Helpers._
-import net.liftweb.json.JsonAST.JObject
 import com.normation.rudder.api._
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
-import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.nodes.JsonSerialisation._
 import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.parameters._
-import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.reports._
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rule.category.RuleCategory
@@ -77,15 +63,11 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries._
 import com.normation.utils.Control._
 import com.unboundid.ldap.sdk.DN
-import net.liftweb.common._
 import net.liftweb.common.Box.{tryo => _, _}
-import net.liftweb.json._
-import com.normation.rudder.reports._
-import com.normation.inventory.ldap.core.InventoryMapper
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import net.liftweb.common._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
 
@@ -475,7 +457,8 @@ class LDAPEntityMapper(
 
   //two utilities to serialize / deserialize Map[TechniqueVersion,DateTime]
   def unserializeAcceptations(value:String):Map[TechniqueVersion, DateTime] = {
-    import net.liftweb.json.JsonAST.{ JField, JString }
+    import net.liftweb.json.JsonAST.JField
+    import net.liftweb.json.JsonAST.JString
     import net.liftweb.json.JsonParser._
 
     parse(value) match {
@@ -784,8 +767,8 @@ class LDAPEntityMapper(
   //////////////////////////////    API Accounts    //////////////////////////////
 
   def serApiAcl(authz: List[ApiAclElement]): String = {
-    import net.liftweb.json._
     import net.liftweb.json.Serialization._
+    import net.liftweb.json._
     implicit val formats = Serialization.formats(NoTypeHints)
     val toSerialize = JsonApiAcl(acl = authz.map(a =>
       JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))

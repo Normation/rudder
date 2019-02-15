@@ -37,30 +37,32 @@
 
 package com.normation.rudder.repository.ldap
 
-import com.unboundid.ldap.sdk.DN
-import com.normation.utils.Control._
+import com.normation.cfclerk.domain._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.LDAPConstants
-import LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk._
-import com.normation.cfclerk.domain._
+import com.normation.rudder.api.ApiAccountKind.PublicApi
+import com.normation.rudder.api._
 import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.repository.json.DataExtractor
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries._
-import net.liftweb.common._
-import net.liftweb.util.Helpers._
-import com.unboundid.ldif.LDIFChangeRecord
+import com.normation.utils.Control._
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.ModificationType.ADD
+import com.unboundid.ldap.sdk.ModificationType.DELETE
+import com.unboundid.ldap.sdk.ModificationType.REPLACE
 import com.unboundid.ldif.LDIFAddChangeRecord
+import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldif.LDIFModifyChangeRecord
 import com.unboundid.ldif.LDIFModifyDNChangeRecord
-import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.unboundid.ldap.sdk.ModificationType.{ADD, DELETE, REPLACE}
-import com.normation.rudder.domain.parameters._
-import com.normation.rudder.api._
-import com.normation.rudder.repository.json.DataExtractor
-import com.normation.rudder.api.ApiAccountKind.PublicApi
+import net.liftweb.common._
+import net.liftweb.util.Helpers._
 
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper

@@ -85,8 +85,8 @@ object ApiV {
 
 /*
  * In Rudder, we have several kind of API:
- * - purely public API, which can't be accessed from /secure/api path (extremely rare)
- * - purely internal API, which can ONLY be accessed from /secure/api (typically UI related API)
+ * - successly public API, which can't be accessed from /secure/api path (extremely rare)
+ * - successly internal API, which can ONLY be accessed from /secure/api (typically UI related API)
  * - mixed API, which can be accessed by both path.
  *
  * The main difference is on authorization, where public API need an API Token, and internal

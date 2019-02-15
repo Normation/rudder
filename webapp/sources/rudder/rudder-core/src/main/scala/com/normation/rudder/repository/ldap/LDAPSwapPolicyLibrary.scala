@@ -37,29 +37,28 @@
 
 package com.normation.rudder.repository.ldap
 
-import net.liftweb.common._
-import com.normation.rudder.repository.ActiveTechniqueContent
-import com.normation.rudder.repository.ActiveTechniqueCategoryContent
-import com.normation.utils.Control.sequence
-import com.normation.rudder.repository.ImportTechniqueLibrary
-import com.normation.rudder.domain.policies.ActiveTechniqueId
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
-import com.normation.rudder.domain.RudderDit
-import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.unboundid.ldap.sdk.DN
-import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import cats.implicits._
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.ldap.sdk.RwLDAPConnection
-import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
-import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.ldap.sdk.GeneralizedTime
-import com.normation.ldap.sdk.IOLdap._
-import cats.implicits._
-import com.normation.ldap.sdk.LDAPConnectionError
+import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LdapResultError
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.repository.ActiveTechniqueCategoryContent
+import com.normation.rudder.repository.ActiveTechniqueContent
+import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
+import com.normation.rudder.repository.ImportTechniqueLibrary
+import com.unboundid.ldap.sdk.DN
+import net.liftweb.common._
+import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 
 class ImportTechniqueLibraryImpl(
     rudderDit   : RudderDit
@@ -96,11 +95,11 @@ class ImportTechniqueLibraryImpl(
 
     //as far atomic as we can :)
     //don't bother with system and consistency here, it is taken into account elsewhere
-    def atomicSwap(userLib:ActiveTechniqueCategoryContent) : IOLdap[ActiveTechniqueLibraryArchiveId] = {
+    def atomicSwap(userLib:ActiveTechniqueCategoryContent) : LdapResult[ActiveTechniqueLibraryArchiveId] = {
       //save the new one
       //we need to keep the git commit id
-      def saveUserLib(con:RwLDAPConnection, userLib:ActiveTechniqueCategoryContent, gitId:Option[String]) : IOLdap[Unit] = {
-        def recSaveUserLib(parentDN:DN, content:ActiveTechniqueCategoryContent, isRoot:Boolean = false) : IOLdap[Unit] = {
+      def saveUserLib(con:RwLDAPConnection, userLib:ActiveTechniqueCategoryContent, gitId:Option[String]) : LdapResult[Unit] = {
+        def recSaveUserLib(parentDN:DN, content:ActiveTechniqueCategoryContent, isRoot:Boolean = false) : LdapResult[Unit] = {
           //start with the category
           //then with technique/directive for that category
           //then recurse on sub-categories
@@ -146,19 +145,19 @@ class ImportTechniqueLibraryImpl(
         gitId    <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, OC_ACTIVE_TECHNIQUE_LIB_VERSION).notOptional("Error when looking for the root entry of the Active Technique Library when trying to check for an existing revision number").map { entry =>
                       entry(OC_ACTIVE_TECHNIQUE_LIB_VERSION)
                     }
-        ok       <- moveToArchive(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN).toIOLdap
+        ok       <- moveToArchive(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN)
         finished <- {
                       (for {
                         saved  <- saveUserLib(con, userLib, gitId)
-                        system <-if(includeSystem) "OK".successIOLdap()
-                                   else (copyBackSystemEntrie(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN) ?~! "Error when copying back system entries in the imported technique library").toIOLdap
+                        system <-if(includeSystem) "OK".success
+                                   else (copyBackSystemEntrie(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN) ?~! "Error when copying back system entries in the imported technique library")
                       } yield {
                         system
                       }).leftMap { e =>
                              logger.error("Error when trying to load archived active technique library. Rollbaching to previous one.")
                              restoreArchive(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN).fold(
-                               _ => LDAPConnectionError.Chained("Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value), e)
-                             , _ => LDAPConnectionError.Chained("Error when trying to load archived active technique library. A rollback to previous state was executed", e)
+                               _ => LdapResultError.Chained("Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value), e)
+                             , _ => LdapResultError.Chained("Error when trying to load archived active technique library. A rollback to previous state was executed", e)
                              )
                       }
                     }
@@ -174,8 +173,9 @@ class ImportTechniqueLibraryImpl(
      * - all ids must be uniques
      * + remove system library if we don't want them
      */
-    def checkUserLibConsistance(userLib:ActiveTechniqueCategoryContent) : IOLdap[ActiveTechniqueCategoryContent] = {
-      import scala.collection.mutable.{Set,Map}
+    def checkUserLibConsistance(userLib:ActiveTechniqueCategoryContent) : LdapResult[ActiveTechniqueCategoryContent] = {
+      import scala.collection.mutable.Map
+      import scala.collection.mutable.Set
       val directiveIds = Set[DirectiveId]()
       val ptNames = Map[TechniqueName,ActiveTechniqueId]()
       val uactiveTechniqueIds = Set[ActiveTechniqueId]()
@@ -247,7 +247,7 @@ class ImportTechniqueLibraryImpl(
         }
       }
 
-      (Box(recSanitizeCategory(userLib, userLib.category, true)) ?~! "Error when trying to sanitize serialised user library for consistency errors").toIOLdap
+      (Box(recSanitizeCategory(userLib, userLib.category, true)) ?~! "Error when trying to sanitize serialised user library for consistency errors").toLdapResult
     }
 
     //all the logic for a library swap.
@@ -263,7 +263,7 @@ class ImportTechniqueLibraryImpl(
       } yield {
         deleted
       }).leftMap { e =>
-        logger.warn(s"Error when deleting archived library in LDAP with DN '${dn}': ${e.messageChain}")
+        logger.warn(s"Error when deleting archived library in LDAP with DN '${dn}': ${e.msg}")
         e
       }
       () // unit is expected

@@ -297,7 +297,7 @@ object GenerateCompliance {
 
 
   // -----------------------------------------------------------------------
-  // second example with a purely normalized table (with loads of line)
+  // second example with a successly normalized table (with loads of line)
   // -----------------------------------------------------------------------
 
   val columns = List("nodeid", "runtimestamp", "ruleid", "directiveid", "pending", "success", "repaired", "error", "unexpected", "missing", "noanswer", "notapplicable", "reportsdisabled", "compliant", "auditnotapplicable", "noncompliant", "auditerror", "badpolicymode")

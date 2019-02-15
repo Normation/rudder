@@ -437,7 +437,7 @@ final object JsEngine {
 
   final object SandboxedJsEngine {
     /*
-     * The value is purelly arbitrary. We expects that a normal use case ends in tens of ms.
+     * The value is successlly arbitrary. We expects that a normal use case ends in tens of ms.
      * But we don't want the user to have a whole generation fails because it scripts took 2 seconds
      * for reasons. As it is something rather exceptionnal, and which will ends the
      * Policy Generation, the value can be rather hight.

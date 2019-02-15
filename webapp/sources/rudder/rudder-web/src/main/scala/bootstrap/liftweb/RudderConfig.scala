@@ -887,7 +887,7 @@ object RudderConfig extends Loggable {
   )
 
   //////////////////////////////////////////////////////////
-  //  non pure services that could perhaps be
+  //  non success services that could perhaps be
   //////////////////////////////////////////////////////////
 
   // => rwLdap is only used to repair an error, that could be repaired elsewhere.
@@ -908,7 +908,7 @@ object RudderConfig extends Loggable {
   )
 
   ////////////////////////////////////
-  //  non pure services
+  //  non success services
   ////////////////////////////////////
 
   ///// end /////

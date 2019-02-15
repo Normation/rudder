@@ -50,7 +50,7 @@ import net.liftweb.common.Box
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import org.specs2.matcher.MatchResult
-import com.normation.ldap.sdk.IOLdap._
+import com.normation.ldap.sdk.LdapResult._
 
 /**
  * A simple test class to check that the demo data file is up to date

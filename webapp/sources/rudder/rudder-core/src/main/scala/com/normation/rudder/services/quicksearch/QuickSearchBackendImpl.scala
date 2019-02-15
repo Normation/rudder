@@ -63,6 +63,7 @@ import com.normation.rudder.domain.policies.TagValue
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import scala.util.control.NonFatal
 import net.liftweb.common.Loggable
+import com.normation.ldap.sdk.LdapResult._
 
 /**
  * Correctly quote a token
@@ -208,25 +209,26 @@ object QSLdapBackend {
     , nodeDit     : NodeDit
     , rudderDit   : RudderDit
   ): Box[Seq[QuickSearchResult]] = {
+    //the filter for attribute and for attributes must be non empty, else return nothing
+    val ocFilter   = query.objectClass.map( _.filter ).flatten.toSeq
+    val attrFilter = query.attributes.map( _.filter(query.userToken) ).flatten.toSeq
+    val filter = AND(
+        OR(ocFilter: _*)
+      , OR(attrFilter: _*)
+    )
+    // the ldap query part. It should be in a box, but the person who implemented ldap backend was
+    // not really strict on the semantic
+    // the second group is always needed (displayed name, id+test system)
+    val returnedAttributes = (query.attributes.map( _.ldapName).toSeq ++ Seq(A_OC, A_HOSTNAME, A_NAME, A_UUID, A_PARAMETER_NAME, A_IS_SYSTEM)).distinct
+
     for {
       connection  <- ldap
+      entries     <- connection.search(nodeDit.BASE_DN, Sub, filter, returnedAttributes:_*)
     } yield {
-      //the filter for attribute and for attributes must be non empty, else return nothing
-      val ocFilter   = query.objectClass.map( _.filter ).flatten.toSeq
-      val attrFilter = query.attributes.map( _.filter(query.userToken) ).flatten.toSeq
 
       if(ocFilter.isEmpty || attrFilter.isEmpty) { // nothing to search for in that backend
         Seq()
       } else {
-        val filter = AND(
-            OR(ocFilter: _*)
-          , OR(attrFilter: _*)
-        )
-        // the ldap query part. It should be in a box, but the person who implemented ldap backend was
-        // not really strict on the semantic
-        // the second group is always needed (displayed name, id+test system)
-        val returnedAttributes = (query.attributes.map( _.ldapName).toSeq ++ Seq(A_OC, A_HOSTNAME, A_NAME, A_UUID, A_PARAMETER_NAME, A_IS_SYSTEM)).distinct
-        val entries = connection.search(nodeDit.BASE_DN, Sub, filter, returnedAttributes:_*)
 
         //here, we must merge "nodes" so that we don't report in log two times too many results,
         //and we get node always with a hostname
@@ -242,7 +244,7 @@ object QSLdapBackend {
         (others ++ merged).flatMap( _.toResult(query))
       }
     }
-  }
+  }.toBox
 
   /**
    * Mapping between attribute and their ldap name

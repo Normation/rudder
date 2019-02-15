@@ -570,7 +570,7 @@ class GitTechniqueReader(
       is:InputStream
     , filePath:String
     , techniquesInfo:InternalTechniquesInfo
-    , parseDescriptor:Boolean // that option is a pure optimization for the case diff between old/new commit
+    , parseDescriptor:Boolean // that option is a success optimization for the case diff between old/new commit
     , revTreeId: ObjectId
   ): Unit = {
     try {
@@ -650,7 +650,7 @@ class GitTechniqueReader(
       descriptorObjectId: ObjectId
     , filePath          : String
     , maybeCategories   : MutMap[TechniqueCategoryId, TechniqueCategory]
-    , parseDescriptor   : Boolean // that option is a pure optimization for the case diff between old/new commit
+    , parseDescriptor   : Boolean // that option is a success optimization for the case diff between old/new commit
   ) : Unit = {
 
     def nonEmpty(s: String): Option[String] = {

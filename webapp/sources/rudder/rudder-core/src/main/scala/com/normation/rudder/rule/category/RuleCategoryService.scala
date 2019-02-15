@@ -38,6 +38,8 @@
 package com.normation.rudder.rule.category
 
 import net.liftweb.common.Box
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 
 class RuleCategoryService {
 
@@ -45,7 +47,10 @@ class RuleCategoryService {
   // The root category element can be displayed in caps in the full fqdn
   def bothFqdn(rootCategory: RuleCategory, id: RuleCategoryId, rootInCaps : Boolean = false) : Box[(String,String)] = {
     for {
-      fqdn  <- rootCategory.childPath(id)
+      fqdn  <- rootCategory.childPath(id) match {
+                 case Left(x)  => Failure(x)
+                 case Right(x) => Full(x)
+               }
       short =  toShortFqdn(fqdn)
     } yield {
       val full = {
@@ -69,6 +74,9 @@ class RuleCategoryService {
 
   // Get the short fqdn from the id of a Rule category
   def shortFqdn(rootCategory: RuleCategory, id : RuleCategoryId) : Box[String] = {
-      rootCategory.childPath(id).map(toShortFqdn _)
+    rootCategory.childPath(id).map(toShortFqdn _) match {
+      case Left(value)  => Failure(value)
+      case Right(value) => Full(value)
+    }
   }
 }

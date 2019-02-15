@@ -65,6 +65,8 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.queries._
 import net.liftweb.http.SHtml.SelectableOption
+import com.normation.ldap.sdk.LdapResult._
+import cats.implicits._
 
 sealed trait CriterionComparator {
   val id:String
@@ -325,23 +327,23 @@ sealed trait LDAPCriterionType extends CriterionType {
   //transform the given value to its LDAP string value
   def toLDAP(value:String) : Box[String]
 
-  def buildRegex(attribute:String,value:String): Box[RegexFilter] = Full(SimpleRegexFilter(attribute,value))
-  def buildNotRegex(attribute:String,value:String): Box[NotRegexFilter] = Full(SimpleNotRegexFilter(attribute,value))
+  def buildRegex(attribute:String,value:String)   : LdapResult[RegexFilter]    = SimpleRegexFilter(attribute,value).success
+  def buildNotRegex(attribute:String,value:String): LdapResult[NotRegexFilter] = SimpleNotRegexFilter(attribute,value).success
 
   //build the ldap filter for given attribute name and comparator
   def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
       (toLDAP(value),comparator) match {
-        case (_,Exists) => HAS(attributeName)
-        case (_,NotExists) => NOT(HAS(attributeName))
-        case (Full(v),Equals) => EQ(attributeName,v)
+        case (_,Exists)          => HAS(attributeName)
+        case (_,NotExists)       => NOT(HAS(attributeName))
+        case (Full(v),Equals)    => EQ(attributeName,v)
         case (Full(v),NotEquals) => NOT(EQ(attributeName,v))
-        case (Full(v),Greater) => AND(HAS(attributeName),NOT(LTEQ(attributeName,v)))
-        case (Full(v),Lesser) => AND(HAS(attributeName),NOT(GTEQ(attributeName,v)))
+        case (Full(v),Greater)   => AND(HAS(attributeName),NOT(LTEQ(attributeName,v)))
+        case (Full(v),Lesser)    => AND(HAS(attributeName),NOT(GTEQ(attributeName,v)))
         case (Full(v),GreaterEq) => GTEQ(attributeName,v)
-        case (Full(v),LesserEq) => LTEQ(attributeName,v)
-        case (Full(v),Regex) => HAS(attributeName) //"default, non interpreted regex
-        case (Full(v),NotRegex) => HAS(attributeName) //"default, non interpreted regex
-        case (f,c) => throw new IllegalArgumentException(s"Can not build a filter with a non legal value for comparator '${c}': ${f}'")
+        case (Full(v),LesserEq)  => LTEQ(attributeName,v)
+        case (Full(v),Regex)     => HAS(attributeName) //"default, non interpreted regex
+        case (Full(v),NotRegex)  => HAS(attributeName) //"default, non interpreted regex
+        case (f,c)               => throw new IllegalArgumentException(s"Can not build a filter with a non legal value for comparator '${c}': ${f}'")
     }
   }
 }
@@ -863,7 +865,7 @@ class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStr
 /**
  * Create a new criterion for the given attribute `name`, and `cType` comparator.
  * Optionnaly, you can provide an override to signal that that criterion is not
- * on an inventory (or purelly on an inventory) property but on a RudderNode property.
+ * on an inventory (or successlly on an inventory) property but on a RudderNode property.
  * In that case, give the predicat that the node must follows.
  */
 case class Criterion(val name:String, val cType: CriterionType, overrideObjectType: Option[String] = None) extends HashcodeCaching {
@@ -930,7 +932,7 @@ case object NodeAndPolicyServerReturnType extends QueryReturnType{
 case class Query(
     val returnType:QueryReturnType,  //"node" or "node and policy servers"
     val composition:CriterionComposition,
-    val criteria:Seq[CriterionLine] //list of all criteria to be matched by returned values
+    val criteria: List[CriterionLine] //list of all criteria to be matched by returned values
 ) {
     override def toString() = "{ returnType:'%s' with '%s' criteria [%s] }".format(returnType, composition,
           criteria.map{x => "%s.%s %s %s".format(x.objectType.objectType, x.attribute.name, x.comparator.id, x.value)}.mkString(" ; "))

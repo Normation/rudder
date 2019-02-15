@@ -43,6 +43,8 @@ import net.liftweb.json._
 import JsonParser.ParseException
 import CmdbQueryParser._
 import com.normation.utils.HashcodeCaching
+import com.normation.ldap.sdk.LdapResult._
+import cats.implicits._
 
 /**
  * This trait is the general interface that
@@ -55,7 +57,7 @@ import com.normation.utils.HashcodeCaching
 
 //only string version of the query - no domain here
 case class StringCriterionLine(objectType:String, attribute:String, comparator:String, value:Option[String]=None) extends HashcodeCaching
-case class StringQuery(returnType:QueryReturnType,composition:Option[String],criteria:Seq[StringCriterionLine]) extends HashcodeCaching
+case class StringQuery(returnType:QueryReturnType,composition:Option[String],criteria:List[StringCriterionLine]) extends HashcodeCaching
 
 object CmdbQueryParser {
   //query attribute
@@ -99,22 +101,18 @@ trait DefaultStringQueryParser extends StringQueryParser {
 
   override def parse(query:StringQuery) : Box[Query] = {
 
-    val comp = query.composition match {
-      case None => And
-      case Some(s) => CriterionComposition.parse(s).getOrElse(
-          return Failure("The requested composition '%s' is not know".format(query.composition))
-      )
+    for {
+      comp  <- query.composition match {
+                 case None    => Full(And)
+                 case Some(s) => CriterionComposition.parse(s) match {
+                                   case Some(x) => Full(x)
+                                   case None    => Failure(s"The requested composition '${query.composition}' is not know")
+                                 }
+               }
+      lines <- query.criteria.traverse(parseLine)
+    } yield {
+      Query(query.returnType, comp , lines)
     }
-
-    val lines = ( (Full(List()):Box[List[CriterionLine]]) /: query.criteria.toList ){
-      (opt,x) => opt.flatMap(l => parseLine(x).map( _::l ) )
-    } match {
-      case f@Failure(_,_,_) => return f
-      case Empty => /* that should not happen, fail */
-        return Failure("Parsing criteria yields an empty result, abort")
-      case Full(l) => l.toSeq.reverse
-    }
-    Full(Query(query.returnType, comp , lines))
   }
 
   def parseLine(line:StringCriterionLine) : Box[CriterionLine] = {

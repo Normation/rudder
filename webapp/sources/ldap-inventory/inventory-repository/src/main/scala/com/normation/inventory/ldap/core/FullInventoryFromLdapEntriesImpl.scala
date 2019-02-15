@@ -41,7 +41,7 @@ import scala.collection.mutable.Buffer
 import net.liftweb.common._
 import com.normation.ldap.sdk.{LDAPTree, LDAPEntry}
 import com.normation.inventory.domain.FullInventory
-import com.normation.ldap.sdk.IOLdap._
+import com.normation.ldap.sdk.LdapResult._
 
 class FullInventoryFromLdapEntriesImpl(
     inventoryDitService:InventoryDitService,

@@ -49,7 +49,7 @@ import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldap.sdk.{Modification, ModificationType}
 import com.normation.ldap.sdk.BuildFilter.EQ
 import com.unboundid.ldap.sdk.DN
-import com.normation.ldap.sdk.IOLdap._
+import com.normation.ldap.sdk.LdapResult._
 
 trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChangeRecord]]
 
@@ -107,14 +107,14 @@ class FullInventoryRepositoryImpl(
                         for {
                           tree    <- con.getTree(x)
                           machine <- tree match {
-                                       case None    => None.successIOLdap()
-                                       case Some(t) => mapper.machineFromTree(t).toIOLdap.map(Some(_))
+                                       case None    => None.success
+                                       case Some(t) => mapper.machineFromTree(t).toLdapResult.map(Some(_))
                                      }
                         } yield {
                           machine
                         }
                       case None    =>
-                        None.successIOLdap()
+                        None.success
                     }
     } yield {
       machine
@@ -126,7 +126,7 @@ class FullInventoryRepositoryImpl(
    * Return node entries with only the container attribute, in a map with
    * the node status for key.
    */
-  def getNodesForMachine(con: RwLDAPConnection, id:MachineUuid) : IOLdap[Map[InventoryStatus, Set[LDAPEntry]]] = {
+  def getNodesForMachine(con: RwLDAPConnection, id:MachineUuid) : LdapResult[Map[InventoryStatus, Set[LDAPEntry]]] = {
 
     val status = Seq(PendingInventory, AcceptedInventory, RemovedInventory)
     val orFilter = BuildFilter.OR(status.map(x => EQ(A_CONTAINER_DN,dn(id, x).toString)):_*)
@@ -150,7 +150,7 @@ class FullInventoryRepositoryImpl(
    * Update the list of node, setting the container value to the one given.
    * Delete the attribute if None.
    */
-  private[this] def updateNodes(con: RwLDAPConnection, nodes: Map[InventoryStatus, Set[LDAPEntry]], newMachineId:Option[(MachineUuid, InventoryStatus)] ): IOLdap[List[LDIFChangeRecord]] = {
+  private[this] def updateNodes(con: RwLDAPConnection, nodes: Map[InventoryStatus, Set[LDAPEntry]], newMachineId:Option[(MachineUuid, InventoryStatus)] ): LdapResult[List[LDIFChangeRecord]] = {
     val mod = newMachineId match {
       case None => new Modification(ModificationType.DELETE, A_CONTAINER_DN)
       case Some((id, status)) => new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(id, status).toString)
@@ -158,7 +158,7 @@ class FullInventoryRepositoryImpl(
 
     (nodes.values.flatten.map( _.dn).toList.traverse { dn =>
       con.modify(dn, mod).toValidatedNel
-    }).toIOLdap
+    }).toLdapResult
   }
 
   override def save(machine:MachineInventory) : Box[Seq[LDIFChangeRecord]] = {
@@ -172,7 +172,7 @@ class FullInventoryRepositoryImpl(
     (for {
        con      <- ldap
        machines =  getExistingMachineDN(con,id).collect { case(exists,dn) if exists => dn }.toList
-       res      <- machines.traverse( dn => con.delete(dn).toValidatedNel ).toIOLdap
+       res      <- machines.traverse( dn => con.delete(dn).toValidatedNel ).toLdapResult
        machine  <- getNodesForMachine(con, id)
        nodes    <- updateNodes(con, machine, None)
     } yield res.flatten ++ nodes).toBox
@@ -199,7 +199,7 @@ class FullInventoryRepositoryImpl(
                  val machineToKeep = machinePresences.find( _._1 ).map( _._2)
 
                  machineToKeep match {
-                   case None => Seq().successIOLdap()
+                   case None => Seq().success
                    case Some(machineDN) =>
 
                      def testAndMove(i:Int) = {
@@ -237,8 +237,8 @@ class FullInventoryRepositoryImpl(
       con       <- ldap
       entry     <- con.get(dn(id, inventoryStatus), A_CONTAINER_DN)
       machineId <- entry match {
-                     case None    => None.successIOLdap()
-                     case Some(e) => mapper.mapSeqStringToMachineIdAndStatus(e.valuesFor(A_CONTAINER_DN)).headOption.successIOLdap()
+                     case None    => None.success
+                     case Some(e) => mapper.mapSeqStringToMachineIdAndStatus(e.valuesFor(A_CONTAINER_DN)).headOption.success
                    }
     } yield {
       machineId
@@ -250,8 +250,8 @@ class FullInventoryRepositoryImpl(
       con       <- ldap
       nodeTrees <- con.getTree(inventoryDitService.getDit(inventoryStatus).NODES.dn)
       nodes     <- nodeTrees match {
-                     case Some(root) => root.children.values.toList.traverse { tree => mapper.nodeFromTree(tree).toIOLdap }
-                     case None       => Seq().successIOLdap()
+                     case Some(root) => root.children.values.toList.traverse { tree => mapper.nodeFromTree(tree).toLdapResult }
+                     case None       => Seq().success
                    }
     } yield {
       nodes.map(n => (n.main.id, n)).toMap
@@ -269,17 +269,17 @@ class FullInventoryRepositoryImpl(
 
       // Get into Nodes subtree
       nodeTree    <- tree.flatMap(_.children.get(dit.NODES.rdn)) match {
-                      case None => LDAPConnectionError.Rudder(s"Could not find node inventories in ${dit.BASE_DN}").failureIOLdap()
-                      case Some(tree) => tree.successIOLdap()
+                      case None => LdapResultError.Consistancy(s"Could not find node inventories in ${dit.BASE_DN}").failure
+                      case Some(tree) => tree.success
                      }
-      nodes       <- nodeTree.children.values.toList.traverse { tree => mapper.nodeFromTree(tree).toIOLdap }
+      nodes       <- nodeTree.children.values.toList.traverse { tree => mapper.nodeFromTree(tree).toLdapResult }
 
       // Get into Machines subtree
       machineTree <- tree.flatMap(_.children.get(dit.MACHINES.rdn)) match {
-                       case None => LDAPConnectionError.Rudder(s"Could not find machine inventories in ${dit.BASE_DN}").failureIOLdap()
-                       case Some(tree) => tree.successIOLdap()
+                       case None => LdapResultError.Consistancy(s"Could not find machine inventories in ${dit.BASE_DN}").failure
+                       case Some(tree) => tree.success
                      }
-      machines    <- machineTree.children.values.toList.traverse { tree => mapper.machineFromTree(tree).toIOLdap }
+      machines    <- machineTree.children.values.toList.traverse { tree => mapper.machineFromTree(tree).toLdapResult }
 
     } yield {
       val machineMap =  machines.map(m => (m.id, m)).toMap
@@ -298,22 +298,22 @@ class FullInventoryRepositoryImpl(
       con    <- ldap
       tree   <- con.getTree(dn(id, inventoryStatus))
       server <- tree match {
-                  case Some(t) => mapper.nodeFromTree(t).map(Some(_)).toIOLdap
-                  case None    => None.successIOLdap()
+                  case Some(t) => mapper.nodeFromTree(t).map(Some(_)).toLdapResult
+                  case None    => None.success
                 }
       //now, try to add a machine
       optMachine <- {
         server.flatMap(_.machineId) match {
-          case None => None.successIOLdap()
+          case None => None.success
           case Some((machineId, status)) =>
             //here, we want to actually use the provided DN to:
             // 1/ not make 3 existence tests each time we get a node,
             // 2/ make the thing more debuggable. If we don't use the DN and display
             //    information taken elsewhere, future debugging will leads people to madness
             con.getTree(dn(machineId, status)) match {
-              case Right(None)    => None.successIOLdap()
-              case Right(Some(x)) => mapper.machineFromTree(x).map(Some(_)).toIOLdap
-              case Left(error)    => error.failureIOLdap()
+              case Right(None)    => None.success
+              case Right(Some(x)) => mapper.machineFromTree(x).map(Some(_)).toLdapResult
+              case Left(error)    => error.failure
             }
         }
       }
@@ -334,8 +334,8 @@ class FullInventoryRepositoryImpl(
       con    <- ldap
       nodeDn =  findDnForNode(con,id)
       inv    <- nodeDn match {
-                  case None    => None.successIOLdap()
-                  case Some(s) => get(id, s).toIOLdap
+                  case None    => None.success
+                  case Some(s) => get(id, s).toLdapResult
                 }
     } yield {
       inv
@@ -348,8 +348,8 @@ class FullInventoryRepositoryImpl(
       con        <- ldap
       resServer  <- con.saveTree(mapper.treeFromNode(inventory.node))
       resMachine <- inventory.machine match {
-                      case None => Seq().successIOLdap()
-                      case Some(m) => this.save(m).toIOLdap
+                      case None => Seq().success
+                      case Some(m) => this.save(m).toLdapResult
                     }
     } yield resServer ++ resMachine).toBox
   }
@@ -359,18 +359,18 @@ class FullInventoryRepositoryImpl(
       con          <- ldap
       //if there is only one node using the machine, delete it. Continue on error, but on success log ldif records
       //if several node use it, does nothing
-      optMachine    <- getMachineId(id, inventoryStatus).toIOLdap
+      optMachine    <- getMachineId(id, inventoryStatus).toLdapResult
       machineRecord <- optMachine match {
-                         case None => Seq().successIOLdap()
+                         case None => Seq().success
                          case Some((machineId, _)) =>
                            (for {
                              usingIt <- getNodesForMachine(con, machineId)
                              res <- {
                                        val nodes = usingIt.values.flatten.size
                                        if(nodes < 2) {
-                                         this.delete(machineId).toIOLdap
+                                         this.delete(machineId).toLdapResult
                                        } else {
-                                         Seq().successIOLdap()
+                                         Seq().success
                                        }
                                      }
                            } yield {
@@ -378,8 +378,8 @@ class FullInventoryRepositoryImpl(
                            }).fold(
                                 e => {
                                   logger.warn(s"Error when trying to delete machine for server with id '${id.value}' and inventory status '${inventoryStatus}'. Message was: ${e.msg}")
-                                  Seq().successIOLdap()
-                                }, _.successIOLdap()
+                                  Seq().success
+                                }, _.success
                              )
                        }
       res <- con.delete(dn(id, inventoryStatus))

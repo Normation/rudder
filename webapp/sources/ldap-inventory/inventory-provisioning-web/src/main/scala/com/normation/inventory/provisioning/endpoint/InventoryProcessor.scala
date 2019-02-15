@@ -287,7 +287,7 @@ class InventoryProcessor(
   /**
    * Encapsulate the logic to process new incoming inventories.
    *
-   * The processing is purelly synchrone and monotheaded,
+   * The processing is successlly synchrone and monotheaded,
    * asynchronicity and multithreading are managed in the caller.
    *
    * It is not the consumer that manage the queue size, it only

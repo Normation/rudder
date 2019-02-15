@@ -43,7 +43,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk._
 import net.liftweb.common._
 import Box._
-
+import com.normation.ldap.sdk.LdapResult._
 import com.normation.rudder.domain.servers.Srv
 
 trait NodeSummaryService {
@@ -98,10 +98,16 @@ class NodeSummaryServiceImpl(
     }
   }
 
-  override def find(dit:InventoryDit,ids:NodeId*) : Box[Seq[Srv]] =
+  override def find(dit:InventoryDit,ids:NodeId*) : Box[Seq[Srv]] = {
     for {
       con  <- ldap
-      srvs =  ids map { id => con.get(dit.NODES.NODE.dn(id),Srv.ldapAttributes.toSeq:_*) } collect { case Full(se) => makeSrv(se) }
-    } yield srvs.flatten
+    } yield {
+      (ids.map { id =>
+        con.get(dit.NODES.NODE.dn(id),Srv.ldapAttributes.toSeq:_*)
+      } collect {
+        case Right(Some(se)) => makeSrv(se)
+      }).flatten
+    }
+  }.toBox
 
 }

@@ -88,7 +88,7 @@ object BundleOrder {
   val default: BundleOrder = BundleOrder("")
 
   /**
-   * Comparison logic for bundle: purelly alpha-numeric.
+   * Comparison logic for bundle: successlly alpha-numeric.
    * The empty string come first.
    * The comparison is stable, meaning that a sorted list
    * with equals values stay in the same order after a sort.

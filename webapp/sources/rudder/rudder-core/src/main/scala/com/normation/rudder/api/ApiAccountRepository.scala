@@ -56,8 +56,8 @@ import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
 import org.joda.time.DateTime
 import com.normation.utils.StringUuidGenerator
-import com.normation.ldap.sdk.IOLdap._
-import com.normation.ldap.sdk.LDAPConnectionError
+import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LdapResultError
 
 /**
  * A repository to retrieve API Accounts
@@ -150,8 +150,8 @@ final class RoLDAPApiAccountRepository(
         //here, be careful to the semantic of get with a filter!
         optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, token.value))
         optRes   <- optEntry match {
-                      case None    => None.successIOLdap()
-                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) ).toIOLdap
+                      case None    => None.success
+                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) ).toLdapResult
                     }
       } yield {
         optRes
@@ -167,8 +167,8 @@ final class RoLDAPApiAccountRepository(
         ldap     <- ldapConnexion
         optEntry <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id))
         optRes   <- optEntry match {
-                      case None    => None.successIOLdap()
-                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) ).toIOLdap
+                      case None    => None.success
+                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) ).toLdapResult
                     }
       } yield {
         optRes
@@ -195,19 +195,19 @@ final class WoLDAPApiAccountRepository(
       (for {
         ldap     <- ldapConnexion
         existing <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) map {
-                      case None    => None.successIOLdap()
+                      case None    => None.success
                       case Some(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
-                                        Some(e).successIOLdap()
+                                        Some(e).success
                                       } else {
-                                        LDAPConnectionError.Rudder("An account with given token but different id already exists").failureIOLdap()
+                                        LdapResultError.Consistancy("An account with given token but different id already exists").failure
                                       }
                     }
         name     <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) map {
-                      case None    => None.successIOLdap()
+                      case None    => None.success
                       case Some(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
-                                        Some(e).successIOLdap()
+                                        Some(e).success
                                       } else {
-                                        LDAPConnectionError.Rudder(s"An account with the same name ${principal.name.value} exists").failureIOLdap()
+                                        LdapResultError.Consistancy(s"An account with the same name ${principal.name.value} exists").failure
                                       }
                     }
         optPrevious <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id))
@@ -240,7 +240,7 @@ final class WoLDAPApiAccountRepository(
                               } yield {
                                 action
                               }
-                       }).toIOLdap
+                       }).toLdapResult
       } yield {
         principal
       }).toBox
@@ -254,13 +254,13 @@ final class WoLDAPApiAccountRepository(
     (for {
       ldap         <- ldapConnexion
       entry        <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)).flatMap {
-                        case None    => LDAPConnectionError.Rudder(s"Api Account with ID '${id.value}' is not present").failureIOLdap()
-                        case Some(x) => x.successIOLdap()
+                        case None    => LdapResultError.Consistancy(s"Api Account with ID '${id.value}' is not present").failure
+                        case Some(x) => x.success
                       }
-      oldAccount   <- mapper.entry2ApiAccount(entry).toIOLdap
+      oldAccount   <- mapper.entry2ApiAccount(entry).toLdapResult
       deleted      <- ldap.delete(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id))
       diff         =  DeleteApiAccountDiff(oldAccount)
-      loggedAction <- actionLogger.saveDeleteApiAccount(modId, principal = actor, deleteDiff = diff, None).toIOLdap
+      loggedAction <- actionLogger.saveDeleteApiAccount(modId, principal = actor, deleteDiff = diff, None).toLdapResult
     } yield {
       id
     }).toBox

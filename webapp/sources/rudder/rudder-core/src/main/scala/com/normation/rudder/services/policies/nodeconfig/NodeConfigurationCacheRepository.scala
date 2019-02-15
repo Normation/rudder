@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
+import cats.implicits._
 import com.normation.inventory.domain.NodeId
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
@@ -50,6 +51,7 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Variable
+import com.normation.ldap.sdk.LdapResult._
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.NodeConfiguration
@@ -69,7 +71,7 @@ case class PolicyHash(
  * Keep in mind that anything that is changing the related resources
  * of policies that are written for the node during policy generation
  * must be taken into account in the hash.
- * Typically, the technique non-template resources, like pure CFEngine
+ * Typically, the technique non-template resources, like success CFEngine
  * file or other configuration files, must be looked for change
  * (for them, this is done with the technique "acceptation" (i.e commit)
  * date.
@@ -130,8 +132,8 @@ object NodeConfigurationHash {
      * be handle directly at the directive level) or a system variable
      * (which is already in nodeContext)
      *
-     * - all ${rudder.node} params (because can be used in pure CFEngine)
-     * - node properties (because can be used in pure CFEngine)
+     * - all ${rudder.node} params (because can be used in success CFEngine)
+     * - node properties (because can be used in success CFEngine)
      * - isPolicyServer (for nodes becoming relay)
      * - serverRoles (because not the same set of directives - but
      *   perhaps it is already handle in the directives)
@@ -332,37 +334,41 @@ class LdapNodeConfigurationHashRepository(
    * "best effort" way. Bad config are logged as error.
    * We fail if the entry is not of the expected type
    */
-  private[this] def fromLdap(e:LDAPEntry): Box[Set[NodeConfigurationHash]] = {
-     for {
-       typeOk <- if(e.isA(OC_NODES_CONFIG)) {
-                   Full("ok")
-                 } else {
-                   Failure(s"Entry ${e.dn} is not a '${OC_NODES_CONFIG}', can not find node configuration caches. Entry details: ${e}")
-                 }
-     } yield {
-       e.valuesFor(A_NODE_CONFIG).flatMap { json =>
-         try {
-           Some(read[NodeConfigurationHash](json))
-         } catch {
-           case e: Exception =>
-             //try to get the nodeid from what should be some json
-             try {
-               for {
-                 JString(id) <- parse(json) \\ "id" \ "value"
-               } yield {
-                 logger.info(s"Ignoring following node configuration cache info because of deserialisation error: ${id}. Policies will be regenerated for it.")
-               }
-             } catch {
-               case e:Exception => //ok, that's does not seem to be json
-                 logger.info(s"Ignoring an unknown node configuration cache info because of deserialisation problem.")
-             }
+  private[this] def fromLdap(entry: Option[LDAPEntry]): LdapResult[Set[NodeConfigurationHash]] = {
+    entry match {
+      case None    => Set.empty[NodeConfigurationHash].success
+      case Some(e) =>
+        for {
+          typeOk <- if(e.isA(OC_NODES_CONFIG)) {
+                      "ok".success
+                    } else {
+                      s"Entry ${e.dn} is not a '${OC_NODES_CONFIG}', can not find node configuration caches. Entry details: ${e}".failure
+                    }
+        } yield {
+          e.valuesFor(A_NODE_CONFIG).flatMap { json =>
+            try {
+              Some(read[NodeConfigurationHash](json))
+            } catch {
+              case e: Exception =>
+                //try to get the nodeid from what should be some json
+                try {
+                  for {
+                    JString(id) <- parse(json) \\ "id" \ "value"
+                  } yield {
+                    logger.info(s"Ignoring following node configuration cache info because of deserialisation error: ${id}. Policies will be regenerated for it.")
+                  }
+                } catch {
+                  case e:Exception => //ok, that's does not seem to be json
+                    logger.info(s"Ignoring an unknown node configuration cache info because of deserialisation problem.")
+                }
 
-             logger.debug(s"Faulty json and exception was: ${json}", e)
+                logger.debug(s"Faulty json and exception was: ${json}", e)
 
-             None
-         }
-       }
-     }
+                None
+            }
+          }
+        }
+    }
   }
 
   private[this] def toLdap(nodeConfigs: Set[NodeConfigurationHash]): LDAPEntry = {
@@ -377,12 +383,11 @@ class LdapNodeConfigurationHashRepository(
    * Delete node config matching predicate.
    * Return the list of remaining ids.
    */
-  private[this] def deleteCacheMatching( shouldDeleteConfig: NodeConfigurationHash => Boolean): Box[Set[NodeId]] = {
+  private[this] def deleteCacheMatching( shouldDeleteConfig: NodeConfigurationHash => Boolean): LdapResult[Set[NodeId]] = {
      for {
        ldap         <- ldapCon
        currentEntry <- ldap.get(rudderDit.NODE_CONFIGS.dn)
-       nodeConfigs  <- fromLdap(currentEntry)
-       remaining    =  nodeConfigs.filterNot(shouldDeleteConfig)
+       remaining    <- fromLdap(currentEntry).map(_.filterNot(shouldDeleteConfig))
        newEntry     =  toLdap(remaining)
        saved        <- ldap.save(newEntry)
      } yield {
@@ -399,7 +404,7 @@ class LdapNodeConfigurationHashRepository(
      } yield {
        nodeIds
      }
-   }
+   }.toBox
 
   /**
    * Inverse of delete: delete all node configuration not
@@ -411,7 +416,7 @@ class LdapNodeConfigurationHashRepository(
      } yield {
        nodeIds
      }
-   }
+   }.toBox
 
 
   /**
@@ -425,18 +430,18 @@ class LdapNodeConfigurationHashRepository(
      } yield {
        ()
      }
-  }
+  }.toBox
 
 
   def getAll() : Box[Map[NodeId, NodeConfigurationHash]] = {
     for {
-      ldap    <- ldapCon
-      entry   <- ldap.get(rudderDit.NODE_CONFIGS.dn)
+      ldap        <- ldapCon
+      entry       <- ldap.get(rudderDit.NODE_CONFIGS.dn)
       nodeConfigs <- fromLdap(entry)
     } yield {
       nodeConfigs.map(x => (x.id, x)).toMap
     }
-  }
+  }.toBox
 
   def save(caches: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
     val updatedIds = caches.map(_.id)
@@ -451,6 +456,6 @@ class LdapNodeConfigurationHashRepository(
     } yield {
       updatedIds
     }
-  }
+  }.toBox
 }
 

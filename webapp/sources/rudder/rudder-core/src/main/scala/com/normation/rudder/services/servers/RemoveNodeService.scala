@@ -45,14 +45,15 @@ import java.util.function.Consumer
 
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.LdapResult._
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
@@ -78,8 +79,11 @@ import com.normation.utils.Control.sequence
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import net.liftweb.common._
 
 sealed trait DeletionResult
 object DeletionResult {
@@ -274,7 +278,7 @@ class RemoveNodeServiceImpl(
     } yield {
       result
     }
-  }
+  }.toBox
 
   /**
    * Uncertify node key if it was. Can be done once the node is deleted
@@ -286,7 +290,7 @@ class RemoveNodeServiceImpl(
     } yield {
       res
     }
-  }
+  }.toBox
 
   /**
    * Delete cfengine key. We need to do it here b/c we don't have a variable with the

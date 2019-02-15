@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rule.category
 
+import com.normation.ldap.sdk.LdapResult.LdapResult
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._
@@ -79,34 +80,34 @@ case class RuleCategory(
   def find (categoryId : RuleCategoryId) : Box[(RuleCategory,RuleCategoryId)] = {
     childPath(categoryId) match {
 
-      case Full(_ :: parent :: category :: Nil) => Full((category,parent.id))
-      case Full(parent :: category :: Nil) => Full((category,parent.id))
-      case Full(category :: Nil) => Full((category,category.id))
-      case Full(_) =>
+      case Right(_ :: parent :: category :: Nil) => Full((category,parent.id))
+      case Right(parent :: category :: Nil) => Full((category,parent.id))
+      case Right(category :: Nil) => Full((category,category.id))
+      case Right(_) =>
         Failure(s"could not find category '${categoryId.value}' in category '${id.value}'" )
-      case eb:EmptyBox =>
-        eb ?~! s"could not find category '${categoryId.value}' in category '${id.value}'"
+      case Left(s) =>
+        Failure(s) ?~! s"could not find category '${categoryId.value}' in category '${id.value}'"
     }
   }
 
 
   // Path to a Children, including this child
-  def childPath (childrenId : RuleCategoryId) :  Box[List[RuleCategory]]= {
+  def childPath (childrenId : RuleCategoryId) :  Either[String, List[RuleCategory]]= {
     if (this.id == childrenId) {
-      Full(this :: Nil)
+      Right(this :: Nil)
     } else {
       // Try to find children id in childs, collect to get only positive results
-      val paths = childs.map(_.childPath(childrenId)).collect {case Full(c) => c }
+      val paths = childs.map(_.childPath(childrenId)).collect {case Right(c) => c }
       paths match {
-        case c :: Nil => Full(this :: c)
-        case Nil => Failure(s"cannot find parent category of ID '${childrenId.value}'")
-        case _ => Failure(s"too much parents for category of ID '${childrenId.value}'")
+        case c :: Nil => Right(this :: c)
+        case Nil => Left(s"cannot find parent category of ID '${childrenId.value}'")
+        case _ => Left(s"too much parents for category of ID '${childrenId.value}'")
       }
     }
   }
 
   // Path to a children not containing the children
-  def findParents (childrenId : RuleCategoryId) :  Box[List[RuleCategory]]= {
+  def findParents (childrenId : RuleCategoryId) :  Either[String, List[RuleCategory]]= {
     childPath(childrenId).map(_.init)
   }
 
