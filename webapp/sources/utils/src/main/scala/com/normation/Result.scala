@@ -66,13 +66,36 @@ object Result extends ResultImplicits with BoxCompat {
   }
 }
 
+trait ErrorADT {
 
-trait ResultImplicits {
+  trait Error extends Result.Error
+
+  // errors due to some LDAPException
+  final case class Exception(msg: String, cause: Throwable) extends Error
+  // errors linked to some logic of our lib
+  final case class Consistancy(msg: String)                 extends Error
+  // trace
+  final case class Chained(hint: String, cause: Error)      extends Error {
+    def msg = hint +" <- " + cause.msg
+  }
+  // accumulated errors from multiple independent action
+  final case class Accumulated(errors: NonEmptyList[Error]) extends Error {
+    def msg = s"Several errors encountered: ${errors.toList.map(_.msg).mkString("; ")}"
+  }
+}
+
+
+/*
+ * Template for error ADT with the standard translation to/from box.
+ */
+trait ResultADT[S, E <: ErrorADT, R <: Either[E#Error, S]] {
+
+
 
   // transform an Option[T] into a Result
   implicit class StrictOption[T](opt: Result[Option[T]]) {
     def notOptional(msg: String) = opt.flatMap {
-      case None    => Left(Result.Error.Consistancy(msg))
+      case None    => Left(E.Consistancy(msg))
       case Some(x) => Right(x)
     }
   }
