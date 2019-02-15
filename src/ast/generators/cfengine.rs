@@ -69,6 +69,7 @@ impl CFEngine {
                 self.format_case_expr(gc, e1),
                 self.format_case_expr(gc, e2)
             ),
+            // TODO what about classes that have not yet been set ? can it happen ?
             EnumExpression::Not(e1) => format!("!({})", self.format_case_expr(gc, e1)),
             EnumExpression::Compare(var, e, item) => {
                 if gc.enum_list.is_global(*e) {

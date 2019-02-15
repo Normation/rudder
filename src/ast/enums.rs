@@ -46,7 +46,6 @@ pub enum EnumExpression<'a> {
 impl<'a> EnumExpression<'a> {
     /// print the expression position in source code for user output
     pub fn position_str(&self) -> String {
-        // TODO keep position in default
         let (file, line, col) = self.position();
         format!("{}:{}:{}", file, line, col)
     }
@@ -60,7 +59,7 @@ impl<'a> EnumExpression<'a> {
             EnumExpression::Default(a) => a.position(),
         }
     }
-    // return true if this is just the expression 'default'
+    /// return true if this is just the expression 'default'
     pub fn is_default(&self) -> bool {
         match self {
             EnumExpression::Default(_) => true,
@@ -347,7 +346,6 @@ impl<'a> EnumList<'a> {
                         }
                     },
                 };
-                // TODO negative booleans expressions
                 let val = if e1 == Token::new("","boolean") {
                     Token::new("internal","true")
                 } else {

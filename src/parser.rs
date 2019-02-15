@@ -20,7 +20,6 @@ use nom::*;
 // TODO namespace in identifiers
 // TODO iterators
 // TODO trailing comma
-// TODO move expression parsing out to enable multiple error reports
 
 /// The parse function that should be called when parsing a file
 pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Result<PFile<'a>> {
@@ -73,15 +72,8 @@ pnamed!(
 
 /// An identifier is a word that contains alphanumeric chars.
 /// Be liberal here, they are checked again later
-/// TODO should we accept other chars ?
-/// TODO any reason an identifier should not start with a digit
 pnamed!(pub pidentifier<Token>,
-    map!(
-        verify!(alphanumeric, |x:PInput| {
-            // check first char
-            let c=x.fragment.chars().next().unwrap_or(' '); // space is not a valid starting char so it can be used to mean None
-            (c as u8 >= 0x41 && c as u8 <= 0x5A) || (c as u8 >= 0x61 && c as u8 <= 0x7A) || (c == '_')
-        } ),
+    map!(take_while1!(|c: char| c.is_alphanumeric() || (c == '_')),
         |x| x.into()
     )
 );
@@ -676,13 +668,19 @@ mod tests {
             mapok(pidentifier(pinput("", "simpl3 "))),
             Ok((" ", "simpl3".into()))
         );
-        // TODO accept _
-        //        assert_eq!(
-        //            mapok(pidentifier(pinput("", "simple_word "))),
-        //            Ok((" ", "simple_word".into()))
-        //        );
+        assert_eq!(
+            mapok(pidentifier(pinput("", "5imple "))),
+            Ok((" ", "5imple".into()))
+        );
+        assert_eq!(
+            mapok(pidentifier(pinput("", "héllo "))),
+            Ok((" ", "héllo".into()))
+        );
+        assert_eq!(
+            mapok(pidentifier(pinput("", "simple_word "))),
+            Ok((" ", "simple_word".into()))
+        );
         assert!(pidentifier(pinput("", "%imple ")).is_err());
-        assert!(pidentifier(pinput("", "5imple ")).is_err());
     }
 
     #[test]
@@ -1145,7 +1143,7 @@ mod tests {
             Err(PError::InvalidEscape)
         );
         assert_eq!(
-            maperr(penum(pinput("", "enum 2abc { a, b, c }"))),
+            maperr(penum(pinput("", "enum %abc { a, b }"))),
             Err(PError::InvalidName)
         );
         assert_eq!(

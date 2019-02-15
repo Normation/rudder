@@ -5,29 +5,6 @@ resource File(p)
 File state permissions(u,g,m) {
 }
 
-global enum os {
-  ubuntu,
-  debian
-}
-
-enum os ~> family {
-  ubuntu -> debian,
-  debian -> debian
-}
-
-# Must be defined, needed by the compiler
-enum boolean {
-  true,
-  false
-}
-
-# Must be defined, needed by the compiler
-enum outcome {
-  kept,
-  repaired,
-  error
-}
-
 resource ntp ()
 
 ntp state configuration ()
