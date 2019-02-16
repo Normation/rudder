@@ -135,7 +135,7 @@ impl<'a> Parameter<'a> {
     fn value_match(&self, param_ref: &Value) -> Result<()> {
         match (&self.ptype, param_ref) {
             (PType::TString, Value::String(_)) => Ok(()),
-            (t, _v) => fail!(Token::new("x", "y"), "Parameter is not of the type {:?}", t), // TODO we need a Token to position PValues and a display trait
+            (t, _v) => fail!(self.name, "Parameter {} is not of the type {:?}", self.name, t),
         }
     }
 }
@@ -155,9 +155,9 @@ pub enum Statement<'a> {
     //   keyword    list of condition          then
     Case(Token<'a>, Vec<(EnumExpression<'a>, Vec<Statement<'a>>)>),
     // Stop engine
-    Fail(Token<'a>),
+    Fail(Value<'a>),
     // Inform the user of something
-    Log(Token<'a>),
+    Log(Value<'a>),
     // Return a specific outcome
     Return(Token<'a>),
     // Do nothing
@@ -193,9 +193,37 @@ impl<'a> Statement<'a> {
                 fix_results(parameters.iter().map(|p| p.context_check(gc, context)))?;
                 Statement::StateCall(mode, res, res_parameters, st, parameters, out)
             }
-            PStatement::Fail(f) => Statement::Fail(f),
-            PStatement::Log(l) => Statement::Log(l),
-            PStatement::Return(r) => Statement::Return(r),
+            PStatement::Fail(f) => {
+                let value = Value::from_pvalue(f)?;
+                // check that definition use existing variables
+                value.context_check(gc, context)?;
+                // we must fail with a string
+                match &value {
+                    Value::String(_) => (),
+                    // _ => fail!(Token::new("", "TODO"), "Fail only accept a strong parameter"),
+                }
+                Statement::Fail(value)
+            },
+            PStatement::Log(l) => {
+                let value = Value::from_pvalue(l)?;
+                // check that definition use existing variables
+                value.context_check(gc, context)?;
+                // we must fail with a string
+                match &value {
+                    Value::String(_) => (),
+                    // _ => fail!(Token::new("", "TODO"), "Fail only accept a strong parameter"),
+                }
+                Statement::Log(value)
+            },
+            PStatement::Return(r) => {
+                if  r == Token::new("", "kept") ||
+                    r == Token::new("", "repaired") ||
+                    r == Token::new("", "error") {
+                    Statement::Return(r) // TODO must be an outcome
+                } else {
+                    fail!(r, "Can only return an outcome (kept, repaired or error) instead of {}",r)
+                }
+            },
             PStatement::Noop => Statement::Noop,
             PStatement::Case(case, v) => {
                 Statement::Case(case, fix_vec_results(v.into_iter().map(|(exp_str, sts)| {
@@ -375,10 +403,9 @@ impl<'a> AST<'a> {
                 }
 
             },
-            Statement::VariableDefinition(_,_) => {
+            Statement::VariableDefinition(v,_) => {
                 if !first_level {
-                    // TODO token
-                    fail!(Token::new("", ""),"Variable definition within case are forbidden at the moment"); // because it is hard to check that variables are always defined
+                    fail!(v,"Variable definition {} within case are forbidden at the moment", v); // because it is hard to check that variables are always defined
                 }
             },
             _ => {}

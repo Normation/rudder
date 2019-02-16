@@ -33,7 +33,7 @@ pub struct EnumList<'a> {
 }
 
 /// A boolean expression that can be defined using enums
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum EnumExpression<'a> {
     //      variable   enum        value
     Compare(Token<'a>, Token<'a>, Token<'a>),

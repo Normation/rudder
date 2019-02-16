@@ -16,10 +16,16 @@ use nom::*;
 
 // TODO parse and store comments
 // TODO add more types
+// TODO more like var = f(x)
 // TODO lifetime = 'src
 // TODO namespace in identifiers
 // TODO iterators
 // TODO trailing comma
+// TODO include
+// TODO global variable definition
+// TODO boolean var = expression
+// TODO stateCall error management
+// TODO return + log + fail
 
 /// The parse function that should be called when parsing a file
 pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Result<PFile<'a>> {
@@ -321,7 +327,6 @@ pub enum PValue<'a> {
 
 pnamed!(
     pvalue<PValue>,
-    // TODO other types
     alt!(
         unescaped_string  => { |(x,y)| PValue::String(x,y) }
       | escaped_string    => { |(x,y)| PValue::String(x,y) }
@@ -419,7 +424,7 @@ pnamed!(
 #[derive(Debug, PartialEq)]
 pub enum PStatement<'a> {
     Comment(PComment<'a>),
-    VariableDefinition(Token<'a>, PValue<'a>), // TODO function call et al. (with default)
+    VariableDefinition(Token<'a>, PValue<'a>),
     StateCall(
         PCallMode,         // mode
         Token<'a>,         // resource
@@ -427,19 +432,17 @@ pub enum PStatement<'a> {
         Token<'a>,         // state name
         Vec<PValue<'a>>,   // parameters
         Option<Token<'a>>, // outcome
-                           // TODO Option<PStatement<'a>>, // error management
     ),
     //   case keyword, list (condition   ,       then)
     Case(Token<'a>, Vec<(PInput<'a>, Vec<PStatement<'a>>)>), // keep the pinput since it will be reparsed later
-    // Stop engine
-    Fail(Token<'a>),
+    // Stop engine with a final message
+    Fail(PValue<'a>),
     // Inform the user of something
-    Log(Token<'a>),
+    Log(PValue<'a>),
     // Return a specific outcome
     Return(Token<'a>),
     // Do nothing
     Noop,
-    // TODO condition instance, resource instance, variable definition
 }
 pnamed!(
     pstatement<PStatement>,
@@ -470,7 +473,7 @@ pnamed!(
             case: tag!("case") >>
             tag!("{") >>
             cases: separated_list!(tag!(","),
-                      do_parse!(
+                      sp!(do_parse!(
                           // only to take until '=>' to parse expression later for better
                           // error management (penum_expression must not leave any unparsed token)
                           expr: take_until!("=>") >>
@@ -485,7 +488,7 @@ pnamed!(
                               )
                           ) >>
                           ((expr,stmt))
-                  )) >>
+                  ))) >>
             or_fail!(tag!("}"),PError::UnterminatedDelimiter) >>
             (PStatement::Case(case.into(), cases))
         ))
@@ -496,13 +499,13 @@ pnamed!(
             expr: take_until!("=>") >>
             tag!("=>") >>
             stmt: pstatement >>
-            (PStatement::Case(case.into(), vec![(expr.into(),vec![stmt]), (pinput(expr.extra,"default"),vec![PStatement::Log(Token::new("","TODO"))])] ))
+            (PStatement::Case(case.into(), vec![(expr.into(),vec![stmt]), (pinput(expr.extra,"default"),vec![PStatement::Noop])] )) // TODO is noop the default
         ))
         // Flow statements
-      | tag!("fail!")    => { |_| PStatement::Fail(Token::new("","TODO")) } // TODO proper message
-      | tag!("return!") => { |_| PStatement::Return(Token::new("","TODO")) } // TODO proper message
-      | tag!("log!")     => { |_| PStatement::Log(Token::new("","TODO")) } // TODO proper message
-      | tag!("noop!")    => { |_| PStatement::Noop }
+      | sp!(preceded!(tag!("return"),pidentifier)) => { |x| PStatement::Return(x) }
+      | sp!(preceded!(tag!("fail"),pvalue))        => { |x| PStatement::Fail(x) }
+      | sp!(preceded!(tag!("log"),pvalue))         => { |x| PStatement::Log(x) }
+      | tag!("noop")                                   => { |_| PStatement::Noop }
     )
 );
 
@@ -844,7 +847,6 @@ mod tests {
 
     #[test]
     fn test_value() {
-        // TODO other types
         assert_eq!(
             mapok(pvalue(pinput("", "\"\"\"This is a string\"\"\""))),
             Ok((

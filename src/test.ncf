@@ -1,5 +1,6 @@
 @format=0
 
+#    default => log "info: ok"
 resource File(p)
 
 File state permissions(u,g,m) {
@@ -8,7 +9,7 @@ File state permissions(u,g,m) {
 resource ntp ()
 
 ntp state configuration ()
-{
+{ 
   x="pouet"
   youpi = "youp${x}i"
   File("/tmp").permissions("root", "x$${root}i${youpi}2", "g+w") as outvar
@@ -16,10 +17,15 @@ ntp state configuration ()
   case {
     outvar =~ kept => File("/tmp").permissions("root", "root", "g+w"),
     outvar =~ repaired  => File("/tmp").permissions("user", "user", "g+w"),
-    outvar =~ error => File("/tmp").permissions("user", "user", "g+w")
+#    default => return kept
+#    default => fail "failed agent"
+#    default => log "info: ok"
+    default => noop
   }
+
   case {
     ubuntu => File("/tmp").permissions("root", "root", "g+w"),
     os:debian => File("/tmp").permissions("user", "user", "g+w")
   }
 }
+

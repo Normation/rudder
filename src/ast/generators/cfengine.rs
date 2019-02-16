@@ -14,6 +14,8 @@ pub struct CFEngine {
     var_prefixes: HashMap<String, String>,
     // already used class prefix
     prefixes: HashMap<String, u32>,
+    // condition to add for every other condition for early return
+    return_condition: Option<String>,
 }
 
 impl CFEngine {
@@ -22,6 +24,7 @@ impl CFEngine {
             current_cases: Vec::new(),
             var_prefixes: HashMap::new(),
             prefixes: HashMap::new(),
+            return_condition: None,
         }
     }
 
@@ -36,6 +39,7 @@ impl CFEngine {
     }
     fn reset_context(&mut self) {
         self.var_prefixes = HashMap::new();
+        self.return_condition = None;
     }
 
     fn parameter_to_cfengine(&mut self, param: &Value) -> String {
@@ -51,11 +55,17 @@ impl CFEngine {
         }
     }
 
+    fn format_class(&mut self, class: &str) -> String {
+        let result = match &self.return_condition {
+            None => format!("    {}::\n", class),
+            Some(c) => format!("    ({}).({})::\n", c, class),
+        };
+        self.current_cases.push(class.into());
+        result
+    }
     fn format_case(&mut self, gc: &AST, case: &EnumExpression) -> String {
         let expr = self.format_case_expr(gc, case);
-        let result = format!("    {}::\n", &expr);
-        self.current_cases.push(expr);
-        result
+        self.format_class(&expr)
     }
     fn format_case_expr(&mut self, gc: &AST, case: &EnumExpression) -> String {
         match case {
@@ -104,17 +114,17 @@ impl CFEngine {
                 if self.current_cases.is_empty() {
                     "any".to_string()
                 } else {
-                    self.current_cases
-                        .iter()
-                        .map(|x| format!("!({})", x))
-                        .collect::<Vec<_>>()
-                        .join(".")
+                    format!("!({})", self.current_cases.join("|"))
                 }
             }
         }
     }
 
+    // TODO simplify expression and remove useless conditions for more readable cfengine
     // TODO underscore escapement
+    // TODO how does cfengine use utf8
+    // TODO variables
+    // TODO comments and metadata
     fn format_statement(&mut self, gc: &AST, st: &Statement) -> String {
         match st {
             Statement::StateCall(_mode, res, res_parameters, call, params, out) => {
@@ -134,10 +144,10 @@ impl CFEngine {
                     call.fragment(),
                     param_str
                 )
-            }
+            },
             Statement::Case(_case, vec) => {
                 self.reset_cases();
-                vec.iter()
+                let mut lines = vec.iter()
                     .map(|(case, vst)| {
                         format!(
                             "{}{}",
@@ -148,10 +158,38 @@ impl CFEngine {
                                 .join("")
                         )
                     })
-                    .collect::<Vec<String>>()
-                    .join("")
-            }
-            _ => String::new(), // TODO ?
+                    .collect::<Vec<String>>();
+                lines.push(self.format_class("any"));
+                lines.join("")
+            },
+            Statement::Fail(msg) => {
+                format!(
+                    "      \"method_call\" usebundle => ncf_fail({});\n",
+                    self.parameter_to_cfengine(msg)
+                )
+            },
+            Statement::Log(msg) => {
+                format!(
+                    "      \"method_call\" usebundle => ncf_log({});\n",
+                    self.parameter_to_cfengine(msg)
+                )
+            },
+            Statement::Return(outcome) => {
+                // handle end of bundle
+                self.return_condition = Some(match self.current_cases.last() {
+                    None => "!any".into(),
+                    Some(c) => format!("!({})", c),
+                });
+                if *outcome == Token::new("", "kept") {
+                    "      \"method_call\" usebundle => success();\n".into()
+                } else if *outcome == Token::new("", "repaired") {
+                    "      \"method_call\" usebundle => repaired();\n".into()
+                } else {
+                    "      \"method_call\" usebundle => error();\n".into()
+                }
+            },
+            Statement::Noop => String::new(),
+            _ => String::new(),
         }
     }
 }
