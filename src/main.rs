@@ -20,6 +20,8 @@ use std::fs;
 // - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ?
 
 // TODO next step:
+// - lifetime 'src
+// - missing metadata/comments
 
 fn read_file(filename: &str) -> String {
     fs::read_to_string(filename)

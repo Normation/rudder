@@ -8,10 +8,10 @@ use std::ops::Deref;
 /// All parsers take PInput objects
 /// All input are Located Complete str
 /// Use the pinput function to create one
-pub type PInput<'a> = LocatedSpan<CompleteStr<'a>, &'a str>;
+pub type PInput<'src> = LocatedSpan<CompleteStr<'src>, &'src str>;
 
 /// Convenient PInput creator (alias type cannot have a constructor)
-pub fn pinput<'a>(name: &'a str, input: &'a str) -> PInput<'a> {
+pub fn pinput<'src>(name: &'src str, input: &'src str) -> PInput<'src> {
     LocatedSpan::new(CompleteStr(input), name)
 }
 
@@ -21,14 +21,14 @@ pub fn pinput<'a>(name: &'a str, input: &'a str) -> PInput<'a> {
 /// A token behave like &str and has many useful traits.
 /// It has copy for convenient use.
 #[derive(Debug, Copy, Clone)]
-pub struct Token<'a> {
-    val: LocatedSpan<CompleteStr<'a>, &'a str>,
+pub struct Token<'src> {
+    val: LocatedSpan<CompleteStr<'src>, &'src str>,
 }
 
-impl<'a> Token<'a> {
+impl<'src> Token<'src> {
     /// Create a "fake" token from a string and a file name
     /// It won't have a position
-    pub fn new(name: &'a str, input: &'a str) -> Self {
+    pub fn new(name: &'src str, input: &'src str) -> Self {
         Token {
             val: LocatedSpan::new(CompleteStr(input), name),
         }
@@ -50,20 +50,19 @@ impl<'a> Token<'a> {
     }
 
     /// Extract the string part of the token
-    /// TODO should not be needed because of deref
-    pub fn fragment(&self) -> &'a str {
+    pub fn fragment(&self) -> &'src str {
         &self.val.fragment
     }
 
     /// Extract the file name of the token
-    pub fn file(&self) -> &'a str {
+    pub fn file(&self) -> &'src str {
         &self.val.extra
     }
 }
 
 /// Convert from str (lossy, no file name nor position, use in terse tests only)
-impl<'a> From<&'a str> for Token<'a> {
-    fn from(input: &'a str) -> Self {
+impl<'src> From<&'src str> for Token<'src> {
+    fn from(input: &'src str) -> Self {
         Token {
             val: LocatedSpan::new(CompleteStr(input), ""),
         }
@@ -71,39 +70,39 @@ impl<'a> From<&'a str> for Token<'a> {
 }
 
 /// Convert from PInput (used by parsers)
-impl<'a> From<PInput<'a>> for Token<'a> {
-    fn from(val: PInput<'a>) -> Self {
+impl<'src> From<PInput<'src>> for Token<'src> {
+    fn from(val: PInput<'src>) -> Self {
         Token { val }
     }
 }
 
 /// Token comparision only compares the string value, not the position
 /// PartialEq used by tests and by Token users
-impl<'a> PartialEq for Token<'a> {
+impl<'src> PartialEq for Token<'src> {
     fn eq(&self, other: &Token) -> bool {
         self.val.fragment == other.val.fragment
     }
 }
 
 /// Eq by Token users, necessary to put them into for HashMaps
-impl<'a> Eq for Token<'a> {}
+impl<'src> Eq for Token<'src> {}
 
 /// Hash used by Token users as keys in HashMaps
-impl<'a> Hash for Token<'a> {
+impl<'src> Hash for Token<'src> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.val.fragment.hash(state);
     }
 }
 
 /// Format the full token for compiler debug info
-impl<'a> fmt::Display for Token<'a> {
+impl<'src> fmt::Display for Token<'src> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "'{}' at {}", self.val.fragment, self.position_str())
     }
 }
 
 /// Easy concatenating of tokens
-impl<'a> Add<Token<'a>> for String {
+impl<'src> Add<Token<'src>> for String {
     type Output = String;
     fn add(self, other: Token) -> String {
         self + *other.val.fragment
@@ -111,9 +110,9 @@ impl<'a> Add<Token<'a>> for String {
 }
 
 /// Dereference token to &str
-impl<'a> Deref for Token<'a> {
-    type Target = &'a str;
-    fn deref(&self) -> &&'a str {
+impl<'src> Deref for Token<'src> {
+    type Target = &'src str;
+    fn deref(&self) -> &&'src str {
         &self.val.fragment
     }
 }

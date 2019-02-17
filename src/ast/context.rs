@@ -1,45 +1,41 @@
-use crate::error::*;
-use crate::parser::{Token,PType};
 use super::Value;
-use std::collections::HashMap;
+use crate::error::*;
+use crate::parser::{PType, Token};
 use std::collections::hash_map;
+use std::collections::HashMap;
 
 // variable kind
 #[derive(Debug, PartialEq)]
-pub enum VarKind<'a> {
+pub enum VarKind<'src> {
     //       Resource type (File, ...) TODO do we want that ?
     //Resource(String),
     //   Enum          item value
-    Enum(Token<'a>, Option<Token<'a>>),
+    Enum(Token<'src>, Option<Token<'src>>),
     //     type
     Generic(PType),
     //       value
-    Constant(Value<'a>),
+    Constant(Value<'src>),
 }
 
 // TODO forbid variables names like global enum items (or enum type)
 
 #[derive(Debug)]
-pub struct VarContext<'a> {
-    variables: HashMap<Token<'a>, VarKind<'a>>,
+pub struct VarContext<'src> {
+    variables: HashMap<Token<'src>, VarKind<'src>>,
 }
 
-impl<'a> VarContext<'a> {
+impl<'src> VarContext<'src> {
     pub fn new() -> VarContext<'static> {
         VarContext {
             variables: HashMap::new(),
         }
     }
 
-    pub fn iter(&self) -> hash_map::Iter<Token<'a>, VarKind<'a>> {
+    pub fn iter(&self) -> hash_map::Iter<Token<'src>, VarKind<'src>> {
         self.variables.iter()
     }
 
-    fn new_var(
-        &mut self,
-        upper_context: Option<&VarContext<'a>>,
-        name: Token<'a>,
-    ) -> Result<()> {
+    fn new_var(&mut self, upper_context: Option<&VarContext<'src>>, name: Token<'src>) -> Result<()> {
         if self.variables.contains_key(&name) {
             fail!(
                 name,
@@ -50,7 +46,7 @@ impl<'a> VarContext<'a> {
         }
         // Do not allow a local name to hide a global name
         match upper_context {
-            None => {},
+            None => {}
             Some(gc) => {
                 if gc.variables.contains_key(&name) {
                     fail!(
@@ -67,10 +63,10 @@ impl<'a> VarContext<'a> {
 
     pub fn new_enum_variable(
         &mut self,
-        upper_context: Option<&VarContext<'a>>,
-        name: Token<'a>,
-        enum1: Token<'a>,
-        value: Option<Token<'a>>,
+        upper_context: Option<&VarContext<'src>>,
+        name: Token<'src>,
+        enum1: Token<'src>,
+        value: Option<Token<'src>>,
     ) -> Result<()> {
         self.new_var(upper_context, name)?;
         self.variables.insert(name, VarKind::Enum(enum1, value));
@@ -79,8 +75,8 @@ impl<'a> VarContext<'a> {
 
     pub fn new_variable(
         &mut self,
-        upper_context: Option<&VarContext<'a>>,
-        name: Token<'a>,
+        upper_context: Option<&VarContext<'src>>,
+        name: Token<'src>,
         ptype: PType,
     ) -> Result<()> {
         self.new_var(upper_context, name)?;
@@ -90,22 +86,21 @@ impl<'a> VarContext<'a> {
 
     pub fn new_constant(
         &mut self,
-        upper_context: Option<&VarContext<'a>>,
-        name: Token<'a>,
-        value: Value<'a>,
+        upper_context: Option<&VarContext<'src>>,
+        name: Token<'src>,
+        value: Value<'src>,
     ) -> Result<()> {
         self.new_var(upper_context, name)?;
         self.variables.insert(name, VarKind::Constant(value));
         Ok(())
     }
 
-
     // return a copy to avoid reference lifetime problem later
     pub fn get_variable<'b>(
         &'b self,
-        upper_context: Option<&'b VarContext<'a>>,
-        name: Token<'a>,
-    ) -> Option<&'b VarKind<'a>> {
+        upper_context: Option<&'b VarContext<'src>>,
+        name: Token<'src>,
+    ) -> Option<&'b VarKind<'src>> {
         self.variables
             .get(&name)
             //.cloned() TODO ??

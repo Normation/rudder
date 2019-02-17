@@ -17,7 +17,6 @@ use nom::*;
 // TODO parse and store comments
 // TODO add more types
 // TODO more like var = f(x)
-// TODO lifetime = 'src
 // TODO namespace in identifiers
 // TODO iterators
 // TODO trailing comma
@@ -25,10 +24,9 @@ use nom::*;
 // TODO global variable definition
 // TODO boolean var = expression
 // TODO stateCall error management
-// TODO return + log + fail
 
 /// The parse function that should be called when parsing a file
-pub fn parse_file<'a>(filename: &'a str, content: &'a str) -> crate::error::Result<PFile<'a>> {
+pub fn parse_file<'src>(filename: &'src str, content: &'src str) -> crate::error::Result<PFile<'src>> {
     fix_error_type(pfile(pinput(filename, content)))
 }
 
@@ -62,7 +60,7 @@ pnamed!(
 
 /// A comment starts with a ## and ends with the end of line.
 /// Such comment is parsed and kept contrarily to comment starting with '#'.
-pub type PComment<'a> = Token<'a>;
+pub type PComment<'src> = Token<'src>;
 pnamed!(
     pcomment<PComment>,
     map!(
@@ -88,10 +86,10 @@ pnamed!(pub pidentifier<Token>,
 /// An enum can be global, which means its values are globally unique and can be guessed without specifying type.
 /// A global enum also has a matching global variable with the same name as its type.
 #[derive(Debug, PartialEq)]
-pub struct PEnum<'a> {
+pub struct PEnum<'src> {
     pub global: bool,
-    pub name: Token<'a>,
-    pub items: Vec<Token<'a>>,
+    pub name: Token<'src>,
+    pub items: Vec<Token<'src>>,
 }
 pnamed!(pub penum<PEnum>,
     sp!(do_parse!(
@@ -111,10 +109,10 @@ pnamed!(pub penum<PEnum>,
 /// '*->xxx' maps then to xxx, '*->*' maps them to the same name in the new enum.
 /// The new enum as the same properties as the original one .
 #[derive(Debug, PartialEq)]
-pub struct PEnumMapping<'a> {
-    pub from: Token<'a>,
-    pub to: Token<'a>,
-    pub mapping: Vec<(Token<'a>, Token<'a>)>,
+pub struct PEnumMapping<'src> {
+    pub from: Token<'src>,
+    pub to: Token<'src>,
+    pub mapping: Vec<(Token<'src>, Token<'src>)>,
 }
 pnamed!(pub penum_mapping<PEnumMapping>,
     sp!(do_parse!(
@@ -141,13 +139,13 @@ pnamed!(pub penum_mapping<PEnumMapping>,
 /// the provided item as a value, or an ancestor item if this is a mapped enum.
 /// 'default' is a value that is equivalent of 'true'.
 #[derive(Debug, PartialEq)]
-pub enum PEnumExpression<'a> {
+pub enum PEnumExpression<'src> {
     //             variable                 enum              value/item
-    Compare(Option<Token<'a>>, Option<Token<'a>>, Token<'a>),
-    And(Box<PEnumExpression<'a>>, Box<PEnumExpression<'a>>),
-    Or(Box<PEnumExpression<'a>>, Box<PEnumExpression<'a>>),
-    Not(Box<PEnumExpression<'a>>),
-    Default(Token<'a>),
+    Compare(Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
+    And(Box<PEnumExpression<'src>>, Box<PEnumExpression<'src>>),
+    Or(Box<PEnumExpression<'src>>, Box<PEnumExpression<'src>>),
+    Not(Box<PEnumExpression<'src>>),
+    Default(Token<'src>),
 }
 pnamed!(pub penum_expression<PEnumExpression>,
     // an expression must be exact (ie full string) as this parser can be used in isolation
@@ -167,30 +165,31 @@ pnamed!(
 pnamed!(
     enum_atom<PEnumExpression>,
     sp!(alt!(
-        delimited!(tag!("("), sub_enum_expression, or_fail!(tag!(")"),PError::UnterminatedDelimiter))
-            | do_parse!(
-                var: pidentifier
-                    >> tag!("=~")
-                    >> penum: opt!(terminated!(pidentifier, tag!(":")))
-                    >> value: pidentifier
-                    >> (PEnumExpression::Compare(Some(var), penum, value))
-            )
-            | do_parse!(
-                var: pidentifier
-                    >> tag!("!~")
-                    >> penum: opt!(terminated!(pidentifier, tag!(":")))
-                    >> value: pidentifier
-                    >> (PEnumExpression::Not(Box::new(PEnumExpression::Compare(
-                        Some(var),
-                        penum,
-                        value
-                    ))))
-            )
-            | do_parse!(
-                penum: opt!(terminated!(pidentifier, tag!(":")))
-                    >> value: pidentifier
-                    >> (PEnumExpression::Compare(None, penum, value))
-            )
+        delimited!(
+            tag!("("),
+            sub_enum_expression,
+            or_fail!(tag!(")"), PError::UnterminatedDelimiter)
+        ) | do_parse!(
+            var: pidentifier
+                >> tag!("=~")
+                >> penum: opt!(terminated!(pidentifier, tag!(":")))
+                >> value: pidentifier
+                >> (PEnumExpression::Compare(Some(var), penum, value))
+        ) | do_parse!(
+            var: pidentifier
+                >> tag!("!~")
+                >> penum: opt!(terminated!(pidentifier, tag!(":")))
+                >> value: pidentifier
+                >> (PEnumExpression::Not(Box::new(PEnumExpression::Compare(
+                    Some(var),
+                    penum,
+                    value
+                ))))
+        ) | do_parse!(
+            penum: opt!(terminated!(pidentifier, tag!(":")))
+                >> value: pidentifier
+                >> (PEnumExpression::Compare(None, penum, value))
+        )
     ))
 );
 pnamed!(
@@ -281,48 +280,50 @@ pnamed!(
 
 /// All strings are interpolated
 pnamed!(
-    interpolated_string<(Vec<String>,Vec<String>)>,
+    interpolated_string<(Vec<String>, Vec<String>)>,
     exact!(do_parse!(
-        sections: many0!(do_parse!(
-            prefix: take_until!("$") >>
-            tag!("$") >>
-            variable: alt!(
-                tag!("$") => {|_| None}
-              | delimited!(tag!("{"),pidentifier,or_fail!(tag!("}"),PError::UnterminatedDelimiter)) => {|x| Some(x)}
-            ) >>
-            (prefix,variable)
-        )) >>
-        rest: rest >>
-        ( {
-            let mut format_vec = Vec::new();
-            let mut var_vec = Vec::new();
-            let mut current = String::new();
-            sections.into_iter().for_each(|(s,v)| {
-                match v {
-                    None => {
-                        current.push_str(*s.fragment);
-                        current.push_str("$");
-                    },
-                    Some(var) => {
-                        current.push_str(*s.fragment);
-                        format_vec.push(current.clone()); // TODO clone is easy but should not be necessary
-                        current = String::new();
-                        var_vec.push(var.fragment().into());
-                    },
-                }
-            });
-            current.push_str(*rest.fragment);
-            format_vec.push(current);
-            (format_vec, var_vec)
-        } )
+        sections:
+            many0!(do_parse!(
+                prefix: take_until!("$")
+                    >> tag!("$")
+                    >> variable:
+                        alt!(
+                            tag!("$") => {|_| None}
+                          | delimited!(tag!("{"),pidentifier,or_fail!(tag!("}"),PError::UnterminatedDelimiter)) => {|x| Some(x)}
+                        )
+                    >> (prefix, variable)
+            ))
+            >> rest: rest
+            >> ({
+                let mut format_vec = Vec::new();
+                let mut var_vec = Vec::new();
+                let mut current = String::new();
+                sections.into_iter().for_each(|(s, v)| {
+                    match v {
+                        None => {
+                            current.push_str(*s.fragment);
+                            current.push_str("$");
+                        }
+                        Some(var) => {
+                            current.push_str(*s.fragment);
+                            format_vec.push(current.clone()); // TODO clone is easy but should not be necessary
+                            current = String::new();
+                            var_vec.push(var.fragment().into());
+                        }
+                    }
+                });
+                current.push_str(*rest.fragment);
+                format_vec.push(current);
+                (format_vec, var_vec)
+            })
     ))
 );
 
 /// PValue is a typed value of the content of a variable or a parameter.
 #[derive(Debug, PartialEq)]
-pub enum PValue<'a> {
+pub enum PValue<'src> {
     //     position   value
-    String(Token<'a>, String),
+    String(Token<'src>, String),
 }
 
 pnamed!(
@@ -336,14 +337,18 @@ pnamed!(
 /// A metadata is a key/value pair that gives properties to the statement that follows.
 /// Currently metadata is not used by the compiler, just parsed, but that may change.
 #[derive(Debug, PartialEq)]
-pub struct PMetadata<'a> {
-    pub key: Token<'a>,
-    pub value: PValue<'a>,
+pub struct PMetadata<'src> {
+    pub key: Token<'src>,
+    pub value: PValue<'src>,
 }
 pnamed!(
     pmetadata<PMetadata>,
     sp!(do_parse!(
-        char!('@') >> key: pidentifier >> or_fail!(char!('='),PError::InvalidSeparator) >> value: pvalue >> (PMetadata { key, value })
+        char!('@')
+            >> key: pidentifier
+            >> or_fail!(char!('='), PError::InvalidSeparator)
+            >> value: pvalue
+            >> (PMetadata { key, value })
     ))
 );
 
@@ -351,10 +356,10 @@ pnamed!(
 /// Its is of the form name:type=default where type and default are optional.
 /// Type can be guessed from default.
 #[derive(Debug, PartialEq)]
-pub struct PParameter<'a> {
-    pub name: Token<'a>,
+pub struct PParameter<'src> {
+    pub name: Token<'src>,
     pub ptype: Option<PType>,
-    pub default: Option<PValue<'a>>,
+    pub default: Option<PValue<'src>>,
 }
 pnamed!(
     pparameter<PParameter>,
@@ -372,9 +377,9 @@ pnamed!(
 
 /// A resource definition defines how a resource is uniquely identified.
 #[derive(Debug, PartialEq)]
-pub struct PResourceDef<'a> {
-    pub name: Token<'a>,
-    pub parameters: Vec<PParameter<'a>>,
+pub struct PResourceDef<'src> {
+    pub name: Token<'src>,
+    pub parameters: Vec<PParameter<'src>>,
 }
 pnamed!(
     presource_def<PResourceDef>,
@@ -383,21 +388,21 @@ pnamed!(
             >> name: pidentifier
             >> tag!("(")
             >> parameters: separated_list!(tag!(","), pparameter)
-            >> or_fail!(tag!(")"),PError::UnterminatedDelimiter)
+            >> or_fail!(tag!(")"), PError::UnterminatedDelimiter)
             >> (PResourceDef { name, parameters })
     ))
 );
 
 /// A resource reference identifies a unique resource.
 pnamed!(
-    presource_ref<(Token,Vec<PValue>)>,
+    presource_ref<(Token, Vec<PValue>)>,
     sp!(do_parse!(
         name: pidentifier
             >> params:
                 opt!(sp!(do_parse!(
                     tag!("(")
                         >> parameters: separated_list!(tag!(","), pvalue)
-                        >> or_fail!(tag!(")"),PError::UnterminatedDelimiter)
+                        >> or_fail!(tag!(")"), PError::UnterminatedDelimiter)
                         >> (parameters)
                 )))
             >> ((name, params.unwrap_or_else(Vec::new)))
@@ -422,25 +427,25 @@ pnamed!(
 
 /// A statement is the atomic element of a state definition.
 #[derive(Debug, PartialEq)]
-pub enum PStatement<'a> {
-    Comment(PComment<'a>),
-    VariableDefinition(Token<'a>, PValue<'a>),
+pub enum PStatement<'src> {
+    Comment(PComment<'src>),
+    VariableDefinition(Token<'src>, PValue<'src>),
     StateCall(
         PCallMode,         // mode
-        Token<'a>,         // resource
-        Vec<PValue<'a>>,   // resource parameters
-        Token<'a>,         // state name
-        Vec<PValue<'a>>,   // parameters
-        Option<Token<'a>>, // outcome
+        Token<'src>,         // resource
+        Vec<PValue<'src>>,   // resource parameters
+        Token<'src>,         // state name
+        Vec<PValue<'src>>,   // parameters
+        Option<Token<'src>>, // outcome
     ),
     //   case keyword, list (condition   ,       then)
-    Case(Token<'a>, Vec<(PInput<'a>, Vec<PStatement<'a>>)>), // keep the pinput since it will be reparsed later
+    Case(Token<'src>, Vec<(PInput<'src>, Vec<PStatement<'src>>)>), // keep the pinput since it will be reparsed later
     // Stop engine with a final message
-    Fail(PValue<'a>),
+    Fail(PValue<'src>),
     // Inform the user of something
-    Log(PValue<'a>),
+    Log(PValue<'src>),
     // Return a specific outcome
-    Return(Token<'a>),
+    Return(Token<'src>),
     // Do nothing
     Noop,
 }
@@ -512,11 +517,11 @@ pnamed!(
 /// A state definition defines a state of a resource.
 /// It is composed of one or more statements.
 #[derive(Debug, PartialEq)]
-pub struct PStateDef<'a> {
-    pub name: Token<'a>,
-    pub resource_name: Token<'a>,
-    pub parameters: Vec<PParameter<'a>>,
-    pub statements: Vec<PStatement<'a>>,
+pub struct PStateDef<'src> {
+    pub name: Token<'src>,
+    pub resource_name: Token<'src>,
+    pub parameters: Vec<PParameter<'src>>,
+    pub statements: Vec<PStatement<'src>>,
 }
 pnamed!(
     pstate_def<PStateDef>,
@@ -526,10 +531,10 @@ pnamed!(
             >> name: pidentifier
             >> tag!("(")
             >> parameters: separated_list!(tag!(","), pparameter)
-            >> or_fail!(tag!(")"),PError::UnterminatedDelimiter)
+            >> or_fail!(tag!(")"), PError::UnterminatedDelimiter)
             >> tag!("{")
             >> statements: many0!(pstatement)
-            >> or_fail!(tag!("}"),PError::UnterminatedDelimiter)
+            >> or_fail!(tag!("}"), PError::UnterminatedDelimiter)
             >> (PStateDef {
                 name,
                 resource_name,
@@ -541,13 +546,13 @@ pnamed!(
 
 /// A declaration is one of the a top level elements that can be found anywhere in the file.
 #[derive(Debug, PartialEq)]
-pub enum PDeclaration<'a> {
-    Comment(PComment<'a>),
-    Metadata(PMetadata<'a>),
-    Resource(PResourceDef<'a>),
-    State(PStateDef<'a>),
-    Enum(PEnum<'a>),
-    Mapping(PEnumMapping<'a>),
+pub enum PDeclaration<'src> {
+    Comment(PComment<'src>),
+    Metadata(PMetadata<'src>),
+    Resource(PResourceDef<'src>),
+    State(PStateDef<'src>),
+    Enum(PEnum<'src>),
+    Mapping(PEnumMapping<'src>),
 }
 pnamed!(
     pdeclaration<PDeclaration>,
@@ -564,9 +569,9 @@ pnamed!(
 /// A PFile is the result of a single file parsing
 /// It contains a valid header and top level declarations.
 #[derive(Debug, PartialEq)]
-pub struct PFile<'a> {
+pub struct PFile<'src> {
     pub header: PHeader,
-    pub code: Vec<PDeclaration<'a>>,
+    pub code: Vec<PDeclaration<'src>>,
 }
 pnamed!(pub pfile<PFile>,
     sp!(do_parse!(
@@ -585,9 +590,9 @@ mod tests {
     use super::*;
 
     // Adapter to simplify writing tests
-    fn mapok<'a, O, E>(
-        r: Result<(PInput<'a>, O), Err<PInput<'a>, E>>,
-    ) -> Result<(&str, O), Err<PInput<'a>, E>> {
+    fn mapok<'src, O, E>(
+        r: Result<(PInput<'src>, O), Err<PInput<'src>, E>>,
+    ) -> Result<(&str, O), Err<PInput<'src>, E>> {
         match r {
             Ok((x, y)) => Ok((*x.fragment, y)),
             Err(e) => Err(e),
@@ -595,9 +600,9 @@ mod tests {
     }
 
     // Adapter to simplify writing tests
-    fn maperr<'a, O>(
-        r: Result<(PInput<'a>, O), Err<PInput<'a>, u32>>,
-    ) -> Result<(PInput<'a>, O), PError> {
+    fn maperr<'src, O>(
+        r: Result<(PInput<'src>, O), Err<PInput<'src>, u32>>,
+    ) -> Result<(PInput<'src>, O), PError> {
         match r {
             Err(Err::Failure(Context::Code(_, ErrorKind::Custom(e)))) => {
                 Err(PError::from_u32(e).unwrap())
@@ -833,15 +838,24 @@ mod tests {
         assert!(escaped_string(pinput("", "\"2hello\\n\\\"Herman\\\"\n")).is_err());
         assert_eq!(
             mapok(interpolated_string(pinput("", "hello herman"))),
-            Ok(("",(vec!["hello herman".into()],Vec::new())))
+            Ok(("", (vec!["hello herman".into()], Vec::new())))
         );
         assert_eq!(
             mapok(interpolated_string(pinput("", "hello herman 10$$"))),
-            Ok(("",(vec!["hello herman 10$".into()],Vec::new())))
+            Ok(("", (vec!["hello herman 10$".into()], Vec::new())))
         );
         assert_eq!(
-            mapok(interpolated_string(pinput("", "hello herman ${variable1} ${var2}"))),
-            Ok(("",(vec!["hello herman ".into()," ".into(),"".into()],vec!["variable1".into(),"var2".into()])))
+            mapok(interpolated_string(pinput(
+                "",
+                "hello herman ${variable1} ${var2}"
+            ))),
+            Ok((
+                "",
+                (
+                    vec!["hello herman ".into(), " ".into(), "".into()],
+                    vec!["variable1".into(), "var2".into()]
+                )
+            ))
         );
     }
 
@@ -929,10 +943,7 @@ mod tests {
                 PParameter {
                     name: "hello".into(),
                     ptype: Some(PType::TString),
-                    default: Some(PValue::String(
-                        "\"".into(),
-                        "default".to_string()
-                    )),
+                    default: Some(PValue::String("\"".into(), "default".to_string())),
                 }
             ))
         );
@@ -987,24 +998,19 @@ mod tests {
     fn test_presource_ref() {
         assert_eq!(
             mapok(presource_ref(pinput("", "hello()"))),
-            Ok((
-                "",
-                ("hello".into(), vec![])
-            ))
+            Ok(("", ("hello".into(), vec![])))
         );
         assert_eq!(
             mapok(presource_ref(pinput("", "hello3 "))),
-            Ok((
-                "",
-                ("hello3".into(), vec![])
-            ))
+            Ok(("", ("hello3".into(), vec![])))
         );
         assert_eq!(
             mapok(presource_ref(pinput("", "hello ( \"p1\", \"p2\" )"))),
             Ok((
                 "",
-                ("hello".into(),
-                 vec![
+                (
+                    "hello".into(),
+                    vec![
                         PValue::String("\"".into(), "p1".to_string()),
                         PValue::String("\"".into(), "p2".to_string())
                     ]
@@ -1013,10 +1019,7 @@ mod tests {
         );
         assert_eq!(
             mapok(presource_ref(pinput("", "hello2 ( )"))),
-            Ok((
-                "",
-                ("hello2".into(), vec![])
-            ))
+            Ok(("", ("hello2".into(), vec![])))
         );
     }
 
@@ -1059,22 +1062,30 @@ mod tests {
         );
         let st = "case { ubuntu => f().g(), debian => a().b() }";
         assert_eq!(
-            mapok(pstatement(pinput(
-                "",
-                st
-            ))),
+            mapok(pstatement(pinput("", st))),
             Ok((
                 "",
-                PStatement::Case("case".into(), vec![
-                    (
-                        { let mut s = pinput("", "ubuntu "); s.offset=7; s},
-                        vec![pstatement(pinput("", "f().g()")).unwrap().1]
-                    ),
-                    (
-                        { let mut s = pinput("", "debian "); s.offset=26; s},
-                        vec![pstatement(pinput("", "a().b()")).unwrap().1]
-                    ),
-                ])
+                PStatement::Case(
+                    "case".into(),
+                    vec![
+                        (
+                            {
+                                let mut s = pinput("", "ubuntu ");
+                                s.offset = 7;
+                                s
+                            },
+                            vec![pstatement(pinput("", "f().g()")).unwrap().1]
+                        ),
+                        (
+                            {
+                                let mut s = pinput("", "debian ");
+                                s.offset = 26;
+                                s
+                            },
+                            vec![pstatement(pinput("", "a().b()")).unwrap().1]
+                        ),
+                    ]
+                )
             ))
         );
     }
@@ -1173,11 +1184,17 @@ mod tests {
             Err(PError::InvalidSeparator)
         );
         assert_eq!(
-            maperr(penum_mapping(pinput("", "enum abc ~> def a -> b, c -> d }"))),
+            maperr(penum_mapping(pinput(
+                "",
+                "enum abc ~> def a -> b, c -> d }"
+            ))),
             Err(PError::InvalidSeparator)
         );
         assert_eq!(
-            maperr(penum_mapping(pinput("", "enum abc ~> def { a -> b c -> d }"))),
+            maperr(penum_mapping(pinput(
+                "",
+                "enum abc ~> def { a -> b c -> d }"
+            ))),
             Err(PError::UnterminatedDelimiter)
         );
         assert_eq!(

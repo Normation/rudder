@@ -2,10 +2,10 @@ use super::context::{VarContext, VarKind};
 use super::Statement;
 use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
+use std::collections::hash_map;
 use std::collections::hash_set::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::collections::hash_map;
 
 // TODO there can be only one mapping per item that defines an identical descendant
 
@@ -15,35 +15,35 @@ use std::collections::hash_map;
 /// Structure that contains all enums
 /// It can get complex because it contains hashmap for all possible way we may way to query them
 #[derive(Debug)]
-pub struct EnumList<'a> {
+pub struct EnumList<'src> {
     // Map an enum name to another one which has a derived definition
     //                            to         from
-    reverse_mapping_path: HashMap<Token<'a>, Token<'a>>,
+    reverse_mapping_path: HashMap<Token<'src>, Token<'src>>,
     //                           from       to
-    direct_mapping_path: HashMap<Token<'a>, Vec<Token<'a>>>,
+    direct_mapping_path: HashMap<Token<'src>, Vec<Token<'src>>>,
     // Map an enum content to another one
     //         enum    from       to          mapping from       to
-    mappings: HashMap<(Token<'a>, Token<'a>), HashMap<Token<'a>, Token<'a>>>,
+    mappings: HashMap<(Token<'src>, Token<'src>), HashMap<Token<'src>, Token<'src>>>,
     // List values for a given enum
     //             enum       global values
-    enums: HashMap<Token<'a>, (bool, HashSet<Token<'a>>)>,
+    enums: HashMap<Token<'src>, (bool, HashSet<Token<'src>>)>,
     // List global values (they must not be redefined)
     //                    value      enum
-    pub global_values: HashMap<Token<'a>, Token<'a>>,
+    pub global_values: HashMap<Token<'src>, Token<'src>>,
 }
 
 /// A boolean expression that can be defined using enums
 #[derive(Debug, PartialEq, Clone)]
-pub enum EnumExpression<'a> {
+pub enum EnumExpression<'src> {
     //      variable   enum        value
-    Compare(Token<'a>, Token<'a>, Token<'a>),
-    And(Box<EnumExpression<'a>>, Box<EnumExpression<'a>>),
-    Or(Box<EnumExpression<'a>>, Box<EnumExpression<'a>>),
-    Not(Box<EnumExpression<'a>>),
-    Default(Token<'a>), // token for position handling only
+    Compare(Token<'src>, Token<'src>, Token<'src>),
+    And(Box<EnumExpression<'src>>, Box<EnumExpression<'src>>),
+    Or(Box<EnumExpression<'src>>, Box<EnumExpression<'src>>),
+    Not(Box<EnumExpression<'src>>),
+    Default(Token<'src>), // token for position handling only
 }
 
-impl<'a> EnumExpression<'a> {
+impl<'src> EnumExpression<'src> {
     /// print the expression position in source code for user output
     pub fn position_str(&self) -> String {
         let (file, line, col) = self.position();
@@ -63,12 +63,12 @@ impl<'a> EnumExpression<'a> {
     pub fn is_default(&self) -> bool {
         match self {
             EnumExpression::Default(_) => true,
-            _ => false
+            _ => false,
         }
     }
 }
 
-impl<'a> EnumList<'a> {
+impl<'src> EnumList<'src> {
     /// Default constructor
     pub fn new() -> EnumList<'static> {
         EnumList {
@@ -80,22 +80,22 @@ impl<'a> EnumList<'a> {
         }
     }
 
-    pub fn iter(&self) -> hash_map::Iter<Token<'a>, (bool, HashSet<Token<'a>>)> {
+    pub fn iter(&self) -> hash_map::Iter<Token<'src>, (bool, HashSet<Token<'src>>)> {
         self.enums.iter()
     }
     /// Returns true if a given enum exists
-    pub fn enum_exists(&self, e: Token<'a>) -> bool {
+    pub fn enum_exists(&self, e: Token<'src>) -> bool {
         self.enums.contains_key(&e)
     }
 
     /// Returns true if the given enum is global
     /// Be careful: it panics if the enum doesn't exist!
-    pub fn is_global(&self, e: Token<'a>) -> bool {
+    pub fn is_global(&self, e: Token<'src>) -> bool {
         self.enums[&e].0
     }
 
     /// Insert a simple enum content (not a mapping) into the global structure
-    pub fn add_enum(&mut self, e: PEnum<'a>) -> Result<()> {
+    pub fn add_enum(&mut self, e: PEnum<'src>) -> Result<()> {
         let mut list = HashSet::new();
         // Check for set name duplicate
         if self.enums.contains_key(&e.name) {
@@ -156,7 +156,7 @@ impl<'a> EnumList<'a> {
 
     /// Insert an enum defined from a mapping into the global structure
     #[allow(clippy::map_entry)]
-    pub fn add_mapping(&mut self, e: PEnumMapping<'a>) -> Result<()> {
+    pub fn add_mapping(&mut self, e: PEnumMapping<'src>) -> Result<()> {
         // From must exist
         match self.enums.get(&e.from) {
             Some((global, values)) => {
@@ -230,12 +230,12 @@ impl<'a> EnumList<'a> {
 
     /// Return an iterator over an enum content
     /// Be careful: it panics if the enum doesn't exist!
-    pub fn enum_iter(&'a self, e: Token<'a>) -> Iter<'a, Token<'a>> {
+    pub fn enum_iter<'b>(&'b self, e: Token<'src>) -> Iter<'b, Token<'src>> {
         self.enums[&e].1.iter()
     }
 
     /// Find ascending enum path from enum e1 to enum e2
-    fn find_path(&'a self, e1: Token<'a>, e2: Token<'a>) -> Option<Vec<Token<'a>>> {
+    fn find_path<'b>(&'b self, e1: Token<'src>, e2: Token<'src>) -> Option<Vec<Token<'src>>> {
         // terminate recursion
         if e1 == e2 {
             Some(vec![e1])
@@ -255,7 +255,7 @@ impl<'a> EnumList<'a> {
     }
 
     /// Find oldest ancestor of enum e1 following ascending path
-    fn find_elder(&self, e1: Token<'a>) -> Token<'a> {
+    fn find_elder(&self, e1: Token<'src>) -> Token<'src> {
         match self.reverse_mapping_path.get(&e1) {
             None => e1,
             Some(e) => self.find_elder(*e),
@@ -263,7 +263,7 @@ impl<'a> EnumList<'a> {
     }
 
     /// Find the last descendant enum of e1 that has the same name as item
-    pub fn find_descendant_enum(&self, e1: Token<'a>, item: Token<'a>) -> Token<'a> {
+    pub fn find_descendant_enum(&self, e1: Token<'src>, item: Token<'src>) -> Token<'src> {
         match self.direct_mapping_path.get(&e1) {
             None => return e1,
             Some(e2) => {
@@ -282,10 +282,10 @@ impl<'a> EnumList<'a> {
     /// It needs a variable context (local and global) to check for proper variable existence
     pub fn canonify_expression<'b>(
         &'b self,
-        upper_context: Option<&'b VarContext<'a>>,
-        context: &'b VarContext<'a>,
-        expr: PEnumExpression<'a>,
-    ) -> Result<EnumExpression<'a>> {
+        upper_context: Option<&'b VarContext<'src>>,
+        context: &'b VarContext<'src>,
+        expr: PEnumExpression<'src>,
+    ) -> Result<EnumExpression<'src>> {
         match expr {
             PEnumExpression::Default(t) => Ok(EnumExpression::Default(t)),
             PEnumExpression::Not(e) => Ok(EnumExpression::Not(Box::new(
@@ -311,11 +311,13 @@ impl<'a> EnumList<'a> {
                             // None -> this may be a boolean
                             // when using a boolean, value is a variable name since the parser doesn't know how to tell ethe difference
                             None => match context.get_variable(upper_context, value) {
-                                Some(VarKind::Enum(t, _)) => if *t == Token::new("","boolean") {
-                                    *t
-                                } else {
-                                    fail!(value, "Variable {} must be compared with some enum in expression", value)
-                                },
+                                Some(VarKind::Enum(t, _)) => {
+                                    if *t == Token::new("", "boolean") {
+                                        *t
+                                    } else {
+                                        fail!(value, "Variable {} must be compared with some enum in expression", value)
+                                    }
+                                }
                                 _ => fail!(value, "Global enum value {} does not exist", value),
                             },
                             Some(var1) => match context.get_variable(upper_context, var1) {
@@ -332,22 +334,26 @@ impl<'a> EnumList<'a> {
                 // get var real name
                 let var1 = match var {
                     Some(v) => v,
-                    None => if e1 == Token::new("","boolean") {
-                        // special handling of booleans since they are messed up by the parser
-                        value
-                    } else {
-                        match self.enums.get(&e1) {
-                            // or get it from a global enum
-                            None => fail!(e1, "No such enum {}", e1),
-                            Some((false, _)) => {
-                                fail!(e1, "Enum {} is not global, you must provide a variable", e1)
+                    None => {
+                        if e1 == Token::new("", "boolean") {
+                            // special handling of booleans since they are messed up by the parser
+                            value
+                        } else {
+                            match self.enums.get(&e1) {
+                                // or get it from a global enum
+                                None => fail!(e1, "No such enum {}", e1),
+                                Some((false, _)) => fail!(
+                                    e1,
+                                    "Enum {} is not global, you must provide a variable",
+                                    e1
+                                ),
+                                Some((true, _)) => self.find_elder(e1),
                             }
-                            Some((true, _)) => self.find_elder(e1),
                         }
-                    },
+                    }
                 };
-                let val = if e1 == Token::new("","boolean") {
-                    Token::new("internal","true")
+                let val = if e1 == Token::new("", "boolean") {
+                    Token::new("internal", "true")
                 } else {
                     value
                 };
@@ -387,7 +393,7 @@ impl<'a> EnumList<'a> {
 
     /// Transforms a value name into its ancestor following an ancestor path
     /// only used by is_ancestor (path is destroyed)
-    fn transform_value(&self, mut path: Vec<Token<'a>>, value: Token<'a>) -> Token<'a> {
+    fn transform_value(&self, mut path: Vec<Token<'src>>, value: Token<'src>) -> Token<'src> {
         // <1 should not happen
         if path.len() <= 1 {
             return value;
@@ -398,7 +404,7 @@ impl<'a> EnumList<'a> {
         self.transform_value(path, v)
     }
     /// Returns true is e1:v1 is an ancestor of e2:v2
-    pub fn is_ancestor(&self, e1: Token<'a>, v1: Token<'a>, e2: Token<'a>, v2: Token<'a>) -> bool {
+    pub fn is_ancestor(&self, e1: Token<'src>, v1: Token<'src>, e2: Token<'src>, v2: Token<'src>) -> bool {
         match self.find_path(e1, e2) {
             Some(path) => self.transform_value(path, v1) == v2,
             None => false,
@@ -409,7 +415,7 @@ impl<'a> EnumList<'a> {
     /// We need the variables to have a real value to evaluate to a boolean
     fn eval(
         &self,
-        values: &HashMap<Token<'a>, (Token<'a>, Token<'a>)>,
+        values: &HashMap<Token<'src>, (Token<'src>, Token<'src>)>,
         expr: &EnumExpression,
     ) -> bool {
         match expr {
@@ -429,7 +435,7 @@ impl<'a> EnumList<'a> {
     /// and put them into the 'variables' hashset
     /// this is recursive mutable, pass it an empty hashset at first call
     /// Only used by evaluate.
-    fn list_variable_enum(&self, variables: &mut HashSet<Token<'a>>, expr: &'a EnumExpression) {
+    fn list_variable_enum(&self, variables: &mut HashSet<Token<'src>>, expr: &EnumExpression<'src>) {
         match expr {
             EnumExpression::Default(_) => (),
             EnumExpression::Not(e) => self.list_variable_enum(variables, e),
@@ -448,7 +454,7 @@ impl<'a> EnumList<'a> {
     }
 
     /// Describe a set a variable values as a valid expression for the user
-    fn describe(&self, values: &HashMap<Token<'a>, (Token<'a>, Token<'a>)>) -> String {
+    fn describe(&self, values: &HashMap<Token<'src>, (Token<'src>, Token<'src>)>) -> String {
         values
             .iter()
             .map(|(key, (e, val))| {
@@ -460,12 +466,12 @@ impl<'a> EnumList<'a> {
 
     /// Evaluates a set of expressions possible outcome to check for missing cases and redundancy
     /// Variable context is here to guess variable type and to properly evaluate variables that are constant
-    pub fn evaluate(
+    pub fn evaluate<'b>(
         &self,
-        upper_context: Option<&'a VarContext>,
-        context: &'a VarContext<'a>,
-        cases: &[(EnumExpression<'a>, Vec<Statement<'a>>)],
-        case_name: Token<'a>,
+        upper_context: Option<&'b VarContext>,
+        context: &'b VarContext<'src>,
+        cases: &[(EnumExpression<'src>, Vec<Statement<'src>>)],
+        case_name: Token<'src>,
     ) -> Result<()> {
         let mut variables = HashSet::new();
         cases
@@ -496,8 +502,8 @@ impl<'a> EnumList<'a> {
                 },
             }
         }))?;
-        if !default_used && cases.iter().any(|(e,_)| e.is_default()) {
-            fail!(case_name,"Default never matches in {}", case_name);
+        if !default_used && cases.iter().any(|(e, _)| e.is_default()) {
+            fail!(case_name, "Default never matches in {}", case_name);
         }
         Ok(())
     }
@@ -505,36 +511,38 @@ impl<'a> EnumList<'a> {
 
 /// Type to store either a constant value or an iterable value
 /// only used by ContextIterator
-enum AltVal<'a> {
-    Constant(Token<'a>),
-    Iterator(Iter<'a, Token<'a>>),
+// lifetime should be 'src,'b but as long as it works it's easier like this
+enum AltVal<'src> {
+    Constant(Token<'src>),
+    Iterator(Iter<'src, Token<'src>>),
 }
 /// Iterator that can iterate over all possible value set that a variable set can take
 /// Ex: if var1 and var2 are variables of an enum type with 3 item
 ///     it will produce 9 possible value combinations
-struct ContextIterator<'a> {
+// lifetime should be 'src,'b but as long as it works it's easier like this
+struct ContextIterator<'src> {
     // enum reference
-    enum_list: &'a EnumList<'a>,
+    enum_list: &'src EnumList<'src>,
     // variables to vary
-    var_list: Vec<Token<'a>>,
+    var_list: Vec<Token<'src>>,
     //                 name        value or iterator
-    iterators: HashMap<Token<'a>, AltVal<'a>>,
+    iterators: HashMap<Token<'src>, AltVal<'src>>,
     // current iteration         enum       value
-    current: HashMap<Token<'a>, (Token<'a>, Token<'a>)>,
+    current: HashMap<Token<'src>, (Token<'src>, Token<'src>)>,
     // true before first iteration
     first: bool,
 }
 
-impl<'a> ContextIterator<'a> {
+impl<'src> ContextIterator<'src> {
     /// Create the iterator from the global enum_list
     /// a variable context (for type and constants) and the list of variables to take
     /// (since the context may contain variables that are not used in the expression)
     fn new(
-        enum_list: &'a EnumList<'a>,
-        upper_context: Option<&'a VarContext>,
-        context: &'a VarContext<'a>,
-        var_list: Vec<Token<'a>>,
-    ) -> ContextIterator<'a> {
+        enum_list: &'src EnumList<'src>,
+        upper_context: Option<&'src VarContext>,
+        context: &'src VarContext<'src>,
+        var_list: Vec<Token<'src>>,
+    ) -> ContextIterator<'src> {
         let mut iterators = HashMap::new();
         let mut current = HashMap::new();
         for v in &var_list {
@@ -565,8 +573,8 @@ impl<'a> ContextIterator<'a> {
     }
 }
 
-impl<'a> Iterator for ContextIterator<'a> {
-    type Item = HashMap<Token<'a>, (Token<'a>, Token<'a>)>;
+impl<'src> Iterator for ContextIterator<'src> {
+    type Item = HashMap<Token<'src>, (Token<'src>, Token<'src>)>;
     /// Iterate: we store an iterator for each variables
     /// - we increment the first iterator
     /// - if it ended reset it and increment the next iterator
@@ -613,11 +621,11 @@ mod tests {
     use std::iter::FromIterator;
 
     // test utilities
-    fn add_penum<'a>(e: &mut EnumList<'a>, string: &'a str) -> Result<()> {
+    fn add_penum<'src>(e: &mut EnumList<'src>, string: &'src str) -> Result<()> {
         e.add_enum(penum(pinput("", string)).unwrap().1)
     }
 
-    fn add_enum_mapping<'a>(e: &mut EnumList<'a>, string: &'a str) -> Result<()> {
+    fn add_enum_mapping<'src>(e: &mut EnumList<'src>, string: &'src str) -> Result<()> {
         e.add_mapping(penum_mapping(pinput("", string)).unwrap().1)
     }
 
@@ -649,24 +657,24 @@ mod tests {
             &mut e,
             "global enum os { debian, ubuntu, redhat, centos, aix }",
         )
-            .unwrap();
+        .unwrap();
         add_enum_mapping(
             &mut e,
             "enum os ~> family { ubuntu->debian, centos->redhat, *->* }",
         )
-            .unwrap();
+        .unwrap();
         add_enum_mapping(
             &mut e,
             "enum family ~> type { debian->linux, redhat->linux, aix->unix }",
         )
-            .unwrap();
+        .unwrap();
         add_penum(&mut e, "enum boolean { true, false }").unwrap();
         add_penum(&mut e, "enum outcome { kept, repaired, error }").unwrap();
         add_enum_mapping(
             &mut e,
             "enum outcome ~> okerr { kept->ok, repaired->ok, error->error }",
         )
-            .unwrap();
+        .unwrap();
         let mut gc = VarContext::new();
         gc.new_enum_variable(None, ident("os"), ident("os"), None)
             .unwrap();

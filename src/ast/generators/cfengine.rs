@@ -46,12 +46,19 @@ impl CFEngine {
         match param {
             Value::String(s) =>
             // TODO variable reinterpret (rudlang systemvar to cfengine systemvar)
-                "\"".to_owned() +
-                    s.format(|x:&str| x.replace("\\", "\\\\")            // backslash escape
-                                       .replace("\"", "\\\"")            // quote escape
-                                       .replace("$", "${const.dollar}"), // dollar escape
-                             |y:&str| "${".to_owned() + y + "}"          // variable inclusion
-                    ).as_str() + "\"",
+            {
+                "\"".to_owned()
+                    + s.format(
+                        |x: &str| {
+                            x.replace("\\", "\\\\") // backslash escape
+                                .replace("\"", "\\\"") // quote escape
+                                .replace("$", "${const.dollar}")
+                        }, // dollar escape
+                        |y: &str| "${".to_owned() + y + "}", // variable inclusion
+                    )
+                    .as_str()
+                    + "\""
+            }
         }
     }
 
@@ -144,10 +151,11 @@ impl CFEngine {
                     call.fragment(),
                     param_str
                 )
-            },
+            }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
-                let mut lines = vec.iter()
+                let mut lines = vec
+                    .iter()
                     .map(|(case, vst)| {
                         format!(
                             "{}{}",
@@ -161,19 +169,15 @@ impl CFEngine {
                     .collect::<Vec<String>>();
                 lines.push(self.format_class("any"));
                 lines.join("")
-            },
-            Statement::Fail(msg) => {
-                format!(
-                    "      \"method_call\" usebundle => ncf_fail({});\n",
-                    self.parameter_to_cfengine(msg)
-                )
-            },
-            Statement::Log(msg) => {
-                format!(
-                    "      \"method_call\" usebundle => ncf_log({});\n",
-                    self.parameter_to_cfengine(msg)
-                )
-            },
+            }
+            Statement::Fail(msg) => format!(
+                "      \"method_call\" usebundle => ncf_fail({});\n",
+                self.parameter_to_cfengine(msg)
+            ),
+            Statement::Log(msg) => format!(
+                "      \"method_call\" usebundle => ncf_log({});\n",
+                self.parameter_to_cfengine(msg)
+            ),
             Statement::Return(outcome) => {
                 // handle end of bundle
                 self.return_condition = Some(match self.current_cases.last() {
@@ -187,7 +191,7 @@ impl CFEngine {
                 } else {
                     "      \"method_call\" usebundle => error();\n".into()
                 }
-            },
+            }
             Statement::Noop => String::new(),
             _ => String::new(),
         }
