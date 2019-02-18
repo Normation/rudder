@@ -11,7 +11,7 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct PreAST<'src> {
     pub enum_list: EnumList<'src>,
-    pub enum_mapping: Vec<PEnumMapping<'src>>, // TODO Medatata
+    pub enum_mapping: Vec<PEnumMapping<'src>>,
     pub pre_resources: HashMap<Token<'src>, PreResources<'src>>,
     pub variables: VarContext<'src>,
 }
@@ -120,20 +120,22 @@ impl<'src> PreAST<'src> {
                     }
                 }
                 PDeclaration::Enum(e) => {
+                    // Metadata not supported on enums
+                    if current_metadata.is_empty() {
+                        fail!(e.name, "Metadata and documentation comment not supported on enums yet (in {})", e.name)
+                    }
                     if e.global {
                         self.variables
                             .new_enum_variable(None, e.name, e.name, None)?;
                     }
                     self.enum_list.add_enum(e)?;
-                    // Discard metadata
-                    // TODO warn if there is some ignored metadata
-                    current_metadata = HashMap::new();
                 }
                 PDeclaration::Mapping(em) => {
+                    // Metadata not supported on enums
+                    if current_metadata.is_empty() {
+                        fail!(&em.to, "Metadata and documentation comment not supported on enums yet (in {})", &em.to)
+                    }
                     self.enum_mapping.push(em);
-                    // Discard metadata
-                    // TODO warn if there is some ignored metadata
-                    current_metadata = HashMap::new();
                 }
             };
             Ok(())

@@ -14,12 +14,10 @@ use nom::*;
 /// Parsing errors must be avoided if possible since they are fatal.
 /// Keep the structure and handle the error in later analyser if possible.
 
-// TODO parse and store comments
 // TODO add more types
 // TODO more like var = f(x)
 // TODO namespace in identifiers
 // TODO iterators
-// TODO trailing comma
 // TODO include
 // TODO global variable definition
 // TODO boolean var = expression
@@ -98,6 +96,7 @@ pnamed!(pub penum<PEnum>,
         name: or_fail!(pidentifier,PError::InvalidName) >>
         or_fail!(tag!("{"),PError::InvalidSeparator) >>
         items: sp!(separated_list!(tag!(","), pidentifier)) >>
+        opt!(tag!(",")) >>
         or_fail!(tag!("}"),PError::UnterminatedDelimiter) >>
         (PEnum {global: global.is_some(), name, items})
     ))
@@ -128,6 +127,7 @@ pnamed!(pub penum_mapping<PEnumMapping>,
                     or_fail!(tag!("->"),PError::InvalidSeparator),
                     or_fail!(alt!(pidentifier|map!(tag!("*"),|x| x.into())),PError::InvalidName))
             )) >>
+        opt!(tag!(",")) >>
         or_fail!(tag!("}"),PError::UnterminatedDelimiter) >>
         (PEnumMapping {from, to, mapping})
     ))
@@ -494,6 +494,7 @@ pnamed!(
                           ) >>
                           ((expr,stmt))
                   ))) >>
+            opt!(tag!(",")) >>
             or_fail!(tag!("}"),PError::UnterminatedDelimiter) >>
             (PStatement::Case(case.into(), cases))
         ))
@@ -712,6 +713,17 @@ mod tests {
                     global: true,
                     name: "abc".into(),
                     items: vec!["a".into(), "b".into(), "c".into()]
+                }
+            ))
+        );
+        assert_eq!(
+            mapok(penum(pinput("", "enum abc { a, b, }"))),
+            Ok((
+                "",
+                PEnum {
+                    global: false,
+                    name: "abc".into(),
+                    items: vec!["a".into(), "b".into()]
                 }
             ))
         );
@@ -1158,10 +1170,6 @@ mod tests {
         assert_eq!(
             maperr(penum(pinput("", "enum %abc { a, b }"))),
             Err(PError::InvalidName)
-        );
-        assert_eq!(
-            maperr(penum(pinput("", "enum abc { a, b, }"))),
-            Err(PError::UnterminatedDelimiter)
         );
         assert_eq!(
             maperr(penum(pinput("", "enum abc { a, b"))),

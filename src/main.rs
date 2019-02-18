@@ -20,15 +20,14 @@ use std::fs;
 // - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ?
 
 // TODO next step:
-// - lifetime 'src
-// - missing metadata/comments
+// - default parameters
+// - more checks (variables like enums, multiple mapping)
 
-fn read_file(filename: &str) -> String {
-    fs::read_to_string(filename)
-        .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename))
-}
-fn add_file<'a>(pre_ast: &mut PreAST<'a>, filename: &'a str, content: &'a str) {
-    let file = match parse_file(filename, &content) {
+fn add_file<'a>(pre_ast: &mut PreAST<'a>, source_list: &'a SourceList, filename: &'a str) {
+    let content = fs::read_to_string(filename)
+        .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
+    let content_str = source_list.append(content);
+    let file = match parse_file(filename, content_str) {
         Err(e) => panic!("There was an error during parsing:\n{}", e),
         Ok(o) => o,
     };
@@ -36,6 +35,28 @@ fn add_file<'a>(pre_ast: &mut PreAST<'a>, filename: &'a str, content: &'a str) {
         Err(e) => panic!("There was an error during code insertion:\n{}", e),
         Ok(()) => {}
     };
+}
+
+/// Implementation of a linked list containing immutable data
+/// but where we can append new data
+pub struct SourceList (Option<(String,Box<SourceList>)>);
+
+impl SourceList {
+    pub fn new() -> SourceList {
+        SourceList(None)
+    }
+    pub fn append(&self, s: String) -> &str {
+        if self.0.is_none() {
+            let self_ptr = &self.0 as *const Option<(String, Box<SourceList>)>;
+            unsafe {
+                let ptr = self_ptr as *mut Option<(String, Box<SourceList>)>;
+                *ptr = Some((s, Box::new(SourceList(None))));
+            }
+            &self.0.as_ref().unwrap().0
+        } else {
+            self.0.as_ref().unwrap().1.append(s)
+        }
+    }
 }
 
 fn main() {
@@ -49,14 +70,13 @@ fn main() {
     // --unparse : input-format is json, output format is a technique
 
     let mut pre_ast = PreAST::new();
+    let sources = SourceList::new();
 
     // read and add files
     let stdlib = "stdlib.ncf";
-    let content = read_file(stdlib);
-    add_file(&mut pre_ast, stdlib, &content);
+    add_file(&mut pre_ast, &sources, stdlib);
     let filename = "test.ncf";
-    let content = read_file(filename);
-    add_file(&mut pre_ast, filename, &content);
+    add_file(&mut pre_ast, &sources, filename);
 
     // finish parsing into AST
     let ast = match AST::from_pre_ast(pre_ast) {
