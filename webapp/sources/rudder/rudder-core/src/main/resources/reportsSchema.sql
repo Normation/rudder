@@ -87,6 +87,8 @@ CREATE INDEX ruleId_idx                   ON RudderSysEvents (ruleId);
 
 CREATE INDEX changes_executionTimeStamp_idx ON RudderSysEvents (executionTimeStamp) WHERE eventType = 'result_repaired';
 
+ALTER TABLE ruddersysevents set (autovacuum_vacuum_scale_factor = 0.005);
+
 
 /*
  * The table used to store archived agent execution reports.
@@ -108,6 +110,8 @@ CREATE TABLE ArchivedRudderSysEvents (
 
 CREATE INDEX executionTimeStamp_archived_idx ON ArchivedRudderSysEvents (executionTimeStamp);
 
+ALTER TABLE archivedruddersysevents set (autovacuum_vacuum_scale_factor = 0.005);
+
 /*
  * That table store the agent execution times for each nodes.
  * We keep the starting time of the given run and the fact
@@ -127,6 +131,7 @@ CREATE INDEX reportsexecution_date_idx ON ReportsExecution (date);
 CREATE INDEX reportsexecution_insertionid_idx ON ReportsExecution (insertionId);
 CREATE INDEX reportsexecution_nodeid_nodeconfigid_idx ON ReportsExecution (nodeId, nodeConfigId);
 
+ALTER TABLE reportsexecution set (autovacuum_vacuum_scale_factor = 0.05);
 
 /*
  *************************************************************************************
@@ -146,6 +151,9 @@ CREATE TABLE nodes_info (
   -- configs ids are a dump of json: [{"configId":"xxxx", "dateTime": "iso-date-time"} ]
 , config_ids text
 );
+
+ALTER TABLE nodes_info set (autovacuum_vacuum_threshold = 0);
+
 
 -- Create the table for the node configuration
 CREATE TABLE nodeConfigurations (
@@ -174,6 +182,7 @@ CREATE TABLE nodeConfigurations (
 CREATE INDEX nodeConfigurations_nodeId ON nodeConfigurations (nodeId);
 CREATE INDEX nodeConfigurations_nodeConfigId ON nodeConfigurations (nodeConfigId);
 
+ALTER TABLE nodeconfigurations set (autovacuum_vacuum_threshold = 0);
 
 -- Create the table for the archived node configurations
 CREATE TABLE archivedNodeConfigurations (
@@ -184,6 +193,8 @@ CREATE TABLE archivedNodeConfigurations (
 , configuration     text NOT NULL CHECK (configuration <> '' )
 , PRIMARY KEY (nodeId, nodeConfigId, beginDate)
 );
+
+ALTER TABLE archivednodeconfigurations set (autovacuum_vacuum_threshold = 0);
 
 /*
  *************************************************************************************
@@ -234,7 +245,8 @@ CREATE INDEX nodeCompliance_nodeId ON nodeCompliance (nodeId);
 CREATE INDEX nodeCompliance_runTimestamp ON nodeCompliance (runTimestamp);
 CREATE INDEX nodeCompliance_endOfLife ON nodeCompliance (endOfLife);
 
-
+ALTER TABLE nodecompliance set (autovacuum_vacuum_threshold = 0);
+ALTER TABLE nodecompliance set (autovacuum_vacuum_scale_factor = 0.1);
 
 -- Create the table for the archived node compliance
 CREATE TABLE archivedNodeCompliance (
@@ -246,6 +258,9 @@ CREATE TABLE archivedNodeCompliance (
 , details  text NOT NULL CHECK (details <> '' )
 , PRIMARY KEY (nodeId, runTimestamp)
 );
+
+ALTER TABLE archivednodecompliance set (autovacuum_vacuum_threshold = 0);
+ALTER TABLE archivednodecompliance set (autovacuum_vacuum_scale_factor = 0.1);
 
 -- Create a table of only (nodeid, ruleid, directiveid) -> complianceLevel
 -- for all runs. That table is amendable to postgresql-side processing,
@@ -278,6 +293,8 @@ CREATE INDEX nodecompliancelevels_nodeId ON nodecompliancelevels (nodeId);
 CREATE INDEX nodecompliancelevels_ruleId_idx ON nodecompliancelevels (ruleId);
 CREATE INDEX nodecompliancelevels_directiveId_idx ON nodecompliancelevels (directiveId);
 CREATE INDEX nodecompliancelevels_runTimestamp ON nodecompliancelevels (runTimestamp);
+
+ALTER TABLE nodecompliancelevels set (autovacuum_vacuum_scale_factor = 0.05);
 
 
 
@@ -338,6 +355,7 @@ CREATE TABLE RudderProperties(
 , value text
 );
 
+ALTER TABLE rudderproperties set (autovacuum_vacuum_threshold = 0);
 
 /*
  *************************************************************************************
@@ -373,6 +391,7 @@ CREATE TABLE StatusUpdate (
 , date   timestamp with time zone NOT NULL
 );
 
+ALTER TABLE statusupdate set (autovacuum_vacuum_threshold = 0);
 
 /*
  *************************************************************************************
@@ -393,6 +412,8 @@ CREATE TABLE Groups (
 , startTime        timestamp with time zone default now()
 , endTime          timestamp with time zone
 );
+
+ALTER TABLE groups set (autovacuum_vacuum_scale_factor = 0.05);
 
 CREATE TABLE GroupsNodesJoin (
   groupPkeyId integer -- really the id of the table Groups
@@ -422,6 +443,8 @@ CREATE TABLE Directives (
 CREATE INDEX directive_id_start ON Directives (directiveId, startTime);
 CREATE INDEX directive_end ON Directives (endTime);
 
+ALTER TABLE directives set (autovacuum_vacuum_scale_factor = 0.05);
+
 CREATE SEQUENCE rulesId START 101;
 
 CREATE TABLE Rules (
@@ -436,6 +459,8 @@ CREATE TABLE Rules (
 , startTime        timestamp with time zone NOT NULL
 , endTime          timestamp with time zone
 );
+
+ALTER TABLE rules set (autovacuum_vacuum_scale_factor = 0.05);
 
 CREATE TABLE RulesGroupJoin (
   rulePkeyId integer -- really the id of the table Rules
@@ -466,6 +491,7 @@ CREATE TABLE Nodes (
 CREATE INDEX nodes_id_start ON Nodes (nodeId, startTime);
 CREATE INDEX nodes_end      ON Nodes (endTime);
 
+ALTER TABLE nodes set (autovacuum_vacuum_scale_factor = 0.05);
 
 -- Historize the agent run global schedule
 CREATE SEQUENCE globalscheduleid START 101;
