@@ -117,7 +117,7 @@ class HistorizationServiceImpl(
       // detect changes
       val changed = nodeInfos.filter(x => registered.get(x.id.value) match {
         case None => true
-        case Some(entry) => (entry.nodeName != x.hostname || entry.nodeDescription != x.description )
+        case Some(entry) => (entry.nodeName != x.hostname || entry.nodeDescription != Some(x.description) )
       })
 
       // a node closable is a node that is current in the database, but don't exist in the
@@ -143,7 +143,7 @@ class HistorizationServiceImpl(
         case None => true
         case Some((entry, nodes)) =>
           (entry.groupName != x.nodeGroup.name ||
-           entry.groupDescription != x.nodeGroup.description ||
+           entry.groupDescription != Some(x.nodeGroup.description) ||
            nodes.map(x => NodeId(x.nodes)).toSet != x.nodeGroup.serverList ||
            DB.Historize.fromSQLtoDynamic(entry.groupStatus) != Some(x.nodeGroup.isDynamic))
       }).toSeq.map( _.nodeGroup )
@@ -178,11 +178,11 @@ class HistorizationServiceImpl(
           case None => true
           case Some(entry) => (
               entry.directiveName != directive.name
-           || entry.directiveDescription != directive.shortDescription
+           || entry.directiveDescription != Some(directive.shortDescription)
            || entry.priority != directive.priority
            || entry.techniqueHumanName != technique.name
            || entry.techniqueName != fullActiveTechnique.techniqueName.value
-           || entry.techniqueDescription != technique.description
+           || entry.techniqueDescription != Some(technique.description)
            || entry.techniqueVersion != directive.techniqueVersion.toString
           )
          }
