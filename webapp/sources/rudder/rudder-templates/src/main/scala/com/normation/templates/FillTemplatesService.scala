@@ -52,26 +52,102 @@ import org.antlr.stringtemplate.StringTemplate
 import net.liftweb.common._
 
 /**
- * A "string template variable" is a variable destinated to be
- * used by String Template so that it can be replaced correctly
- * in templates.
- *
- * A STVariable is composed of:
- * - a name : the tag in the template that string template
- *   will look for and replace)
- * - a list of values of type Any which string template will handle
- *   accordingly to its formatters
- * - a "mayBeEmpty" flag that allows string template to know how to
- *   handle empty list of values
- * - a "isSystem" flag that describe if the variable is system or not
- */
+  * A "string template variable" is a variable destinated to be
+  * used by String Template so that it can be replaced correctly
+  * in templates.
+  *
+  * A STVariable is composed of:
+  * - a name : the tag in the template that string template
+  *   will look for and replace)
+  * - a list of values of type Any which string template will handle
+  *   accordingly to its formatters
+  * - a "mayBeEmpty" flag that allows string template to know how to
+  *   handle empty list of values
+  * - a "isSystem" flag that describe if the variable is system or not
+  */
 final case class STVariable(
-    name      :String
-  , mayBeEmpty:Boolean
-  , values    :Seq[Any]
-  , isSystem  :Boolean
-)
+                             name      :String
+                             , mayBeEmpty:Boolean
+                             , values    :Seq[Any]
+                             , isSystem  :Boolean
+                           )
 
+/**
+  * A class to synchronize the usage of template
+  * Race conditions can occurs (see https://issues.rudder.io/issues/14322 ), causing two
+  * different thread trying to insert vars in the same template
+  * Encapsuling the template in a class allow to synchronize on the class itself, so
+  * ensuring that two different thread can touch the same template (but can touch different
+  * templates)
+  */
+class SynchronizedFileTemplate(templateName: String,content: String)  extends Loggable {
+  val localTemplate = {
+    try {
+      Full(new StringTemplate(content, classOf[NormationAmpersandTemplateLexer]))
+    } catch {
+      case ex: Exception =>
+        val m = s"Error when trying to parse template '${templateName}': ${ex.getMessage}"
+        logger.error(m, ex)
+        Failure(m)
+    }
+  }
+
+  /**
+    * Replace all occurences of parameters in the 'content' string with
+    * their value(s) defined in the given set of values.
+    *
+    * If there is no error, returns the resulting content
+    */
+  def fill(templateName: String, content: String, variables: Seq[STVariable]): Box[String] = this.synchronized {
+    localTemplate match {
+      case Full(sourceTemplate) =>
+        // we need to work on an instance of the template
+        val template = sourceTemplate.getInstanceOf()
+        /*
+         * Here, we are using bestEffort to try to test a maxum of false values,
+         * but the StringTemplate thing is mutable, so we don't have the intersting
+         * content in case of success.
+         */
+        val replaced = bestEffort(variables) { case variable =>
+          // Only System Variables have nullable entries
+          if ( variable.isSystem && variable.mayBeEmpty &&
+            ( (variable.values.size == 0) || (variable.values.size ==1 && variable.values.head == "") )
+          ) {
+            try {
+              Full(template.setAttribute(variable.name, null))
+            } catch {
+              case ex: Exception =>
+                Failure(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]: ${ex.getMessage}", Full(ex), Empty)
+            }
+          } else if (!variable.mayBeEmpty && variable.values.size == 0) {
+            Failure(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}")
+          } else {
+            logger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]")
+            bestEffort(variable.values) { value =>
+              try {
+                Full(template.setAttribute(variable.name, value))
+              } catch {
+                case ex: Exception => Failure(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]: ${ex.getMessage}", Full(ex), Empty)
+              }
+            }
+          }
+        }
+        //return the actual template with replaced variable in case of success
+        replaced match {
+          case Full(_) => Full(template.toString())
+          case Empty => //should not happen, but well, that the price of not using Either
+            Failure(s"An unknown error happen when trying to fill template '${templateName}'")
+          case f: Failure => //build a new failure with all the failure message concatenated and the templateName as context
+            Failure(s"Error with template '${templateName}': ${f.failureChain.map { _.msg }.mkString("; ") }")
+        }
+      case _ =>
+        val msg = s"Error with template '${templateName}' - the template was not correctly parsed"
+        logger.error(msg)
+        Failure(msg)
+    }
+  }
+
+}
 
 class FillTemplatesService extends Loggable {
 
@@ -80,21 +156,21 @@ class FillTemplatesService extends Loggable {
    * If a content is not in the cache, it will create the StringTemplate instance, and return it
    *
    */
-  private[this] var cache = Map[String,StringTemplate]()
+  private[this] var cache = Map[String,SynchronizedFileTemplate]()
 
 
   def clearCache(): Unit = this.synchronized {
     cache = Map()
   }
 
-  def getTemplateFromContent(templateName: String,content: String): Box[StringTemplate] = this.synchronized {
+  def getTemplateFromContent(templateName: String,content: String): Box[SynchronizedFileTemplate] = this.synchronized {
     cache.get(content) match {
-      case Some(template) => Full(template.getInstanceOf())
+      case Some(template) => Full(template)
       case _ =>
         try {
-          val template = new StringTemplate(content, classOf[NormationAmpersandTemplateLexer])
+          val template = new SynchronizedFileTemplate(templateName, content)
           cache = cache + ((content, template))
-          Full(template.getInstanceOf())
+          Full(template)
         } catch {
           case ex: Exception =>
             val m = s"Error when trying to parse template '${templateName}': ${ex.getMessage}"
@@ -105,53 +181,14 @@ class FillTemplatesService extends Loggable {
   }
 
   /**
-   * Replace all occurences of parameters in the 'content' string with
-   * their value(s) defined in the given set of values.
-   *
-   * If there is no error, returns the resulting template.
-   *
-   */
+    * From a templateName, content and variable, find the template, and call method to fill it
+    */
   def fill(templateName: String, content: String, variables: Seq[STVariable]): Box[String] = {
     for {
-       template <- getTemplateFromContent(templateName, content)
-       filled   <- {
-                    /*
-                     * Here, we are using bestEffort to try to test a maxum of false values,
-                     * but the StringTemplate thing is mutable, so we don't have the intersting
-                     * content in case of success.
-                     */
-                    val replaced = bestEffort(variables) { case variable =>
-                      // Only System Variables have nullable entries
-                      if ( variable.isSystem && variable.mayBeEmpty &&
-                          ( (variable.values.size == 0) || (variable.values.size ==1 && variable.values.head == "") )
-                      ) {
-                        try {
-                          Full(template.setAttribute(variable.name, null))
-                        } catch {
-                          case ex: Exception => Failure(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]: ${ex.getMessage}", Full(ex), Empty)
-                        }
-                      } else if (!variable.mayBeEmpty && variable.values.size == 0) {
-                        Failure(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}")
-                      } else {
-                        logger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]")
-                        bestEffort(variable.values) { value =>
-                          try {
-                            Full(template.setAttribute(variable.name, value))
-                          } catch {
-                            case ex: Exception => Failure(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]: ${ex.getMessage}", Full(ex), Empty)
-                          }
-                        }
-                      }
-                    }
-                    //return the actual template with replaced variable in case of success
-                    replaced match {
-                      case Full(_) => Full(template.toString())
-                      case Empty => //should not happen, but well, that the price of not using Either
-                        Failure(s"An unknown error happen when trying to fill template '${templateName}'")
-                      case f: Failure => //build a new failure with all the failure message concatenated and the templateName as context
-                        Failure(s"Error with template '${templateName}': ${f.failureChain.map { _.msg }.mkString("; ") }")
-                    }
-                  }
+      template <- getTemplateFromContent(templateName, content)
+
+      filled <- template.fill(templateName, content, variables)
+
     } yield {
       filled
     }
