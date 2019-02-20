@@ -25,7 +25,7 @@ test_is_exec "policy-generation-node-ready/90-change-perm"
 #
 # Test on update trigger (what happen with different combination of options)
 #
-HOOK="./${HOOKS_D}/policy-generation-finished/60-trigger-node-update"
+HOOK="bash ./${HOOKS_D}/policy-generation-finished/60-trigger-node-update"
 
 # compare result with expected
 function test { #expected, command result

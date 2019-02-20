@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Hooks parameter are passed by environment variable:
 #
@@ -62,13 +62,11 @@ if [ -n "${RUDDER_NODE_IDS}" ] && (( ${TO_UPDATE} > 0 )) ; then
   NODES=$(IFS=, eval 'echo "${NODES_ARRAY[*]:0:${TO_UPDATE}}"')
 
   # avoid creating command line too long
-  if [ "${TEST}" ]; then
+  if [ -n "${TEST}" ]; then
     echo "${NODES}"
   else
-    curl -X POST 'http://localhost/rudder/relay-api/remote-run/nodes' -d @- <<CURL_DATA
-asynchronous=true
-keep_output=false
-nodes:${NODES}
+    curl -X POST 'http://localhost/rudder/relay-api/remote-run/nodes' -d "asynchronous=true" -d "keep_output=false" -d @- <<CURL_DATA
+nodes=${NODES}
 CURL_DATA
   fi
 fi
