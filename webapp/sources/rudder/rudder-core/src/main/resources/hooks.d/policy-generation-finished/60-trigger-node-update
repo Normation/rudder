@@ -24,7 +24,7 @@
 set -e
 
 if [ -z "${TEST}" ]; then
-  source ./$(basename $0).properties
+  source /opt/rudder/etc/hooks.d/policy-generation-finished/$(basename $0).properties
 fi
 
 MAX_NODES=${MAX_NODES:=100}
