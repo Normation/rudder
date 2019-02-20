@@ -302,10 +302,10 @@
                     </div>
                    
                     <ul id="methods" class="list-unstyled" dnd-list="selectedTechnique.method_calls" dnd-drop="dropCallback(item, index, type);" >
-                        <li ng-click="selectMethod(method_call)" ng-repeat="method_call in selectedTechnique.method_calls" class="panel-margin-top btn btn-block btn-default btn-method" ng-class="{'active': isSelectedMethod(method_call)}" >
+                        <li ng-click="selectMethod(method_call)" ng-repeat="method_call in selectedTechnique.method_calls" class="panel-margin-top btn btn-block btn-default btn-method" ng-class="{'active': isSelectedMethod(method_call)}" dnd-draggable="method_call" dnd-effect-allowed="move" dnd-moved="selectedTechnique.method_calls.splice($index,1)">
                           <div class="input-group">
-                            <span class="input-group-addon cursorMove" dnd-draggable="method_call" dnd-effect-allowed="ove" dnd-moved="selectedTechnique.method_calls.splice($index,1)" ><b>:::</b></span>
-                            <div class="panel-heading form-horizontal" style="overflow:hidden">
+                            <span class="input-group-addon cursorMove"><b>:::</b></span>
+                            <div class="panel-heading form-horizontal" style="overflow:hidden" dnd-nodrag>
                               <div class="input-group col-xs-12 text-info"  ng-if="method_call.class_context !== 'any'">
                                 <label class="input-xs text-light input-group-addon">Condition:</label>
                                 <input ng-click="$event.stopPropagation();" class="input-xs form-control parameter" 
