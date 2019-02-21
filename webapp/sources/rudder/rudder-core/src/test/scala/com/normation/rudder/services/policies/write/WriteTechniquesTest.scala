@@ -414,4 +414,44 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       compareWith(rootPath.getParentFile/cfeNode.id.value, "node-gen-var-def-override", Nil)
     }
   }
+
+
+  "A CFEngine node, with 500 directives based on the same technique" should {
+
+    val techniqueList: Seq[BoundPolicyDraft] = (1 to 500).map(copyGirFileDirectives(_)).toList
+
+    // create the 500 directives files
+    createCopyGitFileDirectories("node-cfe-with-500-directives",  (1 to 500))
+
+    val rnc = rootNodeConfig.copy(
+      policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll) ++ techniqueList)
+      , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
+      , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+    )
+
+
+    val p = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll) ++ techniqueList)
+    val cfeNC = cfeNodeConfig.copy(
+        nodeInfo    = cfeNode
+      , policies    = p
+      , nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+      , runHooks    = MergePolicyService.mergeRunHooks(p.filter( ! _.technique.isSystem), None, globalPolicyMode)
+    )
+
+    "correctly get the expected policy files" in {
+      val (rootPath, writter) = getPromiseWritter("cfe-node-500")
+      // Actually write the promise files for the root node
+      val writen = writter.writeTemplate(
+        root.id
+        , Set(root.id, cfeNode.id)
+        , Map(root.id -> rnc, cfeNode.id -> cfeNC)
+        , Map(root.id -> NodeConfigId("root-cfg-id-500"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500"))
+        , Map(), globalPolicyMode, DateTime.now
+      )
+
+      (writen mustFull) and
+        compareWith(rootPath.getParentFile/cfeNode.id.value, "node-cfe-with-500-directives", Nil)
+    }
+  }
+
 }

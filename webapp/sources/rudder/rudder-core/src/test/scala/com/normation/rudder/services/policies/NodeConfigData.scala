@@ -107,6 +107,8 @@ import com.normation.cfclerk.services.impl.TechniqueRepositoryImpl
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import java.io.File
+import java.nio.file.{Files, Paths}
+import java.util.stream
 
 import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
 import com.normation.rudder.domain.policies.FullOtherTarget
@@ -122,6 +124,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.repository.FullNodeGroupCategory
 import org.apache.commons.io.FileUtils
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+
 /*
  * This file is a container for testing data that are a little boring to
  * define, like node info, node config, etc. so that their declaration
@@ -918,6 +921,76 @@ class TestNodeConfiguration() {
       , Some(PolicyMode.Enforce)
     )
   }
+
+  /**
+    * test for multiple generation
+    */
+  val DIRECTIVE_NAME_COPY_GIT_FILE="directive-copyGitFile"
+  lazy val copyGitFileTechnique = techniqueRepository.get(TechniqueId(TechniqueName("copyGitFile"), TechniqueVersion("2.3"))).unsafeGet
+  def copyGitFileVariable(i: Int) = {
+    val spec = copyGitFileTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+    Seq(
+      spec("COPYFILE_NAME").toVariable(Seq("file_name_"+i+".json"))
+      , spec("COPYFILE_EXCLUDE_INCLUDE_OPTION").toVariable(Seq("none"))
+      , spec("COPYFILE_EXCLUDE_INCLUDE").toVariable(Seq(""))
+      , spec("COPYFILE_DESTINATION").toVariable(Seq("/tmp/destination_"+i+".json"))
+      , spec("COPYFILE_RECURSION").toVariable(Seq(s"${i%2}"))
+      , spec("COPYFILE_PURGE").toVariable(Seq("false"))
+      , spec("COPYFILE_COMPARE_METHOD").toVariable(Seq("mtime"))
+      , spec("COPYFILE_OWNER").toVariable(Seq("root"))
+      , spec("COPYFILE_GROUP").toVariable(Seq("root"))
+      , spec("COPYFILE_PERM").toVariable(Seq("644"))
+      , spec("COPYFILE_SUID").toVariable(Seq("false"))
+      , spec("COPYFILE_SGID").toVariable(Seq("false"))
+      , spec("COPYFILE_STICKY_FOLDER").toVariable(Seq("false"))
+      , spec("COPYFILE_POST_HOOK_RUN").toVariable(Seq("true"))
+      , spec("COPYFILE_POST_HOOK_COMMAND").toVariable(Seq("/bin/echo Value_"+i+".json"))
+    ).map(v => (v.spec.name, v)).toMap
+  }
+
+  def copyGirFileDirectives(i:Int) = {
+    val id = PolicyId(RuleId("rulecopyGitFile"), DirectiveId(DIRECTIVE_NAME_COPY_GIT_FILE+i), TechniqueVersion("2.3"))
+    draft(
+      id
+      , copyGitFileTechnique
+      , copyGitFileVariable(i)
+      , copyGitFileTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
+      , BundleOrder("90-copy-git-file")
+      , BundleOrder("Copy git file")
+      , false
+      , Some(PolicyMode.Enforce)
+    )
+  }
+
+
+  /**
+    * create the 500 expected directives files for copygitfile
+    */
+    def createCopyGitFileDirectories(nodeName: String, listIds: Seq[Int]): Unit = {
+      val dest_root_path = EXPECTED_SHARE + "/" + nodeName + "/rules/cfengine-community/copyGitFile"
+      val source_tml = EXPECTED_SHARE + "/" + "copyFileFromSharedFolder.cf"
+
+      val directiveBasePath = dest_root_path + "/2_3_"+DIRECTIVE_NAME_COPY_GIT_FILE.replace("-", "_")
+
+      Files.createDirectory(Paths.get(dest_root_path))
+
+      // read the source template
+      val tml = Files.lines(Paths.get(source_tml)).toArray.mkString("\n")
+
+      // replace all tokens
+      for {
+        id       <- listIds
+        replaced = tml.replaceAll("TOKEN", id.toString)
+        recursion = replaced.replaceAll("RECURSION", (id%2).toString)
+      } yield {
+        Files.createDirectory(Paths.get(directiveBasePath + id ))
+        val dest = Files.createFile(Paths.get(directiveBasePath + id + "/copyFileFromSharedFolder.cf"))
+
+        Files.write(dest, recursion.getBytes)
+      }
+
+    }
+
 
   /*
    * Test override order of generic-variable-definition.
