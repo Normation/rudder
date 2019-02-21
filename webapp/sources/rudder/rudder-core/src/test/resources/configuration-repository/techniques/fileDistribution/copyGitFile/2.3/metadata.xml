@@ -1,0 +1,254 @@
+<!--
+Copyright 2011 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, Version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<TECHNIQUE name="File download (Rudder server)">
+  <DESCRIPTION>This technique ensure that some files are the copy of files on the shared folder of the Rudder Root Server, and let you optionally execute a command if the content of the file was modified</DESCRIPTION>
+
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <POLICYGENERATION>separated</POLICYGENERATION>
+  <COMPATIBLE>
+    <OS version=">= 4 (Etch)">Debian</OS>
+    <OS version=">= 4 (Nahant)">RHEL / CentOS</OS>
+    <OS version=">= 10 SP1 (Agama Lizard)">SuSE LES / DES / OpenSuSE</OS>
+    <AGENT version=">= 3.2.0">cfengine-community</AGENT>
+  </COMPATIBLE>
+
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>copyFileFromSharedFolder_RudderUniqueID</NAME>
+    </BUNDLES>
+    <TMLS>
+      <TML name="copyFileFromSharedFolder.ps1"/>    
+    </TMLS>
+  </AGENT>
+
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>download_from_shared_folder_RudderUniqueID</NAME>
+    </BUNDLES>
+    <TMLS>
+      <TML name="copyFileFromSharedFolder"/>
+    </TMLS>
+  </AGENT>
+    
+  <TRACKINGVARIABLE>
+    <SAMESIZEAS>COPYFILE_NAME</SAMESIZEAS>
+  </TRACKINGVARIABLE>
+
+  <SYSTEMVARS>
+  <NAME>SHARED_FILES_FOLDER</NAME>
+  </SYSTEMVARS>
+
+  <SECTIONS>
+    <SECTION name="Copy file and PostHook" multivalued="true">
+    <SECTION name="Copy file" multivalued="false" component="true" componentKey="COPYFILE_DESTINATION">
+      <INPUT>
+        <NAME>COPYFILE_NAME</NAME>
+        <DESCRIPTION>Source path, relative to /var/rudder/configuration-repository/shared-files/</DESCRIPTION>
+        <LONGDESCRIPTION>This is the relative path of the file/directory to be copied, on the Rudder policy server</LONGDESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>sharedfile</TYPE>
+        </CONSTRAINT>
+      </INPUT>
+      <SECTION name="Exclusion/Inclusion" multivalued="false" component="false" displayPriority="low">
+        <SELECT1>
+          <NAME>COPYFILE_EXCLUDE_INCLUDE_OPTION</NAME>
+          <DESCRIPTION>Exclude or include files from the copy</DESCRIPTION>
+          <LONGDESCRIPTION>Limit list of files to copy (include) or don't copy some files matching a pattern (exclude). Only applies if the path to copy from is a directory.</LONGDESCRIPTION>
+          <ITEM>
+            <VALUE>none</VALUE>
+            <LABEL>No include/exclude rules</LABEL>
+          </ITEM>
+          <ITEM>
+            <VALUE>exclude</VALUE>
+            <LABEL>Exclude file(s) matching</LABEL>
+          </ITEM>
+          <ITEM>
+           <VALUE>include</VALUE>
+           <LABEL>Include file(s) matching</LABEL>
+          </ITEM>
+          <CONSTRAINT>
+            <DEFAULT>none</DEFAULT>
+          </CONSTRAINT>
+        </SELECT1>
+        <INPUT>
+          <NAME>COPYFILE_EXCLUDE_INCLUDE</NAME>
+          <DESCRIPTION>File name patterns to exclude or include</DESCRIPTION>
+          <LONGDESCRIPTION>If one or several files should be excluded or included in this copy, please insert their name or a regular expression matching the appropriate file name(s))</LONGDESCRIPTION>
+            <CONSTRAINT>
+              <MAYBEEMPTY>true</MAYBEEMPTY>
+            </CONSTRAINT>
+        </INPUT>
+      </SECTION>
+      <INPUT>
+        <NAME>COPYFILE_DESTINATION</NAME>
+        <DESCRIPTION>Full path of destination file or directory (WARNING: if the source is a file, the filename must be included)</DESCRIPTION>
+        <LONGDESCRIPTION>This is the absolute path of the file/directory on the managed node. If you are copying a file, the destination
+path needs to contain the destination filename. The permissions defined below will be applied on the whole content of the destination, including files that were not copied.</LONGDESCRIPTION>
+      </INPUT>
+      <SELECT1>
+        <NAME>COPYFILE_RECURSION</NAME>
+        <DESCRIPTION>What should be the recursion level of the copy</DESCRIPTION>
+        <ITEM>
+          <VALUE>0</VALUE>
+          <LABEL>Only this file (or nothing for a directory)</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>1</VALUE>
+          <LABEL>The direct content of the directory (one level)</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>inf</VALUE>
+          <LABEL>The whole content of the directory (recursively)</LABEL>
+        </ITEM>
+        <CONSTRAINT>
+          <DEFAULT>0</DEFAULT>
+        </CONSTRAINT>
+      </SELECT1>
+      <SELECT1>
+        <NAME>COPYFILE_PURGE</NAME>
+        <DESCRIPTION>Purge the destination directory</DESCRIPTION>
+        <LONGDESCRIPTION>If this is enabled, all other content than the source in the destination directory will be purged.</LONGDESCRIPTION>
+        <ITEM>
+          <VALUE>false</VALUE>
+          <LABEL>False</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>true</VALUE>
+          <LABEL>True</LABEL>
+        </ITEM>
+        <CONSTRAINT>
+          <DEFAULT>false</DEFAULT>
+        </CONSTRAINT>
+      </SELECT1> 
+      <SELECT1>
+        <NAME>COPYFILE_COMPARE_METHOD</NAME>
+        <DESCRIPTION>File comparison method</DESCRIPTION>
+        <LONGDESCRIPTION>This is the method to use for comparison between source and destination files.
+  - "mtime" copies the file if the modification time of the source file is more recent than that of the promised file.
+  - "ctime" copies the file if the creation time of the source file is more recent than that of the promised file.
+  - "atime" copies the file if the modification time or creation time of the source file is more recent than that of the promised file. If the times are equal, a byte-for-byte comparison is done on the files to determine if it needs to be copied.
+  - "exists" copies the file if the promised file does not already exist.
+  - "binary" copies the file if they are both plain files and a byte-for-byte comparison determines that they are different. If both are not plain files, the agent reverts to comparing the mtime and ctime of the files. If the source file is on a different machine (i.e., network copy), then hash is used instead to reduce network bandwidth.
+  - "digest" copies the file if they are both plain files and a MD5 message digest comparison indicates that the files are different.
+  The "digest" option is set by default but may offer poor performance on large numbers (over 100) of file copies - in that case use "mtime" instead.</LONGDESCRIPTION>
+        <ITEM>
+          <VALUE>mtime</VALUE>
+          <LABEL>mtime</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>atime</VALUE>
+          <LABEL>atime</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>ctime</VALUE>
+          <LABEL>ctime</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>digest</VALUE>
+          <LABEL>digest</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>binary</VALUE>
+          <LABEL>binary</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>exists</VALUE>
+          <LABEL>exists</LABEL>
+        </ITEM>
+        <CONSTRAINT>
+          <DEFAULT>digest</DEFAULT>
+        </CONSTRAINT>
+      </SELECT1>
+
+      <SECTION name="Linux Options" multivalued="false" component="false">
+        <INPUT>
+          <NAME>COPYFILE_OWNER</NAME>
+          <DESCRIPTION>Owner of the destination file or whole directory content</DESCRIPTION>
+          <LONGDESCRIPTION>If the destination is a directory, this will apply to the whole content, including files that were not copied.</LONGDESCRIPTION>
+          <CONSTRAINT>
+            <DEFAULT>root</DEFAULT>
+          </CONSTRAINT>
+        </INPUT>
+        <INPUT>
+          <NAME>COPYFILE_GROUP</NAME>
+          <DESCRIPTION>Group of the destination file or whole directory content</DESCRIPTION>
+          <LONGDESCRIPTION>If the destination is a directory, this will apply to the whole content, including files that were not copied.</LONGDESCRIPTION>
+          <CONSTRAINT>
+            <DEFAULT>root</DEFAULT>
+          </CONSTRAINT>
+        </INPUT>
+        <INPUT>
+          <NAME>COPYFILE_PERM</NAME>
+          <DESCRIPTION>Permissions to apply on the file or whole directory content</DESCRIPTION>
+          <LONGDESCRIPTION>If the destination is a directory, this will apply to the whole content, including files that were not copied.</LONGDESCRIPTION>
+          <CONSTRAINT>
+            <TYPE>perm</TYPE>
+            <DEFAULT>644</DEFAULT>
+          </CONSTRAINT>
+        </INPUT>
+        <INPUT>
+          <NAME>COPYFILE_SUID</NAME>
+          <DESCRIPTION>Set SetUID bit?</DESCRIPTION>
+          <LONGDESCRIPTION>Note: The SetUID and SetGID bits will not be applied recursively, for obvious security reasons.</LONGDESCRIPTION>
+          <CONSTRAINT>
+            <TYPE>boolean</TYPE>
+            <DEFAULT>false</DEFAULT>
+          </CONSTRAINT>
+        </INPUT>
+        <INPUT>
+          <NAME>COPYFILE_SGID</NAME>
+          <DESCRIPTION>Set SetGID bit?</DESCRIPTION>
+          <LONGDESCRIPTION>Note: The SetUID and SetGID bits will not be applied recursively, for obvious security reasons.</LONGDESCRIPTION>
+          <CONSTRAINT>
+            <TYPE>boolean</TYPE>
+            <DEFAULT>false</DEFAULT>
+          </CONSTRAINT>
+        </INPUT>
+        <INPUT>
+          <NAME>COPYFILE_STICKY_FOLDER</NAME>
+          <DESCRIPTION>Apply the sticky bit to the whole folder? (caution, use with care)</DESCRIPTION>
+          <LONGDESCRIPTION>If set, and the path is a folder, and recursion is set to "The whole content of the folder", apply on the whole folder (won't apply to subfolders, for obvious security reasons).</LONGDESCRIPTION>
+          <CONSTRAINT>
+            <TYPE>boolean</TYPE>
+            <DEFAULT>false</DEFAULT>
+          </CONSTRAINT>
+        </INPUT>
+      </SECTION>
+    </SECTION>
+
+    <SECTION name="Post-modification hook" component="true" multivalued="false" componentKey="COPYFILE_DESTINATION" displayPriority="low">
+      <INPUT>
+         <NAME>COPYFILE_POST_HOOK_RUN</NAME>
+         <DESCRIPTION>Should the command(s) below be run if any modifications (permission or overwriting) are made on the files above?</DESCRIPTION>
+         <CONSTRAINT>
+           <TYPE>boolean</TYPE>
+           <DEFAULT>false</DEFAULT>
+         </CONSTRAINT>
+      </INPUT>
+      <INPUT>
+         <NAME>COPYFILE_POST_HOOK_COMMAND</NAME>
+         <DESCRIPTION>Command to run after any modifications</DESCRIPTION>
+         <CONSTRAINT>
+           <TYPE>textarea</TYPE>
+           <MAYBEEMPTY>true</MAYBEEMPTY>
+         </CONSTRAINT>
+      </INPUT>
+    </SECTION>
+  </SECTION>
+  </SECTIONS>
+
+</TECHNIQUE>

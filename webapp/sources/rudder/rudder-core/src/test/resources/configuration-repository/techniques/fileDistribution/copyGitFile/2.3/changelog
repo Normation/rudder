@@ -1,0 +1,13 @@
+ -- Benoît Peccatte <benoit.peccatte@normation.com> Fri Oct 17 14:10:43 CEST 2014
+  * Version 2.0
+  ** Use rudder_common_report instead of reports:
+  ** Add an option to purge local directory
+ -- Nicolas Charles <nicolas.charles@normation.com> Fri Nov 13 18:20:30 CEST 2014
+  * Version 2.1
+  ** Add option to set sticky bit on whole folder
+ -- Nicolas Charles <nicolas.charles@normation.com> Wed Dec 13 15:41:33 2017
+  * Version 2.2
+  ** Report on destination rather than on source
+ -- Nicolas Charles <nicolas.charles@normation.com> Thu Dec  7 17:18:54 2017
+  * Version 2.3
+  ** Convert to multiversionned technique
