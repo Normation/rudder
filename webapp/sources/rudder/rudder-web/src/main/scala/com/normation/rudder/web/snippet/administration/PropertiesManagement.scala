@@ -933,9 +933,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               case Right(())  =>
                 isEnabled = currentIsEnabled
                 hookProps = TriggerProp(Right(currentMax), Right(currentPercent))
-                "'check generated policies' property updated"
+                "'trigger node update' property updated"
               case Left(s) =>
-                s"There was an error when updating the value of the 'check generated policies' property: ${s}"
+                s"There was an error when updating the value of the 'trigger node update' property: ${s}"
             } )
             check
           }

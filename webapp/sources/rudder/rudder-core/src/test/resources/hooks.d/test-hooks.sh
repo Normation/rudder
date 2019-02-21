@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # test properties on hooks located in src/main/resources/hooks.d
 
@@ -10,7 +10,7 @@ HOOKS_BASE="./webapp/sources/rudder/rudder-core/src/main/resources/hooks.d"
 # Test for correct exec rights
 #
 function test_is_exec {
-  if ! [ -x "${HOOKS_D}/${1}" ]; then
+  if ! [ -x "${HOOKS_BASE}/${1}" ]; then
    echo "Hooks is not executable: ${HOOKS_BASE}/${1}"
    exit 1
   fi
@@ -25,7 +25,7 @@ test_is_exec "policy-generation-node-ready/90-change-perm"
 #
 # Test on update trigger (what happen with different combination of options)
 #
-HOOK="bash ./${HOOKS_D}/policy-generation-finished/60-trigger-node-update"
+HOOK="bash ./${HOOKS_BASE}/policy-generation-finished/60-trigger-node-update"
 
 # compare result with expected
 function test { #expected, command result
