@@ -515,13 +515,13 @@
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
             <h4>Development Policy Check</h4>
-            <p>Rudder can check generated policies syntax after generation to ensure that non syntactly valide policies are deployed on node.</p>
+            <p>Rudder can check generated policies syntax after generation to ensure that only syntactically valid policies are deployed on node..</p>
             <p>
               That check is especially useful when you are developing your own generic method or technique without the technique
               editor, and you want to catch possible bugs as early as possible.
             </p>
             <p>
-              This check can add some overhead to policy generation, so if you don't code techniques or generic method,
+              This check can add some overhead to policy generation, so if you don't code techniques or generic methods,
               you can disable it to make policy generation quicker.
             </p>
           </div>
@@ -537,7 +537,7 @@
                     <span class="ion ion-checkmark-round check-icon"></span>
                   </label>
                   <label class="form-control" for="generationHookCfpromiseCheckbox">
-                    Enable syntax validation of generated policy
+                    Enable syntax validation of generated policies
                   </label>
                 </div>
               </li>
@@ -554,12 +554,12 @@
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
-            <h4>Trigger immidiate update of nodes when their configuration changes</h4>
+            <h4>Trigger immediate update of nodes when their configuration changes</h4>
             <p>When new policies are generated, you have to wait for the next scheduled run of a node to have it apply them.</p>
             <p>
-              Depending of your use case, you may prefer to reduce latency between a node configuration change and its application on
+              Depending on your use case, you may prefer to reduce latency between a node configuration change and its application on
               the node. For that, Rudder can send an update notification at the end of a policy generation to all nodes whose configuration
-              was changed. That notification will tell the corresponding nodes to start a run immediately - and thus, not honouring neither
+              has changed. That notification will tell the corresponding nodes to start a run immediately - and thus, not honouring neither
               their agent run period nor the splaytime between nodes. This can be a problem on large installation where hundreds of nodes would start a
               run concurrently, using a lot of CPU resources and network at the same time.
             </p>
@@ -569,8 +569,8 @@
             </p>
             <p>
               You can also limit the number of notified nodes to a fraction of the total updated node so that you can
-              see on a small number of nodes if a change works. This is especially intereting if your schedule period is
-              big, like 30 min, which let you some time to revert a faulty change. Of course, that help does not replace
+              see on a small number of nodes how a change works. This is especially interesting if your schedule period is
+              long, like 30 min, which let you some time to revert a faulty change. Of course, that help does not replace
               a real rollout strategy to deploy policies, and you should always test critical configuration changes on a
               dedicated group of nodes before rolling out the change on other production nodes.
             </p>
@@ -582,13 +582,13 @@
               Nodes are chosen at random, with the exception of the policy servers that will always be notified first.
             </p>
             <p>
-              Setting the ration is given in percent of node to update, rounded up, so that 1% of 10 nodes will be 1 node,
+              The ratio of nodes to update is given in percent, rounded up, so that 1% of 10 nodes will be 1 node,
               and 90% of 8 nodes will be all the 8 nodes. Setting that ration to 0 is the same than disabling that hook,
               and setting it to 100
             </p>
             <p>
               The notification use the "trigger remote agent run" feature and you will need to open network port accordingly to
-              that (<a href="https://docs.rudder.io/reference/current/installation/requirements.html#configure-the-network">see documentation</a>).
+              that (<a href="/rudder-doc/reference/current/installation/requirements.html#configure-the-network">see documentation</a>).
             </p>
           </div>
           <div id="generationHookTriggerNodeUpdateForm">
@@ -610,7 +610,7 @@
               </li>
             </ul>
             <div class="form-group">
-              <label>Maximun number of node to notify:</label>
+              <label>Maximum number of nodes to notify:</label>
               <input id="generationHookTriggerNodeUpdateMaxNode" type="number" min="0"/>
             </div>
             <div class="form-group">
