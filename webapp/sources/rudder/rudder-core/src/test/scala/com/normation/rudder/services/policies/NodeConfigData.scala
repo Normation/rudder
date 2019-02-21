@@ -923,6 +923,46 @@ class TestNodeConfiguration() {
     )
   }
 
+  /**
+    * test for multiple generation
+    */
+  lazy val copyGitFileTechnique = techniqueRepository.get(TechniqueId(TechniqueName("copyGitFile"), TechniqueVersion("2.3"))).unsafeGet
+  def copyGitFileVariable(i: Int) = {
+    val spec = copyGitFileTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+    Seq(
+      spec("COPYFILE_NAME").toVariable(Seq("file_name_"+i+".json"))
+      , spec("COPYFILE_EXCLUDE_INCLUDE_OPTION").toVariable(Seq("none"))
+      , spec("COPYFILE_EXCLUDE_INCLUDE").toVariable(Seq(""))
+      , spec("COPYFILE_DESTINATION").toVariable(Seq("/tmp/destination_"+i+".json"))
+      , spec("COPYFILE_RECURSION").toVariable(Seq(s"${i%2}"))
+      , spec("COPYFILE_PURGE").toVariable(Seq("false"))
+      , spec("COPYFILE_COMPARE_METHOD").toVariable(Seq("mtime"))
+      , spec("COPYFILE_OWNER").toVariable(Seq("root"))
+      , spec("COPYFILE_GROUP").toVariable(Seq("root"))
+      , spec("COPYFILE_PERM").toVariable(Seq("644"))
+      , spec("COPYFILE_SUID").toVariable(Seq("false"))
+      , spec("COPYFILE_SGID").toVariable(Seq("false"))
+      , spec("COPYFILE_STICKY_FOLDER").toVariable(Seq("false"))
+      , spec("COPYFILE_POST_HOOK_RUN").toVariable(Seq("true"))
+      , spec("COPYFILE_POST_HOOK_COMMAND").toVariable(Seq("/bin/echo Value_"+i+".json"))
+    ).map(v => (v.spec.name, v)).toMap
+  }
+
+  def copyGirFileDirectives(i:Int) = {
+    val id = PolicyId(RuleId("rulecopyGitFile"), DirectiveId("directive-copyGitFile"+i), TechniqueVersion("2.3"))
+    draft(
+      id
+      , copyGitFileTechnique
+      , copyGitFileVariable(i)
+      , copyGitFileTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
+      , BundleOrder("90-copy-git-file")
+      , BundleOrder("Copy git file")
+      , false
+      , Some(PolicyMode.Enforce)
+    )
+  }
+
+
   /*
    * Test override order of generic-variable-definition.
    * We want to have to directive, directive1 and directive2.
