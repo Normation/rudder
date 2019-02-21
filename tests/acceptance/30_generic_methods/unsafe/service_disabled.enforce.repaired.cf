@@ -22,8 +22,21 @@ body common control
 bundle agent init
 {
   vars:
-    "service_name"  string => "cron";
-    "unknown_service_name" string => "unknown";
+     redhat::
+       "service_name"  string => "crond";
+     !redhat.!ubuntu::
+       "service_name"  string => "cron";
+     ubuntu::
+       "service_name"  string => "ntp";
+
+  classes:
+    redhat|suse::
+      "enabled" expression => returnszero("chkconfig ${service_name} on", "useshell");
+    debian::
+      "enabled" expression => returnszero("update-rc.d ${service_name} enable", "useshell");
+
+  methods:
+      "any" usebundle => define_expected_classes("service_disabled_${service_name}", "repaired", "1");
 }
 
 #######################################################
@@ -32,7 +45,7 @@ bundle agent test
 {
   methods:
     "ph1" usebundle => service_disabled("${init.service_name}");
-    "ph2" usebundle => service_disabled("${init.unknown_service_name}");
+    "serverspec" usebundle => execute_serverspec("${init.service_name}_disabled.rb", "service_now_disabled", "0");
 }
 
 #######################################################
@@ -40,7 +53,8 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok" expression => "service_disabled_${init.service_name}_ok.!service_disabled_${init.service_name}_error";
+    "success_ok" expression => "${define_expected_classes.report_string_1}";
+    "ok" expression => "success_ok.service_now_disabled";
 
   reports:
     ok::

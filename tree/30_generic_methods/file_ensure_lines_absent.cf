@@ -58,4 +58,5 @@ bundle agent file_ensure_lines_absent(file, lines)
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
       "report"             usebundle => _log_v3("Ensure line(s) absent from ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+
 }

@@ -31,3 +31,44 @@ bundle common test_utils {
       "have_perl" expression => fileexists("${paths.perl}");
       "test_utils_pass2"     expression => "any";
 }
+
+bundle agent define_expected_classes(class_prefix, status, id)
+{
+  vars:
+      "complete_suffix" slist => {"not_kept", "kept", "not_ok", "ok", "not_repaired", "repaired", "failed", "error"};
+      "error_suffix" slist => {"not_kept", "not_ok", "not_repaired", "failed", "error"};
+      "repaired_suffix" slist => { "ok", "repaired" };
+      "success_suffix" slist => { "ok", "kept", "not_repaired" };
+
+      "expected_string_${id}" string => concat(join(".", maplist("${class_prefix}_${this}", "@{${status}_suffix}")), ".${class_prefix}_reached");
+      "unexpected_string_${id}" string => join("|", maplist("${class_prefix}_${this}", difference(complete_suffix, "${status}_suffix")));
+
+      "report_string_${id}" string => "(${expected_string_${id}}).!(${unexpected_string_${id}})";
+
+}
+
+bundle agent execute_serverspec(test_name, class_name, comment)
+{
+  vars:
+      "fanion"        string => "\n#####################################\n";
+    pass2::
+      "result" string => "SUCCESS",
+          ifvarclass => "${class_name}";
+      "result" string => "FAILURE",
+          ifvarclass => "!${class_name}";
+      "report_string" string => "${fanion}Executing: ruby -S rspec ${ncf_configuration.ncf_configuration_basedir}/spec/localhost/${test_name} --format documentation #${comment}\n==>${result}${fanion}";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+    pass3::
+      "${class_name}" expression => returnszero("ruby -S rspec ${ncf_configuration.ncf_configuration_basedir}/spec/localhost/${test_name} --format documentation #${comment}", "useshell"),
+          scope => "namespace";
+
+  reports:
+    pass3::
+      "${report_string}";
+
+}
