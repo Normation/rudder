@@ -1,0 +1,86 @@
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File report content tail
+# @description Report the tail of a file
+# @documentation Report the tail of a file.
+#
+# This method does nothing on the system, but only reports a partial content
+# from a given file. This allows centralizing this information on the searver, and avoid
+# having to connect on each node to get this information.
+# 
+# #### Parameters
+#
+# ##### Target
+#
+# This is the file you want to report content from. The method will return an error if it
+# does not exist.
+#
+# ##### Limit
+#
+# The number of line to report.
+#
+# #### Examples
+# 
+# ```
+# # To get the 3 first line of /etc/hosts
+# file_report_content("/etc/hosts", "3");
+# ```
+#
+# @parameter target     File to report content from
+# @parameter limit      Number of lines to report (default is 10)
+# @parameter_constraint limit "allow_empty_string" : true
+# @parameter_constraint limit "regex" : "^\\d*$"
+#
+# @class_prefix file_report_content_tail
+# @class_parameter target
+
+bundle agent file_report_content_tail(target, limit)
+{
+  vars:
+    !pass1::
+      # to avoid rewriting class prefix when setting default
+      "old_class_prefix"  string => canonify("file_report_content_tail_${target}");
+      "args"               slist => { "${target}", "${limit}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_report_content_tail_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+    pass1.file_exists::
+      "content" string => execresult("/usr/bin/tail -n${limit} \"${target}\"", "useshell");
+
+  classes:
+      "file_exists" expression => fileexists("${target}");
+
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  defaults:
+      "limit" string => "10", if_match_regex => "";
+
+  methods:
+    pass2.!file_exists::
+      "error"   usebundle => _classes_failure("${old_class_prefix}");
+      "error"   usebundle => _classes_failure("${class_prefix}");
+      "report"  usebundle => _log_v3("${target} does not exist", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass2.file_exists::
+      "success" usebundle => _classes_success("${old_class_prefix}");
+      "success" usebundle => _classes_success("${class_prefix}");
+      "report"  usebundle => _log_v3("${limit} last lines of ${target}:${const.n}---${const.n}${content}---${const.n}file content report", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
