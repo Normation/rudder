@@ -25,7 +25,7 @@
 #
 # @parameter variable_prefix The prefix of the variable name
 # @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
-# @parameter file_name       The file name with JSON content
+# @parameter file_name       The absolute local file name with JSON content
 #
 # @agent_version >=3.6
 # 
