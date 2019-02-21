@@ -419,13 +419,18 @@ class WriteSystemTechniquesTest extends TechniquesTest{
 
   "A CFEngine node, with 500 directives based on the same technique" should {
 
+    val techniqueList: Seq[BoundPolicyDraft] = (1 to 500).map(copyGirFileDirectives(_)).toList
+
+    // create the 500 directives files
+    createCopyGitFileDirectories("node-cfe-with-500-directives",  (1 to 500))
+
     val rnc = rootNodeConfig.copy(
-      policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll))
+      policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll) ++ techniqueList)
       , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
       , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
     )
 
-    val techniqueList: Seq[BoundPolicyDraft] = (1 to 500).map(copyGirFileDirectives(_)).toList
+
     val p = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll) ++ techniqueList)
     val cfeNC = cfeNodeConfig.copy(
         nodeInfo    = cfeNode

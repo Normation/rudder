@@ -89,6 +89,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import org.joda.time.DateTime
+
 import scala.collection.SortedMap
 import scala.language.implicitConversions
 import com.normation.inventory.domain.Windows
@@ -111,6 +112,9 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import java.io.File
+import java.nio.file.{Files, Paths}
+import java.util.stream
+
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
 import com.normation.rudder.domain.policies.FullOtherTarget
@@ -128,6 +132,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.repository.FullNodeGroupCategory
 import org.apache.commons.io.FileUtils
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+
 /*
  * This file is a container for testing data that are a little boring to
  * define, like node info, node config, etc. so that their declaration
@@ -926,6 +931,7 @@ class TestNodeConfiguration() {
   /**
     * test for multiple generation
     */
+  val DIRECTIVE_NAME_COPY_GIT_FILE="directive-copyGitFile"
   lazy val copyGitFileTechnique = techniqueRepository.get(TechniqueId(TechniqueName("copyGitFile"), TechniqueVersion("2.3"))).unsafeGet
   def copyGitFileVariable(i: Int) = {
     val spec = copyGitFileTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
@@ -949,7 +955,7 @@ class TestNodeConfiguration() {
   }
 
   def copyGirFileDirectives(i:Int) = {
-    val id = PolicyId(RuleId("rulecopyGitFile"), DirectiveId("directive-copyGitFile"+i), TechniqueVersion("2.3"))
+    val id = PolicyId(RuleId("rulecopyGitFile"), DirectiveId(DIRECTIVE_NAME_COPY_GIT_FILE+i), TechniqueVersion("2.3"))
     draft(
       id
       , copyGitFileTechnique
@@ -961,6 +967,35 @@ class TestNodeConfiguration() {
       , Some(PolicyMode.Enforce)
     )
   }
+
+
+  /**
+    * create the 500 expected directives files for copygitfile
+    */
+    def createCopyGitFileDirectories(nodeName: String, listIds: Seq[Int]): Unit = {
+      val dest_root_path = EXPECTED_SHARE + "/" + nodeName + "/rules/cfengine-community/copyGitFile"
+      val source_tml = EXPECTED_SHARE + "/" + "copyFileFromSharedFolder.cf"
+
+      val directiveBasePath = dest_root_path + "/2_3_"+DIRECTIVE_NAME_COPY_GIT_FILE.replace("-", "_")
+
+      Files.createDirectory(Paths.get(dest_root_path))
+
+      // read the source template
+      val tml = Files.lines(Paths.get(source_tml)).toArray.mkString("\n")
+
+      // replace all tokens
+      for {
+        id       <- listIds
+        replaced = tml.replaceAll("TOKEN", id.toString)
+        recursion = replaced.replaceAll("RECURSION", (id%2).toString)
+      } yield {
+        Files.createDirectory(Paths.get(directiveBasePath + id ))
+        val dest = Files.createFile(Paths.get(directiveBasePath + id + "/copyFileFromSharedFolder.cf"))
+
+        Files.write(dest, recursion.getBytes)
+      }
+
+    }
 
 
   /*
