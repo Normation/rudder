@@ -678,6 +678,7 @@ class FusionReportUnmarshaller(
           else if(x contains  "2012"   )   Windows2012
           else if(x contains  "2016 r2")   Windows2016R2
           else if(x contains  "2016"   )   Windows2016
+          else if(x contains  "2019"   )   Windows2019
           else                             UnknownWindowsType
 
         case ("linux"  , x ) =>
