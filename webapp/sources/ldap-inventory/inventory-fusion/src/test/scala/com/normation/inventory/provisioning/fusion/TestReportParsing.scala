@@ -234,6 +234,13 @@ class TestReportParsing extends Specification with Loggable {
     }
   }
 
+  "Parsing Windows 2019" should {
+    "parse as windows 2019" in {
+      val os = parser.parse("fusion-report/windows2019.ocs").node.main.osDetails.os
+      os == Windows2019
+    }
+  }
+
   "Hostname should be correctly detected" should {
      "get node1 when it is defined as this" in {
         val hostname = parser.parse("fusion-report/signed_inventory.ocs").node.main.hostname
