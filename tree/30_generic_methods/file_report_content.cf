@@ -1,0 +1,108 @@
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File report content
+# @description Report the content of a file
+# @documentation Report the content of a file.
+#
+# This method does nothing on the system, but only reports a complete or partial content
+# from a given file. This allows centralizing this information on the searver, and avoid
+# having to connect on each node to get this information.
+# 
+# #### Parameters
+#
+# ##### Target
+#
+# This is the file you want to report content from. The method will return an error if it
+# does not exist.
+#
+# ##### Regex
+#
+# If empty, the method will report the whole file content.
+# If set, the method will grep the file for the given regular expression, and
+# report the result.
+#
+# ##### Context
+#
+# When specifying a regex, will add the number of lines of context around matches
+# (default is 0, i.e. no context).
+#
+# When reporting the whole file, this parameter is ignored.
+#
+# #### Examples
+# 
+# ```
+# # To get the whole /etc/hosts content
+# file_report_content("/etc/hosts", "", "");
+# # To get lines starting by "nameserver" in /etc/resolv.conf
+# file_report_content("/etc/resolv.conf", "^nameserver", "");
+# # To get lines containing "rudder" from /etc/hosts with 3 lines of context
+# file_report_content("/etc/hosts", "rudder", "3");
+# ```
+#
+# @parameter target     File to report content from
+# @parameter regex      Regex to search in the file (empty for whole file)
+# @parameter_constraint regex "allow_empty_string" : true
+# @parameter context    Number of context lines when matching regex (default is 0)
+# @parameter_constraint context "allow_empty_string" : true
+# @parameter_constraint context "regex" : "^\\d*$"
+#
+# @class_prefix file_report_content
+# @class_parameter target
+
+bundle agent file_report_content(target, regex, context)
+{
+  vars:
+    !pass1::
+      # to avoid rewriting class prefix when setting default
+      "old_class_prefix"  string => canonify("file_report_content_${target}");
+      "args"               slist => { "${target}", "${regex}", "${context}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_report_content_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+    pass1.file_exists::
+      "content" string => readfile("${target}"),
+                    if => "full_file";
+      "content" string => execresult("${paths.path[grep]} -E \"${regex}\" -C${context} \"${target}\"", "useshell"),
+                    if => "!full_file";
+
+  classes:
+      "file_exists" expression => fileexists("${target}");
+      "full_file"   expression => strcmp("${regex}", "");
+
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  defaults:
+      "context" string => "0", if_match_regex => "";
+
+  methods:
+    pass2.!file_exists::
+      "error"   usebundle => _classes_failure("${old_class_prefix}");
+      "error"   usebundle => _classes_failure("${class_prefix}");
+      "report"  usebundle => _log_v3("${target} does not exist", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass2.file_exists::
+      "success" usebundle => _classes_success("${old_class_prefix}");
+      "success" usebundle => _classes_success("${class_prefix}");
+      "report"  usebundle => _log_v3("${target} contains :${const.n}---${const.n}${content}---${const.n}file content report", "${target}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                       if => "full_file";
+      "report"  usebundle => _log_v3("Searching for '${regex}' in ${target} gives:${const.n}---${const.n}${content}${const.n}---${const.n}file content report", "${target}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                       if => "!full_file";
+}
