@@ -11,9 +11,11 @@ It has no:
 - generator / generic iterator
 - way of looping except on finite list
 
-This language is only targeted at STATE DEFINITION
+This language is only targeted at STATE DEFINITION.
 
 Everything that is not a state definition is a convenience for easier definition of a state.
+
+The compiler is very pedantic to avoid defining invalid states as much as possible.
 
 Concepts
 ========

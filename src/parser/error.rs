@@ -8,13 +8,12 @@ use std::fmt;
 /// It is a special type that can be simply converted to and from u32.
 /// This is because it is easier to use with existing errors in nom.
 /// This would be useless if we had ErrorKind(PError) return codes but this
-/// would mean writing a lot of fix_error ! calls in parsers.
+/// would mean writing a lot of fix_error! calls in parsers.
 // enum_from primitive allows recreating PError from u32 easily (ie without writing tons of
 // boilerplate)
 enum_from_primitive! {
 #[derive(Debug, PartialEq)]
 pub enum PError {
-    // TODO check if it is possible to add parameters
     Unknown, // Should be used by tests only
     InvalidFormat,
     UnterminatedString,

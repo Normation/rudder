@@ -358,20 +358,21 @@ pnamed!(
 #[derive(Debug, PartialEq)]
 pub struct PParameter<'src> {
     pub name: Token<'src>,
-    pub ptype: Option<PType>,
-    pub default: Option<PValue<'src>>,
+    pub ptype: Option<PType>
 }
+// return a pair because we will store the default value separately
 pnamed!(
-    pparameter<PParameter>,
+    pparameter<(PParameter,Option<PValue>)>,
     sp!(do_parse!(
         ptype: opt!(sp!(terminated!(ptype, char!(':'))))
             >> name: pidentifier
             >> default: opt!(sp!(preceded!(tag!("="), pvalue)))
-            >> (PParameter {
-                ptype,
-                name,
+            >> ((PParameter {
+                    ptype,
+                    name
+                },
                 default
-            })
+            ))
     ))
 );
 
@@ -380,6 +381,7 @@ pnamed!(
 pub struct PResourceDef<'src> {
     pub name: Token<'src>,
     pub parameters: Vec<PParameter<'src>>,
+    pub parameter_defaults: Vec<Option<PValue<'src>>>,
 }
 pnamed!(
     presource_def<PResourceDef>,
@@ -387,9 +389,11 @@ pnamed!(
         tag!("resource")
             >> name: pidentifier
             >> tag!("(")
-            >> parameters: separated_list!(tag!(","), pparameter)
+            >> parameter_list: separated_list!(tag!(","), pparameter)
             >> or_fail!(tag!(")"), PError::UnterminatedDelimiter)
-            >> (PResourceDef { name, parameters })
+            >> ({let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
+                PResourceDef { name, parameters, parameter_defaults }
+                })
     ))
 );
 
@@ -522,6 +526,7 @@ pub struct PStateDef<'src> {
     pub name: Token<'src>,
     pub resource_name: Token<'src>,
     pub parameters: Vec<PParameter<'src>>,
+    pub parameter_defaults: Vec<Option<PValue<'src>>>,
     pub statements: Vec<PStatement<'src>>,
 }
 pnamed!(
@@ -531,17 +536,19 @@ pnamed!(
             >> tag!("state")
             >> name: pidentifier
             >> tag!("(")
-            >> parameters: separated_list!(tag!(","), pparameter)
+            >> parameter_list: separated_list!(tag!(","), pparameter)
             >> or_fail!(tag!(")"), PError::UnterminatedDelimiter)
             >> tag!("{")
             >> statements: many0!(pstatement)
             >> or_fail!(tag!("}"), PError::UnterminatedDelimiter)
-            >> (PStateDef {
+            >> ({let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
+                PStateDef {
                 name,
                 resource_name,
                 parameters,
+                parameter_defaults,
                 statements
-            })
+            }})
     ))
 );
 
@@ -919,44 +926,40 @@ mod tests {
             mapok(pparameter(pinput("", "hello "))),
             Ok((
                 "",
-                PParameter {
+                (PParameter {
                     name: "hello".into(),
                     ptype: None,
-                    default: None,
-                }
+                }, None)
             ))
         );
         assert_eq!(
             mapok(pparameter(pinput("", "string:hello "))),
             Ok((
                 "",
-                PParameter {
+                (PParameter {
                     name: "hello".into(),
                     ptype: Some(PType::TString),
-                    default: None,
-                }
+                }, None)
             ))
         );
         assert_eq!(
             mapok(pparameter(pinput("", " string : hello "))),
             Ok((
                 "",
-                PParameter {
+                (PParameter {
                     name: "hello".into(),
                     ptype: Some(PType::TString),
-                    default: None,
-                }
+                }, None)
             ))
         );
         assert_eq!(
             mapok(pparameter(pinput("", " string : hello=\"default\""))),
             Ok((
                 "",
-                PParameter {
+                (PParameter {
                     name: "hello".into(),
                     ptype: Some(PType::TString),
-                    default: Some(PValue::String("\"".into(), "default".to_string())),
-                }
+                }, Some(PValue::String("\"".into(), "default".to_string())) )
             ))
         );
     }
@@ -969,7 +972,8 @@ mod tests {
                 "",
                 PResourceDef {
                     name: "hello".into(),
-                    parameters: vec![]
+                    parameters: vec![],
+                    parameter_defaults: vec![],
                 }
             ))
         );
@@ -979,7 +983,8 @@ mod tests {
                 "",
                 PResourceDef {
                     name: "hello2".into(),
-                    parameters: vec![]
+                    parameters: vec![],
+                    parameter_defaults: vec![],
                 }
             ))
         );
@@ -993,14 +998,13 @@ mod tests {
                         PParameter {
                             name: "p1".into(),
                             ptype: Some(PType::TString),
-                            default: None,
                         },
                         PParameter {
                             name: "p2".into(),
                             ptype: None,
-                            default: None,
                         }
-                    ]
+                    ],
+                    parameter_defaults: vec![None, None],
                 }
             ))
         );
@@ -1112,6 +1116,7 @@ mod tests {
                     name: "configuration".into(),
                     resource_name: "resource".into(),
                     parameters: vec![],
+                    parameter_defaults: vec![],
                     statements: vec![]
                 }
             ))
@@ -1127,6 +1132,7 @@ mod tests {
                     name: "configuration".into(),
                     resource_name: "ntp".into(),
                     parameters: vec![],
+                    parameter_defaults: vec![],
                     statements: vec![
                         PStatement::StateCall(
                             PCallMode::Enforce,

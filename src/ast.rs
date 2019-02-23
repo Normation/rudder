@@ -113,17 +113,16 @@ impl<'src> Value<'src> {
 pub struct Parameter<'src> {
     name: Token<'src>,
     ptype: PType,
-    default: Option<Value<'src>>,
 }
 impl<'src> Parameter<'src> {
-    fn from_pparameter(p: PParameter<'src>) -> Result<Parameter<'src>> {
+    fn from_pparameter(p: PParameter<'src>, default: &Option<Value<'src>>) -> Result<Parameter<'src>> {
         let ptype = match p.ptype {
             Some(t) => t,
             None => {
-                if let Some(val) = &p.default {
+                if let Some(val) = default {
                     // guess from default
                     match val {
-                        PValue::String(_, _) => PType::TString,
+                        Value::String(_) => PType::TString,
                     }
                 } else {
                     // Nothing -> String
@@ -131,14 +130,9 @@ impl<'src> Parameter<'src> {
                 }
             }
         };
-        let value = match p.default {
-            None => None,
-            Some(v) => Some(Value::from_pvalue(v)?),
-        };
         Ok(Parameter {
             name: p.name,
             ptype,
-            default: value,
         })
     }
 
@@ -270,6 +264,8 @@ impl<'src> Statement<'src> {
 // TODO type inference
 // TODO check that parameter type match parameter default
 // TODO put default parameter in calls
+// TODO check state call compatibility
+// TODO if a parameter has a default, next ones must have one too
 
 impl<'src> AST<'src> {
     /// Produce the final AST data structure.
@@ -281,6 +277,7 @@ impl<'src> AST<'src> {
             mut enum_mapping,
             pre_resources,
             variables: global_variables,
+            parameter_defaults,
         } = pre_ast;
         // fill enum_list iteratively
         let mut map_count = enum_mapping.len();
@@ -322,22 +319,25 @@ impl<'src> AST<'src> {
             // insert resource states
             #[allow(clippy::map_entry)]
             fix_results(pre_states.into_iter().map(|(meta, st)| {
-                if states.contains_key(&st.name) {
+                let PStateDef { name, resource_name, parameters, parameter_defaults:_, statements } = st;
+                if states.contains_key(&name) {
                     fail!(
-                        st.name,
+                        name,
                         "State {} for resource {} has already been defined in {}",
-                        st.name,
-                        st.resource_name,
-                        states.entry(st.name).key()
+                        name,
+                        resource_name,
+                        states.entry(name).key()
                     );
                 } else {
                     let parameters =
-                        fix_vec_results(st.parameters.into_iter().map(Parameter::from_pparameter))?;
+                        fix_vec_results(parameters.into_iter().map(|p| {
+                            let pname = p.name;
+                            Parameter::from_pparameter(p, &parameter_defaults[&(resource_name, Some(name), pname)]) }))?;
                     let mut variables = VarContext::new();
                     for param in parameters.iter() {
                         variables.new_variable(Some(&global_variables), param.name, param.ptype)?;
                     }
-                    let statements = fix_vec_results(st.statements.into_iter().map(|st0| {
+                    let statements = fix_vec_results(statements.into_iter().map(|st0| {
                         Statement::fom_pstatement(
                             &enum_list,
                             Some(&global_variables),
@@ -352,7 +352,7 @@ impl<'src> AST<'src> {
                         statements,
                         variables,
                     };
-                    states.insert(st.name, state);
+                    states.insert(name, state);
                 }
                 Ok(())
             }))?;

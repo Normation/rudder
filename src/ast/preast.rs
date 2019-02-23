@@ -14,6 +14,8 @@ pub struct PreAST<'src> {
     pub enum_mapping: Vec<PEnumMapping<'src>>,
     pub pre_resources: HashMap<Token<'src>, PreResources<'src>>,
     pub variables: VarContext<'src>,
+                            //       resource,    state,            parameter name , default value
+    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>, Token<'src>), Option<Value<'src>>>,
 }
 
 /// PreResource is the Resource structure for PreAST
@@ -32,6 +34,7 @@ impl<'src> PreAST<'src> {
             enum_mapping: Vec::new(),
             pre_resources: HashMap::new(),
             variables: VarContext::new(),
+            parameter_defaults: HashMap::new(),
         }
     }
 
@@ -76,12 +79,13 @@ impl<'src> PreAST<'src> {
                     current_metadata.insert(m.key, m.value);
                 }
                 PDeclaration::Resource(rd) => {
-                    if self.pre_resources.contains_key(&rd.name) {
+                    let PResourceDef { name, parameters, parameter_defaults } = rd;
+                    if self.pre_resources.contains_key(&name) {
                         fail!(
-                            rd.name,
+                            name,
                             "Resource {} has already been defined in {}",
-                            rd.name,
-                            self.pre_resources.entry(rd.name).key()
+                            name,
+                            self.pre_resources.entry(name).key()
                         );
                     }
                     let metadata = fix_map_results(
@@ -89,39 +93,54 @@ impl<'src> PreAST<'src> {
                             .drain() // Move the content without moving the structure
                             .map(|(k, v)| Ok((k, Value::from_pvalue(v)?))),
                     )?;
+                    for (param, default) in parameters
+                        .iter()
+                        .zip(parameter_defaults.into_iter()) {
+                            let d = match default { Some(x) => Some(Value::from_pvalue(x)?), None => None };
+                            self.parameter_defaults.insert((name, None, param.name), d);
+                    }
                     let resource = PreResources {
                         metadata,
                         parameters: fix_vec_results(
-                            rd.parameters.into_iter().map(Parameter::from_pparameter),
+                            parameters.into_iter().map(|p| {
+                                let pname = p.name;
+                                Parameter::from_pparameter(p, &self.parameter_defaults[&(name, None, pname)])}),
                         )?,
                         pre_states: Vec::new(),
                     };
-                    self.pre_resources.insert(rd.name, resource);
+                    self.pre_resources.insert(name, resource);
                     // Reset metadata
                     current_metadata = HashMap::new();
                 }
                 PDeclaration::State(st) => {
-                    if let Some(rd) = self.pre_resources.get_mut(&st.resource_name) {
+                    let PStateDef { name, resource_name, parameters, parameter_defaults, statements } = st;
+                    for (param, default) in parameters
+                        .iter()
+                        .zip(parameter_defaults.into_iter()) {
+                            let d = match default { Some(x) => Some(Value::from_pvalue(x)?), None => None };
+                            self.parameter_defaults.insert((resource_name, Some(name), param.name), d);
+                    }
+                    if let Some(rd) = self.pre_resources.get_mut(&resource_name) {
                         let metadata = fix_map_results(
                             current_metadata
                                 .drain() // Move the content without moving the structure
                                 .map(|(k, v)| Ok((k, Value::from_pvalue(v)?))),
                         )?;
-                        rd.pre_states.push((metadata, st));
+                        rd.pre_states.push((metadata, PStateDef { name, resource_name, parameters, parameter_defaults: Vec::new(), statements }));
                         // Reset metadata
                         current_metadata = HashMap::new();
                     } else {
                         fail!(
-                            st.resource_name,
+                            resource_name,
                             "Resource {} has not been defined for {}",
-                            st.resource_name,
-                            st.name
+                            resource_name,
+                            name
                         );
                     }
                 }
                 PDeclaration::Enum(e) => {
                     // Metadata not supported on enums
-                    if current_metadata.is_empty() {
+                    if !current_metadata.is_empty() {
                         fail!(e.name, "Metadata and documentation comment not supported on enums yet (in {})", e.name)
                     }
                     if e.global {
@@ -132,7 +151,7 @@ impl<'src> PreAST<'src> {
                 }
                 PDeclaration::Mapping(em) => {
                     // Metadata not supported on enums
-                    if current_metadata.is_empty() {
+                    if !current_metadata.is_empty() {
                         fail!(&em.to, "Metadata and documentation comment not supported on enums yet (in {})", &em.to)
                     }
                     self.enum_mapping.push(em);

@@ -14,7 +14,10 @@ object nntp ()
 ## Multiple instance object type
 object ntp ( variable:string="jkh" )
 
-
+## 2 identical state category with different state are incompatible
+## 2 different state category are compatible
+@state_category = absence, permission, full_content, partial_content
+@state_category = *
 ## technique called ntp_configuration without parameters
 ntp state configuration ()
 {

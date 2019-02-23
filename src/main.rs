@@ -7,20 +7,21 @@ use crate::ast::generators::*;
 use crate::ast::{PreAST, AST};
 use crate::parser::parse_file;
 use std::fs;
+use std::cell::UnsafeCell;
 
 // MAIN
 
 // Questions :
 // - Séparateur de statement ';' '\n' rien ?
 // - compatibilité avec les techniques définissant des variables globales
-// - includes: dans le main, dans les headers, partout ?
 // - usage du '!' -> "macros", enum expr, audit&test ?
 // - sous typage explicite mais pas chiant
 // - quand/qui fait le check des variables json ?
 // - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ?
+// - a quoi ressemblent les iterators ?
+// - comment exprimer les incompatibilités d'état
 
 // TODO next step:
-// - default parameters
 // - more checks (variables like enums, multiple mapping)
 
 fn add_file<'a>(pre_ast: &mut PreAST<'a>, source_list: &'a SourceList, filename: &'a str) {
@@ -38,23 +39,25 @@ fn add_file<'a>(pre_ast: &mut PreAST<'a>, source_list: &'a SourceList, filename:
 }
 
 /// Implementation of a linked list containing immutable data
-/// but where we can append new data
-pub struct SourceList (Option<(String,Box<SourceList>)>);
+/// but where we can append new data.
+/// The goal is to be able to hold references to immutable data while
+/// still appending new data at the end of the list.
+pub struct SourceList (UnsafeCell<Option<(String,Box<SourceList>)>>);
 
 impl SourceList {
     pub fn new() -> SourceList {
-        SourceList(None)
+        SourceList(UnsafeCell::new(None))
     }
     pub fn append(&self, s: String) -> &str {
-        if self.0.is_none() {
-            let self_ptr = &self.0 as *const Option<(String, Box<SourceList>)>;
+        let unsafe_ptr = self.0.get();
+        let cell_ref = unsafe {&*unsafe_ptr};
+        if cell_ref.is_none() {
             unsafe {
-                let ptr = self_ptr as *mut Option<(String, Box<SourceList>)>;
-                *ptr = Some((s, Box::new(SourceList(None))));
+                *unsafe_ptr = Some((s, Box::new(SourceList(UnsafeCell::new(None)))));
+                &(&*unsafe_ptr).as_ref().unwrap().0
             }
-            &self.0.as_ref().unwrap().0
         } else {
-            self.0.as_ref().unwrap().1.append(s)
+            cell_ref.as_ref().unwrap().1.append(s)
         }
     }
 }
