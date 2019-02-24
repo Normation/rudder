@@ -33,7 +33,6 @@ pub struct AST<'src> {
 // TODO global variables
 // TODO type inference
 // TODO check that parameter type match parameter default
-// TODO put default parameter in calls
 // TODO check state call compatibility
 // TODO if a parameter has a default, next ones must have one too
 // TODO more tests
@@ -77,6 +76,7 @@ impl<'src> AST<'src> {
             enum_mapping = new_enum_mapping;
             map_count = enum_mapping.len();
         }
+        enum_list.mapping_check()?;
         // create new resources struct
         let mut resources = HashMap::new();
         fix_results(pre_resources.into_iter().map(|(rn, rd)| {

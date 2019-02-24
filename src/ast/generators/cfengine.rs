@@ -231,7 +231,7 @@ impl Generator for CFEngine {
                     content.push_str(&self.format_statement(gc, st));
                 }
                 content.push_str("}\n");
-                files.insert(sn.file(), content.to_string()); // TODO there is something smelly with this to_string
+                files.insert(sn.file(), content);
             }
         }
         for (name, content) in files.iter() {

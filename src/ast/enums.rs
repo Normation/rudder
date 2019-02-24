@@ -7,8 +7,6 @@ use std::collections::hash_set::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-// TODO there can be only one mapping per item that defines an identical descendant
-
 /// As single enum can be derived into different set through multiple mappings
 /// However a single enum can have only one parent (single ascending path, multiple descending paths)
 
@@ -133,7 +131,7 @@ impl<'src> EnumList<'src> {
                 if parent_enum.is_none() || (parent_enum.unwrap() != e0 && e.name != *e0) {
                     fail!(
                         v,
-                        "Value {} from enum {} already declared in the global enum {}",
+                        "Value {} from enum {} already declared in the global enum {} and not in parent enum",
                         v,
                         e.name,
                         e0
@@ -381,8 +379,7 @@ impl<'src> EnumList<'src> {
                                 e1
                             );
                         }
-                    }
-                    // TODO warn the user if variable is known
+                    },
                     // not an enum
                     _ => fail!(var1, "Variable {} is not a {} enum", var1, e1),
                 }
@@ -514,6 +511,21 @@ impl<'src> EnumList<'src> {
         }))?;
         if !default_used && cases.iter().any(|(e, _)| e.is_default()) {
             fail!(case_name, "Default never matches in {}", case_name);
+        }
+        Ok(())
+    }
+
+    /// There can be only one mapping per item that defines an identical descendant
+    pub fn mapping_check(&self) -> Result<()> {
+        for (from,tos) in self.direct_mapping_path.iter() {
+            for item in self.enums[from].1.iter() {
+                if tos.iter()
+                      .map(|to| self.mappings[&(*from,*to)][item])
+                      .filter(|i| i == item)
+                      .count() > 1 {
+                    fail!(item, "There is more than one mapping that maps {}:{} to itself", from, item);
+                }
+            }
         }
         Ok(())
     }
@@ -969,5 +981,16 @@ mod tests {
         let ex = parse_enum_expression("default");
         exprs.push((e.canonify_expression(None, &c, ex).unwrap(), Vec::new()));
         assert_eq!(e.evaluate(None, &c, &exprs, case), Ok(()));
+    }
+
+    #[test]
+    fn test_mapping_check() {
+        let (mut e, _) = init_tests();
+        assert!(e.mapping_check().is_ok());
+        add_enum_mapping(
+            &mut e,
+            "enum os ~> family2 { *->* }",
+        );
+        assert!(e.mapping_check().is_err());
     }
 }

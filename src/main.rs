@@ -12,19 +12,16 @@ use std::fs;
 // MAIN
 
 // Questions :
-// - Séparateur de statement ';' '\n' rien ?
+// - Séparateur de statement ';', '\n', rien, seulement pour les variables ?
 // - compatibilité avec les techniques définissant des variables globales
 // - usage du '!' -> "macros", enum expr, audit&test ?
 // - sous typage explicite mais pas chiant
 // - quand/qui fait le check des variables json ?
 // - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ?
 // - a quoi ressemblent les iterators ?
-// - comment exprimer les incompatibilités d'état
 
 // TODO next step:
-// - rust tests
-// - rewrite preast
-// - more checks (variables like enums, multiple mapping)
+// - missing checks
 
 fn add_file<'a>(pre_ast: &mut PreAST<'a>, source_list: &'a SourceList, filename: &'a str) {
     let content = fs::read_to_string(filename)

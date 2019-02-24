@@ -16,10 +16,8 @@ use nom::*;
 
 // TODO add more types
 // TODO more like var = f(x)
-// TODO namespace in identifiers
 // TODO iterators
 // TODO include
-// TODO global variable definition
 // TODO boolean var = expression
 // TODO stateCall error management
 
@@ -303,7 +301,7 @@ pnamed!(
                 let mut format_vec = Vec::new();
                 let mut var_vec = Vec::new();
                 let mut current = String::new();
-                sections.into_iter().for_each(|(s, v)| {
+                for (s,v) in sections.into_iter() {
                     match v {
                         None => {
                             current.push_str(*s.fragment);
@@ -311,12 +309,12 @@ pnamed!(
                         }
                         Some(var) => {
                             current.push_str(*s.fragment);
-                            format_vec.push(current.clone()); // TODO clone is easy but should not be necessary
+                            format_vec.push(current);
                             current = String::new();
                             var_vec.push(var.fragment().into());
                         }
                     }
-                });
+                };
                 current.push_str(*rest.fragment);
                 format_vec.push(current);
                 (format_vec, var_vec)
@@ -514,7 +512,7 @@ pnamed!(
             expr: take_until!("=>") >>
             tag!("=>") >>
             stmt: pstatement >>
-            (PStatement::Case(case.into(), vec![(expr,vec![stmt]), (pinput(expr.extra,"default"),vec![PStatement::Noop])] )) // TODO is noop the default
+            (PStatement::Case(case.into(), vec![(expr,vec![stmt]), (pinput(expr.extra,"default"),vec![PStatement::Noop])] ))
         ))
         // Flow statements
       | sp!(preceded!(tag!("return"),pidentifier)) => { |x| PStatement::Return(x) }

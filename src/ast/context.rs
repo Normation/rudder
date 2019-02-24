@@ -110,7 +110,6 @@ impl<'src> VarContext<'src> {
     }
 
     /// Get a variable from this context.
-    // TODO Return a copy to avoid reference lifetime problems ?
     pub fn get_variable<'b>(
         &'b self,
         upper_context: Option<&'b VarContext<'src>>,
@@ -118,7 +117,6 @@ impl<'src> VarContext<'src> {
     ) -> Option<&'b VarKind<'src>> {
         self.variables
             .get(&name)
-            //.cloned() TODO ??
             .or_else(|| match upper_context {
                 None => None,
                 Some(gc) => gc.get_variable(None, name),
