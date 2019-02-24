@@ -292,7 +292,9 @@ pnamed!(
                     >> variable:
                         alt!(
                             tag!("$") => {|_| None}
-                          | delimited!(tag!("{"),pidentifier,or_fail!(tag!("}"),PError::UnterminatedDelimiter)) => {|x| Some(x)}
+                          | delimited!(tag!("{"),
+                                       or_fail!(pidentifier,PError::UnterminatedDelimiter),
+                                       or_fail!(tag!("}"),PError::UnterminatedDelimiter)) => {|x| Some(x)}
                         )
                     >> (prefix, variable)
             ))
@@ -512,7 +514,7 @@ pnamed!(
             expr: take_until!("=>") >>
             tag!("=>") >>
             stmt: pstatement >>
-            (PStatement::Case(case.into(), vec![(expr.into(),vec![stmt]), (pinput(expr.extra,"default"),vec![PStatement::Noop])] )) // TODO is noop the default
+            (PStatement::Case(case.into(), vec![(expr,vec![stmt]), (pinput(expr.extra,"default"),vec![PStatement::Noop])] )) // TODO is noop the default
         ))
         // Flow statements
       | sp!(preceded!(tag!("return"),pidentifier)) => { |x| PStatement::Return(x) }
@@ -867,6 +869,10 @@ mod tests {
         assert_eq!(
             mapok(interpolated_string(pinput("", "hello herman 10$$"))),
             Ok(("", (vec!["hello herman 10$".into()], Vec::new())))
+        );
+        assert_eq!(
+            mapok(interpolated_string(pinput("", "hello herman 10$x"))),
+            Ok(("", (vec!["hello herman 10$x".into()], Vec::new())))
         );
         assert_eq!(
             mapok(interpolated_string(pinput(
@@ -1238,6 +1244,10 @@ mod tests {
         );
         assert_eq!(
             maperr(interpolated_string(pinput("", "hello${pouet "))),
+            Err(PError::UnterminatedDelimiter)
+        );
+        assert_eq!(
+            maperr(interpolated_string(pinput("", "hello${"))),
             Err(PError::UnterminatedDelimiter)
         );
         assert_eq!(

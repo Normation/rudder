@@ -74,6 +74,7 @@ where
     I: Iterator<Item = Result<(T, U)>>,
     T: Eq + Hash,
 {
+    #[allow(clippy::type_complexity)]
     let (vals, errs): (Vec<Result<(T, U)>>, Vec<Result<(T, U)>>) = res.partition(|r| r.is_ok());
     if errs.is_empty() {
         Ok(vals.into_iter().map(|r| r.unwrap()).collect())

@@ -4,11 +4,10 @@ use crate::parser::{PType, Token};
 use std::collections::hash_map;
 use std::collections::HashMap;
 
-// variable kind
+/// Variable ar categorized in kinds.
+/// This allows segregatin variables that can only be used in some places.
 #[derive(Debug, PartialEq)]
 pub enum VarKind<'src> {
-    //       Resource type (File, ...) TODO do we want that ?
-    //Resource(String),
     //   Enum          item value
     Enum(Token<'src>, Option<Token<'src>>),
     //     type
@@ -19,22 +18,30 @@ pub enum VarKind<'src> {
 
 // TODO forbid variables names like global enum items (or enum type)
 
+/// A context is a list of variables name with their type (and value if they are constant).
+/// A context doesn't point to a child or parent context because it would mean holding
+/// their reference which would prevent them from being modified.
+/// So this reference is asked by methods when they are needed.
 #[derive(Debug)]
 pub struct VarContext<'src> {
     variables: HashMap<Token<'src>, VarKind<'src>>,
 }
 
 impl<'src> VarContext<'src> {
+    /// Constructor
     pub fn new() -> VarContext<'static> {
         VarContext {
             variables: HashMap::new(),
         }
     }
 
+    /// Iterator over all variables of this context.
     pub fn iter(&self) -> hash_map::Iter<Token<'src>, VarKind<'src>> {
         self.variables.iter()
     }
 
+    /// Create a variable in the context.
+    /// Used by dedicated variable creation method for each kind.
     fn new_var(
         &mut self,
         upper_context: Option<&VarContext<'src>>,
@@ -65,6 +72,7 @@ impl<'src> VarContext<'src> {
         Ok(())
     }
 
+    /// Create a variable of kind enum in this context.
     pub fn new_enum_variable(
         &mut self,
         upper_context: Option<&VarContext<'src>>,
@@ -77,6 +85,7 @@ impl<'src> VarContext<'src> {
         Ok(())
     }
 
+    /// Create a generic variable in tis context.
     pub fn new_variable(
         &mut self,
         upper_context: Option<&VarContext<'src>>,
@@ -88,6 +97,7 @@ impl<'src> VarContext<'src> {
         Ok(())
     }
 
+    /// Create a constant in this context.
     pub fn new_constant(
         &mut self,
         upper_context: Option<&VarContext<'src>>,
@@ -99,7 +109,8 @@ impl<'src> VarContext<'src> {
         Ok(())
     }
 
-    // return a copy to avoid reference lifetime problem later
+    /// Get a variable from this context.
+    // TODO Return a copy to avoid reference lifetime problems ?
     pub fn get_variable<'b>(
         &'b self,
         upper_context: Option<&'b VarContext<'src>>,

@@ -1,5 +1,5 @@
 use super::context::{VarContext, VarKind};
-use super::Statement;
+use super::resource::Statement;
 use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
 use std::collections::hash_map;
