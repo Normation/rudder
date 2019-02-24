@@ -35,7 +35,11 @@ impl<'src> VarContext<'src> {
         self.variables.iter()
     }
 
-    fn new_var(&mut self, upper_context: Option<&VarContext<'src>>, name: Token<'src>) -> Result<()> {
+    fn new_var(
+        &mut self,
+        upper_context: Option<&VarContext<'src>>,
+        name: Token<'src>,
+    ) -> Result<()> {
         if self.variables.contains_key(&name) {
             fail!(
                 name,

@@ -404,7 +404,13 @@ impl<'src> EnumList<'src> {
         self.transform_value(path, v)
     }
     /// Returns true is e1:v1 is an ancestor of e2:v2
-    pub fn is_ancestor(&self, e1: Token<'src>, v1: Token<'src>, e2: Token<'src>, v2: Token<'src>) -> bool {
+    pub fn is_ancestor(
+        &self,
+        e1: Token<'src>,
+        v1: Token<'src>,
+        e2: Token<'src>,
+        v2: Token<'src>,
+    ) -> bool {
         match self.find_path(e1, e2) {
             Some(path) => self.transform_value(path, v1) == v2,
             None => false,
@@ -435,7 +441,11 @@ impl<'src> EnumList<'src> {
     /// and put them into the 'variables' hashset
     /// this is recursive mutable, pass it an empty hashset at first call
     /// Only used by evaluate.
-    fn list_variable_enum(&self, variables: &mut HashSet<Token<'src>>, expr: &EnumExpression<'src>) {
+    fn list_variable_enum(
+        &self,
+        variables: &mut HashSet<Token<'src>>,
+        expr: &EnumExpression<'src>,
+    ) {
         match expr {
             EnumExpression::Default(_) => (),
             EnumExpression::Not(e) => self.list_variable_enum(variables, e),

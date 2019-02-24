@@ -41,7 +41,7 @@ struct StateDef<'src> {
     variables: VarContext<'src>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct StringObject<'src> {
     pos: Token<'src>,
     strs: Vec<String>,
@@ -73,7 +73,7 @@ impl<'src> StringObject<'src> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Value<'src> {
     //     position   format  variables
     String(StringObject<'src>),
@@ -115,7 +115,10 @@ pub struct Parameter<'src> {
     ptype: PType,
 }
 impl<'src> Parameter<'src> {
-    fn from_pparameter(p: PParameter<'src>, default: &Option<Value<'src>>) -> Result<Parameter<'src>> {
+    fn from_pparameter(
+        p: PParameter<'src>,
+        default: &Option<Value<'src>>,
+    ) -> Result<Parameter<'src>> {
         let ptype = match p.ptype {
             Some(t) => t,
             None => {
@@ -154,7 +157,7 @@ pub enum Statement<'src> {
     Comment(PComment<'src>),
     VariableDefinition(Token<'src>, Value<'src>),
     StateCall(
-        PCallMode,         // mode
+        PCallMode,           // mode
         Token<'src>,         // resource
         Vec<Value<'src>>,    // resource parameters
         Token<'src>,         // state name
@@ -162,7 +165,10 @@ pub enum Statement<'src> {
         Option<Token<'src>>, // outcome
     ),
     //   keyword    list of condition          then
-    Case(Token<'src>, Vec<(EnumExpression<'src>, Vec<Statement<'src>>)>),
+    Case(
+        Token<'src>,
+        Vec<(EnumExpression<'src>, Vec<Statement<'src>>)>,
+    ),
     // Stop engine
     Fail(Value<'src>),
     // Inform the user of something
@@ -178,6 +184,7 @@ impl<'src> Statement<'src> {
         gc: Option<&'b VarContext<'src>>,
         context: &'b mut VarContext<'src>,
         children: &'b mut HashSet<Token<'src>>,
+        parameter_defaults: &'b HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
         st: PStatement<'src>,
     ) -> Result<Statement<'src>> {
         Ok(match st {
@@ -200,14 +207,46 @@ impl<'src> Statement<'src> {
                     )?;
                 }
                 children.insert(res);
-                let res_parameters =
+                let mut res_parameters =
                     fix_vec_results(res_params.into_iter().map(|v| Value::from_pvalue(v)))?;
-                let parameters =
+                let res_defaults = &parameter_defaults[&(res,None)];
+                let res_missing = res_defaults.len() as i32 - res_parameters.len() as i32;
+                if res_missing > 0 {
+                    fix_results(
+                        res_defaults.iter()
+                            .skip(res_parameters.len())
+                            .map(|param| {
+                                match param {
+                                    Some(p) => Ok(res_parameters.push(p.clone())),
+                                    None => fail!(res, "Resources instance of {} is missing parameters and there is no default values for them", res),
+                                }
+                            })
+                    )?;
+                } else if res_missing < 0 {
+                    fail!(res, "Resources instance of {} has too many parameters, expecting {}, got {}", res, res_defaults.len(), res_parameters.len());
+                }
+                let mut st_parameters =
                     fix_vec_results(params.into_iter().map(|v| Value::from_pvalue(v)))?;
+                let st_defaults = &parameter_defaults[&(res,Some(st))];
+                let st_missing = st_defaults.len() as i32 - st_parameters.len() as i32;
+                if st_missing > 0 {
+                    fix_results(
+                        st_defaults.iter()
+                            .skip(st_parameters.len())
+                            .map(|param| {
+                                match param {
+                                    Some(p) => Ok(st_parameters.push(p.clone())),
+                                    None => fail!(st, "Resources state instance of {} is missing parameters and there is no default values for them", st),
+                                }
+                            })
+                    )?;
+                } else if st_missing < 0 {
+                    fail!(st, "Resources state instance of {} has too many parameters, expecting {}, got {}", st, st_defaults.len(), st_parameters.len());
+                }
                 // check that parameters use existing variables
                 fix_results(res_parameters.iter().map(|p| p.context_check(gc, context)))?;
-                fix_results(parameters.iter().map(|p| p.context_check(gc, context)))?;
-                Statement::StateCall(mode, res, res_parameters, st, parameters, out)
+                fix_results(st_parameters.iter().map(|p| p.context_check(gc, context)))?;
+                Statement::StateCall(mode, res, res_parameters, st, st_parameters, out)
             }
             PStatement::Fail(f) => {
                 let value = Value::from_pvalue(f)?;
@@ -251,7 +290,7 @@ impl<'src> Statement<'src> {
                     Ok((
                         enum_list.canonify_expression(gc, context, exp)?,
                         fix_vec_results(sts.into_iter().map(|st| {
-                            Statement::fom_pstatement(enum_list, gc, context, children, st)
+                            Statement::fom_pstatement(enum_list, gc, context, children, parameter_defaults, st)
                         }))?,
                     ))
                 }))?,
@@ -266,6 +305,7 @@ impl<'src> Statement<'src> {
 // TODO put default parameter in calls
 // TODO check state call compatibility
 // TODO if a parameter has a default, next ones must have one too
+// TODO more tests
 
 impl<'src> AST<'src> {
     /// Produce the final AST data structure.
@@ -319,7 +359,13 @@ impl<'src> AST<'src> {
             // insert resource states
             #[allow(clippy::map_entry)]
             fix_results(pre_states.into_iter().map(|(meta, st)| {
-                let PStateDef { name, resource_name, parameters, parameter_defaults:_, statements } = st;
+                let PStateDef {
+                    name,
+                    resource_name,
+                    parameters,
+                    parameter_defaults: _,
+                    statements,
+                } = st;
                 if states.contains_key(&name) {
                     fail!(
                         name,
@@ -329,10 +375,11 @@ impl<'src> AST<'src> {
                         states.entry(name).key()
                     );
                 } else {
-                    let parameters =
-                        fix_vec_results(parameters.into_iter().map(|p| {
-                            let pname = p.name;
-                            Parameter::from_pparameter(p, &parameter_defaults[&(resource_name, Some(name), pname)]) }))?;
+                    let parameters = fix_vec_results(parameters
+                        .into_iter()
+                        .zip(parameter_defaults[&(resource_name, Some(name))].iter())
+                        .map(|(p,d)| Parameter::from_pparameter(p,d) )
+                    )?;
                     let mut variables = VarContext::new();
                     for param in parameters.iter() {
                         variables.new_variable(Some(&global_variables), param.name, param.ptype)?;
@@ -343,6 +390,7 @@ impl<'src> AST<'src> {
                             Some(&global_variables),
                             &mut variables,
                             &mut children,
+                            &parameter_defaults,
                             st0,
                         )
                     }))?;

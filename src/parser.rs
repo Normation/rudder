@@ -24,7 +24,10 @@ use nom::*;
 // TODO stateCall error management
 
 /// The parse function that should be called when parsing a file
-pub fn parse_file<'src>(filename: &'src str, content: &'src str) -> crate::error::Result<PFile<'src>> {
+pub fn parse_file<'src>(
+    filename: &'src str,
+    content: &'src str,
+) -> crate::error::Result<PFile<'src>> {
     fix_error_type(pfile(pinput(filename, content)))
 }
 
@@ -358,21 +361,16 @@ pnamed!(
 #[derive(Debug, PartialEq)]
 pub struct PParameter<'src> {
     pub name: Token<'src>,
-    pub ptype: Option<PType>
+    pub ptype: Option<PType>,
 }
 // return a pair because we will store the default value separately
 pnamed!(
-    pparameter<(PParameter,Option<PValue>)>,
+    pparameter<(PParameter, Option<PValue>)>,
     sp!(do_parse!(
         ptype: opt!(sp!(terminated!(ptype, char!(':'))))
             >> name: pidentifier
             >> default: opt!(sp!(preceded!(tag!("="), pvalue)))
-            >> ((PParameter {
-                    ptype,
-                    name
-                },
-                default
-            ))
+            >> ((PParameter { ptype, name }, default))
     ))
 );
 
@@ -391,9 +389,14 @@ pnamed!(
             >> tag!("(")
             >> parameter_list: separated_list!(tag!(","), pparameter)
             >> or_fail!(tag!(")"), PError::UnterminatedDelimiter)
-            >> ({let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
-                PResourceDef { name, parameters, parameter_defaults }
-                })
+            >> ({
+                let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
+                PResourceDef {
+                    name,
+                    parameters,
+                    parameter_defaults,
+                }
+            })
     ))
 );
 
@@ -435,7 +438,7 @@ pub enum PStatement<'src> {
     Comment(PComment<'src>),
     VariableDefinition(Token<'src>, PValue<'src>),
     StateCall(
-        PCallMode,         // mode
+        PCallMode,           // mode
         Token<'src>,         // resource
         Vec<PValue<'src>>,   // resource parameters
         Token<'src>,         // state name
@@ -541,14 +544,16 @@ pnamed!(
             >> tag!("{")
             >> statements: many0!(pstatement)
             >> or_fail!(tag!("}"), PError::UnterminatedDelimiter)
-            >> ({let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
+            >> ({
+                let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
                 PStateDef {
-                name,
-                resource_name,
-                parameters,
-                parameter_defaults,
-                statements
-            }})
+                    name,
+                    resource_name,
+                    parameters,
+                    parameter_defaults,
+                    statements,
+                }
+            })
     ))
 );
 
@@ -926,40 +931,52 @@ mod tests {
             mapok(pparameter(pinput("", "hello "))),
             Ok((
                 "",
-                (PParameter {
-                    name: "hello".into(),
-                    ptype: None,
-                }, None)
+                (
+                    PParameter {
+                        name: "hello".into(),
+                        ptype: None,
+                    },
+                    None
+                )
             ))
         );
         assert_eq!(
             mapok(pparameter(pinput("", "string:hello "))),
             Ok((
                 "",
-                (PParameter {
-                    name: "hello".into(),
-                    ptype: Some(PType::TString),
-                }, None)
+                (
+                    PParameter {
+                        name: "hello".into(),
+                        ptype: Some(PType::TString),
+                    },
+                    None
+                )
             ))
         );
         assert_eq!(
             mapok(pparameter(pinput("", " string : hello "))),
             Ok((
                 "",
-                (PParameter {
-                    name: "hello".into(),
-                    ptype: Some(PType::TString),
-                }, None)
+                (
+                    PParameter {
+                        name: "hello".into(),
+                        ptype: Some(PType::TString),
+                    },
+                    None
+                )
             ))
         );
         assert_eq!(
             mapok(pparameter(pinput("", " string : hello=\"default\""))),
             Ok((
                 "",
-                (PParameter {
-                    name: "hello".into(),
-                    ptype: Some(PType::TString),
-                }, Some(PValue::String("\"".into(), "default".to_string())) )
+                (
+                    PParameter {
+                        name: "hello".into(),
+                        ptype: Some(PType::TString),
+                    },
+                    Some(PValue::String("\"".into(), "default".to_string()))
+                )
             ))
         );
     }

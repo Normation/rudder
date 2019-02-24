@@ -6,8 +6,8 @@ mod parser;
 use crate::ast::generators::*;
 use crate::ast::{PreAST, AST};
 use crate::parser::parse_file;
-use std::fs;
 use std::cell::UnsafeCell;
+use std::fs;
 
 // MAIN
 
@@ -22,6 +22,8 @@ use std::cell::UnsafeCell;
 // - comment exprimer les incompatibilités d'état
 
 // TODO next step:
+// - rust tests
+// - rewrite preast
 // - more checks (variables like enums, multiple mapping)
 
 fn add_file<'a>(pre_ast: &mut PreAST<'a>, source_list: &'a SourceList, filename: &'a str) {
@@ -42,7 +44,7 @@ fn add_file<'a>(pre_ast: &mut PreAST<'a>, source_list: &'a SourceList, filename:
 /// but where we can append new data.
 /// The goal is to be able to hold references to immutable data while
 /// still appending new data at the end of the list.
-pub struct SourceList (UnsafeCell<Option<(String,Box<SourceList>)>>);
+pub struct SourceList(UnsafeCell<Option<(String, Box<SourceList>)>>);
 
 impl SourceList {
     pub fn new() -> SourceList {
@@ -50,7 +52,7 @@ impl SourceList {
     }
     pub fn append(&self, s: String) -> &str {
         let unsafe_ptr = self.0.get();
-        let cell_ref = unsafe {&*unsafe_ptr};
+        let cell_ref = unsafe { &*unsafe_ptr };
         if cell_ref.is_none() {
             unsafe {
                 *unsafe_ptr = Some((s, Box::new(SourceList(UnsafeCell::new(None)))));
