@@ -82,15 +82,15 @@ bundle agent file_report_content(target, regex, context)
       "content" string => execresult("${paths.path[grep]} -E \"${regex}\" -C${context} \"${target}\"", "useshell"),
                     if => "!full_file";
 
+  defaults:
+      "context" string => "0", if_match_regex => "";
+
   classes:
       "file_exists" expression => fileexists("${target}");
       "full_file"   expression => strcmp("${regex}", "");
 
       "pass2" expression => "pass1";
       "pass1" expression => "any";
-
-  defaults:
-      "context" string => "0", if_match_regex => "";
 
   methods:
     pass2.!file_exists::
