@@ -223,12 +223,5 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${spring-version}</version>
       <scope>test</scope>
     </dependency>
-
-    <!-- that dep is needed to make scalac happy and avoid "missing class NotNull" -->
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-      <version>3.0.1</version>
-    </dependency>
   </dependencies>
 </project>

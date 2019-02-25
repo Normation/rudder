@@ -24,33 +24,22 @@ limitations under the License.
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
 
   <description>
-    This is the master parent pom, which knows all common dependencies, generic infos about resources,users.
-    For now, it includes (Normation) private resources.
+    Rudder helps you continualy configure and check compliance of your infrastructure.
   </description>
 
   <organization>
-    <name>Normation SAS</name>
-    <url>http://www.normation.com/</url>
+    <name>rudder.io</name>
+    <url>https://rudder.io</url>
   </organization>
 
-  <developers>
-    <developer>
-      <id>ncharles</id>
-      <name>Nicolas Charles</name>
-      <timezone>+1</timezone>
-      <email>nicolas.charles [at] normation.com</email>
-    </developer>
-    <developer>
-      <id>fanf42</id>
-      <name>Francois Armand</name>
-      <timezone>+1</timezone>
-    </developer>
-    <developer>
-      <id>jooooooon</id>
-      <name>Jonathan Clarke</name>
-      <timezone>+1</timezone>
-    </developer>
-  </developers>
+  <modules>
+    <module>utils</module>
+    <module>scala-ldap</module>
+    <module>ldap-inventory</module>
+    <module>rudder</module>
+ </modules>
+
+  <!-- developpers information can be better found in Git commit history -->
 
   <!-- ====================================  /PROJECT INFORMATION  ==================================== -->
 
@@ -356,10 +345,9 @@ limitations under the License.
 
     <!-- Libraries version that MUST be used in all children project -->
 
-    <current-year>2018</current-year>
+    <current-year>2019</current-year>
     <rudder-major-version>5.1</rudder-major-version>
     <rudder-version>5.1.0~alpha1-SNAPSHOT</rudder-version>
-    <spring-run-dep-version>5.1.0~alpha1-SNAPSHOT</spring-run-dep-version>
 
     <scala-version>2.12.7</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
