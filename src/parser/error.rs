@@ -22,6 +22,7 @@ pub enum PError {
     InvalidName,
     EnumExpression,
     InvalidSeparator,
+    InvalidVariableDefinition,
 } }
 
 /// Proper printing of errors.
@@ -36,6 +37,7 @@ impl fmt::Display for PError {
             PError::InvalidName => "Invalid identifier name",
             PError::EnumExpression => "Invalid enum expression",
             PError::InvalidSeparator => "Invalid separator character at this place",
+            PError::InvalidVariableDefinition => "Variable definition syntax error",
         })
     }
 }

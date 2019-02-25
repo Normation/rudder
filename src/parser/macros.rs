@@ -41,3 +41,26 @@ macro_rules! sp (
         }
     )
 );
+
+/// Eat char separators and simple comments but not newlines
+/// Should be used via sp_nnl!
+pnamed!(pub space_s_nnl<&str>,
+    do_parse!(
+        eat_separator!(&" \t"[..]) >>
+        opt!(preceded!(
+            tag!("#"),
+            opt!(preceded!(not!(tag!("#")),take_until!("\n")))
+        )) >>
+        eat_separator!(&" \t"[..]) >>
+        ("")
+    )
+);
+
+/// Equivalent of sp! but doesn't eat newlines (only used for variable definition atm)
+macro_rules! sp_nnl (
+    ($i:expr, $($args:tt)*) => (
+        {
+            sep!($i, space_s_nnl, $($args)*)
+        }
+    )
+);

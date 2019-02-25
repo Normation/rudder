@@ -20,6 +20,7 @@ use nom::*;
 // TODO include
 // TODO boolean var = expression
 // TODO stateCall error management
+// TODO variable typing
 
 /// The parse function that should be called when parsing a file
 pub fn parse_file<'src>(
@@ -432,6 +433,17 @@ pnamed!(
     ))
 );
 
+/// A variable definition is a var=value\n
+pnamed!(pvariable_definition<(Token,PValue)>,
+    sp_nnl!(do_parse!(
+        variable: pidentifier >>
+        tag!("=") >>
+        value: or_fail!(pvalue,PError::InvalidVariableDefinition) >>
+        or_fail!(tag!("\n"),PError::InvalidVariableDefinition) >>
+        ((variable,value))
+    ))
+);
+
 /// A statement is the atomic element of a state definition.
 #[derive(Debug, PartialEq)]
 pub enum PStatement<'src> {
@@ -473,12 +485,7 @@ pnamed!(
             outcome: opt!(sp!(preceded!(tag!("as"),pidentifier))) >>
             (PStatement::StateCall(mode,resource.0,resource.1,state,parameters,outcome))
         ))
-      | sp!(do_parse!(
-            variable: pidentifier >>
-            tag!("=") >>
-            value: pvalue >>
-            (PStatement::VariableDefinition(variable,value))
-        ))
+      | pvariable_definition => { |(variable,value)| PStatement::VariableDefinition(variable,value)}
       | pcomment => { |x| PStatement::Comment(x) }
         // case
       | sp!(do_parse!(
@@ -566,16 +573,18 @@ pub enum PDeclaration<'src> {
     State(PStateDef<'src>),
     Enum(PEnum<'src>),
     Mapping(PEnumMapping<'src>),
+    GlobalVar(Token<'src>, PValue<'src>),
 }
 pnamed!(
     pdeclaration<PDeclaration>,
     sp!(alt_complete!(
-        presource_def    => { |x| PDeclaration::Resource(x) }
-      | pmetadata        => { |x| PDeclaration::Metadata(x) }
-      | pstate_def       => { |x| PDeclaration::State(x) }
-      | pcomment         => { |x| PDeclaration::Comment(x) }
-      | penum            => { |x| PDeclaration::Enum(x) }
-      | penum_mapping    => { |x| PDeclaration::Mapping(x) }
+        presource_def        => { |x| PDeclaration::Resource(x) }
+      | pmetadata            => { |x| PDeclaration::Metadata(x) }
+      | pstate_def           => { |x| PDeclaration::State(x) }
+      | pcomment             => { |x| PDeclaration::Comment(x) }
+      | penum                => { |x| PDeclaration::Enum(x) }
+      | penum_mapping        => { |x| PDeclaration::Mapping(x) }
+      | pvariable_definition => { |(variable,value)| PDeclaration::GlobalVar(variable,value)}
     ))
 );
 
@@ -1057,6 +1066,34 @@ mod tests {
         assert_eq!(
             mapok(presource_ref(pinput("", "hello2 ( )"))),
             Ok(("", ("hello2".into(), vec![])))
+        );
+    }
+
+    #[test]
+    fn test_variable_definition() {
+        assert_eq!(
+            mapok(pvariable_definition(pinput("", "var=\"value\"\n"))),
+            Ok(("", ("var".into(),PValue::String("\"".into(), "value".to_string()))))
+        );
+        assert_eq!(
+            mapok(pvariable_definition(pinput("", "var = \"value\" \n"))),
+            Ok(("", ("var".into(),PValue::String("\"".into(), "value".to_string()))))
+        );
+        assert_eq!(
+            mapok(pvariable_definition(pinput("", "var = \"value\" # comment ok\n"))),
+            Ok(("", ("var".into(),PValue::String("\"".into(), "value".to_string()))))
+        );
+        assert_eq!(
+            mapok(pvariable_definition(pinput("", "var=\"val\nue\"\n"))),
+            Ok(("", ("var".into(),PValue::String("\"".into(), "val\nue".to_string()))))
+        );
+        assert_eq!(
+            maperr(pvariable_definition(pinput("", "var=\n\"value\"\n"))),
+            Err(PError::InvalidVariableDefinition)
+        );
+        assert_eq!(
+            maperr(pvariable_definition(pinput("", "var=\"value\" x\n"))),
+            Err(PError::InvalidVariableDefinition)
         );
     }
 

@@ -210,6 +210,14 @@ impl<'src> PreAST<'src> {
                     self.enum_mapping.push(em);
                 }
 
+                // Global variables are put in a global context for typing
+                // and stored as a global declaration for code generation.
+                PDeclaration::GlobalVar(variable,value) => {
+                    let val = Value::from_pvalue(value)?;
+                    self.variables.new_constant(None, variable, val.get_type(), val)?;
+
+                }
+
             };
             Ok(())
         }))

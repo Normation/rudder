@@ -6,6 +6,8 @@ resource File(p)
 File state permissions(u,g,m) {
 }
 
+globalvar = "hello"
+
 resource ntp ()
 
 ntp state configuration ()
@@ -15,7 +17,7 @@ ntp state configuration ()
   File("/tmp").permissions("root", "x$${root}i${youpi}2","g+w") as outvar
 
   case {
-    outvar =~ kept => File("/tmp").permissions("root", "root", "g+w"),
+    outvar =~ kept => File("/tmp").permissions("root", "${globalvar}", "g+w"),
     outvar =~ repaired  => File("/tmp").permissions("user", "user", "g+w"),
 #    default => return kept
 #    default => fail "failed agent"

@@ -13,7 +13,7 @@ pub enum VarKind<'src> {
     //     type
     Generic(PType),
     //       value
-    Constant(Value<'src>),
+    Constant(PType, Value<'src>),
 }
 
 // TODO forbid variables names like global enum items (or enum type)
@@ -102,10 +102,11 @@ impl<'src> VarContext<'src> {
         &mut self,
         upper_context: Option<&VarContext<'src>>,
         name: Token<'src>,
+        ptype: PType,
         value: Value<'src>,
     ) -> Result<()> {
         self.new_var(upper_context, name)?;
-        self.variables.insert(name, VarKind::Constant(value));
+        self.variables.insert(name, VarKind::Constant(ptype,value));
         Ok(())
     }
 

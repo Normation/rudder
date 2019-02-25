@@ -29,13 +29,12 @@ pub struct AST<'src> {
     variables: VarContext<'src>,
 }
 
-
-// TODO global variables
 // TODO type inference
 // TODO check that parameter type match parameter default
 // TODO check state call compatibility
 // TODO if a parameter has a default, next ones must have one too
 // TODO more tests
+// TODO compatibility metadata
 
 impl<'src> AST<'src> {
     /// Produce the final AST data structure.

@@ -12,15 +12,16 @@ use std::fs;
 // MAIN
 
 // Questions :
-// - Séparateur de statement ';', '\n', rien, seulement pour les variables ?
-// - compatibilité avec les techniques définissant des variables globales
+// - compatibilité avec les techniques définissant des variables globales depuis une GM qui dépend d'une autre ?
 // - usage du '!' -> "macros", enum expr, audit&test ?
 // - sous typage explicite mais pas chiant
 // - quand/qui fait le check des variables json ?
 // - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ?
 // - a quoi ressemblent les iterators ?
+// - phantom resource ?
 
 // TODO next step:
+// - boolean variables
 // - missing checks
 
 fn add_file<'a>(pre_ast: &mut PreAST<'a>, source_list: &'a SourceList, filename: &'a str) {
