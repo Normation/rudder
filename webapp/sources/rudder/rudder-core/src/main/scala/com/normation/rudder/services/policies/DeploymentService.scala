@@ -238,7 +238,12 @@ trait PromiseGenerationService extends Loggable {
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime         =  System.currentTimeMillis
       postHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-finished", HOOKS_IGNORE_SUFFIXES)
-      updatedNodeIds        =  updatedNodeConfigs.keySet.map( _.value )
+      // we want to sort node with root first, then relay, then other nodes for hooks
+      updatedNodeIds        =  updatedNodeConfigs.toList.map { case (k, v) =>
+                               (
+                                 k.value
+                               , if(k.value == "root") 0 else if(v.nodeInfo.isPolicyServer) { if(v.nodeInfo.policyServerId.value == "root") 1 else 2 } else 3)
+                               }.sortBy( _._2 ).map( _._1 )
       _                     <- RunHooks.syncRun(
                                    postHooks
                                  , HookEnvPairs.build(

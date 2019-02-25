@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Hooks parameter are passed by environment variable:
+#
+# - RUDDER_GENERATION_DATETIME       : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation.
+# - RUDDER_END_GENERATION_DATETIME   : generation end time: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time when the generation ended (minus these hooks)
+# - RUDDER_NODE_IDS                  : space separated list of node id updated during the process, or the empty string
+#                                      if no nodes were updated.
+# - RUDDER_NUMBER_NODES_UPDATED      : integer >= 0; number of nodes updated (could be found by counting $RUDDER_NODE_IDS)
+# - RUDDER_ROOT_POLICY_SERVER_UPDATED: 0 if root was updated, anything else if not
+
+
+# This hook start a remote run for updated nodes.
+# This hook uses the remote-run API, so you need to open relevant port,
+# see documentation for "Trigger remote agent run" in
+# https://docs.rudder.io/reference/current/installation/requirements.html#configure-the-network
+#
+# This feature can generate a more run than expected and some load on the network. In big
+# Rudder installation (thousands of nodes), we advice to measure these metrics and disable
+# the hook if necessary.
+#
+
+# if ${TEST} is defined, property file is not read and curl command not executed
+set -e
+
+if [ -z "${TEST}" ]; then
+  source /opt/rudder/etc/hooks.d/policy-generation-finished/$(basename $0).properties
+fi
+
+MAX_NODES=${MAX_NODES:=100}
+NODE_PERCENT=${NODE_PERCENT:=100}
+RUDDER_NUMBER_NODES_UPDATED=${RUDDER_NUMBER_NODES_UPDATED:=0}
+
+if (( ${MAX_NODES} < 0 )); then
+  MAX_NODE="0"
+fi
+
+if (( NODE_PERCENT < 0 )); then
+  NODE_PERCENT="0"
+fi
+
+if (( NODE_PERCENT > 100 )); then
+  NODE_PERCENT="100"
+fi
+
+(( TO_UPDATE = ${RUDDER_NUMBER_NODES_UPDATED} * NODE_PERCENT / 100 )) || /bin/true
+
+if (( ${RUDDER_NUMBER_NODES_UPDATED} * NODE_PERCENT % 100 > 0 )); then
+  (( TO_UPDATE = ${TO_UPDATE} + 1 ))
+fi
+
+if (( ${TO_UPDATE} > ${MAX_NODES} )); then
+  TO_UPDATE=${MAX_NODES}
+fi
+
+# Signal to cf-serverd that it shall look-up the new promises
+if [ -n "${RUDDER_NODE_IDS}" ] && (( ${TO_UPDATE} > 0 )) ; then
+
+  # split nodes in an array
+  read -ra NODES_ARRAY <<<"${RUDDER_NODE_IDS}"
+  # takes only the TO_UPDATE first nodes - nodes id are expected to be sorted as wanted
+  NODES=$(IFS=, eval 'echo "${NODES_ARRAY[*]:0:${TO_UPDATE}}"')
+
+  # avoid creating command line too long
+  if [ -n "${TEST}" ]; then
+    echo "${NODES}"
+  else
+    curl -X POST 'http://localhost/rudder/relay-api/remote-run/nodes' -d "asynchronous=true" -d "keep_output=false" -d @- <<CURL_DATA
+nodes=${NODES}
+CURL_DATA
+  fi
+fi
+
