@@ -108,7 +108,6 @@ import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import java.io.File
 import java.nio.file.{Files, Paths}
-import java.util.stream
 
 import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
 import com.normation.rudder.domain.policies.FullOtherTarget
