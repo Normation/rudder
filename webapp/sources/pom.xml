@@ -368,6 +368,7 @@ limitations under the License.
     <bcpkix-jdk15on-version>1.60</bcpkix-jdk15on-version>
     <monix-version>2.3.3</monix-version>
     <silencer-lib-version>1.2</silencer-lib-version>
+    <better-files-version>3.7.0</better-files-version>
     <!--
       These one must be updated to work together
       We declare cats in "test" here, because it is not directly needed
@@ -621,6 +622,12 @@ limitations under the License.
         <version>${logback-version}</version>
       </dependency>
     </dependencies>
+      <!-- better file for file watching -->
+      <dependency>
+        <groupId>com.github.pathikrit</groupId>
+        <artifactId>better-files_${scala-binary-version}</artifactId>
+        <version>${better-files-version}</version>
+      </dependency>
   </dependencyManagement>
 
   <dependencies>
