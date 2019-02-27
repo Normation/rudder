@@ -26,7 +26,8 @@ use std::collections::{HashMap, HashSet};
 pub struct AST<'src> {
     enum_list: EnumList<'src>,
     resources: HashMap<Token<'src>, Resources<'src>>,
-    variables: VarContext<'src>,
+    variable_declarations: HashMap<Token<'src>, Value<'src>>,
+    context: VarContext<'src>,
 }
 
 // TODO type inference
@@ -45,7 +46,8 @@ impl<'src> AST<'src> {
             mut enum_list,
             mut enum_mapping,
             pre_resources,
-            variables: global_variables,
+            variable_declarations,
+            context,
             parameter_defaults,
         } = pre_ast;
         // fill enum_list iteratively
@@ -81,7 +83,7 @@ impl<'src> AST<'src> {
         fix_results(pre_resources.into_iter().map(|(rn, rd)| {
             let PreResources {
                 metadata,
-                parameters,
+                parameters: res_parameters,
                 pre_states,
             } = rd;
             let mut states = HashMap::new();
@@ -111,13 +113,16 @@ impl<'src> AST<'src> {
                         .map(|(p,d)| Parameter::from_pparameter(p,d) )
                     )?;
                     let mut variables = VarContext::new();
+                    for param in res_parameters.iter() {
+                        variables.new_variable(Some(&context), param.name, param.ptype)?;
+                    }
                     for param in parameters.iter() {
-                        variables.new_variable(Some(&global_variables), param.name, param.ptype)?;
+                        variables.new_variable(Some(&context), param.name, param.ptype)?;
                     }
                     let statements = fix_vec_results(statements.into_iter().map(|st0| {
                         Statement::fom_pstatement(
                             &enum_list,
-                            Some(&global_variables),
+                            Some(&context),
                             &mut variables,
                             &mut children,
                             &parameter_defaults,
@@ -136,7 +141,7 @@ impl<'src> AST<'src> {
             }))?;
             let resource = Resources {
                 metadata,
-                parameters,
+                parameters: res_parameters,
                 states,
                 children,
             };
@@ -147,7 +152,8 @@ impl<'src> AST<'src> {
         Ok(AST {
             enum_list,
             resources,
-            variables: global_variables,
+            variable_declarations,
+            context,
         })
     }
 
@@ -231,7 +237,7 @@ impl<'src> AST<'src> {
         match statement {
             Statement::Case(case, cases) => {
                 self.enum_list
-                    .evaluate(Some(&self.variables), variables, cases, *case)?;
+                    .evaluate(Some(&self.context), variables, cases, *case)?;
                 fix_results(cases.iter().flat_map(|(_cond, sts)| {
                     sts.iter()
                         .map(|st| self.enum_expression_check(variables, st))
@@ -410,7 +416,7 @@ impl<'src> AST<'src> {
             }
         }
         // analyze global vars
-        for (name, _value) in self.variables.iter() {
+        for (name, _value) in self.context.iter() {
             // check for invalid variable name
             errors.push(self.invalid_variable_check(*name, true));
         }

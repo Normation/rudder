@@ -10,9 +10,10 @@ globalvar = "hello"
 
 resource ntp ()
 
-ntp state configuration ()
+@metadata="value"
+ntp state configuration (x="default")
 { 
-  x="pouet"
+  #xs="pouet"
   youpi = "youp${x}i"
   File("/tmp").permissions("root", "x$${root}i${youpi}2","g+w") as outvar
 

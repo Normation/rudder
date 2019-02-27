@@ -990,7 +990,7 @@ mod tests {
         add_enum_mapping(
             &mut e,
             "enum os ~> family2 { *->* }",
-        );
+        ).unwrap();
         assert!(e.mapping_check().is_err());
     }
 }

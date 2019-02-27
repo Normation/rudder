@@ -15,14 +15,12 @@ use std::fs;
 // - compatibilité avec les techniques définissant des variables globales depuis une GM qui dépend d'une autre ?
 // - usage du '!' -> "macros", enum expr, audit&test ?
 // - sous typage explicite mais pas chiant
-// - quand/qui fait le check des variables json ?
-// - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ?
+// - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ? quels sont les default intelligents ?
 // - a quoi ressemblent les iterators ?
-// - phantom resource ?
+//
 
 // TODO next step:
 // - boolean variables
-// - missing checks
 
 fn add_file<'a>(pre_ast: &mut PreAST<'a>, source_list: &'a SourceList, filename: &'a str) {
     let content = fs::read_to_string(filename)
@@ -86,13 +84,12 @@ fn main() {
         Err(e) => panic!("There was an error during code structure check:\n{}", e),
         Ok(a) => a,
     };
-    // check that everything OK
+
+    // check that everything is OK
     match ast.analyze() {
         Err(e) => panic!("There was an error during code analyse:\n{}", e),
         Ok(()) => {}
     };
-
-    // optimize ?
 
     // generate final output
     let mut cfe = CFEngine::new();
@@ -101,3 +98,12 @@ fn main() {
         Ok(()) => {}
     };
 }
+
+
+// Phase 2
+// - function, measure(=fact), action
+// - variable = anything
+// - optimize before generation (remove unused code, simplify expressions ..)
+// - inline native (cfengine, ...)
+// - remediation resource (phase 3: add some reactive concept)
+// - read templates and json a compile time

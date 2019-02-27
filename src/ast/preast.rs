@@ -14,7 +14,8 @@ pub struct PreAST<'src> {
     pub enum_list: EnumList<'src>,
     pub enum_mapping: Vec<PEnumMapping<'src>>,
     pub pre_resources: HashMap<Token<'src>, PreResources<'src>>,
-    pub variables: VarContext<'src>,
+    pub variable_declarations: HashMap<Token<'src>, Value<'src>>,
+    pub context: VarContext<'src>,
     pub parameter_defaults: // global list of parameter defaults
     //           resource,    state,               default values
         HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
@@ -35,7 +36,8 @@ impl<'src> PreAST<'src> {
             enum_list: EnumList::new(),
             enum_mapping: Vec::new(),
             pre_resources: HashMap::new(),
-            variables: VarContext::new(),
+            variable_declarations: HashMap::new(),
+            context: VarContext::new(),
             parameter_defaults: HashMap::new(),
         }
     }
@@ -191,7 +193,7 @@ impl<'src> PreAST<'src> {
                         )
                     }
                     if e.global {
-                        self.variables
+                        self.context
                             .new_enum_variable(None, e.name, e.name, None)?;
                     }
                     self.enum_list.add_enum(e)?;
@@ -214,8 +216,8 @@ impl<'src> PreAST<'src> {
                 // and stored as a global declaration for code generation.
                 PDeclaration::GlobalVar(variable,value) => {
                     let val = Value::from_pvalue(value)?;
-                    self.variables.new_constant(None, variable, val.get_type(), val)?;
-
+                    self.context.new_variable(None, variable, val.get_type())?;
+                    self.variable_declarations.insert(variable, val);
                 }
 
             };

@@ -21,6 +21,10 @@ use nom::*;
 // TODO boolean var = expression
 // TODO stateCall error management
 // TODO variable typing
+// TODO resource parent
+// TODO state alias
+// TODO read json: method1: read_typedjson->Result(struct), method2: read_untypedjson->json_obj and jsonobj.get(..)->result(value)
+// TODO proptest
 
 /// The parse function that should be called when parsing a file
 pub fn parse_file<'src>(

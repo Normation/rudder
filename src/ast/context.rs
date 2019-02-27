@@ -1,4 +1,3 @@
-use super::Value;
 use crate::error::*;
 use crate::parser::{PType, Token};
 use std::collections::hash_map;
@@ -12,8 +11,6 @@ pub enum VarKind<'src> {
     Enum(Token<'src>, Option<Token<'src>>),
     //     type
     Generic(PType),
-    //       value
-    Constant(PType, Value<'src>),
 }
 
 // TODO forbid variables names like global enum items (or enum type)
@@ -98,7 +95,7 @@ impl<'src> VarContext<'src> {
     }
 
     /// Create a constant in this context.
-    pub fn new_constant(
+/*    pub fn new_constant(
         &mut self,
         upper_context: Option<&VarContext<'src>>,
         name: Token<'src>,
@@ -109,7 +106,7 @@ impl<'src> VarContext<'src> {
         self.variables.insert(name, VarKind::Constant(ptype,value));
         Ok(())
     }
-
+*/
     /// Get a variable from this context.
     pub fn get_variable<'b>(
         &'b self,

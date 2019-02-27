@@ -201,6 +201,7 @@ impl CFEngine {
 impl Generator for CFEngine {
     fn generate(&mut self, gc: &AST, file: Option<&str>) -> Result<()> {
         let mut files: HashMap<&str, String> = HashMap::new();
+        // TODO add global variable definitions
         for (rn, res) in gc.resources.iter() {
             for (sn, state) in res.states.iter() {
                 if let Some(file_name) = file {

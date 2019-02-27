@@ -16,3 +16,6 @@ version = "^4.1"
 version = "^0.3"
 #features = ["verbose-errors"]
 path = "../nom_locate"
+
+[dev-dependencies]
+proptest = "0.9.1"
