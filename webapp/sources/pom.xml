@@ -621,13 +621,13 @@ limitations under the License.
         <artifactId>logback-classic</artifactId>
         <version>${logback-version}</version>
       </dependency>
-    </dependencies>
       <!-- better file for file watching -->
       <dependency>
         <groupId>com.github.pathikrit</groupId>
         <artifactId>better-files_${scala-binary-version}</artifactId>
         <version>${better-files-version}</version>
       </dependency>
+    </dependencies>
   </dependencyManagement>
 
   <dependencies>
