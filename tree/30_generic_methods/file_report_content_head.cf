@@ -64,14 +64,14 @@ bundle agent file_report_content_head(target, limit)
     pass1.file_exists::
       "content" string => execresult("/usr/bin/head -n${limit} \"${target}\"", "useshell");
 
+  defaults:
+      "limit" string => "10", if_match_regex => "";
+
   classes:
       "file_exists" expression => fileexists("${target}");
 
       "pass2" expression => "pass1";
       "pass1" expression => "any";
-
-  defaults:
-      "limit" string => "10", if_match_regex => "";
 
   methods:
     pass2.!file_exists::
