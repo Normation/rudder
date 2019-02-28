@@ -20,7 +20,10 @@ use std::fs;
 //
 
 // TODO next step:
+// - refactor preast
 // - boolean variables
+// - parent resource
+//
 
 fn add_file<'a>(pre_ast: &mut PreAST<'a>, source_list: &'a SourceList, filename: &'a str) {
     let content = fs::read_to_string(filename)

@@ -43,6 +43,7 @@ impl<'src> Value<'src> {
     pub fn from_pvalue(pvalue: PValue<'src>) -> Result<Value<'src>> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
+            _ => unimplemented!(), // TODO
         }
     }
 

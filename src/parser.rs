@@ -23,7 +23,7 @@ use nom::*;
 // TODO variable typing
 // TODO resource parent
 // TODO state alias
-// TODO read json: method1: read_typedjson->Result(struct), method2: read_untypedjson->json_obj and jsonobj.get(..)->result(value)
+// TODO read json: read_untypedjson->json_obj and jsonobj.get(..)->result(value)
 // TODO proptest
 
 /// The parse function that should be called when parsing a file
@@ -228,6 +228,7 @@ pnamed!(
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PType {
     TString,
+    TBoolean,
     TInteger,
     TStruct,
     TList,
@@ -332,6 +333,8 @@ pnamed!(
 pub enum PValue<'src> {
     //     position   value
     String(Token<'src>, String),
+    //    something else that
+    EnumExpression(PEnumExpression<'src>),
 }
 
 pnamed!(
@@ -339,6 +342,7 @@ pnamed!(
     alt!(
         unescaped_string  => { |(x,y)| PValue::String(x,y) }
       | escaped_string    => { |(x,y)| PValue::String(x,y) }
+      | flat_map!(take_until!("\n"),penum_expression) => { |x| PValue::EnumExpression(x) }
     )
 );
 
@@ -1137,6 +1141,18 @@ mod tests {
         assert_eq!(
             mapok(pstatement(pinput("", "##hello Herman\n"))),
             Ok(("", PStatement::Comment("hello Herman".into())))
+        );
+        assert_eq!(
+            mapok(pstatement(pinput("", "var=\"string\"\n"))),
+            Ok(("", PStatement::VariableDefinition("var".into(),
+                                                   PValue::String("\"".into(), "string".into()))))
+        );
+
+        assert_eq!(
+            mapok(pstatement(pinput("", "var= a=~bc\n"))),
+            Ok(("", PStatement::VariableDefinition("var".into(),
+                                                   PValue::EnumExpression(PEnumExpression::Compare(Some("a".into()), None, "bc".into()))
+            )))
         );
         let st = "case { ubuntu => f().g(), debian => a().b() }";
         assert_eq!(

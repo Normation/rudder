@@ -10,6 +10,17 @@ use std::collections::HashMap;
 /// We need all global data to create the final AST.
 /// So we store them in a PreAST and create the final AST once we have everything.
 #[derive(Debug)]
+pub struct CodeIndex<'src> {
+    pub enum_list: Vec<PEnum<'src>>,
+    pub enum_mapping: Vec<PEnumMapping<'src>>,
+    pub resource_index: HashMap<Token<'src>, PreResources<'src>>,
+    pub variable_declarations: Vec<(Token<'src>, PValue<'src>)>,
+    pub global_context: VarContext<'src>,
+    pub parameter_defaults: // global list of parameter defaults
+    //           resource,    state,               default values
+        HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<PValue<'src>>>>,
+}
+#[derive(Debug)]
 pub struct PreAST<'src> {
     pub enum_list: EnumList<'src>,
     pub enum_mapping: Vec<PEnumMapping<'src>>,
@@ -63,7 +74,8 @@ impl<'src> PreAST<'src> {
                                 *e = match e {
                                     PValue::String(tag, st) => {
                                         PValue::String(*tag, st.to_string() + c)
-                                    }
+                                    },
+                                    _ => panic!("Non string comment has been created"), // TODO can happen with metadata so this should be a classic error
                                 }
                             });
                     } else {
@@ -135,7 +147,7 @@ impl<'src> PreAST<'src> {
                 }
 
                 // State declaration are stored in the same format with their metadata.
-                // State are not checked for uniqueness here but n AST creation.
+                // State are not checked for uniqueness here but in AST creation.
                 // Parameter defaults are processed because they are needed during AST creation.
                 PDeclaration::State(st) => {
                     let PStateDef {

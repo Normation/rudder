@@ -37,10 +37,7 @@ impl<'src> Parameter<'src> {
             Some(t) => t,
             None => {
                 if let Some(val) = default {
-                    // guess from default
-                    match val {
-                        Value::String(_) => PType::TString,
-                    }
+                    val.get_type()
                 } else {
                     // Nothing -> String
                     PType::TString
@@ -170,6 +167,7 @@ impl<'src> Statement<'src> {
                 // we must fail with a string
                 match &value {
                     Value::String(_) => (),
+                    _ => unimplemented!(), // TODO must fail here with a message
                 }
                 Statement::Fail(value)
             }
@@ -180,6 +178,7 @@ impl<'src> Statement<'src> {
                 // we must fail with a string
                 match &value {
                     Value::String(_) => (),
+                    _ => unimplemented!(), // TODO must fail here with a message
                 }
                 Statement::Log(value)
             }

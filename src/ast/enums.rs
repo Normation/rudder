@@ -987,10 +987,10 @@ mod tests {
     fn test_mapping_check() {
         let (mut e, _) = init_tests();
         assert!(e.mapping_check().is_ok());
-        add_enum_mapping(
+        assert!(add_enum_mapping(
             &mut e,
             "enum os ~> family2 { *->* }",
-        ).unwrap();
+        ).is_err());
         assert!(e.mapping_check().is_err());
     }
 }
