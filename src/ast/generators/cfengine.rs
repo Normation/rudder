@@ -89,17 +89,21 @@ impl CFEngine {
             // TODO what about classes that have not yet been set ? can it happen ?
             EnumExpression::Not(e1) => format!("!({})", self.format_case_expr(gc, e1)),
             EnumExpression::Compare(var, e, item) => {
-                if gc.enum_list.is_global(*e) {
-                    let final_enum = gc.enum_list.find_descendant_enum(*e, *item);
+                if gc.global_context.enum_list.is_global(*e) {
+                    let final_enum = gc.global_context.enum_list.find_descendant_enum(*e, *item);
                     if *e == final_enum {
                         item.fragment().to_string()
                     } else {
                         let others = gc
+                            .global_context
                             .enum_list
                             .enum_iter(*e)
                             .filter(|i| {
                                 (**i != *item)
-                                    && gc.enum_list.is_ancestor(*e, **i, final_enum, *item)
+                                    && gc
+                                        .global_context
+                                        .enum_list
+                                        .is_ancestor(*e, **i, final_enum, *item)
                             })
                             .map(|i| i.fragment())
                             .collect::<Vec<_>>();

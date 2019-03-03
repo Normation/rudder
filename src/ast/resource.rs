@@ -1,12 +1,52 @@
-use super::value::Value;
-use super::context::VarContext;
+use super::codeindex::ResourceDeclaration;
+use super::context::{GlobalContext, VarContext};
 use super::enums::*;
-use super::preast::ResourceDeclaration;
+use super::value::Value;
 use crate::error::*;
 use crate::parser::*;
 use std::collections::{HashMap, HashSet};
 
+/// Utility functions
 
+/// Create final metadata from parsed metadata
+fn create_metadata<'src>(
+    pmetadata: HashMap<Token<'src>, PValue<'src>>,
+) -> Result<HashMap<Token<'src>, Value<'src>>> {
+    fix_map_results(
+        pmetadata
+            .into_iter()
+            .map(|(k, v)| Ok((k, Value::from_static_pvalue(v)?))),
+    )
+}
+
+/// Create function/resource/state parameter definition from parsed parameters.
+fn create_parameters<'src>(
+    pparameters: Vec<PParameter<'src>>,
+    var_context: &VarContext<'src>,
+    parameter_defaults: &Vec<Option<Value<'src>>>,
+) -> Result<Vec<Parameter<'src>>> {
+    fix_vec_results(
+        pparameters
+            .into_iter()
+            .zip(parameter_defaults.iter())
+            .map(|(p, d)| Parameter::from_pparameter(p, d)),
+    )
+}
+
+/// Create a local context from a list of parameters
+fn create_default_context<'src>(
+    global_context: &VarContext<'src>,
+    resource_parameters: &Vec<Parameter<'src>>,
+    parameters: &Vec<Parameter<'src>>,
+) -> Result<VarContext<'src>> {
+    let mut context = VarContext::new();
+    for p in resource_parameters.iter().chain(parameters.iter()) {
+        context.new_variable(Some(global_context), p.name, p.ptype)?;
+    }
+    Ok(context)
+}
+
+/// Resource definition with associated metadata and states.
 #[derive(Debug)]
 pub struct ResourceDef<'src> {
     pub metadata: HashMap<Token<'src>, Value<'src>>,
@@ -15,40 +55,12 @@ pub struct ResourceDef<'src> {
     pub children: HashSet<Token<'src>>,
 }
 
-fn create_metadata<'src>(pmetadata: HashMap<Token<'src>, PValue<'src>>) -> Result<HashMap<Token<'src>, Value<'src>>> {
-    fix_map_results(
-        pmetadata
-            .into_iter()
-            .map(|(k, v)| Ok((k, Value::from_static_pvalue(v)?))),
-    )
-}
-
-fn create_parameters<'src>(pparameters: Vec<PParameter<'src>>,
-                           global_context: &VarContext<'src>,
-                           parameter_defaults: &Vec<Option<PValue<'src>>>) -> Result<Vec<Parameter<'src>>> {
-    // expand default values
-    let param_defaults = fix_vec_results(
-        parameter_defaults.into_iter().map(|p|
-            Ok(match p {
-                Some(x) => Some(Value::from_pvalue(x.clone())?), // TODO the clone should probably be moved to from_parameter to be only evaluated when needed
-                None => None,
-            })
-        )
-    )?;
-    fix_vec_results(pparameters
-        .into_iter()
-        .zip(param_defaults.iter())
-        .map(|(p,d)| Parameter::from_pparameter(p,d) )
-        // TODO fill context here
-    )
-}
-
 impl<'src> ResourceDef<'src> {
-    pub fn from_resource_declaration(name: Token<'src>,
-                                     resource_declaration: ResourceDeclaration<'src>,
-                                     global_context: &VarContext<'src>,
-                                     enum_list: &EnumList<'src>,
-                                     parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<PValue<'src>>>>) -> Result<ResourceDef<'src>> {
+    pub fn from_resource_declaration(
+        name: Token<'src>,
+        resource_declaration: ResourceDeclaration<'src>,
+        global_context: &GlobalContext<'src>,
+    ) -> Result<ResourceDef<'src>> {
         let ResourceDeclaration {
             metadata: pmetadata,
             parameters: pparameters,
@@ -56,14 +68,26 @@ impl<'src> ResourceDef<'src> {
         } = resource_declaration;
         // create final version of metadata and parameters
         let metadata = create_metadata(pmetadata)?;
-        let parameters = create_parameters(pparameters, global_context, &parameter_defaults[&(name, None)])?;
+        let parameters = create_parameters(
+            pparameters,
+            &global_context.var_context,
+            &global_context.parameter_defaults[&(name, None)],
+        )?;
         // create final version of states
         let mut children = HashSet::new();
-        let states = fix_map_results(pstates.into_iter().map(|(sn,(pmetadata,st))|
-            Ok((sn,
-                StateDef::from_pstate_def(sn, pmetadata, st, name, &mut children, global_context, enum_list, parameter_defaults)?
+        let states = fix_map_results(pstates.into_iter().map(|(sn, (pmetadata, st))| {
+            Ok((
+                sn,
+                StateDef::from_pstate_def(
+                    pmetadata,
+                    st,
+                    name,
+                    &parameters,
+                    &mut children,
+                    global_context,
+                )?,
             ))
-        ))?;
+        }))?;
         Ok(ResourceDef {
             metadata,
             parameters,
@@ -73,48 +97,51 @@ impl<'src> ResourceDef<'src> {
     }
 }
 
+/// State definition and associated metadata
 #[derive(Debug)]
 pub struct StateDef<'src> {
     pub metadata: HashMap<Token<'src>, Value<'src>>,
     pub parameters: Vec<Parameter<'src>>,
     pub statements: Vec<Statement<'src>>,
-    pub variables: VarContext<'src>,
+    pub context: VarContext<'src>,
 }
 
 impl<'src> StateDef<'src> {
-    pub fn from_pstate_def(name: Token<'src>,
-                           pmetadata: HashMap<Token<'src>, PValue<'src>>,
-                           pstate: PStateDef<'src>,
-                           resource_name: Token<'src>,
-                           children: &mut HashSet<Token<'src>>,
-                           global_context: &VarContext<'src>,
-                           enum_list: &EnumList<'src>,
-                           parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<PValue<'src>>>>) -> Result<StateDef<'src>> {
+    pub fn from_pstate_def(
+        pmetadata: HashMap<Token<'src>, PValue<'src>>,
+        pstate: PStateDef<'src>,
+        resource_name: Token<'src>,
+        resource_parameters: &Vec<Parameter<'src>>,
+        children: &mut HashSet<Token<'src>>,
+        global_context: &GlobalContext<'src>,
+    ) -> Result<StateDef<'src>> {
         // create final version of metadata and parameters
         let metadata = create_metadata(pmetadata)?;
-        let parameters = create_parameters(pstate.parameters, global_context, &parameter_defaults[&(resource_name, Some(name))])?;
-        // TODO fill up context
-        let mut context = VarContext::new();
+        let parameters = create_parameters(
+            pstate.parameters,
+            &global_context.var_context,
+            &global_context.parameter_defaults[&(resource_name, Some(pstate.name))],
+        )?;
+        let mut context = create_default_context(
+            &global_context.var_context,
+            &resource_parameters,
+            &parameters,
+        )?;
         // create final version of statements
-        let statements = fix_vec_results(pstate.statements.into_iter().map(|st0| {
-            Statement::fom_pstatement2(
-                enum_list,
-                Some(&global_context),
-                &mut context,
-                children,
-                parameter_defaults,
-                st0,
-            )
-        }))?;
+        let statements =
+            fix_vec_results(pstate.statements.into_iter().map(|st0| {
+                Statement::fom_pstatement(global_context, &mut context, children, st0)
+            }))?;
         Ok(StateDef {
             metadata,
             parameters,
             statements,
-            variables: context,
+            context,
         })
     }
 }
 
+/// A single parameter for a resource or a state
 #[derive(Debug)]
 pub struct Parameter<'src> {
     pub name: Token<'src>,
@@ -143,6 +170,7 @@ impl<'src> Parameter<'src> {
         })
     }
 
+    /// returns an error if the value has an incompatible type
     pub fn value_match(&self, param_ref: &Value) -> Result<()> {
         match (&self.ptype, param_ref) {
             (PType::TString, Value::String(_)) => Ok(()),
@@ -156,6 +184,7 @@ impl<'src> Parameter<'src> {
     }
 }
 
+/// A signle statement withing a state definition
 #[derive(Debug)]
 pub enum Statement<'src> {
     Comment(PComment<'src>),
@@ -184,11 +213,9 @@ pub enum Statement<'src> {
 }
 impl<'src> Statement<'src> {
     pub fn fom_pstatement<'b>(
-        enum_list: &'b EnumList<'src>,
-        gc: Option<&'b VarContext<'src>>,
+        global_context: &'b GlobalContext<'src>,
         context: &'b mut VarContext<'src>,
         children: &'b mut HashSet<Token<'src>>,
-        parameter_defaults: &'b HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
         st: PStatement<'src>,
     ) -> Result<Statement<'src>> {
         Ok(match st {
@@ -196,23 +223,24 @@ impl<'src> Statement<'src> {
             PStatement::VariableDefinition(var, val) => {
                 let value = Value::from_pvalue(val)?;
                 // check that definition use existing variables
-                value.context_check(gc, context)?;
-                context.new_variable(gc, var, value.get_type())?;
+                value.context_check(Some(&global_context.var_context), context)?;
+                context.new_variable(Some(&global_context.var_context), var, value.get_type())?;
                 Statement::VariableDefinition(var, value)
             }
             PStatement::StateCall(mode, res, res_params, st, params, out) => {
                 if let Some(out_var) = out {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
                     context.new_enum_variable(
-                        gc,
+                        Some(&global_context.var_context),
                         out_var,
                         Token::new("internal", "outcome"),
                         None,
                     )?;
                 }
                 children.insert(res);
-                let mut res_parameters = fix_vec_results(res_params.into_iter().map(Value::from_pvalue))?;
-                let res_defaults = &parameter_defaults[&(res,None)];
+                let mut res_parameters =
+                    fix_vec_results(res_params.into_iter().map(Value::from_pvalue))?;
+                let res_defaults = &global_context.parameter_defaults[&(res, None)];
                 let res_missing = res_defaults.len() as i32 - res_parameters.len() as i32;
                 if res_missing > 0 {
                     fix_results(
@@ -227,11 +255,17 @@ impl<'src> Statement<'src> {
                                     })
                     )?;
                 } else if res_missing < 0 {
-                    fail!(res, "Resources instance of {} has too many parameters, expecting {}, got {}", res, res_defaults.len(), res_parameters.len());
+                    fail!(
+                        res,
+                        "Resources instance of {} has too many parameters, expecting {}, got {}",
+                        res,
+                        res_defaults.len(),
+                        res_parameters.len()
+                    );
                 }
                 let mut st_parameters =
                     fix_vec_results(params.into_iter().map(Value::from_pvalue))?;
-                let st_defaults = &parameter_defaults[&(res,Some(st))];
+                let st_defaults = &global_context.parameter_defaults[&(res, Some(st))];
                 let st_missing = st_defaults.len() as i32 - st_parameters.len() as i32;
                 if st_missing > 0 {
                     fix_results(
@@ -249,14 +283,22 @@ impl<'src> Statement<'src> {
                     fail!(st, "Resources state instance of {} has too many parameters, expecting {}, got {}", st, st_defaults.len(), st_parameters.len());
                 }
                 // check that parameters use existing variables
-                fix_results(res_parameters.iter().map(|p| p.context_check(gc, context)))?;
-                fix_results(st_parameters.iter().map(|p| p.context_check(gc, context)))?;
+                fix_results(
+                    res_parameters
+                        .iter()
+                        .map(|p| p.context_check(Some(&global_context.var_context), context)),
+                )?;
+                fix_results(
+                    st_parameters
+                        .iter()
+                        .map(|p| p.context_check(Some(&global_context.var_context), context)),
+                )?;
                 Statement::StateCall(mode, res, res_parameters, st, st_parameters, out)
             }
             PStatement::Fail(f) => {
                 let value = Value::from_pvalue(f)?;
                 // check that definition use existing variables
-                value.context_check(gc, context)?;
+                value.context_check(Some(&global_context.var_context), context)?;
                 // we must fail with a string
                 match &value {
                     Value::String(_) => (),
@@ -267,7 +309,7 @@ impl<'src> Statement<'src> {
             PStatement::Log(l) => {
                 let value = Value::from_pvalue(l)?;
                 // check that definition use existing variables
-                value.context_check(gc, context)?;
+                value.context_check(Some(&global_context.var_context), context)?;
                 // we must fail with a string
                 match &value {
                     Value::String(_) => (),
@@ -295,130 +337,13 @@ impl<'src> Statement<'src> {
                 fix_vec_results(v.into_iter().map(|(exp_str, sts)| {
                     let exp = parse_enum_expression(exp_str)?;
                     Ok((
-                        enum_list.canonify_expression(gc, context, exp)?,
+                        global_context.enum_list.canonify_expression(
+                            Some(&global_context.var_context),
+                            context,
+                            exp,
+                        )?,
                         fix_vec_results(sts.into_iter().map(|st| {
-                            Statement::fom_pstatement(enum_list, gc, context, children, parameter_defaults, st)
-                        }))?,
-                    ))
-                }))?,
-            ),
-        })
-    }
-    pub fn fom_pstatement2<'b>(
-        enum_list: &'b EnumList<'src>,
-        gc: Option<&'b VarContext<'src>>,
-        context: &'b mut VarContext<'src>,
-        children: &'b mut HashSet<Token<'src>>,
-        parameter_defaults: &'b HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<PValue<'src>>>>,
-        st: PStatement<'src>,
-    ) -> Result<Statement<'src>> {
-        Ok(match st {
-            PStatement::Comment(c) => Statement::Comment(c),
-            PStatement::VariableDefinition(var, val) => {
-                let value = Value::from_pvalue(val)?;
-                // check that definition use existing variables
-                value.context_check(gc, context)?;
-                context.new_variable(gc, var, value.get_type())?;
-                Statement::VariableDefinition(var, value)
-            }
-            PStatement::StateCall(mode, res, res_params, st, params, out) => {
-                if let Some(out_var) = out {
-                    // outcome must be defined, token comes from internal compilation, no value known a compile time
-                    context.new_enum_variable(
-                        gc,
-                        out_var,
-                        Token::new("internal", "outcome"),
-                        None,
-                    )?;
-                }
-                children.insert(res);
-                let mut res_parameters = fix_vec_results(res_params.into_iter().map(Value::from_pvalue))?;
-                let res_defaults = &parameter_defaults[&(res,None)];
-                let res_missing = res_defaults.len() as i32 - res_parameters.len() as i32;
-                if res_missing > 0 {
-                    fix_results(
-                        res_defaults.iter()
-                                    .skip(res_parameters.len())
-                                    .map(|param| {
-                                        match param {
-                                            Some(p) => res_parameters.push(Value::from_pvalue(p.clone())?),
-                                            None => fail!(res, "Resources instance of {} is missing parameters and there is no default values for them", res),
-                                        };
-                                        Ok(())
-                                    })
-                    )?;
-                } else if res_missing < 0 {
-                    fail!(res, "Resources instance of {} has too many parameters, expecting {}, got {}", res, res_defaults.len(), res_parameters.len());
-                }
-                let mut st_parameters =
-                    fix_vec_results(params.into_iter().map(Value::from_pvalue))?;
-                let st_defaults = &parameter_defaults[&(res,Some(st))];
-                let st_missing = st_defaults.len() as i32 - st_parameters.len() as i32;
-                if st_missing > 0 {
-                    fix_results(
-                        st_defaults.iter()
-                                   .skip(st_parameters.len())
-                                   .map(|param| {
-                                       match param {
-                                           Some(p) => st_parameters.push(Value::from_pvalue(p.clone())?),
-                                           None => fail!(st, "Resources state instance of {} is missing parameters and there is no default values for them", st),
-                                       };
-                                       Ok(())
-                                   })
-                    )?;
-                } else if st_missing < 0 {
-                    fail!(st, "Resources state instance of {} has too many parameters, expecting {}, got {}", st, st_defaults.len(), st_parameters.len());
-                }
-                // check that parameters use existing variables
-                fix_results(res_parameters.iter().map(|p| p.context_check(gc, context)))?;
-                fix_results(st_parameters.iter().map(|p| p.context_check(gc, context)))?;
-                Statement::StateCall(mode, res, res_parameters, st, st_parameters, out)
-            }
-            PStatement::Fail(f) => {
-                let value = Value::from_pvalue(f)?;
-                // check that definition use existing variables
-                value.context_check(gc, context)?;
-                // we must fail with a string
-                match &value {
-                    Value::String(_) => (),
-                    _ => unimplemented!(), // TODO must fail here with a message
-                }
-                Statement::Fail(value)
-            }
-            PStatement::Log(l) => {
-                let value = Value::from_pvalue(l)?;
-                // check that definition use existing variables
-                value.context_check(gc, context)?;
-                // we must fail with a string
-                match &value {
-                    Value::String(_) => (),
-                    _ => unimplemented!(), // TODO must fail here with a message
-                }
-                Statement::Log(value)
-            }
-            PStatement::Return(r) => {
-                if r == Token::new("", "kept")
-                    || r == Token::new("", "repaired")
-                    || r == Token::new("", "error")
-                {
-                    Statement::Return(r)
-                } else {
-                    fail!(
-                        r,
-                        "Can only return an outcome (kept, repaired or error) instead of {}",
-                        r
-                    )
-                }
-            }
-            PStatement::Noop => Statement::Noop,
-            PStatement::Case(case, v) => Statement::Case(
-                case,
-                fix_vec_results(v.into_iter().map(|(exp_str, sts)| {
-                    let exp = parse_enum_expression(exp_str)?;
-                    Ok((
-                        enum_list.canonify_expression(gc, context, exp)?,
-                        fix_vec_results(sts.into_iter().map(|st| {
-                            Statement::fom_pstatement2(enum_list, gc, context, children, parameter_defaults, st)
+                            Statement::fom_pstatement(global_context, context, children, st)
                         }))?,
                     ))
                 }))?,

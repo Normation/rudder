@@ -1,3 +1,5 @@
+use super::enums::EnumList;
+use super::value::Value;
 use crate::error::*;
 use crate::parser::{PType, Token};
 use std::collections::hash_map;
@@ -14,6 +16,13 @@ pub enum VarKind<'src> {
 }
 
 // TODO forbid variables names like global enum items (or enum type)
+
+#[derive(Debug)]
+pub struct GlobalContext<'src> {
+    pub var_context: VarContext<'src>,
+    pub enum_list: EnumList<'src>,
+    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+}
 
 /// A context is a list of variables name with their type (and value if they are constant).
 /// A context doesn't point to a child or parent context because it would mean holding
@@ -95,30 +104,28 @@ impl<'src> VarContext<'src> {
     }
 
     /// Create a constant in this context.
-/*    pub fn new_constant(
-        &mut self,
-        upper_context: Option<&VarContext<'src>>,
-        name: Token<'src>,
-        ptype: PType,
-        value: Value<'src>,
-    ) -> Result<()> {
-        self.new_var(upper_context, name)?;
-        self.variables.insert(name, VarKind::Constant(ptype,value));
-        Ok(())
-    }
-*/
+    /*    pub fn new_constant(
+            &mut self,
+            upper_context: Option<&VarContext<'src>>,
+            name: Token<'src>,
+            ptype: PType,
+            value: Value<'src>,
+        ) -> Result<()> {
+            self.new_var(upper_context, name)?;
+            self.variables.insert(name, VarKind::Constant(ptype,value));
+            Ok(())
+        }
+    */
     /// Get a variable from this context.
     pub fn get_variable<'b>(
         &'b self,
         upper_context: Option<&'b VarContext<'src>>,
         name: Token<'src>,
     ) -> Option<&'b VarKind<'src>> {
-        self.variables
-            .get(&name)
-            .or_else(|| match upper_context {
-                None => None,
-                Some(gc) => gc.get_variable(None, name),
-            })
+        self.variables.get(&name).or_else(|| match upper_context {
+            None => None,
+            Some(gc) => gc.get_variable(None, name),
+        })
     }
 }
 

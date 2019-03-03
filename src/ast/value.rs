@@ -1,6 +1,6 @@
-use crate::parser::*;
-use crate::error::*;
 use super::context::VarContext;
+use crate::error::*;
+use crate::parser::*;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct StringObject<'src> {
@@ -15,9 +15,9 @@ impl<'src> StringObject<'src> {
     }
     pub fn format<SF, VF>(&self, str_formatter: SF, var_formatter: VF) -> String
     // string, is_a_suffix, is_a_prefix
-        where
-            SF: Fn(&str) -> String,
-            VF: Fn(&str) -> String,
+    where
+        SF: Fn(&str) -> String,
+        VF: Fn(&str) -> String,
     {
         let mut output = String::new();
         let (last, elts) = self.strs.split_last().unwrap(); // strs cannot be empty

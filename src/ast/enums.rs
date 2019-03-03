@@ -379,7 +379,7 @@ impl<'src> EnumList<'src> {
                                 e1
                             );
                         }
-                    },
+                    }
                     // not an enum
                     _ => fail!(var1, "Variable {} is not a {} enum", var1, e1),
                 }
@@ -517,13 +517,21 @@ impl<'src> EnumList<'src> {
 
     /// There can be only one mapping per item that defines an identical descendant
     pub fn mapping_check(&self) -> Result<()> {
-        for (from,tos) in self.direct_mapping_path.iter() {
+        for (from, tos) in self.direct_mapping_path.iter() {
             for item in self.enums[from].1.iter() {
-                if tos.iter()
-                      .map(|to| self.mappings[&(*from,*to)][item])
-                      .filter(|i| i == item)
-                      .count() > 1 {
-                    fail!(item, "There is more than one mapping that maps {}:{} to itself", from, item);
+                if tos
+                    .iter()
+                    .map(|to| self.mappings[&(*from, *to)][item])
+                    .filter(|i| i == item)
+                    .count()
+                    > 1
+                {
+                    fail!(
+                        item,
+                        "There is more than one mapping that maps {}:{} to itself",
+                        from,
+                        item
+                    );
                 }
             }
         }
@@ -987,10 +995,7 @@ mod tests {
     fn test_mapping_check() {
         let (mut e, _) = init_tests();
         assert!(e.mapping_check().is_ok());
-        assert!(add_enum_mapping(
-            &mut e,
-            "enum os ~> family2 { *->* }",
-        ).is_err());
+        assert!(add_enum_mapping(&mut e, "enum os ~> family2 { *->* }",).is_err());
         assert!(e.mapping_check().is_err());
     }
 }

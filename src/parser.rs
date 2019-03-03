@@ -144,7 +144,7 @@ pnamed!(pub penum_mapping<PEnumMapping>,
 /// A comparison check if the variable is of the right type and contains
 /// the provided item as a value, or an ancestor item if this is a mapped enum.
 /// 'default' is a value that is equivalent of 'true'.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum PEnumExpression<'src> {
     //             variable                 enum              value/item
     Compare(Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
@@ -307,7 +307,7 @@ pnamed!(
                 let mut format_vec = Vec::new();
                 let mut var_vec = Vec::new();
                 let mut current = String::new();
-                for (s,v) in sections.into_iter() {
+                for (s, v) in sections.into_iter() {
                     match v {
                         None => {
                             current.push_str(*s.fragment);
@@ -320,7 +320,7 @@ pnamed!(
                             var_vec.push(var.fragment().into());
                         }
                     }
-                };
+                }
                 current.push_str(*rest.fragment);
                 format_vec.push(current);
                 (format_vec, var_vec)
@@ -330,7 +330,7 @@ pnamed!(
 
 /// PValue is a typed value of the content of a variable or a parameter.
 /// Must be cloneable because it is copied during default values expansion
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum PValue<'src> {
     //     position   value
     String(Token<'src>, String),
@@ -443,13 +443,14 @@ pnamed!(
 );
 
 /// A variable definition is a var=value\n
-pnamed!(pvariable_definition<(Token,PValue)>,
+pnamed!(
+    pvariable_definition<(Token, PValue)>,
     sp_nnl!(do_parse!(
-        variable: pidentifier >>
-        tag!("=") >>
-        value: or_fail!(pvalue,PError::InvalidVariableDefinition) >>
-        or_fail!(tag!("\n"),PError::InvalidVariableDefinition) >>
-        ((variable,value))
+        variable: pidentifier
+            >> tag!("=")
+            >> value: or_fail!(pvalue, PError::InvalidVariableDefinition)
+            >> or_fail!(tag!("\n"), PError::InvalidVariableDefinition)
+            >> ((variable, value))
     ))
 );
 
@@ -1082,19 +1083,46 @@ mod tests {
     fn test_variable_definition() {
         assert_eq!(
             mapok(pvariable_definition(pinput("", "var=\"value\"\n"))),
-            Ok(("", ("var".into(),PValue::String("\"".into(), "value".to_string()))))
+            Ok((
+                "",
+                (
+                    "var".into(),
+                    PValue::String("\"".into(), "value".to_string())
+                )
+            ))
         );
         assert_eq!(
             mapok(pvariable_definition(pinput("", "var = \"value\" \n"))),
-            Ok(("", ("var".into(),PValue::String("\"".into(), "value".to_string()))))
+            Ok((
+                "",
+                (
+                    "var".into(),
+                    PValue::String("\"".into(), "value".to_string())
+                )
+            ))
         );
         assert_eq!(
-            mapok(pvariable_definition(pinput("", "var = \"value\" # comment ok\n"))),
-            Ok(("", ("var".into(),PValue::String("\"".into(), "value".to_string()))))
+            mapok(pvariable_definition(pinput(
+                "",
+                "var = \"value\" # comment ok\n"
+            ))),
+            Ok((
+                "",
+                (
+                    "var".into(),
+                    PValue::String("\"".into(), "value".to_string())
+                )
+            ))
         );
         assert_eq!(
             mapok(pvariable_definition(pinput("", "var=\"val\nue\"\n"))),
-            Ok(("", ("var".into(),PValue::String("\"".into(), "val\nue".to_string()))))
+            Ok((
+                "",
+                (
+                    "var".into(),
+                    PValue::String("\"".into(), "val\nue".to_string())
+                )
+            ))
         );
         assert_eq!(
             maperr(pvariable_definition(pinput("", "var=\n\"value\"\n"))),
@@ -1145,15 +1173,28 @@ mod tests {
         );
         assert_eq!(
             mapok(pstatement(pinput("", "var=\"string\"\n"))),
-            Ok(("", PStatement::VariableDefinition("var".into(),
-                                                   PValue::String("\"".into(), "string".into()))))
+            Ok((
+                "",
+                PStatement::VariableDefinition(
+                    "var".into(),
+                    PValue::String("\"".into(), "string".into())
+                )
+            ))
         );
 
         assert_eq!(
             mapok(pstatement(pinput("", "var= a=~bc\n"))),
-            Ok(("", PStatement::VariableDefinition("var".into(),
-                                                   PValue::EnumExpression(PEnumExpression::Compare(Some("a".into()), None, "bc".into()))
-            )))
+            Ok((
+                "",
+                PStatement::VariableDefinition(
+                    "var".into(),
+                    PValue::EnumExpression(PEnumExpression::Compare(
+                        Some("a".into()),
+                        None,
+                        "bc".into()
+                    ))
+                )
+            ))
         );
         let st = "case { ubuntu => f().g(), debian => a().b() }";
         assert_eq!(

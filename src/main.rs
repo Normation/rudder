@@ -4,7 +4,7 @@ mod ast;
 mod parser;
 
 use crate::ast::generators::*;
-use crate::ast::{PreAST, AST, CodeIndex};
+use crate::ast::{CodeIndex, AST};
 use crate::parser::parse_file;
 use std::cell::UnsafeCell;
 use std::fs;
@@ -20,25 +20,11 @@ use std::fs;
 //
 
 // TODO next step:
-// - refactor preast
 // - boolean variables
 // - parent resource
-//
+// - put enumlist into global context
 
-fn add_file<'a>(pre_ast: &mut PreAST<'a>, source_list: &'a SourceList, filename: &'a str) {
-    let content = fs::read_to_string(filename)
-        .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
-    let content_str = source_list.append(content);
-    let file = match parse_file(filename, content_str) {
-        Err(e) => panic!("There was an error during parsing:\n{}", e),
-        Ok(o) => o,
-    };
-    match pre_ast.add_parsed_file(filename, file) {
-        Err(e) => panic!("There was an error during code insertion:\n{}", e),
-        Ok(()) => {}
-    };
-}
-fn add_file2<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, filename: &'a str) {
+fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, filename: &'a str) {
     let content = fs::read_to_string(filename)
         .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
     let content_str = source_list.append(content);
@@ -86,15 +72,14 @@ fn main() {
     // --parse : output-format is json
     // --unparse : input-format is json, output format is a technique
 
-    let mut pre_ast = PreAST::new();
     let mut code_index = CodeIndex::new();
     let sources = SourceList::new();
 
     // read and add files
     let stdlib = "stdlib.ncf";
-    add_file2(&mut code_index, &sources, stdlib);
+    add_file(&mut code_index, &sources, stdlib);
     let filename = "test.ncf";
-    add_file2(&mut code_index, &sources, filename);
+    add_file(&mut code_index, &sources, filename);
 
     // finish parsing into AST
     let ast = match AST::from_code_index(code_index) {
@@ -115,7 +100,6 @@ fn main() {
         Ok(()) => {}
     };
 }
-
 
 // Phase 2
 // - function, measure(=fact), action

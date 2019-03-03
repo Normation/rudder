@@ -1,9 +1,9 @@
-pub mod generators;
+mod codeindex;
 mod context;
 mod enums;
-mod preast;
-mod value;
+pub mod generators;
 mod resource;
+mod value;
 
 ///
 /// AST is a big chunk.
@@ -12,24 +12,21 @@ mod resource;
 /// The generator submodule contains a generator trait used to generate code.
 /// It is then split into one module per agent.
 ///
-pub use self::preast::PreAST;
-pub use self::preast::CodeIndex;
+pub use self::codeindex::CodeIndex;
 use self::context::VarContext;
 use self::enums::{EnumExpression, EnumList};
-use self::preast::PreResources;
-use self::preast::ResourceDeclaration;
-use self::value::Value;
 use self::resource::*;
+use self::value::Value;
+use crate::ast::context::GlobalContext;
 use crate::error::*;
 use crate::parser::*;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub struct AST<'src> {
-    enum_list: EnumList<'src>,
+    global_context: GlobalContext<'src>,
     resources: HashMap<Token<'src>, ResourceDef<'src>>,
     variable_declarations: HashMap<Token<'src>, Value<'src>>,
-    context: VarContext<'src>,
 }
 
 // TODO type inference
@@ -40,10 +37,13 @@ pub struct AST<'src> {
 // TODO compatibility metadata
 
 impl<'src> AST<'src> {
-
     /// Create global enum list structure from all source code enum and enum mapping declarations.
     /// Fill up the context with a single global variable per ancestor global enum.
-    fn create_enums(context: &mut VarContext<'src>, enums: Vec<PEnum<'src>>, enum_mappings: Vec<PEnumMapping<'src>>) -> Result<EnumList<'src>> {
+    fn create_enums(
+        context: &mut VarContext<'src>,
+        enums: Vec<PEnum<'src>>,
+        enum_mappings: Vec<PEnumMapping<'src>>,
+    ) -> Result<EnumList<'src>> {
         let mut enum_list = EnumList::new();
         // First insert all simple enums
         fix_results(enums.into_iter().map(|e| {
@@ -91,17 +91,39 @@ impl<'src> AST<'src> {
 
     /// Create global declarations structures and add global variables to context.
     /// Fill up the context with global variables.
-    fn create_declarations(context: &mut VarContext<'src>,
-                           enum_list: &EnumList<'src>,
-                           variable_declarations: Vec<(Token<'src>, PValue<'src>)>)
-        -> Result<HashMap<Token<'src>, Value<'src>>> {
-        fix_map_results(variable_declarations.into_iter().map(|(variable,value)| {
+    fn create_declarations(
+        context: &mut VarContext<'src>,
+        enum_list: &EnumList<'src>,
+        variable_declarations: Vec<(Token<'src>, PValue<'src>)>,
+    ) -> Result<HashMap<Token<'src>, Value<'src>>> {
+        fix_map_results(variable_declarations.into_iter().map(|(variable, value)| {
             let val = Value::from_pvalue(value)?;
             context.new_variable(None, variable, val.get_type())?;
             Ok((variable, val))
         }))
     }
 
+    /// Create default values for all resource and state parameters that have defaults.
+    fn create_default_values(
+        context: &VarContext<'src>,
+        enum_list: &EnumList<'src>,
+        parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<PValue<'src>>>>,
+    ) -> Result<HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>> {
+        fix_map_results(parameter_defaults.into_iter().map(|(id, defaults)| {
+            Ok((
+                id,
+                fix_vec_results(defaults.into_iter().map(|def| {
+                    Ok(match def {
+                        Some(pvalue) => Some(Value::from_pvalue(pvalue)?),
+                        None => None,
+                    })
+                }))?,
+            ))
+        }))
+    }
+
+    /// Produce the final AST data structure.
+    /// Call this when all files have been added.
     pub fn from_code_index(code_index: CodeIndex) -> Result<AST> {
         let CodeIndex {
             enums,
@@ -110,140 +132,31 @@ impl<'src> AST<'src> {
             variable_declarations,
             parameter_defaults,
         } = code_index;
-        let mut context = VarContext::new();
+        let mut var_context = VarContext::new();
         // first create enums since they have no dependencies
-        let enum_list = AST::create_enums(&mut context, enums, enum_mappings)?;
+        let enum_list = AST::create_enums(&mut var_context, enums, enum_mappings)?;
         // variables depend on enums
-        let global_declarations = AST::create_declarations(&mut context, &enum_list, variable_declarations)?;
+        let variable_declarations =
+            AST::create_declarations(&mut var_context, &enum_list, variable_declarations)?;
+        // default parameters depend on globals
+        let parameter_defaults =
+            AST::create_default_values(&var_context, &enum_list, parameter_defaults)?;
         // resources depend on everything else
+        let global_context = GlobalContext {
+            var_context,
+            enum_list,
+            parameter_defaults,
+        };
         let resources = fix_map_results(resources.into_iter().map(|(rn, rd)| {
-            Ok((rn,
-                ResourceDef::from_resource_declaration(rn, rd, &context, &enum_list, &parameter_defaults)?
+            Ok((
+                rn,
+                ResourceDef::from_resource_declaration(rn, rd, &global_context)?,
             ))
         }))?;
         Ok(AST {
-            enum_list,
-            resources,
-            variable_declarations: global_declarations,
-            context
-        })
-    }
-    /// Produce the final AST data structure.
-    /// Call this when all files have been added.
-    /// This does everything that could not be done with partial data (ex: global binding)
-    pub fn from_pre_ast(pre_ast: PreAST<'src>) -> Result<AST<'src>> {
-        let PreAST {
-            mut enum_list,
-            mut enum_mapping,
-            pre_resources,
-            variable_declarations,
-            context,
-            parameter_defaults,
-        } = pre_ast;
-        // fill enum_list iteratively
-        let mut map_count = enum_mapping.len();
-        loop {
-            let mut new_enum_mapping = Vec::new();
-            fix_results(enum_mapping.into_iter().map(|em| {
-                if enum_list.enum_exists(em.from) {
-                    enum_list.add_mapping(em)?;
-                } else {
-                    new_enum_mapping.push(em);
-                }
-                Ok(())
-            }))?;
-            if new_enum_mapping.is_empty() {
-                break;
-            } else if map_count == new_enum_mapping.len() {
-                fix_results(new_enum_mapping.iter().map(|em| {
-                    fail!(
-                        em.to,
-                        "Enum {} doesn't exist when trying to define mapping {}",
-                        em.from,
-                        em.to
-                    )
-                }))?;
-            }
-            enum_mapping = new_enum_mapping;
-            map_count = enum_mapping.len();
-        }
-        enum_list.mapping_check()?;
-        // create new resources struct
-        let mut resources = HashMap::new();
-        fix_results(pre_resources.into_iter().map(|(rn, rd)| {
-            let PreResources {
-                metadata,
-                parameters: res_parameters,
-                pre_states,
-            } = rd;
-            let mut states = HashMap::new();
-            let mut children = HashSet::new();
-            // insert resource states
-            #[allow(clippy::map_entry)]
-            fix_results(pre_states.into_iter().map(|(meta, st)| {
-                let PStateDef {
-                    name,
-                    resource_name,
-                    parameters,
-                    statements,
-                    ..
-                } = st;
-                if states.contains_key(&name) {
-                    fail!(
-                        name,
-                        "State {} for resource {} has already been defined in {}",
-                        name,
-                        resource_name,
-                        states.entry(name).key()
-                    );
-                } else {
-                    let parameters = fix_vec_results(parameters
-                        .into_iter()
-                        .zip(parameter_defaults[&(resource_name, Some(name))].iter())
-                        .map(|(p,d)| Parameter::from_pparameter(p,d) )
-                    )?;
-                    let mut variables = VarContext::new();
-                    for param in res_parameters.iter() {
-                        variables.new_variable(Some(&context), param.name, param.ptype)?;
-                    }
-                    for param in parameters.iter() {
-                        variables.new_variable(Some(&context), param.name, param.ptype)?;
-                    }
-                    let statements = fix_vec_results(statements.into_iter().map(|st0| {
-                        Statement::fom_pstatement(
-                            &enum_list,
-                            Some(&context),
-                            &mut variables,
-                            &mut children,
-                            &parameter_defaults,
-                            st0,
-                        )
-                    }))?;
-                    let state = StateDef {
-                        metadata: meta,
-                        parameters,
-                        statements,
-                        variables,
-                    };
-                    states.insert(name, state);
-                }
-                Ok(())
-            }))?;
-            let resource = ResourceDef {
-                metadata,
-                parameters: res_parameters,
-                states,
-                children,
-            };
-            resources.insert(rn, resource);
-            Ok(())
-        }))?;
-
-        Ok(AST {
-            enum_list,
+            global_context,
             resources,
             variable_declarations,
-            context,
         })
     }
 
@@ -326,8 +239,12 @@ impl<'src> AST<'src> {
     fn enum_expression_check(&self, variables: &VarContext, statement: &Statement) -> Result<()> {
         match statement {
             Statement::Case(case, cases) => {
-                self.enum_list
-                    .evaluate(Some(&self.context), variables, cases, *case)?;
+                self.global_context.enum_list.evaluate(
+                    Some(&self.global_context.var_context),
+                    variables,
+                    cases,
+                    *case,
+                )?;
                 fix_results(cases.iter().flat_map(|(_cond, sts)| {
                     sts.iter()
                         .map(|st| self.enum_expression_check(variables, st))
@@ -437,7 +354,9 @@ impl<'src> AST<'src> {
     // - true / false
     fn invalid_variable_check(&self, name: Token<'src>, global: bool) -> Result<()> {
         self.invalid_identifier_check(name)?;
-        if self.enum_list.enum_exists(name) && (!global || !self.enum_list.is_global(name)) {
+        if self.global_context.enum_list.enum_exists(name)
+            && (!global || !self.global_context.enum_list.is_global(name))
+        {
             // there is a global variable for each global enum
             fail!(
                 name,
@@ -445,7 +364,7 @@ impl<'src> AST<'src> {
                 name
             );
         }
-        if let Some(e) = self.enum_list.global_values.get(&name) {
+        if let Some(e) = self.global_context.enum_list.global_values.get(&name) {
             fail!(
                 name,
                 "Variable name {} cannot be used because it is an item of the global enum {}",
@@ -499,19 +418,19 @@ impl<'src> AST<'src> {
                     // check for variable names in statements
                     errors.push(self.invalid_variable_statement_check(st));
                     // check for enum expression validity
-                    errors.push(self.enum_expression_check(&state.variables, st));
+                    errors.push(self.enum_expression_check(&state.context, st));
                     // check for case validity
-                    errors.push(self.cases_check(&state.variables, st, true));
+                    errors.push(self.cases_check(&state.context, st, true));
                 }
             }
         }
         // analyze global vars
-        for (name, _value) in self.context.iter() {
+        for (name, _value) in self.global_context.var_context.iter() {
             // check for invalid variable name
             errors.push(self.invalid_variable_check(*name, true));
         }
         // analyse enums
-        for (e, (_global, items)) in self.enum_list.iter() {
+        for (e, (_global, items)) in self.global_context.enum_list.iter() {
             // check for invalid enum name
             errors.push(self.invalid_identifier_check(*e));
             // check for invalid item name
