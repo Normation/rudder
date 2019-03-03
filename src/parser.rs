@@ -144,7 +144,7 @@ pnamed!(pub penum_mapping<PEnumMapping>,
 /// A comparison check if the variable is of the right type and contains
 /// the provided item as a value, or an ancestor item if this is a mapped enum.
 /// 'default' is a value that is equivalent of 'true'.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum PEnumExpression<'src> {
     //             variable                 enum              value/item
     Compare(Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
@@ -329,7 +329,8 @@ pnamed!(
 );
 
 /// PValue is a typed value of the content of a variable or a parameter.
-#[derive(Debug, PartialEq)]
+/// Must be cloneable because it is copied during default values expansion
+#[derive(Debug, PartialEq, Clone)]
 pub enum PValue<'src> {
     //     position   value
     String(Token<'src>, String),

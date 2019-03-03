@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 /// Variable ar categorized in kinds.
 /// This allows segregatin variables that can only be used in some places.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum VarKind<'src> {
     //   Enum          item value
     Enum(Token<'src>, Option<Token<'src>>),
@@ -19,7 +19,7 @@ pub enum VarKind<'src> {
 /// A context doesn't point to a child or parent context because it would mean holding
 /// their reference which would prevent them from being modified.
 /// So this reference is asked by methods when they are needed.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VarContext<'src> {
     variables: HashMap<Token<'src>, VarKind<'src>>,
 }

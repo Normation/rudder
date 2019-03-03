@@ -13,9 +13,11 @@ mod resource;
 /// It is then split into one module per agent.
 ///
 pub use self::preast::PreAST;
+pub use self::preast::CodeIndex;
 use self::context::VarContext;
 use self::enums::{EnumExpression, EnumList};
 use self::preast::PreResources;
+use self::preast::ResourceDeclaration;
 use self::value::Value;
 use self::resource::*;
 use crate::error::*;
@@ -25,7 +27,7 @@ use std::collections::{HashMap, HashSet};
 #[derive(Debug)]
 pub struct AST<'src> {
     enum_list: EnumList<'src>,
-    resources: HashMap<Token<'src>, Resources<'src>>,
+    resources: HashMap<Token<'src>, ResourceDef<'src>>,
     variable_declarations: HashMap<Token<'src>, Value<'src>>,
     context: VarContext<'src>,
 }
@@ -38,6 +40,94 @@ pub struct AST<'src> {
 // TODO compatibility metadata
 
 impl<'src> AST<'src> {
+
+    /// Create global enum list structure from all source code enum and enum mapping declarations.
+    /// Fill up the context with a single global variable per ancestor global enum.
+    fn create_enums(context: &mut VarContext<'src>, enums: Vec<PEnum<'src>>, enum_mappings: Vec<PEnumMapping<'src>>) -> Result<EnumList<'src>> {
+        let mut enum_list = EnumList::new();
+        // First insert all simple enums
+        fix_results(enums.into_iter().map(|e| {
+            if e.global {
+                context.new_enum_variable(None, e.name, e.name, None)?;
+            }
+            enum_list.add_enum(e)?;
+            Ok(())
+        }))?;
+        // Then iteratively insert mappings
+        let mut map_count = enum_mappings.len();
+        let mut mappings = enum_mappings;
+        loop {
+            // Try inserting every mapping that have an existing ancestor until there is no more
+            let mut new_mappings = Vec::new();
+            fix_results(mappings.into_iter().map(|em| {
+                if enum_list.enum_exists(em.from) {
+                    enum_list.add_mapping(em)?;
+                } else {
+                    new_mappings.push(em);
+                }
+                Ok(())
+            }))?;
+            if new_mappings.is_empty() {
+                // Yay, finished !
+                break;
+            } else if map_count == new_mappings.len() {
+                // Nothing changed since last loop, we failed !
+                fix_results(new_mappings.iter().map(|em| {
+                    fail!(
+                        em.to,
+                        "Enum {} doesn't exist when trying to define mapping {}",
+                        em.from,
+                        em.to
+                    )
+                }))?;
+            }
+            mappings = new_mappings;
+            map_count = mappings.len();
+        }
+        // check that everything is now OK
+        enum_list.mapping_check()?;
+        Ok(enum_list)
+    }
+
+    /// Create global declarations structures and add global variables to context.
+    /// Fill up the context with global variables.
+    fn create_declarations(context: &mut VarContext<'src>,
+                           enum_list: &EnumList<'src>,
+                           variable_declarations: Vec<(Token<'src>, PValue<'src>)>)
+        -> Result<HashMap<Token<'src>, Value<'src>>> {
+        fix_map_results(variable_declarations.into_iter().map(|(variable,value)| {
+            let val = Value::from_pvalue(value)?;
+            context.new_variable(None, variable, val.get_type())?;
+            Ok((variable, val))
+        }))
+    }
+
+    pub fn from_code_index(code_index: CodeIndex) -> Result<AST> {
+        let CodeIndex {
+            enums,
+            enum_mappings,
+            resources,
+            variable_declarations,
+            parameter_defaults,
+        } = code_index;
+        let mut context = VarContext::new();
+        // first create enums since they have no dependencies
+        let enum_list = AST::create_enums(&mut context, enums, enum_mappings)?;
+        // variables depend on enums
+        let global_declarations = AST::create_declarations(&mut context, &enum_list, variable_declarations)?;
+        // resources depend on everything else
+        let resources = fix_map_results(resources.into_iter().map(|(rn, rd)| {
+            Ok((rn,
+                ResourceDef::from_resource_declaration(rn, rd, &context, &enum_list, &parameter_defaults)?
+            ))
+        }))?;
+        Ok(AST {
+            enum_list,
+            resources,
+            variable_declarations: global_declarations,
+            context
+        })
+    }
     /// Produce the final AST data structure.
     /// Call this when all files have been added.
     /// This does everything that could not be done with partial data (ex: global binding)
@@ -139,7 +229,7 @@ impl<'src> AST<'src> {
                 }
                 Ok(())
             }))?;
-            let resource = Resources {
+            let resource = ResourceDef {
                 metadata,
                 parameters: res_parameters,
                 states,
