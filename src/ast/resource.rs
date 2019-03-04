@@ -188,6 +188,7 @@ impl<'src> Parameter<'src> {
 #[derive(Debug)]
 pub enum Statement<'src> {
     Comment(PComment<'src>),
+    // TODO should we split variable definition and enum definition ? this would probably help generators
     VariableDefinition(Token<'src>, Value<'src>),
     StateCall(
         PCallMode,           // mode
@@ -221,10 +222,15 @@ impl<'src> Statement<'src> {
         Ok(match st {
             PStatement::Comment(c) => Statement::Comment(c),
             PStatement::VariableDefinition(var, val) => {
-                let value = Value::from_pvalue(val)?;
-                // check that definition use existing variables
-                value.context_check(gc, Some(context))?;
-                context.new_variable(Some(&gc.var_context), var, value.get_type())?;
+                let value = Value::from_pvalue(gc, Some(&context), val)?;
+                match value.get_type() {
+                    PType::TBoolean => context.new_enum_variable(Some(&gc.var_context), var, Token::new("stdlib", "boolean"), None)?,
+                    _ => {
+                        // check that definition use existing variables
+                        value.context_check(gc, Some(context))?;
+                        context.new_variable(Some(&gc.var_context), var, value.get_type())?;
+                    },
+                }
                 Statement::VariableDefinition(var, value)
             }
             PStatement::StateCall(mode, res, res_params, st, params, out) => {
@@ -239,7 +245,7 @@ impl<'src> Statement<'src> {
                 }
                 children.insert(res);
                 let mut res_parameters =
-                    fix_vec_results(res_params.into_iter().map(Value::from_pvalue))?;
+                    fix_vec_results(res_params.into_iter().map(|v| Value::from_pvalue(gc,Some(&context),v)))?;
                 let res_defaults = &gc.parameter_defaults[&(res, None)];
                 let res_missing = res_defaults.len() as i32 - res_parameters.len() as i32;
                 if res_missing > 0 {
@@ -264,7 +270,7 @@ impl<'src> Statement<'src> {
                     );
                 }
                 let mut st_parameters =
-                    fix_vec_results(params.into_iter().map(Value::from_pvalue))?;
+                    fix_vec_results(params.into_iter().map(|v| Value::from_pvalue(gc,Some(&context),v)))?;
                 let st_defaults = &gc.parameter_defaults[&(res, Some(st))];
                 let st_missing = st_defaults.len() as i32 - st_parameters.len() as i32;
                 if st_missing > 0 {
@@ -296,7 +302,7 @@ impl<'src> Statement<'src> {
                 Statement::StateCall(mode, res, res_parameters, st, st_parameters, out)
             }
             PStatement::Fail(f) => {
-                let value = Value::from_pvalue(f)?;
+                let value = Value::from_pvalue(gc,Some(&context),f)?;
                 // check that definition use existing variables
                 value.context_check(gc, Some(context))?;
                 // we must fail with a string
@@ -307,7 +313,7 @@ impl<'src> Statement<'src> {
                 Statement::Fail(value)
             }
             PStatement::Log(l) => {
-                let value = Value::from_pvalue(l)?;
+                let value = Value::from_pvalue(gc,Some(&context),l)?;
                 // check that definition use existing variables
                 value.context_check(gc, Some(context))?;
                 // we must fail with a string

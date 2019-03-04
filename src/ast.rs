@@ -100,7 +100,7 @@ impl<'src> AST<'src> {
             if declarations.contains_key(&variable) {
                 fail!(variable, "Variable {} already declared in {}", variable, declarations.entry(variable).key());
             }
-            let val = Value::from_pvalue(value)?;
+            let val = Value::from_pvalue(gc, None, value)?;
             declarations.insert(variable,val);
             Ok(())
         }))?;
@@ -117,7 +117,7 @@ impl<'src> AST<'src> {
                 id,
                 fix_vec_results(defaults.into_iter().map(|def| {
                     Ok(match def {
-                        Some(pvalue) => Some(Value::from_pvalue(pvalue)?),
+                        Some(pvalue) => Some(Value::from_pvalue(gc, None, pvalue)?),
                         None => None,
                     })
                 }))?,

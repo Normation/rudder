@@ -21,8 +21,8 @@ use std::fs;
 //
 
 // TODO next step:
-// - boolean variables
 // - parent resource
+
 
 fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, filename: &'a str) {
     let content = fs::read_to_string(filename)

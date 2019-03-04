@@ -43,13 +43,12 @@ pub enum Value<'src> {
     EnumExpression(EnumExpression<'src>),
 }
 impl<'src> Value<'src> {
-    pub fn from_pvalue(pvalue: PValue<'src>/*, gc: &GlobalContext<'src>, lc: &Option<VarContext<'src>>*/) -> Result<Value<'src>> {
+    pub fn from_pvalue(gc: &GlobalContext<'src>, lc: Option<&VarContext<'src>>, pvalue: PValue<'src>) -> Result<Value<'src>> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
-            PValue::EnumExpression(e) =>unimplemented!()
-                /*Ok(Value::EnumExpression(
-                gc.enum_list.canonify_expression(&Some(gc.var_context),lc,e)?
-            )),*/
+            PValue::EnumExpression(e) => Ok(Value::EnumExpression(
+                gc.enum_list.canonify_expression(gc,lc,e)?
+            )),
         }
     }
 

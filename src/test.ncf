@@ -15,6 +15,7 @@ ntp state configuration (x="default")
 { 
   #xs="pouet"
   youpi = "youp${x}i"
+  en = os =~ debian
   File("/tmp").permissions("root", "x$${root}i${youpi}2","g+w") as outvar
 
   case {
@@ -23,6 +24,7 @@ ntp state configuration (x="default")
 #    default => return kept
 #    default => fail "failed agent"
 #    default => log "info: ok"
+#    en =~ true && outvar =~ error => File("/tmp").permissions("user", "user", "g+w"),
     default => noop
   }
 

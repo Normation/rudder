@@ -23,7 +23,7 @@ macro_rules! pnamed (
 pnamed!(pub space_s<&str>,
     do_parse!(
         eat_separator!(&" \t\r\n"[..]) >>
-        opt!(delimited!(
+        many0!(delimited!(
             tag!("#"),
             opt!(preceded!(not!(tag!("#")),take_until!("\n"))),
             tag!("\n")
@@ -47,7 +47,7 @@ macro_rules! sp (
 pnamed!(pub space_s_nnl<&str>,
     do_parse!(
         eat_separator!(&" \t"[..]) >>
-        opt!(preceded!(
+        many0!(preceded!(
             tag!("#"),
             opt!(preceded!(not!(tag!("#")),take_until!("\n")))
         )) >>
