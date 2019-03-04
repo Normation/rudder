@@ -166,7 +166,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
               { "sWidth": "600px" },
               { "sWidth": "140px" }
             ],
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+            "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>',
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25
           });
@@ -190,7 +190,9 @@ class ParameterManagement extends DispatchSnippet with Loggable {
                   jTr.prop("open", "closed");
                   $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
                   #table_var#.fnClose(this);
+                  $(this).removeClass("opened");
                 } else {
+                  $(this).addClass("opened");
                   jTr.prop("open", "opened");
                   $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
                   var jsid = jTr.attr("jsuuid");

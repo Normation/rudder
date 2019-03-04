@@ -115,7 +115,7 @@ object DisplayNode extends Loggable {
                     },
             "bAutoWidth": false,
             "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}],
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+            "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>',
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25
         });
@@ -133,7 +133,7 @@ object DisplayNode extends Loggable {
     val detailsId = htmlId(jsId,"details_")
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
     val softPanelId = htmlId(jsId,"sd_soft_")
-    val eltIdswidth = List( ("process",List("50","50","50","60","120","50","100","850"),1),("var",List("200","800"),0))
+    val eltIdswidth = List( ("process",List("50","50","70","85","120","50","100","850"),1),("var",List("200","800"),0))
     val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos")
 
     JsRaw("var "+softGridDataId +"= null") &
@@ -161,7 +161,7 @@ object DisplayNode extends Loggable {
                 "bPaginate": true,
                 "bAutoWidth": false,
                 "bInfo":true,
-                "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+                "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>',
                 "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
                 "pageLength": 25
               });
@@ -194,7 +194,7 @@ object DisplayNode extends Loggable {
                     },
                 "bAutoWidth": false,
                 "bInfo":true,
-                "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+                "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>',
                 "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
                 "pageLength": 25
               });

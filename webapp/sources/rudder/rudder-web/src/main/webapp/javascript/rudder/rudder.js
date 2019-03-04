@@ -208,27 +208,6 @@ function moveFilterAndPaginateArea(tableId) {
   }
 }
 
-
-
-/**
- * Move the filter and paginate zones in the location described by tableId_paginate_area and tableId_filter_area
- * move the info (1 to 10) to the info area
- * @param tableId
- * @return
- */
-function moveFilterAndFullPaginateArea(tableId) {
-  $(tableId+"_paginate_area").append($(tableId+"_paginate"));
-  $(tableId+"_info_area").append($(tableId+"_info"));
-  if ($(tableId+"_filter_area")) {
-    $(tableId+"_filter_area").append($(tableId+"_filter"));
-  }
-  if ($(tableId+"_length")) {
-    $(tableId+"_info_area").append($(tableId+"_length"));
-  }
-
-}
-
-
 function dropFilterArea(tableId) {
   $(tableId+"_info").remove();
   $(tableId+"_filter").remove();
@@ -358,11 +337,12 @@ if ((version >= 5.5) && (filters))
    }
 }
 
-function showParameters(s){
-  if(document.getElementById("showParametersInfo" + s).style.display == "none")
-    document.getElementById("showParametersInfo" + s).style.display = "block";
-  else
-    document.getElementById("showParametersInfo" + s).style.display = "none";
+function showParameters(e, s){
+  var btn = $(e.target)
+  var txt = btn.find(".action").text();
+  btn.find(".action").text(txt=="Show" ? "Hide" : "Show");
+  $("#showParametersInfo" + s).toggle();
+
 }
 
 function redirectTo(url,event) {

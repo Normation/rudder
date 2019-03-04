@@ -109,7 +109,7 @@ object PendingHistoryGrid extends Loggable {
             },
             "aaSorting": [[ 0, "desc" ]],
             "sPaginationType": "full_numbers",
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+            "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
           });
           $('.dataTables_filter input').attr("placeholder", "Filter");
           $("#new_servers_tab").tabs();
