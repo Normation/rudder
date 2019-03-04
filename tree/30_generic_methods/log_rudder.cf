@@ -61,6 +61,10 @@ bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
       "number_lines"
         int        => getfields("^${current_technique_report_info.technique_name};;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
 
+  defaults:
+    # If args are empty, we need to provide a default one otherwise reporting is skipped
+    "args" slist => { "no_args_provided" };
+
   classes:
     logger_rudder_final_resfile_repaired::
       "report_data_read"    expression => isgreaterthan("${number_lines}","0");
