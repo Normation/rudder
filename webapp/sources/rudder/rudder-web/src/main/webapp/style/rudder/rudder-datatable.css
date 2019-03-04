@@ -1,0 +1,289 @@
+.content-wrapper td, .content-wrapper th {
+  padding: 4px 3px;
+  line-height: 1.42857143;
+}
+
+/* <WRAPPER TOP> */
+.dataTables_wrapper_top,
+.dataTables_wrapper_bottom {
+  float            : left;
+  width            : 100%;
+  border           : 1px solid #e5e5e5;
+  padding          : 6px;
+  background-color : #f5f6f7;
+}
+.dataTables_wrapper_top {
+  border-bottom    : none;
+}
+.dataTables_filter{
+  float: left;
+}
+.dataTables_refresh{
+  float: right;
+}
+.dataTables_filter label{
+  margin-bottom: 0;
+}
+.dataTables_filter input{
+  height: 30px;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 3px;
+  border: 1px solid #d0d0d0;
+  min-width: 250px;
+  outline: none !important;
+  transition-duration: .2s;
+}
+.dataTables_filter input:focus{
+  border-color: #c1c1c1;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(208, 208, 208, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
+}
+/* </WRAPPER TOP> */
+
+/* <TABLE> */
+.dataTable{
+  width         : 100%;
+  border        : 1px solid #e5e5e5;
+  font-size     : 14px;
+  margin-bottom : 0px;
+}
+
+.dataTable .dataTable {
+  border-bottom: none !important;
+  border-right: none;
+  border-top: none;
+}
+/* </TABLE> */
+
+/* <THEAD> */
+.dataTable tr.head{
+  border-bottom : 1px solid #e5e5e5;
+  font-size: 1.15em;
+}
+/* </THEAD> */
+
+/* <TH> */
+.dataTable tr.head th{
+  padding: 10px 6px;
+  outline: none !important;
+  cursor: pointer;
+  transition-duration: .2s;
+}
+.dataTable .dataTable tr.head th {
+  padding: 4px 6px;
+  font-size: 0.9em;
+}
+.dataTable tr.head th.sorting{
+  color: #3481b9;
+}
+.dataTable tr.head th.sorting.sorting_desc,
+.dataTable tr.head th.sorting.sorting_asc{
+  color: #222D42;
+}
+.dataTable tr.head th.sorting:hover,
+.dataTable tr.head th.sorting.sorting_desc:hover,
+.dataTable tr.head th.sorting.sorting_asc:hover{
+  cursor: pointer;
+  color: #0e5e9f;
+}
+
+.DataTables_sort_icon.ui-icon-triangle-1-n,
+.DataTables_sort_icon.ui-icon-triangle-1-s,
+.listopen:before,
+.listclose:before {
+  margin-left: 4px;
+  display: inline-block;
+  font-family: FontAwesome;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  color: #999;
+}
+.DataTables_sort_icon.ui-icon-triangle-1-n:before{
+    content: "\f0d8";
+}
+.DataTables_sort_icon.ui-icon-triangle-1-s:before{
+    content: "\f0d7";
+}
+td.eventId{
+  position:relative
+}
+td.listopen,
+td.listclose{
+  cursor: pointer;
+}
+td.listopen:before,
+.listclose:before {
+  min-width: 12px;
+}
+td.listopen:before {
+  content: "\f0da";
+}
+td.listclose:before {
+  content: "\f0d7";
+}
+td.listclose:after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  transform: rotate(45deg);
+  background-color: #e2f1ff;
+  border-bottom: 1px solid #c0d4e4;
+  border-right: 1px solid #c0d4e4;
+  bottom: -7px;
+}
+.dataTable .dataTable td.listclose:after {
+  border: none !important;
+}
+/* </TH> */
+
+/* <TBODY><TR> */
+.dataTable > tbody > tr {
+  border-top: 1px solid transparent;
+}
+.dataTable > tbody > tr.details{
+  border-top: none;
+}
+.dataTable > tbody > tr.color2{
+  background-color: #f7f7f7;
+}
+.dataTable > tbody > tr:hover{
+  background-color: #e2f2ff;
+}
+.dataTable > tbody > tr.eventLogDescription {
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid #e5e5e5;
+  background-color: #FFF !important;
+}
+.dataTable > tbody > tr.opened {
+  border-top: 1px solid #E5E5E5 !important;
+  border-bottom: 1px solid #c0d4e4;
+  background-color: #e2f2ff;
+}
+
+.dataTable > tbody > tr.opened + tr.details + tr{
+  border-top: 1px solid #e4e4e4;
+}
+/* <TBODY><TR><TD> */
+.dataTable > tbody > tr > td{
+  padding: 6px;
+}
+.dataTable > tbody > tr > td.details{
+  padding: 0;
+}
+.dataTable > tbody > tr > td.listclose{
+  position: relative;
+}
+.dataTable > tbody > tr > td .rudder-label.label-sm{
+  margin-right: 6px;
+}
+
+.dataTable > tbody > tr > td .label-text {
+  cursor: help;
+  padding: 4px 0;
+}
+
+.dataTable .innerDetails {
+  display: none;
+  background : #f5f6f7;
+  padding-left:50px;
+  float: left;
+  width: 100%;
+}
+.dataTable .dataTable .innerDetails {
+  border-top: none !important;
+}
+
+.dataTable .innerDetails > div{
+  background-color: #fff;
+  margin: 0 !important;
+}
+/* </TBODY></TR></TD> */
+
+/* <WRAPPER BOTTOM> */
+.dataTables_wrapper_bottom {
+  border-top : none;
+}
+.dataTables_length,
+.dataTables_info{
+  float:left;
+}
+
+.dataTables_info{
+  padding-top: 3px;
+  margin-left: 15px;
+  opacity: .6;
+  font-style: italic;
+}
+.dataTables_paginate {
+  float: right;
+  text-align: right;
+  padding-top: 3px;
+}
+.dataTables_paginate > .ui-button,
+.dataTables_paginate > span > .ui-button,
+.dataTables_paginate > span > .ellipsis{
+  padding: 2px 8px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  background-color: #f7f7f7;
+  transition-property: background-color;
+  transition-duration: .2s;
+}
+.dataTables_paginate > .ui-button:hover,
+.dataTables_paginate > span > .ui-button:hover{
+  background-color: #fff;
+}
+.dataTables_paginate > .ui-button:first-child {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+.dataTables_paginate > .ui-button:last-child {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+.dataTables_paginate .ui-button.ui-state-disabled{
+  color: #555 !important;
+  cursor: default !important;
+  background-color: #e8e8e8 !important;
+  opacity: .6;
+}
+.dataTables_paginate > span > .ellipsis{
+  margin-right: -1px;
+  cursor: default !important;
+}
+.dataTables_length select {
+  padding: 2px;
+  background-color: #fff;
+  border-radius: 4px;
+  color: #555;
+  border: 1px solid #ccc;
+  margin: 0 2px;
+}
+.dataTables_paginate .fg-button {
+  border-top: 1px solid #cbcbcb;
+  border-right: none !important;
+  font-weight: normal !important;
+}
+.dataTables_paginate > .fg-button:last-child{
+  border-right: 1px solid #cbcbcb !important;
+}
+.paginate_button_disabled, .paginate_button, .paginate_active {
+  border-top: 1px solid #B4B3A8;
+  border-bottom: 1px solid #B4B3A8;
+  border-left: 1px solid #B4B3A8;
+  border-right: none;
+  display:inline-block;
+}
+
+/* </WRAPPER BOTTOM> */
+
+.dataTable > tbody > tr > td.dataTables_empty{
+  color: #777;
+  font-style: italic;
+  padding: 10px 6px;
+}

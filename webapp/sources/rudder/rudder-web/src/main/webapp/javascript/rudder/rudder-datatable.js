@@ -521,9 +521,6 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
   }
   var table = createTable(gridId,data,columns, params, contextPath, refresh, "rules", isPopup);
   table.search("").columns().search("");
-  if(isPopup){
-    $('#'+gridId).addClass("table table-hover table-striped table-bordered");
-  }
 
   // Add callback to checkbox column
   $("#checkAll").prop("checked", false);
@@ -1115,9 +1112,6 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         var el = '<span>'+sData+state+'</span>';
         var nodeLink = $(el);
         link.append(nodeLink);
-        var icon = $("<i>");
-        icon.addClass("fa fa-search space-left node-details");
-        link.append(icon);
         $(nTd).empty();
         $(nTd).append(link);
       }
@@ -1130,7 +1124,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "mDataProp": "osName"
     , "sTitle": "OS name"
   } , {
-      "sWidth": "5%"
+      "sWidth": "7%"
     , "mDataProp": "osVersion"
     , "sTitle": "OS version"
   } , {
@@ -1161,7 +1155,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         $(nTd).prepend(link);
       }
   } , {
-      "sWidth": "12%"
+      "sWidth": "10%"
     , "mDataProp": "lastReport"
     , "sTitle": "Last seen"
   } ];
@@ -1382,7 +1376,9 @@ function createEventLogTable(gridId, data, contextPath, refresh, pickEventLogsIn
               var IdTd = tableRow.find("td.eventId");
               if (IdTd.hasClass("listclose")) {
                 myTable.fnClose(this);
+                tableRow.removeClass("opened");
               } else {
+                tableRow.addClass("opened");
                 // Set details
                 var detailsId =  'details-'+fnData.id;
                 // First open the row an d set the id
@@ -1710,6 +1706,7 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
         }
         detailsId += "-details";
         if ( i === -1 ) {
+          $(this).addClass("opened");
           $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
           var table = $("<table></table>");
           var tableId = fnData.jsid;
@@ -1730,6 +1727,7 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
           $('#'+detailsId).slideDown(300);
           anOpen.push( this );
         } else {
+          $(this).removeClass("opened");
           $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
           $('#'+detailsId).slideUp(300, function () {
             myTable.fnClose( this );

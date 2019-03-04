@@ -95,10 +95,6 @@ body{
   z-index: 99999;
 }
 
-.content-wrapper .table {
-  margin-bottom:0;
-}
-
 .skin-yellow .modal{
   overflow-x: hidden;
   overflow-y: auto;
@@ -259,7 +255,6 @@ body{
 	float: left;
 }
 
-
 .col-xl {
   width:70%;
 }
@@ -413,9 +408,6 @@ body{
   font-weight: 600;
   cursor: help;
 }
-.dataTable .progress .progress-bar {
-  cursor: help;
-}
 
 #complianceGauge {
   max-width: 100%;
@@ -464,34 +456,7 @@ body{
 .skin-yellow.modal .tooltip {
   opacity: 1;
 }
-.skin-yellow .modal .dataTable tr.head{
-  background-image: none;
-  background-image: none;
-  background-color: #DAD9D9;
-}
-.skin-yellow .modal tr.head th{
-  color: #000 !important;
-  border-bottom: none;
-  width: 20%;
-  font-size: 14px;
-}
-.skin-yellow .modal .dataTables_paginate a {
-  background: rgb(255, 255, 255);
-}
-.skin-yellow .modal #pendingNodeConfirm_wrapper table{
-  box-shadow: none;
-}
-.skin-yellow .modal table{
-  border: none;
-}
-.skin-yellow .modal .dataTables_wrapper_top {
-  background-color: #fff;
-}
 
-.skin-yellow .modal .table-striped > tbody > tr:nth-child(odd) > td.dataTables_empty{
-  background-color: #FFFFFF;
-  border: none;
-}
 .skin-yellow .modal .space-top{
   margin-top: 30px !important;
 }
@@ -516,32 +481,7 @@ body{
 .skin-yellow .modal .well.jstree-rudder.jstree-focused, .skin-yellow .modal .well.jstree-rudder {
   background: #FBFBFB;
 }
-.content-wrapper #grid_remove_popup_grid a,.content-wrapper #grid_dependentRulesGrid a {
-  color: #2E2D2D;
-  text-decoration: underline;
-  transition-duration: .1s;
-}
-.content-wrapper #grid_remove_popup_grid a:hover,.content-wrapper #grid_dependentRulesGrid a:hover {
-  color: #ec8e0c;
-}
-.skin-yellow .modal table thead th {
-  border-right: 1px solid #B4B3A8 !important;
-}
-.skin-yellow .modal #pendingNodeConfirm_wrapper table thead th {
-  border-bottom: 1px solid #B4B3A8 !important;
-  border-right: none !important;
-}
-.skin-yellow .modal .dataTables_wrapper_bottom{
-  font-size: 12px;
-  background-color: rgb(213, 213, 213);
-}
-.skin-yellow .modal .dataTables_wrapper_top {
-  padding: 0 6px;
-  line-height: 37px;
-}
-.skin-yellow .modal #remove_popup_grid * {
-  border-color: #d8d8d8 !important;
-}
+
 .content-wrapper form input {
   width: auto;
 }
@@ -571,9 +511,8 @@ body{
   color: #565656;
   background-color: #fff;
 }
+
 /* PopUp error details */
-
-
 .content-wrapper #showhidetechnicalerrors{
   margin-left: 65%;
 }
@@ -853,17 +792,8 @@ input.no-tw-bs, .no-tw-bs input[type="checkbox"], .no-tw-bs input[type="radio"]{
 .content-wrapper .btn-default:active {
   border : 1px solid #adadad !important;
 }
-.content-wrapper .dataTable{
-    font-size:14px;
-}
-.content-wrapper .dataTable a {
-  color: #333;
-  text-decoration: none;
-}
+
 .content-wrapper a:hover {
   color: #337ab7;
-  text-decoration:underline;
-}
-.content-wrapper .dataTable a:hover {
   text-decoration:none;
 }

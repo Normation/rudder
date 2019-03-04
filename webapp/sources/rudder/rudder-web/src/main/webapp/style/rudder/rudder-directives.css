@@ -106,6 +106,9 @@
 #directiveRulesTab .only-tags .btn-xs.pull-right{
   float:left !important;
 }
+#grid_rules_grid_zone tr.head th {
+    padding: 4px 6px;
+}
 #edit-box{
   padding:10px;
   overflow-y:auto;

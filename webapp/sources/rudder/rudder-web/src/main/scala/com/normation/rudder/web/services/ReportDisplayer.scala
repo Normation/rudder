@@ -535,7 +535,7 @@ class ReportDisplayer(
        "oLanguage": {
          "sSearch": ""
        },
-       "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+       "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>',
        "aaSorting": [[ 0, "asc" ]],
        "aoColumns": [
          ${colums}

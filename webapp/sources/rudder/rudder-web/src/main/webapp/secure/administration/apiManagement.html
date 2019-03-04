@@ -23,8 +23,8 @@
     .btn.delete-button{
       margin-left:10px;
     }
-    #newAccount-expiration {
-      width:100%
+    .clearfix {
+      margin-left: -15px;
     }
     .toggle.btn {
       min-width: 94px !important;
@@ -32,6 +32,7 @@
     #newAccount-expiration {
       margin-top: 6px;
       margin-bottom: 12px;
+      width:100%
     }
   </style>
   <script data-lift="with-cached-resource" src="/javascript/rudder/angular/apiAccount.js" ></script>
@@ -73,7 +74,7 @@
             </div>
             <button class="btn btn-box-tool btn-blue pull-right space-top space-bottom" ng-click="getAccounts()">Refresh <span class="fa fa-refresh"></span></button>
           </div>
-          <table datatable="ng" dt-options="options" dt-column-defs="columns"  class="table-striped table-hover table-bordered table" id="accountGrid" >
+          <table datatable="ng" dt-options="options" dt-column-defs="columns" id="accountGrid" >
             <thead>
               <tr class="head tablewidth">
                 <th >Account Name</th>
@@ -83,7 +84,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr ng-repeat="account in accounts | filter:filterAccount track by $index">
+              <tr ng-repeat="account in accounts | filter:filterAccount track by $index" ng-class="{'color1': $index%2!=0, 'color2': $index%2==0}">
                 <td class="align-middle">
                   {{account.name}}
                   <span ng-if="account.description" data-toggle="tooltip" data-placement="top" data-html="true" title={{account.description}} class="bsTooltip fa fa-question-circle info-icon ruddericon tooltipable"></span>
