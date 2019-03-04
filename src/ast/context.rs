@@ -1,12 +1,12 @@
-use super::enums::EnumList;
-use super::value::Value;
-use crate::error::*;
-use crate::parser::{PType, Token};
 use std::collections::hash_map;
 use std::collections::HashMap;
+use crate::error::*;
+use crate::parser::{PType, Token};
+use super::enums::EnumList;
+use super::value::Value;
 
 /// Variable ar categorized in kinds.
-/// This allows segregatin variables that can only be used in some places.
+/// This allows segregating variables that can only be used in some places.
 #[derive(Debug, PartialEq, Clone)]
 pub enum VarKind<'src> {
     //   Enum          item value
@@ -22,6 +22,19 @@ pub struct GlobalContext<'src> {
     pub var_context: VarContext<'src>,
     pub enum_list: EnumList<'src>,
     pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+}
+
+impl<'src> GlobalContext<'src> {
+    /// Get a variable from this context.
+    pub fn get_variable<'b>(
+        &'b self,
+        local_context: Option<&'b VarContext<'src>>,
+        name: Token<'src>,
+    ) -> Option<&'b VarKind<'src>> {
+        local_context
+            .and_then(|lc| lc.variables.get(&name))
+            .or_else(|| self.var_context.variables.get(&name))
+    }
 }
 
 /// A context is a list of variables name with their type (and value if they are constant).
@@ -103,8 +116,8 @@ impl<'src> VarContext<'src> {
         Ok(())
     }
 
-    /// Create a constant in this context.
-    /*    pub fn new_constant(
+    /*/// Create a constant in this context.
+        pub fn new_constant(
             &mut self,
             upper_context: Option<&VarContext<'src>>,
             name: Token<'src>,
@@ -116,17 +129,6 @@ impl<'src> VarContext<'src> {
             Ok(())
         }
     */
-    /// Get a variable from this context.
-    pub fn get_variable<'b>(
-        &'b self,
-        upper_context: Option<&'b VarContext<'src>>,
-        name: Token<'src>,
-    ) -> Option<&'b VarKind<'src>> {
-        self.variables.get(&name).or_else(|| match upper_context {
-            None => None,
-            Some(gc) => gc.get_variable(None, name),
-        })
-    }
 }
 
 #[cfg(test)]
@@ -141,32 +143,33 @@ mod tests {
 
     #[test]
     fn test_context() {
-        let mut gc = VarContext::new();
-        assert!(gc
+        let mut context = VarContext::new();
+        assert!(context
             .new_enum_variable(None, ident("var1"), ident("enum1"), None)
             .is_ok());
-        assert!(gc
+        assert!(context
             .new_enum_variable(None, ident("var2"), ident("enum1"), Some(ident("debian")))
             .is_ok());
         let mut c = VarContext::new();
         assert!(c
-            .new_enum_variable(Some(&gc), ident("var3"), ident("enum2"), None)
+            .new_enum_variable(Some(&context), ident("var3"), ident("enum2"), None)
             .is_ok());
         assert!(c
             .new_enum_variable(
-                Some(&gc),
+                Some(&context),
                 ident("var4"),
                 ident("enum1"),
                 Some(ident("ubuntu"))
             )
             .is_ok());
+        let gc = GlobalContext { enum_list: EnumList::new(), var_context: context, parameter_defaults: HashMap::new() };
 
         assert_eq!(
-            c.get_variable(Some(&gc), ident("var3")),
+            gc.get_variable(Some(&c), ident("var3")),
             Some(&VarKind::Enum(ident("enum2"), None))
         );
         assert_eq!(
-            c.get_variable(Some(&gc), ident("var2")),
+            gc.get_variable(Some(&c), ident("var2")),
             Some(&VarKind::Enum(ident("enum1"), Some(ident("debian"))))
         );
         assert_eq!(

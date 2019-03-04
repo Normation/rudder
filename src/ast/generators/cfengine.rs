@@ -59,6 +59,7 @@ impl CFEngine {
                     .as_str()
                     + "\""
             }
+            Value::EnumExpression(e) => "".into(), // TODO
         }
     }
 

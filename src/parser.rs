@@ -153,6 +153,18 @@ pub enum PEnumExpression<'src> {
     Not(Box<PEnumExpression<'src>>),
     Default(Token<'src>),
 }
+impl<'src> PEnumExpression<'src> {
+    // extract the first token of the expression
+    pub fn token(&self) -> Token<'src> {
+        match self {
+            PEnumExpression::Compare(_,_,v) => *v,
+            PEnumExpression::And(a,_) => a.token(),
+            PEnumExpression::Or(a,_) => a.token(),
+            PEnumExpression::Not(a) => a.token(),
+            PEnumExpression::Default(t) => *t,
+        }
+    }
+}
 pnamed!(pub penum_expression<PEnumExpression>,
     // an expression must be exact (ie full string) as this parser can be used in isolation
     or_fail!(exact!(
@@ -336,6 +348,15 @@ pub enum PValue<'src> {
     String(Token<'src>, String),
     //    something else that
     EnumExpression(PEnumExpression<'src>),
+}
+
+impl<'src> PValue<'src> {
+    pub fn get_type(&self) -> PType {
+        match self {
+            PValue::String(_,_) => PType::TString,
+            PValue::EnumExpression(_) => PType::TBoolean,
+        }
+    }
 }
 
 pnamed!(

@@ -17,12 +17,12 @@ use std::fs;
 // - sous typage explicite mais pas chiant
 // - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ? quels sont les default intelligents ?
 // - a quoi ressemblent les iterators ?
+// - arguments non ordonnés pour les resources et les states ?
 //
 
 // TODO next step:
 // - boolean variables
 // - parent resource
-// - put enumlist into global context
 
 fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, filename: &'a str) {
     let content = fs::read_to_string(filename)

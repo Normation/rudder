@@ -213,7 +213,7 @@ pub enum Statement<'src> {
 }
 impl<'src> Statement<'src> {
     pub fn fom_pstatement<'b>(
-        global_context: &'b GlobalContext<'src>,
+        gc: &'b GlobalContext<'src>,
         context: &'b mut VarContext<'src>,
         children: &'b mut HashSet<Token<'src>>,
         st: PStatement<'src>,
@@ -223,15 +223,15 @@ impl<'src> Statement<'src> {
             PStatement::VariableDefinition(var, val) => {
                 let value = Value::from_pvalue(val)?;
                 // check that definition use existing variables
-                value.context_check(Some(&global_context.var_context), context)?;
-                context.new_variable(Some(&global_context.var_context), var, value.get_type())?;
+                value.context_check(gc, Some(context))?;
+                context.new_variable(Some(&gc.var_context), var, value.get_type())?;
                 Statement::VariableDefinition(var, value)
             }
             PStatement::StateCall(mode, res, res_params, st, params, out) => {
                 if let Some(out_var) = out {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
                     context.new_enum_variable(
-                        Some(&global_context.var_context),
+                        Some(&gc.var_context),
                         out_var,
                         Token::new("internal", "outcome"),
                         None,
@@ -240,7 +240,7 @@ impl<'src> Statement<'src> {
                 children.insert(res);
                 let mut res_parameters =
                     fix_vec_results(res_params.into_iter().map(Value::from_pvalue))?;
-                let res_defaults = &global_context.parameter_defaults[&(res, None)];
+                let res_defaults = &gc.parameter_defaults[&(res, None)];
                 let res_missing = res_defaults.len() as i32 - res_parameters.len() as i32;
                 if res_missing > 0 {
                     fix_results(
@@ -265,7 +265,7 @@ impl<'src> Statement<'src> {
                 }
                 let mut st_parameters =
                     fix_vec_results(params.into_iter().map(Value::from_pvalue))?;
-                let st_defaults = &global_context.parameter_defaults[&(res, Some(st))];
+                let st_defaults = &gc.parameter_defaults[&(res, Some(st))];
                 let st_missing = st_defaults.len() as i32 - st_parameters.len() as i32;
                 if st_missing > 0 {
                     fix_results(
@@ -286,19 +286,19 @@ impl<'src> Statement<'src> {
                 fix_results(
                     res_parameters
                         .iter()
-                        .map(|p| p.context_check(Some(&global_context.var_context), context)),
+                        .map(|p| p.context_check(gc, Some(context))),
                 )?;
                 fix_results(
                     st_parameters
                         .iter()
-                        .map(|p| p.context_check(Some(&global_context.var_context), context)),
+                        .map(|p| p.context_check(gc, Some(context))),
                 )?;
                 Statement::StateCall(mode, res, res_parameters, st, st_parameters, out)
             }
             PStatement::Fail(f) => {
                 let value = Value::from_pvalue(f)?;
                 // check that definition use existing variables
-                value.context_check(Some(&global_context.var_context), context)?;
+                value.context_check(gc, Some(context))?;
                 // we must fail with a string
                 match &value {
                     Value::String(_) => (),
@@ -309,7 +309,7 @@ impl<'src> Statement<'src> {
             PStatement::Log(l) => {
                 let value = Value::from_pvalue(l)?;
                 // check that definition use existing variables
-                value.context_check(Some(&global_context.var_context), context)?;
+                value.context_check(gc, Some(context))?;
                 // we must fail with a string
                 match &value {
                     Value::String(_) => (),
@@ -337,13 +337,13 @@ impl<'src> Statement<'src> {
                 fix_vec_results(v.into_iter().map(|(exp_str, sts)| {
                     let exp = parse_enum_expression(exp_str)?;
                     Ok((
-                        global_context.enum_list.canonify_expression(
-                            Some(&global_context.var_context),
-                            context,
+                        gc.enum_list.canonify_expression(
+                            gc,
+                            Some(context),
                             exp,
                         )?,
                         fix_vec_results(sts.into_iter().map(|st| {
-                            Statement::fom_pstatement(global_context, context, children, st)
+                            Statement::fom_pstatement(gc, context, children, st)
                         }))?,
                     ))
                 }))?,

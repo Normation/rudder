@@ -1,6 +1,8 @@
-use super::context::VarContext;
 use crate::error::*;
 use crate::parser::*;
+use super::context::VarContext;
+use super::enums::{EnumList,EnumExpression};
+use crate::ast::context::GlobalContext;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct StringObject<'src> {
@@ -38,42 +40,50 @@ impl<'src> StringObject<'src> {
 pub enum Value<'src> {
     //     position   format  variables
     String(StringObject<'src>),
+    EnumExpression(EnumExpression<'src>),
 }
 impl<'src> Value<'src> {
-    pub fn from_pvalue(pvalue: PValue<'src>) -> Result<Value<'src>> {
+    pub fn from_pvalue(pvalue: PValue<'src>/*, gc: &GlobalContext<'src>, lc: &Option<VarContext<'src>>*/) -> Result<Value<'src>> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
-            _ => unimplemented!(), // TODO
+            PValue::EnumExpression(e) =>unimplemented!()
+                /*Ok(Value::EnumExpression(
+                gc.enum_list.canonify_expression(&Some(gc.var_context),lc,e)?
+            )),*/
         }
     }
 
     pub fn from_static_pvalue(pvalue: PValue<'src>) -> Result<Value<'src>> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
-            _ => unimplemented!(), // TODO
+            PValue::EnumExpression(e) => fail!(e.token(), "Enum expression are not allowed in static context"),
         }
     }
 
+    // TODO check where it is called
     pub fn context_check(
         &self,
-        gc: Option<&VarContext<'src>>,
-        context: &VarContext<'src>,
+        gc: &GlobalContext<'src>,
+        lc: Option<&VarContext<'src>>,
     ) -> Result<()> {
         match self {
             Value::String(s) => {
                 fix_results(s.vars.iter().map(
-                    |v| match context.get_variable(gc, Token::new("", v)) {
+                    |v| match gc.get_variable(lc, Token::new("", v)) {
                         None => fail!(s.pos, "Variable {} does not exist at {}", v, s.pos),
                         _ => Ok(()),
                     },
                 ))
-            }
+            },
+            Value::EnumExpression(_) => Ok(()), // check already done at enum creation
         }
     }
 
+    // TODO is it still useful given that it exists for PValue
     pub fn get_type(&self) -> PType {
         match self {
             Value::String(_) => PType::TString,
+            Value::EnumExpression(_) => PType::TBoolean,
         }
     }
 }

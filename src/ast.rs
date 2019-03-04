@@ -92,21 +92,24 @@ impl<'src> AST<'src> {
     /// Create global declarations structures and add global variables to context.
     /// Fill up the context with global variables.
     fn create_declarations(
-        context: &mut VarContext<'src>,
-        enum_list: &EnumList<'src>,
+        gc: &GlobalContext<'src>,
         variable_declarations: Vec<(Token<'src>, PValue<'src>)>,
     ) -> Result<HashMap<Token<'src>, Value<'src>>> {
-        fix_map_results(variable_declarations.into_iter().map(|(variable, value)| {
+        let mut declarations = HashMap::new();
+        fix_results(variable_declarations.into_iter().map(|(variable, value)| {
+            if declarations.contains_key(&variable) {
+                fail!(variable, "Variable {} already declared in {}", variable, declarations.entry(variable).key());
+            }
             let val = Value::from_pvalue(value)?;
-            context.new_variable(None, variable, val.get_type())?;
-            Ok((variable, val))
-        }))
+            declarations.insert(variable,val);
+            Ok(())
+        }))?;
+        Ok(declarations)
     }
 
     /// Create default values for all resource and state parameters that have defaults.
     fn create_default_values(
-        context: &VarContext<'src>,
-        enum_list: &EnumList<'src>,
+        gc: &GlobalContext<'src>,
         parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<PValue<'src>>>>,
     ) -> Result<HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>> {
         fix_map_results(parameter_defaults.into_iter().map(|(id, defaults)| {
@@ -135,18 +138,23 @@ impl<'src> AST<'src> {
         let mut var_context = VarContext::new();
         // first create enums since they have no dependencies
         let enum_list = AST::create_enums(&mut var_context, enums, enum_mappings)?;
-        // variables depend on enums
-        let variable_declarations =
-            AST::create_declarations(&mut var_context, &enum_list, variable_declarations)?;
-        // default parameters depend on globals
-        let parameter_defaults =
-            AST::create_default_values(&var_context, &enum_list, parameter_defaults)?;
-        // resources depend on everything else
-        let global_context = GlobalContext {
+        // global context depends on enums
+        fix_results(variable_declarations.iter().map(|(variable, value)|
+            var_context.new_variable(None, *variable, value.get_type())
+        ))?;
+        let mut global_context = GlobalContext {
             var_context,
             enum_list,
-            parameter_defaults,
+            parameter_defaults: HashMap::new(),
         };
+        // variable declaration depends on global context and enums
+        let variable_declarations =
+            AST::create_declarations(&global_context, variable_declarations)?;
+        // default parameters depend on globals
+        let parameter_defaults =
+            AST::create_default_values(&global_context, parameter_defaults)?;
+        global_context.parameter_defaults = parameter_defaults;
+        // resources depend on everything else
         let resources = fix_map_results(resources.into_iter().map(|(rn, rd)| {
             Ok((
                 rn,
@@ -240,8 +248,8 @@ impl<'src> AST<'src> {
         match statement {
             Statement::Case(case, cases) => {
                 self.global_context.enum_list.evaluate(
-                    Some(&self.global_context.var_context),
-                    variables,
+                    &self.global_context,
+                    Some(variables),
                     cases,
                     *case,
                 )?;
@@ -266,7 +274,8 @@ impl<'src> AST<'src> {
                             k
                         );
                     }
-                }
+                },
+                Value::EnumExpression(e) => unimplemented!() // TODO e.token
             }
             Ok(())
         }))
@@ -425,6 +434,7 @@ impl<'src> AST<'src> {
             }
         }
         // analyze global vars
+        // TODO what about local var ?
         for (name, _value) in self.global_context.var_context.iter() {
             // check for invalid variable name
             errors.push(self.invalid_variable_check(*name, true));
