@@ -411,6 +411,7 @@ pub struct PResourceDef<'src> {
     pub name: Token<'src>,
     pub parameters: Vec<PParameter<'src>>,
     pub parameter_defaults: Vec<Option<PValue<'src>>>,
+    pub parent: Option<Token<'src>>,
 }
 pnamed!(
     presource_def<PResourceDef>,
@@ -420,12 +421,14 @@ pnamed!(
             >> tag!("(")
             >> parameter_list: separated_list!(tag!(","), pparameter)
             >> or_fail!(tag!(")"), PError::UnterminatedDelimiter)
+            >> parent: opt!(sp!(preceded!(tag!(":"),pidentifier)))
             >> ({
                 let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
                 PResourceDef {
                     name,
                     parameters,
                     parameter_defaults,
+                    parent,
                 }
             })
     ))
@@ -1035,6 +1038,7 @@ mod tests {
                     name: "hello".into(),
                     parameters: vec![],
                     parameter_defaults: vec![],
+                    parent: None,
                 }
             ))
         );
@@ -1046,6 +1050,19 @@ mod tests {
                     name: "hello2".into(),
                     parameters: vec![],
                     parameter_defaults: vec![],
+                    parent: None,
+                }
+            ))
+        );
+        assert_eq!(
+            mapok(presource_def(pinput("", "resource  hello2 ( ): hello3"))),
+            Ok((
+                "",
+                PResourceDef {
+                    name: "hello2".into(),
+                    parameters: vec![],
+                    parameter_defaults: vec![],
+                    parent: Some("hello3".into()),
                 }
             ))
         );
@@ -1066,6 +1083,7 @@ mod tests {
                         }
                     ],
                     parameter_defaults: vec![None, None],
+                    parent: None,
                 }
             ))
         );

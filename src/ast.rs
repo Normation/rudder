@@ -12,7 +12,7 @@ mod value;
 /// The generator submodule contains a generator trait used to generate code.
 /// It is then split into one module per agent.
 ///
-pub use self::codeindex::CodeIndex;
+pub use self::codeindex::{CodeIndex,ResourceDeclaration};
 use self::context::VarContext;
 use self::enums::{EnumExpression, EnumList};
 use self::resource::*;
@@ -125,6 +125,23 @@ impl<'src> AST<'src> {
         }))
     }
 
+    /// Produce the statically declared list of children for each resource.
+    /// This will be extended with the dynamically generated one from state declarations.
+    fn create_children_list(parents: Vec<(Token<'src>, Token<'src>)>,
+                        resources: &HashMap<Token<'src>, ResourceDeclaration<'src>>) -> Result<HashMap<Token<'src>,HashSet<Token<'src>>>> {
+        let mut children_list = HashMap::new();
+        for (child,parent) in parents {
+            if !resources.contains_key(&parent) {
+                fail!(child, "Resource {} declares {} as a parent, but it doesn't exist", child, parent);
+            }
+            if !children_list.contains_key(&parent) {
+                children_list.insert(parent,HashSet::new());
+            }
+            children_list.get_mut(&parent).unwrap().insert(child);
+        }
+        Ok(children_list)
+    }
+
     /// Produce the final AST data structure.
     /// Call this when all files have been added.
     pub fn from_code_index(code_index: CodeIndex) -> Result<AST> {
@@ -134,6 +151,7 @@ impl<'src> AST<'src> {
             resources,
             variable_declarations,
             parameter_defaults,
+            parents,
         } = code_index;
         let mut var_context = VarContext::new();
         // first create enums since they have no dependencies
@@ -154,11 +172,17 @@ impl<'src> AST<'src> {
         let parameter_defaults =
             AST::create_default_values(&global_context, parameter_defaults)?;
         global_context.parameter_defaults = parameter_defaults;
+        // prepare children list for each resource
+        let mut children_list = AST::create_children_list(parents, &resources)?;
         // resources depend on everything else
         let resources = fix_map_results(resources.into_iter().map(|(rn, rd)| {
+            let children = match children_list.remove(&rn) {
+                None => HashSet::new(),
+                Some(ch) => ch,
+            };
             Ok((
                 rn,
-                ResourceDef::from_resource_declaration(rn, rd, &global_context)?,
+                ResourceDef::from_resource_declaration(rn, rd, children, &global_context)?,
             ))
         }))?;
         Ok(AST {

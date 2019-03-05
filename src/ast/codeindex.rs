@@ -21,6 +21,8 @@ pub struct CodeIndex<'src> {
     pub resources: HashMap<Token<'src>, ResourceDeclaration<'src>>,
     pub variable_declarations: Vec<(Token<'src>, PValue<'src>)>,
     pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<PValue<'src>>>>,
+                      // child    parent
+    pub parents: Vec<(Token<'src>, Token<'src>)>,
 }
 
 impl<'src> CodeIndex<'src> {
@@ -31,6 +33,7 @@ impl<'src> CodeIndex<'src> {
             resources: HashMap::new(),
             variable_declarations: Vec::new(),
             parameter_defaults: HashMap::new(),
+            parents: Vec::new(),
         }
     }
 
@@ -88,6 +91,7 @@ impl<'src> CodeIndex<'src> {
                         name,
                         parameters,
                         parameter_defaults,
+                        parent,
                     } = rd;
                     if self.resources.contains_key(&name) {
                         fail!(
@@ -107,6 +111,10 @@ impl<'src> CodeIndex<'src> {
                     };
                     // store resource declaration
                     self.resources.insert(name, resource);
+                    // parents are stored in a separate structure
+                    if let Some(parent_name) = parent {
+                        self.parents.push((name, parent_name));
+                    }
                     // default values are stored in a separate structure
                     self.parameter_defaults
                         .insert((name, None), parameter_defaults);

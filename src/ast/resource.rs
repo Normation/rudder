@@ -59,6 +59,7 @@ impl<'src> ResourceDef<'src> {
     pub fn from_resource_declaration(
         name: Token<'src>,
         resource_declaration: ResourceDeclaration<'src>,
+        mut children: HashSet<Token<'src>>,
         global_context: &GlobalContext<'src>,
     ) -> Result<ResourceDef<'src>> {
         let ResourceDeclaration {
@@ -74,7 +75,6 @@ impl<'src> ResourceDef<'src> {
             &global_context.parameter_defaults[&(name, None)],
         )?;
         // create final version of states
-        let mut children = HashSet::new();
         let states = fix_map_results(pstates.into_iter().map(|(sn, (pmetadata, st))| {
             Ok((
                 sn,
@@ -88,6 +88,7 @@ impl<'src> ResourceDef<'src> {
                 )?,
             ))
         }))?;
+        // fill up children from parents declaration
         Ok(ResourceDef {
             metadata,
             parameters,
