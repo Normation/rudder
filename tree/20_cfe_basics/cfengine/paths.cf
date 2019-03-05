@@ -106,6 +106,17 @@ bundle common paths
     !_have_bin_systemctl::
       "path[systemctl]"      string => "/usr/bin/systemctl";
 
+    _have_bin_journalctl::
+      "path[journalctl]"     string => "/bin/journalctl";
+    !_have_bin_journalctl::
+      "path[journalctl]"     string => "/usr/bin/journalctl";
+
+    _have_bin_timedatectl::
+      "path[timedatectl]"    string => "/bin/timedatectl";
+    !_have_bin_timedatectl::
+      "path[timedatectl]"    string => "/usr/bin/timedatectl";
+
+
     linux::
       "path[lsattr]"        string => "/usr/bin/lsattr";
       "path[tar]"           string => "/bin/tar";
@@ -553,6 +564,8 @@ bundle common paths
   classes:
       "_have_bin_env" expression => fileexists("/bin/env");
       "_have_bin_systemctl" expression => fileexists("/bin/systemctl");
+      "_have_bin_timedatectl" expression => fileexists("/bin/timedatectl");
+      "_have_bin_journalctl"  expression => fileexists("/bin/journalctl");
 
       "_stdlib_has_path_$(all_paths)"
       expression => isvariable("$(all_paths)"),
