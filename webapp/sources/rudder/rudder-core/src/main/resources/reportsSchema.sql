@@ -451,8 +451,9 @@ CREATE TABLE Rules (
 CREATE TABLE RulesGroupJoin (
   rulePkeyId integer -- really the id of the table Rules
 , targetSerialisation text
-, PRIMARY KEY(rulePkeyId, targetSerialisation)
 );
+
+CREATE INDEX rulegroupjoin_id_group on rulesgroupjoin (rulePkeyId);
 
 CREATE TABLE RulesDirectivesJoin (
   rulePkeyId integer -- really the id of the table Rules
