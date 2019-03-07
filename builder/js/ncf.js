@@ -35,6 +35,16 @@ function findIndex(array, elem) {
     }
     return -1;
 };
+// check if the parameter used contains $(somecontent), where somecontent is neither
+// a valid variable name (key.value), nor does contain /
+// If the content is invalid, returns true, else false
+var re = new RegExp(/\$\([^./]*\)/, 'm');
+
+function detectIfVariableIsInvalid(parameter) {
+  return re.test(parameter);
+}
+
+
 
 // define ncf app, using ui-bootstrap and its default templates
 var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast', 'dndLists', 'ngMessages'])
@@ -1150,6 +1160,29 @@ $scope.onImportFileChange = function (fileEl) {
           $scope.selectedMethod = undefined;
         }
         $scope.resetFlags();
+
+
+        var invalidParametersArray = [];
+	// Iterate over each parameters to ensure their validity
+        ncfTechnique.method_calls.forEach(
+          function(m) {
+            m.parameters.forEach(
+              function(parameter) {
+                var value = parameter.value;
+                if (detectIfVariableIsInvalid(value)) {
+                  invalidContent.push("<div>In generic method: <b>" +m.component + "</b>,  parameter: " + parameter.name + " has incorrect value " + value+"</div>");
+                }
+              }
+            )
+          }
+        );
+
+        if (invalidParametersArray.length > 0) {
+          ngToast.create({ content: "<b>Caution! </b> Some variables might be invalid (containing $() without . nor /):<br/>" + invalidParametersArray.join("<br/>"), className: 'warning'});
+        }
+        ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
+
+
         ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
         // Find index of the technique in the actual tree of technique (look for original technique)
         var index = findIndex($scope.techniques,origin_technique);
