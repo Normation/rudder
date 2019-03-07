@@ -128,7 +128,7 @@ class AgentRegister {
           s"""for nodes behind it unavailable. Maybe you are missing 'scale out' plugin?"""
         } else {
           s"""We could not generate policies for node '${agentNodeProps.nodeId.value}' based on """ +
-          s"""'${agentNodeProps.agentType.toString()}' agent and '${agentNodeProps.osDetails.fullName}' system. Maybe you are missing a dedicated plugin ?"""
+          s"""'${agentNodeProps.agentType.toString()}' agent and '${agentNodeProps.osDetails.fullName}' system. Maybe you are missing a dedicated plugin?"""
         }
         Failure(msg)
 
