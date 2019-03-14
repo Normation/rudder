@@ -34,6 +34,7 @@
   min-width: 250px;
   outline: none !important;
   transition-duration: .2s;
+  background-color: #fff;
 }
 .dataTables_filter input:focus{
   border-color: #c1c1c1;
@@ -65,6 +66,15 @@
 /* </THEAD> */
 
 /* <TH> */
+.dataTable tr.head th .DataTables_sort_wrapper {
+  top: 1px;
+  position: relative;
+  padding-right: 4px;
+}
+.dataTable tr.head th .DataTables_sort_wrapper .DataTables_sort_icon{
+  position: absolute;
+}
+
 .dataTable tr.head th{
   padding: 10px 6px;
   outline: none !important;
@@ -105,6 +115,30 @@
 }
 .DataTables_sort_icon.ui-icon-triangle-1-s:before{
     content: "\f0d7";
+}
+td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.AuditCompliant,td.Compliant,td.NotApplicable,td.Success{
+  background-color:#9bc832;
+  color: #fff;
+}
+td.AuditNonCompliant,td.NonCompliant {
+  background-color:#ff7125;
+  color: #fff;
+}
+td.Missing,td.EnforceError,td.AuditError,td.Error,td.Unexpected,td.BadPolicyMode {
+  background-color:#c9302c;
+  color: #fff;
+}
+td.Pending{
+  background-color: #5bc0de;
+  color: #fff;
+}
+td.Disabled, td.NoAnswer {
+  background-color: #b4b4b4;
+  color: #fff;
+}
+td.Repaired{
+  background-color: #F5DD4D;
+  color: #333;
 }
 td.eventId{
   position:relative
@@ -149,7 +183,7 @@ td.listclose:after {
   border-top: none;
 }
 .dataTable > tbody > tr.color2{
-  background-color: #f7f7f7;
+  background-color: #f2f8ff;
 }
 .dataTable > tbody > tr:hover{
   background-color: #e2f2ff;
@@ -185,8 +219,13 @@ td.listclose:after {
 .dataTable > tbody > tr > td .label-text {
   cursor: help;
   padding: 4px 0;
+  text-align: left;
+  float: initial;
+  margin-left: 0;
 }
-
+.dataTable > tbody > tr > td .label-text:before {
+  margin-left: 4px;
+}
 .dataTable .innerDetails {
   display: none;
   background : #f5f6f7;
