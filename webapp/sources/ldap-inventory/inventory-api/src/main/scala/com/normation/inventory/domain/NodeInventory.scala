@@ -41,7 +41,6 @@ import java.net.InetAddress
 
 import com.normation.utils.HashcodeCaching
 import org.joda.time.DateTime
-import net.liftweb.common._
 import net.liftweb.json.JsonAST.JValue
 
 sealed trait NodeElement {
@@ -344,11 +343,11 @@ final case class CustomProperty(
 )
 
 object KeyStatus {
-  def apply(value : String) : Box[KeyStatus] = {
+  def apply(value : String) : Either[InventoryError.SecurityToken, KeyStatus] = {
     value match {
-      case CertifiedKey.value => Full(CertifiedKey)
-      case UndefinedKey.value => Full(UndefinedKey)
-      case _ => Failure(s"${value} is not a valid key status")
+      case CertifiedKey.value => Right(CertifiedKey)
+      case UndefinedKey.value => Right(UndefinedKey)
+      case _ => Left(InventoryError.SecurityToken(s"${value} is not a valid key status"))
     }
   }
 }

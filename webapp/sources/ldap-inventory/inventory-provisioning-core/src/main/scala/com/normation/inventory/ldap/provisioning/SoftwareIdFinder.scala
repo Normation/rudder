@@ -44,8 +44,9 @@ import BuildFilter._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
 import com.normation.inventory.domain._
-import net.liftweb.common.Box
 import org.slf4j.LoggerFactory
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 object NameAndVersionIdFinder {
   val logger = LoggerFactory.getLogger(classOf[NameAndVersionIdFinder])
@@ -63,7 +64,7 @@ class NameAndVersionIdFinder(
 ) extends SoftwareDNFinderAction {
 
   //the onlyTypes is an AND filter
-  override def tryWith(entities:Set[Software]) : Box[MergedSoftware] = {
+  override def tryWith(entities:Set[Software]) : Task[Option[MergedSoftware]] = {
 
 
     val filter = OR(entities.map { entity =>
@@ -82,10 +83,16 @@ class NameAndVersionIdFinder(
     }.toSeq:_*)
 
 
+    for {
+      con     <- ldapConnectionProvider
+      entries <- con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID, A_NAME, A_SOFT_VERSION)
+      softs   <- ZIO.foreach(entries)(e => mapper.softwareFromEntry(e) )
+    }
+
     ldapConnectionProvider.map { con =>
       //get potential entries, and only get the one with a A_SOFTWARE_UUID
       //return the list of A_SOFTWARE_UUID sorted
-      val merged = con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID, A_NAME, A_SOFT_VERSION).flatMap(e => mapper.softwareFromEntry(e) )
+      val merged = con.
 
       //now merge back
       (MergedSoftware(Set(),Set())/: entities) { case(ms, s) =>

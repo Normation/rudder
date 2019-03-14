@@ -66,7 +66,7 @@ import scala.tools.nsc.interpreter.InputStream
 import scala.util.control.NonFatal
 
 
-object InventoryLogger extends Logger {
+object InventoryProcessingLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("inventory-processing")
 }
 
@@ -114,7 +114,7 @@ class InventoryProcessor(
   , nodeInventoryDit: InventoryDit
 ) {
 
-  val logger = InventoryLogger
+  val logger = InventoryProcessingLogger
 
   // current queue size
   lazy val queueSize = AtomicInt(0)

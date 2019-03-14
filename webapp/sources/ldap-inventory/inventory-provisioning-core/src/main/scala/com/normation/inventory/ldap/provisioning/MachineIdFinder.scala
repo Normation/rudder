@@ -45,6 +45,9 @@ import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
 import net.liftweb.common._
+import com.normation.ldap.sdk.LdapResult._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 
 /////
@@ -59,14 +62,17 @@ class UseExistingMachineIdFinder(
     ldap:LDAPConnectionProvider[RoLDAPConnection],
     rootDN:DN
 ) extends MachineDNFinderAction {
-  override def tryWith(entity:MachineInventory) : Box[(MachineUuid, InventoryStatus)] = {
-    for {
-      con <- ldap
-      entry <- con.searchSub(rootDN, AND(IS(OC_MACHINE),EQ(A_MACHINE_UUID, entity.id.value)), "1.1").headOption //TODO: error if more than one !! #555
-      dit <- inventoryDitService.getDit(entry.dn)
+  override def tryWith(entity:MachineInventory) : Task[Option[(MachineUuid, InventoryStatus)]] = {
+    (for {
+      con   <- ldap
+      entry <- con.searchSub(rootDN, AND(IS(OC_MACHINE),EQ(A_MACHINE_UUID, entity.id.value)), "1.1").map(_.headOption).notOptional(s"No machine entry found for id '${entity.id.value}'") //TODO: error if more than one !! #555
+      dit   <- inventoryDitService.getDit(entry.dn) match {
+                 case None    => s"No DIT found for machine DN ${entry.dn}"
+                 case Some(x) => x.succeed
+               }
     } yield {
-      (entity.id, inventoryDitService.getInventoryStatus(dit) )
-    }
+      Some((entity.id, inventoryDitService.getInventoryStatus(dit) ))
+    }).mapError(e => new Exception(e.msg))
   }
 }
 
@@ -81,32 +87,31 @@ class FromMotherBoardUuidIdFinder(
 ) extends MachineDNFinderAction with Loggable {
 
   //the onlyTypes is an AND filter
-  override def tryWith(entity:MachineInventory) : Box[(MachineUuid,InventoryStatus)] = {
+  override def tryWith(entity:MachineInventory) : Task[Option[(MachineUuid,InventoryStatus)]] = {
     entity.mbUuid match {
-      case None => Empty
-      case Some(uuid) => {
+      case None       => None.succeed
+      case Some(uuid) =>
         //build filter
-        val uuidFilter = AND(HAS(A_MACHINE_UUID),EQ(A_MB_UUID,uuid.value))
+        val uuidFilter = AND(HAS(A_MACHINE_UUID), EQ(A_MB_UUID,uuid.value))
 
-        ldapConnectionProvider.flatMap { con =>
-          val entries = con.searchOne(dit.MACHINES.dn, uuidFilter, A_MACHINE_UUID)
-          if(entries.size >= 1) {
-            if(entries.size > 1) {
-            /*
-             * that means that several os have the same public key, probably they should be
-             * merge. Notify the human merger service for candidate.
-             * For that case, take the first one
-             */
-            //TODO : notify merge
-              logger.info("Several ids found with UUID '%s':".format(uuid.value))
-              for(e <- entries) {
-                logger.info("-> %s".format(e(A_MACHINE_UUID).get))
-              }
-            }
-            Full((MachineUuid(entries(0)(A_MACHINE_UUID).get),inventoryDitService.getInventoryStatus(dit)))
-          } else Empty
-        }
-      }
+        (for {
+          con     <- ldapConnectionProvider
+          entries <- con.searchOne(dit.MACHINES.dn, uuidFilter, A_MACHINE_UUID)
+          res     <- (if(entries.size >= 1) {
+                      /*
+                       * that means that several os have the same public key, probably they should be
+                       * merge. Notify the human merger service for candidate.
+                       * For that case, take the first one
+                       */
+                      InventoryLogger.info("Several ids found with UUID '%s':".format(uuid.value)) *>
+                      ZIO.foreach(entries) { e =>
+                        InventoryLogger.info(s"-> ${e(A_MACHINE_UUID).get}")
+                      } *>
+                      Some((MachineUuid(entries(0)(A_MACHINE_UUID).get),inventoryDitService.getInventoryStatus(dit))).succeed
+                    } else None.succeed)
+        } yield {
+          res
+        }).mapError(e => new Exception(e.msg))
     }
   }
 }

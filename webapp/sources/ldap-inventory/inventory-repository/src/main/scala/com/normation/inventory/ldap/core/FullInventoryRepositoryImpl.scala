@@ -39,17 +39,22 @@ package com.normation.inventory.ldap.core
 
 
 import LDAPConstants.{A_CONTAINER_DN, A_NODE_UUID}
-import cats.implicits._
+import cats.data.NonEmptyList
 import com.normation.inventory.services.core._
 import com.normation.inventory.domain._
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk._
-import net.liftweb.common._
+import com.normation.inventory.domain.InventoryResult._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldap.sdk.{Modification, ModificationType}
 import com.normation.ldap.sdk.BuildFilter.EQ
 import com.unboundid.ldap.sdk.DN
 import com.normation.ldap.sdk.LdapResult._
+import scalaz.zio._
+import scalaz.zio.syntax._
+import scalaz.zio.interop.catz._
+import cats.implicits._
+import com.normation.zio._
 
 trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChangeRecord]]
 
@@ -60,7 +65,7 @@ class FullInventoryRepositoryImpl(
     inventoryDitService: InventoryDitService
   , mapper             : InventoryMapper
   , ldap               : LDAPConnectionProvider[RwLDAPConnection]
-) extends MachineRepository[Seq[LDIFChangeRecord]] with LDAPFullInventoryRepository with Loggable {
+) extends MachineRepository[Seq[LDIFChangeRecord]] with LDAPFullInventoryRepository {
 
 
   /**
@@ -76,10 +81,6 @@ class FullInventoryRepositoryImpl(
     inventoryDitService.getDit(inventoryStatus).NODES.dn
   }
 
-  private[this] def findDnForMachine(con: RwLDAPConnection, id:MachineUuid): Option[DN] = {
-    Seq(AcceptedInventory, PendingInventory, RemovedInventory).find(s => con.exists(dn(id,s))).map(dn(id, _))
-  }
-
   /*
    * return the list of status for machine, in the order:
    * index 0: Accepted
@@ -87,39 +88,58 @@ class FullInventoryRepositoryImpl(
    * index 2: Removed
    *
    */
-  private[this] def getExistingMachineDN(con: RwLDAPConnection, id: MachineUuid): Seq[(Boolean, DN)] = {
+  private[this] def getExistingMachineDN(con: RwLDAPConnection, id: MachineUuid): LdapResult[Seq[(Boolean, DN)]] = {
     val status = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
-    status.map{ x =>
+    ZIO.foreach(status) { x =>
       val d = dn(id, x)
-      val exists = con.exists(d)
-      (exists, d)
+      con.exists(d).map(exists => (exists, d))
+    }
+  }
+
+  /*
+   * find the first dn matching ID, starting with accepted, then pending, then deleted
+   */
+  private[this] def findDnForId[ID](con: RwLDAPConnection, id:ID, fdn:(ID, InventoryStatus) => DN): LdapResult[Option[(DN, InventoryStatus)]] = {
+    IO.foldLeft(Seq(AcceptedInventory, PendingInventory, RemovedInventory))(Option.empty[(DN, InventoryStatus)]) { (current, inventory) =>
+      current match {
+        case None     =>
+          val testdn = fdn(id, inventory)
+          for {
+            res <- con.exists(testdn)
+          } yield {
+            if(res) Some((testdn, inventory)) else None
+          }
+        case Some(pair) => Some(pair).succeed
+      }
+
     }
   }
 
   /**
    * Get a machine by its ID
    */
-  override def get(id:MachineUuid) : Box[Option[MachineInventory]] = {
-    (for {
+  override def get(id:MachineUuid) : InventoryResult[Option[MachineInventory]] = {
+    for {
       con     <- ldap
-      machine <- findDnForMachine(con, id) match {
-                      case Some(x) =>
+      optDn   <- findDnForId[MachineUuid](con, id, dn)
+      machine <- optDn match {
+                      case Some((x, _)) =>
                         for {
                           tree    <- con.getTree(x)
                           machine <- tree match {
-                                       case None    => None.success
+                                       case None    => None.succeed
                                        case Some(t) => mapper.machineFromTree(t).toLdapResult.map(Some(_))
                                      }
                         } yield {
                           machine
                         }
                       case None    =>
-                        None.success
+                        None.succeed
                     }
     } yield {
       machine
-    }).toBox
-  }
+    }
+  }.mapError(_.chainError(s"Error when getting machine with ID '${id.value}'"))
 
   /*
    * For a given machine, find all the node that use it
@@ -136,9 +156,8 @@ class FullInventoryRepositoryImpl(
     }
 
     //only add keys for non empty node list
-    import cats.implicits._
     for {
-      res <- List(PendingInventory, AcceptedInventory, RemovedInventory).traverse{ status =>
+      res <- IO.foreach(List(PendingInventory, AcceptedInventory, RemovedInventory)){ status =>
                machineForNodeStatus(con, status).map(r => (status, r))
              }
     } yield {
@@ -156,27 +175,28 @@ class FullInventoryRepositoryImpl(
       case Some((id, status)) => new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(id, status).toString)
     }
 
-    (nodes.values.flatten.map( _.dn).toList.traverse { dn =>
-      con.modify(dn, mod).toValidatedNel
-    }).toLdapResult
+    val res: ZIO[Any, NonEmptyList[LdapResultRudderError], List[LDIFChangeRecord]] = nodes.values.flatten.map( _.dn).accumulate { dn =>
+      con.modify(dn, mod)
+    }
+    res.toLdapResult
   }
 
-  override def save(machine:MachineInventory) : Box[Seq[LDIFChangeRecord]] = {
-    (for {
+  override def save(machine: MachineInventory) : InventoryResult[Seq[LDIFChangeRecord]] = {
+    for {
       con <- ldap
       res <- con.saveTree(mapper.treeFromMachine(machine))
-    } yield res).toBox
-  }
+    } yield res
+  }.mapError(_.chainError(s"Error when saving machine with ID '${machine.id.value}'"))
 
-  override def delete(id:MachineUuid) : Box[Seq[LDIFChangeRecord]] = {
-    (for {
+  override def delete(id:MachineUuid) : InventoryResult[Seq[LDIFChangeRecord]] = {
+    for {
        con      <- ldap
-       machines =  getExistingMachineDN(con,id).collect { case(exists,dn) if exists => dn }.toList
-       res      <- machines.traverse( dn => con.delete(dn).toValidatedNel ).toLdapResult
+       machines <- getExistingMachineDN(con,id).map( _.collect { case(exists,dn) if exists => dn }.toList)
+       res      <- machines.accumulate( dn => con.delete(dn) ).toLdapResult
        machine  <- getNodesForMachine(con, id)
        nodes    <- updateNodes(con, machine, None)
-    } yield res.flatten ++ nodes).toBox
-  }
+    } yield res.flatten ++ nodes
+  }.mapError(_.chainError(s"Error when deleting machine with ID '${id.value}'"))
 
 
   /**
@@ -184,22 +204,21 @@ class FullInventoryRepositoryImpl(
    * as the node of highest priority (accepted > pending > removed),
    * and if no node, to the asked place.
    */
-  override def move(id:MachineUuid, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
+  override def move(id:MachineUuid, into : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
     val priorityStatus = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
-    (for {
+    for {
       con <- ldap
       nodes <- getNodesForMachine(con, id)
       intoStatus = priorityStatus.find(x => nodes.isDefinedAt(x) && nodes(x).size > 0).getOrElse(into)
       //now, check what to do:
       //if the machine is already in the target, does nothing
       //else, move
+      machinePresences <- getExistingMachineDN(con, id)
       moved <- {
-                 val machinePresences = getExistingMachineDN(con, id)
-
                  val machineToKeep = machinePresences.find( _._1 ).map( _._2)
 
                  machineToKeep match {
-                   case None => Seq().success
+                   case None => Seq().succeed
                    case Some(machineDN) =>
 
                      def testAndMove(i:Int) = {
@@ -225,43 +244,43 @@ class FullInventoryRepositoryImpl(
       nodes <- updateNodes(con, nodes, Some((id, intoStatus)))
     } yield {
      moved++nodes
-    }).toBox
-  }
+    }
+  }.mapError(_.chainError(s"Error when moving machine with ID '${id.value}'"))
 
   /**
    * Note: it may happen strange things between get:ServerAndMachine and Node if there is
    * several machine for one server, and that the first retrieved is not always the same.
    */
-  override def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : Box[Option[(MachineUuid,InventoryStatus)]] = {
-    (for {
+  override def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : InventoryResult[Option[(MachineUuid,InventoryStatus)]] = {
+   for {
       con       <- ldap
       entry     <- con.get(dn(id, inventoryStatus), A_CONTAINER_DN)
       machineId <- entry match {
-                     case None    => None.success
-                     case Some(e) => mapper.mapSeqStringToMachineIdAndStatus(e.valuesFor(A_CONTAINER_DN)).headOption.success
+                     case None    => None.succeed
+                     case Some(e) => mapper.mapSeqStringToMachineIdAndStatus(e.valuesFor(A_CONTAINER_DN)).headOption.succeed
                    }
-    } yield {
+   } yield {
       machineId
-    }).toBox
-  }
+   }
+  }.mapError(_.chainError(s"Error when getting machine with ID '${id.value}' and status '${inventoryStatus.name}'"))
 
-  override def getAllNodeInventories(inventoryStatus : InventoryStatus): Box[Map[NodeId, NodeInventory]] = {
+  override def getAllNodeInventories(inventoryStatus : InventoryStatus): InventoryResult[Map[NodeId, NodeInventory]] = {
     (for {
       con       <- ldap
       nodeTrees <- con.getTree(inventoryDitService.getDit(inventoryStatus).NODES.dn)
       nodes     <- nodeTrees match {
-                     case Some(root) => root.children.values.toList.traverse { tree => mapper.nodeFromTree(tree).toLdapResult }
-                     case None       => Seq().success
+                     case Some(root) => ZIO.fromEither(root.children.values.toList.traverse { tree => mapper.nodeFromTree(tree) })
+                     case None       => Seq().succeed
                    }
     } yield {
       nodes.map(n => (n.main.id, n)).toMap
-    }).toBox
+    })
   }
 
 
-  override def getAllInventories(inventoryStatus : InventoryStatus): Box[Map[NodeId, FullInventory]] = {
+  override def getAllInventories(inventoryStatus : InventoryStatus): InventoryResult[Map[NodeId, FullInventory]] = {
 
-    (for {
+    for {
       con  <- ldap
       dit  = inventoryDitService.getDit(inventoryStatus)
       // Get base tree, we will go into each subtree after
@@ -269,17 +288,17 @@ class FullInventoryRepositoryImpl(
 
       // Get into Nodes subtree
       nodeTree    <- tree.flatMap(_.children.get(dit.NODES.rdn)) match {
-                      case None => LdapResultError.Consistancy(s"Could not find node inventories in ${dit.BASE_DN}").failure
-                      case Some(tree) => tree.success
+                      case None => LdapResultRudderError.Consistancy(s"Could not find node inventories in ${dit.BASE_DN}").fail
+                      case Some(tree) => tree.succeed
                      }
-      nodes       <- nodeTree.children.values.toList.traverse { tree => mapper.nodeFromTree(tree).toLdapResult }
+      nodes       <- nodeTree.children.values.toList.traverse { tree => mapper.nodeFromTree(tree) }
 
       // Get into Machines subtree
       machineTree <- tree.flatMap(_.children.get(dit.MACHINES.rdn)) match {
-                       case None => LdapResultError.Consistancy(s"Could not find machine inventories in ${dit.BASE_DN}").failure
-                       case Some(tree) => tree.success
+                       case None => LdapResultRudderError.Consistancy(s"Could not find machine inventories in ${dit.BASE_DN}").fail
+                       case Some(tree) => tree.succeed
                      }
-      machines    <- machineTree.children.values.toList.traverse { tree => mapper.machineFromTree(tree).toLdapResult }
+      machines    <- machineTree.children.values.toList.traverse { tree => mapper.machineFromTree(tree) }
 
     } yield {
       val machineMap =  machines.map(m => (m.id, m)).toMap
@@ -289,108 +308,103 @@ class FullInventoryRepositoryImpl(
           val inventory = FullInventory(node,machine)
           node.main.id ->  inventory
       } ).toMap
-    }).toBox
+    }
   }
 
 
-  override def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[Option[FullInventory]] = {
-    (for {
+  override def get(id:NodeId, inventoryStatus : InventoryStatus) : InventoryResult[Option[FullInventory]] = {
+    for {
       con    <- ldap
       tree   <- con.getTree(dn(id, inventoryStatus))
       server <- tree match {
                   case Some(t) => mapper.nodeFromTree(t).map(Some(_)).toLdapResult
-                  case None    => None.success
+                  case None    => None.succeed
                 }
       //now, try to add a machine
       optMachine <- {
         server.flatMap(_.machineId) match {
-          case None => None.success
+          case None => None.succeed
           case Some((machineId, status)) =>
             //here, we want to actually use the provided DN to:
             // 1/ not make 3 existence tests each time we get a node,
             // 2/ make the thing more debuggable. If we don't use the DN and display
             //    information taken elsewhere, future debugging will leads people to madness
-            con.getTree(dn(machineId, status)) match {
-              case Right(None)    => None.success
-              case Right(Some(x)) => mapper.machineFromTree(x).map(Some(_)).toLdapResult
-              case Left(error)    => error.failure
+            con.getTree(dn(machineId, status)).flatMap {
+              case None    => None.succeed
+              case Some(x) => mapper.machineFromTree(x).map(Some(_)).toLdapResult
             }
         }
       }
     } yield {
       server.map(s => FullInventory(s, optMachine))
-    }).toBox
-  }
-
-
-
-
-  override def get(id:NodeId) : Box[Option[FullInventory]] = {
-    def findDnForNode(con: RwLDAPConnection, id:NodeId): Option[InventoryStatus] = {
-      Seq(AcceptedInventory, PendingInventory, RemovedInventory).find(s => con.exists(dn(id,s)))
     }
+  }.mapError(_.chainError(s"Error when getting node with ID '${id.value}' and status ${inventoryStatus.name}"))
 
-    (for {
+
+
+
+  override def get(id: NodeId) : InventoryResult[Option[FullInventory]] = {
+    for {
       con    <- ldap
-      nodeDn =  findDnForNode(con,id)
+      nodeDn <- findDnForId[NodeId](con, id, dn).mapError(_.chainError(s"Error when getting DN for node with ID '${id.value}'"))
       inv    <- nodeDn match {
-                  case None    => None.success
-                  case Some(s) => get(id, s).toLdapResult
+                  case None    => None.succeed
+                  case Some((_, s)) => get(id, s)
                 }
     } yield {
       inv
-    }).toBox
-  }
+    }
+  }.mapError(_.chainError(s"Error when getting node with ID '${id.value}'"))
 
 
-  override def save(inventory:FullInventory) : Box[Seq[LDIFChangeRecord]] = {
+  override def save(inventory:FullInventory) : InventoryResult[Seq[LDIFChangeRecord]] = {
     (for {
       con        <- ldap
       resServer  <- con.saveTree(mapper.treeFromNode(inventory.node))
       resMachine <- inventory.machine match {
-                      case None => Seq().success
-                      case Some(m) => this.save(m).toLdapResult
+                      case None => Seq().succeed
+                      case Some(m) => this.save(m)
                     }
-    } yield resServer ++ resMachine).toBox
-  }
+    } yield resServer ++ resMachine)
+  }.mapError(_.chainError(s"Error when saving full inventory for node  with ID '${inventory.node.main.id.value}'"))
 
-  override def delete(id:NodeId, inventoryStatus : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
-    (for {
+  override def delete(id:NodeId, inventoryStatus : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
+    for {
       con          <- ldap
       //if there is only one node using the machine, delete it. Continue on error, but on success log ldif records
       //if several node use it, does nothing
-      optMachine    <- getMachineId(id, inventoryStatus).toLdapResult
+      optMachine    <- getMachineId(id, inventoryStatus)
       machineRecord <- optMachine match {
-                         case None => Seq().success
+                         case None => Seq().succeed
                          case Some((machineId, _)) =>
                            (for {
                              usingIt <- getNodesForMachine(con, machineId)
                              res <- {
                                        val nodes = usingIt.values.flatten.size
                                        if(nodes < 2) {
-                                         this.delete(machineId).toLdapResult
+                                         this.delete(machineId)
                                        } else {
-                                         Seq().success
+                                         Seq().succeed
                                        }
                                      }
                            } yield {
                              res
-                           }).fold(
+                           }).foldM(
                                 e => {
-                                  logger.warn(s"Error when trying to delete machine for server with id '${id.value}' and inventory status '${inventoryStatus}'. Message was: ${e.msg}")
-                                  Seq().success
-                                }, _.success
+                                  InventoryLogger.warn(s"Error when trying to delete machine for server with id '${id.value}' and inventory status '${inventoryStatus}'. Message was: ${e.msg}") *>
+                                  Seq().succeed
+                                }, _.succeed
                              )
                        }
       res <- con.delete(dn(id, inventoryStatus))
     } yield {
       res ++ machineRecord
-    }).toBox
-  }
+    }
+  }.mapError(_.chainError(s"Error when deleting node with ID '${id.value}'"))
 
-  override def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
-    if(from == into ) Full(Seq())
-    else (
+  override def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
+    if(from == into ) Seq().succeed
+    else
       for {
         con    <- ldap
         dnFrom =  dn(id, from)
@@ -398,41 +412,34 @@ class FullInventoryRepositoryImpl(
         moved  <- con.move(dnFrom, dnTo.getParent)
       } yield {
         Seq(moved)
-      }).toBox
-  }
+      }
+  }.mapError(_.chainError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}'"))
 
-  override def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
-    (for {
+  override def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
+    for {
       con    <- ldap
       dnFrom =  dn(id, from)
       dnTo   =  dn(id, into)
       moved  <- con.move(dnFrom, dnTo.getParent)
-    } yield {
       // try to move the referenced machine too, but move it to the same
       // status that the more prioritary node with
       // accepted > pending > deleted
       // logic in machine#move
-      val machineMoved = (
-        for {
-          optMachine <- getMachineId(id, into)
-          moved      <- optMachine match {
-                          case None                 => Full(Seq())
-                          case Some((machineId, _)) => move(machineId, into)
-                        }
-        } yield {
-          moved
-        }) match {
-          case eb:EmptyBox =>
-            val e = eb ?~! s"Error when updating the machine ID value for node '${id.value}' when moving it from '${from.name}' to '${into.name}'"
-            logger.error(e.messageChain)
-            e.rootExceptionCause.foreach { ex =>
-              logger.error("Exception was: ", ex)
-            }
-            Seq()
-          case Full(diff) => diff
-      }
+      machineMoved <- (for {
+                        optMachine <- getMachineId(id, into)
+                        moved      <- optMachine match {
+                                        case None                 => Seq().succeed
+                                        case Some((machineId, _)) => move(machineId, into)
+                                      }
+                      } yield {
+                        moved
+                      }).foldM(
+                        err => InventoryLogger.error(s"Error when updating the container value when moving nodes '${id.value}': ${err.msg}") *> Seq().succeed
+                      , diff => diff.succeed
+                      )
+    } yield {
       Seq(moved) ++ machineMoved
-    }).toBox
-  }
+    }
+  }.mapError(_.chainError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}' "))
 }
 

@@ -38,25 +38,27 @@
 package com.normation.inventory.ldap.core
 
 import scala.collection.mutable.Buffer
-import net.liftweb.common._
-import com.normation.ldap.sdk.{LDAPTree, LDAPEntry}
+import com.normation.inventory.domain.InventoryResult._
+import com.normation.ldap.sdk.LDAPEntry
 import com.normation.inventory.domain.FullInventory
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPTree
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 class FullInventoryFromLdapEntriesImpl(
-    inventoryDitService:InventoryDitService,
-    mapper:InventoryMapper
-) extends FullInventoryFromLdapEntries with Loggable {
+    inventoryDitService: InventoryDitService
+  , mapper             : InventoryMapper
+) extends FullInventoryFromLdapEntries {
 
 
   //a dit without base dn
-  override def fromLdapEntries(entries:Seq[LDAPEntry]) : Box[FullInventory] = {
+  override def fromLdapEntries(entries:Seq[LDAPEntry]) : InventoryResult[FullInventory] = {
     val serverElts = Buffer[LDAPEntry]()
     val machineElts = Buffer[LDAPEntry]()
 
     for {
       entry <- entries
-      dit <- inventoryDitService.getDit(entry.dn)
+      dit   <- inventoryDitService.getDit(entry.dn)
     } {
       if(entry.dn.getRDNs.contains(dit.NODES.rdn)) {
         serverElts += entry
@@ -65,14 +67,14 @@ class FullInventoryFromLdapEntriesImpl(
       } //else ignore, not a server/machine related entry
     }
 
-    for {
-      nodeTree   <- (LDAPTree(serverElts) ?~! "Error when building the tree of entries for the node").toBox
-      node       <- mapper.nodeFromTree(nodeTree)
-      optMachine <- if(machineElts.isEmpty) Full(None)
-                    else LDAPTree(machineElts).toBox.flatMap(t => mapper.machineFromTree(t).map(m => Some(m) ))
+    (for {
+      nodeTree   <- LDAPTree(serverElts)
+      node       <- ZIO.fromEither(mapper.nodeFromTree(nodeTree))
+      optMachine <- if(machineElts.isEmpty) None.succeed
+                    else LDAPTree(machineElts).flatMap(t => ZIO.fromEither(mapper.machineFromTree(t).map(m => Some(m) )))
     } yield {
       FullInventory(node, optMachine)
-    }
+    }).mapError(_.chainError("Error when building a full inventory from LDAP entries"))
   }
 }
 

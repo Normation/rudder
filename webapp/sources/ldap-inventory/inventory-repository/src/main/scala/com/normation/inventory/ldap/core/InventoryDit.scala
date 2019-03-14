@@ -37,13 +37,13 @@
 
 package com.normation.inventory.ldap.core
 
-import com.unboundid.ldap.sdk.{RDN,DN}
+import com.unboundid.ldap.sdk.{DN, RDN}
 import com.normation.ldap.sdk.LDAPEntry
-
-
 import LDAPConstants._
 import com.normation.inventory.domain._
-import net.liftweb.common._
+import com.normation.inventory.ldap.core.InventoryMappingRudderError.MalformedDN
+import com.normation.inventory.domain.InventoryResult._
+import com.normation.inventory.ldap.core.InventoryMappingResult.InventoryMappingPure
 import com.normation.utils.HashcodeCaching
 
 
@@ -138,15 +138,15 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
   object SOFTWARE extends OU("Software", SOFTWARE_BASE_DN) { software =>
     object SOFT extends UUID_ENTRY[SoftwareUuid](OC_SOFTWARE, A_SOFTWARE_UUID, software.dn) {
 
-        def idFromDN(dn:DN) : Box[SoftwareUuid] = {
+        def idFromDN(dn:DN) : Either[MalformedDN, SoftwareUuid] = {
           if(dn.getParent == software.dn) {
             val rdn = dn.getRDN
             if(!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_SOFTWARE_UUID) {
-              Full(SoftwareUuid(rdn.getAttributeValues()(0)))
+              Right(SoftwareUuid(rdn.getAttributeValues()(0)))
             } else {
-              Failure("Unexpected RDN for a software ID")
+              Left(MalformedDN("Unexpected RDN for a software ID"))
             }
-          } else Failure("DN %s does not belong to software inventories DN %s".format(dn,software.dn))
+          } else Left(MalformedDN(s"DN ${dn} does not belong to software inventories DN ${software.dn}"))
         }
     }
   }
@@ -193,15 +193,15 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
 
       def dn(uuid:String) = new DN(this.rdn(uuid), servers.dn)
 
-      def idFromDN(dn:DN) : Box[NodeId] = {
+      def idFromDN(dn:DN) : InventoryMappingPure[NodeId] = {
         if(dn.getParent == servers.dn) {
             val rdn = dn.getRDN
             if(!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_NODE_UUID) {
-              Full(NodeId(rdn.getAttributeValues()(0)))
+              Right(NodeId(rdn.getAttributeValues()(0)))
             } else {
-              Failure("Unexpected RDN for a node ID")
+              Left(InventoryMappingRudderError.MalformedDN("Unexpected RDN for a node ID"))
             }
-          } else Failure("DN %s does not belong to server inventories DN %s".format(dn,servers.dn))
+          } else Left(InventoryMappingRudderError.MalformedDN(s"DN '${dn}' does not belong to server inventories DN '${servers.dn}'"))
       }
     }
 
@@ -213,15 +213,15 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
   object MACHINES extends OU("Machines", BASE_DN) { machines =>
     object MACHINE extends UUID_ENTRY[MachineUuid](OC_MACHINE,A_MACHINE_UUID,machines.dn) {
 
-        def idFromDN(dn:DN) : Box[MachineUuid] = {
+        def idFromDN(dn:DN) : InventoryMappingPure[MachineUuid] = {
           if(dn.getParent == machines.dn) {
             val rdn = dn.getRDN
             if(!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_MACHINE_UUID) {
-              Full(MachineUuid(rdn.getAttributeValues()(0)))
+              Right(MachineUuid(rdn.getAttributeValues()(0)))
             } else {
-              Failure("Unexpected RDN for a machine ID")
+              Left(InventoryMappingRudderError.MalformedDN("Unexpected RDN for a machine ID"))
             }
-          } else Failure("DN %s does not belong to machine inventories DN %s".format(dn,machines.dn))
+          } else Left(InventoryMappingRudderError.MalformedDN(s"DN '${dn}' does not belong to machine inventories DN '${machines.dn}'"))
         }
     }
 

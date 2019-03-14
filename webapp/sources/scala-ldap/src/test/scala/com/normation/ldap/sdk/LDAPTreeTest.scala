@@ -26,6 +26,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 import com.unboundid.ldap.sdk.{RDN,DN}
 import DN.NULL_DN
+import com.normation.zio._
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class LDAPTreeTest {
@@ -77,7 +78,7 @@ class LDAPTreeTest {
         LDAPEntry(new DN(rdn4,dn2))
     )
 
-    val optTree = LDAPTree(entries)
+    val optTree = ZioRuntime.unsafeRun(LDAPTree(entries).either)
     assertTrue(optTree.isRight)
     val tree = optTree.getOrElse(throw new IllegalArgumentException("this is for test"))
     assertEquals(1l, tree._children.size.toLong)

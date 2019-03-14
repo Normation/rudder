@@ -97,7 +97,7 @@ object Watchers {
           if( ext == "gz" || ext == "xml" || ext == "ocs" || ext == "sign") {
             checkProcess(file)
           } else {
-            InventoryLogger.debug(s"watcher ignored file ${file.name} (unrecognized extension: '${ext}')")
+            InventoryProcessingLogger.debug(s"watcher ignored file ${file.name} (unrecognized extension: '${ext}')")
           }
         }
 
@@ -112,7 +112,7 @@ object Watchers {
                 blocking { Iterator.continually(service.take()).foreach(process) }
               } catch {
                 case ex: ClosedWatchServiceException if(stopRequired) => //ignored
-                  InventoryLogger.debug(s"Exception ClosedWatchServiceException ignored because watcher is stopping")
+                  InventoryProcessingLogger.debug(s"Exception ClosedWatchServiceException ignored because watcher is stopping")
               }
             }
           })
@@ -143,9 +143,9 @@ class InventoryFileWatcher(
 
   def logDirPerm(dir: File, name: String) = {
     if(dir.isDirectory && dir.isWriteable) {
-      InventoryLogger.debug(s"${name} inventories directory [ok]: ${dir.pathAsString}")
+      InventoryProcessingLogger.debug(s"${name} inventories directory [ok]: ${dir.pathAsString}")
     } else {
-      InventoryLogger.error(s"${name} inventories directory: ${dir.pathAsString} is not writable. Please check existense and file permission.")
+      InventoryProcessingLogger.error(s"${name} inventories directory: ${dir.pathAsString} is not writable. Please check existense and file permission.")
     }
   }
 
@@ -167,21 +167,21 @@ class InventoryFileWatcher(
   def startWatcher(): Either[Throwable, Unit] = this.synchronized {
     watcher match {
       case Some(w) => // does nothing
-        InventoryLogger.info(s"Starting incoming inventory watcher ignored (already started).")
+        InventoryProcessingLogger.info(s"Starting incoming inventory watcher ignored (already started).")
         Right(())
 
       case None    =>
         val w = Watchers(incoming, updated, fileProcessor.addFile)
         w.start() match {
           case Right(()) =>
-            InventoryLogger.info(s"Incoming inventory watcher started - process existing inventories")
+            InventoryProcessingLogger.info(s"Incoming inventory watcher started - process existing inventories")
             // a touch on all files should trigger a "onModify"
             incoming.collectChildren(_.isRegularFile).toList.map(_.touch())
             updated.collectChildren(_.isRegularFile).toList.map(_.touch())
             watcher = Some(w)
             Right(())
           case Left(ex) =>
-            InventoryLogger.error(s"Error when trying to start incoming inventories file watcher. Reported exception was: ${ex.getMessage()}")
+            InventoryProcessingLogger.error(s"Error when trying to start incoming inventories file watcher. Reported exception was: ${ex.getMessage()}")
             Left(ex)
         }
     }
@@ -190,16 +190,16 @@ class InventoryFileWatcher(
   def stopWatcher(): Either[Throwable, Unit] = this.synchronized {
     watcher match {
       case None    => //ok
-        InventoryLogger.info(s"Stoping incoming inventory watcher ignored (already stoped).")
+        InventoryProcessingLogger.info(s"Stoping incoming inventory watcher ignored (already stoped).")
         Right(())
       case Some(w) =>
         w.stop() match {
           case Right(()) =>
-            InventoryLogger.info(s"Incoming inventory watcher stoped")
+            InventoryProcessingLogger.info(s"Incoming inventory watcher stoped")
             watcher = None
             Right(())
           case Left(ex) =>
-            InventoryLogger.error(s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${ex.getMessage()}.")
+            InventoryProcessingLogger.error(s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${ex.getMessage()}.")
             // in all case, remove the previous watcher, it's most likely in a dead state
             watcher = None
             Left(ex)
@@ -271,7 +271,7 @@ class ProcessFile(
           chunk
         } catch {
           case ex: NoSuchElementException => // ignore
-            InventoryLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The was already deleted.")
+            InventoryProcessingLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The was already deleted.")
         }
       }
       inventoryProcessor.saveInventory(() => inventory.newInputStream, inventory.name, signature.map(s => () => s.newInputStream)) match {
@@ -285,7 +285,7 @@ class ProcessFile(
       }
     }
 
-    InventoryLogger.trace(s"Processing new file: ${file.pathAsString}")
+    InventoryProcessingLogger.trace(s"Processing new file: ${file.pathAsString}")
     // We need to only try to do things on fully-written file.
     // The canocic way seems to be to try to get a write lock on the file and see if
     // it works. We assume that once we successfully get the lock, it means that
@@ -299,19 +299,19 @@ class ProcessFile(
       val inventory = File(file.parent, file.nameWithoutExtension(includeAll = false))
       if(inventory.exists) {
         // process !
-        InventoryLogger.info(s"Watch new inventory file '${inventory.name}' with signature available: process.")
+        InventoryProcessingLogger.info(s"Watch new inventory file '${inventory.name}' with signature available: process.")
         sendToProcessor(inventory, Some(file))
       } else {
-        InventoryLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting")
+        InventoryProcessingLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting")
       }
     } else { // an inventory
       val signature = File(file.pathAsString+sign)
       if(signature.exists) {
         // process !
-        InventoryLogger.info(s"Watch new inventory file '${file.name}' with signature available: process.")
+        InventoryProcessingLogger.info(s"Watch new inventory file '${file.name}' with signature available: process.")
         sendToProcessor(file, Some(signature))
       } else { // wait for expiration time and exec without signature
-        InventoryLogger.debug(s"Watch new inventory file '${file.name}' without signature available: wait for it ${waitForSig.toSeconds}s before processing.")
+        InventoryProcessingLogger.debug(s"Watch new inventory file '${file.name}' without signature available: wait for it ${waitForSig.toSeconds}s before processing.")
         scheduler.scheduleOnce(waitForSig) {
           //check that the inventory file is still there and that the signature didn't come while waiting
           if(!signature.exists && file.exists) {

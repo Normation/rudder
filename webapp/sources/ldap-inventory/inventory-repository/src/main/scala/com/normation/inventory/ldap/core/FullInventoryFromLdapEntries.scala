@@ -39,7 +39,7 @@ package com.normation.inventory.ldap.core
 
 import com.normation.inventory.domain.FullInventory
 import com.normation.ldap.sdk.LDAPEntry
-import net.liftweb.common.Box
+import com.normation.inventory.domain.InventoryResult._
 
 trait FullInventoryFromLdapEntries {
   /**
@@ -49,6 +49,6 @@ trait FullInventoryFromLdapEntries {
    * All entries non relevant for a the found ServerEntry will
    * be ignored.
    */
-  def fromLdapEntries(entries:Seq[LDAPEntry]) : Box[FullInventory]
+  def fromLdapEntries(entries:Seq[LDAPEntry]) : InventoryResult[FullInventory]
 
 }

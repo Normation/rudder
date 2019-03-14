@@ -38,9 +38,13 @@
 package com.normation.inventory.services.provisioning
 
 import com.normation.inventory.domain.InventoryReport
-import com.normation.utils.Control.pipeline
 import java.io.InputStream
-import net.liftweb.common._
+
+import com.normation.inventory.domain.InventoryError
+import com.normation.inventory.domain.InventoryResult._
+import scalaz.zio._
+import scalaz.zio.syntax._
+
 import scala.xml._
 
 
@@ -71,7 +75,7 @@ trait ReportUnmarshaller {
    * In particular, we DO NOT bind os, vms and container here (what means that os#containers will
    * be empty even if the List<Container<StringId>> is not.
    */
-  def fromXml(reportName:String,s:InputStream) : Box[InventoryReport]
+  def fromXml(reportName:String, s:InputStream) : InventoryResult[InventoryReport]
 
 }
 
@@ -81,20 +85,21 @@ trait ReportUnmarshaller {
  */
 trait ParsedReportUnmarshaller extends ReportUnmarshaller {
 
-  override def fromXml(reportName:String,is:InputStream) : Box[InventoryReport] = {
-    (try {
-      Full(XML.load(is))
-    } catch {
-      case e:SAXParseException => Failure("Cannot parse uploaded file as an XML Fusion Inventory report",Full(e),Empty)
-    }) match {
-      case f@Failure(m,e,c) => f
-      case Full(doc) if(doc.isEmpty) => Failure("Fusion Inventory report seem's to be empty")
-      case Empty => Failure("Fusion Inventory report seem's to be empty")
-      case Full(x) => this.fromXmlDoc(reportName, x)
-    }
+  override def fromXml(reportName:String,is:InputStream) : InventoryResult[InventoryReport] = {
+    (Task.effect {
+      XML.load(is)
+    } mapError {
+      case e:SAXParseException => InventoryError.Deserialisation("Cannot parse uploaded file as an XML Fusion Inventory report", e)
+    }).flatMap( doc =>
+      if(doc.isEmpty) {
+        InventoryError.Inconsistency("Fusion Inventory report seem's to be empty").fail
+      } else {
+        this.fromXmlDoc(reportName, doc)
+      }
+    )
   }
 
-  def fromXmlDoc(reportName:String, xml:NodeSeq) : Box[InventoryReport]
+  def fromXmlDoc(reportName:String, xml:NodeSeq) : InventoryResult[InventoryReport]
 }
 
 /**
@@ -106,15 +111,15 @@ trait PipelinedReportUnmarshaller extends ParsedReportUnmarshaller {
   def preUnmarshallPipeline : Seq[PreUnmarshall]
   def reportUnmarshaller : ParsedReportUnmarshaller
 
-  override def fromXmlDoc(reportName:String, xml:NodeSeq) : Box[InventoryReport] = {
+  override def fromXmlDoc(reportName:String, xml:NodeSeq) : InventoryResult[InventoryReport] = {
     //init pipeline with the data structure initialized by the configured reportUnmarshaller
     for {
        //run each post processor of the pipeline sequentially, stop on the first which
        //return an empty result
-      preProcessingOk <- pipeline(preUnmarshallPipeline,xml) { case (preUnmarshall,report) =>
-        preUnmarshall(report) ?~! "Error when post processing report with '%s', abort".format(preUnmarshall.name)
+      preProcessingOk <- ZIO.foldLeft(preUnmarshallPipeline)(xml) { (report, preUnmarshall) =>
+        preUnmarshall(report).chainError(s"Error when post processing report with '${preUnmarshall.name}', abort")
       }
-      reportParsed <- reportUnmarshaller.fromXmlDoc(reportName, preProcessingOk) ?~! "Can not parse the given report, abort"
+      reportParsed <- reportUnmarshaller.fromXmlDoc(reportName, preProcessingOk).chainError("Can not parse the given report, abort")
     } yield {
       reportParsed
     }

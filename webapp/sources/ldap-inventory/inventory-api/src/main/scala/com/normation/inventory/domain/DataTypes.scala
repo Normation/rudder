@@ -41,10 +41,15 @@ import com.normation.utils.Utils._
 import com.normation.utils.HashcodeCaching
 import org.bouncycastle.openssl.PEMParser
 import java.io.StringReader
+
+import com.normation.NamedZioLogger
+import com.normation.errors.RudderError
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
-import net.liftweb.common._
 import org.bouncycastle.cert.X509CertificateHolder
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.inventory.domain.InventoryResult._
 
 /**
  * A file that contains all the simple data types, like Version,
@@ -97,16 +102,17 @@ final case class PublicKey(value : String) extends SecurityToken with HashcodeCa
       |-----END RSA PUBLIC KEY-----""".stripMargin
     }
   }
-  def publicKey : Box[java.security.PublicKey] = {
-    try {
-      val reader = new PEMParser(new StringReader(key))
+  def publicKey : InventoryResult[java.security.PublicKey] = {
+    ZIO.effect {
+      new PEMParser(new StringReader(key))
+    }.mapError { e =>
+      InventoryError.Crypto(s"Key '${key}' cannot be parsed as a public key")
+    }.flatMap { reader =>
       reader.readObject() match {
         case a : SubjectPublicKeyInfo =>
-          Full(new JcaPEMKeyConverter().getPublicKey(a))
-        case _ => Failure(s"Key '${key}' cannot be parsed as a public key")
+          (new JcaPEMKeyConverter().getPublicKey(a)).succeed
+        case _ => InventoryError.Crypto(s"Key '${key}' cannot be parsed as a public key").fail
       }
-    } catch {
-      case e:Exception => Failure(s"Key '${key}' cannot be parsed as a public key")
     }
   }
 
@@ -124,16 +130,23 @@ final case class Certificate(value : String) extends SecurityToken with Hashcode
       |-----END CERTIFICATE-----""".stripMargin
     }
   }
-  def cert : Box[X509CertificateHolder] = {
-    try {
-      val reader = new PEMParser(new StringReader(key))
-      reader.readObject() match {
-        case a : X509CertificateHolder =>
-          Full(a)
-        case _ => Failure(s"Key '${key}' cannot be parsed as a valid certificate")
-      }
-    } catch {
-      case e:Exception => Failure(s"Key '${key}' cannot be parsed as a valid certificate")
+  def cert : IO[InventoryError.Crypto, X509CertificateHolder] = {
+    for {
+      reader <- ZIO.effect {
+                  new PEMParser(new StringReader(key))
+                } mapError { e =>
+                  InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate")
+                }
+      obj    <- ZIO.effect(reader.readObject()).mapError { e =>
+                  InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate")
+                }
+      res    <- obj match {
+                  case a : X509CertificateHolder =>
+                    a.succeed
+                  case _ => InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate").fail
+                }
+    } yield {
+      res
     }
   }
 
@@ -163,4 +176,48 @@ final class Version(val value:String) extends Comparable[Version] {
     case _ => false
   }
 
+}
+
+
+object InventoryLogger extends NamedZioLogger("inventory-logger")
+
+
+trait InventoryError extends RudderError
+
+object InventoryError {
+
+  final case class Crypto(msg: String) extends InventoryError
+  final case class CryptoEx(hint: String, ex: Throwable) extends InventoryError {
+    def msg = hint + "; root exception was: " + ex.getMessage()
+  }
+  final case class AgentType(msg: String) extends InventoryError
+  final case class SecurityToken(msg: String) extends InventoryError
+  final case class Deserialisation(msg: String, ex: Throwable) extends InventoryError
+  final case class Inconsistency(msg: String) extends InventoryError
+  final case class Chain[T <: RudderError](hint: String, cause: T) extends InventoryError {
+    def msg = hint + " <- " + cause.msg
+  }
+  final case class System(msg: String) extends InventoryError
+}
+
+object InventoryResult {
+
+  type InventoryResult[T] = IO[InventoryError, T]
+
+  implicit class NotOptional[T](opt: Option[T]) {
+    def notOptional(msg: String): InventoryResult[T] = opt match {
+      case None    => InventoryError.Inconsistency(msg).fail
+      case Some(x) => x.succeed
+    }
+  }
+
+  implicit class ToChain[T](res: InventoryResult[T]) {
+    def chainError(msg: String): InventoryResult[T] =
+      res.mapError(err => InventoryError.Chain(msg, err))
+  }
+
+  implicit class ErrorToChain[T <: RudderError](err: T) {
+    def chainError(msg: String): InventoryError =
+      InventoryError.Chain(msg, err)
+  }
 }

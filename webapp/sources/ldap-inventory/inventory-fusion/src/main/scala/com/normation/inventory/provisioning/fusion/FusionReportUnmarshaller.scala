@@ -67,7 +67,7 @@ class FusionReportUnmarshaller(
   val userLoginDateTimeFormat = DateTimeFormat.forPattern(lastLoggedUserDatetimeFormat).withLocale(Locale.ENGLISH)
   val biosDateTimeFormat = DateTimeFormat.forPattern(biosDateFormat).withLocale(Locale.ENGLISH)
 
-  //extremelly specialized convert used for optionnal field only, that
+  //extremelly specialized convert used for optional field only, that
   //log the error in place of using a box
   private[this] def convert[T](input: Option[String], tag: String, format: String, conv: String => T): Option[T] = {
     try {

@@ -37,34 +37,45 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.inventory.domain.InventoryReport
-import net.liftweb.common.Box
-
+import com.normation.inventory.domain._
+import scalaz.zio._
 
 /**
- * Define an action that happens after than the report
- * was committed in the Directory.
- * The "records" are a list of modification which actually
- * happened when the commit was done (and so,
- * report "-" records = what was already in the directory).
+ * Generic interface to the service that try
+ * to find an existing ID for a given entity
  *
- * By convention, a PostCommit which return:
- * - Full : continue the pipeline processing. AT LEAST input
- *          records have to be returned (kind of forward to
- *          the next postCommit)
- * - Empty or Failure : interrupt pipeline processing (following
- *                      PostCommits won't happened)
- *
- *
- * The R parameter is the return type of the back-end.
- * Ideally, it should be only diff actually applied to the back-end,
- * but it could be the new entity is the store can not provide
- * better information (LDAP can).
- *
+ * the entity may be lacking some of its properties
  */
-trait PostCommit[R] {
+trait NodeInventoryDNFinderAction {
 
-  def name : String
+  //black list / white list ?
 
-  def apply(report:InventoryReport,records:R) : Box[R]
+  def tryWith(entity:NodeInventory) : Task[Option[(NodeId, InventoryStatus)]]
 }
+
+trait MachineDNFinderAction {
+
+  //black list / white list ?
+
+  def tryWith(entity:MachineInventory) : Task[Option[(MachineUuid, InventoryStatus)]]
+}
+
+
+case class MergedSoftware(
+    newSoftware         : Set[Software]
+  , alreadySavedSoftware: Set[Software]
+)
+
+/**
+ * Return the couple of set of software such that:
+ * (updatedUUID, notUpdatedUUID).
+ * Normally, argument == updatedUUID+notUpdatedUUID
+ * (modulo the changes in UUIDs, of course)
+ */
+trait SoftwareDNFinderAction {
+
+  //black list / white list ?
+
+  def tryWith(entities: Set[Software]) : Task[Option[MergedSoftware]]
+}
+

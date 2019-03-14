@@ -38,23 +38,33 @@
 package com.normation.inventory.services.provisioning
 
 import com.normation.inventory.domain.InventoryReport
-import net.liftweb.common.Box
+import com.normation.inventory.domain.InventoryResult.InventoryResult
+
 
 /**
- * Define an action that happens before than the report
- * is committed in the Directory.
+ * Define an action that happens after than the report
+ * was committed in the Directory.
+ * The "records" are a list of modification which actually
+ * happened when the commit was done (and so,
+ * report "-" records = what was already in the directory).
  *
- * By convention, a PreCommit which return:
- * - Full : continue the pipeline processing with the
- *          returned report
+ * By convention, a PostCommit which return:
+ * - Full : continue the pipeline processing. AT LEAST input
+ *          records have to be returned (kind of forward to
+ *          the next postCommit)
  * - Empty or Failure : interrupt pipeline processing (following
- *                      PreCommits won't happened, nor
- *                      the report will be ever save)
+ *                      PostCommits won't happened)
+ *
+ *
+ * The R parameter is the return type of the back-end.
+ * Ideally, it should be only diff actually applied to the back-end,
+ * but it could be the new entity is the store can not provide
+ * better information (LDAP can).
  *
  */
-trait PreCommit {
+trait PostCommit[R] {
 
   def name : String
 
-  def apply(report:InventoryReport) : Box[InventoryReport]
+  def apply(report:InventoryReport,records:R) : InventoryResult[R]
 }

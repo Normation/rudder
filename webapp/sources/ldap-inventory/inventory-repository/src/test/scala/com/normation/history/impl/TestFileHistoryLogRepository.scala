@@ -31,12 +31,12 @@ import java.io.File
 
 import net.liftweb.util.ControlHelpers.tryo
 
-import net.liftweb.common._
+import com.normation.inventory.domain.InventoryResult._
 
 object StringMarshaller extends FileMarshalling[String] {
   //simply read / write file content
-  override def fromFile(in:File) : Box[String] = tryo(FileUtils.readFileToString(in,"UTF-8"))
-  override def toFile(out:File, data: String) : Box[String] = tryo {
+  override def fromFile(in:File) : InventoryResult[String] = tryo(FileUtils.readFileToString(in,"UTF-8"))
+  override def toFile(out:File, data: String) : InventoryResult[String] = tryo {
     FileUtils.writeStringToFile(out,data, "UTF-8")
     data
   }

@@ -37,7 +37,8 @@
 
 package com.normation.inventory.services.core
 
-import com.normation.inventory.domain.{NodeId, SoftwareUuid, Software, InventoryStatus}
+import com.normation.inventory.domain.InventoryResult.InventoryResult
+import com.normation.inventory.domain.{InventoryStatus, NodeId, Software, SoftwareUuid}
 import net.liftweb.common.Box
 
 trait ReadOnlySoftwareDAO {
@@ -47,5 +48,5 @@ trait ReadOnlySoftwareDAO {
    * Return softwares for the node id, as efficiently
    * as possible
    */
-  def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): Box[Map[NodeId, Seq[Software]]]
+  def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): InventoryResult[Map[NodeId, Seq[Software]]]
 }

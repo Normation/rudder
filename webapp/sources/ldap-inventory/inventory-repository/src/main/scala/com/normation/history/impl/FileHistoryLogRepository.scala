@@ -22,20 +22,23 @@ package com.normation.history
 package impl
 
 import java.io.File
+
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-
-import net.liftweb.common._
+import com.normation.inventory.domain.InventoryResult._
 import net.liftweb.util.ControlHelpers.tryo
 import FileHistoryLogRepository._
+import com.normation.inventory.domain.InventoryError
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * A trait that allows to write and read datas of type T
  * to/from files
  */
 trait FileMarshalling[T] {
-  def fromFile(in:File) : Box[T]
-  def toFile(out:File, data: T) : Box[T]
+  def fromFile(in:File) : InventoryResult[T]
+  def toFile(out:File, data: T) : InventoryResult[T]
 }
 
 trait IdToFilenameConverter[ID] {
@@ -78,11 +81,11 @@ class FileHistoryLogRepository[ID,T](
 
 
   //we don't want to catch exception here
-  private def root() : Box[File] = {
+  private def root() : InventoryResult[File] = {
     for {
-      dir <- tryo(new File(rootDir))
-      isValid <-  if(dir.exists && !dir.isDirectory) Failure(s"'${dir.getAbsolutePath}' exists and is not a directory") else Full("OK")
-      isCreated <- if(!dir.exists) tryo(dir.mkdirs) else Full("OK")
+      dir       <- UIO(new File(rootDir))
+      isValid   <- if(dir.exists && !dir.isDirectory) InventoryError.System(s"'${dir.getAbsolutePath}' exists and is not a directory").fail else UIO.unit
+      isCreated <- if(!dir.exists) Task.effect(dir.mkdirs).mapError(e => InventoryError.System(s"Error creating '${rootDir}': ${e.getMessage}")) else UIO.unit
     } yield {
       dir
     }
@@ -91,42 +94,34 @@ class FileHistoryLogRepository[ID,T](
   //we don't want to catch exception here
   private def idDir(id:ID) = {
     for {
-      r <- root
-      dir <- tryo(new File(r, converter.idToFilename(id)))
-      isValid <- if(dir.exists && !dir.isDirectory) Failure(s"'${dir.getAbsolutePath}' and is not a directory") else Full("OK")
-      isCreated <- if(!dir.exists) tryo(dir.mkdirs) else Full("OK")
+      r       <- root
+      dir     <- UIO(new File(r, converter.idToFilename(id)))
+      isValid <- if(dir.exists && !dir.isDirectory) InventoryError.System(s"'${dir.getAbsolutePath}' and is not a directory").fail else UIO.unit
+      isCreated <- if(!dir.exists) Task.effect(dir.mkdirs).mapError(e => InventoryError.System(s"Error creating '${dir.getAbsolutePath}': '${e.getMessage}'")) else UIO.unit
     } yield {
       dir
     }
   }
 
-  //we don't want to catch exception here
-  private def exists(id:ID) = {
-    (for{
-      r <- root
-      dir <- tryo(new File(r, converter.idToFilename(id)))
-    } yield dir.exists && dir.isDirectory).getOrElse(false)
-  }
 
   /**
    * Save a report and return the ID of the saved report, and
-   * it's version
+   * its version
    * @param historyLog
-   * @return
    */
-  def save(id:ID,data:T,datetime:DateTime = DateTime.now) : Box[HLog] = {
+  def save(id: ID, data: T, datetime: DateTime = DateTime.now) : InventoryResult[HLog] = {
     converter.idToFilename(id) match {
       case null | "" =>
-        Failure("History log name can not be null nor empty")
+        InventoryError.Inconsistency("History log name can not be null nor empty").fail
       case s if(s.contains(System.getProperty("file.separator"))) =>
-        Failure(s"UUID can not contains the char '${System.getProperty("file.separator")}'")
+        InventoryError.Inconsistency(s"UUID can not contains the char '${System.getProperty("file.separator")}'").fail
       case s =>
-        val hlog = DefaultHLog(id,datetime,data)
+        val hlog = DefaultHLog(id, datetime, data)
 
         for {
-          i <- idDir(hlog.id)
-          file <- tryo(new File(i,vToS(hlog.version)))
-          datas <- tryo(marshaller.toFile(file,hlog.data))
+          i     <- idDir(hlog.id)
+          file  <- UIO(new File(i,vToS(hlog.version)))
+          datas <- marshaller.toFile(file,hlog.data)
         } yield hlog
     }
   }
@@ -134,11 +129,13 @@ class FileHistoryLogRepository[ID,T](
   /**
    * Retrieve all ids known by the repository
    */
-  def getIds : Box[Seq[ID]] = {
+  def getIds : InventoryResult[Seq[ID]] = {
     for {
-      r <- root()
-      res <- tryo(r.listFiles.collect { case(f) if(f.isDirectory) => converter.filenameToId(f.getName) })
-    } yield {
+      r   <- root()
+      res <- Task.effect(r.listFiles.collect { case(f) if(f.isDirectory) => converter.filenameToId(f.getName) }).mapError(e =>
+                InventoryError.System(s"Error when trying to get file names")
+              )
+     } yield {
       res
     }
   }
@@ -148,17 +145,12 @@ class FileHistoryLogRepository[ID,T](
    * If reading any logs  throws an error, the full result is a
    * Failure
    */
-  def getAll(id:ID) : Box[Seq[HLog]] = {
+  def getAll(id:ID) : InventoryResult[Seq[HLog]] = {
     for {
       versions <- this.versions(id)
-      hlogs <- {
-        ( (Full(Seq()):Box[Seq[HLog]]) /: versions ) { (current, v) =>
-            for {
-              seq <- current
-              hlog <- this.get(id,v)
-            } yield seq :+ hlog
-        }
-      }
+      hlogs    <- ZIO.foldLeft(versions)(Seq[HLog]()) { (current, v) =>
+                    this.get(id,v).map(hlog => current :+ hlog)
+                  }
     } yield hlogs
   }
 
@@ -166,11 +158,11 @@ class FileHistoryLogRepository[ID,T](
    * Get the list of record for the given UUID and version.
    * If no version is specified, get the last.
    */
-  def getLast(id:ID) : Box[HLog] = {
+  def getLast(id:ID) : InventoryResult[HLog] = {
     for {
       versions <- this.versions(id)
-      version <- versions.headOption
-      hlog <- this.get(id,version)
+      version  <- versions.headOption.notOptional(s"No version available for ${id}")
+      hlog     <- this.get(id,version)
     } yield hlog
   }
 
@@ -178,29 +170,40 @@ class FileHistoryLogRepository[ID,T](
    * Get the list of record for the given UUID and version.
    * If no version is specified, get the last.
    */
-  def get(id:ID, version:DateTime) : Box[HLog] = {
+  def get(id:ID, version:DateTime) : InventoryResult[HLog] = {
     for {
-      i <- idDir(id)
-      file <- tryo(new File(i,vToS(version)))
-      data <-  marshaller.fromFile(file)
+      i    <- idDir(id)
+      file <- UIO(new File(i,vToS(version)))
+      data <- marshaller.fromFile(file)
     }yield DefaultHLog(id,version,data)
   }
 
 
+  //we don't want to catch exception here
+  private def exists(id:ID) = {
+    for{
+      r   <- root
+      dir <- UIO(new File(r, converter.idToFilename(id)))
+    } yield {
+      dir.exists && dir.isDirectory
+    }
+  }
+
   /**
    * Return the list of version for ID.
-   * Full(Empty list) or Empty if no version for the given id
+   * IO(Empty list) if no version for the given id
    * List is sorted with last version (most recent) first
    * ( versions.head > versions.head.head )
    */
-  def versions(id:ID) : Box[Seq[DateTime]] = {
+  def versions(id:ID) : InventoryResult[Seq[DateTime]] = {
     for {
-      i <- idDir(id)
-      if(exists(id))
-      res <- tryo {
-          i.listFiles.toSeq.map(f => sToV(f.getName)).
-            filter(_.isDefined).map(_.get).sortWith(_ .compareTo(_) > 0)
-      }
+      i  <- idDir(id)
+      ok <- exists(id)
+      res <- if(ok) Task.effect(i.listFiles.toSeq.map(f => sToV(f.getName)).
+              filter(_.isDefined).map(_.get).sortWith(_ .compareTo(_) > 0)).mapError(e =>
+                InventoryError.System(s"Error when listing file in '${i.getAbsolutePath}'")
+              )
+             else UIO(Seq())
     } yield res
   }
 

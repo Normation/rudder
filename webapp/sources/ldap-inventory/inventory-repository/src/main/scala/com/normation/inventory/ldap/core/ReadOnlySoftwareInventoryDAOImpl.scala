@@ -42,9 +42,9 @@ import BuildFilter.{EQ,OR}
 import com.normation.inventory.domain._
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import LDAPConstants._
-import net.liftweb.common._
+import com.normation.inventory.domain.InventoryResult._
 import com.normation.ldap.sdk.LdapResult._
-import cats.implicits._
+import scalaz.zio._
 
 class ReadOnlySoftwareDAOImpl(
   inventoryDitService:InventoryDitService,
@@ -52,32 +52,32 @@ class ReadOnlySoftwareDAOImpl(
   mapper:InventoryMapper
 ) extends ReadOnlySoftwareDAO {
 
-  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): LdapResult[Vector[Software]] = {
+  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): LdapResult[List[Software]] = {
     for {
       entries <- con.searchOne(inventoryDitService.getSoftwareBaseDN, OR(ids map {x:SoftwareUuid => EQ(A_SOFTWARE_UUID,x.value) }:_*)).map(_.toVector)
-      soft    <- entries.traverse { entry =>
-                   (mapper.softwareFromEntry(entry) ?~! s"Error when mapping LDAP entry '${entry.dn}' to a software. Entry details: ${entry}").toLdapResult
+      soft    <- ZIO.foreach(entries) { entry =>
+                   mapper.softwareFromEntry(entry).toLdapResult ?~! s"Error when mapping LDAP entry '${entry.dn}' to a software. Entry details: ${entry}"
                  }
     } yield {
       soft
     }
   }
 
-  override def getSoftware(ids:Seq[SoftwareUuid]) : Box[Seq[Software]] = {
+  override def getSoftware(ids:Seq[SoftwareUuid]) : InventoryResult[Seq[Software]] = {
     if(ids.isEmpty) Full(Seq())
     else (for {
       con   <- ldap
       softs <- search(con, ids)
     } yield {
       softs
-    }).toBox
+    })
   }
 
 
   /**
    * softwares
    */
-  override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): Box[Map[NodeId, Seq[Software]]] = {
+  override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): LdapResult[Map[NodeId, Seq[Software]]] = {
 
     val dit = inventoryDitService.getDit(status)
 
@@ -93,6 +93,6 @@ class ReadOnlySoftwareDAOImpl(
       software       <- search(con, softwareIds)
     } yield {
       softwareByNode.mapValues { ids => software.filter(s => ids.contains(s.id)) }
-    }).toBox
+    })
   }
 }

@@ -37,45 +37,24 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.inventory.domain._
-import net.liftweb.common.Box
+import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.InventoryResult.InventoryResult
 
 /**
- * Generic interface to the service that try
- * to find an existing ID for a given entity
+ * Define an action that happens before than the report
+ * is committed in the Directory.
  *
- * the entity may be lacking some of its properties
+ * By convention, a PreCommit which return:
+ * - Full : continue the pipeline processing with the
+ *          returned report
+ * - Empty or Failure : interrupt pipeline processing (following
+ *                      PreCommits won't happened, nor
+ *                      the report will be ever save)
+ *
  */
-trait NodeInventoryDNFinderAction {
+trait PreCommit {
 
-  //black list / white list ?
+  def name : String
 
-  def tryWith(entity:NodeInventory) : Box[(NodeId, InventoryStatus)]
+  def apply(report:InventoryReport) : InventoryResult[InventoryReport]
 }
-
-trait MachineDNFinderAction {
-
-  //black list / white list ?
-
-  def tryWith(entity:MachineInventory) : Box[(MachineUuid, InventoryStatus)]
-}
-
-
-case class MergedSoftware(
-    newSoftware         : Set[Software]
-  , alreadySavedSoftware: Set[Software]
-)
-
-/**
- * Return the couple of set of software such that:
- * (updatedUUID, notUpdatedUUID).
- * Normally, argument == updatedUUID+notUpdatedUUID
- * (modulo the changes in UUIDs, of course)
- */
-trait SoftwareDNFinderAction {
-
-  //black list / white list ?
-
-  def tryWith(entities: Set[Software]) : Box[MergedSoftware]
-}
-

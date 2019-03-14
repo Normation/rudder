@@ -46,7 +46,7 @@ import com.normation.inventory.domain._
 import com.normation.ldap.sdk.RwLDAPConnection
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
-import net.liftweb.common.Box
+import com.normation.inventory.domain.InventoryResult._
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import org.specs2.matcher.MatchResult
@@ -120,14 +120,14 @@ class TestInventory extends Specification {
   val allStatus = Seq(RemovedInventory, PendingInventory, AcceptedInventory)
 
 
-  case class BoxedResult[T](b: Box[T]) {
+  case class BoxedResult[T](b: InventoryResult[T]) {
     def isOK: org.specs2.execute.Result = b match {
       case Full(x) => success
       case eb: EmptyBox => failure((eb ?~! "Error").messageChain)
     }
   }
 
-  implicit def box2matcher[T](b:Box[T]): BoxedResult[T] = BoxedResult(b)
+  implicit def box2matcher[T](b:InventoryResult[T]): BoxedResult[T] = BoxedResult(b)
 
 
   //shortcut to create a machine with the name has ID in the given status
@@ -279,7 +279,7 @@ class TestInventory extends Specification {
              nodes <- repo.getNodesForMachine(con, mid)
           } yield {
             nodes.map { case (k,v) => (k, v.map( _.dn)) }
-          }).toBox
+          })
           res.openOrThrowException("in test") must havePairs ( AcceptedInventory -> Set(toDN(n1)), PendingInventory -> Set(toDN(n2)), RemovedInventory -> Set(toDN(n3)))
         }
       )

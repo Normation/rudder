@@ -289,7 +289,7 @@ class AppConfig {
     WATCHER_ENABLE.trim.toLowerCase match {
       case "true" => watcher.startWatcher()
       case _ => // don't start
-        InventoryLogger.debug(s"Not automatically incoming inventory watcher because 'inventories.watcher.enable'=${WATCHER_ENABLE}")
+        InventoryProcessingLogger.debug(s"Not automatically incoming inventory watcher because 'inventories.watcher.enable'=${WATCHER_ENABLE}")
     }
 
     watcher

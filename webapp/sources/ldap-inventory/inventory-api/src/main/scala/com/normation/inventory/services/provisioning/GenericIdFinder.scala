@@ -40,7 +40,8 @@ package com.normation.inventory.services.provisioning
 import com.normation.inventory.domain._
 import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
-
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /*
  * Implementation of IdFinderAction that is pipelinable
@@ -48,18 +49,21 @@ import com.normation.utils.HashcodeCaching
  */
 sealed case class NamedNodeInventoryDNFinderAction(val name:String,val action:NodeInventoryDNFinderAction) extends HashcodeCaching
 
-class NodeInventoryDNFinderService(actions:Seq[NamedNodeInventoryDNFinderAction]) extends NodeInventoryDNFinderAction with Loggable {
+class NodeInventoryDNFinderService(actions: Seq[NamedNodeInventoryDNFinderAction]) extends NodeInventoryDNFinderAction {
 
-  override def tryWith(entity:NodeInventory) : Box[(NodeId, InventoryStatus)] = {
-    for(a <- actions) {
-      logger.debug("Processing server id finder %s".format(a.name))
-      a.action.tryWith(entity).foreach { case x@(id,dit) =>
-        logger.debug("Server Id '%s' found in DIT '%s' with id finder '%s'".format(id, dit, a.name))
-        return Full(x)
+  override def tryWith(entity: NodeInventory) : Task[Option[(NodeId, InventoryStatus)]] = {
+    ZIO.foldLeft(actions)(Option.empty[(NodeId, InventoryStatus)]) {
+      case (Some(found), next) => Some(found).succeed
+      case (None       , next) =>
+        InventoryLogger.debug(s"Processing node id finder '${next.name}'") *>
+        next.action.tryWith(entity).flatMap {
+          case Some((id, s)) => InventoryLogger.debug(s"Node Id '${id.value}' found in DIT '${s.name}' with id finder '${next.name}'") *> Some((id, s)).succeed
+          case None          => InventoryLogger.trace(s"'Node id '${entity.main.id.value}' not found with findder '${next.name}'") *> None.succeed
       }
+    }.flatMap {
+      case None => InventoryLogger.debug(s"'Node id '${entity.main.id.value}' not found in base") *> None.succeed
+      case x    => x.succeed
     }
-    logger.debug("All server finder executed, no id found")
-    Empty
   }
 }
 
@@ -71,16 +75,19 @@ sealed case class NamedMachineDNFinderAction(val name:String,val action:MachineD
 
 class MachineDNFinderService(actions:Seq[NamedMachineDNFinderAction]) extends MachineDNFinderAction with Loggable {
 
-  override def tryWith(entity:MachineInventory) : Box[(MachineUuid,InventoryStatus)] = {
-    for(a <- actions) {
-      logger.debug("Processing machine id finder %s".format(a.name))
-      a.action.tryWith(entity).foreach { case (id,dit) =>
-        logger.debug("Machine Id '%s' found with id finder '%s'".format(id,a.name))
-        return Full((id,dit))
+  override def tryWith(entity: MachineInventory) : Task[Option[(MachineUuid,InventoryStatus)]] = {
+    ZIO.foldLeft(actions)(Option.empty[(MachineUuid, InventoryStatus)]) {
+      case (Some(found), next) => Some(found).succeed
+      case (None       , next) =>
+        InventoryLogger.debug(s"Processing machine id finder '${next.name}'") *>
+        next.action.tryWith(entity).flatMap {
+          case Some((id, s)) => InventoryLogger.debug(s"Machine Id '${id.value}' found in DIT '${s.name}' with id finder '${next.name}'") *> Some((id, s)).succeed
+          case None          => InventoryLogger.trace(s"'Machine id '${entity.id.value}' not found with findder '${next.name}'") *> None.succeed
       }
+    }.flatMap {
+      case None => InventoryLogger.debug(s"'Machoine id '${entity.id.value}' not found in base") *> None.succeed
+      case x    => x.succeed
     }
-    logger.debug("All machine finder executed, no id found")
-    Empty
   }
 }
 

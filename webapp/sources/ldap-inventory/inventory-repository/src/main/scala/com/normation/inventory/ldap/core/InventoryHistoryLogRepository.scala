@@ -43,7 +43,7 @@ import java.io.File
 import com.normation.ldap.sdk.LDAPEntry
 import com.unboundid.ldap.sdk.Entry
 import com.unboundid.ldif._
-import net.liftweb.common._
+import com.normation.inventory.domain.InventoryResult._
 import java.io.FileNotFoundException
 
 /**
@@ -56,7 +56,7 @@ class FullInventoryFileMarshalling(
     mapper:InventoryMapper
 ) extends FileMarshalling[FullInventory] {
 
-  def fromFile(in:File) : Box[FullInventory] = {
+  def fromFile(in:File) : InventoryResult[FullInventory] = {
     import scala.collection.mutable.Buffer
     var reader:LDIFReader = null
     try {
@@ -76,7 +76,7 @@ class FullInventoryFileMarshalling(
     }
   }
 
-  def toFile(out:File, data: FullInventory) : Box[FullInventory] = {
+  def toFile(out:File, data: FullInventory) : InventoryResult[FullInventory] = {
     var printer:LDIFWriter = null
     try {
       printer = new LDIFWriter(out)

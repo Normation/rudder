@@ -657,6 +657,23 @@ limitations under the License.
       <artifactId>cats-core_${scala-binary-version}</artifactId>
       <version>${cats-version}</version>
     </dependency>
+    <!-- zio to manage effects -->
+    <dependency>
+      <groupId>org.scalaz</groupId>
+      <artifactId>scalaz-zio_${scala-binary-version}</artifactId>
+      <version>${scalaz-zio-version}</version>
+    </dependency>
+    <!-- zio/cats compat -->
+    <dependency>
+      <groupId>org.scalaz</groupId>
+      <artifactId>scalaz-zio-interop-cats_${scala-binary-version}</artifactId>
+      <version>${scalaz-zio-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.scalaz</groupId>
+      <artifactId>scalaz-zio-interop-shared_${scala-binary-version}</artifactId>
+      <version>${scalaz-zio-version}</version>
+    </dependency>
     <dependency>
       <groupId>org.typelevel</groupId>
       <artifactId>cats-effect_${scala-binary-version}</artifactId>
@@ -687,13 +704,6 @@ limitations under the License.
       <artifactId>specs2-junit_${scala-binary-version}</artifactId>
       <version>${specs2-version}</version>
       <scope>test</scope>
-    </dependency>
-
-    <!-- zio to manage effects -->
-    <dependency>
-      <groupId>org.scalaz</groupId>
-      <artifactId>scalaz-zio_${scala-binary-version}</artifactId>
-      <version>${scalaz-zio-version}</version>
     </dependency>
 
     <!--

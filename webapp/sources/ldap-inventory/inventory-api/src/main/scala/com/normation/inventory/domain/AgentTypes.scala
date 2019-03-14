@@ -37,7 +37,9 @@
 
 package com.normation.inventory.domain
 
-import net.liftweb.common._
+import InventoryResult._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * The enumeration holding the values for the agent
@@ -131,15 +133,15 @@ object AgentType {
 
   def allValues = ca.mrvisser.sealerate.values[AgentType]
 
-  def fromValue(value : String) : Box[AgentType] = {
+  def fromValue(value : String) : Either[InventoryError.AgentType, AgentType] = {
     // Check if the value is correct compared to the agent tag name (fusion > 2.3) or its toString value (added by CFEngine)
     def checkValue( agent : AgentType) = {
       agent.inventoryAgentNames.contains(value.toLowerCase)
     }
 
     allValues.find(checkValue)  match {
-      case None        => Failure(s"Wrong type of value for the agent '${value}'")
-      case Some(agent) => Full(agent)
+      case None        => Left(InventoryError.AgentType(s"Wrong type of value for the agent '${value}'"))
+      case Some(agent) => Right(agent)
     }
   }
 }
@@ -176,10 +178,10 @@ object AgentInfoSerialisation {
       )
   }
 
-  def parseSecurityToken(agentType : AgentType, tokenJson: JValue, tokenDefault : Option[String]) : Box[SecurityToken]= {
+  def parseSecurityToken(agentType : AgentType, tokenJson: JValue, tokenDefault : Option[String]) : Either[InventoryError.SecurityToken, SecurityToken]= {
     import net.liftweb.json.compactRender
 
-    def extractValue(tokenJson : JValue) = {
+    def extractValue(tokenJson : JValue): Option[String] = {
       tokenJson \ "value" match {
         case JString(s) => Some(s)
         case _ => None
@@ -190,31 +192,31 @@ object AgentInfoSerialisation {
     agentType match {
       case Dsc => tokenJson \ "type" match {
         case JString(Certificate.kind) => extractValue(tokenJson) match {
-          case Some(token) => Full(Certificate(token))
-          case None => Failure(error(Certificate.kind))
+          case Some(token) => Right(Certificate(token))
+          case None => Left(InventoryError.SecurityToken(error(Certificate.kind)))
         }
-        case JString(PublicKey.kind) => Failure("Cannot have a public Key for dsc agent, only a certificate is valid")
-        case JNothing => Failure(error(Certificate.kind))
-        case invalidJson => Failure(s"Invalid value for security token, ${compactRender(invalidJson)}")
+        case JString(PublicKey.kind) => Left(InventoryError.SecurityToken("Cannot have a public Key for dsc agent, only a certificate is valid"))
+        case JNothing => Left(InventoryError.SecurityToken(error(Certificate.kind)))
+        case invalidJson => Left(InventoryError.SecurityToken(s"Invalid value for security token, ${compactRender(invalidJson)}"))
       }
       case _ => tokenJson \ "type" match {
         case JString(Certificate.kind) => extractValue(tokenJson) match {
-          case Some(token) => Full(Certificate(token))
-          case None => Failure(error(Certificate.kind))
+          case Some(token) => Right(Certificate(token))
+          case None => Left(InventoryError.SecurityToken(error(Certificate.kind)))
         }
         case JString(PublicKey.kind) => extractValue(tokenJson) match {
-          case Some(token) => Full(PublicKey(token))
-          case None => Failure(error(PublicKey.kind))
+          case Some(token) => Right(PublicKey(token))
+          case None => Left(InventoryError.SecurityToken(error(PublicKey.kind)))
         }
         case invalidJson =>
           tokenDefault match {
-            case Some(default) => Full(PublicKey(default))
+            case Some(default) => Right(PublicKey(default))
             case None =>
               val error = invalidJson match {
                 case JNothing => "no value define for security token"
                 case x        => compactRender(invalidJson)
               }
-              Failure(s"Invalid value for security token: ${error}, and no public key were stored")
+              Left(InventoryError.SecurityToken(s"Invalid value for security token: ${error}, and no public key were stored"))
           }
       }
     }
@@ -225,22 +227,22 @@ object AgentInfoSerialisation {
    * but version isn't, and even if we don't parse it correctly, we
    * successfully return an agent (without version).
    */
-  def parseJson(s: String, optToken : Option[String]): Box[AgentInfo] = {
+  def parseJson(s: String, optToken : Option[String]): InventoryResult[AgentInfo] = {
     for {
-      json <- try { Full(parse(s)) } catch { case ex: Exception => Failure(s"Can not parse agent info: ${ex.getMessage }", Full(ex), Empty) }
+      json <- ZIO.effect { parse(s) } mapError  { ex => InventoryError.Deserialisation(s"Can not parse agent info: ${ex.getMessage }", ex) }
       agentType <- (json \ "agentType") match {
-                     case JString(tpe) => AgentType.fromValue(tpe)
-                     case JNothing => Failure("No value defined for security token")
-                     case invalidJson  => Failure(s"Error when trying to parse string as JSON Agent Info (missing required field 'agentType'): ${compactRender(invalidJson)}")
+                     case JString(tpe) => IO.fromEither(AgentType.fromValue(tpe))
+                     case JNothing => InventoryError.SecurityToken("No value defined for security token").fail
+                     case invalidJson  => InventoryError.AgentType(s"Error when trying to parse string as JSON Agent Info (missing required field 'agentType'): ${compactRender(invalidJson)}").fail
                    }
      agentVersion = json \ "version" match {
                       case JString(version) => Some(AgentVersion(version))
                       case _                => None
                     }
-     token <- json \ "securityToken" match {
+     token <- IO.fromEither(json \ "securityToken" match {
                 case JObject(json) => parseSecurityToken(agentType, json, optToken)
                 case _             => parseSecurityToken(agentType, JNothing, optToken)
-              }
+              })
 
     } yield {
       AgentInfo(agentType, agentVersion, token)
@@ -252,19 +254,18 @@ object AgentInfoSerialisation {
    * - try to parse in json: if ok, we have the new version
    * - else, try to parse in old format, put None to version.
    */
-  def parseCompatNonJson(s: String, optToken : Option[String]): Box[AgentInfo] = {
-    parseJson(s, optToken) match {
-      case Full(info)   => Full(info)
-      case eb: EmptyBox =>
-        val jsonError = eb ?~! "Error when parsing JSON information about the agent type."
+  def parseCompatNonJson(s: String, optToken : Option[String]): InventoryResult[AgentInfo] = {
+    parseJson(s, optToken).catchAll { eb =>
+
+        val jsonError = "Error when parsing JSON information about the agent type: " + eb.msg
         for {
-          agentType <- AgentType.fromValue(s) ?~! (
-               s"Error when mapping '${s}' to an agent info. We are expecting either " +
-               s"an agentType with allowed values in ${AgentType.allValues.mkString(", ")}" +
-               s" or " +
-               s"a json like {'agentType': type, 'version': opt_version, 'securityToken': ...} but we get: ${jsonError.messageChain}"
-             )
-          token  <- parseSecurityToken(agentType, JNothing, optToken)
+          agentType <- IO.fromEither(AgentType.fromValue(s)).mapError ( e =>
+               e.copy(e.msg + " <- " + s"Error when mapping '${s}' to an agent info. We are expecting either " +
+                 s"an agentType with allowed values in ${AgentType.allValues.mkString(", ")}" +
+                 s" or " +
+                 s"a json like {'agentType': type, 'version': opt_version, 'securityToken': ...} but we get: ${jsonError}"
+               ) )
+          token  <- IO.fromEither(parseSecurityToken(agentType, JNothing, optToken))
         } yield {
           AgentInfo(agentType, None, token)
         }

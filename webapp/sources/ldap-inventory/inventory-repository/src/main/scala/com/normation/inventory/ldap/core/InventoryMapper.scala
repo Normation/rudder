@@ -39,17 +39,59 @@ package com.normation.inventory.ldap.core
 
 import LDAPConstants._
 import com.normation.inventory.domain._
-import com.unboundid.ldap.sdk.{Version => _, _ }
+import com.unboundid.ldap.sdk.{Version => _, _}
 import com.normation.ldap.sdk._
 import com.normation.ldap.sdk.schema.LDAPObjectClass
 import org.joda.time.DateTime
-import net.liftweb.common._
 import net.liftweb.json._
-import Box._
 import java.net.InetAddress
+
 import InetAddressUtils._
+import com.normation.errors.RudderError
 import com.normation.utils.Control.sequence
 import com.normation.inventory.domain.NodeTimezone
+import com.normation.inventory.ldap.core.InventoryMappingRudderError._
+import com.normation.inventory.ldap.core.InventoryMappingResult._
+import scalaz.zio._
+import scalaz.zio.syntax._
+import cats._
+import cats.data._
+import cats.implicits._
+
+sealed trait InventoryMappingRudderError extends RudderError
+object InventoryMappingRudderError {
+  final case class MissingMandatoryAttribute(attribute: String, entry: LDAPEntry) extends InventoryMappingRudderError {
+    def msg = s"Missing required attribute '${attribute}' in entry: ${entry}"
+  }
+  final case class MalformedDN(msg: String)      extends InventoryMappingRudderError
+  final case class MissingMandatory(msg: String) extends InventoryMappingRudderError
+  final case class UnknownElement(msg: String)   extends InventoryMappingRudderError
+  final case class FromInventoryError(hint: String, cause: InventoryError) extends InventoryMappingRudderError {
+    def msg = hint + s" <- ${cause.getClass.getSimpleName}:${cause.msg}"
+  }
+}
+
+object InventoryMappingResult {
+
+  type InventoryMappingPure[T] = Either[InventoryMappingRudderError, T]
+  type InventoryMappingResult[T] = IO[InventoryMappingRudderError, T]
+
+
+  implicit class RequiredAttrToPure(entry: LDAPEntry) {
+    def required(attribute: String): InventoryMappingPure[String] = entry(attribute) match {
+      case None    => Left(MissingMandatoryAttribute(attribute, entry))
+      case Some(x) => Right(x)
+    }
+  }
+
+  implicit class RequiredThing[T](opt: Option[T]) {
+    def notOptional(msg: String) = opt match {
+      case None    => Left(MissingMandatory(msg))
+      case Some(x) => Right(x)
+    }
+  }
+
+}
 
 class DateTimeSerializer extends Serializer[DateTime] {
   private val IntervalClass = classOf[DateTime]
@@ -69,7 +111,7 @@ class InventoryMapper(
   , pendingDit :InventoryDit
   , acceptedDit:InventoryDit
   , removedDit :InventoryDit
-) extends Loggable {
+) {
 
   implicit val formats = Serialization.formats(NoTypeHints) + new DateTimeSerializer
 
@@ -97,7 +139,7 @@ class InventoryMapper(
     e
   }
 
-  def softwareFromEntry(e:LDAPEntry) : Box[Software] = {
+  def softwareFromEntry(e:LDAPEntry) : InventoryMappingPure[Software] = {
     for {
       id <- acceptedDit.SOFTWARE.SOFT.idFromDN(e.dn)
       name        = e(A_NAME)
@@ -138,14 +180,14 @@ class InventoryMapper(
     e
   }
 
-  def biosFromEntry(e:LDAPEntry) : Box[Bios] = {
+  def biosFromEntry(e:LDAPEntry) : InventoryMappingPure[Bios] = {
     for {
-      name <- e(A_BIOS_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_BIOS_NAME, e)
-      desc        = e(A_DESCRIPTION)
-      quantity    = e.getAsInt(A_QUANTITY).getOrElse(1)
-      version     = e(A_SOFT_VERSION).map(v => new Version(v))
-      releaseDate = e.getAsGTime(A_RELEASE_DATE) map { _.dateTime }
-      editor      = e(A_EDITOR) map { x => new SoftwareEditor(x) }
+      name        <- e.required(A_BIOS_NAME)
+      desc        =  e(A_DESCRIPTION)
+      quantity    =  e.getAsInt(A_QUANTITY).getOrElse(1)
+      version     =  e(A_SOFT_VERSION).map(v => new Version(v))
+      releaseDate =  e.getAsGTime(A_RELEASE_DATE) map { _.dateTime }
+      editor      =  e(A_EDITOR) map { x => new SoftwareEditor(x) }
 
     } yield {
       Bios( name, desc, version, editor, releaseDate, quantity )
@@ -163,13 +205,13 @@ class InventoryMapper(
     e
   }
 
-  def controllerFromEntry(e:LDAPEntry) : Box[Controller] = {
+  def controllerFromEntry(e:LDAPEntry) : InventoryMappingPure[Controller] = {
     for {
-      name <- e(A_CONTROLLER_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_CONTROLLER_NAME, e)
-      desc = e(A_DESCRIPTION)
-      manufacturer = e(A_MANUFACTURER).map(m => new Manufacturer(m))
-      smeType = e(A_SME_TYPE)
-      quantity = e.getAsInt(A_QUANTITY).getOrElse(1)
+      name         <- e.required(A_CONTROLLER_NAME)
+      desc         =  e(A_DESCRIPTION)
+      manufacturer =  e(A_MANUFACTURER).map(m => new Manufacturer(m))
+      smeType      =  e(A_SME_TYPE)
+      quantity     =  e.getAsInt(A_QUANTITY).getOrElse(1)
     } yield {
       Controller( name, desc, manufacturer, smeType, quantity )
     }
@@ -190,17 +232,17 @@ class InventoryMapper(
     e
   }
 
-  def memorySlotFromEntry(e:LDAPEntry) : Box[MemorySlot] = {
+  def memorySlotFromEntry(e:LDAPEntry) : InventoryMappingPure[MemorySlot] = {
     for {
-      slotNumber <- e(A_MEMORY_SLOT_NUMBER) ?~! "Missing required attribute %s in entry: %s".format(A_MEMORY_SLOT_NUMBER, e)
-      name = e(A_NAME)
-      desc = e(A_DESCRIPTION)
-      quantity = e.getAsInt(A_QUANTITY).getOrElse(1)
-      capacity = e(A_MEMORY_CAPACITY).map{x => MemorySize(x)}
-      caption = e(A_MEMORY_CAPTION)
-      speed = e(A_MEMORY_SPEED)
-      memType = e(A_MEMORY_TYPE)
-      serial = e(A_SERIAL_NUMBER)
+      slotNumber <- e.required(A_MEMORY_SLOT_NUMBER)
+      name       =  e(A_NAME)
+      desc       =  e(A_DESCRIPTION)
+      quantity   =  e.getAsInt(A_QUANTITY).getOrElse(1)
+      capacity   =  e(A_MEMORY_CAPACITY).map{x => MemorySize(x)}
+      caption    =  e(A_MEMORY_CAPTION)
+      speed      =  e(A_MEMORY_SPEED)
+      memType    =  e(A_MEMORY_TYPE)
+      serial     =  e(A_SERIAL_NUMBER)
     } yield {
       MemorySlot(
             slotNumber, name, desc, capacity, caption
@@ -218,11 +260,11 @@ class InventoryMapper(
     e
   }
 
-  def portFromEntry(e:LDAPEntry) : Box[Port] = {
+  def portFromEntry(e:LDAPEntry) : InventoryMappingPure[Port] = {
     for {
-      name <- e(A_PORT_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_PORT_NAME, e)
-      desc = e(A_DESCRIPTION)
-      smeType = e(A_SME_TYPE)
+      name     <- e.required(A_PORT_NAME)
+      desc     =  e(A_DESCRIPTION)
+      smeType  =  e(A_SME_TYPE)
       quantity = e.getAsInt(A_QUANTITY).getOrElse(1)
     } yield {
       Port( name, desc, smeType, quantity )
@@ -249,22 +291,22 @@ class InventoryMapper(
     e
   }
 
-  def processorFromEntry(e:LDAPEntry) : Box[Processor] = {
+  def processorFromEntry(e:LDAPEntry) : InventoryMappingPure[Processor] = {
     for {
-      name <- e(A_PROCESSOR_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_PROCESSOR_NAME, e)
-      desc     = e(A_DESCRIPTION)
-      quantity = e.getAsInt(A_QUANTITY).getOrElse(1)
-      speed    = e.getAsInt(A_PROCESSOR_SPEED)
-      stepping = e.getAsInt(A_PROCESSOR_STEPPING)
-      family   = e.getAsInt(A_PROCESSOR_FAMILLY)
-      model    = e.getAsInt(A_MODEL)
-      manufacturer = e(A_MANUFACTURER).map(m => new Manufacturer(m))
-      core     = e.getAsInt(A_CORE)
-      thread   = e.getAsInt(A_THREAD)
-      familyName   = e(A_PROCESSOR_FAMILY_NAME)
-      arch     = e(A_PROCESSOR_ARCHITECTURE)
-      externalClock = e.getAsFloat(A_EXTERNAL_CLOCK)
-      cpuid    = e(A_CPUID)
+      name          <- e.required(A_PROCESSOR_NAME)
+      desc          =  e(A_DESCRIPTION)
+      quantity      =  e.getAsInt(A_QUANTITY).getOrElse(1)
+      speed         =  e.getAsInt(A_PROCESSOR_SPEED)
+      stepping      =  e.getAsInt(A_PROCESSOR_STEPPING)
+      family        =  e.getAsInt(A_PROCESSOR_FAMILLY)
+      model         =  e.getAsInt(A_MODEL)
+      manufacturer  =  e(A_MANUFACTURER).map(m => new Manufacturer(m))
+      core          =  e.getAsInt(A_CORE)
+      thread        =  e.getAsInt(A_THREAD)
+      familyName    =  e(A_PROCESSOR_FAMILY_NAME)
+      arch          =  e(A_PROCESSOR_ARCHITECTURE)
+      externalClock =  e.getAsFloat(A_EXTERNAL_CLOCK)
+      cpuid         =  e(A_CPUID)
     } yield {
       Processor(
             manufacturer, name, arch, desc, speed, externalClock, core
@@ -282,12 +324,12 @@ class InventoryMapper(
     e
   }
 
-  def slotFromEntry(e:LDAPEntry) : Box[Slot] = {
+  def slotFromEntry(e:LDAPEntry) : InventoryMappingPure[Slot] = {
     for {
-      name <- e(A_SLOT_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_SLOT_NAME, e)
-      desc = e(A_DESCRIPTION)
-      status = e(A_STATUS)
-      quantity = e.getAsInt(A_QUANTITY).getOrElse(1)
+      name     <- e.required(A_SLOT_NAME)
+      desc     =  e(A_DESCRIPTION)
+      status   =  e(A_STATUS)
+      quantity =  e.getAsInt(A_QUANTITY).getOrElse(1)
     } yield {
       Slot( name, desc, status, quantity )
     }
@@ -302,11 +344,11 @@ class InventoryMapper(
     e
   }
 
-  def soundFromEntry(e:LDAPEntry) : Box[Sound] = {
+  def soundFromEntry(e:LDAPEntry) : InventoryMappingPure[Sound] = {
     for {
-      name <- e(A_SOUND_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_SOUND_NAME, e)
-      desc = e(A_DESCRIPTION)
-      quantity = e.getAsInt(A_QUANTITY).getOrElse(1)
+      name     <- e.required(A_SOUND_NAME)
+      desc     =  e(A_DESCRIPTION)
+      quantity =  e.getAsInt(A_QUANTITY).getOrElse(1)
     } yield {
       Sound( name, desc, quantity )
     }
@@ -328,17 +370,17 @@ class InventoryMapper(
     e
   }
 
-  def storageFromEntry(e:LDAPEntry) : Box[Storage] = {
+  def storageFromEntry(e:LDAPEntry) : InventoryMappingPure[Storage] = {
     for {
-      name <- e(A_STORAGE_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_STORAGE_NAME,e)
-      desc = e(A_DESCRIPTION)
-      size = e(A_STORAGE_SIZE).map{x => MemorySize(x)}
-      firmware = e(A_STORAGE_FIRMWARE)
-      manufacturer = e(A_MANUFACTURER).map( m => new Manufacturer(m))
-      model = e(A_MODEL)
-      serialNumber = e(A_SERIAL_NUMBER)
-      smeType = e(A_SME_TYPE)
-      quantity = e.getAsInt(A_QUANTITY).getOrElse(1)
+      name         <- e.required(A_STORAGE_NAME)
+      desc         =  e(A_DESCRIPTION)
+      size         =  e(A_STORAGE_SIZE).map{x => MemorySize(x)}
+      firmware     =  e(A_STORAGE_FIRMWARE)
+      manufacturer =  e(A_MANUFACTURER).map( m => new Manufacturer(m))
+      model        =  e(A_MODEL)
+      serialNumber =  e(A_SERIAL_NUMBER)
+      smeType      =  e(A_SME_TYPE)
+      quantity     =  e.getAsInt(A_QUANTITY).getOrElse(1)
     } yield {
       Storage( name, desc, size, firmware, manufacturer
           , model, serialNumber, smeType, quantity )
@@ -357,14 +399,14 @@ class InventoryMapper(
     e
   }
 
-  def videoFromEntry(e:LDAPEntry) : Box[Video] = {
+  def videoFromEntry(e:LDAPEntry) : InventoryMappingPure[Video] = {
     for {
-      name <- e(A_VIDEO_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_VIDEO_NAME, e)
-      desc = e(A_DESCRIPTION)
-      quantity = e.getAsInt(A_QUANTITY).getOrElse(1)
-      chipset = e(A_VIDEO_CHIPSET)
-      memory = e(A_MEMORY_CAPACITY).map{x => MemorySize(x)}
-      resolution = e (A_VIDEO_RESOLUTION)
+      name       <- e.required(A_VIDEO_NAME)
+      desc       =  e(A_DESCRIPTION)
+      quantity   =  e.getAsInt(A_QUANTITY).getOrElse(1)
+      chipset    =  e(A_VIDEO_CHIPSET)
+      memory     =  e(A_MEMORY_CAPACITY).map{x => MemorySize(x)}
+      resolution =  e (A_VIDEO_RESOLUTION)
     } yield {
       Video( name, desc, chipset, memory, resolution, quantity )
     }
@@ -401,7 +443,7 @@ class InventoryMapper(
         case LDAPObjectClass(OC_VM_QEMU,_,_,_)         => Some(VirtualMachineType(QEmu))
         case LDAPObjectClass(OC_VM_AIX_LPAR,_,_,_)     => Some(VirtualMachineType(AixLPAR))
         case LDAPObjectClass(OC_VM_HYPERV,_,_,_)       => Some(VirtualMachineType(HyperV))
-        case LDAPObjectClass(OC_VM_BSDJAIL,_,_,_)     => Some(VirtualMachineType(BSDJail))
+        case LDAPObjectClass(OC_VM_BSDJAIL,_,_,_)      => Some(VirtualMachineType(BSDJail))
         case LDAPObjectClass(OC_PM,_,_,_)              => Some(PhysicalMachineType)
         case _ => None
       }
@@ -445,77 +487,55 @@ class InventoryMapper(
    * It adds it to a machine, return the modified machine.
    * If the mapping goes bad or the entry type is unknown, the
    * MachineInventory is returned as it was, and the error is logged
-   * TODO: make that being a strategy
    */
-  private[this] def mapAndAddMachineElement(entry:LDAPEntry, machine:MachineInventory) : MachineInventory = {
-    def log(e:EmptyBox, elt:String) : MachineInventory = {
-      val error = e ?~! "Error when mapping LDAP entry to a %s. Entry details: %s".format(elt,entry)
-      logger.error(error.messageChain)
-      machine
+  private[this] def mapAndAddElementGeneric[U, T](from: U, e: LDAPEntry, name: String, f: LDAPEntry => InventoryMappingPure[T], path: U => Seq[T]): UIO[U] = {
+    import com.softwaremill.quicklens._
+    f(e) match {
+      case Left(error) =>
+        InventoryLogger.error(s"Error when mapping LDAP entry to a '${name}'. Entry details: ${e}. Cause: ${e.getClass.getSimpleName}:${error.msg}") *>
+        from.succeed
+      case Right(value) =>
+        from.modify(path).using( value +: _).succeed
     }
-
-    entry match {
-      case e if(e.isA(OC_MEMORY)) => memorySlotFromEntry(e) match {
-        case e:EmptyBox => log(e, "memory slot")
-        case Full(x) => machine.copy( memories = x +: machine.memories)
-      }
-      case e if(e.isA(OC_PORT)) => portFromEntry(e) match {
-        case e:EmptyBox => log(e, "port")
-        case Full(x) => machine.copy( ports = x +: machine.ports)
-      }
-      case e if(e.isA(OC_SLOT)) => slotFromEntry(e) match {
-        case e:EmptyBox => log(e, "slot")
-        case Full(x) => machine.copy( slots = x +: machine.slots)
-      }
-      case e if(e.isA(OC_SOUND)) => soundFromEntry(e) match {
-        case e:EmptyBox => log(e, "sound card")
-        case Full(x) => machine.copy( sounds = x +: machine.sounds)
-      }
-      case e if(e.isA(OC_BIOS)) => biosFromEntry(e) match {
-        case e:EmptyBox => log(e, "bios")
-        case Full(x) => machine.copy( bios = x +: machine.bios)
-      }
-      case e if(e.isA(OC_CONTROLLER)) => controllerFromEntry(e) match {
-        case e:EmptyBox => log(e, "controller")
-        case Full(x) => machine.copy( controllers = x +: machine.controllers)
-      }
-      case e if(e.isA(OC_PROCESSOR)) => processorFromEntry(e) match {
-        case e:EmptyBox => log(e, "processor")
-        case Full(x) => machine.copy( processors = x +: machine.processors)
-      }
-      case e if(e.isA(OC_STORAGE)) => storageFromEntry(e) match {
-        case e:EmptyBox => log(e, "storage")
-        case Full(x) => machine.copy( storages = x +: machine.storages)
-      }
-      case e if(e.isA(OC_VIDEO)) => videoFromEntry(e) match {
-        case e:EmptyBox => log(e, "video")
-        case Full(x) => machine.copy( videos = x +: machine.videos)
-      }
-      case e =>
-        logger.error("Unknown entry type for a machine element, that entry will be ignored: %s".format(e))
-        machine
-    }
-
   }
 
-  def machineFromTree(tree:LDAPTree) : Box[MachineInventory] = {
+  private[this] def mapAndAddMachineElement(entry:LDAPEntry, machine:MachineInventory) : UIO[MachineInventory] = {
+    def mapAndAdd[T](name: String, f: LDAPEntry => InventoryMappingPure[T], path: MachineInventory => Seq[T]): UIO[MachineInventory] = mapAndAddElementGeneric[MachineInventory, T](machine, entry, name, f, path)
+
+    entry match {
+      case e if(e.isA(OC_MEMORY))     => mapAndAdd("memory slot", memorySlotFromEntry, _.memories   )
+      case e if(e.isA(OC_PORT))       => mapAndAdd("port"       , portFromEntry      , _.ports      )
+      case e if(e.isA(OC_SLOT))       => mapAndAdd("slot"       ,  slotFromEntry     , _.slots      )
+      case e if(e.isA(OC_SOUND))      => mapAndAdd("sound card" , soundFromEntry     , _.sounds     )
+      case e if(e.isA(OC_BIOS))       => mapAndAdd("bios"       , biosFromEntry      , _.bios       )
+      case e if(e.isA(OC_CONTROLLER)) => mapAndAdd("controller" , controllerFromEntry, _.controllers)
+      case e if(e.isA(OC_PROCESSOR))  => mapAndAdd("processor"  , processorFromEntry , _.processors )
+      case e if(e.isA(OC_STORAGE))    => mapAndAdd("storage"    , storageFromEntry   , _.storages   )
+      case e if(e.isA(OC_VIDEO))      => mapAndAdd("video"      , videoFromEntry     , _.videos     )
+      case e                          =>
+        InventoryLogger.error(s"Unknown entry type for a machine element, that entry will be ignored: ${e}") *> machine.succeed
+    }
+  }
+
+  def machineFromTree(tree:LDAPTree) : InventoryMappingPure[MachineInventory] = {
     for {
-      dit                <- ditService.getDit(tree.root().dn)
-      inventoryStatus    = ditService.getInventoryStatus(dit)
-      id                 <- dit.MACHINES.MACHINE.idFromDN(tree.root.dn) ?~! "Missing required ID attribute"
-      machineType        <- machineTypeFromObjectClasses(tree.root().valuesFor(A_OC).toSet) ?~! "Can not find machine types"
-      name               = tree.root()(A_NAME)
-      mbUuid             = tree.root()(A_MB_UUID) map { x => MotherBoardUuid(x) }
-      inventoryDate      = tree.root.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
-      receiveDate        = tree.root.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
-      manufacturer       = tree.root()(A_MANUFACTURER).map(m => new Manufacturer(m))
-      systemSerialNumber = tree.root()(A_SERIAL_NUMBER)
+      dit                <- ditService.getDit(tree.root().dn).notOptional(s"Impossible to find DIT for entry '${tree.root().dn.toString()}'")
+      inventoryStatus    =  ditService.getInventoryStatus(dit)
+      id                 <- dit.MACHINES.MACHINE.idFromDN(tree.root.dn)
+      machineType        <- machineTypeFromObjectClasses(tree.root().valuesFor(A_OC).toSet).notOptional("Can not find machine types")
+      name               =  tree.root()(A_NAME)
+      mbUuid             =  tree.root()(A_MB_UUID) map { x => MotherBoardUuid(x) }
+      inventoryDate      =  tree.root.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
+      receiveDate        =  tree.root.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
+      manufacturer       =  tree.root()(A_MANUFACTURER).map(m => new Manufacturer(m))
+      systemSerialNumber =  tree.root()(A_SERIAL_NUMBER)
       //now, get all subentries
-    } yield {
-      val m = MachineInventory(id,inventoryStatus,machineType,name,mbUuid,inventoryDate, receiveDate
-                               , manufacturer, systemSerialNumber)
+      m                  = MachineInventory(id,inventoryStatus,machineType,name,mbUuid,inventoryDate
+                            , receiveDate, manufacturer, systemSerialNumber)
       //map subentries and return result
-      (m /: tree.children) { case (m,(rdn,t)) => mapAndAddMachineElement(t.root(),m) }
+      res                <- ZIO.foldLeft(tree.children)(m) { case (m, (rdn,t)) => mapAndAddMachineElement(t.root(), m) }
+    } yield {
+      res
     }
   }
 
@@ -535,14 +555,14 @@ class InventoryMapper(
     e
   }
 
-  def fileSystemFromEntry(e:LDAPEntry) : Box[FileSystem] = {
+  def fileSystemFromEntry(e:LDAPEntry) : InventoryMappingPure[FileSystem] = {
     for {
-      mountPoint <- e(A_MOUNT_POINT) ?~! "Missing required attribute %s in entry: %s".format(A_MOUNT_POINT, e)
-      name       = e(A_NAME)
-      desc       = e(A_DESCRIPTION)
-      fileCount  = e.getAsInt(A_FILE_COUNT)
-      freeSpace  = e.getAsLong(A_FREE_SPACE).map(new MemorySize(_))
-      totalSpace = e.getAsLong(A_TOTAL_SPACE).map(new MemorySize(_))
+      mountPoint <- e.required(A_MOUNT_POINT)
+      name       =  e(A_NAME)
+      desc       =  e(A_DESCRIPTION)
+      fileCount  =  e.getAsInt(A_FILE_COUNT)
+      freeSpace  =  e.getAsLong(A_FREE_SPACE).map(new MemorySize(_))
+      totalSpace =  e.getAsLong(A_TOTAL_SPACE).map(new MemorySize(_))
     } yield {
       FileSystem(mountPoint, name, desc, fileCount, freeSpace, totalSpace)
     }
@@ -576,20 +596,20 @@ class InventoryMapper(
     e
   }
 
-  def networkFromEntry(e:LDAPEntry) : Box[Network] = {
+  def networkFromEntry(e:LDAPEntry) : InventoryMappingPure[Network] = {
     for {
-      name <- e(A_NETWORK_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_NETWORK_NAME, e)
-      desc = e(A_DESCRIPTION)
-      ifAddresses= e.valuesFor(A_NETIF_ADDRESS).toSeq.flatMap(getAddressByName)
-      ifGateway  = e.valuesFor(A_NETIF_GATEWAY).toSeq.flatMap(getAddressByName)
-      ifMask     = e.valuesFor(A_NETIF_MASK).toSeq.flatMap(getAddressByName)
-      ifSubnet   = e.valuesFor(A_NETIF_SUBNET).toSeq.flatMap(getAddressByName)
-      ifDhcp     = e(A_NETIF_DHCP).flatMap(getAddressByName(_))
-      macAddress = e(A_NETIF_MAC)
-      status     = e(A_STATUS)
-      ifType     = e(A_NETIF_TYPE)
-      speed      = e(A_SPEED)
-      typeMib    = e(A_NETIF_TYPE_MIB)
+      name       <- e.required(A_NETWORK_NAME)
+      desc       =  e(A_DESCRIPTION)
+      ifAddresses=  e.valuesFor(A_NETIF_ADDRESS).toSeq.flatMap(getAddressByName)
+      ifGateway  =  e.valuesFor(A_NETIF_GATEWAY).toSeq.flatMap(getAddressByName)
+      ifMask     =  e.valuesFor(A_NETIF_MASK).toSeq.flatMap(getAddressByName)
+      ifSubnet   =  e.valuesFor(A_NETIF_SUBNET).toSeq.flatMap(getAddressByName)
+      ifDhcp     =  e(A_NETIF_DHCP).flatMap(getAddressByName(_))
+      macAddress =  e(A_NETIF_MAC)
+      status     =  e(A_STATUS)
+      ifType     =  e(A_NETIF_TYPE)
+      speed      =  e(A_SPEED)
+      typeMib    =  e(A_NETIF_TYPE_MIB)
     } yield {
       Network( name, desc, ifAddresses, ifDhcp, ifGateway
           , ifMask, ifSubnet, macAddress, status, ifType, speed, typeMib )
@@ -611,17 +631,16 @@ class InventoryMapper(
     e
   }
 
-  def vmFromEntry(e:LDAPEntry) : Box[VirtualMachine] = {
+  def vmFromEntry(e:LDAPEntry) : InventoryMappingPure[VirtualMachine] = {
     for {
-      vmid <- e(A_VM_ID) ?~! "Missing required attribute %s in entry: %s".format(A_VM_ID, e)
-
-      memory    = e(A_VM_MEMORY)
-      name      = e(A_VM_NAME)
-      owner     = e(A_VM_OWNER)
-      status    = e(A_VM_STATUS)
-      subsystem = e(A_VM_SUBSYSTEM)
-      vcpu      = e.getAsInt(A_VM_CPU)
-      vmtype    = e(A_VM_TYPE)
+      vmid      <- e.required(A_VM_ID)
+      memory    =  e(A_VM_MEMORY)
+      name      =  e(A_VM_NAME)
+      owner     =  e(A_VM_OWNER)
+      status    =  e(A_VM_STATUS)
+      subsystem =  e(A_VM_SUBSYSTEM)
+      vcpu      =  e.getAsInt(A_VM_CPU)
+      vmtype    =  e(A_VM_TYPE)
 
     } yield {
       VirtualMachine( vmtype,subsystem,owner,name,status,vcpu,memory,new MachineUuid(vmid) )
@@ -777,29 +796,16 @@ class InventoryMapper(
    * If the mapping goes bad or the entry type is unknown, the
    * NodeInventory is returned as it was, and the error is logged
    */
-  private[this] def mapAndAddNodeElement(entry:LDAPEntry, server:NodeInventory) : NodeInventory = {
-    def log(e:EmptyBox, elt:String) : NodeInventory = {
-      val error = e ?~! "Error when mapping LDAP entry to a %s. Entry details: %s".format(elt,entry)
-      logger.error(error.messageChain)
-      server
-    }
+  private[this] def mapAndAddNodeElement(entry:LDAPEntry, node: NodeInventory) : UIO[NodeInventory] = {
+    def mapAndAdd[T](name: String, f: LDAPEntry => InventoryMappingPure[T], path: NodeInventory => Seq[T]): UIO[NodeInventory] = mapAndAddElementGeneric[NodeInventory, T](node, entry, name, f, path)
 
     entry match {
-      case e if(e.isA(OC_NET_IF)) => networkFromEntry(e) match {
-        case e:EmptyBox => log(e, "network interface")
-        case Full(x) => server.copy( networks = x +: server.networks)
-      }
-      case e if(e.isA(OC_FS)) => fileSystemFromEntry(e) match {
-        case e:EmptyBox => log(e, "file system")
-        case Full(x) => server.copy( fileSystems = x +: server.fileSystems)
-      }
-      case e if(e.isA(OC_VM_INFO)) => vmFromEntry(e) match {
-        case e:EmptyBox => log(e, "virtual machine")
-        case Full(x) => server.copy( vms = x +: server.vms)
-      }
+      case e if(e.isA(OC_NET_IF))  => mapAndAdd("network interface", networkFromEntry, _.networks)
+      case e if(e.isA(OC_FS))      => mapAndAdd("file system", fileSystemFromEntry, _.fileSystems)
+      case e if(e.isA(OC_VM_INFO)) => mapAndAdd("virtual machine", vmFromEntry, _.vms)
       case e =>
-        logger.error("Unknow entry type for a server element, that entry will be ignored: %s".format(e))
-        server
+        InventoryLogger.error(s"Unknow entry type for a server element, that entry will be ignored: ${e}") *>
+        node.succeed
     }
 
   }
@@ -807,25 +813,24 @@ class InventoryMapper(
   def mapSeqStringToMachineIdAndStatus(set:Set[String]) : Seq[(MachineUuid,InventoryStatus)] = {
     set.toSeq.flatMap { x =>
       (for {
-        dn   <- try { Full(new DN(x)) } catch { case e:LDAPException => Failure("Can not parse DN %s".format(x), Full(e),Empty) }
-        dit  <- ditService.getDit(dn) ?~! "Can not find DIT from DN %s".format(x)
-        uuid <- dit.MACHINES.MACHINE.idFromDN(dn) ?~! "Can not map DN to machine ID"
+        dn   <- try { Right(new DN(x)) } catch { case e:LDAPException => Left(MalformedDN(s"Can not parse DN: '${x}'. Exception was: ${e.getMessage}")) }
+        dit  <- ditService.getDit(dn).notOptional(s"Can not find DIT from DN '${x}'")
+        uuid <- dit.MACHINES.MACHINE.idFromDN(dn)
         st   =  ditService.getInventoryStatus(dit)
-      } yield (uuid,st) ) match {
-        case Full(st) => List(st)
-        case e:EmptyBox =>
-          logger.error("Error when processing machine DN %s".format(x), e)
+      } yield (uuid, st) ) match {
+        case Right(st) => List(st)
+        case Left(err) =>
+          InventoryLogger.internalLogger.error(s"Error when processing machine DN '${x}': ${err.msg}")
           Nil
       }
     }
   }
 
-  def mapOsDetailsFromEntry(entry: LDAPEntry) : Box[OsDetails] = {
-    def requiredAttr(attr:String) = entry(attr) ?~! missingAttr(attr)
+  def mapOsDetailsFromEntry(entry: LDAPEntry) : InventoryMappingPure[OsDetails] = {
     for {
-      osName        <- requiredAttr(A_OS_NAME)
-      osVersion     <- requiredAttr(A_OS_VERSION).map(x => new Version(x))
-      kernelVersion <- requiredAttr(A_OS_KERNEL_VERSION).map(x => new Version(x))
+      osName        <- entry.required(A_OS_NAME)
+      osVersion     <- entry.required(A_OS_VERSION).map(x => new Version(x))
+      kernelVersion <- entry.required(A_OS_KERNEL_VERSION).map(x => new Version(x))
       osFullName    =  entry(A_OS_FULL_NAME).getOrElse("")
       osServicePack =  entry(A_OS_SERVICE_PACK)
       osDetails     <- if(entry.isA(OC_WINDOWS_NODE)) {
@@ -849,7 +854,7 @@ class InventoryMapper(
                           val registrationCompany = entry(A_WIN_COMPANY)
                           val productKey          = entry(A_WIN_KEY)
                           val productId           = entry(A_WIN_ID)
-                          Full(Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId))
+                          Right(Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId))
 
                         } else if(entry.isA(OC_LINUX_NODE)) {
                           val os = osName match {
@@ -866,53 +871,51 @@ class InventoryMapper(
                             case A_OS_MINT       => Mint
                             case _               => UnknownLinuxType
                           }
-                          Full(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))
+                          Right(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))
 
                         } else if(entry.isA(OC_SOLARIS_NODE)) {
-                          Full(Solaris(osFullName,osVersion,osServicePack,kernelVersion))
+                          Right(Solaris(osFullName,osVersion,osServicePack,kernelVersion))
                         } else if(entry.isA(OC_AIX_NODE)) {
-                          Full(Aix(osFullName,osVersion,osServicePack,kernelVersion))
+                          Right(Aix(osFullName,osVersion,osServicePack,kernelVersion))
                         } else if(entry.isA(OC_BSD_NODE)) {
                           val os = osName match {
                             case A_OS_FREEBSD => FreeBSD
                             case _            => UnknownBsdType
                           }
-                          Full(Bsd(os,osFullName,osVersion,osServicePack,kernelVersion))
+                          Right(Bsd(os,osFullName,osVersion,osServicePack,kernelVersion))
                         } else if(entry.isA(OC_NODE)) {
-                          Full(UnknownOS(osFullName,osVersion,osServicePack,kernelVersion))
-                        } else Failure("Unknow OS type: %s".format(entry.valuesFor(A_OC).mkString(", ")))
+                          Right(UnknownOS(osFullName,osVersion,osServicePack,kernelVersion))
+                        } else Left(UnknownElement(s"Unknow OS type: '${entry.valuesFor(A_OC).mkString(", ")}'"))
     } yield {
       osDetails
     }
   }
 
-  private[this] def missingAttr(attr:String) : String = s"Missing required attribute ${attr}"
-
-  def nodeFromEntry(entry:LDAPEntry) : Box[NodeInventory] = {
-    def requiredAttr(attr:String) = entry(attr) ?~! missingAttr(attr)
-
+  def nodeFromEntry(entry:LDAPEntry) : InventoryMappingResult[NodeInventory] = {
     for {
-      dit                <- ditService.getDit(entry.dn)
+      dit                <- ditService.getDit(entry.dn).notOptional(s"DIT not found for entry ${entry.dn}")
       inventoryStatus    =  ditService.getInventoryStatus(dit)
-      id                 <- dit.NODES.NODE.idFromDN(entry.dn) ?~! missingAttr("for server id")
-      keyStatus          <- entry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
-      hostname           <- requiredAttr(A_HOSTNAME)
-      rootUser           <- requiredAttr(A_ROOT_USER)
-      policyServerId     <- requiredAttr(A_POLICY_SERVER_UUID)
+      id                 <- dit.NODES.NODE.idFromDN(entry.dn)
+      keyStatus          <- entry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey))
+      hostname           <- entry.required(A_HOSTNAME)
+      rootUser           <- entry.required(A_ROOT_USER)
+      policyServerId     <- entry.required(A_POLICY_SERVER_UUID)
       publicKeys         =  entry.valuesFor(A_PKEYS).map(Some(_))
       agentNames         <- {
                               val agents = entry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
                               val agentWithKeys = agents.zipAll(publicKeys, None,None).filter(_._1.isDefined)
-                              sequence(agentWithKeys) {
-                                case (Some(agent),key) =>
-                                  AgentInfoSerialisation.parseCompatNonJson(agent,key)
-                                case _                 =>
-                                  Failure("Should not happen")
+                              ZIO.foreach(agentWithKeys) {
+                                case (Some(agent), key) =>
+                                  AgentInfoSerialisation.parseCompatNonJson(agent,key).mapError(err =>
+                                    InventoryMappingRudderError.FromInventoryError(s"Error when parsing agent security token '${agent}'", err)
+                                  )
+                                case (None, key)        =>
+                                  "Error when parsing agent security token: agent is undefined".fail
                               }
                             }
       //now, look for the OS type
       osDetails          <- mapOsDetailsFromEntry(entry)
-      // optionnal information
+      // optional information
       name               =  entry(A_NAME)
       description        =  entry(A_DESCRIPTION)
       ram                =  entry(A_OS_RAM).map  { x => MemorySize(x) }
@@ -924,17 +927,17 @@ class InventoryMapper(
       publicKeys         =  entry.valuesFor(A_PKEYS).map(k => PublicKey(k))
       ev                 =  entry.valuesFor(A_EV).toSeq.map{Serialization.read[EnvironmentVariable](_)}
       process            =  entry.valuesFor(A_PROCESS).toSeq.map(Serialization.read[Process](_))
-      softwareIds        =  entry.valuesFor(A_SOFTWARE_DN).toSeq.flatMap(x => dit.SOFTWARE.SOFT.idFromDN(new DN(x)))
-      machineId          =  mapSeqStringToMachineIdAndStatus(entry.valuesFor(A_CONTAINER_DN)).toList match {
-                              case Nil => None
-                              case m :: Nil => Some(m)
+      softwareIds        =  entry.valuesFor(A_SOFTWARE_DN).toSeq.flatMap(x => dit.SOFTWARE.SOFT.idFromDN(new DN(x)).toOption)
+      machineId          <- mapSeqStringToMachineIdAndStatus(entry.valuesFor(A_CONTAINER_DN)).toList match {
+                              case Nil => None.succeed
+                              case m :: Nil => Some(m).succeed
                               case l@( m1 :: m2 :: _) =>
-                                logger.error("Several machine were registered for a node. That is not supported. " +
+                                InventoryLogger.error("Several machine were registered for a node. That is not supported. " +
                                     "The first in the following list will be choosen, but you may encouter strange " +
                                     "results in the future: %s".
                                       format(l.map{ case (id,status) => "%s [%s]".format(id.value, status.name)}.mkString(" ; "))
-                                    )
-                                Some(m1)
+                                    ) *>
+                                Some(m1).succeed
                             }
       inventoryDate      =  entry.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
       receiveDate        =  entry.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
@@ -945,15 +948,12 @@ class InventoryMapper(
                               case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
                               case _                          => None
                             }
-      customProperties   =  { import CustomPropertiesSerialization.Unserialize
-                              entry.valuesFor(A_CUSTOM_PROPERTY).toList.flatMap(a =>
-                                a.toCustomProperty match {
-                                  case Left(ex)  =>
-                                    logger.warn(s"Error when deserializing node inventory custom property (ignoring that property): ${ex.getMessage}", ex)
-                                    None
-                                  case Right(cs) =>
-                                    Some(cs)
-                                }
+      customProperties   <-  { import CustomPropertiesSerialization.Unserialize
+                              ZIO.foreach(entry.valuesFor(A_CUSTOM_PROPERTY))( a =>
+                                ZIO.fromEither(a.toCustomProperty).foldM(ex =>
+                                    InventoryLogger.warn(s"Error when deserializing node inventory custom property (ignoring that property): ${ex.getMessage}", ex) *> None.succeed
+                                  , p => Some(p).succeed
+                                )
                               )
                             }
       main               =  NodeSummary (
@@ -987,16 +987,16 @@ class InventoryMapper(
          , serverRoles = serverRoles
          , timezone = timezone
          , customProperties = customProperties
-         )
+       )
     }
   }
 
-  def nodeFromTree(tree:LDAPTree) : Box[NodeInventory] = {
+  def nodeFromTree(tree:LDAPTree) : InventoryMappingPure[NodeInventory] = {
     for {
       node <- nodeFromEntry(tree.root)
+      res  <- ZIO.foldLeft(tree.children)(node) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root(),m) }
     } yield {
-      //map subentries and return result
-      (node /: tree.children) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root(),m) }
+      res
     }
   }
 

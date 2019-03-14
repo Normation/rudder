@@ -151,7 +151,7 @@ class FusionReportEndpoint(
             defaultBadAnswer("No inventory sent")
 
           case (Some(inventory), sig) => {
-            InventoryLogger.info(s"API got new inventory file '${inventory.getOriginalFilename}' with signature ${if(sig.isDefined) "" else "not "}available: process.")
+            InventoryProcessingLogger.info(s"API got new inventory file '${inventory.getOriginalFilename}' with signature ${if(sig.isDefined) "" else "not "}available: process.")
             parseInventory(inventory, sig)
           }
         }

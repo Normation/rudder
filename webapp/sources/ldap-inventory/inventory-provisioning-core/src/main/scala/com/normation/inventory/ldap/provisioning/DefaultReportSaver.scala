@@ -37,14 +37,20 @@
 
 package com.normation.inventory.ldap.provisioning
 
+import cats.data.NonEmptyList
 import com.normation.inventory.domain.InventoryReport
 import com.normation.inventory.services.provisioning._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core._
-import net.liftweb.common.{Box,Full,Empty,Failure}
+import com.normation.ldap.sdk.LdapResult.LdapResult
+import net.liftweb.common._
 import net.liftweb.common.Loggable
 import com.normation.ldap.sdk.RwLDAPConnection
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.ldap.sdk.LdapResultRudderError
+import com.normation.ldap.sdk.LdapResult._
 
 /**
  * Post-commit convention:
@@ -70,7 +76,7 @@ class DefaultReportSaver(
      * that an LDAPException in one don't stop the
      * other to be saved
      */
-    var results = List[Box[Seq[LDIFChangeRecord]]]()
+    var results = List[LdapResult[Seq[LDIFChangeRecord]]]()
 
     val t0 = System.currentTimeMillis
 
@@ -129,28 +135,17 @@ class DefaultReportSaver(
      * For now, even on partial failure (means: not all fail),
      * we consider it as a success and forward to post process
      */
-    if(results.forall( _.isEmpty )) {
-      //merge errors and return now
-      (Failure("")/:results){ (fail,r) => r match {
-        case Failure(m,_,_) => fail ?~! m
-        case _ => fail
-      } }
-    } else { //ok, so at least one non error. Log errors, merge non error, and post-process it
-
-      val changes : Seq[LDIFChangeRecord] = (Seq[LDIFChangeRecord]() /: results){ (records,r) => r match {
-        case f:Failure =>
-          logger.error("Report processing will be incomplete, found error: %s".format(f.messageChain))
-          f.rootExceptionCause.foreach { ex =>
-            logger.error("Error was caused by exception: %s".format(ex.getMessage))
-          }
-          records
-        case Empty => records //can't log anything relevant ?
-        case Full(seq) => records ++ seq
-      } }
-
-      //we don't want to avoid post-processing, so always return changes
-      Full(changes)
-
+    val accumulated = ZIO.foldLeft(results)((List.empty[LdapResultRudderError], List.empty[Seq[LDIFChangeRecord]])) { case ((errors, oks), x) =>
+      x.fold(err => (err :: errors, oks), ok => (errors, ok :: oks))
+    }
+    accumulated.flatMap { case (errors, successes) =>
+      if(successes.isEmpty && errors.nonEmpty) {
+        //merge errors and return now
+        LdapResultRudderError.Accumulated(NonEmptyList.fromListUnsafe(errors)).fail
+      } else { //ok, so at least one non error. Log errors, merge non error, and post-process it
+        ZIO.foreach(errors)(e =>
+            ZIO.effect(logger.error(s"Report processing will be incomplete, found error: ${e.msg}")).orElse(ZIO.unit)) *> successes.flatten.succeed
+      }
     }
   }
 }

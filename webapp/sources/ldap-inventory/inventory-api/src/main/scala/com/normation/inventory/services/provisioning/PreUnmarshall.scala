@@ -37,8 +37,9 @@
 
 package com.normation.inventory.services.provisioning
 
-import net.liftweb.common.Box
 import scala.xml.NodeSeq
+import com.normation.inventory.domain.InventoryResult.InventoryResult
+
 
 /**
  * This traits allows to pre process report to manage specific data
@@ -47,6 +48,6 @@ trait PreUnmarshall {
 
   def name : String
 
-  def apply(report:NodeSeq) : Box[NodeSeq]
+  def apply(report:NodeSeq) : InventoryResult[NodeSeq]
 }
 
