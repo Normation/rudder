@@ -1251,10 +1251,10 @@ bundle agent ncf_services(service, action)
     #####
     # Actual command - for actions on non-windows systems, non using systemd, non-slackware
     #####
-    pass2.is_check_action.!windows.!is_process_action.method_found.action_ok.!slackware::
+    pass2.is_check_action.!windows.!is_process_action.method_found.action_ok::
       "force_success_class"    usebundle => _classes_success("${class_prefix}");
 
-    pass2.is_check_action.!windows.!is_process_action.method_found.!action_ok.!slackware::
+    pass2.is_check_action.!windows.!is_process_action.method_found.!action_ok::
       "force_failure_class"    usebundle => _classes_failure("${class_prefix}");
 
     # Method not found
