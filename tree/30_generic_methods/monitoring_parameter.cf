@@ -38,6 +38,7 @@ bundle agent monitoring_parameter(key, value)
 
       "monitoring_file"   string => "/var/rudder/tmp/rudder_monitoring.csv";
 
+      "inner_old_class_prefix"  string => canonify("inner_monitoring_parameter_${key}_${value}");
       "old_class_prefix"  string => canonify("monitoring_parameter_${key}_${value}");
 
       "args"               slist => {"${key}", "${value}"};
@@ -45,23 +46,19 @@ bundle agent monitoring_parameter(key, value)
       "full_class_prefix" string => canonify("monitoring_parameter_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix" string => canonify("file_ensure_lines_present_${monitoring_file}_param,${key},${value}");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
-
-
-
   classes:
-  
       "should_report" expression => "${report_data.should_report}";
 
+  files:
+      "${monitoring_file}"
+        create    => "true",
+        edit_line => lines_present("param,${key},${value}"),
+        edit_defaults => no_backup,
+        classes   => classes_generic("${inner_old_class_prefix}");
+
   methods:
-    
-      "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
-      "Write csv file"                         usebundle => file_ensure_lines_present("${monitoring_file}", "param,${key},${value}");
-      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
-                                              ifvarclass => "should_report";
-      "result classes"                         usebundle => _classes_copy_invert_kept_repaired(canonify("file_ensure_lines_present_${monitoring_file}"), "${old_class_prefix}");
-      "new result classes"                     usebundle => _classes_copy_invert_kept_repaired("${inner_class_prefix}", "${class_prefix}");
+      "result classes"      usebundle => _classes_copy_invert_kept_repaired("${inner_old_class_prefix}", "${old_class_prefix}");
+      "new result classes"  usebundle => _classes_copy_invert_kept_repaired("${inner_class_prefix}", "${class_prefix}");
 
       "report"                                 usebundle => _log("Monitoring parameter ${key} set to ${value}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
