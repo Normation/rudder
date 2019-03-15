@@ -195,6 +195,7 @@ object LinuxType {
     :: Oracle
     :: Scientific
     :: Slackware
+    :: Mint
     :: Nil
   )
 }
@@ -210,6 +211,7 @@ case object Android          extends LinuxType with HashcodeCaching { val name =
 case object Oracle           extends LinuxType with HashcodeCaching { val name = "Oracle"       }
 case object Scientific       extends LinuxType with HashcodeCaching { val name = "Scientific"   }
 case object Slackware        extends LinuxType with HashcodeCaching { val name = "Slackware"    }
+case object Mint             extends LinuxType with HashcodeCaching { val name = "Mint"    }
 
 //solaris has only one flavour for now
 //to be updated in the future with OSS verison
