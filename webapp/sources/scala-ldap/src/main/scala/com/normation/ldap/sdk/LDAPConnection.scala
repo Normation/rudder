@@ -22,6 +22,7 @@ package com.normation.ldap.sdk
 
 import cats.data.NonEmptyList
 import com.normation.NamedZioLogger
+import com.normation.errors.BaseChainError
 import com.normation.errors.RudderError
 import com.normation.ldap.ldif.LDIFFileLogger
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
@@ -45,6 +46,8 @@ import scalaz.zio.blocking.Blocking
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.normation.zio._
+import com.normation.errors._
+import com.normation.ldap.sdk.LdapResultRudderError.Chained
 
 import scala.collection.JavaConverters._
 import org.slf4j.LoggerFactory
@@ -65,9 +68,7 @@ object LdapResultRudderError {
   final case class FailureResult(msg: String, result: LDAPResult)           extends LdapResultRudderError
   // errors linked to some logic of our lib
   // trace
-  final case class Chained(hint: String, cause: LdapResultRudderError)      extends LdapResultRudderError {
-    def msg = hint +" <- " + cause.msg
-  }
+  final case class Chained[E <: RudderError](hint: String, cause: E)        extends LdapResultRudderError with BaseChainError[E]
   final case class Consistancy(msg: String)                                 extends LdapResultRudderError
   // accumulated errors from multiple independent action
   final case class Accumulated(errors: NonEmptyList[LdapResultRudderError]) extends LdapResultRudderError {
@@ -135,6 +136,14 @@ object LdapResult{
     }
   }
 
+  implicit class ErrorToLdapError[T](res: IO[RudderError, T]) {
+    def toLdapResult: LdapResult[T] = res.mapError(e =>
+      LdapResultRudderError.Chained("error:", e)
+    )
+  }
+  implicit object ScalaLdapErrorBridge extends ErrorBridge[RudderError, LdapResultRudderError.Chained[RudderError]] {
+    override def bridge(from: RudderError, hint: String) = Chained[RudderError](hint, from)
+  }
 }
 
 trait ReadOnlyEntryLDAPConnection {

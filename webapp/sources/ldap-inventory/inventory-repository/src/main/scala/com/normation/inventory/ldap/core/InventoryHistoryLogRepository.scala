@@ -45,6 +45,8 @@ import com.unboundid.ldap.sdk.Entry
 import com.unboundid.ldif._
 import com.normation.inventory.domain.InventoryResult._
 import java.io.FileNotFoundException
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * A service that write and read ServerAndMachine inventory data to/from file.
@@ -58,37 +60,35 @@ class FullInventoryFileMarshalling(
 
   def fromFile(in:File) : InventoryResult[FullInventory] = {
     import scala.collection.mutable.Buffer
-    var reader:LDIFReader = null
-    try {
-      reader = new LDIFReader(in)
-      val buf = Buffer[Entry]()
-      var e : Entry = null
-      do {
-        e = reader.readEntry
-        if(null != e) buf += e
-      } while(null != e)
-      fromLdapEntries.fromLdapEntries(buf.map(e => new LDAPEntry(e)))
-    } catch {
-      case e : LDIFException => Failure(e.getMessage,Full(e),Empty)
-      case e : FileNotFoundException => Failure(s"History file '${in.getAbsolutePath}' was not found. It was likelly deleted", Full(e), Empty)
-    } finally {
-      if(null != reader) reader.close
+    IO.bracket(Task.effect(new LDIFReader(in)).mapError(e => InventoryError.System(e.getMessage)))(r => UIO(r.close)) { reader =>
+      (Task.effect {
+        val buf = Buffer[Entry]()
+        var e : Entry = null
+        do {
+          e = reader.readEntry
+          if(null != e) buf += e
+        } while(null != e)
+        buf
+      } mapError {
+        case e : LDIFException => InventoryError.System(e.getMessage)
+        case e : FileNotFoundException => InventoryError.System((s"History file '${in.getAbsolutePath}' was not found. It was likelly deleted"))
+      }).flatMap { buf =>
+        fromLdapEntries.fromLdapEntries(buf.map(e => new LDAPEntry(e)))
+      }
     }
   }
 
   def toFile(out:File, data: FullInventory) : InventoryResult[FullInventory] = {
-    var printer:LDIFWriter = null
-    try {
-      printer = new LDIFWriter(out)
-      mapper.treeFromNode(data.node).toLDIFRecords.foreach { r => printer.writeLDIFRecord(r) }
-      data.machine.foreach { m =>
-        mapper.treeFromMachine(m).toLDIFRecords.foreach { r => printer.writeLDIFRecord(r) }
+    ZIO.bracket(Task.effect(new LDIFWriter(out)).mapError(e => InventoryError.System(e.getMessage)))(_.close().succeed) { printer =>
+      (Task.effect {
+        mapper.treeFromNode(data.node).toLDIFRecords.foreach { r => printer.writeLDIFRecord(r) }
+        data.machine.foreach { m =>
+          mapper.treeFromMachine(m).toLDIFRecords.foreach { r => printer.writeLDIFRecord(r) }
+        }
+        data
+      }) mapError  { e =>
+        InventoryError.System(e.getMessage)
       }
-      Full(data)
-    } catch {
-      case e:Exception => Failure(e.getMessage,Full(e),Empty)
-    } finally {
-      if(null != printer) printer.close
     }
   }
 }

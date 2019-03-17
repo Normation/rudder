@@ -44,7 +44,6 @@ import com.normation.inventory.services.core._
 import com.normation.inventory.domain._
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk._
-import com.normation.inventory.domain.InventoryResult._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldap.sdk.{Modification, ModificationType}
 import com.normation.ldap.sdk.BuildFilter.EQ
@@ -55,6 +54,8 @@ import scalaz.zio.syntax._
 import scalaz.zio.interop.catz._
 import cats.implicits._
 import com.normation.zio._
+import com.normation.errors._
+import com.normation.inventory.domain.InventoryResult._
 
 trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChangeRecord]]
 
@@ -139,7 +140,7 @@ class FullInventoryRepositoryImpl(
     } yield {
       machine
     }
-  }.mapError(_.chainError(s"Error when getting machine with ID '${id.value}'"))
+  }.bridgeError(s"Error when getting machine with ID '${id.value}'")
 
   /*
    * For a given machine, find all the node that use it
@@ -186,7 +187,7 @@ class FullInventoryRepositoryImpl(
       con <- ldap
       res <- con.saveTree(mapper.treeFromMachine(machine))
     } yield res
-  }.mapError(_.chainError(s"Error when saving machine with ID '${machine.id.value}'"))
+  }.bridgeError(s"Error when saving machine with ID '${machine.id.value}'")
 
   override def delete(id:MachineUuid) : InventoryResult[Seq[LDIFChangeRecord]] = {
     for {
@@ -196,7 +197,7 @@ class FullInventoryRepositoryImpl(
        machine  <- getNodesForMachine(con, id)
        nodes    <- updateNodes(con, machine, None)
     } yield res.flatten ++ nodes
-  }.mapError(_.chainError(s"Error when deleting machine with ID '${id.value}'"))
+  }.bridgeError(s"Error when deleting machine with ID '${id.value}'")
 
 
   /**
@@ -245,7 +246,7 @@ class FullInventoryRepositoryImpl(
     } yield {
      moved++nodes
     }
-  }.mapError(_.chainError(s"Error when moving machine with ID '${id.value}'"))
+  }.bridgeError(s"Error when moving machine with ID '${id.value}'")
 
   /**
    * Note: it may happen strange things between get:ServerAndMachine and Node if there is
@@ -262,20 +263,20 @@ class FullInventoryRepositoryImpl(
    } yield {
       machineId
    }
-  }.mapError(_.chainError(s"Error when getting machine with ID '${id.value}' and status '${inventoryStatus.name}'"))
+  }.bridgeError(s"Error when getting machine with ID '${id.value}' and status '${inventoryStatus.name}'")
 
   override def getAllNodeInventories(inventoryStatus : InventoryStatus): InventoryResult[Map[NodeId, NodeInventory]] = {
     (for {
       con       <- ldap
       nodeTrees <- con.getTree(inventoryDitService.getDit(inventoryStatus).NODES.dn)
       nodes     <- nodeTrees match {
-                     case Some(root) => ZIO.fromEither(root.children.values.toList.traverse { tree => mapper.nodeFromTree(tree) })
+                     case Some(root) => ZIO.foreach(root.children.values) { tree => mapper.nodeFromTree(tree) }
                      case None       => Seq().succeed
                    }
     } yield {
       nodes.map(n => (n.main.id, n)).toMap
     })
-  }
+  }.bridgeError(s"Error when getting all node inventories")
 
 
   override def getAllInventories(inventoryStatus : InventoryStatus): InventoryResult[Map[NodeId, FullInventory]] = {
@@ -291,14 +292,14 @@ class FullInventoryRepositoryImpl(
                       case None => LdapResultRudderError.Consistancy(s"Could not find node inventories in ${dit.BASE_DN}").fail
                       case Some(tree) => tree.succeed
                      }
-      nodes       <- nodeTree.children.values.toList.traverse { tree => mapper.nodeFromTree(tree) }
+      nodes       <- ZIO.foreach(nodeTree.children.values) { tree => mapper.nodeFromTree(tree) }
 
       // Get into Machines subtree
       machineTree <- tree.flatMap(_.children.get(dit.MACHINES.rdn)) match {
                        case None => LdapResultRudderError.Consistancy(s"Could not find machine inventories in ${dit.BASE_DN}").fail
                        case Some(tree) => tree.succeed
                      }
-      machines    <- machineTree.children.values.toList.traverse { tree => mapper.machineFromTree(tree) }
+      machines    <- ZIO.foreach(machineTree.children.values){ tree => mapper.machineFromTree(tree) }
 
     } yield {
       val machineMap =  machines.map(m => (m.id, m)).toMap
@@ -309,7 +310,7 @@ class FullInventoryRepositoryImpl(
           node.main.id ->  inventory
       } ).toMap
     }
-  }
+  }.bridgeError(s"Error when getting all node inventories for status '${inventoryStatus.name}'")
 
 
   override def get(id:NodeId, inventoryStatus : InventoryStatus) : InventoryResult[Option[FullInventory]] = {
@@ -317,28 +318,27 @@ class FullInventoryRepositoryImpl(
       con    <- ldap
       tree   <- con.getTree(dn(id, inventoryStatus))
       server <- tree match {
-                  case Some(t) => mapper.nodeFromTree(t).map(Some(_)).toLdapResult
+                  case Some(t) => mapper.nodeFromTree(t).map(Some(_))
                   case None    => None.succeed
                 }
       //now, try to add a machine
-      optMachine <- {
-        server.flatMap(_.machineId) match {
-          case None => None.succeed
-          case Some((machineId, status)) =>
-            //here, we want to actually use the provided DN to:
-            // 1/ not make 3 existence tests each time we get a node,
-            // 2/ make the thing more debuggable. If we don't use the DN and display
-            //    information taken elsewhere, future debugging will leads people to madness
-            con.getTree(dn(machineId, status)).flatMap {
-              case None    => None.succeed
-              case Some(x) => mapper.machineFromTree(x).map(Some(_)).toLdapResult
-            }
-        }
-      }
+      optMachine <- { server.flatMap(_.machineId) match {
+                        case None => None.succeed
+                        case Some((machineId, status)) =>
+                          //here, we want to actually use the provided DN to:
+                          // 1/ not make 3 existence tests each time we get a node,
+                          // 2/ make the thing more debuggable. If we don't use the DN and display
+                          //    information taken elsewhere, future debugging will leads people to madness
+                          con.getTree(dn(machineId, status)).flatMap {
+                            case None    => None.succeed
+                            case Some(x) => mapper.machineFromTree(x).map(Some(_))
+                          }
+                      }
+                    }
     } yield {
       server.map(s => FullInventory(s, optMachine))
     }
-  }.mapError(_.chainError(s"Error when getting node with ID '${id.value}' and status ${inventoryStatus.name}"))
+  }.bridgeError(s"Error when getting node with ID '${id.value}' and status ${inventoryStatus.name}")
 
 
 
@@ -346,15 +346,15 @@ class FullInventoryRepositoryImpl(
   override def get(id: NodeId) : InventoryResult[Option[FullInventory]] = {
     for {
       con    <- ldap
-      nodeDn <- findDnForId[NodeId](con, id, dn).mapError(_.chainError(s"Error when getting DN for node with ID '${id.value}'"))
+      nodeDn <- findDnForId[NodeId](con, id, dn)
       inv    <- nodeDn match {
                   case None    => None.succeed
-                  case Some((_, s)) => get(id, s)
+                  case Some((_, s)) => get(id, s).mapError(e => LdapResultRudderError.Chained("error:", e))
                 }
     } yield {
       inv
     }
-  }.mapError(_.chainError(s"Error when getting node with ID '${id.value}'"))
+  }.bridgeError(s"Error when getting node with ID '${id.value}'")
 
 
   override def save(inventory:FullInventory) : InventoryResult[Seq[LDIFChangeRecord]] = {
@@ -366,14 +366,14 @@ class FullInventoryRepositoryImpl(
                       case Some(m) => this.save(m)
                     }
     } yield resServer ++ resMachine)
-  }.mapError(_.chainError(s"Error when saving full inventory for node  with ID '${inventory.node.main.id.value}'"))
+  }.bridgeError(s"Error when saving full inventory for node  with ID '${inventory.node.main.id.value}'")
 
   override def delete(id:NodeId, inventoryStatus : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
     for {
       con          <- ldap
       //if there is only one node using the machine, delete it. Continue on error, but on success log ldif records
       //if several node use it, does nothing
-      optMachine    <- getMachineId(id, inventoryStatus)
+      optMachine    <- getMachineId(id, inventoryStatus).toLdapResult
       machineRecord <- optMachine match {
                          case None => Seq().succeed
                          case Some((machineId, _)) =>
@@ -400,7 +400,7 @@ class FullInventoryRepositoryImpl(
     } yield {
       res ++ machineRecord
     }
-  }.mapError(_.chainError(s"Error when deleting node with ID '${id.value}'"))
+  }.bridgeError(s"Error when deleting node with ID '${id.value}'")
 
   override def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
     if(from == into ) Seq().succeed
@@ -413,7 +413,7 @@ class FullInventoryRepositoryImpl(
       } yield {
         Seq(moved)
       }
-  }.mapError(_.chainError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}'"))
+  }.bridgeError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}'")
 
   override def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
     for {
@@ -440,6 +440,7 @@ class FullInventoryRepositoryImpl(
     } yield {
       Seq(moved) ++ machineMoved
     }
-  }.mapError(_.chainError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}' "))
+  }.bridgeError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}' ")
+
 }
 

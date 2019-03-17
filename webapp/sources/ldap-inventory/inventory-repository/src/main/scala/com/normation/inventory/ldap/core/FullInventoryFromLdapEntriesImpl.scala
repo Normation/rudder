@@ -44,6 +44,7 @@ import com.normation.inventory.domain.FullInventory
 import com.normation.ldap.sdk.LDAPTree
 import scalaz.zio._
 import scalaz.zio.syntax._
+import com.normation.errors._
 
 class FullInventoryFromLdapEntriesImpl(
     inventoryDitService: InventoryDitService
@@ -69,12 +70,12 @@ class FullInventoryFromLdapEntriesImpl(
 
     (for {
       nodeTree   <- LDAPTree(serverElts)
-      node       <- ZIO.fromEither(mapper.nodeFromTree(nodeTree))
+      node       <- mapper.nodeFromTree(nodeTree)
       optMachine <- if(machineElts.isEmpty) None.succeed
-                    else LDAPTree(machineElts).flatMap(t => ZIO.fromEither(mapper.machineFromTree(t).map(m => Some(m) )))
+                    else LDAPTree(machineElts).flatMap(t => mapper.machineFromTree(t).map(m => Some(m) ))
     } yield {
       FullInventory(node, optMachine)
-    }).mapError(_.chainError("Error when building a full inventory from LDAP entries"))
+    }).bridgeError()
   }
 }
 

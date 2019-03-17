@@ -43,7 +43,6 @@ import com.normation.inventory.domain.InventoryReport
 import net.liftweb.common.Loggable
 import com.normation.inventory.domain.InventoryResult._
 import scalaz.zio._
-import scalaz.zio.syntax._
 
 /**
  *
@@ -113,7 +112,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
         } yield {
           res
         }) mapError { err =>
-          InventoryError.Chain(s"Exception in preCommit pipeline with processor '${preCommit.name}}', abort", err)
+          InventoryError.Chained(s"Exception in preCommit pipeline with processor '${preCommit.name}}', abort", err)
         }
       }
       /*

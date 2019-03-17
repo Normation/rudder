@@ -47,16 +47,16 @@ import net.liftweb.json._
 import java.net.InetAddress
 
 import InetAddressUtils._
+import com.normation.errors.BaseChainError
+import com.normation.errors.ErrorBridge
 import com.normation.errors.RudderError
-import com.normation.utils.Control.sequence
 import com.normation.inventory.domain.NodeTimezone
 import com.normation.inventory.ldap.core.InventoryMappingRudderError._
 import com.normation.inventory.ldap.core.InventoryMappingResult._
+import com.normation.inventory.domain.InventoryResult.ToChain
 import scalaz.zio._
 import scalaz.zio.syntax._
-import cats._
-import cats.data._
-import cats.implicits._
+import com.softwaremill.quicklens._
 
 sealed trait InventoryMappingRudderError extends RudderError
 object InventoryMappingRudderError {
@@ -66,9 +66,7 @@ object InventoryMappingRudderError {
   final case class MalformedDN(msg: String)      extends InventoryMappingRudderError
   final case class MissingMandatory(msg: String) extends InventoryMappingRudderError
   final case class UnknownElement(msg: String)   extends InventoryMappingRudderError
-  final case class FromInventoryError(hint: String, cause: InventoryError) extends InventoryMappingRudderError {
-    def msg = hint + s" <- ${cause.getClass.getSimpleName}:${cause.msg}"
-  }
+  final case class Chained[E <: RudderError](hint: String, cause: E) extends InventoryMappingRudderError with BaseChainError[E]
 }
 
 object InventoryMappingResult {
@@ -89,6 +87,14 @@ object InventoryMappingResult {
       case None    => Left(MissingMandatory(msg))
       case Some(x) => Right(x)
     }
+  }
+
+  implicit class ToZio[T](res: InventoryMappingPure[T]) {
+    def zio = ZIO.fromEither(res)
+  }
+
+  implicit object MapperBridge extends ErrorBridge[RudderError, InventoryMappingRudderError] {
+    override def bridge(from: RudderError): InventoryMappingRudderError = Chained("error", from)
   }
 
 }
@@ -488,41 +494,42 @@ class InventoryMapper(
    * If the mapping goes bad or the entry type is unknown, the
    * MachineInventory is returned as it was, and the error is logged
    */
-  private[this] def mapAndAddElementGeneric[U, T](from: U, e: LDAPEntry, name: String, f: LDAPEntry => InventoryMappingPure[T], path: U => Seq[T]): UIO[U] = {
-    import com.softwaremill.quicklens._
+  private[this] def mapAndAddElementGeneric[U, T](from: U, e: LDAPEntry, name: String, f: LDAPEntry => InventoryMappingPure[T], path: U => PathModify[U, Seq[T]]): UIO[U] = {
     f(e) match {
       case Left(error) =>
         InventoryLogger.error(s"Error when mapping LDAP entry to a '${name}'. Entry details: ${e}. Cause: ${e.getClass.getSimpleName}:${error.msg}") *>
         from.succeed
       case Right(value) =>
-        from.modify(path).using( value +: _).succeed
+        path(from).using( value +: _ ).succeed
     }
   }
 
   private[this] def mapAndAddMachineElement(entry:LDAPEntry, machine:MachineInventory) : UIO[MachineInventory] = {
-    def mapAndAdd[T](name: String, f: LDAPEntry => InventoryMappingPure[T], path: MachineInventory => Seq[T]): UIO[MachineInventory] = mapAndAddElementGeneric[MachineInventory, T](machine, entry, name, f, path)
+    def mapAndAdd[T](name: String, f: LDAPEntry => InventoryMappingPure[T], path: MachineInventory => PathModify[MachineInventory, Seq[T]]): UIO[MachineInventory] = mapAndAddElementGeneric[MachineInventory, T](machine, entry, name, f, path)
+
+    import com.softwaremill.quicklens._
 
     entry match {
-      case e if(e.isA(OC_MEMORY))     => mapAndAdd("memory slot", memorySlotFromEntry, _.memories   )
-      case e if(e.isA(OC_PORT))       => mapAndAdd("port"       , portFromEntry      , _.ports      )
-      case e if(e.isA(OC_SLOT))       => mapAndAdd("slot"       ,  slotFromEntry     , _.slots      )
-      case e if(e.isA(OC_SOUND))      => mapAndAdd("sound card" , soundFromEntry     , _.sounds     )
-      case e if(e.isA(OC_BIOS))       => mapAndAdd("bios"       , biosFromEntry      , _.bios       )
-      case e if(e.isA(OC_CONTROLLER)) => mapAndAdd("controller" , controllerFromEntry, _.controllers)
-      case e if(e.isA(OC_PROCESSOR))  => mapAndAdd("processor"  , processorFromEntry , _.processors )
-      case e if(e.isA(OC_STORAGE))    => mapAndAdd("storage"    , storageFromEntry   , _.storages   )
-      case e if(e.isA(OC_VIDEO))      => mapAndAdd("video"      , videoFromEntry     , _.videos     )
+      case e if(e.isA(OC_MEMORY))     => mapAndAdd("memory slot", memorySlotFromEntry, _.modify(_.memories)   )
+      case e if(e.isA(OC_PORT))       => mapAndAdd("port"       , portFromEntry      , _.modify(_.ports)      )
+      case e if(e.isA(OC_SLOT))       => mapAndAdd("slot"       ,  slotFromEntry     , _.modify(_.slots)      )
+      case e if(e.isA(OC_SOUND))      => mapAndAdd("sound card" , soundFromEntry     , _.modify(_.sounds)     )
+      case e if(e.isA(OC_BIOS))       => mapAndAdd("bios"       , biosFromEntry      , _.modify(_.bios)       )
+      case e if(e.isA(OC_CONTROLLER)) => mapAndAdd("controller" , controllerFromEntry, _.modify(_.controllers))
+      case e if(e.isA(OC_PROCESSOR))  => mapAndAdd("processor"  , processorFromEntry , _.modify(_.processors) )
+      case e if(e.isA(OC_STORAGE))    => mapAndAdd("storage"    , storageFromEntry   , _.modify(_.storages)   )
+      case e if(e.isA(OC_VIDEO))      => mapAndAdd("video"      , videoFromEntry     , _.modify(_.videos)     )
       case e                          =>
         InventoryLogger.error(s"Unknown entry type for a machine element, that entry will be ignored: ${e}") *> machine.succeed
     }
   }
 
-  def machineFromTree(tree:LDAPTree) : InventoryMappingPure[MachineInventory] = {
+  def machineFromTree(tree:LDAPTree) : InventoryMappingResult[MachineInventory] = {
     for {
-      dit                <- ditService.getDit(tree.root().dn).notOptional(s"Impossible to find DIT for entry '${tree.root().dn.toString()}'")
+      dit                <- ZIO.fromEither(ditService.getDit(tree.root().dn).notOptional(s"Impossible to find DIT for entry '${tree.root().dn.toString()}'"))
       inventoryStatus    =  ditService.getInventoryStatus(dit)
-      id                 <- dit.MACHINES.MACHINE.idFromDN(tree.root.dn)
-      machineType        <- machineTypeFromObjectClasses(tree.root().valuesFor(A_OC).toSet).notOptional("Can not find machine types")
+      id                 <- ZIO.fromEither(dit.MACHINES.MACHINE.idFromDN(tree.root.dn))
+      machineType        <- ZIO.fromEither(machineTypeFromObjectClasses(tree.root().valuesFor(A_OC).toSet).notOptional("Can not find machine types"))
       name               =  tree.root()(A_NAME)
       mbUuid             =  tree.root()(A_MB_UUID) map { x => MotherBoardUuid(x) }
       inventoryDate      =  tree.root.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
@@ -797,12 +804,12 @@ class InventoryMapper(
    * NodeInventory is returned as it was, and the error is logged
    */
   private[this] def mapAndAddNodeElement(entry:LDAPEntry, node: NodeInventory) : UIO[NodeInventory] = {
-    def mapAndAdd[T](name: String, f: LDAPEntry => InventoryMappingPure[T], path: NodeInventory => Seq[T]): UIO[NodeInventory] = mapAndAddElementGeneric[NodeInventory, T](node, entry, name, f, path)
+    def mapAndAdd[T](name: String, f: LDAPEntry => InventoryMappingPure[T], path: NodeInventory => PathModify[NodeInventory, Seq[T]]): UIO[NodeInventory] = mapAndAddElementGeneric[NodeInventory, T](node, entry, name, f, path)
 
     entry match {
-      case e if(e.isA(OC_NET_IF))  => mapAndAdd("network interface", networkFromEntry, _.networks)
-      case e if(e.isA(OC_FS))      => mapAndAdd("file system", fileSystemFromEntry, _.fileSystems)
-      case e if(e.isA(OC_VM_INFO)) => mapAndAdd("virtual machine", vmFromEntry, _.vms)
+      case e if(e.isA(OC_NET_IF))  => mapAndAdd("network interface", networkFromEntry   , _.modify(_.networks))
+      case e if(e.isA(OC_FS))      => mapAndAdd("file system"      , fileSystemFromEntry, _.modify(_.fileSystems))
+      case e if(e.isA(OC_VM_INFO)) => mapAndAdd("virtual machine"  , vmFromEntry        , _.modify(_.vms))
       case e =>
         InventoryLogger.error(s"Unknow entry type for a server element, that entry will be ignored: ${e}") *>
         node.succeed
@@ -893,13 +900,13 @@ class InventoryMapper(
 
   def nodeFromEntry(entry:LDAPEntry) : InventoryMappingResult[NodeInventory] = {
     for {
-      dit                <- ditService.getDit(entry.dn).notOptional(s"DIT not found for entry ${entry.dn}")
+      dit                <- ditService.getDit(entry.dn).notOptional(s"DIT not found for entry ${entry.dn}").zio
       inventoryStatus    =  ditService.getInventoryStatus(dit)
-      id                 <- dit.NODES.NODE.idFromDN(entry.dn)
-      keyStatus          <- entry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey))
-      hostname           <- entry.required(A_HOSTNAME)
-      rootUser           <- entry.required(A_ROOT_USER)
-      policyServerId     <- entry.required(A_POLICY_SERVER_UUID)
+      id                 <- dit.NODES.NODE.idFromDN(entry.dn).zio
+      keyStatus          <- ZIO.fromEither(entry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey)))
+      hostname           <- entry.required(A_HOSTNAME).zio
+      rootUser           <- entry.required(A_ROOT_USER).zio
+      policyServerId     <- entry.required(A_POLICY_SERVER_UUID).zio
       publicKeys         =  entry.valuesFor(A_PKEYS).map(Some(_))
       agentNames         <- {
                               val agents = entry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
@@ -907,14 +914,14 @@ class InventoryMapper(
                               ZIO.foreach(agentWithKeys) {
                                 case (Some(agent), key) =>
                                   AgentInfoSerialisation.parseCompatNonJson(agent,key).mapError(err =>
-                                    InventoryMappingRudderError.FromInventoryError(s"Error when parsing agent security token '${agent}'", err)
+                                    InventoryMappingRudderError.Chained(s"Error when parsing agent security token '${agent}'", err)
                                   )
                                 case (None, key)        =>
-                                  "Error when parsing agent security token: agent is undefined".fail
+                                  InventoryMappingRudderError.MissingMandatory("Error when parsing agent security token: agent is undefined").fail
                               }
                             }
       //now, look for the OS type
-      osDetails          <- mapOsDetailsFromEntry(entry)
+      osDetails          <- mapOsDetailsFromEntry(entry).zio
       // optional information
       name               =  entry(A_NAME)
       description        =  entry(A_DESCRIPTION)
@@ -986,12 +993,12 @@ class InventoryMapper(
          , process
          , serverRoles = serverRoles
          , timezone = timezone
-         , customProperties = customProperties
+         , customProperties = customProperties.flatten
        )
     }
-  }
+  }.mergeError()
 
-  def nodeFromTree(tree:LDAPTree) : InventoryMappingPure[NodeInventory] = {
+  def nodeFromTree(tree:LDAPTree) : InventoryMappingResult[NodeInventory] = {
     for {
       node <- nodeFromEntry(tree.root)
       res  <- ZIO.foldLeft(tree.children)(node) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root(),m) }

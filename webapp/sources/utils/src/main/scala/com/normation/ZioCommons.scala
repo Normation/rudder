@@ -28,20 +28,124 @@ package com.normation
 import cats.data.NonEmptyList
 import scalaz.zio._
 import cats.implicits._
+import com.normation.errors.RudderError
 import net.liftweb.common.Logger
 
 
 object errors {
   trait RudderError {
     def msg: String
+
   }
 
-  // we most likely want to track the class name / parent object name to
-  // be able to contextualize what the message is about.
-  // Ttypically, in: object UserError { final case class NoFound(user: User) }
-  // You want to have "UserError.NotFound: paul was not found"
+  trait BaseChainError[E <: RudderError] extends RudderError {
+    def cause: E
+    def hint: String
+    def msg = s"${hint}; cause was: ${cause.getClass.getSimpleName}: ${cause.msg}"
+  }
 
+
+  trait ErrorBridge[E1 <: RudderError, E2 <: BaseChainError[E1]] {
+    def bridge(from: E1, hint: String): E2
+  }
+
+  //bridge domain error type thanks to a BaseChainError
+  implicit class ErrorBridgeImplicit[R, E1 <: RudderError, A](from: ZIO[R, E1, A]) {
+    def bridgeError[E2 <: BaseChainError[E1]](hint: String = "error")(implicit errorBridge: ErrorBridge[E1,  E2]) = {
+      from.mapError( err =>
+        err match {
+          case e2:E2 => e2
+          case e     => errorBridge.bridge(e, hint)
+        }
+      )
+    }
+  }
 }
+
+object TestImplicits {
+  import scalaz.zio._
+  import scalaz.zio.syntax._
+
+  object module1 {
+    import com.normation.errors._
+    sealed trait M_1_Error extends RudderError
+    object M_1_Error {
+      final case class Some(msg: String) extends M_1_Error
+      final case class Chained[E <: RudderError](hint: String, cause: E) extends M_1_Error with BaseChainError[E]
+    }
+
+    object M_1_Result {
+       implicit object InventoryErrorBridge extends ErrorBridge[RudderError, M_1_Error.Chained[RudderError]] {
+         override def bridge(from: RudderError, hint: String) = M_1_Error.Chained[RudderError](hint, from)
+       }
+    }
+
+    object service1 {
+      def doStuff(param: String): IO[M_1_Error, String] = param.succeed
+    }
+  }
+
+  object module2 {
+    import com.normation.errors._
+    sealed trait M_2_Error extends RudderError
+    object M_2_Error {
+      final case class Some(msg: String) extends M_2_Error
+      final case class Chained[E <: RudderError](hint: String, cause: E) extends M_2_Error with BaseChainError[E]
+    }
+    object M_2_Result {
+      implicit object InventoryErrorBridge extends ErrorBridge[RudderError, M_2_Error.Chained[RudderError]] {
+        override def bridge(from: RudderError, hint: String) = M_2_Error.Chained[RudderError](hint, from)
+      }
+    }
+    object service2 {
+      def doStuff(param: Int): IO[M_2_Error, Int] = param.succeed
+    }
+  }
+
+  object testModule {
+    import module1._
+    import module2._
+
+    import com.normation.errors._
+    sealed trait M_3_Error extends RudderError
+    object M_3_Error {
+      final case class Some(msg: String) extends M_3_Error
+      final case class Chained[E <: RudderError](hint: String, cause: E) extends M_3_Error with BaseChainError[E]
+    }
+    object M_3_Result {
+      // implicits ?
+    }
+
+    import module1.M_1_Result._
+    import module2.M_2_Result._
+    import M_3_Result._
+
+    /*
+     * I would like all of that to be possible, with the minimum boilerplate,
+     * and the maximum homogeneity between modules
+     */
+    object service {
+
+      def test0(a: String): IO[M_2_Error, Int] = service1.doStuff(a)
+
+      def test1(a: String): IO[M_3_Error, Int] = service1.doStuff(a)
+
+      def test2(a: String, b: Int): IO[M_3_Error, (String, Int)] = {
+        (for {
+          x <- service1.doStuff(a)
+          y <- service2.doStuff(b)
+        } yield {
+          (x, y)
+        })
+      }
+    }
+
+
+
+  }
+}
+
+
 
 object zio {
 
@@ -98,63 +202,62 @@ abstract class NamedZioLogger(val loggerName: String) extends ZioLogger {
   }
 }
 
-
-object Test {
-  import zio._
-  import scalaz.zio._
-  import scalaz.zio.syntax._
-  import cats.implicits._
-
-  def main(args: Array[String]): Unit = {
-
-    val l = List("ok", "ok", "booo", "ok", "plop")
-
-    def f(s: String) = if(s == "ok") 1.succeed else s.fail
-
-    val res = IO.foreach(l) { s => f(s).either }
-
-    val res2 = for {
-      ll <- res
-    } yield {
-      ll.traverse( _.toValidatedNel)
-    }
-
-    println(ZioRuntime.unsafeRun(res))
-    println(ZioRuntime.unsafeRun(res2))
-    println(ZioRuntime.unsafeRun(l.accumulate(f)))
-
-  }
-
-}
-
-object Test2 {
-  import zio._
-  import scalaz.zio._
-  import scalaz.zio.syntax._
-  import cats.implicits._
-
-  def main(args: Array[String]): Unit = {
-
-    case class BusinessError(msg: String)
-
-    val prog1 = Task.effect {
-      val a = "plop"
-      val b = throw new RuntimeException("foo bar bar")
-      val c = "replop"
-      a + c
-    } mapError(e => BusinessError(e.getMessage))
-
-    val prog2 = Task.effect {
-      val a = "plop"
-      val b = throw new Error("I'm an java.lang.Error!")
-      val c = "replop"
-      a + c
-    } mapError(e => BusinessError(e.getMessage))
-
-    //println(ZioRuntime.unsafeRun(prog1))
-    println(ZioRuntime.unsafeRun(prog2))
-
-  }
-
-
-}
+//
+//object Test {
+//  import zio._
+//  import scalaz.zio._
+//  import scalaz.zio.syntax._
+//  import cats.implicits._
+//
+//  def main(args: Array[String]): Unit = {
+//
+//    val l = List("ok", "ok", "booo", "ok", "plop")
+//
+//    def f(s: String) = if(s == "ok") 1.succeed else s.fail
+//
+//    val res = IO.foreach(l) { s => f(s).either }
+//
+//    val res2 = for {
+//      ll <- res
+//    } yield {
+//      ll.traverse( _.toValidatedNel)
+//    }
+//
+//    println(ZioRuntime.unsafeRun(res))
+//    println(ZioRuntime.unsafeRun(res2))
+//    println(ZioRuntime.unsafeRun(l.accumulate(f)))
+//
+//  }
+//
+//}
+//
+//object Test2 {
+//  import zio._
+//  import scalaz.zio._
+//  import scalaz.zio.syntax._
+//  import cats.implicits._
+//
+//  def main(args: Array[String]): Unit = {
+//
+//    case class BusinessError(msg: String)
+//
+//    val prog1 = Task.effect {
+//      val a = "plop"
+//      val b = throw new RuntimeException("foo bar bar")
+//      val c = "replop"
+//      a + c
+//    } mapError(e => BusinessError(e.getMessage))
+//
+//    val prog2 = Task.effect {
+//      val a = "plop"
+//      val b = throw new Error("I'm an java.lang.Error!")
+//      val c = "replop"
+//      a + c
+//    } mapError(e => BusinessError(e.getMessage))
+//
+//    //println(ZioRuntime.unsafeRun(prog1))
+//    println(ZioRuntime.unsafeRun(prog2))
+//
+//  }
+//
+//}

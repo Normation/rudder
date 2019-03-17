@@ -43,7 +43,8 @@ import org.bouncycastle.openssl.PEMParser
 import java.io.StringReader
 
 import com.normation.NamedZioLogger
-import com.normation.errors.RudderError
+import com.normation.errors._
+import com.normation.inventory.domain.InventoryError.Chained
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.cert.X509CertificateHolder
@@ -182,7 +183,7 @@ final class Version(val value:String) extends Comparable[Version] {
 object InventoryLogger extends NamedZioLogger("inventory-logger")
 
 
-trait InventoryError extends RudderError
+sealed trait InventoryError extends RudderError
 
 object InventoryError {
 
@@ -194,9 +195,7 @@ object InventoryError {
   final case class SecurityToken(msg: String) extends InventoryError
   final case class Deserialisation(msg: String, ex: Throwable) extends InventoryError
   final case class Inconsistency(msg: String) extends InventoryError
-  final case class Chain[T <: RudderError](hint: String, cause: T) extends InventoryError {
-    def msg = hint + " <- " + cause.msg
-  }
+  final case class Chained[E <: RudderError](hint: String, cause: E) extends InventoryError with BaseChainError[E]
   final case class System(msg: String) extends InventoryError
 }
 
@@ -211,13 +210,14 @@ object InventoryResult {
     }
   }
 
-  implicit class ToChain[T](res: InventoryResult[T]) {
-    def chainError(msg: String): InventoryResult[T] =
-      res.mapError(err => InventoryError.Chain(msg, err))
+  implicit object InventoryErrorBridge extends ErrorBridge[RudderError, InventoryError.Chained[RudderError]] {
+    override def bridge(from: RudderError, hint: String) = Chained[RudderError](hint, from)
   }
 
-  implicit class ErrorToChain[T <: RudderError](err: T) {
-    def chainError(msg: String): InventoryError =
-      InventoryError.Chain(msg, err)
+  implicit class ChainError[T](res: InventoryResult[T]) {
+    def chainError(msg: String) = res.mapError(err =>
+      Chained(msg, err)
+    )
   }
+
 }

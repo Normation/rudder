@@ -26,7 +26,7 @@ import scalaz.zio._
 import scalaz.zio.syntax._
 import com.normation.ldap.sdk.LdapResult._
 import scalaz.zio.blocking.Blocking
-
+import com.normation.errors._
 
 /**
  * A LDAP connection manager.
@@ -48,6 +48,14 @@ import scalaz.zio.blocking.Blocking
  * } yield entry
  *
  */
+// a class to have an error coerced to LdapError
+final class InternalConnection[LDAP <: RoLDAPConnection](provider: LDAPConnectionProvider[LDAP]) {
+
+ def flatMap[A](f: LDAP => LdapResult[A]): LdapResult[A] = {
+    provider.withConLdap[A]( con => f(con))
+  }
+}
+
 trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
 
   protected def getInternalConnection() : LDAP
@@ -55,70 +63,34 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
   protected def releaseDefuncInternalConnection(con:LDAP) : Unit
   protected def newConnection : LDAP
 
+
   /**
    * Use the LDAP connection provider to execute a method whose
    * return type is Unit.
-   *
-   * Ex :
-   * LDAPConnectionProvider { LDAPConnection =>
-   *   val entries = LDAPConnection.searchOne("dc=example,dc=org")
-   *   entries foreach { e =>
-   *     println(e.dn.toString)
-   *   }
-   * }
    */
-  def foreach(f: LDAP => Unit) : LdapResult[Unit] = {
-    withCon[Unit] { con =>
-      f(con)
-      ().succeed
-    }
+  def foreach(f: LDAP => Unit) : IO[RudderError, Unit] = {
+    withConLdap[Unit] { con => f(con) ; UIO.unit }
   }
 
   /**
-   * Use the LDAP connection provider to execute a method
-   * on the provided connection object with a return type
-   * DIFFERENT FROM Box[T]
-   *
-   * Ex: Retrieve the list of cn in a box, manage errors
-   *
-   * val names = {
-   *   LDAPConnectionProvider { LDAPConnection =>
-   *     LDAPConnection.searchOne("dc=example,dc=org").map(e => e.cn.getOrElse("no name"))
-   *   } match {
-   *     case f@Failure(_,_,_) => return f
-   *     case Empty => Seq[String]()
-   *     case Full(seq) => seq
-   *   }
-   * }
+   * map on connection provider
    */
   def map[A](f: LDAP => A) : LdapResult[A] = {
-    withCon[A] { con =>
-      f(con).succeed
-    }
+    withConLdap[A] ( con => f(con).succeed )
   }
 
   /**
    * Use the LDAP connection provider to execute a method
    * on the connection object with a return type
-   * that is a box ; deals with exception management
+   * that is a ZIO ; deals with exception management
    *
-   * Ex: Get one entry (or a default one), manage errors
-   *
-   * val entry = {
-   *   LDAPConnectionProvider { LDAPConnection =>
-   *     LDAPConnection.get("dc=example,dc=org")
-   *   } match {
-   *     case f@Failure(_,_,_) => return f
-   *     case Empty => defaultEntry
-   *     case Full(e) => e
-   *   }
-   * }
    */
-  def flatMap[A](f: LDAP => LdapResult[A]) : LdapResult[A] = {
-    withCon[A] { con =>
-      f(con)
-    }
+  def flatMap[E <:RudderError, A](f: LDAP => IO[E, A]) : IO[RudderError, A] = {
+    withCon[E, A] (con => f(con) )
   }
+
+
+  val internal = new InternalConnection[LDAP](this)
 
   /**
    * Cleanly close all the resources used by that
@@ -142,7 +114,19 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
    *   boxed version of the user method result, with exception
    *   transformed into Failure.
    */
-  protected def withCon[A](f: LDAP => LdapResult[A]) : LdapResult[A] = {
+  protected[sdk] def withCon[E <:RudderError, A](f: LDAP => IO[E, A]) : IO[RudderError, A] = {
+    IO.bracket(
+      IO.effect(getInternalConnection).catchAll( ex =>
+        LDAPConnectionLogger.error("Can't get a new LDAP connection", ex) *>
+        IO.fail(LdapResultRudderError.BackendException("Can't get a new LDAP connection", ex))
+      ):LdapResult[LDAP]
+    )(con =>
+        IO.effect(releaseInternalConnection(con)).catchAll(ex =>
+          LDAPConnectionLogger.error("Can't release LDAP connection", ex)
+        )
+    )(f)
+  }
+  protected[sdk] def withConLdap[A](f: LDAP => LdapResult[A]) : LdapResult[A] = {
     IO.bracket(
       IO.effect(getInternalConnection).catchAll( ex =>
         LDAPConnectionLogger.error("Can't get a new LDAP connection", ex) *>
