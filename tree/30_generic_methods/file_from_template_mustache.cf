@@ -69,8 +69,9 @@
 #
 # * Use `{{#vars.container}} content {{/vars.container}}` to iterate
 # * Use `{{{.}}}` for the current element value in iteration
-# * Use `{{{.key}}}` for the `key` value in current element
-# * Use `{{{@}}}` for the current element key in iteration
+# * Use `{{{key}}}` for the `key` value in current element
+# * Use `{{{.key}}}` for the `key` value in current element (Linux only)
+# * Use `{{{@}}}` for the current element key in iteration (Linux only)
 #
 # To iterate over a list, for example defined with:
 #
