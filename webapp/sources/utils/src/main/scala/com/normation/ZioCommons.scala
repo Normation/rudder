@@ -28,37 +28,44 @@ package com.normation
 import cats.data.NonEmptyList
 import scalaz.zio._
 import cats.implicits._
-import com.normation.errors.RudderError
+import com.normation.zio.ZioRuntime
 import net.liftweb.common.Logger
 
-
+/**
+ * This is our based error for Rudder. Any method that can
+ * error should return that RudderError type to allow
+ * seemless interaction between modules.
+ * None the less, all module should have its own domain error
+ * for meaningful semantic intra-module.
+ */
 object errors {
   trait RudderError {
+    // All error have a message which explains what cause the error.
     def msg: String
 
+    // All error can have their message printed with the class name for
+    // for context.
+    def fullMsg = this.getClass.getSimpleName + ": " + msg
   }
+
+  // a common error for system error not specificaly bound to
+  // a domain context.
+  final case class SystemError(msg: String, cause: Throwable) extends RudderError
 
   trait BaseChainError[E <: RudderError] extends RudderError {
     def cause: E
     def hint: String
-    def msg = s"${hint}; cause was: ${cause.getClass.getSimpleName}: ${cause.msg}"
+    def msg = s"${hint}; cause was: ${cause.fullMsg}"
   }
 
+  final case class Chained[E <: RudderError](hint: String, cause: E) extends BaseChainError[E]
 
-  trait ErrorBridge[E1 <: RudderError, E2 <: BaseChainError[E1]] {
-    def bridge(from: E1, hint: String): E2
-  }
-
-  //bridge domain error type thanks to a BaseChainError
-  implicit class ErrorBridgeImplicit[R, E1 <: RudderError, A](from: ZIO[R, E1, A]) {
-    def bridgeError[E2 <: BaseChainError[E1]](hint: String = "error")(implicit errorBridge: ErrorBridge[E1,  E2]) = {
-      from.mapError( err =>
-        err match {
-          case e2:E2 => e2
-          case e     => errorBridge.bridge(e, hint)
-        }
-      )
-    }
+  /*
+   * Chain multiple error. You will loose the specificity of the
+   * error type doing so.
+   */
+  implicit class ChainError[R, E <: RudderError, A](res: ZIO[R, E, A]) {
+    def chainError(hint: String): ZIO[R, RudderError, A] = res.mapError(err => Chained(hint, err))
   }
 }
 
@@ -75,13 +82,10 @@ object TestImplicits {
     }
 
     object M_1_Result {
-       implicit object InventoryErrorBridge extends ErrorBridge[RudderError, M_1_Error.Chained[RudderError]] {
-         override def bridge(from: RudderError, hint: String) = M_1_Error.Chained[RudderError](hint, from)
-       }
     }
 
     object service1 {
-      def doStuff(param: String): IO[M_1_Error, String] = param.succeed
+      def doStuff(param: String): IO[RudderError, String] = param.succeed
     }
   }
 
@@ -93,12 +97,12 @@ object TestImplicits {
       final case class Chained[E <: RudderError](hint: String, cause: E) extends M_2_Error with BaseChainError[E]
     }
     object M_2_Result {
-      implicit object InventoryErrorBridge extends ErrorBridge[RudderError, M_2_Error.Chained[RudderError]] {
-        override def bridge(from: RudderError, hint: String) = M_2_Error.Chained[RudderError](hint, from)
-      }
     }
+
+    final case class TestError(msg: String) extends RudderError
+
     object service2 {
-      def doStuff(param: Int): IO[M_2_Error, Int] = param.succeed
+      def doStuff(param: Int): IO[RudderError, Int] = TestError("ah ah ah I'm failing").fail
     }
   }
 
@@ -126,22 +130,29 @@ object TestImplicits {
      */
     object service {
 
-      def test0(a: String): IO[M_2_Error, Int] = service1.doStuff(a)
+      def trace(msg: => AnyRef): UIO[Unit] = ZIO.effect(println(msg)).run.void
 
-      def test1(a: String): IO[M_3_Error, Int] = service1.doStuff(a)
+      def test0(a: String): IO[RudderError, String] = service1.doStuff(a)
 
-      def test2(a: String, b: Int): IO[M_3_Error, (String, Int)] = {
+      def test1(a: Int): IO[RudderError, Int] = service2.doStuff(a)
+
+      def test2(a: String, b: Int): IO[RudderError, (String, Int)] = {
         (for {
           x <- service1.doStuff(a)
-          y <- service2.doStuff(b)
+          y <- service2.doStuff(b).chainError("Oups, I did it again")
         } yield {
           (x, y)
         })
       }
+
+      def prog = test2("plop", 42) catchAll( err => trace(err.fullMsg) *> ("success", 0).succeed)
     }
+  }
 
 
-
+  import testModule.service.prog
+  def main(args: Array[String]): Unit = {
+    println(ZioRuntime.unsafeRun(prog))
   }
 }
 

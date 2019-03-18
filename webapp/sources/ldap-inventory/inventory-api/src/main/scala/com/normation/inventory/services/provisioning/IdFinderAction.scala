@@ -37,6 +37,8 @@
 
 package com.normation.inventory.services.provisioning
 
+import com.normation.errors.RudderError
+import com.normation.inventory.domain.InventoryResult.InventoryResult
 import com.normation.inventory.domain._
 import scalaz.zio._
 
@@ -50,14 +52,14 @@ trait NodeInventoryDNFinderAction {
 
   //black list / white list ?
 
-  def tryWith(entity:NodeInventory) : Task[Option[(NodeId, InventoryStatus)]]
+  def tryWith(entity:NodeInventory) : InventoryResult[Option[(NodeId, InventoryStatus)]]
 }
 
 trait MachineDNFinderAction {
 
   //black list / white list ?
 
-  def tryWith(entity:MachineInventory) : Task[Option[(MachineUuid, InventoryStatus)]]
+  def tryWith(entity:MachineInventory) : InventoryResult[Option[(MachineUuid, InventoryStatus)]]
 }
 
 
@@ -76,6 +78,6 @@ trait SoftwareDNFinderAction {
 
   //black list / white list ?
 
-  def tryWith(entities: Set[Software]) : Task[Option[MergedSoftware]]
+  def tryWith(entities: Set[Software]) : IO[RudderError, MergedSoftware]
 }
 

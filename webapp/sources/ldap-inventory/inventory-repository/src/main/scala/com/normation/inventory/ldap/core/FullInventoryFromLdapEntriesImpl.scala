@@ -68,14 +68,14 @@ class FullInventoryFromLdapEntriesImpl(
       } //else ignore, not a server/machine related entry
     }
 
-    (for {
+    for {
       nodeTree   <- LDAPTree(serverElts)
       node       <- mapper.nodeFromTree(nodeTree)
       optMachine <- if(machineElts.isEmpty) None.succeed
                     else LDAPTree(machineElts).flatMap(t => mapper.machineFromTree(t).map(m => Some(m) ))
     } yield {
       FullInventory(node, optMachine)
-    }).bridgeError()
+    }
   }
 }
 

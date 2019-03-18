@@ -37,11 +37,14 @@
 
 package com.normation.inventory.ldap.provisioning
 
+import com.normation.NamedZioLogger
+import com.normation.errors.RudderError
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType.REPLACE
 import com.unboundid.ldif._
 import org.joda.time.DateTime
-
+import scalaz.zio._
+import scalaz.zio.syntax._
 /*
  * Log given LDIF record in a file
  * with given name (a timestamp will be added)
@@ -61,15 +64,15 @@ trait LDIFReportLogger {
    * @return the generated id / path for the log
    */
   def log(
-      reportName:String,
-      comments: Option[String],
-      tag:Option[String],
-      LDIFRecords: => Seq[LDIFRecord]) : String
+      reportName : String
+    , comments   : Option[String]
+    , tag        : Option[String]
+    , LDIFRecords: => Seq[LDIFRecord]
+  ) : Task[String]
 }
 
 object DefaultLDIFReportLogger {
-  import org.slf4j.LoggerFactory
-  val logger = LoggerFactory.getLogger("trace.ldif.in.file")
+  val logger = new NamedZioLogger("trace.ldif.in.file") {}
   val defaultLogDir = System.getProperty("java.io.tmpdir") +
     System.getProperty("file.separator") + "LDIFLogReport"
 }
@@ -97,22 +100,20 @@ class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.de
   }
 
   def log(
-      reportName:String,
-      comments: Option[String],
-      tag:Option[String],
-      LDIFRecords: => Seq[LDIFRecord]) : String = {
+      reportName : String
+    , comments   : Option[String]
+    , tag        : Option[String]
+    , LDIFRecords: => Seq[LDIFRecord]
+  ) : Task[String] = {
+    val LDIFFile = fileFromName(reportName,tag)
+    IO.bracket(IO.effect(new LDIFWriter(LDIFFile)))(writer =>  IO.effect(writer.close).catchAll(ex =>
+      logger.debug("LDIF log for report processing: " + LDIFFile.getAbsolutePath)
+    )) { writer =>
+      (if (logger.internalLogger.isTraceEnabled) {
 
-      var writer:LDIFWriter = null
-      val LDIFFile = fileFromName(reportName,tag)
-      try {
+        val ldif = LDIFRecords //that's important, else we evaluate again and again LDIFRecords
 
-        if (logger.isTraceEnabled()){
-          logger.debug("LDIF log for report processing: " + LDIFFile.getAbsolutePath)
-
-          writer = new LDIFWriter(LDIFFile)
-
-          val ldif = LDIFRecords //that's important, else we evaluate again and again LDIFRecords
-
+        Task.effect(
           if(ldif.nonEmpty) { //don't check it if logger trace is not enabled
             writer.writeLDIFRecord(ldif.head, comments.getOrElse(null))
 
@@ -122,13 +123,10 @@ class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.de
             val c = comments.getOrElse("") + "(There was no record to log, a dummy modification is added in log as a placeholder)"
             writer.writeLDIFRecord(new LDIFModifyChangeRecord("cn=dummy", new Modification(REPLACE,"dummy", "dummy")), c)
           }
-        }
-      } catch {
-        case e:Exception => logger.error("Exception when loggin (ignored)",e)
-      } finally {
-        if(null != writer) writer.close
-      }
-
-      LDIFFile.getAbsolutePath
+        )
+      } else {
+        UIO.unit
+      }) *> UIO.succeed(LDIFFile.getAbsolutePath)
+    }
   }
 }

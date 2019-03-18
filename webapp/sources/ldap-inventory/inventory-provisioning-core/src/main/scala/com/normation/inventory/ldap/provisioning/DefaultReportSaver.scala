@@ -38,19 +38,19 @@
 package com.normation.inventory.ldap.provisioning
 
 import cats.data.NonEmptyList
+import com.normation.errors.RudderError
 import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.InventoryResult._
 import com.normation.inventory.services.provisioning._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core._
 import com.normation.ldap.sdk.LdapResult.LdapResult
-import net.liftweb.common._
 import net.liftweb.common.Loggable
 import com.normation.ldap.sdk.RwLDAPConnection
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.normation.ldap.sdk.LdapResultRudderError
-import com.normation.ldap.sdk.LdapResult._
 
 /**
  * Post-commit convention:
@@ -69,14 +69,14 @@ class DefaultReportSaver(
   override val postCommitPipeline:Seq[PostCommit[Seq[LDIFChangeRecord]]]
 ) extends PipelinedReportSaver[Seq[LDIFChangeRecord]] with Loggable {
 
-  def commitChange(report:InventoryReport) : Box[Seq[LDIFChangeRecord]] = {
+  def commitChange(report:InventoryReport) : InventoryResult[Seq[LDIFChangeRecord]] = {
 
     /*
      * we are saving with one connection by type of object so
      * that an LDAPException in one don't stop the
      * other to be saved
      */
-    var results = List[LdapResult[Seq[LDIFChangeRecord]]]()
+    var results = List[InventoryResult[Seq[LDIFChangeRecord]]]()
 
     val t0 = System.currentTimeMillis
 
@@ -135,7 +135,7 @@ class DefaultReportSaver(
      * For now, even on partial failure (means: not all fail),
      * we consider it as a success and forward to post process
      */
-    val accumulated = ZIO.foldLeft(results)((List.empty[LdapResultRudderError], List.empty[Seq[LDIFChangeRecord]])) { case ((errors, oks), x) =>
+    val accumulated = ZIO.foldLeft(results)((List.empty[RudderError], List.empty[Seq[LDIFChangeRecord]])) { case ((errors, oks), x) =>
       x.fold(err => (err :: errors, oks), ok => (errors, ok :: oks))
     }
     accumulated.flatMap { case (errors, successes) =>

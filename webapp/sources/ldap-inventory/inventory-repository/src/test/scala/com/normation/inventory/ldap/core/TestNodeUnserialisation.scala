@@ -39,6 +39,7 @@ package com.normation.inventory.ldap.core
 
 import com.normation.inventory.domain._
 import com.normation.ldap.sdk.LDAPEntry
+import com.normation.zio.ZioRuntime
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Entry
 import org.junit.runner._
@@ -184,7 +185,7 @@ class TestNodeUnserialisation extends Specification {
 
   def node(ldif: String): NodeInventory = {
     val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq:_*))
-    mapper.nodeFromEntry(nodeEntry).openOrThrowException("Error when getting node")
+    ZioRuntime.unsafeRun(mapper.nodeFromEntry(nodeEntry).either).getOrElse(throw new Exception("Error when getting node"))
   }
 
   "Agent type " should {

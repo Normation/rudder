@@ -48,12 +48,10 @@ import java.net.InetAddress
 
 import InetAddressUtils._
 import com.normation.errors.BaseChainError
-import com.normation.errors.ErrorBridge
 import com.normation.errors.RudderError
 import com.normation.inventory.domain.NodeTimezone
 import com.normation.inventory.ldap.core.InventoryMappingRudderError._
 import com.normation.inventory.ldap.core.InventoryMappingResult._
-import com.normation.inventory.domain.InventoryResult.ToChain
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.softwaremill.quicklens._
@@ -72,7 +70,7 @@ object InventoryMappingRudderError {
 object InventoryMappingResult {
 
   type InventoryMappingPure[T] = Either[InventoryMappingRudderError, T]
-  type InventoryMappingResult[T] = IO[InventoryMappingRudderError, T]
+  type InventoryMappingResult[T] = IO[RudderError, T]
 
 
   implicit class RequiredAttrToPure(entry: LDAPEntry) {
@@ -92,11 +90,6 @@ object InventoryMappingResult {
   implicit class ToZio[T](res: InventoryMappingPure[T]) {
     def zio = ZIO.fromEither(res)
   }
-
-  implicit object MapperBridge extends ErrorBridge[RudderError, InventoryMappingRudderError] {
-    override def bridge(from: RudderError): InventoryMappingRudderError = Chained("error", from)
-  }
-
 }
 
 class DateTimeSerializer extends Serializer[DateTime] {
@@ -996,7 +989,7 @@ class InventoryMapper(
          , customProperties = customProperties.flatten
        )
     }
-  }.mergeError()
+  }
 
   def nodeFromTree(tree:LDAPTree) : InventoryMappingResult[NodeInventory] = {
     for {

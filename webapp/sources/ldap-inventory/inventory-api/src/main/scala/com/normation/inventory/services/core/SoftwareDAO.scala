@@ -39,10 +39,9 @@ package com.normation.inventory.services.core
 
 import com.normation.inventory.domain.InventoryResult.InventoryResult
 import com.normation.inventory.domain.{InventoryStatus, NodeId, Software, SoftwareUuid}
-import net.liftweb.common.Box
 
 trait ReadOnlySoftwareDAO {
-  def getSoftware(ids:Seq[SoftwareUuid]) : Box[Seq[Software]]
+  def getSoftware(ids:Seq[SoftwareUuid]) : InventoryResult[Seq[Software]]
 
   /**
    * Return softwares for the node id, as efficiently

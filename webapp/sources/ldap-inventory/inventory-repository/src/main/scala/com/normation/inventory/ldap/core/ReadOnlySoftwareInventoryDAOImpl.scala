@@ -45,6 +45,7 @@ import LDAPConstants._
 import com.normation.inventory.domain.InventoryResult._
 import com.normation.ldap.sdk.LdapResult._
 import scalaz.zio._
+import scalaz.zio.syntax._
 
 class ReadOnlySoftwareDAOImpl(
   inventoryDitService:InventoryDitService,
@@ -52,11 +53,11 @@ class ReadOnlySoftwareDAOImpl(
   mapper:InventoryMapper
 ) extends ReadOnlySoftwareDAO {
 
-  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): LdapResult[List[Software]] = {
+  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): InventoryResult[List[Software]] = {
     for {
       entries <- con.searchOne(inventoryDitService.getSoftwareBaseDN, OR(ids map {x:SoftwareUuid => EQ(A_SOFTWARE_UUID,x.value) }:_*)).map(_.toVector)
       soft    <- ZIO.foreach(entries) { entry =>
-                   mapper.softwareFromEntry(entry).toLdapResult ?~! s"Error when mapping LDAP entry '${entry.dn}' to a software. Entry details: ${entry}"
+                   ZIO.fromEither(mapper.softwareFromEntry(entry)).chainError(s"Error when mapping LDAP entry '${entry.dn}' to a software. Entry details: ${entry}")
                  }
     } yield {
       soft
@@ -64,7 +65,7 @@ class ReadOnlySoftwareDAOImpl(
   }
 
   override def getSoftware(ids:Seq[SoftwareUuid]) : InventoryResult[Seq[Software]] = {
-    if(ids.isEmpty) Full(Seq())
+    if(ids.isEmpty) Seq().succeed
     else (for {
       con   <- ldap
       softs <- search(con, ids)
@@ -77,17 +78,24 @@ class ReadOnlySoftwareDAOImpl(
   /**
    * softwares
    */
-  override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): LdapResult[Map[NodeId, Seq[Software]]] = {
+  override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): InventoryResult[Map[NodeId, Seq[Software]]] = {
 
     val dit = inventoryDitService.getDit(status)
 
     (for {
       con            <- ldap
       nodeEntries    <- con.searchOne(dit.NODES.dn, BuildFilter.ALL, Seq(A_NODE_UUID, A_SOFTWARE_DN):_*)
-      softwareByNode =  (nodeEntries.flatMap { e =>
-                          e(A_NODE_UUID).map { id =>
-                            (NodeId(id), e.valuesFor(A_SOFTWARE_DN).flatMap(dn => inventoryDitService.getDit(AcceptedInventory).SOFTWARE.SOFT.idFromDN(dn)))
-                          }
+      softwareByNode =  (for {
+                          e  <- nodeEntries
+                          id <- e(A_NODE_UUID)
+                          vs = for {
+                                 dn <- e.valuesFor(A_SOFTWARE_DN)
+                                 s  <- inventoryDitService.getDit(AcceptedInventory).SOFTWARE.SOFT.idFromDN(dn).toOption
+                               } yield {
+                                 s
+                               }
+                        } yield {
+                          (NodeId(id), vs)
                         }).toMap
       softwareIds    =  softwareByNode.values.flatten.toSeq
       software       <- search(con, softwareIds)

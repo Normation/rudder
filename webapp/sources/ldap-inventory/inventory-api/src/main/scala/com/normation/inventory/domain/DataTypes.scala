@@ -44,7 +44,6 @@ import java.io.StringReader
 
 import com.normation.NamedZioLogger
 import com.normation.errors._
-import com.normation.inventory.domain.InventoryError.Chained
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.cert.X509CertificateHolder
@@ -195,23 +194,20 @@ object InventoryError {
   final case class SecurityToken(msg: String) extends InventoryError
   final case class Deserialisation(msg: String, ex: Throwable) extends InventoryError
   final case class Inconsistency(msg: String) extends InventoryError
-  final case class Chained[E <: RudderError](hint: String, cause: E) extends InventoryError with BaseChainError[E]
   final case class System(msg: String) extends InventoryError
 }
 
 object InventoryResult {
 
-  type InventoryResult[T] = IO[InventoryError, T]
+  // inventory result will use several other type of error, its error kind
+  // must be RudderError
+  type InventoryResult[T] = IO[RudderError, T]
 
   implicit class NotOptional[T](opt: Option[T]) {
     def notOptional(msg: String): InventoryResult[T] = opt match {
       case None    => InventoryError.Inconsistency(msg).fail
       case Some(x) => x.succeed
     }
-  }
-
-  implicit object InventoryErrorBridge extends ErrorBridge[RudderError, InventoryError.Chained[RudderError]] {
-    override def bridge(from: RudderError, hint: String) = Chained[RudderError](hint, from)
   }
 
   implicit class ChainError[T](res: InventoryResult[T]) {

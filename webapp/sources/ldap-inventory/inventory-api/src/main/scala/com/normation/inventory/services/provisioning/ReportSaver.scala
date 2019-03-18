@@ -111,9 +111,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
           _  <- InventoryLogger.trace(s"Precommit '${preCommit.name}': ${t1 - t0} ms")
         } yield {
           res
-        }) mapError { err =>
-          InventoryError.Chained(s"Exception in preCommit pipeline with processor '${preCommit.name}}', abort", err)
-        }
+        }).chainError(s"Exception in preCommit pipeline with processor '${preCommit.name}}', abort")
       }
       /*
        * commit change - no rollback !

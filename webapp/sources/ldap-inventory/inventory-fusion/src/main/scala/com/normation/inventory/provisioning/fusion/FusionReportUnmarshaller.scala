@@ -44,23 +44,28 @@ import com.normation.inventory.services.provisioning._
 import com.normation.utils.StringUuidGenerator
 import java.net.InetAddress
 import java.util.Locale
-import net.liftweb.common._
+
+import com.normation.inventory.domain.InventoryResult._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
+import scalaz.zio._
+import scalaz.zio.syntax._
+
 import scala.xml._
 
 class FusionReportUnmarshaller(
-    uuidGen:StringUuidGenerator,
-    rootParsingExtensions:List[FusionReportParsingExtension] = Nil,
-    contentParsingExtensions:List[FusionReportParsingExtension] = Nil,
-    biosDateFormat : String = "MM/dd/yyyy",
-    slotMemoryUnit : String = "Mo",
-    ramUnit : String = "Mo",
-    swapUnit : String = "Mo",
-    fsSpaceUnit : String = "Mo",
+    uuidGen:StringUuidGenerator
+  , rootParsingExtensions:List[FusionReportParsingExtension] = Nil
+  , contentParsingExtensions:List[FusionReportParsingExtension] = Nil
+  , biosDateFormat : String = "MM/dd/yyyy"
+  , slotMemoryUnit : String = "Mo"
+  , ramUnit        : String = "Mo"
+  , swapUnit       : String = "Mo"
+  , fsSpaceUnit    : String = "Mo"
+  ,
     lastLoggedUserDatetimeFormat : String = "EEE MMM dd HH:mm"
-) extends ParsedReportUnmarshaller with Loggable {
+) extends ParsedReportUnmarshaller {
 
   import OptText.optText
 
@@ -74,7 +79,7 @@ class FusionReportUnmarshaller(
       input.map( s => conv(s))
     } catch {
       case ex: Exception =>
-        logger.warn(s"Ignoring '${tag}' content because it can't be converted to ${format}. Error is: ${ex.getMessage}")
+        InventoryLogger.internalLogger.warn(s"Ignoring '${tag}' content because it can't be converted to ${format}. Error is: ${ex.getMessage}")
         None
     }
   }
@@ -97,11 +102,11 @@ class FusionReportUnmarshaller(
       Some(DateTime.parse(date,fmt))
     } catch {
       case e : IllegalArgumentException =>
-        logger.debug("error when parsing node %s, value %s ".format(n,date))
+        InventoryLogger.internalLogger.debug(s"error when parsing node '${n}', value: ${date}")
       None
   } }
 
-  override def fromXmlDoc(reportName:String, doc:NodeSeq) : Box[InventoryReport] = {
+  override def fromXmlDoc(reportName:String, doc:NodeSeq) : InventoryResult[InventoryReport] = {
 
     // hostname is a little special and may fail
     for {
@@ -242,7 +247,7 @@ class FusionReportUnmarshaller(
   }
 
   // Use RUDDER/HOSTNAME first and if missing OS/FQDN
-  def getHostname(xml : NodeSeq): Box[String] = {
+  def getHostname(xml : NodeSeq): InventoryResult[String] = {
     def validHostname( hostname : String ) : Boolean = {
       val invalidList = "localhost" :: "127.0.0.1" :: "::1" :: Nil
       /* Invalid cases are:
@@ -293,13 +298,13 @@ class FusionReportUnmarshaller(
   def processRudderElement(xml: NodeSeq, report: InventoryReport) : InventoryReport  = {
     // From an option and error message creates an option,
     // transform correctly option in a for comprehension
-    def boxFromOption[T]( opt : Option[T], errorMessage : String) : Box[T] = {
-      val box :  Box[T] = opt
+    def boxFromOption[T]( opt : Option[T], errorMessage : String) : InventoryResult[T] = {
+      val box :  InventoryResult[T] = opt
       box ?~! errorMessage
     }
 
     // Check that a seq contains only one or identical values, if not fails
-    def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : Box[T] = {
+    def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : InventoryResult[T] = {
       seq.distinct match {
         case entry if entry.size != 1 => Failure(s"${errorMessage} (${entry.size} value(s) found in place of exactly 1)")
         case entry if entry.size == 1 => Full(entry.head)

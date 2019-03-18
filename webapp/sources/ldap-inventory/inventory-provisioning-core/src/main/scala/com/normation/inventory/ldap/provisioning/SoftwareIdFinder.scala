@@ -38,11 +38,11 @@
 package com.normation.inventory.ldap.provisioning
 
 import com.normation.inventory.services.provisioning._
-
 import com.normation.ldap.sdk._
 import BuildFilter._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
+import com.normation.errors.RudderError
 import com.normation.inventory.domain._
 import org.slf4j.LoggerFactory
 import scalaz.zio._
@@ -64,7 +64,7 @@ class NameAndVersionIdFinder(
 ) extends SoftwareDNFinderAction {
 
   //the onlyTypes is an AND filter
-  override def tryWith(entities:Set[Software]) : Task[Option[MergedSoftware]] = {
+  override def tryWith(entities:Set[Software]) : IO[RudderError, MergedSoftware] = {
 
 
     val filter = OR(entities.map { entity =>
@@ -82,18 +82,13 @@ class NameAndVersionIdFinder(
       AND(nameFilter, versionFilter)
     }.toSeq:_*)
 
-
+    //get potential entries, and only get the one with a A_SOFTWARE_UUID
+    //return the list of A_SOFTWARE_UUID sorted
     for {
       con     <- ldapConnectionProvider
       entries <- con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID, A_NAME, A_SOFT_VERSION)
-      softs   <- ZIO.foreach(entries)(e => mapper.softwareFromEntry(e) )
-    }
-
-    ldapConnectionProvider.map { con =>
-      //get potential entries, and only get the one with a A_SOFTWARE_UUID
-      //return the list of A_SOFTWARE_UUID sorted
-      val merged = con.
-
+      merged  <- ZIO.foreach(entries) { e => ZIO.fromEither(mapper.softwareFromEntry(e)) }
+    } yield {
       //now merge back
       (MergedSoftware(Set(),Set())/: entities) { case(ms, s) =>
         merged.find { x => x.name == s.name && x.version == s.version } match {

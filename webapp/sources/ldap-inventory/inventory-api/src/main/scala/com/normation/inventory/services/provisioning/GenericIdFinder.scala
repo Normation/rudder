@@ -37,6 +37,7 @@
 
 package com.normation.inventory.services.provisioning
 
+import com.normation.inventory.domain.InventoryResult.InventoryResult
 import com.normation.inventory.domain._
 import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
@@ -51,7 +52,7 @@ sealed case class NamedNodeInventoryDNFinderAction(val name:String,val action:No
 
 class NodeInventoryDNFinderService(actions: Seq[NamedNodeInventoryDNFinderAction]) extends NodeInventoryDNFinderAction {
 
-  override def tryWith(entity: NodeInventory) : Task[Option[(NodeId, InventoryStatus)]] = {
+  override def tryWith(entity: NodeInventory) : InventoryResult[Option[(NodeId, InventoryStatus)]] = {
     ZIO.foldLeft(actions)(Option.empty[(NodeId, InventoryStatus)]) {
       case (Some(found), next) => Some(found).succeed
       case (None       , next) =>
@@ -75,7 +76,7 @@ sealed case class NamedMachineDNFinderAction(val name:String,val action:MachineD
 
 class MachineDNFinderService(actions:Seq[NamedMachineDNFinderAction]) extends MachineDNFinderAction with Loggable {
 
-  override def tryWith(entity: MachineInventory) : Task[Option[(MachineUuid,InventoryStatus)]] = {
+  override def tryWith(entity: MachineInventory) : InventoryResult[Option[(MachineUuid,InventoryStatus)]] = {
     ZIO.foldLeft(actions)(Option.empty[(MachineUuid, InventoryStatus)]) {
       case (Some(found), next) => Some(found).succeed
       case (None       , next) =>

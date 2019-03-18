@@ -38,11 +38,12 @@
 package com.normation.inventory.ldap.provisioning
 
 import com.normation.inventory.services.provisioning._
-
 import com.normation.inventory.domain.InventoryReport
-import net.liftweb.common.{Box,Full,Failure}
+import com.normation.inventory.domain.InventoryResult.InventoryResult
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryMapper
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * Check OS Type.
@@ -53,16 +54,13 @@ object CheckOsType extends PreCommit {
 
   override val name = "pre_commit_inventory:check_os_type_is_known"
 
-  override def apply(report:InventoryReport) : Box[InventoryReport] = {
+  override def apply(report:InventoryReport) : InventoryResult[InventoryReport] = {
 
     report.node.main.osDetails.os match {
       case UnknownOSType =>
         val xml = report.sourceReport\\"OPERATINGSYSTEM"
-        Failure("Os Type is not suported (OS Type: %s; OS Name: %s)".format(
-          (xml\\"KERNEL_NAME").text
-        , (xml\\"NAME").text
-      ))
-      case _ => Full(report)
+        InventoryError.Inconsistency(s"Os Type is not suported (OS Type: '${(xml\\"KERNEL_NAME").text}'; OS Name: '${(xml\\"NAME").text}}')").fail
+      case _ => report.succeed
     }
 
   }
@@ -86,12 +84,12 @@ object CheckMachineName extends PreCommit {
 
   override val name = "pre_commit_inventory:check_machine_cn"
 
-  override def apply(report:InventoryReport) : Box[InventoryReport] = {
+  override def apply(report:InventoryReport) : InventoryResult[InventoryReport] = {
     //machine are in FullMachine and VMs
-    Full(report.copy(
+    report.copy(
       machine = checkName(report.machine),
       vms = report.vms.map { m =>   checkName(m) }
-    ) )
+    ).succeed
   }
 }
 
@@ -112,13 +110,13 @@ class LogReportPreCommit(
 
   override val name = "pre_commit_inventory:log_inventory"
 
-  override def apply(report:InventoryReport) : Box[InventoryReport] = {
+  override def apply(report:InventoryReport) : InventoryResult[InventoryReport] = {
     ldifLogger.log(
         report.name,
         Some("LDIF describing the state of inventory to reach after save. What will be actually saved may be modified by pre/post processing"),
         Some("REPORT"),
         reportToLdif(report))
-    Full(report)
+    report.succeed
   }
 
 }
@@ -132,13 +130,13 @@ class LastInventoryDate() extends PreCommit {
 
   override val name = "pre_commit_inventory:set_last_inventory_date"
 
-  override def apply(report:InventoryReport) : Box[InventoryReport] = {
+  override def apply(report:InventoryReport) : InventoryResult[InventoryReport] = {
     val now = DateTime.now()
 
-    Full(report.copy (
+    report.copy (
       node = report.node.copy( receiveDate = Some(now) ),
       machine = report.machine.copy( receiveDate = Some(now) )
-    ) )
+    ).succeed
   }
 }
 
@@ -150,11 +148,11 @@ object AddIpValues extends PreCommit {
 
   override val name = "pre_commit_inventory:add_ip_values"
 
-  override def apply(report:InventoryReport) : Box[InventoryReport] = {
+  override def apply(report:InventoryReport) : InventoryResult[InventoryReport] = {
 
     val ips = report.node.networks.flatMap(x => x.ifAddresses).map(x => x.getHostAddress() )
 
-    Full(report.copy( node = report.node.copy( serverIps = ips ) ) )
+    report.copy( node = report.node.copy( serverIps = ips ) ).succeed
 
 
   }

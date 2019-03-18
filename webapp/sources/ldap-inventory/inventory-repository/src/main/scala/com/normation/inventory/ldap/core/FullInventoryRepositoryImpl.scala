@@ -129,7 +129,7 @@ class FullInventoryRepositoryImpl(
                           tree    <- con.getTree(x)
                           machine <- tree match {
                                        case None    => None.succeed
-                                       case Some(t) => mapper.machineFromTree(t).toLdapResult.map(Some(_))
+                                       case Some(t) => mapper.machineFromTree(t).map(Some(_))
                                      }
                         } yield {
                           machine
@@ -140,7 +140,7 @@ class FullInventoryRepositoryImpl(
     } yield {
       machine
     }
-  }.bridgeError(s"Error when getting machine with ID '${id.value}'")
+  }.chainError(s"Error when getting machine with ID '${id.value}'")
 
   /*
    * For a given machine, find all the node that use it
@@ -187,7 +187,7 @@ class FullInventoryRepositoryImpl(
       con <- ldap
       res <- con.saveTree(mapper.treeFromMachine(machine))
     } yield res
-  }.bridgeError(s"Error when saving machine with ID '${machine.id.value}'")
+  }.chainError(s"Error when saving machine with ID '${machine.id.value}'")
 
   override def delete(id:MachineUuid) : InventoryResult[Seq[LDIFChangeRecord]] = {
     for {
@@ -197,7 +197,7 @@ class FullInventoryRepositoryImpl(
        machine  <- getNodesForMachine(con, id)
        nodes    <- updateNodes(con, machine, None)
     } yield res.flatten ++ nodes
-  }.bridgeError(s"Error when deleting machine with ID '${id.value}'")
+  }.chainError(s"Error when deleting machine with ID '${id.value}'")
 
 
   /**
@@ -246,7 +246,7 @@ class FullInventoryRepositoryImpl(
     } yield {
      moved++nodes
     }
-  }.bridgeError(s"Error when moving machine with ID '${id.value}'")
+  }.chainError(s"Error when moving machine with ID '${id.value}'")
 
   /**
    * Note: it may happen strange things between get:ServerAndMachine and Node if there is
@@ -263,7 +263,7 @@ class FullInventoryRepositoryImpl(
    } yield {
       machineId
    }
-  }.bridgeError(s"Error when getting machine with ID '${id.value}' and status '${inventoryStatus.name}'")
+  }.chainError(s"Error when getting machine with ID '${id.value}' and status '${inventoryStatus.name}'")
 
   override def getAllNodeInventories(inventoryStatus : InventoryStatus): InventoryResult[Map[NodeId, NodeInventory]] = {
     (for {
@@ -276,7 +276,7 @@ class FullInventoryRepositoryImpl(
     } yield {
       nodes.map(n => (n.main.id, n)).toMap
     })
-  }.bridgeError(s"Error when getting all node inventories")
+  }.chainError(s"Error when getting all node inventories")
 
 
   override def getAllInventories(inventoryStatus : InventoryStatus): InventoryResult[Map[NodeId, FullInventory]] = {
@@ -310,7 +310,7 @@ class FullInventoryRepositoryImpl(
           node.main.id ->  inventory
       } ).toMap
     }
-  }.bridgeError(s"Error when getting all node inventories for status '${inventoryStatus.name}'")
+  }.chainError(s"Error when getting all node inventories for status '${inventoryStatus.name}'")
 
 
   override def get(id:NodeId, inventoryStatus : InventoryStatus) : InventoryResult[Option[FullInventory]] = {
@@ -338,7 +338,7 @@ class FullInventoryRepositoryImpl(
     } yield {
       server.map(s => FullInventory(s, optMachine))
     }
-  }.bridgeError(s"Error when getting node with ID '${id.value}' and status ${inventoryStatus.name}")
+  }.chainError(s"Error when getting node with ID '${id.value}' and status ${inventoryStatus.name}")
 
 
 
@@ -349,12 +349,12 @@ class FullInventoryRepositoryImpl(
       nodeDn <- findDnForId[NodeId](con, id, dn)
       inv    <- nodeDn match {
                   case None    => None.succeed
-                  case Some((_, s)) => get(id, s).mapError(e => LdapResultRudderError.Chained("error:", e))
+                  case Some((_, s)) => get(id, s)
                 }
     } yield {
       inv
     }
-  }.bridgeError(s"Error when getting node with ID '${id.value}'")
+  }.chainError(s"Error when getting node with ID '${id.value}'")
 
 
   override def save(inventory:FullInventory) : InventoryResult[Seq[LDIFChangeRecord]] = {
@@ -366,14 +366,14 @@ class FullInventoryRepositoryImpl(
                       case Some(m) => this.save(m)
                     }
     } yield resServer ++ resMachine)
-  }.bridgeError(s"Error when saving full inventory for node  with ID '${inventory.node.main.id.value}'")
+  }.chainError(s"Error when saving full inventory for node  with ID '${inventory.node.main.id.value}'")
 
   override def delete(id:NodeId, inventoryStatus : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
     for {
       con          <- ldap
       //if there is only one node using the machine, delete it. Continue on error, but on success log ldif records
       //if several node use it, does nothing
-      optMachine    <- getMachineId(id, inventoryStatus).toLdapResult
+      optMachine    <- getMachineId(id, inventoryStatus)
       machineRecord <- optMachine match {
                          case None => Seq().succeed
                          case Some((machineId, _)) =>
@@ -400,7 +400,7 @@ class FullInventoryRepositoryImpl(
     } yield {
       res ++ machineRecord
     }
-  }.bridgeError(s"Error when deleting node with ID '${id.value}'")
+  }.chainError(s"Error when deleting node with ID '${id.value}'")
 
   override def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
     if(from == into ) Seq().succeed
@@ -413,7 +413,7 @@ class FullInventoryRepositoryImpl(
       } yield {
         Seq(moved)
       }
-  }.bridgeError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}'")
+  }.chainError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}'")
 
   override def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
     for {
@@ -440,7 +440,7 @@ class FullInventoryRepositoryImpl(
     } yield {
       Seq(moved) ++ machineMoved
     }
-  }.bridgeError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}' ")
+  }.chainError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}' ")
 
 }
 

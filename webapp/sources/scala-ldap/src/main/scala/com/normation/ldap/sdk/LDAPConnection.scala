@@ -22,7 +22,6 @@ package com.normation.ldap.sdk
 
 import cats.data.NonEmptyList
 import com.normation.NamedZioLogger
-import com.normation.errors.BaseChainError
 import com.normation.errors.RudderError
 import com.normation.ldap.ldif.LDIFFileLogger
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
@@ -46,8 +45,6 @@ import scalaz.zio.blocking.Blocking
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.normation.zio._
-import com.normation.errors._
-import com.normation.ldap.sdk.LdapResultRudderError.Chained
 
 import scala.collection.JavaConverters._
 import org.slf4j.LoggerFactory
@@ -63,21 +60,18 @@ sealed trait LdapResultRudderError extends RudderError {
 
 object LdapResultRudderError {
   // errors due to some LDAPException
-  final case class BackendException(msg: String, cause: Throwable)          extends LdapResultRudderError
+  final case class BackendException(msg: String, cause: Throwable)  extends LdapResultRudderError
   // errors where there is a result, but result is not SUCCESS
-  final case class FailureResult(msg: String, result: LDAPResult)           extends LdapResultRudderError
-  // errors linked to some logic of our lib
-  // trace
-  final case class Chained[E <: RudderError](hint: String, cause: E)        extends LdapResultRudderError with BaseChainError[E]
-  final case class Consistancy(msg: String)                                 extends LdapResultRudderError
+  final case class FailureResult(msg: String, result: LDAPResult)   extends LdapResultRudderError
+
+  final case class Consistancy(msg: String)                         extends LdapResultRudderError
   // accumulated errors from multiple independent action
-  final case class Accumulated(errors: NonEmptyList[LdapResultRudderError]) extends LdapResultRudderError {
+  final case class Accumulated(errors: NonEmptyList[RudderError])   extends LdapResultRudderError {
     def msg = s"Several errors encountered: ${errors.toList.map(_.msg).mkString("; ")}"
   }
 }
 
 object LdapResult{
-  import net.liftweb.common._
   type LdapResult[T] = IO[LdapResultRudderError, T]
 
   // transform an Option[T] into an error
@@ -89,16 +83,6 @@ object LdapResult{
   implicit class ToFailureMsg(e: String) {
     def fail = IO.fail(LdapResultRudderError.Consistancy(e))
   }
-  // for easier transition from Box
-  implicit class ChainErrorRes[T](res: LdapResult[T]) {
-    def ?~!(msg: String): LdapResult[T] = res.mapError(e =>
-      LdapResultRudderError.Chained(msg, e)
-    )
-  }
-  implicit class ChainError[T<: LdapResultRudderError](e: T) {
-    def ?~!(msg: String): LdapResult[T] = IO.fail(LdapResultRudderError.Chained(msg, e))
-  }
-
   // for compat
   implicit class ToBox[T](res: LdapResult[T]) {
     import net.liftweb.common._
@@ -118,32 +102,6 @@ object LdapResult{
     }
   }
 
-  implicit class ToLdapError(res: EmptyBox) {
-    def toLdapResultError: LdapResultRudderError = res match {
-      case Empty                        => LdapResultRudderError.Consistancy("Unknow error happened")
-      case Failure(msg, _, Full(cause)) => LdapResultRudderError.Chained(msg, cause.toLdapResultError)
-      case Failure(msg, Full(ex), _)    => ex match {
-                                             case ldapEx:LDAPException => LdapResultRudderError.BackendException(msg, ldapEx)
-                                             case _                    => LdapResultRudderError.BackendException(msg, new LDAPException(ResultCode.OTHER, ex))
-                                           }
-      case Failure(msg, _, _)           => LdapResultRudderError.Consistancy(msg)
-    }
-  }
-  implicit class ToLdapResult[T](res: Box[T]) {
-    def toLdapResult: LdapResult[T] = res match {
-      case Full(x)     => IO.succeed(x)
-      case eb:EmptyBox => IO.fail(eb.toLdapResultError)
-    }
-  }
-
-  implicit class ErrorToLdapError[T](res: IO[RudderError, T]) {
-    def toLdapResult: LdapResult[T] = res.mapError(e =>
-      LdapResultRudderError.Chained("error:", e)
-    )
-  }
-  implicit object ScalaLdapErrorBridge extends ErrorBridge[RudderError, LdapResultRudderError.Chained[RudderError]] {
-    override def bridge(from: RudderError, hint: String) = Chained[RudderError](hint, from)
-  }
 }
 
 trait ReadOnlyEntryLDAPConnection {
