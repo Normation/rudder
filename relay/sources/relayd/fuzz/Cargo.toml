@@ -1,0 +1,30 @@
+
+[package]
+name = "relayd-fuzz"
+version = "0.0.1"
+authors = ["Automatically generated"]
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies.relayd]
+path = ".."
+[dependencies.libfuzzer-sys]
+git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "report"
+path = "fuzz_targets/report.rs"
+
+[[bin]]
+name = "runlog"
+path = "fuzz_targets/runlog.rs"
+
+[[bin]]
+name = "runinfo"
+path = "fuzz_targets/runinfo.rs"

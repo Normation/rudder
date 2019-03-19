@@ -1,0 +1,47 @@
+[package]
+name = "relayd"
+version = "0.0.1"
+authors = ["Rudder developpers <dev@rudder.io>"]
+edition = "2018"
+
+[[bin]]
+name = "agent"
+path = "src/agent.rs"
+
+[[bin]]
+name = "relayd"
+path = "src/relayd.rs"
+
+[dependencies]
+
+## Good
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+regex = "1.1"
+lazy_static = "1.2"
+clap = "2.32"
+diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }
+# Compile dev and release with trace logs enabled
+slog = { version = "2.4", features = ["max_level_trace", "release_max_level_trace"] }
+slog-term = "2.4"
+slog-async = "2.3"
+slog-scope = "4.1"
+slog-stdlog = "3.0"
+slog-atomic = "2.0"
+slog-kvfilter = "0.7"
+
+## Bad (=Not widely used or <1.0)
+toml = "0.5"
+inotify = "0.7"
+uuid = { version = "0.7", features = ["v4"] }
+rand = "0.6"
+# Disable uneeded features (udp, unix socket, etc.)
+tokio = { version = "0.1", default-features = false, features = ["fs", "io", "reactor", "rt-full"] }
+tokio-signal = "0.2"
+futures = "0.1"
+warp = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+
+[profile.release]
+# Smaller binaries
+lto = true
