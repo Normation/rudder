@@ -38,6 +38,7 @@
 package com.normation.inventory.provisioning
 package fusion
 
+import com.normation.errors.RudderError
 import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.InventoryResult._
 
@@ -163,17 +164,14 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
   private[this] def checkOS(report:NodeSeq) : InventoryResult[NodeSeq] = {
     //VERSION is not mandatory on windows, it can't be added in that list
     val tags = "FULL_NAME" :: "KERNEL_NAME" :: "NAME" :: Nil
-    for {
-      tagHere <- {
-                  /*
-                   * Try each tag one after the other. Stop on the first succes.
-                   * In case of none, return a failure.
-                   */
-                   ZIO.raceAll(IO.fail, tags.map(tag => checkNodeSeq(report, "OPERATINGSYSTEM", false, Some(tag)))).mapError(_ => InventoryError.Inconsistency(s"Missing tags ${tags.map(t => s"OPERATINGSYSTEM/${t}").mkString(", ")}. At least one of them is mandatory"))
-                 }
-    } yield {
-      report
-    }
+    val error = InventoryError.Inconsistency(s"Missing tags ${tags.map(t => s"OPERATINGSYSTEM/${t}").mkString(", ")}. At least one of them is mandatory")
+    val zero: Either[RudderError, String] = Left(error)
+    ZIO.absolve(ZIO.foldLeft(tags)(zero)( (a, b) =>
+      a match {
+        case Right(x) => Right(x).succeed
+        case Left(_)  => checkNodeSeq(report, "OPERATINGSYSTEM", false, Some(b)).either
+      }
+    )).foldM(_ => error.fail, _=> report.succeed)
   }
 
   /**
@@ -188,12 +186,12 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
     val failure = "Missing attribute OPERATINGSYSTEM>KERNEL_VERSION in report. This attribute is mandatory".inconsistency
     val aixFailure = "Missing attribute HARDWARE>OSVERSION in report. This attribute is mandatory".inconsistency
 
-    checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("KERNEL_VERSION")) catchAll  { _ =>
+    checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("KERNEL_VERSION")).map(_ => report).catchAll  { _ =>
         //perhaps we are on AIX ?
-        checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("KERNEL_NAME")) foldM (
+        checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("KERNEL_NAME")) .foldM (
             _ => failure
           , x =>  if(x.toLowerCase == "aix") { //ok, check for OSVERSION
-            checkNodeSeq(report, "HARDWARE", false, Some("OSVERSION")) foldM (
+            checkNodeSeq(report, "HARDWARE", false, Some("OSVERSION")).foldM (
                 _ => aixFailure
               , kernelVersion => //update the report to put it in the right place
                   (new scala.xml.transform.RuleTransformer(
@@ -204,7 +202,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
               //should not be empty given checkOS, but if so, fails. Also fails is not aix.
               failure
             }
-        )
+        ).map(n => n:NodeSeq)
     }
   }
 

@@ -109,7 +109,7 @@ class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.de
     IO.bracket(IO.effect(new LDIFWriter(LDIFFile)))(writer =>  IO.effect(writer.close).catchAll(ex =>
       logger.debug("LDIF log for report processing: " + LDIFFile.getAbsolutePath)
     )) { writer =>
-      (if (logger.internalLogger.isTraceEnabled) {
+      (if (logger.logEffect.isTraceEnabled) {
 
         val ldif = LDIFRecords //that's important, else we evaluate again and again LDIFRecords
 

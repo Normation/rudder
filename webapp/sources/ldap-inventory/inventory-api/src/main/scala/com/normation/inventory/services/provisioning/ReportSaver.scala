@@ -107,8 +107,8 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
         (for {
           t0  <- UIO(System.currentTimeMillis)
           res <- preCommit(currentReport).chainError(s"Error in preCommit pipeline with processor '${preCommit.name}', abort")
-          t1 <- UIO(System.currentTimeMillis)
-          _  <- InventoryLogger.trace(s"Precommit '${preCommit.name}': ${t1 - t0} ms")
+          t1  <- UIO(System.currentTimeMillis)
+          _   <- InventoryLogger.trace(s"Precommit '${preCommit.name}': ${t1 - t0} ms")
         } yield {
           res
         }).chainError(s"Exception in preCommit pipeline with processor '${preCommit.name}}', abort")

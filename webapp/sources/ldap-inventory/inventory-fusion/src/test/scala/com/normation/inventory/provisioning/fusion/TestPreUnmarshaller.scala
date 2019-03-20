@@ -39,17 +39,19 @@ package com.normation.inventory.provisioning.fusion
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import net.liftweb.common._
 
 import scala.xml.XML
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
 import com.normation.inventory.services.provisioning.PreUnmarshall
 import java.io.InputStream
 
-import org.xml.sax.SAXParseException
+import com.normation.errors.RudderError
+import com.normation.errors.RudderResult
+import com.normation.errors.SystemError
+import com.normation.zio.ZioRuntime
 
 import scala.xml.NodeSeq
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -62,35 +64,22 @@ class TestPreUnmarshaller extends Specification {
 
   private[this] implicit class TestParser(pre: PreUnmarshall) {
 
-    def fromXml(checkName:String,is:InputStream) : Box[NodeSeq] = {
-    (try {
-      Full(XML.load(is))
-    } catch {
-      case e:SAXParseException => Failure("Cannot parse uploaded file as an XML Fusion Inventory check",Full(e),Empty)
-    }) match {
-      case f@Failure(m,e,c) => f
-      case Full(doc) if(doc.isEmpty) => Failure("Fusion Inventory check seem's to be empty")
-      case Empty => Failure("Fusion Inventory check seem's to be empty")
-      case Full(x) => Full(x)
+    def fromXml(checkName:String,is:InputStream) : RudderResult[NodeSeq] = {
+      Task.effect(XML.load(is)).mapError(SystemError("error in test", _))
     }
-  }
 
-    def check(checkRelativePath: String): Box[NodeSeq] = {
-      val url = this.getClass.getClassLoader.getResource(checkRelativePath)
-      if(null == url) throw new NullPointerException(s"Resource with relative path '${checkRelativePath}' is null (missing resource? Spelling? Permissions?)")
-      val is = url.openStream()
-
-      val check = fromXml("check", is) match {
-        case Full(e) => pre(e)
-        case eb:EmptyBox =>
-          val e = eb ?~! "Parsing error"
-          e.rootExceptionCause match {
-            case Full(ex) => throw new Exception(e.messageChain, ex)
-            case _ => throw new Exception(e.messageChain)
-          }
-      }
-      is.close()
-      check
+    def check(checkRelativePath: String): Either[RudderError, NodeSeq] = {
+      ZioRuntime.unsafeRun((ZIO.bracket {
+        Task.effect {
+          val url = this.getClass.getClassLoader.getResource(checkRelativePath)
+          if(null == url) throw new NullPointerException(s"Resource with relative path '${checkRelativePath}' is null (missing resource? Spelling? Permissions?)")
+          url.openStream()
+        }.mapError(e => SystemError("error in text", e))
+      } { is =>
+       Task.effect(is.close).run
+      } {
+        is => fromXml("check", is).flatMap(pre.apply)
+      }).either)
     }
   }
   val post = new PreUnmarshallCheckConsistency
@@ -115,10 +104,7 @@ class TestPreUnmarshaller extends Specification {
 
     "When there is no security token defined" in {
       val noSecurityToken = post.check("fusion-report/debian-no-security-token.ocs")
-      (noSecurityToken match {
-        case Failure(m, _, _) => m
-        case _                => "not the expected error"
-      }) must beMatching("""\QMissing security token attribute (RUDDER/AGENT/CFENGINE_KEY or RUDDER/AGENT/AGENT_CERT)\E.*""".r)
+      noSecurityToken.swap.getOrElse(throw new Exception("For test")).fullMsg must beMatching(""".*\QMissing security token attribute (RUDDER/AGENT/CFENGINE_KEY or RUDDER/AGENT/AGENT_CERT)\E.*""".r)
     }
   }
 

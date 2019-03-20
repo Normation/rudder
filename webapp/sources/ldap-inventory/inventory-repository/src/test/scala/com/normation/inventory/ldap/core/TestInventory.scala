@@ -204,11 +204,11 @@ class TestInventory extends Specification {
       forall(allStatus) { status =>
 
         val m = machine("machine in " + status.name, status)
-        repo.save(m)
+        repo.save(m).testRun
 
-        val found = repo.get(m.id)
+        val found = repo.get(m.id).testRun
 
-        (Right(Some(m)) === found.testRun) and {
+        (Right(Some(m)) === found) and {
           repo.delete(m.id).testRun
           val x = repo.get(m.id).testRun
           x must beEqualTo(Right(None))

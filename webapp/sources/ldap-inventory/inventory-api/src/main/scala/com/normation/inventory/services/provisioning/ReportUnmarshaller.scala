@@ -88,8 +88,8 @@ trait ParsedReportUnmarshaller extends ReportUnmarshaller {
   override def fromXml(reportName:String,is:InputStream) : InventoryResult[InventoryReport] = {
     (Task.effect {
       XML.load(is)
-    } mapError {
-      case e:SAXParseException => InventoryError.Deserialisation("Cannot parse uploaded file as an XML Fusion Inventory report", e)
+    } mapError { ex =>
+      InventoryError.Deserialisation("Cannot parse uploaded file as an XML Fusion Inventory report", ex)
     }).flatMap( doc =>
       if(doc.isEmpty) {
         InventoryError.Inconsistency("Fusion Inventory report seem's to be empty").fail

@@ -820,7 +820,7 @@ class InventoryMapper(
       } yield (uuid, st) ) match {
         case Right(st) => List(st)
         case Left(err) =>
-          InventoryLogger.internalLogger.error(s"Error when processing machine DN '${x}': ${err.msg}")
+          InventoryLogger.logEffect.error(s"Error when processing machine DN '${x}': ${err.msg}")
           Nil
       }
     }

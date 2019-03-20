@@ -79,7 +79,7 @@ class FullInventoryFileMarshalling(
   }
 
   def toFile(out:File, data: FullInventory) : InventoryResult[FullInventory] = {
-    ZIO.bracket(Task.effect(new LDIFWriter(out)).mapError(e => InventoryError.System(e.getMessage)))(_.close().succeed) { printer =>
+    ZIO.bracket(Task.effect(new LDIFWriter(out)).mapError(e => InventoryError.System(e.getMessage)))(is => Task.effect(is.close).run) { printer =>
       (Task.effect {
         mapper.treeFromNode(data.node).toLDIFRecords.foreach { r => printer.writeLDIFRecord(r) }
         data.machine.foreach { m =>

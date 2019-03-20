@@ -44,9 +44,13 @@ import com.normation.utils.StringUuidGeneratorImpl
 import net.liftweb.common._
 import java.io.File
 
+import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.AgentType._
+import com.normation.zio.ZioRuntime
 import net.liftweb.json.JsonAST.{JBool, JInt, JString}
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -58,26 +62,19 @@ import net.liftweb.json.JsonAST.{JBool, JInt, JString}
 class TestReportParsing extends Specification with Loggable {
 
   private[this] implicit class TestParser(parser: FusionReportUnmarshaller) {
-    def parse(reportRelativePath: String): InventoryReport = {
+    def parse(reportRelativePath: String): IO[RudderError, InventoryReport] = {
       val url = this.getClass.getClassLoader.getResource(reportRelativePath)
       if(null == url) throw new NullPointerException(s"Resource with relative path '${reportRelativePath}' is null (missing resource? Spelling? Permissions?)")
-      val is = url.openStream()
 
-      val report = parser.fromXml(reportRelativePath, is) match {
-        case Full(e) => e
-        case eb:EmptyBox =>
-          val e = eb ?~! s"Parsing error with file ${reportRelativePath}"
-          e.rootExceptionCause match {
-            case Full(ex) => throw new Exception(e.messageChain, ex)
-            case _ => throw new Exception(e.messageChain)
-          }
+      ZIO.bracket(Task.effect(url.openStream()).mapError(e => SystemError(s"error opening ${url.toString}", e)))(is => Task.effect(is.close).run){ is =>
+        parser.fromXml(reportRelativePath, is).chainError(s"Parsing error with file ${reportRelativePath}")
       }
-      is.close()
-      report
     }
   }
 
-    val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
+
+  val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
+  def parseRun(report: String) = ZioRuntime.unsafeRun(parser.parse(report))
 
   "All inventories in the fusion-report directory" should {
     "be correctly parsed and give a non generic OS type" in {
@@ -87,7 +84,7 @@ class TestReportParsing extends Specification with Loggable {
 
       fileNames must contain { (f:String) =>
         val name = "fusion-report/"+f
-        val report = parser.parse(name)
+        val report = parseRun(name)
         report.node.main.osDetails match {
           case _:UnknownOS =>
             logger.error(s"Inventory '${name}' has an unknown OS type")
@@ -102,7 +99,7 @@ class TestReportParsing extends Specification with Loggable {
 
   "Machine with four ips (two v4, two v6) for one interfaces" should {
 
-    val report = parser.parse("fusion-report/centos-with-two-ip-for-one-interface.ocs")
+    val report = parseRun("fusion-report/centos-with-two-ip-for-one-interface.ocs")
 
     "lead to a node with 4 ips for eth0" in {
       report.node.networks.find( _.name == "eth0").get.ifAddresses.size must beEqualTo(4)
@@ -111,7 +108,7 @@ class TestReportParsing extends Specification with Loggable {
 
   "Machine with one ipv4 and one ipv6 network for one interface" should {
 
-    val report = parser.parse("fusion-report/centos-with-two-ip-for-one-interface.ocs")
+    val report = parseRun("fusion-report/centos-with-two-ip-for-one-interface.ocs")
 
     "have correct gateway, mask, network defined" in {
       val net = report.node.networks.find( _.name == "ens3")
@@ -126,7 +123,7 @@ class TestReportParsing extends Specification with Loggable {
 
   "A node with Rudder roles" should {
 
-    val report = parser.parse("fusion-report/node-with-server-role-attribute.ocs")
+    val report = parseRun("fusion-report/node-with-server-role-attribute.ocs")
 
     "correctly add roles"in {
       report.node.serverRoles must contain(exactly(ServerRole("magikal_node")))
@@ -135,7 +132,7 @@ class TestReportParsing extends Specification with Loggable {
 
   "A node with a timezone" should {
 
-    val report = parser.parse("fusion-report/sles-10-64-sp3-2011-08-23-16-06-17.ocs")
+    val report = parseRun("fusion-report/sles-10-64-sp3-2011-08-23-16-06-17.ocs")
 
     "correctly parse the timezone" in {
       report.node.timezone must beEqualTo(Some(NodeTimezone("CEST", "+0200")))
@@ -159,7 +156,7 @@ class TestReportParsing extends Specification with Loggable {
         )
       )
 
-      val report = parser.parse("fusion-report/sles-10-64-sp3-2011-08-23-16-06-17.ocs")
+      val report = parseRun("fusion-report/sles-10-64-sp3-2011-08-23-16-06-17.ocs")
       report.node.customProperties must beEqualTo(expected)
     }
   }
@@ -167,22 +164,22 @@ class TestReportParsing extends Specification with Loggable {
   "Arch in Inventory" should {
 
     "be defined for windows 2012" in {
-      val arch = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.archDescription
+      val arch = parseRun("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.archDescription
       arch must beEqualTo(Some("x86_64"))
     }
 
     "correctly get the arch when OPERATINGSYSTEM/ARCH is defined" in {
-      val arch = parser.parse("fusion-report/signed_inventory.ocs").node.archDescription
+      val arch = parseRun("fusion-report/signed_inventory.ocs").node.archDescription
       arch must beEqualTo(Some("x86_64"))
     }
 
     "correctly get the arch even if OPERATINGSYSTEM/ARCH is missing" in {
-      val arch = parser.parse("fusion-report/sles-10-64-sp3-2011-08-23-16-06-17.ocs").node.archDescription
+      val arch = parseRun("fusion-report/sles-10-64-sp3-2011-08-23-16-06-17.ocs").node.archDescription
       arch must beEqualTo(Some("x86_64"))
     }
 
     "be 'ppc64' on AIX" in {
-      val arch = parser.parse("fusion-report/sovma136-2014-02-10-07-13-43.ocs").node.archDescription
+      val arch = parseRun("fusion-report/sovma136-2014-02-10-07-13-43.ocs").node.archDescription
       arch must beEqualTo(Some("ppc64"))
     }
   }
@@ -190,82 +187,83 @@ class TestReportParsing extends Specification with Loggable {
   "Agent in Inventory" should {
 
     "be empty when there is no agent" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.agentType).toList
+      val agents = parseRun("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.agentType).toList
       agents must be empty
     }
 
     "have one agent when using community" in {
-    val agents = parser.parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agents.map(_.agentType).toList
-      agents == (CfeCommunity :: Nil)
+    val agents = parseRun("fusion-report/rudder-tag/minimal-one-agent.ocs")
+
+      agents.node.agents.map(_.agentType).toList === (CfeCommunity :: Nil)
     }
 
     "have two agent when using community and nova" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents.map(_.agentType).toList
-      agents == (CfeCommunity :: CfeEnterprise :: Nil)
+      val agents = parseRun("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents.map(_.agentType).toList
+      agents === (CfeCommunity :: CfeEnterprise :: Nil)
     }
 
     "be empty when there is two agents, using two different policy servers" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.agentType).toList
+      val agents = parseRun("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.agentType).toList
       agents must be empty
     }
 
     "have dsc agent agent when using rudder-agent based on dsc" in {
-      val agents = parser.parse("fusion-report/dsc-agent.ocs").node.agents.map(_.agentType).toList
-      agents == (Dsc :: Nil)
+      val agents = parseRun("fusion-report/dsc-agent.ocs").node.agents.map(_.agentType).toList
+      agents === (Dsc :: Nil)
     }
 
   }
 
   "Parsing Windows 2012" should {
     "parse as windows 2012" in {
-      val os = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.osDetails.os
-      os == Windows2012
+      val os = parseRun("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.osDetails.os
+      os === Windows2012
     }
     "parse as windows 2012" in {
-      val os = parser.parse("fusion-report/windows2012r2.ocs").node.main.osDetails.os
-      os == Windows2012R2
+      val os = parseRun("fusion-report/windows2012r2.ocs").node.main.osDetails.os
+      os === Windows2012R2
     }
   }
 
   "Parsing Windows 2016" should {
     "parse as windows 2016" in {
-      val os = parser.parse("fusion-report/windows2016.ocs").node.main.osDetails.os
-      os == Windows2016
+      val os = parseRun("fusion-report/windows2016.ocs").node.main.osDetails.os
+      os === Windows2016
     }
   }
 
   "Parsing Windows 2019" should {
     "parse as windows 2019" in {
-      val os = parser.parse("fusion-report/windows2019.ocs").node.main.osDetails.os
-      os == Windows2019
+      val os = parseRun("fusion-report/windows2019.ocs").node.main.osDetails.os
+      os === Windows2019
     }
   }
 
   "Hostname should be correctly detected" should {
      "get node1 when it is defined as this" in {
-        val hostname = parser.parse("fusion-report/signed_inventory.ocs").node.main.hostname
-        hostname == "node1"
+        val hostname = parseRun("fusion-report/signed_inventory.ocs").node.main.hostname
+        hostname === "node1"
      }
 
     "get WIN-AI8CLNPLOV5.eu-west-1.compute.internal as the hostname" in {
-      val hostname = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.hostname
-      hostname == "WIN-AI8CLNPLOV5.eu-west-1.compute.internal"
+      val hostname = parseRun("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.hostname
+      hostname === "WIN-AI8CLNPLOV5.eu-west-1.compute.internal"
     }
   }
 
   "Agent version" should {
     "be found for community agent" in {
-      val version = parser.parse("fusion-report/sles-11-sp1-64-2011-09-02-12-00-43.ocs").node.agents(0).version
+      val version = parseRun("fusion-report/sles-11-sp1-64-2011-09-02-12-00-43.ocs").node.agents(0).version
       version must beEqualTo(Some(AgentVersion("2.3.0.beta1~git-1")))
     }
 
     "be found for nova agent" in {
-      val version = parser.parse("fusion-report/WIN-2017-rudder-4-1.ocs").node.agents(0).version
+      val version = parseRun("fusion-report/WIN-2017-rudder-4-1.ocs").node.agents(0).version
       version must beEqualTo(Some(AgentVersion("cfe-3.7.4.65534")))
     }
 
     "be unknown if rudder agent is missing" in {
-      val version = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents(0).version
+      val version = parseRun("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents(0).version
       version must beEqualTo(None)
     }
 
@@ -274,8 +272,8 @@ class TestReportParsing extends Specification with Loggable {
 
   "Parsing Slackware" should {
     "parse as slackware" in {
-      val os = parser.parse("fusion-report/slackinv.ocs").node.main.osDetails.os
-      os == Slackware
+      val os = parseRun("fusion-report/slackinv.ocs").node.main.osDetails.os
+      os === Slackware
     }
   }
 
@@ -288,12 +286,12 @@ class TestReportParsing extends Specification with Loggable {
 
   "Parsing inventory with only KERNEL_NAME in OPERATING SYSTEM" should {
     "parse as a unknown linux when it's a linux" in {
-      val os = parser.parse("fusion-report/only-kernel-name-0034fbbe-4b52-4212-9535-1f1a952c6f36.ocs").node.main.osDetails.os
-      os == UnknownLinuxType
+      val os = parseRun("fusion-report/only-kernel-name-0034fbbe-4b52-4212-9535-1f1a952c6f36.ocs").node.main.osDetails.os
+      os === UnknownLinuxType
     }
     "parse as a unknown windows when its windows" in {
-      val os = parser.parse("fusion-report/windows2016-incomplete.ocs").node.main.osDetails.os
-      os == UnknownWindowsType
+      val os = parseRun("fusion-report/windows2016-incomplete.ocs").node.main.osDetails.os
+      os === UnknownWindowsType
     }
   }
 }

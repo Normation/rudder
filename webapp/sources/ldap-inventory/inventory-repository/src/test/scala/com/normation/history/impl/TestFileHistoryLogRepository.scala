@@ -60,31 +60,31 @@ class TestFileHistoryLogRepository {
   val repos = new FileHistoryLogRepository(rootDir, StringMarshaller,StringId)
 
   implicit class RunThing[R,E,T](thing: ZIO[Any,E,T]) {
-    def run = ZioRuntime.unsafeRun(thing.either)
+    def runNow = ZioRuntime.unsafeRun(thing.either)
   }
 
   @Test def basicTest: Unit = {
     val id1 = "data1"
-    assertEquals(Right(List()), repos.getIds.map(_.toList).run)
-    assertEquals(_:Left[RudderError, Any], repos.versions(id1).run)
+    assertEquals(Right(List()), repos.getIds.map(_.toList).runNow)
+    assertEquals(_:Left[RudderError, Any], repos.versions(id1).runNow)
 
     val data1 = "Some data 1\nwith multiple lines"
 
     //save first revision
     val data1time1 = DateTime.now()
-    assertEquals(Right(DefaultHLog(id1, data1time1,data1)), repos.save(id1, data1, data1time1).run)
+    assertEquals(Right(DefaultHLog(id1, data1time1,data1)), repos.save(id1, data1, data1time1).runNow)
 
     //now we have exaclty one id, with one revision, equals to data1time1
-    assertEquals(Right(List(id1)), repos.getIds.map(_.toList).run)
-    assertEquals(Right(List(data1time1)), repos.versions(id1).map(_.toList).run)
+    assertEquals(Right(List(id1)), repos.getIds.map(_.toList).runNow)
+    assertEquals(Right(List(data1time1)), repos.versions(id1).map(_.toList).runNow)
 
     //save second revision
     val data1time2 = DateTime.now()
-    assertEquals(Right(DefaultHLog(id1, data1time2, data1)), repos.save(id1, data1, data1time2).run)
+    assertEquals(Right(DefaultHLog(id1, data1time2, data1)), repos.save(id1, data1, data1time2).runNow)
 
     //now we have exaclty one id1, with two revisions, and head is data1time2
-    assertEquals(Right(List(id1)), repos.getIds.map(_.toList).run)
-    assertEquals(Right(data1time2 :: data1time1 :: Nil), repos.versions(id1).map(_.toList).run)
+    assertEquals(Right(List(id1)), repos.getIds.map(_.toList).runNow)
+    assertEquals(Right(data1time2 :: data1time1 :: Nil), repos.versions(id1).map(_.toList).runNow)
 
   }
 }

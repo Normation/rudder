@@ -37,7 +37,7 @@
 
 package com.normation.inventory.domain
 
-import net.liftweb.common.Full
+import com.normation.zio.ZioRuntime
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -89,17 +89,17 @@ class AgentTypesTest extends Specification {
   "Parsing agent type" should {
 
     "works for 4_3 format" in {
-      val res = AgentInfoSerialisation.parseJson(json43, None)
-      res must beEqualTo(Full(
+      val res = ZioRuntime.unsafeRun(AgentInfoSerialisation.parseJson(json43, None))
+      res must beEqualTo(
         AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey(key))
-      ))
+      )
     }
 
     "be able to read 4_1 serialized info" in {
-      val res = AgentInfoSerialisation.parseJson(json41, Some(key))
-      res must beEqualTo(Full(
+      val res = ZioRuntime.unsafeRun(AgentInfoSerialisation.parseJson(json41, Some(key)))
+      res must beEqualTo(
         AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.13")), PublicKey(key))
-      ))
+      )
     }
   }
 }

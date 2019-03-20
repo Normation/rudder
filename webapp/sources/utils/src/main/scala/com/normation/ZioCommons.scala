@@ -25,8 +25,12 @@
 
 package com.normation
 
+import java.io.FileInputStream
+import java.net.URL
+
 import cats.data.NonEmptyList
 import scalaz.zio._
+import scalaz.zio.syntax._
 import cats.implicits._
 import com.normation.zio.ZioRuntime
 import net.liftweb.common.Logger
@@ -39,6 +43,10 @@ import net.liftweb.common.Logger
  * for meaningful semantic intra-module.
  */
 object errors {
+
+
+  type RudderResult[T] = ZIO[Any, RudderError, T]
+
   trait RudderError {
     // All error have a message which explains what cause the error.
     def msg: String
@@ -58,7 +66,9 @@ object errors {
     def msg = s"${hint}; cause was: ${cause.fullMsg}"
   }
 
-  final case class Chained[E <: RudderError](hint: String, cause: E) extends BaseChainError[E]
+  final case class Chained[E <: RudderError](hint: String, cause: E) extends BaseChainError[E] {
+    override def fullMsg: String = msg
+  }
 
   /*
    * Chain multiple error. You will loose the specificity of the
@@ -186,8 +196,8 @@ object zio {
 trait ZioLogger {
 
   //the underlying logger
-  def internalLogger: Logger
-  def logAndForgetResult[T](log: Logger => T): UIO[Unit] = ZIO.effect(log(internalLogger)).run.void
+  def logEffect: Logger
+  def logAndForgetResult[T](log: Logger => T): UIO[Unit] = ZIO.effect(log(logEffect)).run.void
 
   def trace(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.trace(msg))
   def debug(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.debug(msg))
@@ -208,10 +218,52 @@ trait ZioLogger {
 abstract class NamedZioLogger(val loggerName: String) extends ZioLogger {
   import org.slf4j.LoggerFactory
   import net.liftweb.common.Logger
-  val internalLogger = new Logger() {
+  val logEffect = new Logger() {
     override protected def _logger = LoggerFactory.getLogger(loggerName)
   }
 }
+
+object TestSream {
+
+  object log extends NamedZioLogger("test-logger")
+
+
+  def main(args: Array[String]): Unit = {
+    val prog =
+      log.error("wouhou") *>
+      ZIO.bracket(Task.effect{
+      val checkRelativePath = "file:///tmp/plop.txt"
+      val url = new URL(checkRelativePath)
+      url.openStream()
+    })(is =>
+      Task.effect(is.close).run // here, if I put `UIO.unit`, I can have the content
+    )(is =>
+      Task.effect(println(new String(is.readAllBytes(), "utf-8") ))
+    ) <* log.warn("some plop plop")
+    ZioRuntime.unsafeRun(prog)
+    // A checked error was not handled:
+    //  java.base/java.io.BufferedInputStream.getBufIfOpen(BufferedInputStream.java:176)
+    // IOException("Stream closed");
+  }
+
+}
+
+object TestLog {
+
+  object log extends NamedZioLogger("test-logger")
+
+  def main(args: Array[String]): Unit = {
+
+
+    def oups: IO[String, Int] = "oups error".fail
+
+    val prog = oups.catchAll(e => log.error("I got an error!") *> e.fail) *> UIO.succeed(42)
+
+    ZioRuntime.unsafeRun(prog)
+  }
+
+}
+
 
 //
 //object Test {

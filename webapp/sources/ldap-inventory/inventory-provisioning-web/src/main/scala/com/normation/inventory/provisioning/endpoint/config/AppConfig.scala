@@ -54,6 +54,7 @@ import org.slf4j.LoggerFactory
 import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
 import java.security.Security
 
+import com.normation.zio.ZioRuntime
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 import scala.concurrent.duration._
@@ -149,6 +150,7 @@ class AppConfig {
     , host = SERVER
     , port = PORT
     , ldifFileLogger = new DefaultLDIFFileLogger(ldifTraceRootDir = LDIF_TRACELOG_ROOT_DIR)
+    , blockingModule = ZioRuntime.Environment
   )
 
   @Bean
@@ -158,6 +160,7 @@ class AppConfig {
     , host = SERVER
     , port = PORT
     , ldifFileLogger = new DefaultLDIFFileLogger(ldifTraceRootDir = LDIF_TRACELOG_ROOT_DIR)
+    , blockingModule = ZioRuntime.Environment
   )
 
   @Bean
