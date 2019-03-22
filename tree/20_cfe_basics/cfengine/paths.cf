@@ -89,6 +89,7 @@ bundle common paths
 
     !(freebsd|darwin)::
       "path[getfacl]"  string => "/usr/bin/getfacl";
+      "path[setfacl]"  string => "/usr/bin/setfacl";
 
     freebsd|darwin::
       "path[npm]"      string => "/usr/local/bin/npm";
@@ -255,6 +256,7 @@ bundle common paths
 
       "path[bhyvectl]" string => "/usr/sbin/bhyvectl";
       "path[getfacl]"  string => "/bin/getfacl";
+      "path[setfacl]"  string => "/bin/setfacl";
       "path[dtrace]"   string => "/usr/sbin/dtrace";
       "path[service]"  string => "/usr/sbin/service";
       "path[zpool]"    string => "/sbin/zpool";

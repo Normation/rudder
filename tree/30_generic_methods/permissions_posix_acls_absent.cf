@@ -1,0 +1,188 @@
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Permissions POSIX ACLs absent
+# @description Ensure that files or directories has no ACLs set
+#
+# @documentation The `permissions_*acl_*` manage the POSIX ACL on files and directories.
+# #### Parameters
+#
+# ##### Path
+#
+# Path can be globbing with the following format:
+#
+# * * matches any filename or directory at one level, e.g. *.cf will match all files in one directory that end in .cf but it won't search across directories. */*.cf on the other hand will look two levels deep.
+# * ? matches a single letter
+# * [a-z] matches any letter from a to z
+# * {x,y,anything} will match x or y or anything.
+#
+# ##### Recursive
+# 
+# Can be:
+# 
+# * `true` to apply the given aces to folder and sub-folders and files.
+# * or `false` to apply to the strict match of `Path`
+#
+# If left blank, recursivity will automatically be set to `false`
+#
+# #### Example
+# The method has basically the same effect as `setfacl -b <path>`.
+# 
+# Given a file with the following getfacl output:
+#
+# ~~~~
+# root@server# getfacl /tmp/myTestFile 
+# getfacl: Removing leading '/' from absolute path names
+# # file: tmp/myTestFile
+# # owner: root
+# # group: root
+# user::rwx
+# user:vagrant:rwx
+# group::r--
+# mask::rwx
+# other::---
+#
+# ~~~~
+#
+# It will remove all ACLs, and only let classic rights, here:
+#
+# ~~~~
+# root@server# getfacl myTestFile 
+# # file: myTestFile
+# # owner: root
+# # group: root
+# user::rwx
+# group::r--
+# other::---
+# 
+# root@server# ls -l myTestFile
+# -rwxr----- 1 root root 0 Mar 22 11:24 myTestFile
+# root@server# 
+# 
+# ~~~~
+#
+# @parameter path Path of the file or directory
+# @parameter recursive Should ACLs cleanup be recursive, "true" or "false" (defaults to "false")
+# @parameter_constraint recursive "allow_empty_string" : true
+# @parameter_constraint recursive "select" : [ "", "true", "false" ]
+# 
+# @class_prefix permissions_posix_acls_absent
+# @class_parameter path
+
+bundle agent permissions_posix_acls_absent(path, recursive)
+{
+  vars:
+      "old_class_prefix"    string => canonify("permissions_posix_acls_absent_${path}");
+      "args"                 slist => { "${path}", "${recursive}" };
+      "report_param"        string => join("_", args);
+      "full_class_prefix"   string => canonify("permissions_posix_acls_absent_${report_param}");
+      "class_prefix"        string => string_head("${full_class_prefix}", "1000");
+
+      "wc_path"            string => "/usr/bin/wc";
+
+      "file_list"                               slist  => findfiles("${path}");
+      "file_list_length"                        int    => length("file_list");
+      "file_array[${file_list}]"                string => "${file_list}";
+      "canonified_file_array[${file_list}]"     string => canonify("${file_array[${file_list}]}");
+
+      "full_inner_class_prefix[${file_list}]"   string => canonify("permissions_posix_acls_absent_${canonified_file_array[${file_list}]}_${report_param}");
+      "inner_class_prefix[${file_list}]"        string => string_head("${full_inner_class_prefix[${file_list}]}", "1000");
+
+
+   pass2::
+      "repaired[${file_list}]" string => "repaired: ${file_list}",
+        ifvarclass => "${inner_class_prefix[${file_list}]}_repaired";
+      "error[${file_list}]"    string => "error: ${file_list}",
+        ifvarclass => "${inner_class_prefix[${file_list}]}_error";
+      "success[${file_list}]"  string => "success: ${file_list}",
+        ifvarclass => "${inner_class_prefix[${file_list}]}_kept";
+
+      "repaired_list" slist  => getvalues("repaired");
+      "error_list"    slist  => getvalues("error");
+      "success_list"  slist  => getvalues("success");
+
+      "report_list"   slist  => { "@{error_list}", "@{repaired_list}", "@{success_list}" },
+        policy => "ifdefined";
+      "report_string" string => join("$(const.endl)", report_list),
+        policy => "ifdefined";
+
+  defaults:
+      "recursive" string => "false", if_match_regex => "";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      "is_recursive"  expression => strcmp("true", "${recursive}");
+
+      "should_report" expression => "${report_data.should_report}";
+      "files_found"   expression => isgreaterthan("${file_list_length}", "0");
+      "path_exists_${canonified_file_array[${file_list}]}"   expression => fileexists("${file_list}");
+
+      "acls_found_${canonified_file_array[${file_list}]}"    expression => returnszero("if [ ${const.dollar}(${paths.getfacl} -R --skip-base ${file_list} | ${wc_path} -c)  -ne 0 ]; then /bin/true; else /bin/false; fi 2>/dev/null #${class_prefix}", "useshell"),
+        ifvarclass => "is_recursive.path_exists_${canonified_file_array[${file_list}]}";
+      "acls_found_${canonified_file_array[${file_list}]}"    expression => returnszero("if [ ${const.dollar}(${paths.getfacl} --skip-base ${file_list} | ${wc_path} -c)  -ne 0 ]; then /bin/true; else /bin/false; fi 2>/dev/null #{${class_prefix}", "useshell"),
+        ifvarclass => "!is_recursive.path_exists_${canonified_file_array[${file_list}]}";
+
+    !(global_dry_run|dry_run)::
+      # Recursive clean up
+      "acls_cleanup_${canonified_file_array[${file_list}]}" expression => returnszero("${paths.setfacl} -R -b ${file_list} #${class_prefix}", "useshell"),
+        ifvarclass => "is_recursive.path_exists_${canonified_file_array[${file_list}]}.acls_found_${canonified_file_array[${file_list}]}";
+      # Non recursive clean up
+      "acls_cleanup_${canonified_file_array[${file_list}]}"  expression => returnszero("${paths.setfacl} -b ${file_list} #${class_prefix}", "useshell"),
+        ifvarclass => "!is_recursive.path_exists_${canonified_file_array[${file_list}]}.acls_found_${canonified_file_array[${file_list}]}";
+
+
+  methods:
+      # Nothing to do
+      "success_${file_list}" usebundle => _classes_success("${inner_class_prefix[${file_list}]}"),
+        ifvarclass => "!acls_found_${canonified_file_array[${file_list}]}.path_exists_${canonified_file_array[${file_list}]}";
+
+      # Executed setfacl -b
+      "setfacl -b succeed" usebundle => _classes_repaired("${inner_class_prefix[${file_list}]}"),
+        ifvarclass => "acls_cleanup_${canonified_file_array[${file_list}]}";
+
+      # It failed
+      "setfacl -b failed" usebundle => _classes_failure("${inner_class_prefix[${file_list}]}"),
+        ifvarclass => "!acls_cleanup_${canonified_file_array[${file_list}]}.acls_found_${canonified_file_array[${file_list}]}|!path_exists_${canonified_file_array[${file_list}]}";
+
+      # Sanitize the classes
+      "sanitize single reports" usebundle => _classes_sanitize("${inner_class_prefix[${file_list}]}");
+
+      "merge reports"    usebundle => _classes_combine_two("${class_prefix}", "${inner_class_prefix[${file_list}]}", "${class_prefix}");
+      "sanitize reports" usebundle => _classes_sanitize("${class_prefix}");
+      "set old classes"  usebundle => _classes_copy("${class_prefix}", "${old_class_prefix}");
+
+     !files_found::
+      "No_file_found" usebundle =>  _classes_failure("${class_prefix}");
+      "No_file_found" usebundle =>  _classes_failure("${old_class_prefix}");
+
+     # Recursive report
+     pass3.should_report.is_recursive.files_found::
+        "report" usebundle => _log_v3("${report_string}${const.endl}Clean POSIX acls recursively on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+     pass3.should_report.is_recursive.!files_found::
+        "report" usebundle => _log_v3("Could not find any file or directory matching ${path}, clean POSIX acl recursively on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+     # Non-recursive report
+     pass3.should_report.files_found.!is_recursive::
+        "report" usebundle => _log_v3("${report_string}${const.endl}Clean POSIX acls on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+     pass3.!files_found.should_report.!is_recursive::
+        "report" usebundle => _log_v3("Could not find any file or directory matching ${path}, clean POSIX acl on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+}
