@@ -215,17 +215,24 @@ trait ZioLogger {
 
 // a default implementation that accepts a name for the logger.
 // it will respect slf4j namespacing with ".".
-abstract class NamedZioLogger(val loggerName: String) extends ZioLogger {
+trait NamedZioLogger extends ZioLogger {
   import org.slf4j.LoggerFactory
   import net.liftweb.common.Logger
-  val logEffect = new Logger() {
+  def loggerName: String
+  lazy val logEffect = new Logger() {
     override protected def _logger = LoggerFactory.getLogger(loggerName)
   }
+  // for compatibility with current Lift convention, use logger = this
+  def logPure = this
+}
+
+object NamedZioLogger {
+  def apply(name: String): NamedZioLogger = new NamedZioLogger(){val loggerName = name}
 }
 
 object TestSream {
 
-  object log extends NamedZioLogger("test-logger")
+  val log = NamedZioLogger("test-logger")
 
 
   def main(args: Array[String]): Unit = {
@@ -250,7 +257,7 @@ object TestSream {
 
 object TestLog {
 
-  object log extends NamedZioLogger("test-logger")
+  val log = NamedZioLogger("test-logger")
 
   def main(args: Array[String]): Unit = {
 

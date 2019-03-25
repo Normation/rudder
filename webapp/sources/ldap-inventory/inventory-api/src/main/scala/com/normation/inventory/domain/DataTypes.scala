@@ -179,7 +179,7 @@ final class Version(val value:String) extends Comparable[Version] {
 }
 
 
-object InventoryLogger extends NamedZioLogger("inventory-logger")
+object InventoryLogger extends NamedZioLogger(){ val loggerName = "inventory-logger"}
 
 
 sealed trait InventoryError extends RudderError

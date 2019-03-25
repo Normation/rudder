@@ -41,7 +41,6 @@ import com.normation.cfclerk.domain._
 import CfclerkXmlConstants._
 import scala.xml._
 import net.liftweb.common._
-import com.normation.cfclerk.exceptions._
 import com.normation.utils.Control
 import com.normation.cfclerk.domain.HashAlgoConstraint.DerivedPasswordType
 
@@ -52,11 +51,11 @@ object Utils {
    * If subtree is set to true (default to false), look
    * for all tree elements, not only direct children.
    */
-  def getUniqueNode(root:Node, nodeName:String, subtree:Boolean = false) : Box[Node] = {
-    def checkCardinality(nodes:NodeSeq) : Box[Node] = {
-      if(nodes.size < 1) Failure(s"No node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}")
-      else if(nodes.size > 1 ) Failure(s"More than one node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}")
-      else Full(nodes.head)
+  def getUniqueNode(root:Node, nodeName:String, subtree:Boolean = false) : Either[LoadTechniqueError, Node] = {
+    def checkCardinality(nodes:NodeSeq) : Either[LoadTechniqueError, Node] = {
+      if(nodes.size < 1) Left(LoadTechniqueError.Consistancy(s"No node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}"))
+      else if(nodes.size > 1 ) Left(LoadTechniqueError.Consistancy(s"More than one node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}"))
+      else Right(nodes.head)
     }
 
     if(subtree) {
@@ -70,8 +69,8 @@ object Utils {
   //The default value is also applied if node exists but its text is empty
   def getUniqueNodeText(root: Node, nodeName: String, default: String) =
     getUniqueNode(root, nodeName).map(_.text.trim) match {
-      case x: EmptyBox => default
-      case Full(x) => x match {
+      case Left(_) => default
+      case Right(x) => x match {
         case "" | null => default
         case text => text
       }
@@ -92,21 +91,20 @@ class VariableSpecParser extends Loggable {
 
   private[this] val reservedVariableName = DEFAULT_COMPONENT_KEY :: TRACKINGKEY :: Nil
 
-  def parseTrackerVariableSpec(node:Node): Box[TrackerVariableSpec] = {
+  def parseTrackerVariableSpec(node:Node): Either[LoadTechniqueError, TrackerVariableSpec] = {
     if(node.label != TRACKINGVAR) {
-      Failure("Bad node: I was expecting a <%s> and got: %s".format(TRACKINGVAR, node))
+      Left(LoadTechniqueError.Consistancy(s"Bad node: I was expecting a <${TRACKINGVAR}> and got: ${node}"))
     } else {
-      Full(TrackerVariableSpec((node \ TRACKINGVAR_SIZE).headOption.map( _.text )))
+      Right(TrackerVariableSpec((node \ TRACKINGVAR_SIZE).headOption.map( _.text )))
     }
   }
 
 
-  def parseSectionVariableSpec(parentSectionName: String, elt: Node): Box[(SectionVariableSpec, List[SectionVariableSpec])] = {
+  def parseSectionVariableSpec(parentSectionName: String, elt: Node): Either[LoadTechniqueError, (SectionVariableSpec, List[SectionVariableSpec])] = {
 
     val markerName = elt.label
     if (!SectionVariableSpec.isVariable(markerName)) {
-      Failure("The node '%s' is not a variable specification node: it should be one of %s"
-        .format(markerName, SectionVariableSpec.markerNames.mkString("<", ">, <", ">")))
+      Left(LoadTechniqueError.Consistancy(s"The node '${markerName}' is not a variable specification node: it should be one of ${SectionVariableSpec.markerNames.mkString("<", ">, <", ">")}"))
 
     /*
      * here we have two cases:
@@ -124,7 +122,7 @@ class VariableSpecParser extends Loggable {
 
       val p = parseProvidedValues(elt)
 
-      Full((SectionVariableSpec(
+      Right((SectionVariableSpec(
           varName = reportKeysVariableName(parentSectionName)
         , description = s"Expected Report key names for component ${parentSectionName}"
         , markerName = markerName
@@ -140,52 +138,48 @@ class VariableSpecParser extends Loggable {
       //name and description are mandatory
       (getUniqueNodeText(elt, VAR_NAME, ""),
         getUniqueNodeText(elt, VAR_DESCRIPTION, "")) match {
-          case ("", _) => Failure("Name is mandatory but wasn't found for variable spec elt: " + elt)
-          case (_, "") => Failure("Description is mandatory but wasn't found for variable spec elt: " + elt)
+          case ("", _) => Left(LoadTechniqueError.Consistancy("Name is mandatory but wasn't found for variable spec elt: " + elt))
+          case (_, "") => Left(LoadTechniqueError.Consistancy("Description is mandatory but wasn't found for variable spec elt: " + elt))
 
           case (name, desc) =>
 
-            reservedVariableName.find(reserved => name == reserved).foreach { reserved =>
-              throw new ParsingException("Name '%s' is reserved and can not be used for a variable".format(reserved))
+            for {
+              _ <-            reservedVariableName.find(reserved => name == reserved) match {
+                                case None    => Right("ok")
+                                case Some(x) => Left(LoadTechniqueError.Consistancy(s"Name '${x}' is reserved and can not be used for a variable"))
+                              }
+              longDescription = getUniqueNodeText(elt, VAR_LONG_DESCRIPTION, "")
+              items           = parseItems(elt)
+              _               =   // we use to have a "uniqueVariable" field that is not supported anymore in Rudder 4.3
+                                  // => warn if it is used in the the technique.
+                                  if(getUniqueNode(elt, "UNIQUEVARIABLE").isRight) {
+                                    logger.warn(s"Since Rudder 4.3, a variable can not be marked as 'UNIQUEVARIABLE' anymore and that attribute will be ignored. In place, " +
+                                        "you should use a Rudder parameter to denote an unique value, or a Node Property for a value unique for a given node. To denote an " +
+                                        "action unique to all directive derived from the same technique, you should use pre- or post-agent-run hooks")
+                                  }
+              multiValued     = getUniqueNodeText(elt, VAR_IS_MULTIVALUED, "false").toLowerCase match {
+                                  case "true" => true
+                                  case _ => false
+                                }
+              varPair        <- (elt \ VAR_CONSTRAINT).toList match {
+                                              case h :: Nil => parseConstraint(name, h)
+                                              case Nil      => Right((Constraint(), Nil))
+                                              case _        => Left(LoadTechniqueError.Consistancy(s"Only one <${VAR_CONSTRAINT}> is authorized"))
+                                            }
+              checked         = "true" == getUniqueNodeText(elt, VAR_IS_CHECKED, "true").toLowerCase
+            } yield {
+              (SectionVariableSpec(
+                  varName         = name
+                , description     = desc
+                , markerName      = markerName
+                , longDescription = longDescription
+                , valueslabels    = items
+                , multivalued     = multiValued
+                , checked         = checked
+                , constraint      = varPair._1
+                , Nil
+              ), varPair._2)
             }
-
-            val longDescription = getUniqueNodeText(elt, VAR_LONG_DESCRIPTION, "")
-
-            val items = parseItems(elt)
-
-            // we use to have a "uniqueVariable" field that is not supported anymore in Rudder 4.3
-            // => warn if it is used in the the technique.
-            if(getUniqueNode(elt, "UNIQUEVARIABLE").isDefined) {
-              logger.warn(s"Since Rudder 4.3, a variable can not be marked as 'UNIQUEVARIABLE' anymore and that attribute will be ignored. In place, " +
-                  "you should use a Rudder parameter to denote an unique value, or a Node Property for a value unique for a given node. To denote an " +
-                  "action unique to all directive derived from the same technique, you should use pre- or post-agent-run hooks")
-            }
-
-            val multiValued = getUniqueNodeText(elt, VAR_IS_MULTIVALUED, "false").toLowerCase match {
-              case "true" => true
-              case _ => false
-            }
-
-            val (constraint, secondaryVar) : (Constraint, List[SectionVariableSpec]) = (elt \ VAR_CONSTRAINT).toList match {
-              case h :: Nil => parseConstraint(name, h)
-              case Nil => (Constraint(), Nil)
-              case _ => throw new TechniqueException("Only one <%s> it authorized".format(VAR_CONSTRAINT))
-            }
-
-            val checked = "true" == getUniqueNodeText(elt, VAR_IS_CHECKED, "true").toLowerCase
-
-
-            Full((SectionVariableSpec(
-              varName = name,
-              description = desc,
-              markerName = markerName,
-              longDescription = longDescription,
-              valueslabels = items,
-              multivalued = multiValued,
-              checked = checked,
-              constraint = constraint,
-              Nil
-            ), secondaryVar))
         }
     }
   }
@@ -224,23 +218,24 @@ class VariableSpecParser extends Loggable {
      }).map( _.trim ).filter( _.nonEmpty )
   }
 
-  def parseConstraint(varName: String, elt: Node): (Constraint, List[SectionVariableSpec]) = {
+  def parseConstraint(varName: String, elt: Node): Either[LoadTechniqueError, (Constraint, List[SectionVariableSpec])] = {
 
     val passwordHashes = getUniqueNodeText(elt, CONSTRAINT_PASSWORD_HASH, "")
 
     val regexConstraint = getUniqueNode(elt, CONSTRAINT_REGEX) match {
-      case x: EmptyBox => None
-      case Full(x) => Some(RegexConstraint(x.text.trim, (x \ "@error").text))
+      case Left(_)  => None
+      case Right(x) => Some(RegexConstraint(x.text.trim, (x \ "@error").text))
     }
 
 
     val e = getUniqueNodeText(elt, CONSTRAINT_TYPE, "string")
 
-    def regexError(vt:VTypeConstraint) = throw new ConstraintException(s"type '${vt.name}' already has a predifined regex (you can't define a regex with these types : ${VTypeConstraint.regexTypes.map( _.name).mkString(",")}).")
-    val typeName: VTypeConstraint = VTypeConstraint.fromString(e, regexConstraint, parseAlgoList(passwordHashes)) match {
-      case None =>  throw new ConstraintException(s"'${e}' is an invalid type.\n A type may be one of the next list : ${VTypeConstraint.allTypeNames}")
-      case Some(r:FixedRegexVType) => if(regexConstraint.isDefined) regexError(r) else r
-      case Some(t) => t
+    def regexError(vt:VTypeConstraint) = Left(LoadTechniqueError.Constraint(s"type '${vt.name}' already has a predifined regex (you can't define a regex with these types : ${VTypeConstraint.regexTypes.map( _.name).mkString(",")})."))
+
+    val resTypeName: Either[LoadTechniqueError, VTypeConstraint] = VTypeConstraint.fromString(e, regexConstraint, parseAlgoList(passwordHashes)) match {
+      case None =>  Left(LoadTechniqueError.Constraint(s"'${e}' is an invalid type.\n A type may be one of the next list : ${VTypeConstraint.allTypeNames}"))
+      case Some(r:FixedRegexVType) => if(regexConstraint.isDefined) regexError(r) else Right(r)
+      case Some(t) => Right(t)
     }
 
 
@@ -276,22 +271,26 @@ class VariableSpecParser extends Loggable {
     }
 
     //then, the actual match
-    val derivedVars = typeName match {
-      case MasterPasswordVType(_) => getUniqueNodeText(elt, CONSTRAINT_PWD_AUTOSUBVARIABLES, "").split(",").flatMap { s =>
-          s.toLowerCase.trim match {
-            case "aix"  =>
-              Some(derivedPasswordVar(varName, DerivedPasswordType.AIX,   mayBeEmpty, defaultValue))
+    for {
+      typeName <- resTypeName
+    } yield {
+      val derivedVars = typeName match {
+        case MasterPasswordVType(_) => getUniqueNodeText(elt, CONSTRAINT_PWD_AUTOSUBVARIABLES, "").split(",").flatMap { s =>
+            s.toLowerCase.trim match {
+              case "aix"  =>
+                Some(derivedPasswordVar(varName, DerivedPasswordType.AIX,   mayBeEmpty, defaultValue))
 
-            case "linux" =>
-              Some(derivedPasswordVar(varName, DerivedPasswordType.Linux, mayBeEmpty, defaultValue))
+              case "linux" =>
+                Some(derivedPasswordVar(varName, DerivedPasswordType.Linux, mayBeEmpty, defaultValue))
 
-            case _ => None
-          }
-        }.toList
-      case _ => Nil
+              case _ => None
+            }
+          }.toList
+        case _ => Nil
+      }
+
+      (Constraint(typeName, defaultValue, mayBeEmpty, derivedVars.map(_.name).toSet), derivedVars)
     }
-
-    (Constraint(typeName, defaultValue, mayBeEmpty, derivedVars.map(_.name).toSet), derivedVars)
   }
 
   private[this] def parseAlgoList(algos:String) : Seq[HashAlgoConstraint] = {

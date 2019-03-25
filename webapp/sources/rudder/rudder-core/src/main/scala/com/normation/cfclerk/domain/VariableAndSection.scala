@@ -37,11 +37,13 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.cfclerk.exceptions._
 import scala.xml._
 import net.liftweb.common._
 import com.normation.utils.Control.bestEffort
 import com.normation.utils.HashcodeCaching
+import cats._
+import cats.data._
+import cats.implicits._
 
 /* A SectionChild is either a Variable or a Section*/
 sealed trait SectionChild
@@ -81,102 +83,103 @@ sealed trait Variable extends Loggable {
 
   // the comments below contains implementations and should be reused in SelectVariable and SelectOne variable
 
+  private[this] def checkValueForVariable(seq: Seq[String]): Either[LoadTechniqueError, Seq[String]] = {
+    (spec match {
+      case vl: ValueLabelVariableSpec =>
+        if ((null != vl.valueslabels) && (vl.valueslabels.size > 0)) {
+          seq.toList.traverse { item =>
+            if (!(vl.valueslabels.map(x => x.value).contains(item)))
+              LoadTechniqueError.Variable("Wrong value for variable " + vl.name + "  : " + item).invalidNel
+            else item.validNel
+          }
+        } else { // it seems that it used to not be an error, by why ?
+          LoadTechniqueError.Variable("Wrong value for variable " + vl.name + "  : that variable does not have any value label").invalidNel
+        }
+      case _ => seq.validNel
+    }).fold(errs => Left(LoadTechniqueError.Accumulated(errs)), x => Right(x))
+  }
+
   /**
    * Only deals with the first entry
    *
    * That method return the new values for the variables
    */
-  protected def copyWithSavedValueResult(s: String): Seq[String] = {
-    spec match {
-      case vl: ValueLabelVariableSpec =>
-          if (!(vl.valueslabels.map(x => x.value).contains(s)))
-            throw new VariableException("Wrong value for variable " + vl.name + "  : " + s)
-      case _ => //OK
-    }
-
-    if (s != null) {
-      if (!this.spec.checked) {
-        //set values(0) to s
-        Seq(s) ++ values.tail
-      } else if(Variable.checkValue(this, s)) {
-        if (this.values.size > 0)
+  protected def copyWithSavedValueResult(s: String): Either[LoadTechniqueError, Seq[String]] = {
+    for {
+      _ <- checkValueForVariable(s :: Nil)
+    } yield {
+      if (s != null) {
+        if (!this.spec.checked) {
+          //set values(0) to s
           Seq(s) ++ values.tail
-        else
-          Seq(s)
+        } else if(Variable.checkValue(this, s)) {
+          if (this.values.size > 0)
+            Seq(s) ++ values.tail
+          else
+            Seq(s)
+        } else {
+          this.values
+        }
       } else {
         this.values
       }
-    } else {
-      this.values
     }
-
   }
 
 
   /**
    * Save the whole seq as value
    */
-  def copyWithSavedValuesResult(seq: Seq[String]): Seq[String] = {
-    spec match {
-      case vl: ValueLabelVariableSpec =>
-        if ((null != vl.valueslabels) && (vl.valueslabels.size > 0)) {
-          for (item <- seq)
-            if (!(vl.valueslabels.map(x => x.value).contains(item)))
-              throw new VariableException("Wrong value for variable " + vl.name + "  : " + item)
-        }
-      case _ =>
-    }
-
-    if(seq != null) {
-      if (!this.spec.checked) {
-        seq
-      } else if (!this.spec.multivalued && values.size > 1) {
-        throw new VariableException("Wrong variable length for " + this.spec.name)
-      } else if (values.map(x => Variable.checkValue(this, x)).contains(false)) {
-        throw new VariableException("Wrong variable value for " + this.spec.name) // this should really not be thrown
-      } else {
-        seq
-      }
-    } else {
-      //change nothing
-      this.values
+  def copyWithSavedValuesResult(seq: Seq[String]): Either[LoadTechniqueError, Seq[String]] = {
+    for {
+      _   <- checkValueForVariable(seq)
+      res <- if(seq != null) {
+               if (!this.spec.checked) {
+                 Right(seq)
+               } else if (!this.spec.multivalued && values.size > 1) {
+                 Left(LoadTechniqueError.Variable("Wrong variable length for " + this.spec.name))
+               } else if (values.map(x => Variable.checkValue(this, x)).contains(false)) {
+                 Left(LoadTechniqueError.Variable("Wrong variable value for " + this.spec.name)) // this should really not be thrown
+               } else {
+                 Right(seq)
+               }
+             } else {
+               //change nothing
+               Right(this.values)
+             }
+    } yield {
+      res
     }
   }
 
   /**
    * Append the seq to the values
    */
-  protected def copyWithAppendedValuesResult(seq: Seq[String]): Seq[String] = {
-    spec match {
-      case vl: ValueLabelVariableSpec =>
-        if ((null != vl.valueslabels) && (vl.valueslabels.size > 0)) {
-          for (item <- seq)
-            if (!(vl.valueslabels.map(x => x.value).contains(item)))
-              throw new VariableException("Wrong value for variable " + vl.name + "  : " + item)
-        }
-      case _ =>
-    }
-
-    if (seq != null) {
-      if (!this.spec.checked) {
-        this.values ++ seq
-      } else if (!this.spec.multivalued && (seq.size + this.values.size) > 1) {
-        throw new VariableException("Wrong variable length for " + this.spec.name)
-      } else if (values.map(x => Variable.checkValue(this, x)).contains(false)) {
-        throw new VariableException("Wrong variable value for " + this.spec.name) // this should really not be thrown
-      } else {
-        this.values ++ seq
-      }
-    } else {
-      this.values
+  protected def copyWithAppendedValuesResult(seq: Seq[String]): Either[LoadTechniqueError, Seq[String]] = {
+    for {
+      _   <- checkValueForVariable(seq)
+      res <- if (seq != null) {
+               if (!this.spec.checked) {
+                 Right(this.values ++ seq)
+               } else if (!this.spec.multivalued && (seq.size + this.values.size) > 1) {
+                 Left(LoadTechniqueError.Variable("Wrong variable length for " + this.spec.name))
+               } else if (values.map(x => Variable.checkValue(this, x)).contains(false)) {
+                 Left(LoadTechniqueError.Variable("Wrong variable value for " + this.spec.name)) // this should really not be thrown
+               } else {
+                 Right(this.values ++ seq)
+               }
+             } else {
+               Right(this.values)
+             }
+    } yield {
+      res
     }
   }
 
 
-  def copyWithSavedValue(s: String) : Variable
-  def copyWithSavedValues(seq: Seq[String]): Variable
-  def copyWithAppendedValues(seq: Seq[String]): Variable
-
+  def copyWithSavedValue(s: String) : Either[LoadTechniqueError, Variable]
+  def copyWithSavedValues(seq: Seq[String]): Either[LoadTechniqueError, Variable]
+  def copyWithAppendedValues(seq: Seq[String]): Either[LoadTechniqueError, Variable]
 
   protected def castValue(x: String, escape: String => String) : Box[Any] = {
     //we don't want to check constraint on empty value
@@ -193,9 +196,9 @@ case class SystemVariable(
   , override val values: Seq[String]
 ) extends Variable with HashcodeCaching {
   type T = SystemVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]): SystemVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
-  override def copyWithSavedValue(s: String): SystemVariable = this.copy(values = this.copyWithSavedValueResult(s))
-  override def copyWithSavedValues(seq: Seq[String]): SystemVariable = this.copy(values = this.copyWithSavedValuesResult(seq))
+  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
+  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
+  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
 }
 
 case class TrackerVariable(
@@ -203,9 +206,9 @@ case class TrackerVariable(
   , override val values: Seq[String]
 ) extends Variable with HashcodeCaching {
   type T = TrackerVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]): TrackerVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
-  override def copyWithSavedValue(s: String): TrackerVariable = this.copy(values = this.copyWithSavedValueResult(s))
-  override def copyWithSavedValues(seq: Seq[String]): TrackerVariable = this.copy(values = this.copyWithSavedValuesResult(seq))
+  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
+  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
+  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
 }
 
 trait SectionVariable extends Variable with SectionChild
@@ -215,9 +218,9 @@ case class InputVariable(
   , override val values: Seq[String]
 ) extends SectionVariable with HashcodeCaching {
   type T = InputVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]): InputVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
-  override def copyWithSavedValue(s: String): InputVariable = this.copy(values = this.copyWithSavedValueResult(s))
-  override def copyWithSavedValues(seq: Seq[String]): InputVariable = this.copy(values = this.copyWithSavedValuesResult(seq))
+  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
+  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
+  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
 }
 
 case class SelectVariable(
@@ -225,9 +228,9 @@ case class SelectVariable(
   , override val values: Seq[String]
 ) extends SectionVariable with HashcodeCaching {
   type T = SelectVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]): SelectVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
-  override def copyWithSavedValue(s: String): SelectVariable = this.copy(values = this.copyWithSavedValueResult(s))
-  override def copyWithSavedValues(seq: Seq[String]): SelectVariable = this.copy(values = this.copyWithSavedValuesResult(seq))
+  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
+  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
+  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
 }
 
 case class SelectOneVariable(
@@ -235,9 +238,9 @@ case class SelectOneVariable(
   , override val values: Seq[String]
 ) extends SectionVariable with HashcodeCaching {
   type T = SelectOneVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]): SelectOneVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
-  override def copyWithSavedValue(s: String): SelectOneVariable = this.copy(values = this.copyWithSavedValueResult(s))
-  override def copyWithSavedValues(seq: Seq[String]): SelectOneVariable = this.copy(values = this.copyWithSavedValuesResult(seq))
+  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
+  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
+  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
 }
 
 case class PredefinedValuesVariable(
@@ -245,9 +248,9 @@ case class PredefinedValuesVariable(
   , override val values: Seq[String]
 ) extends SectionVariable with HashcodeCaching {
   type T = PredefinedValuesVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]): PredefinedValuesVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
-  override def copyWithSavedValue(s: String): PredefinedValuesVariable = this.copy(values = this.copyWithSavedValueResult(s))
-  override def copyWithSavedValues(seq: Seq[String]): PredefinedValuesVariable = this.copy(values = this.copyWithSavedValuesResult(seq))
+  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
+  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
+  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
 }
 
 object Variable {

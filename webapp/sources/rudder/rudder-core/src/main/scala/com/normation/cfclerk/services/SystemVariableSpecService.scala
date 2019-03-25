@@ -54,7 +54,7 @@ trait SystemVariableSpecService {
    * @param varName
    * @return
    */
-  def get(varName : String) : SystemVariableSpec
+  def get(varName : String) : Option[SystemVariableSpec]
 
   /**
    * Get the list of all known system vars spec

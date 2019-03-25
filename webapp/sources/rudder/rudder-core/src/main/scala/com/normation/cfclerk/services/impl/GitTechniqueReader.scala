@@ -41,7 +41,6 @@ import scala.xml._
 import com.normation.cfclerk.domain._
 import java.io.FileNotFoundException
 import org.xml.sax.SAXParseException
-import com.normation.cfclerk.exceptions._
 import java.io.File
 import net.liftweb.common._
 import scala.collection.mutable.{ Map => MutMap }
@@ -102,7 +101,7 @@ import java.io.IOException
  *  In that implementation, the name of the directory of a category
  *  is used for the techniqueCategoryName.
  *
- * @parameter relativePathToGitRepos
+ * @param relativePathToGitRepos
  *   The relative path from the root directory of the git repository to
  *   the root directory of the policy template library.
  *   If the root directory of the git repos is in the PT lib root dir,
@@ -119,7 +118,7 @@ class GitTechniqueReader(
   val categoryDescriptorName : String, //full (with extension) name of the descriptor for categories
   val relativePathToGitRepos : Option[String],
   val directiveDefaultName   : String //full (with extension) name of the file containing default name for directive (default-directive-names.conf)
-  ) extends TechniqueReader with Loggable {
+) extends TechniqueReader with Loggable {
 
   reader =>
 
@@ -695,7 +694,7 @@ class GitTechniqueReader(
    * @param file : the full filename
    * @return the xml representation of the file
    */
-  private[this] def loadDescriptorFile(is: InputStream, filePath : String ) : Elem = {
+  private[this] def loadDescriptorFile(is: InputStream, filePath : String ) : Either[LoadTechniqueError, Elem] = {
     val doc =
       try {
         XML.load(is)

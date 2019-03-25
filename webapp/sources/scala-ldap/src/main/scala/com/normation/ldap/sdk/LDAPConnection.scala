@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory
 /*
  * Logger for LDAP connection related information.
  */
-object LDAPConnectionLogger extends NamedZioLogger("ldap-connection")
+object LDAPConnectionLogger extends NamedZioLogger(){val loggerName = "ldap-connection"}
 
 sealed trait LdapResultRudderError extends RudderError {
   def msg: String

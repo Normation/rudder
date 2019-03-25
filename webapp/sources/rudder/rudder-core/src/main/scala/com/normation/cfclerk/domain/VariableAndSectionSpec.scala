@@ -37,10 +37,13 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.cfclerk.exceptions._
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
 import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.xmlparsers.EmptyReportKeysValue
+
+import cats._
+import cats.data._
+import cats.implicits._
 
 /**
  * This file define the model for metadata of object
@@ -129,24 +132,27 @@ case class SectionSpec(
     this.copy(children = kept)
   }
 
-  def cloneVariablesInMultivalued: SectionSpec = {
-    assert(isMultivalued)
-
-    recCloneMultivalued
+  def cloneVariablesInMultivalued: Either[LoadTechniqueError, SectionSpec] = {
+    if(isMultivalued) recCloneMultivalued
+    else Left(LoadTechniqueError.Consistancy("Trying to clone multivariable value in a non multivariable variable. It's likely a bug."))
   }
 
-  private def recCloneMultivalued: SectionSpec = {
-    val multivaluedChildren = for (child <- children) yield child match {
+  private def recCloneMultivalued: Either[LoadTechniqueError, SectionSpec] = {
+    val multivaluedChildren = children.toList.traverse { child => child match {
       case s: SectionSpec =>
-        if (s.isMultivalued) throw new TechniqueException(
+        if (s.isMultivalued) LoadTechniqueError.Consistancy(
           "A multivalued section should not contain other multivalued sections." +
-            " It may contain only imbricated sections or variables.")
+            " It may contain only imbricated sections or variables.").invalidNel
         else
-          s.recCloneMultivalued
-      case v: SectionVariableSpec => v.cloneSetMultivalued
-    }
+          s.recCloneMultivalued.toValidatedNel
+      case v: SectionVariableSpec => v.cloneSetMultivalued.validNel
+    } }.leftMap(errs => LoadTechniqueError.Accumulated(errs)).toEither
 
-    copy(children = multivaluedChildren)
+    for {
+      x <- multivaluedChildren
+    } yield {
+      copy(children = x)
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2019 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,8 +35,35 @@
 *************************************************************************************
 */
 
-package com.normation.cfclerk.exceptions
+package com.normation.cfclerk.domain
 
-class TechniqueException(message:String) extends RuntimeException(message) {
-  def this() = this("Error with the technique")
+import cats.data.NonEmptyList
+import com.normation.errors._
+
+sealed trait LoadTechniqueError extends RudderError
+
+object LoadTechniqueError {
+
+  final case class Parsing(msg: String)     extends LoadTechniqueError
+  final case class Consistancy(msg: String) extends LoadTechniqueError
+  final case class Constraint(msg: String) extends LoadTechniqueError
+  final case class Variable(msg: String)    extends LoadTechniqueError
+  final case class Chained(hint: String, cause: LoadTechniqueError) extends LoadTechniqueError with BaseChainError[LoadTechniqueError]
+  final case class Accumulated(causes: NonEmptyList[LoadTechniqueError]) extends LoadTechniqueError {
+    val msg = causes.map( _.fullMsg ).toList.mkString("; ")
+  }
 }
+
+object implicits {
+
+  implicit class ChainEither[E <: LoadTechniqueError, T](res: Either[E, T]) {
+    def chain(msg: String) = {
+      res match {
+        case Right(v)  => v
+        case Left(err) => LoadTechniqueError.Chained(msg, err)
+      }
+    }
+  }
+
+}
+
