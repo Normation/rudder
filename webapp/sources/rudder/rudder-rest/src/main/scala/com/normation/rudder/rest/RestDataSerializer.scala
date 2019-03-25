@@ -54,18 +54,20 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.FullActiveTechnique
+
 import scala.language.implicitConversions
 import com.normation.rudder.api.ApiAccount
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.rest.data._
-import com.normation.rudder.api.ApiAccountKind.{ PublicApi => PublicApiAccount }
+import com.normation.rudder.api.ApiAccountKind.{PublicApi => PublicApiAccount}
 import com.normation.rudder.api.ApiAccountKind.User
 import com.normation.rudder.api.ApiAccountKind.System
-import com.normation.rudder.api.ApiAuthorization.{ None => NoAccess }
+import com.normation.rudder.api.ApiAuthorization.{None => NoAccess}
 import com.normation.rudder.api.ApiAuthorization.RO
 import com.normation.rudder.api.ApiAuthorization.RW
 import com.normation.rudder.api.ApiAuthorization.ACL
+import org.joda.time.DateTime
 
 /**
  *  Centralize all function to serialize data as valid answer for API Rest
@@ -91,7 +93,7 @@ trait RestDataSerializer {
 
   def serializeInventory(inventory: FullInventory, status: String) : JValue
 
-  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue
+  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, optRunDate:Option[DateTime], inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue
 
   def serializeTechnique(technique:FullActiveTechnique): JValue
 
@@ -129,13 +131,13 @@ case class RestDataSerializerImpl (
     )
   }
 
-  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue = {
+  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, optRunDate: Option[DateTime], inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue = {
     val filteredLevel = if(apiVersion.value <= 4) {
       CustomDetailLevel(MinimalDetailLevel, detailLevel.fields - "properties")
     } else {
       detailLevel
     }
-    filteredLevel.toJson(nodeInfo, status, inventory, software)
+    filteredLevel.toJson(nodeInfo, status, optRunDate, inventory, software)
   }
 
   def serializeInventory (inventory: FullInventory, status: String) : JValue = {

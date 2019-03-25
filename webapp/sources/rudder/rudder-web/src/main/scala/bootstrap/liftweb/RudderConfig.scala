@@ -612,6 +612,7 @@ object RudderConfig extends Loggable {
     , restExtractorService
     , restDataSerializer
     , queryProcessor
+    , roAgentRunsRepository
   )
 
   val parameterApiService2 =
