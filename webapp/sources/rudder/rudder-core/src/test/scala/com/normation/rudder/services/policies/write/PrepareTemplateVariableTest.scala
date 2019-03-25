@@ -72,12 +72,12 @@ val fillTemplate = new FillTemplatesService()
   "Preparing the string for writting usebundle of directives" should {
 
     "correctly write nothing at all when the list of bundle is emtpy" in {
-      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, Nil, Nil) === List("")
+      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, Nil, Nil, Nil) === List("")
     }
 
     "write exactly - including escaped quotes" in {
 
-      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, Nil) ===
+      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, Nil, Nil) ===
 List(raw"""      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => disable_reporting;
       "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
       "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => clean_reporting_context;
@@ -114,7 +114,7 @@ List(raw"""      "Global configuration for all nodes/20. Install jdk version 1.0
 
       //spaces inserted at the begining of promises in rudder_directives.cf are due to string template, not the formated string - strange
 
-      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, hooks) ===
+      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, hooks, Nil) ===
 List(raw"""      "pre-run-hook"                                                                      usebundle => package-install('{"parameters":{"package":"vim","action":"update-only"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"}]}');
       "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => disable_reporting;
       "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
