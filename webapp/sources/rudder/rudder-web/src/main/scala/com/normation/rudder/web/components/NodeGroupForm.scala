@@ -42,7 +42,7 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.web.model.{FormTracker, WBRadioField, WBSelectField, WBTextAreaField, WBTextField}
+import com.normation.rudder.web.model._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
@@ -58,11 +58,11 @@ import net.liftweb.http._
 import scala.xml._
 import net.liftweb.util.Helpers._
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.web.ChooseTemplate
+import net.liftweb.util.CssSel
 
 object NodeGroupForm {
   val templatePath = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
@@ -75,7 +75,7 @@ object NodeGroupForm {
 
   private sealed trait RightPanel
   private case object NoPanel extends RightPanel
-  private case class GroupForm(group:NodeGroup, parentCategoryId:NodeGroupCategoryId) extends RightPanel with HashcodeCaching
+  private case class GroupForm(group:Either[NonGroupRuleTarget, NodeGroup], parentCategoryId:NodeGroupCategoryId) extends RightPanel with HashcodeCaching
   private case class CategoryForm(category:NodeGroupCategory) extends RightPanel with HashcodeCaching
 
   val htmlId_groupTree = "groupTree"
@@ -88,10 +88,10 @@ object NodeGroupForm {
  */
 class NodeGroupForm(
     htmlIdCategory    : String
-  , val nodeGroup     : NodeGroup
+  , val nodeGroup     : Either[NonGroupRuleTarget, NodeGroup]
   , parentCategoryId  : NodeGroupCategoryId
   , rootCategory      : FullNodeGroupCategory
-  , onSuccessCallback : (Either[(NodeGroup, NodeGroupCategoryId), ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
+  , onSuccessCallback : (Either[(Either[NonGroupRuleTarget, NodeGroup], NodeGroupCategoryId), ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with DefaultExtendableSnippet[NodeGroupForm] with Loggable {
   import NodeGroupForm._
@@ -105,8 +105,8 @@ class NodeGroupForm(
   private[this] val nodeGroupForm = new LocalSnippet[NodeGroupForm]
   private[this] val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
 
-  private[this] var query : Option[Query] = nodeGroup.query
-  private[this] var srvList : Box[Seq[NodeInfo]] = nodeInfoService.getAll.map( _.values.filter( (x:NodeInfo) => nodeGroup.serverList.contains( x.id ) ).toSeq )
+  private[this] var query : Option[Query] = nodeGroup.toOption.flatMap(_.query)
+  private[this] var srvList : Box[Seq[NodeInfo]] = getNodeList(nodeGroup)
 
   private def setSearchNodeComponent : Unit = {
     searchNodeComponent.set(Full(new SearchNodeComponent(
@@ -118,6 +118,21 @@ class NodeGroupForm(
       , saveButtonId     = saveButtonId
       , groupPage        = false
     )))
+  }
+
+  private[this] def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup]): Box[Seq[NodeInfo]] = {
+
+    for {
+      nodes  <- nodeInfoService.getAll()
+      setIds =  target match {
+                  case Right(nodeGroup) => nodeGroup.serverList
+                  case Left(target) =>
+                    val allNodes = nodes.mapValues(n => (n.isPolicyServer, n.serverRoles))
+                    RuleTarget.getNodeIds(Set(target), allNodes, Map())
+                }
+    } yield {
+      nodes.filterKeys(id => setIds.contains(id)).values.toSeq
+    }
   }
 
   private[this] def saveButtonCallBack(searchStatus : Boolean, query: Option[Query]) : JsCmd = {
@@ -152,7 +167,23 @@ class NodeGroupForm(
        OnLoad(JsRaw("$('#GroupTabs').tabs( {active : 0 });" ))
      )
 
-     (
+    (nodeGroup match {
+      case Left(target) => showFormTarget(target)
+      case Right(group) if(group.isSystem) => showFormTarget(GroupTarget(group.id))
+      case Right(group) =>
+        showFormNodeGroup(group)
+    })(html)
+  }
+
+  private[this] def showRulesForTarget(target: SimpleTarget): NodeSeq = {
+    val displayCompliance = DisplayColumn.FromConfig
+    val ruleGrid = new RuleGrid("rules_for_current_group", None, false, None, displayCompliance, displayCompliance)
+    val rules = dependencyService.targetDependencies(target).map( _.rules.toSet.filter(!_.isSystem).map(_.id)).toOption
+    RuleGrid.staticInit ++ ruleGrid.rulesGridWithUpdatedInfo(None, false, false) ++ Script(OnLoad(ruleGrid.asyncDisplayAllRules(rules).applied))
+  }
+
+  private[this] def showFormNodeGroup(nodeGroup: NodeGroup): CssSel = {
+    (
         "group-pendingchangerequest" #>  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id)
       & "group-name" #> groupName.toForm_!
       & "group-rudderid" #> <div class="form-group row">
@@ -188,18 +219,47 @@ class NodeGroupForm(
                 }
       & "group-delete" #> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class" -> " btn btn-danger"))
       & "group-notifications" #> updateAndDisplayNotifications()
-      & "#groupRulesTab" #> {
-          val noDisplay = DisplayColumn.Force(false)
-          val cmp = new RuleGrid("remove_popup_grid", None, false, None, noDisplay, noDisplay)
-          val rules = dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules.toSeq).toOption
-          cmp.rulesGridWithUpdatedInfo(rules, false, true)
-        }
-    )(html)
-   }
+      & "#groupRuleTabsContent" #> showRulesForTarget(GroupTarget(nodeGroup.id))
+    )
+  }
+
+  private[this] def showFormTarget(target: SimpleTarget): CssSel = {
+    // we want to remove the query part which doesn't mean anything for
+    // system group
+    val nodesSel = "#SearchForm" #> NodeSeq.Empty
+    val nodes = nodesSel(searchNodeComponent.get match {
+      case Full(req)   => req.buildQuery
+      case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
+    })
+
+    (
+        "group-pendingchangerequest" #> NodeSeq.Empty
+      & "group-name" #> groupName.readOnlyValue
+      & "group-rudderid" #> <div class="form-group row">
+                      <label class="wbBaseFieldLabel">Rudder ID</label>
+                      <input readonly="" class="form-control" value={target.target}/>
+                    </div>
+      & "group-cfeclasses" #> NodeSeq.Empty
+      & "group-description" #> groupDescription.readOnlyValue
+      & "group-container" #> groupContainer.readOnlyValue
+      & "group-static" #> NodeSeq.Empty
+      & "group-showgroup" #> nodes
+      & "group-clone" #> NodeSeq.Empty
+      & "group-save" #> NodeSeq.Empty
+      & "group-delete" #> NodeSeq.Empty
+      & "group-notifications" #> NodeSeq.Empty
+      & "#groupRuleTabsContent" #> showRulesForTarget(target)
+    )
+
+  }
 
   ///////////// fields for category settings ///////////////////
   private[this] val groupName = {
-    new WBTextField("Group name", nodeGroup.name) {
+    val name = nodeGroup.fold(
+      t => rootCategory.allTargets.get(t).map(_.name).getOrElse(t.target)
+      , _.name
+    )
+    new WBTextField("Group name", name) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "form-control"
       override def labelClassName = ""
@@ -211,7 +271,11 @@ class NodeGroupForm(
   }
 
   private[this] val groupDescription = {
-    new WBTextAreaField("Group description", nodeGroup.description) {
+    val desc = nodeGroup.fold(
+      t => rootCategory.allTargets.get(t).map(_.description).getOrElse("")
+      , _.description
+    )
+    new WBTextAreaField("Group description", desc) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "form-control"
       override def labelClassName = ""
@@ -222,10 +286,15 @@ class NodeGroupForm(
   }
 
   private[this] val groupStatic = {
+    val text = nodeGroup match {
+      case Left(_) => "dynamic"
+      case Right(g) => if(g.isDynamic) "dynamic" else "static"
+    }
+
     new WBRadioField(
         "Group type",
         Seq("dynamic", "static"),
-        if(nodeGroup.isDynamic) "dynamic" else "static",
+        text,
         {
            //how to display label ? Capitalize, and with a tooltip
           case "static" => <span class="" title="The list of member nodes is defined at creation and will not change automatically.">Static</span>
@@ -262,45 +331,56 @@ class NodeGroupForm(
   }
 
   private[this] def onSubmit() : JsCmd = {
-    // Since we are doing the submit from the component, it ought to exist
-    searchNodeComponent.get match {
-      case Full(req) =>
-        query = req.getQuery
-        srvList = req.getSrvList
-      case eb:EmptyBox =>
-        val f = eb ?~! "Error when trying to retrieve the current search state"
-        logger.error(f.messageChain)
-    }
+    // submit can be done only for node group, not system one
+    nodeGroup match {
+      case Left(target) => Noop
+      case Right(ng)    =>
 
-    if(formTracker.hasErrors) {
-      onFailure & onFailureCallback()
-    } else {
-      val optContainer = {
-        val c = NodeGroupCategoryId(groupContainer.get)
-        if(c == parentCategoryId) None
-        else Some(c)
-      }
+        // Since we are doing the submit from the component, it ought to exist
+        searchNodeComponent.get match {
+          case Full(req) =>
+            query = req.getQuery
+            srvList = req.getSrvList
+          case eb:EmptyBox =>
+            val f = eb ?~! "Error when trying to retrieve the current search state"
+            logger.error(f.messageChain)
+        }
 
-      val newGroup = nodeGroup.copy(
-          name = groupName.get
-        , description = groupDescription.get
-        //, container = container
-        , isDynamic = groupStatic.get match { case "dynamic" => true ; case _ => false }
-        , query = query
-        , serverList =  srvList.getOrElse(Set()).map( _.id ).toSet
-      )
+        if(formTracker.hasErrors) {
+          onFailure & onFailureCallback()
+        } else {
+          val optContainer = {
+            val c = NodeGroupCategoryId(groupContainer.get)
+            if(c == parentCategoryId) None
+            else Some(c)
+          }
 
-      if(newGroup == nodeGroup && optContainer.isEmpty) {
-        formTracker.addFormError(Text("There are no modifications to save"))
-        onFailure & onFailureCallback()
-      } else {
-        displayConfirmationPopup(DGModAction.Update, newGroup, optContainer)
-      }
+          // submit can be done only for node group, not system one
+          val newGroup = ng.copy(
+              name = groupName.get
+            , description = groupDescription.get
+            //, container = container
+            , isDynamic = groupStatic.get match { case "dynamic" => true ; case _ => false }
+            , query = query
+            , serverList =  srvList.getOrElse(Set()).map( _.id ).toSet
+          )
+
+          if(newGroup == ng && optContainer.isEmpty) {
+            formTracker.addFormError(Text("There are no modifications to save"))
+            onFailure & onFailureCallback()
+          } else {
+            displayConfirmationPopup(DGModAction.Update, newGroup, optContainer)
+          }
+        }
     }
   }
 
   private[this] def onSubmitDelete(): JsCmd = {
-    displayConfirmationPopup(DGModAction.Delete, nodeGroup, None)
+    nodeGroup match {
+      case Left(_)   => Noop
+      case Right(ng) =>
+        displayConfirmationPopup(DGModAction.Delete, ng, None)
+    }
   }
 
   /*
@@ -313,7 +393,7 @@ class NodeGroupForm(
     , newCategory: Option[NodeGroupCategoryId]
   ) : JsCmd = {
 
-    val optOriginal = Some(nodeGroup)
+    val optOriginal = nodeGroup.toOption
     val change = NodeGroupChangeRequest(action, newGroup, newCategory, optOriginal)
 
     workflowLevelService.getForNodeGroup(CurrentUser.actor, change) match {
@@ -331,7 +411,7 @@ class NodeGroupForm(
               onSuccessCallback(Right(crId))
             } else {
               val updateCategory = newCategory.getOrElse(parentCategoryId)
-              successPopup & onSuccessCallback(Left((newGroup,updateCategory))) &
+              successPopup & onSuccessCallback(Left((Right(newGroup) ,updateCategory))) &
               (if (action==DGModAction.Delete)
                  SetHtml(htmlId_item,NodeSeq.Empty)
               else
@@ -361,9 +441,10 @@ class NodeGroupForm(
     JsRaw(s"""createPopup("${name}");""")
   }
   private[this] def showCloneGroupPopup() : JsCmd = {
+
     val popupSnippet = new LocalSnippet[CreateCloneGroupPopup]
             popupSnippet.set(Full(new CreateCloneGroupPopup(
-                Some(nodeGroup)
+                nodeGroup.toOption
               , onSuccessCategory = displayACategory
               , onSuccessGroup = showGroupSection
             )))
@@ -401,10 +482,14 @@ class NodeGroupForm(
     }
   }
 
-  private[this] def showGroupSection(group: NodeGroup, parentCategoryId: NodeGroupCategoryId) : JsCmd = {
+  private[this] def showGroupSection(group: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId) : JsCmd = {
+    val js = group match {
+      case Left(target) => s"'target':'${target.target}"
+      case Right(g)     => s"'groupId':'${g.id.value}'"
+    }
     //update UI
     onSuccessCallback(Left((group, parentCategoryId)))&
-    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'groupId':'%s'})""".format(group.id.value))
+    JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({${js})""")
   }
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {

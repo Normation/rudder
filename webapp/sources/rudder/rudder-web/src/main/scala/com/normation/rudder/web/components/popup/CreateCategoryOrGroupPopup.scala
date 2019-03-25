@@ -45,12 +45,11 @@ import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S,DispatchSnippet}
+import net.liftweb.http.{DispatchSnippet, S, SHtml}
+
 import scala.xml._
 import net.liftweb.util.Helpers._
-import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField, WBSelectField, WBRadioField
-}
+import com.normation.rudder.web.model.{FormTracker, WBRadioField, WBSelectField, WBTextAreaField, WBTextField}
 import com.normation.rudder.repository._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.domain.queries.And
@@ -58,6 +57,7 @@ import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.web.ChooseTemplate
 
 /**
@@ -71,7 +71,7 @@ class CreateCategoryOrGroupPopup(
   , rootCategory     : FullNodeGroupCategory
   , selectedCategory : Option[NodeGroupCategoryId]
   , onSuccessCategory: (NodeGroupCategory) => JsCmd
-  , onSuccessGroup   : (NodeGroup, NodeGroupCategoryId) => JsCmd
+  , onSuccessGroup   : (Either[NonGroupRuleTarget, NodeGroup], NodeGroupCategoryId) => JsCmd
   , onSuccessCallback: (String) => JsCmd = { _ => Noop }
   , onFailureCallback: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
@@ -279,7 +279,7 @@ class CreateCategoryOrGroupPopup(
         ) match {
           case Full(x) =>
             closePopup() &
-            onSuccessCallback(x.group.id.value) & onSuccessGroup(x.group, NodeGroupCategoryId(piContainer.get))
+            onSuccessCallback(x.group.id.value) & onSuccessGroup(Right(x.group), NodeGroupCategoryId(piContainer.get))
           case Empty =>
             logger.error("An error occurred while saving the group")
             formTracker.addFormError(error("An error occurred while saving the group"))

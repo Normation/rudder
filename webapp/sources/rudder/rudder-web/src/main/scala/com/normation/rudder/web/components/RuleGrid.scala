@@ -104,7 +104,7 @@ class RuleGrid(
   , showCheckboxColumn  : Boolean
   , directiveApplication: Option[DirectiveApplicationManagement]
   , columnCompliance    : DisplayColumn
-  , graphRecentChanges : DisplayColumn
+  , graphRecentChanges  : DisplayColumn
 ) extends DispatchSnippet with Loggable {
 
   private[this] sealed trait Line { val rule:Rule }
