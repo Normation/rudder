@@ -366,10 +366,10 @@ object CfengineBundleVariables {
 
     BundleSequenceVariables(
         formatBundleFileInputFiles(systemInputs.map(_.path))
-      , formatMethodsUsebundle(escape, sytemBundles, Nil)
+      , formatMethodsUsebundle(escape, sytemBundles, Nil, Nil)
       , formatBundleFileInputFiles(userInputs.map(_.path))
         //only user bundle may be set on PolicyMode = Verify
-      , formatMethodsUsebundle(escape, userBundles.addDryRunManagement, runHooks)
+      , formatMethodsUsebundle(escape, userBundles.addDryRunManagement, runHooks, cleanupDryRunForSystem)
     )
   }
 
@@ -379,6 +379,7 @@ object CfengineBundleVariables {
    * Also, promiser must be differents for all items so that cfengine
    * doesn't try to avoid to do the set, so we are using the technique
    * promiser.
+   * We need to finish by a remove dry run, as hooks expect to be in enforce mode
    */
   implicit final class DryRunManagement(bundles: List[TechniqueBundles]) {
     def addDryRunManagement: List[TechniqueBundles] = bundles match {
@@ -390,15 +391,19 @@ object CfengineBundleVariables {
                        }
                        tb.copy(pre = pre :: Nil)
                    //always remove dry mode in last action
-                   } ::: ( cleanup :: Nil )
+                   } ::: ( cleanup("remove_dry_run_mode") :: Nil )
     }
-
-    //before each technique, set the correct mode
-    private[this] val audit   = Bundle(None, BundleName("""set_dry_run_mode("true")"""), Nil)
-    private[this] val enforce = Bundle(None, BundleName("""set_dry_run_mode("false")"""), Nil)
-    val dryRun = TechniqueId(TechniqueName("remove_dry_run_mode"), TechniqueVersion("1.0"))
-    private[this] val cleanup = TechniqueBundles(Directive(dryRun.name.value), dryRun, Nil, enforce :: Nil, Nil, false, PolicyMode.Enforce, false)
   }
+
+  val audit   = Bundle(None, BundleName("""set_dry_run_mode("true")"""), Nil)
+  val enforce = Bundle(None, BundleName("""set_dry_run_mode("false")"""), Nil)
+
+  def dryRun(techniqueName: String) = TechniqueId(TechniqueName(techniqueName), TechniqueVersion("1.0"))
+  def cleanup(techniqueName: String) = TechniqueBundles(Directive(techniqueName), dryRun(techniqueName), Nil, enforce :: Nil, Nil, false, PolicyMode.Enforce, false)
+
+  // Create a remove dry run bundle also for after the hooks - so that we ensure that ending of
+  // system technique are not in Audit mode.
+  val cleanupDryRunForSystem: List[TechniqueBundles] = cleanup("remove_dry_run_mode_for_system") :: Nil
 
   /*
    * Method for formating list of "promiser usebundle => bundlename;"
@@ -410,17 +415,24 @@ object CfengineBundleVariables {
    *  "An other rule/its directive"                 usebundle => virtualMachines;
    * """
    */
-  def formatMethodsUsebundle(escape: String => String, bundleSeq: List[TechniqueBundles], runHooks: List[NodeRunHook]): List[String] = {
+  def formatMethodsUsebundle(
+        escape        : String => String
+      , bundleSeq     : List[TechniqueBundles]
+      , runHooks      : List[NodeRunHook]
+      , cleanDryRunEnd: List[TechniqueBundles]
+      ): List[String] = {
     //the promiser value (may) comes from user input, so we need to escape
     //also, get the list of bundle for each promiser.
     //and we don't need isSystem anymore
     val escapedSeq = bundleSeq.map(x => (CFEngineAgentSpecificGeneration.escape(x.promiser.value), x.bundleSequence) )
 
+    val escapedCleanDryRunEnd = cleanDryRunEnd.map(x => (CFEngineAgentSpecificGeneration.escape(x.promiser.value), x.bundleSequence) )
+
     // create / add in the escapedSeq hooks
     val preHooks  = runHooks.collect { case h if(h.kind == RunHook.Kind.Pre ) => getBundleForHook(h) }
     val postHooks = runHooks.collect { case h if(h.kind == RunHook.Kind.Post) => getBundleForHook(h) }
 
-    val allBundles = preHooks ::: escapedSeq ::: postHooks
+    val allBundles = preHooks ::: escapedSeq ::: postHooks ::: escapedCleanDryRunEnd
 
     //that's the length to correctly vertically align things. Most important
     //number in all Rudder !

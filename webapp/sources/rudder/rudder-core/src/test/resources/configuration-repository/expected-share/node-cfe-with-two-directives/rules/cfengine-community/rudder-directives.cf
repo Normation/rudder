@@ -51,6 +51,9 @@ bundle agent rudder_directives {
       "remove_dry_run_mode"                           usebundle => set_dry_run_mode("false");
       "remove_dry_run_mode"                           usebundle => clean_reporting_context;
       "post-run-hook"                                 usebundle => runhook_servive('{"parameters":{"service":"some value","a post command":"/something/that/is/complicated \"with\" 'all sort of quote'"},"reports":[{"id":"208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0","mode":"enforce","technique":"Create_file","name":"some value status","value":"restarted"}]}');
+      "remove_dry_run_mode_for_system"                usebundle => disable_reporting;
+      "remove_dry_run_mode_for_system"                usebundle => set_dry_run_mode("false");
+      "remove_dry_run_mode_for_system"                usebundle => clean_reporting_context;
 
 }
 
