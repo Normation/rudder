@@ -19,7 +19,7 @@
   "RUDDER_DIRECTIVES_INPUTS":[
     ""
   ],
-  "RUDDER_DIRECTIVES_SEQUENCE":"",
+  "RUDDER_DIRECTIVES_SEQUENCE":"      \"remove_dry_run_mode_for_system\" usebundle => disable_reporting;\n      \"remove_dry_run_mode_for_system\" usebundle => set_dry_run_mode(\"false\");\n      \"remove_dry_run_mode_for_system\" usebundle => clean_reporting_context;",
   "RUDDER_HEARTBEAT_INTERVAL":"4",
   "RUDDER_NODE_CONFIG_ID":"root-cfg-id",
   "RUDDER_NODE_GROUPS_CLASSES":"\"group_a_group_for_root_only\"      expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_serveurs_______casses\"      expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_policyserver_root\"          expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_policyserver_root\"  expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"                expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"                expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };",

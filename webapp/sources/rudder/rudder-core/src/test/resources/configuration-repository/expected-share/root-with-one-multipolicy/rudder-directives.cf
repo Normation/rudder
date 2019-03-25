@@ -47,6 +47,9 @@ bundle agent rudder_directives {
       "remove_dry_run_mode"                          usebundle => disable_reporting;
       "remove_dry_run_mode"                          usebundle => set_dry_run_mode("false");
       "remove_dry_run_mode"                          usebundle => clean_reporting_context;
+      "remove_dry_run_mode_for_system"               usebundle => disable_reporting;
+      "remove_dry_run_mode_for_system"               usebundle => set_dry_run_mode("false");
+      "remove_dry_run_mode_for_system"               usebundle => clean_reporting_context;
 
 }
 
