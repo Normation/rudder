@@ -571,7 +571,7 @@ class NodeApiService6 (
         nodeId    <- nodeIds
         nodeInfo  <- nodeInfos.get(nodeId)
       } yield {
-        val runDate = runs.get(nodeId).map( _.map(_.agentRunId.date)).flatten
+        val runDate = runs.get(nodeId).flatMap( _.map(_.agentRunId.date))
         serializeInventory(nodeInfo, state, runDate, inventories.get(nodeId), software.getOrElse(nodeId, Seq()), detailLevel, version)
       }
     }
