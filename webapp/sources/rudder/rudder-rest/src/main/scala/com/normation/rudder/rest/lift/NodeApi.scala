@@ -57,6 +57,7 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes.CompareProperties
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.WoNodeRepository
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ApiVersion
@@ -493,7 +494,8 @@ class NodeApiService4 (
                      Full(Seq())
                    }
     } yield {
-      serializeInventory(nodeInfo, state, inventory, software, detailLevel, version)
+      // that version doesn't have last run date
+      serializeInventory(nodeInfo, state, None, inventory, software, detailLevel, version)
     }
   }
 
@@ -539,6 +541,7 @@ class NodeApiService6 (
   , restExtractor             : RestExtractorService
   , restSerializer            : RestDataSerializer
   , acceptedNodeQueryProcessor: QueryProcessor
+  , roAgentRunsRepository     : RoReportsExecutionRepository
 ) extends Loggable {
 
   import restSerializer._
@@ -551,6 +554,8 @@ class NodeApiService6 (
                        case PendingInventory  => nodeInfoService.getPendingNodeInfos()
                        case RemovedInventory  => nodeInfoService.getDeletedNodeInfos()
                      }
+      nodeIds     =  nodeFilter.getOrElse(nodeInfos.keySet).toSet
+      runs        <- roAgentRunsRepository.getNodesLastRun(nodeIds)
       inventories <- if(detailLevel.needFullInventory()) {
                        inventoryRepository.getAllInventories(state)
                      } else {
@@ -562,12 +567,12 @@ class NodeApiService6 (
                        Full(Map[NodeId, Seq[Software]]())
                      }
     } yield {
-      val nodeIds = nodeFilter.getOrElse(nodeInfos.keySet)
       for {
         nodeId    <- nodeIds
         nodeInfo  <- nodeInfos.get(nodeId)
       } yield {
-        serializeInventory(nodeInfo, state, inventories.get(nodeId), software.getOrElse(nodeId, Seq()), detailLevel, version)
+        val runDate = runs.get(nodeId).map( _.map(_.agentRunId.date)).flatten
+        serializeInventory(nodeInfo, state, runDate, inventories.get(nodeId), software.getOrElse(nodeId, Seq()), detailLevel, version)
       }
     }
     ) match {
