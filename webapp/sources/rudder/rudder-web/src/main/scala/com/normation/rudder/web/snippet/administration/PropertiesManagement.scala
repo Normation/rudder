@@ -762,7 +762,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         Run(s"""$$("#generationHookCfpromiseSubmit").attr("disabled",${noModif});""")
       }
       def submit() = {
-        val save = hook.setExecutable(currentIsEnabled)
+        // exec must be set/unset for all users
+        val save = hook.setExecutable(currentIsEnabled, false)
         S.notice("generationHookCfpromiseMsg", save match {
           case true  =>
             initIsEnabled = currentIsEnabled
@@ -847,7 +848,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       // property file should be either rwxr--r-- or rw-r--r--
       import java.nio.file.attribute.PosixFilePermission._
       val perms = Set(OWNER_READ, OWNER_WRITE, GROUP_READ, OTHERS_READ)
-      if(isExec) perms + OWNER_EXECUTE
+      if(isExec) perms + OWNER_EXECUTE + GROUP_EXECUTE + OTHERS_EXECUTE
       else perms
     }
 
