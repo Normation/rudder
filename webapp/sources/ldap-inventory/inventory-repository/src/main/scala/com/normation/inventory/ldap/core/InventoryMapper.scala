@@ -680,6 +680,7 @@ class InventoryMapper(
           case Oracle     => linux += (A_OS_NAME, A_OS_ORACLE)
           case Scientific => linux += (A_OS_NAME, A_OS_SCIENTIFIC)
           case Slackware  => linux += (A_OS_NAME, A_OS_SLACKWARE)
+          case Mint       => linux += (A_OS_NAME, A_OS_MINT)
           case _          => linux += (A_OS_NAME, A_OS_UNKNOWN_LINUX)
         }
         linux
@@ -860,6 +861,7 @@ class InventoryMapper(
                             case A_OS_SCIENTIFIC => Scientific
                             case A_OS_ANDROID    => Android
                             case A_OS_SLACKWARE  => Slackware
+                            case A_OS_MINT       => Mint
                             case _               => UnknownLinuxType
                           }
                           Full(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))
