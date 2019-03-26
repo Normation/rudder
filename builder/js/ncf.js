@@ -1132,38 +1132,24 @@ $scope.onImportFileChange = function (fileEl) {
     var saveSuccess = function(data, status, headers, config) {
       // Technique may have been modified by ncf API
       ncfTechnique = data.data.technique;
-      var usedMethods = new Set();
+
+      // Get methods used for that technique
+      var usedMethodsSet = new Set();
       ncfTechnique.method_calls.forEach(
         function(m) {
-          usedMethods.add($scope.generic_methods[m.method_name]);
+          usedMethodsSet.add($scope.generic_methods[m.method_name]);
         }
       );
+      var usedMethods = Array.from(usedMethodsSet);
 
-      var methodKeys = Object.keys($scope.generic_methods).map(function(e) {
-        return $scope.generic_methods[e]
-      });
       var reason = "Updating Technique " + technique.name + " using the Technique editor";
 
       var rudderApiSuccess = function(data) {
         // Transform back ncfTechnique to UITechnique, that will make it ok
         var savedTechnique = toTechUI(ncfTechnique);
 
-        // Update technique if still selected
-        if (angular.equals($scope.originalTechnique, origin_technique)) {
-          // If we were cloning a technique, remove its 'clone' state
-          savedTechnique.isClone = false;
-          if($scope.originalTechnique.bundle_name!=="" && $scope.originalTechnique.bundle_name!==undefined){
-            $scope.originalTechnique=angular.copy(savedTechnique);
-          }
-          $scope.selectedTechnique=angular.copy(savedTechnique);
-          // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
-          $scope.selectedMethod = undefined;
-        }
-        $scope.resetFlags();
-
-
         var invalidParametersArray = [];
-	// Iterate over each parameters to ensure their validity
+        // Iterate over each parameters to ensure their validity
         ncfTechnique.method_calls.forEach(
           function(m) {
             m.parameters.forEach(
@@ -1182,8 +1168,6 @@ $scope.onImportFileChange = function (fileEl) {
         }
         ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
 
-
-        ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
         // Find index of the technique in the actual tree of technique (look for original technique)
         var index = findIndex($scope.techniques,origin_technique);
         if ( index === -1) {
@@ -1193,11 +1177,21 @@ $scope.onImportFileChange = function (fileEl) {
          // modify techique in array
          $scope.techniques[index] = savedTechnique;
         }
+
+        // Update technique if still selected
+        if (angular.equals($scope.originalTechnique, origin_technique)) {
+          // If we were cloning a technique, remove its 'clone' state
+          savedTechnique.isClone = false;
+          $scope.originalTechnique=angular.copy(savedTechnique);
+          $scope.selectedTechnique=angular.copy(savedTechnique);
+          // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
+          $scope.selectedMethod = undefined;
+        }
+        $scope.resetFlags();
       }
 
       var errorRudder = handle_error("while updating Technique \""+ ncfTechnique.name + "\" through Rudder API")
-
-      $http.post("/rudder/secure/api/ncf", { "technique": ncfTechnique, "methods":methodKeys, "reason":reason }).
+      $http.post("/rudder/secure/api/ncf", { "technique": ncfTechnique, "methods":usedMethods, "reason":reason }).
         success(rudderApiSuccess).
         error(errorRudder);
 
