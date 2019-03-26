@@ -7,15 +7,15 @@ import JsCmds._
 import com.normation.inventory.domain.NodeId
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{ SHtml, DispatchSnippet }
+import net.liftweb.http.{DispatchSnippet, SHtml}
+
 import scala.xml._
 import net.liftweb.util.Helpers._
-import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField, WBSelectField, WBRadioField
-}
+import com.normation.rudder.web.model.{FormTracker, WBRadioField, WBSelectField, WBTextAreaField, WBTextField}
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.web.ChooseTemplate
 import net.liftweb.http.S
 
@@ -23,7 +23,7 @@ class CreateCloneGroupPopup(
   nodeGroup : Option[NodeGroup],
   groupGenerator : Option[NodeGroup] = None,
   onSuccessCategory : (NodeGroupCategory) => JsCmd,
-  onSuccessGroup : (NodeGroup,NodeGroupCategoryId) => JsCmd,
+  onSuccessGroup : (Either[NonGroupRuleTarget, NodeGroup],NodeGroupCategoryId) => JsCmd,
   onSuccessCallback : (String) => JsCmd = { (String) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop } )
   extends DispatchSnippet with Loggable {
@@ -131,7 +131,7 @@ class CreateCloneGroupPopup(
           case Full(x) =>
             closePopup() &
             onSuccessCallback(x.group.id.value) &
-            onSuccessGroup(x.group, parentCategoryId)
+            onSuccessGroup(Right(x.group), parentCategoryId)
           case Empty =>
             logger.error("An error occurred while saving the group")
             formTracker.addFormError(error("An error occurred while saving the group"))

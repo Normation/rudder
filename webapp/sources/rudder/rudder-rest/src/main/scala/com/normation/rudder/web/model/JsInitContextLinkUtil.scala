@@ -47,6 +47,7 @@ import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.parameters.ParameterName
+import com.normation.rudder.domain.policies.RuleTarget
 import net.liftweb.http.js.JsCmds.RedirectTo
 import net.liftweb.http.js.JsCmd
 import com.normation.rudder.repository.RoRuleRepository
@@ -71,11 +72,17 @@ class LinkUtil (
   def baseGroupLink(id:NodeGroupId) =
     s"""/secure/nodeManager/groups#{"groupId":"${id.value}"}"""
 
+  def baseTargetLink(target: RuleTarget) =
+    s"""/secure/nodeManager/groups#{"target":"${target.target}"}"""
+
   def groupLink(id:NodeGroupId) =
     s"""${S.contextPath}${baseGroupLink(id)}"""
 
   def redirectToGroupLink(id:NodeGroupId) : JsCmd=
     RedirectTo(baseGroupLink(id))
+
+  def redirectToTargteLink(target:RuleTarget) : JsCmd=
+    RedirectTo(baseTargetLink(target))
 
   def baseRuleLink(id:RuleId) =
     s"""/secure/configurationManager/ruleManagement#{"ruleId":"${id.value}"}"""

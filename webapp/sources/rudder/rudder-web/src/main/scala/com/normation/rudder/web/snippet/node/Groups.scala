@@ -73,7 +73,7 @@ object Groups {
 
   private sealed trait RightPanel
   private case object NoPanel extends RightPanel
-  private case class GroupForm(group:NodeGroup, parentCategoryId:NodeGroupCategoryId) extends RightPanel with HashcodeCaching
+  private case class GroupForm(group:Either[NonGroupRuleTarget, NodeGroup], parentCategoryId:NodeGroupCategoryId) extends RightPanel with HashcodeCaching
   private case class CategoryForm(category: NodeGroupCategory) extends RightPanel with HashcodeCaching
 
 }
@@ -156,10 +156,10 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    * If a query is passed as argument, try to dejoniffy-it, in a best effort
    * way - just don't take of errors.
    *
-   * We want to look for #{ "groupId":"XXXXXXXXXXXX" }
+   * We want to look for #{ "groupId":"XXXXXXXXXXXX" } or #{"targer":"....."}
    */
   private[this] def parseJsArg(rootCategory: Box[FullNodeGroupCategory]) : JsCmd = {
-    def displayDetails(groupId:String) = {
+    def displayDetailsGroup(groupId:String) = {
       val gid = NodeGroupId(groupId)
       rootCategory match {
         case eb: EmptyBox => Noop
@@ -168,23 +168,38 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
           case Some(fullGroupTarget) => //so we also have its parent category
             //no modification, so no refreshGroupLib
             refreshTree(htmlTreeNodeId(groupId)) &
-            showGroupSection (fullGroupTarget.nodeGroup, lib.categoryByGroupId(gid)) &
+            showGroupSection (Right(fullGroupTarget.nodeGroup), lib.categoryByGroupId(gid)) &
             JsRaw("createTooltip()")
         }
       }
     }
+    def displayDetailsTarget(targetName:String) = {
+      RuleTarget.unser(targetName) match {
+        case None => Noop
+        case Some(t:NonGroupRuleTarget) =>
+          refreshTree(htmlTreeNodeId(targetName)) &
+          showGroupSection (Left(t), NodeGroupCategoryId("SystemGroups")) &
+          JsRaw("createTooltip()")
+      }
+    }
 
-    JsRaw("""
+    JsRaw(s"""
+        var targetName = null;
         var groupId = null;
         try {
-          groupId = JSON.parse(decodeURI(window.location.hash.substring(1))).groupId ;
+          var decoded = JSON.parse(decodeURI(window.location.hash.substring(1)));
+          groupId = decoded.groupId;
+          targetName = decoded.target;
         } catch(e) {
-          groupId = null
+          groupId = null;
+          targetName = null;
         }
         if( groupId != null && groupId.length > 0) {
-          %s;
+          ${SHtml.ajaxCall(JsVar("groupId"), displayDetailsGroup _ )._2.toJsCmd};
+        } else if( targetName != null && targetName.length > 0) {
+          ${SHtml.ajaxCall(JsVar("targetName"), displayDetailsTarget _)._2.toJsCmd};
         }
-    """.format(SHtml.ajaxCall(JsVar("groupId"), displayDetails _ )._2.toJsCmd)
+    """
     )
   }
 
@@ -205,12 +220,12 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
           , group
           , parentCatId
           , rootCategory
-          , { (redirect: Either[(NodeGroup,NodeGroupCategoryId),ChangeRequestId]) =>
+          , { (redirect: Either[(Either[NonGroupRuleTarget, NodeGroup],NodeGroupCategoryId),ChangeRequestId]) =>
               redirect match {
                 case Left((newGroup,newParentId)) =>
                   refreshGroupLib()
                   val newPanel = GroupForm(newGroup, newParentId)
-                  refreshTree(htmlTreeNodeId(newGroup.id.value)) &
+                  refreshTree(htmlTreeNodeId(newGroup.fold(_.target, _.id.value))) &
                   refreshRightPanel(newPanel)
                 case Right(crId) =>
                   linkUtil.redirectToChangeRequestLink(crId)
@@ -357,7 +372,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
               (
                   refreshTree(htmlTreeNodeId(ng.id.value))
                 & JsRaw("""setTimeout(function() { $("[groupid=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceGroupId))
-                & refreshRightPanel(GroupForm(ng,cat))
+                & refreshRightPanel(GroupForm(Right(ng),cat))
               )
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move group with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceGroupId,destCatId))
@@ -429,11 +444,15 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   //adaptater
   private[this] def fullDisplayCategory(category: FullNodeGroupCategory) = displayCategory(category.toNodeGroupCategory)
 
-  private[this] def showGroupSection(g: NodeGroup, parentCategoryId: NodeGroupCategoryId) = {
+  private[this] def showGroupSection(g: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId) = {
+    val js = g match {
+      case Left(target) => s"'target':'${target.target}'"
+      case Right(ng)    => s"'groupId':'${ng.id.value}'"
+    }
     refreshRightPanel(GroupForm(g, parentCategoryId))&
     JsRaw(s"""
         jQuery('#groupDetails').show();
-        var groupId = JSON.stringify({'groupId':'${g.id.value}'});
+        var groupId = JSON.stringify({${js}});
         window.location.hash = "#"+groupId;
         adjustHeight('#groupDetails');
     """)
@@ -446,7 +465,8 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     //action only for node group
 
     targetInfo.target match {
-      case t:FullGroupTarget => showGroupSection(t.nodeGroup, parentCategory.id)
+      case t:FullGroupTarget => showGroupSection(Right(t.nodeGroup), parentCategory.id)
+      case FullOtherTarget(t) => showGroupSection(Left(t), parentCategory.id)
       case _ => Noop
     }
   }

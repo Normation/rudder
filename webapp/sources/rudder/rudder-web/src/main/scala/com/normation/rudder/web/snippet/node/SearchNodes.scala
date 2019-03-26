@@ -47,6 +47,7 @@ import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.ShowNodeDetailsFromNode
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import net.liftweb.common._
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.SHtml
@@ -135,7 +136,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
         , rootCategory     = groupLibrary
         , selectedCategory = None
         , onSuccessCategory= { _ => Noop }
-        , onSuccessGroup   = { (group:NodeGroup, _) => linkUtil.redirectToGroupLink(group.id) }
+        , onSuccessGroup   = { (group:Either[NonGroupRuleTarget, NodeGroup], _) => group.fold(t => linkUtil.redirectToTargteLink(t), g => linkUtil.redirectToGroupLink(g.id)) }
       )))
   }
 

@@ -213,10 +213,8 @@ object DisplayNodeGroupTree extends Loggable {
         }
 
         onClickNode match {
-          case None                      => <a style="cursor:default">{xml}</a>
-          // only disable click when actions are empty so we can act on them
-          case _ if(targetInfo.isSystem && targetActions.isEmpty) => <a style="cursor:default">{xml}</a>
-          case Some(f)                   => SHtml.a( () => f(targetInfo), xml)
+          case None    => <a style="cursor:default">{xml}</a>
+          case Some(f) => SHtml.a( () => f(targetInfo), xml)
         }
       }
     }
