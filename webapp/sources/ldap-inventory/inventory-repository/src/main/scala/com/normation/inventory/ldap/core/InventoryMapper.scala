@@ -709,6 +709,7 @@ class InventoryMapper(
           case WindowsXP     => win += (A_OS_NAME, A_OS_WIN_XP)
           case WindowsVista  => win += (A_OS_NAME, A_OS_WIN_VISTA)
           case WindowsSeven  => win += (A_OS_NAME, A_OS_WIN_SEVEN)
+          case Windows10     => win += (A_OS_NAME, A_OS_WIN_10)
           case Windows2000   => win += (A_OS_NAME, A_OS_WIN_2000)
           case Windows2003   => win += (A_OS_NAME, A_OS_WIN_2003)
           case Windows2008   => win += (A_OS_NAME, A_OS_WIN_2008)
@@ -832,6 +833,7 @@ class InventoryMapper(
                             case A_OS_WIN_XP      => WindowsXP
                             case A_OS_WIN_VISTA   => WindowsVista
                             case A_OS_WIN_SEVEN   => WindowsSeven
+                            case A_OS_WIN_10      => Windows10
                             case A_OS_WIN_2000    => Windows2000
                             case A_OS_WIN_2003    => Windows2003
                             case A_OS_WIN_2008    => Windows2008
