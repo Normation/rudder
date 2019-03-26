@@ -279,6 +279,13 @@ class TestReportParsing extends Specification with Loggable {
     }
   }
 
+  "Parsing Mint" should {
+    "parse as mint" in {
+      val os = parser.parse("fusion-report/mint.ocs").node.main.osDetails.os
+      os == Mint
+    }
+  }
+
   "Parsing inventory with only KERNEL_NAME in OPERATING SYSTEM" should {
     "parse as a unknown linux when it's a linux" in {
       val os = parser.parse("fusion-report/only-kernel-name-0034fbbe-4b52-4212-9535-1f1a952c6f36.ocs").node.main.osDetails.os
