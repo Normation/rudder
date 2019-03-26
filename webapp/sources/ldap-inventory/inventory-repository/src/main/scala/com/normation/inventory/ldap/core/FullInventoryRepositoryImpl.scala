@@ -42,6 +42,7 @@ import com.normation.utils.Control.{bestEffort, sequence}
 import LDAPConstants.{A_CONTAINER_DN, A_NODE_UUID}
 import com.normation.inventory.services.core._
 import com.normation.inventory.domain._
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk._
 import net.liftweb.common._
 import com.unboundid.ldif.LDIFChangeRecord
