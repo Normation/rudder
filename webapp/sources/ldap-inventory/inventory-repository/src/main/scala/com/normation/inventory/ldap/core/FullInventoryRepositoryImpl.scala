@@ -401,15 +401,16 @@ class FullInventoryRepositoryImpl(
       // try to move the referenced machine too, but move it to the same
       // status that the more prioritary node with
       // accepted > pending > deleted
-      // logic in machine#move
+      // logic in machine#move. Don't do anything if machine already in correct status.
       val machineMoved = (for {
-        (machineId, _) <- getMachineId(id, into)
-        moved <- move(machineId, into)
+        (machineId, mStatus) <- getMachineId(id, into)
+        moved <- if(mStatus == into) Full(Seq(LDIFNoopChangeRecord(dn(machineId, mStatus))))
+                 else move(machineId, into)
       } yield {
         moved
       }) match {
         case eb:EmptyBox =>
-          val e = eb ?~! s"Error when updating the container value when moving nodes '${id.value}'"
+          val e = eb ?~! s"Error when updating the machine ID value for node '${id.value}' when moving it from '${from.name}' to '${into.name}'"
           logger.error(e.messageChain)
           e.rootExceptionCause.foreach { ex =>
             logger.error("Exception was: ", ex)
