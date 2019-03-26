@@ -58,6 +58,7 @@ import net.liftweb.http._
 import scala.xml._
 import net.liftweb.util.Helpers._
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
@@ -98,6 +99,7 @@ class NodeGroupForm(
   private[this] val nodeInfoService            = RudderConfig.nodeInfoService
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
   private[this] val workflowLevelService       = RudderConfig.workflowLevelService
+  private[this] val dependencyService          = RudderConfig.dependencyAndDeletionService
 
   private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm]
   private[this] val nodeGroupForm = new LocalSnippet[NodeGroupForm]
@@ -186,6 +188,12 @@ class NodeGroupForm(
                 }
       & "group-delete" #> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class" -> " btn btn-danger"))
       & "group-notifications" #> updateAndDisplayNotifications()
+      & "#groupRulesTab" #> {
+          val noDisplay = DisplayColumn.Force(false)
+          val cmp = new RuleGrid("remove_popup_grid", None, false, None, noDisplay, noDisplay)
+          val rules = dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules.toSeq).toOption
+          cmp.rulesGridWithUpdatedInfo(rules, false, true)
+        }
     )(html)
    }
 
