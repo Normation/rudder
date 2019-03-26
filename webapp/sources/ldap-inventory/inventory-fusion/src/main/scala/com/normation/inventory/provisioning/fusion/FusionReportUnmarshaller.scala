@@ -670,6 +670,7 @@ class FusionReportUnmarshaller(
           if     (x contains  "xp"     )   WindowsXP
           else if(x contains  "vista"  )   WindowsVista
           else if(x contains  "seven"  )   WindowsSeven
+          else if(x contains  "10"  )      Windows10
           else if(x contains  "2000"   )   Windows2000
           else if(x contains  "2003"   )   Windows2003
           else if(x contains  "2008 r2")   Windows2008R2 //must be before 2008 for obvious reason
