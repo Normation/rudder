@@ -41,7 +41,6 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.cfclerk.domain.TechniqueName
 import net.liftweb.common.Box
 
 
@@ -98,6 +97,6 @@ trait TechniquesLibraryUpdateNotification {
    * Description is a log description to explain why techniques should be updated
    * (user action, commit, etc).
    */
-  def updatedTechniques(techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit]
+  def updatedTechniques(gitRev: String, techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit]
 
 }

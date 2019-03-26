@@ -65,33 +65,47 @@ object ReloadTechniqueLibrary extends EventLogFilter {
 
   override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2)
 
-  def buildDetails(techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType]) : Elem = EventLog.withContent {
-    <reloadTechniqueLibrary fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>{
+  def buildDetails(gitRevId: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType]) : Elem = EventLog.withContent {
+    <reloadTechniqueLibrary fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+      <commitId>{gitRevId}</commitId>{
       techniqueMods.flatMap {
         case (_, TechniqueUpdated(name, mods)) => mods.map( x => (x._2 , name, x._1))
         case (_, TechniqueDeleted(name, vers)) => vers.map( x => (VersionDeleted, name, x ))
       }.map {
 
         case (VersionAdded, name, version) =>
-          <addedTechnique>
-            <name>{name.value}</name>
-            <version>{version.toString}</version>
-          </addedTechnique>
+          TechniqueEventLog.xmlForAdd(name, version)
 
         case (VersionDeleted, name, version) =>
-          <deletedTechnique>
-            <name>{name.value}</name>
-            <version>{version.toString}</version>
-          </deletedTechnique>
+          TechniqueEventLog.xmlForDelete(name, version)
 
         case (VersionUpdated, name, version) =>
-          <modifiedTechnique>
-            <name>{name.value}</name>
-            <version>{version.toString}</version>
-          </modifiedTechnique>
+          TechniqueEventLog.xmlForUpdate(name, version)
 
     } }</reloadTechniqueLibrary>
   }
+
+}
+
+object TechniqueEventLog {
+
+  def xmlForDelete(name: TechniqueName, version: TechniqueVersion) =
+    <deletedTechnique>
+      <name>{name.value}</name>
+      <version>{version.toString}</version>
+    </deletedTechnique>
+
+  def xmlForAdd(name: TechniqueName, version: TechniqueVersion) =
+    <addedTechnique>
+      <name>{name.value}</name>
+      <version>{version.toString}</version>
+    </addedTechnique>
+
+  def xmlForUpdate(name: TechniqueName, version: TechniqueVersion) =
+    <modifiedTechnique>
+      <name>{name.value}</name>
+      <version>{version.toString}</version>
+    </modifiedTechnique>
 
 }
 
@@ -99,6 +113,18 @@ object TechniqueEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
       ReloadTechniqueLibrary, ModifyTechnique, DeleteTechnique
     )
+}
+
+final case class AddTechnique(
+    override val eventDetails : EventLogDetails
+) extends TechniqueEventLog with HashcodeCaching {
+  override val cause = None
+  override val eventType = AddTechnique.eventType
+}
+
+object AddTechnique extends EventLogFilter {
+  override val eventType = AddTechniqueEventType
+  override def apply(x : (EventLogType, EventLogDetails)) : AddTechnique = AddTechnique(x._2)
 }
 
 final case class ModifyTechnique(

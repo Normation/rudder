@@ -898,7 +898,15 @@ object RudderConfig extends Loggable {
 
   ///// end /////
 
-  private[this] lazy val logRepository = new EventLogJdbcRepository(doobie, eventLogFactory)
+  private[this] lazy val logRepository = {
+    val eventLogRepo = new EventLogJdbcRepository(doobie, eventLogFactory)
+    techniqueRepositoryImpl.registerCallback(new LogEventOnTechniqueReloadCallback(
+        "LogEventTechnique"
+      , 100 // must be before most of other
+      , eventLogRepo
+    ))
+    eventLogRepo
+  }
   private[this] lazy val inventoryLogEventServiceImpl = new InventoryEventLogServiceImpl(logRepository)
   private[this] lazy val licenseRepository = new LicenseRepositoryXML(RUDDER_DIR_LICENSESFOLDER + "/" + licensesConfiguration)
   private[this] lazy val gitRepo = new GitRepositoryProviderImpl(RUDDER_DIR_GITROOT)

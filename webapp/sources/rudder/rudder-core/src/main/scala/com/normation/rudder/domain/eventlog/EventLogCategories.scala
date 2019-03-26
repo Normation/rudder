@@ -139,6 +139,10 @@ final case object ReloadTechniqueLibraryType extends NoRollbackEventLogType {
   def serialize = "ReloadTechniqueLibrary"
 }
 
+final case object AddTechniqueEventType extends NoRollbackEventLogType {
+  def serialize = "TechniqueAdded"
+}
+
 final case object ModifyTechniqueEventType extends NoRollbackEventLogType {
   def serialize = "TechniqueModified"
 }
