@@ -55,10 +55,10 @@ class DeployOnTechniqueCallback(
   , asyncDeploymentAgent: AsyncDeploymentActor
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(techniqueIds:Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
+  override def updatedTechniques(gitRev: String, techniqueIds:Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
     reason.foreach( msg => logger.info(msg) )
     if(techniqueIds.nonEmpty) {
-      logger.debug("Ask for a policy update since technique library was reloaded")
+      logger.debug(s"Ask for a policy update since technique library was reloaded (git revision tree: ${gitRev}")
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
     }
     Full({})
@@ -71,12 +71,12 @@ class LogEventOnTechniqueReloadCallback(
   , eventLogRepos     : EventLogRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
+  override def updatedTechniques(gitRev: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
     eventLogRepos.saveEventLog(modId, ReloadTechniqueLibrary(EventLogDetails(
         modificationId = None
       , principal      = actor
-      , details        = ReloadTechniqueLibrary.buildDetails(techniqueMods)
-      , reason = reason
+      , details        = ReloadTechniqueLibrary.buildDetails(gitRev, techniqueMods)
+      , reason         = reason
     ))) match {
       case eb:EmptyBox =>
         eb ?~! "Error when saving event log for techniques library reload"

@@ -37,36 +37,37 @@
 
 package com.normation.rudder.repository
 
-import net.liftweb.common._
-import com.normation.rudder.api.DeleteApiAccountDiff
-import com.normation.rudder.domain.eventlog.ChangeRequestDiff
-import com.normation.eventlog.EventLogFilter
-import com.normation.rudder.services.eventlog.EventLogFactory
-import com.normation.rudder.domain.policies.DeleteDirectiveDiff
-import com.normation.rudder.domain.policies.ModifyRuleDiff
-import com.normation.rudder.api.AddApiAccountDiff
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.rudder.domain.workflows.WorkflowStepChange
-import com.normation.rudder.domain.policies.DeleteTechniqueDiff
-import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.EventLog
+import com.normation.eventlog.EventLogFilter
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.api.AddApiAccountDiff
+import com.normation.rudder.api.DeleteApiAccountDiff
+import com.normation.rudder.api.ModifyApiAccountDiff
+import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.eventlog.ChangeRequestDiff
+import com.normation.rudder.domain.eventlog.ModifyGlobalPropertyEventType
+import com.normation.rudder.domain.nodes.AddNodeGroupDiff
+import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
+import com.normation.rudder.domain.nodes.ModifyNodeDiff
+import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.parameters.AddGlobalParameterDiff
+import com.normation.rudder.domain.parameters.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
+import com.normation.rudder.domain.policies.AddDirectiveDiff
+import com.normation.rudder.domain.policies.AddRuleDiff
+import com.normation.rudder.domain.policies.AddTechniqueDiff
+import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.DeleteRuleDiff
+import com.normation.rudder.domain.policies.DeleteTechniqueDiff
+import com.normation.rudder.domain.policies.ModifyDirectiveDiff
+import com.normation.rudder.domain.policies.ModifyRuleDiff
 import com.normation.rudder.domain.policies.ModifyTechniqueDiff
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.api.ModifyApiAccountDiff
-import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.nodes.AddNodeGroupDiff
-import com.normation.rudder.domain.policies.ModifyDirectiveDiff
-import com.normation.rudder.domain.parameters.DeleteGlobalParameterDiff
-import com.normation.rudder.domain.eventlog.ModifyGlobalPropertyEventType
-import com.normation.rudder.domain.appconfig.RudderWebProperty
-import com.normation.rudder.domain.policies.AddRuleDiff
-import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
-import com.normation.rudder.domain.policies.AddDirectiveDiff
-import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
-import com.normation.eventlog.EventLog
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.nodes.ModifyNodeDiff
+import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.services.eventlog.EventLogFactory
+import net.liftweb.common._
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
@@ -174,6 +175,17 @@ trait EventLogRepository {
       , eventLogFactory.getModifyNodeGroupFromDiff(
           principal = principal
         , modifyDiff = modifyDiff
+        , reason = reason
+      )
+    )
+  }
+
+  def saveAddTechnique(modId: ModificationId, principal: EventActor, addDiff: AddTechniqueDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getAddTechniqueFromDiff(
+          principal = principal
+        , addDiff = addDiff
         , reason = reason
       )
     )

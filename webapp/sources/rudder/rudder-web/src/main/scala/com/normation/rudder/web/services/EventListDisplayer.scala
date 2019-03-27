@@ -75,8 +75,6 @@ import com.normation.rudder.api._
 import net.liftweb.json._
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.HeartbeatConfiguration
-import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import org.joda.time.format.DateTimeFormat

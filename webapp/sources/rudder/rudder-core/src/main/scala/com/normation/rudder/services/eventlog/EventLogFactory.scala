@@ -151,6 +151,16 @@ trait EventLogFactory {
     , reason      : Option[String]
   ) : ModifyNodeGroup
 
+  def getAddTechniqueFromDiff(
+      id          : Option[Int] = None
+    , modificationId : Option[ModificationId] = None
+    , principal   : EventActor
+    , addDiff     : AddTechniqueDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+    , reason      : Option[String]
+  ) : AddTechnique
+
   def getModifyTechniqueFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -556,6 +566,31 @@ class EventLogFactoryImpl(
       , severity = severity))
   }
 
+  def getAddTechniqueFromDiff(
+      id          : Option[Int] = None
+    , modificationId : Option[ModificationId] = None
+    , principal   : EventActor
+    , addDiff     : AddTechniqueDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+    , reason      : Option[String]
+  ) : AddTechnique = {
+    val details = EventLog.withContent{
+      scala.xml.Utility.trim(<activeTechnique changeType="add" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+        <id>{addDiff.technique.id.value}</id>
+        <techniqueName>{addDiff.technique.techniqueName.toString}</techniqueName>
+      </activeTechnique>)
+    }
+    AddTechnique(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+
   override def getModifyTechniqueFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -592,7 +627,12 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
     , reason      : Option[String]
   ) : DeleteTechnique = {
-    val details = EventLog.withContent(techniqueXmlSerializer.serialise(deleteDiff.technique) % ("changeType" -> "delete"))
+    val details = EventLog.withContent{
+      scala.xml.Utility.trim(<activeTechnique changeType="delete" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+        <id>{deleteDiff.technique.id.value}</id>
+        <techniqueName>{deleteDiff.technique.techniqueName}</techniqueName>
+      </activeTechnique>)
+    }
     DeleteTechnique(EventLogDetails(
         id = id
       , modificationId = modificationId

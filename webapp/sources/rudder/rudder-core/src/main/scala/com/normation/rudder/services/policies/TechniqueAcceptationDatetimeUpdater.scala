@@ -79,7 +79,7 @@ class TechniqueAcceptationUpdater(
   , uuidGen               : StringUuidGenerator
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit] = {
+  override def updatedTechniques(gitRev: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit] = {
 
     final case class CategoryInfo(name: String, description: String)
 

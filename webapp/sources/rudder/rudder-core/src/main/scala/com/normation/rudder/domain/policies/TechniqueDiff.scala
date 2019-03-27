@@ -47,8 +47,12 @@ import com.normation.cfclerk.domain.TechniqueName
 
 sealed trait TechniqueDiff
 
+final case class AddTechniqueDiff(
+    technique: ActiveTechnique
+) extends TechniqueDiff with HashcodeCaching
+
 final case class DeleteTechniqueDiff(
-  technique: ActiveTechnique
+    technique: ActiveTechnique
 ) extends TechniqueDiff with HashcodeCaching
 
 final case class ModifyTechniqueDiff(

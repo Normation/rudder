@@ -55,7 +55,7 @@ class TechniqueRepositoryImpl(
 ) extends TechniqueRepository with UpdateTechniqueLibrary with Loggable {
 
   /**
-   * Callback to call on PTLib update
+   * Callback to call on technique lib update
    */
   private[this] var callbacks = refLibCallbacks.sortBy( _.order )
 
@@ -113,7 +113,7 @@ class TechniqueRepositoryImpl(
 
         val res = Control.bestEffort(callbacks) { callback =>
           try {
-            callback.updatedTechniques(modifiedPackages, modId, actor, reason)
+            callback.updatedTechniques(techniqueInfosCache.gitRevId, modifiedPackages, modId, actor, reason)
           } catch {
             case e: Exception =>
               Failure(s"Error when executing callback '${callback.name}' for updated techniques: '${modifiedPackages.mkString(", ")}'", Full(e), Empty)

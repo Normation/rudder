@@ -46,6 +46,7 @@ import com.normation.utils.HashcodeCaching
 
 case class TechniquesInfo(
     rootCategory          : RootTechniqueCategory
+  , gitRevId              : String
     //the TechniqueCategoryId is a path from the point of view of a tree
   , techniquesCategory    : Map[TechniqueId, TechniqueCategoryId]
   , techniques            : Map[TechniqueName, SortedMap[TechniqueVersion, Technique]]

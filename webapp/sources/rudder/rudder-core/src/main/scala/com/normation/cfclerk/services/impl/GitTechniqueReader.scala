@@ -420,6 +420,7 @@ class GitTechniqueReader(
       //ok, return the result in its immutable format
       TechniquesInfo(
         rootCategory = techniqueInfos.rootCategory.get,
+        gitRevId = id.name(),
         techniquesCategory = techniqueInfos.techniquesCategory.toMap,
         techniques = techniqueInfos.techniques.map { case(k,v) => (k, SortedMap.empty[TechniqueVersion,Technique] ++ v)}.toMap,
         subCategories = Map[SubTechniqueCategoryId, SubTechniqueCategory]() ++ techniqueInfos.subCategories,
