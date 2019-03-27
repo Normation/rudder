@@ -500,6 +500,18 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
  .ucf-old , .ucf-dist , .ucf-new ,\
  .rpmnew  , .rpmsave  , .rpmorig
 
+###################
+# Fatal exceptions #############################################################
+###################
+
+#
+# This is a list of unhandled exception that should cause rudder to stop.
+# When they happen, something went clearly wrong and even if rudder continues
+# to work, it is most likely in an unconsistant state, so people should know
+# it and not discover it at random when something else start go crazy.
+# Subclasses of java.lang.Error always lead to termination.
+#
+rudder.jvm.fatal.exceptions=
 
 #########################
 # DEPRECATED properties #############################################################
