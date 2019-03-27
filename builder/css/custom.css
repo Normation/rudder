@@ -7,7 +7,10 @@ a,
 .rudder-text-warning{
   color:#E07702;
 }
-
+.tooltip.left {
+  padding: 0 5px;
+  margin-left: -40px;
+}
 .navbar-inverse {
   background-color: #f08004;
   border-bottom:none;
@@ -418,7 +421,9 @@ ul.list-unstyled > li.active{
   border-color: #a5d3f7 !important;
   background-color: #f2f9ff;
 }
-
+ul.list-unstyled > li.text-danger{
+  border: none !important;
+}
 #methods .dndDraggingSource {
   display: none;
 }
@@ -520,14 +525,15 @@ input.form-control.ng-invalid.ng-dirty:focus{
 
 #technique-name .btn-technique .dropdown-menu{
   left: auto;
-  right: -10px;
+  right: -6px;
   border: 1px solid #dddddd;
   overflow: hidden;
+  min-width: auto;
 }
 
 #technique-name .btn-technique .dropdown-menu > li > a{
   font-size: 14px;
-  padding: 10px;
+  padding: 10px 14px;
   transition-duration: .2s;
 }
 
@@ -884,6 +890,54 @@ input.form-control.parameter{
   float: left;
   width: 100%;
   padding-right: 40px;
+  position: relative;
+}
+
+.method i.status-icon{
+  display: none;
+  position: absolute;
+  cursor: help;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 18px 16px 0;
+  border-color: transparent;
+  z-index: 1;
+}
+
+.method.missingParameters i.status-icon,
+.method.errorParameters i.status-icon,
+.method.is-edited i.status-icon{
+  display: block;
+}
+.method.is-edited i.status-icon{
+  border-right-color: #3379b7;
+}
+.method.missingParameters i.status-icon{
+  border-right-color: #f08004;
+}
+.method.errorParameters i.status-icon{
+  border-right-color: #c63e3a;
+}
+.method.is-edited i.status-icon:before,
+.method.errorParameters i.status-icon:before,
+.method.missingParameters i.status-icon:before{
+  color: #fff;
+  font-size: 0.5em;
+  position: absolute;
+}
+.method.is-edited i.status-icon:before{
+  content: "\f069";
+  top: 1px;
+  right: -16px;
+}
+.method.errorParameters i.status-icon:before,
+.method.missingParameters i.status-icon:before{
+  content: "\f12a";
+  top: 2px;
+  right: -14px;
 }
 
 .method .method-actions{
@@ -926,12 +980,13 @@ input.form-control.parameter{
 .method .edit-method > div{
   opacity: 1;
 }
+.method.is-edited .edit-method > div {
+  color: #3379b7 !important;
+}
 .method.missingParameters .edit-method > div{
-  opacity: 1;
   color: #f08004 !important;
 }
 .method.errorParameters .edit-method > div{
-  opacity: 1;
   color: #c63d3a !important;
 }
 .method .edit-method:active > div,
@@ -951,7 +1006,7 @@ ul.list-unstyled > li.active .edit-method:after{
   position: absolute;
   width: 14px;
   height: 14px;
-  background-color: #fff;
+  background-color: #eee;
   border: 1px solid #a5d3f7;
   border-bottom: none;
   border-left: none;

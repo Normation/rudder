@@ -817,25 +817,32 @@ $scope.onImportFileChange = function (fileEl) {
   };
 
   // Check if a method has not been changed, and if we can use reset function
-  $scope.canResetMethod = function() {
+  $scope.canResetMethod = function(method) {
     var canReset = true;
-    if ($scope.selectedMethod.original_index === undefined) {
-      canReset = false;
+    if (method.original_index === undefined) {
+      var current_method_name = method.method_name;
+      var oldValue = toMethodCall($scope.generic_methods[current_method_name]);
+      canReset = !(angular.equals(method.class_context, oldValue.class_context) && (angular.equals(method.parameters, oldValue.parameters)));
     } else {
-      var oldValue = $scope.originalTechnique.method_calls[$scope.selectedMethod.original_index];
+      var oldValue = $scope.originalTechnique.method_calls[method.original_index];
       if ( oldValue === undefined) {
         canReset = false;
       }  else {
-        canReset = ! angular.equals($scope.selectedMethod, oldValue);
+        canReset = ! angular.equals(method, oldValue);
       }
     }
-
     return canReset;
   };
 
   // Reset a method to the current value in the technique
   $scope.resetMethod = function() {
-    var oldValue = $scope.originalTechnique.method_calls[$scope.selectedMethod.original_index];
+    var oldValue = undefined;
+    if ($scope.selectedMethod.original_index === undefined) {
+      var current_method_name = $scope.selectedMethod.method_name;
+      oldValue = toMethodCall($scope.generic_methods[current_method_name]);
+    }else{
+      oldValue = $scope.originalTechnique.method_calls[$scope.selectedMethod.original_index];
+    }
     $scope.selectedMethod.class_context = oldValue.class_context;
     $scope.selectedMethod.parameters = oldValue.parameters;
   };
@@ -1323,9 +1330,24 @@ $scope.onImportFileChange = function (fileEl) {
     return $sce.trustAsHtml(tooltipContent);
   }
 
+  $scope.getStatusTooltipMessage = function(method){
+    var msg;
+    if($scope.checkErrorParameters(method.parameters)){
+      msg = "Invalid parameters"
+    }else if ($scope.checkMissingParameters(method.parameters)){
+      msg = "Required parameters missing"
+    }else if ($scope.canResetMethod(method)){
+      msg = "This generic method has been edited"
+    }else{
+      msg = ""
+    }
+    return msg;
+  }
+
   $scope.reloadData();
   $scope.setPath();
 });
+
 var confirmModalCtrl = function ($scope, $uibModalInstance, actionName, kind, name) {
 
   $scope.actionName = actionName;
