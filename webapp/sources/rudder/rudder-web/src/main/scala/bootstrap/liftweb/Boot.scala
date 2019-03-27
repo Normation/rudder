@@ -158,6 +158,46 @@ object StaticResourceRewrite extends RestHelper {
   }
 }
 
+/*
+ * Define the list of fatal exception that should stop rudder.
+ */
+object FatalException {
+
+  private[this] var fatalException = Set[String]()
+  // need to be pre-allocated
+  private[this] val format = org.joda.time.format.ISODateTimeFormat.dateTime()
+  /*
+   * Call that method with the list of fatal exception to set-up the
+   * UncaughtExceptionHandler.
+   * Termination should be () => System.exit(1) safe in tests.
+   */
+  def init(exceptions: Set[String]) = {
+    this.fatalException = exceptions
+
+
+    Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+      override def uncaughtException(t: Thread, e: Throwable): Unit = {
+        val desc = s"exception in thread '${t.getName}' (in threadgroup '${t.getThreadGroup.getName}'): '${e.getClass.getName}': '${e.getMessage}'"
+
+        // use println to minimize the number of component that can fail
+        if(e.isInstanceOf[java.lang.Error] || fatalException.contains(e.getClass.getName)) {
+          System.err.println(s"[${format.print(System.currentTimeMillis())}] ERROR FATAL Rudder JVM caught an unhandled fatal exception. Rudder will now stop to " +
+                  "prevent further unconsistant behavior. This is likely a bug, please " +
+                  "contact Rudder developers. You can configure the list of fatal exception " +
+                  "in /opt/rudder/etc/rudder-web.properties -> rudder.jvm.fatal.exceptions"
+          )
+          System.err.println(s"[${format.print(System.currentTimeMillis())}] ERROR FATAL ${desc}")
+          e.printStackTrace()
+          System.exit(5)
+        } else {
+          ApplicationLogger.warn(s"Uncaught ${desc} (add it in /opt/rudder/etc/rudder-web.properties -> 'rudder.jvm.fatal.exceptions' to make it fatal)")
+          e.printStackTrace()
+        }
+      }
+    })
+  }
+}
+
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -249,6 +289,10 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.rudderApi.getLiftRestApi())
 
 
+
+    // here, happen in net.liftweb.http.LiftFilter.bootLift(LiftServlet.scala:1063)
+    // throw new Exception("Where am I?")
+    FatalException.init(RudderConfig.RUDDER_FATAL_EXCEPTIONS)
 
     // URL rewrites
     LiftRules.statefulRewrite.append {
