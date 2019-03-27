@@ -45,7 +45,7 @@ bundle agent define_expected_classes(class_prefix, status, id)
   vars:
       "complete_suffix" slist => {"not_kept", "kept", "not_ok", "ok", "not_repaired", "repaired", "failed", "error"};
       "error_suffix" slist => {"not_kept", "not_ok", "not_repaired", "failed", "error"};
-      "repaired_suffix" slist => { "ok", "repaired" };
+      "repaired_suffix" slist => { "ok", "repaired", "not_kept" };
       "success_suffix" slist => { "ok", "kept", "not_repaired" };
 
       "expected_string_${id}" string => concat(join(".", maplist("${class_prefix}_${this}", "@{${status}_suffix}")), ".${class_prefix}_reached");
