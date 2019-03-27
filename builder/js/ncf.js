@@ -764,7 +764,7 @@ $scope.onImportFileChange = function (fileEl) {
   // Select a method in a technique
   $scope.selectMethod = function(method_call) {
     $scope.conditionIsOpen = method_call.class_context != "any";
-    if(angular.equals($scope.selectedMethod,method_call) ) {
+    if($scope.isSelectedMethod(method_call) ) {
       $scope.selectedMethod = undefined;
       // Scroll to the previously selected method category
       // We need a timeout so model change can be taken into account and element to scroll is displayed
@@ -1194,8 +1194,8 @@ $scope.onImportFileChange = function (fileEl) {
       $http.post("/rudder/secure/api/ncf", { "technique": ncfTechnique, "methods":usedMethods, "reason":reason }).
         success(rudderApiSuccess).
         error(errorRudder);
-
     }
+
     var saveError = function(action, data) {
       return handle_error("while "+action+" Technique '"+ data.technique.name+"'")
     }
@@ -1287,6 +1287,16 @@ $scope.onImportFileChange = function (fileEl) {
     return result;
   }
 
+  $scope.checkErrorParameters = function(parameters){
+    var result = false;
+    for(var i=0; i<parameters.length; i++) {
+      if(parameters[i].$errors && parameters[i].$errors.length > 0){
+        result = true;
+      }
+    }
+    return result;
+  }
+
   $scope.isUsed = function(method){
     var i,j = 0;
     if(method.deprecated){
@@ -1301,6 +1311,7 @@ $scope.onImportFileChange = function (fileEl) {
     }
   return false;
   };
+
   $scope.reloadData();
   $scope.setPath();
 });
@@ -1330,7 +1341,6 @@ var confirmModalCtrl = function ($scope, $uibModalInstance, actionName, kind, na
 var cloneModalCtrl = function ($scope, $uibModalInstance, technique, techniques) {
 
   technique.bundle_name = undefined;
-
   $scope.techniques = techniques;
   $scope.technique = technique;
   $scope.oldTechniqueName = technique.name;
