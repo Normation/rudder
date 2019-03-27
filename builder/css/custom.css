@@ -1,3 +1,7 @@
+a{
+  outline: none !important;
+  text-decoration: none !important;
+}
 .rudder-text-warning{
   color:#E07702;
 }
@@ -66,11 +70,6 @@ hr {
 }
 .modal-body .alert{
   margin: 10px 0 -10px 0;
-}
-@-moz-document url-prefix() {
-  .btn {
-    padding-bottom: 3px;
-  }
 }
 .btn-xs {
   padding: 1px 5px;
@@ -158,7 +157,9 @@ hr {
  #methodBlock .panel-body{
    padding-top: 0;
  }
-
+ #methodBlock h3 + button{
+    margin-bottom: 15px;
+ }
 a:hover {
     text-decoration: none;
     cursor: pointer;
@@ -261,28 +262,25 @@ html, body, .Override.container{
         clear: left;
     }
 
-.Override .wrapper
-{
-    position: absolute;
-    width: 100%;
-    height: 100%;
+.Override .wrapper{
+  position: absolute;
+  width: 100%;
+  height: 100%;
 }
-
-.Override .ncf_col2
-{
-    position: static;
-    overflow: auto;
+.Override .ncf_col2{
+  position: static;
+  overflow: auto;
 }
 
 
 .title {
-    color: #BBBBBB;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    margin-bottom: -20px;
-    margin-top: 15px;
-    text-transform: uppercase;
+  color: #BBBBBB;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: -20px;
+  margin-top: 15px;
+  text-transform: uppercase;
 }
 
 .table-ncf {
@@ -311,11 +309,11 @@ textarea.form-control {
   background-size: 15px;
 }
 .input-xs {
-    border-radius: 3px;
-    font-size: 13px;
-    height: 20px;
-    line-height: 1.5;
-    margin: 0
+  border-radius: 3px;
+  font-size: 13px;
+  height: 20px;
+  line-height: 1.5;
+  margin: 0
 }
 
 #methodBlock{
@@ -360,30 +358,30 @@ textarea.form-control {
   }
 }
 .right-margin {
-    margin-right: 10px;
+  margin-right: 10px;
 }
 
 .top-margin {
-    margin-top: -5px;
+  margin-top: -5px;
 }
 
 .btn-delete:hover, .btn-delete:active, .btn-delete:focus{
-    color: #fff;
-    background-color: #b33630;
-    background-image: linear-gradient(#dc5f59, #b33630)
+  color: #fff;
+  background-color: #b33630;
+  background-image: linear-gradient(#dc5f59, #b33630)
 }
 
 .ng-invalid.ng-dirty {
-    border-color: #b33630;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+  border-color: #b33630;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
 }
 
 #os-form form.form-inline div:first-child {
-    width: 200px;
+  width: 200px;
 }
 
 #os-form form.form-inline {
-    margin: 5px 10px;
+  margin: 5px 10px;
 }
 
 #editform-container {
@@ -394,14 +392,25 @@ textarea.form-control {
 }
 
 ul[dnd-list], ul[dnd-list] > li {
-    position: relative;
+  position: relative;
 }
 
 ul[dnd-list] .dndPlaceholder {
-    display: block;
-    background-color: #ddd;
-    min-height: 68px;
-    margin-top:5px;
+  display: block;
+  background-color: #ddd;
+  min-height: 68px;
+  margin-top:5px;
+}
+
+ul.list-unstyled > li{
+  border: 1px solid #dcdcdc;
+  border-right: none !important;
+  border-radius: 4px;
+  position: relative;
+}
+ul.list-unstyled > li.active{
+  border-color: #a5d3f7 !important;
+  background-color: #f2f9ff;
 }
 
 #methods .dndDraggingSource {
@@ -413,6 +422,7 @@ ul[dnd-list] .dndPlaceholder {
   overflow:hidden;
   text-align: left;
   white-space: normal;
+  transition-duration: .2s;
 }
 .btn.btn-method.disabled {
   pointer-events: visible;
@@ -422,6 +432,7 @@ ul[dnd-list] .dndPlaceholder {
   pointer-events: visible;
   cursor: not-allowed !important;
 }
+
 ul[dnd-list] {
   min-height: 70px;
   padding: 15px 0 40px 0;
@@ -430,9 +441,12 @@ ul[dnd-list] {
 }
 
 .cursorMove {
-  cursor:move
+  cursor:move;
+  border: none !important;
 }
-
+.cursorMove + div{
+  border: none !important;
+}
 #no-methods {
   z-index: -1;
   position:absolute;
@@ -499,20 +513,22 @@ input.form-control.ng-invalid.ng-dirty:focus{
 }
 /* --- IFRAME --- */
 body.iframe .navbar-inverse.navbar-static-top {
-    display: none;
+  display: none;
 }
 
 body.iframe .jumbotron h1{
-    padding-bottom: 5px;
-    border-bottom: 2px solid #f08004;
+  padding-bottom: 5px;
+  border-bottom: 2px solid #f08004;
 }
 body.iframe .Override.container {
-    margin: 0;
-    padding: 0;
+  margin: 0;
+  padding: 0;
 }
-
+.generic-methods.ncf_col li.btn-method .input-group > .input-group-addon:first-child{
+  border: none;
+}
 .sm-space-top{
-    margin-top: 10px !important;
+  margin-top: 10px !important;
 }
 .generic-methods, #categories-list{
     padding-bottom: 55px;
@@ -524,45 +540,45 @@ body.iframe .Override.container {
   padding-left: 5px;
 }
 @media screen and (min-width: 992px) {
-    .container > .ncf_col{
-        max-height: 100%;
-        overflow-x: hidden;
-        overflow-y: auto;
-    }
-    .generic-methods, #categories-list{
-        padding-bottom: 20px;
-    }
-    #categories-list{
-        margin-top: 38px;
-    }
+  .container > .ncf_col{
+    max-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .generic-methods, #categories-list{
+    padding-bottom: 20px;
+  }
+  #categories-list{
+    margin-top: 38px;
+  }
 }
 .ncf_col.no-padding{
   padding: 0;
 }
 #categories-list{
-    overflow-x: hidden;
-    overflow-y: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 #categories-list.fixed{
-    position: fixed;
-    top:0;
-    right: 15px;
+  position: fixed;
+  top:0;
+  right: 15px;
 }
 #categories-list.fixed li{
-    padding-right: 20px;
+  padding-right: 20px;
 }
 #categories-list.fixed li a{
   padding: 10px;
 }
 @media screen and (max-width: 992px) {
-    #categories-list{
-        position:static;
-        margin-top: 38px;
-        max-height: 100vh;
-    }
-    #categories-list.fixed{
-        margin-top: 0;
-    }
+  #categories-list{
+    position:static;
+    margin-top: 38px;
+    max-height: 100vh;
+  }
+  #categories-list.fixed{
+    margin-top: 0;
+  }
 }
 
 i.glyphicon.glyphicon-circle-arrow-down.icon-margin.method-action.ng-hide,i.glyphicon.glyphicon-circle-arrow-up.icon-margin.method-action.ng-hide {
@@ -594,6 +610,10 @@ button.btn-save.saving span.saving{
   color: #f08004;
   font-size: 14px;
   line-height: 22px;
+  display: none;
+}
+.missingParameters .requiredParameters{
+  display: block !important;
 }
 .requiredParameters > .glyphicon{
   top:2px;
@@ -777,6 +797,90 @@ input.form-control.parameter{
   padding: 20px 10px 20px 0px;
 }
 
+.method .panel-heading{
+  float: left;
+  width: 100%;
+  padding-right: 40px;
+}
+
+.method .method-actions{
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .2s;
+  position: relative;
+  right: 4px;
+}
+
+.method .edit-method {
+  position: absolute;
+  right: -1px;
+  bottom: 0;
+  top: 0;
+  border-right: 1px solid #dcdcdc;
+}
+.method.active .edit-method {
+  border-color: #a5d3f7 !important;
+}
+.method .edit-method > div{
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  width: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border-left: 1px solid #e5e5e5;
+  background-color: #ffffff;
+  color: #ccc;
+  cursor: pointer;
+  opacity: 0;
+  transition-duration: .2s;
+}
+.method:hover .method-actions,
+.method .edit-method > div{
+  opacity: 1;
+}
+.method.missingParameters .edit-method > div{
+  opacity: 1;
+  color: #f08004 !important;
+}
+.method.errorParameters .edit-method > div{
+  opacity: 1;
+  color: #c63d3a !important;
+}
+.method .edit-method:active > div,
+.method.active .edit-method > div{
+  box-shadow: inset 4px 0px 10px #00000029;
+}
+
+.method .edit-method > div:hover,
+.method.active .edit-method > div{
+  color: #777;
+  background-color: #eee;
+  border-color: #c7c7c7;
+  opacity: 1;
+}
+ul.list-unstyled > li.active .edit-method:after{
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background-color: #fff;
+  border: 1px solid #a5d3f7;
+  border-bottom: none;
+  border-left: none;
+  transform: rotate(45deg);
+  top: calc(50% - 7px);
+  right: -8px;
+  transition-duration: .2s;
+}
+
+ul.list-unstyled > li.active .edit-method:after{
+  background-color: #eee;
+}
 
 @-webkit-keyframes saving {
   0% {

@@ -268,6 +268,7 @@
                         </uib-accordion-group>
                     </uib-accordion>
                     <uib-accordion>
+
                         <uib-accordion-group ng-init="parameter_open = true" is-open="parameter_open">
                           <uib-accordion-heading>
                             <i class="glyphicon" ng-class="{'glyphicon-chevron-down': parameter_open, 'glyphicon-chevron-right': !parameter_open}"></i>
@@ -300,44 +301,61 @@
                         Drag and drop generic methods here from the list on the right to build target configuration for this technique. </div>
                       </div>
                     </div>
-                   
                     <ul id="methods" class="list-unstyled" dnd-list="selectedTechnique.method_calls" dnd-drop="dropCallback(item, index, type);" >
-                        <li ng-click="selectMethod(method_call)" ng-repeat="method_call in selectedTechnique.method_calls" class="panel-margin-top btn btn-block btn-default btn-method" ng-class="{'active': isSelectedMethod(method_call)}" dnd-draggable="method_call" dnd-effect-allowed="move" dnd-moved="selectedTechnique.method_calls.splice($index,1)">
+                        <li
+                        ng-repeat="method_call in selectedTechnique.method_calls"
+                        class="panel-margin-top method"
+                        ng-class="{'active': isSelectedMethod(method_call), 'missingParameters': checkMissingParameters(method_call.parameters), 'errorParameters': checkErrorParameters(method_call.parameters)}"
+                        dnd-draggable="method_call"
+                        dnd-effect-allowed="move"
+                        dnd-moved="selectedTechnique.method_calls.splice($index,1)">
+
                           <div class="input-group">
                             <span class="input-group-addon cursorMove"><b>:::</b></span>
                             <div class="panel-heading form-horizontal" style="overflow:hidden" dnd-nodrag>
+
                               <div class="input-group col-xs-12 text-info"  ng-if="method_call.class_context !== 'any'">
                                 <label class="input-xs text-light input-group-addon">Condition:</label>
-                                <input ng-click="$event.stopPropagation();" class="input-xs form-control parameter" 
-                                       uib-popover-html="'<small>Click <span class=\'text-info\'>3</span> times to copy the whole condition below</small>'" popover-trigger="mouseenter" popover-append-to-body="true" popover-title="{{method_call.class_context}}" ng-readonly="true" ng-model="method_call.class_context"  />
-                                <span class="input-group-addon input-xs">
+                                <input
+                                  ng-click="$event.stopPropagation();"
+                                  class="input-xs form-control parameter"
+                                  uib-popover-html="'<small>Click <span class=\'text-info\'>3</span> times to copy the whole condition below</small>'"
+                                  popover-trigger="mouseenter"
+                                  popover-append-to-body="true"
+                                  popover-title="{{method_call.class_context}}"
+                                  ng-readonly="true"
+                                  ng-model="method_call.class_context"/>
+
+                                <span class="input-group-addon method-actions">
                                   <button type="button" uib-tooltip="Clone this method" tooltip-append-to-body="true" popup-trigger="click" popup-open-delay="500" ng-click="cloneMethod($index);$event.stopPropagation();" class="icon-margin text-success method-action">
                                     <i class="fas fa-clone"></i>
                                   </button>
                                   <button type="button" ng-click="removeMethod($index);$event.stopPropagation();" class="icon-margin text-danger method-action">
                                     <i class="fas fa-times-circle"></i>
                                   </button>
-                                  <button type="button" class="icon-margin text-classic method-action">
-                                    <i class="glyphicon " ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
-                                  </button>
-                                 </span>
+                                </span>
                               </div>
 
                               <div ng-class="{'small-left-margin': method_call.class_context !== 'any'}">
                                 <h4 class="input-group panel-title">
-                                  <div class="method-name text-left input-group-addon">
+                                  <div class="method-name">
                                     {{method_call.component}}
-                                    <span class="cursor-help" ng-if="(method_call.deprecated || isDeprecated(method_call.method_name))" 
-                                         uib-popover-template="'deprecatedMethod.html'" popover-title="{{getMethodName(method_call)}}" 
-                                         popover-trigger="mouseenter" popover-append-to-body="true">
+                                    <span
+                                      class="cursor-help"
+                                      ng-if="(method_call.deprecated || isDeprecated(method_call.method_name))"
+                                      uib-popover-template="'deprecatedMethod.html'"
+                                      popover-title="{{getMethodName(method_call)}}"
+                                      popover-trigger="mouseenter"
+                                      popover-append-to-body="true">
                                       <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
                                     </span>
-                                    <span class="cursor-help"
-                                    popover-title="{{getMethodName(method_call)}}"
-                                    uib-popover="{{getMethodDescription(method_call)}}"
-                                    popover-trigger="mouseenter"
-                                    popover-append-to-body="true"
-                                    ><i class="glyphicon glyphicon-info-sign text-primary method-action cursor-help"></i>
+                                    <span
+                                      class="cursor-help"
+                                      popover-title="{{getMethodName(method_call)}}"
+                                      uib-popover="{{getMethodDescription(method_call)}}"
+                                      popover-trigger="mouseenter"
+                                      popover-append-to-body="true">
+                                      <i class="glyphicon glyphicon-info-sign text-primary method-action cursor-help"></i>
                                     </span>
                                   </div>
                                   <span class="input-group-addon method-actions"  ng-if="method_call.class_context === 'any'">
@@ -347,28 +365,30 @@
                                     <button type="button" ng-click="removeMethod($index);$event.stopPropagation();" class="icon-margin text-danger method-action">
                                       <i class="fas fa-times-circle"></i>
                                     </button>
-                                    <button type="button" class="icon-margin text-classic method-action">
-                                      <i class="glyphicon " ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
-                                    </button>
-                                   </span>
+                                  </span>
                                 </h4>
                                 <div class="input-group col-xs-12 text-grey"  ng-if="getClassParameter(method_call).value">
                                   <label class="input-xs text-light  input-group-addon text-grey">{{getClassParameter(method_call).name}}:</label>
                                   <input ng-click="$event.stopPropagation();" class="input-xs form-control parameter" ng-readonly="true" ng-model="getClassParameter(method_call).value" />
                                 </div>
                                 <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index">
-                                  <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter" >
+                                  <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter">
                                   <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple>
                                     <div class="text-danger" ng-message="constraint">
                                       Invalid constraint for parameter: '{{parameter.name}}'
                                     </div>
                                   </ng-messages>
                                 </div>
-                                <div class="requiredParameters" ng-if="checkMissingParameters(method_call.parameters)">
+                                <div class="requiredParameters">
                                   <span class="glyphicon glyphicon-exclamation-sign"></span>
                                   Required parameters missing
                                 </div>
                               </div>
+                          </div>
+                          <div class="edit-method" ng-click="selectMethod(method_call)" dnd-nodrag>
+                            <div>
+                              <i class="fas fa-pen"></i>
+                            </div>
                           </div>
                         </div>
                       </li>
@@ -404,13 +424,14 @@
                         ><i class="glyphicon glyphicon-info-sign text-primary method-action cursor-help"></i>
                         </span>
                         <i class="{{getIconClassByAgentType(selectedMethod.method_name)}}"></i>
-                        <button ng-disabled="! canResetMethod()" class="btn btn-primary btn-outline pull-right top-margin" ng-click="resetMethod()">Reset <i class="fas fa-undo-alt"></i></button>
+                        <button class="btn btn-default pull-right top-margin" ng-click="selectMethod(selectedMethod)">Close <i class="fas fa-times"></i></button>
+                        <button ng-disabled="! canResetMethod()" class="btn btn-primary btn-outline pull-right top-margin  right-margin" ng-click="resetMethod()">Reset <i class="fas fa-undo-alt"></i></button>
                     </h3>
                     <button ng-if="getMethodDocumentation(selectedMethod) !== undefined" class="btn btn-primary" ng-class="{ 'btn-outline' : !selectedMethod.showDoc}" ng-click="$event.stopPropagation(); selectedMethod.showDoc = !selectedMethod.showDoc">{{selectedMethod.showDoc ? "Hide" : "Show"}} docs <i class="fa fa-book"></i></button>
                     <div class="markdown" ng-if="getMethodDocumentation(selectedMethod) !== undefined && selectedMethod.showDoc" ng-bind-html="getMethodDocumentation(selectedMethod)"></div>
-                    <div class="form-group condition-form">
+                    <div class="form-group">
                       <label for="component">Report component:</label>
-                      <input type="text" style="cursor:text" name="component" class="form-control" ng-model="selectedMethod.component"/>
+                      <input type="text" name="component" class="form-control" ng-model="selectedMethod.component"/>
                     </div>
                     <uib-accordion>
                         <uib-accordion-group is-open="conditionIsOpen">
