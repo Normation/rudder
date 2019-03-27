@@ -785,7 +785,13 @@ class AcceptFullInventoryInNodeOu(
     val entry = ldapEntityMapper.nodeToEntry(node)
     for {
       con <- ldap
-      res <- con.save(entry) ?~! "Error when trying to save node %s in process '%s'".format(entry.dn, this.name)
+      _   <- con.save(entry) ?~! "Error when trying to save node %s in process '%s'".format(entry.dn, this.name)
+      // check that the node was correctly created - sometime, we have silent error, see #14430
+      _   <- if(con.exists(entry.dn)) {
+               Full("ok")
+             } else {
+               Failure(s"Entry for node '${sm.node.main.hostname}' [${sm.node.main.id.value}] should have been created but does not exists. Please ask your operator to check application logs." )
+             }
     } yield {
       sm
     }
