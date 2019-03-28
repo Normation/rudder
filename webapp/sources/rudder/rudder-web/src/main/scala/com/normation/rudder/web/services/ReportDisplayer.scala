@@ -149,8 +149,18 @@ class ReportDisplayer(
             case Some((date, id)) =>
               (id.endDate match {
                 case None =>
-                  s"This is expected, the node is reporting on the previous configuration policy and should report on the new one at latest" +
-                  s" ${expirationDateTime.toString(dateFormat)}. Previous known states are displayed below."
+                  // here, if the date of last run is very old, the node was grey and it changed to blue due to the new config, but it's
+                  // very unlikely that it will starts to answer.
+                  val runIntervalMinutes = expectedConfig.modes.nodeAgentRun.getOrElse(expectedConfig.modes.globalAgentRun).interval
+                  val minDate = expectedConfig.beginDate.minusMinutes(runIntervalMinutes*2)
+                  if(date.isBefore(minDate)) { // most likely a disconnected node
+                    s"The node was reporting on a previous configuration policy, and didn't send reports since a long time: please" +
+                    s" check that the node connection to server is correct. It should report on the new one at latest" +
+                    s" ${expirationDateTime.toString(dateFormat)}. Previous known states are displayed below."
+                  } else {
+                    s"This is expected, the node is reporting on the previous configuration policy and should report on the new one at latest" +
+                    s" ${expirationDateTime.toString(dateFormat)}. Previous known states are displayed below."
+                  }
                 case Some(exp) =>
                   s"This is unexpected, since the node is reporting on a configuration policy that expired at ${exp.toString(dateFormat)}."
               }) +
