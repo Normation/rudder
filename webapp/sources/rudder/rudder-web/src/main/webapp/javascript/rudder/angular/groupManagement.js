@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -45,12 +45,9 @@ groupManagement.controller('GroupCtrl', ['$scope', function($scope) {
     };
 
     // Get name of a target (ie the group name) instead of using the target
-    $scope.getTargetName = function (target) {
+    $scope.getTarget = function (target) {
       return $scope.mapTarget[target];
     };
-
-    // Text to display if there is no target selected
-    $scope.emptyTarget = "Select groups from the tree on the left to add them here"
 
     // Update the html field that stocks the target
     $scope.updateTarget = function() {
@@ -125,23 +122,35 @@ groupManagement.controller('GroupCtrl', ['$scope', function($scope) {
           // In included targets => remove from included
           $scope.removeInclude(target);
         }
-     };
+      };
 
-     // Explanations to use in popups
-     $scope.includeExplanation = [ "<h3>Add Groups here to apply this Rule to the nodes they contain.</h3>"
-                                  , "Groups will be merged together (union)."
+    // Explanations to use in popups
+    $scope.includeExplanation = [ "<div>Add Groups here to apply this Rule to the nodes they contain.</div><br/>"
+                                  , "<div>Groups will be merged together (union)."
                                   , "For example, if you add groups <b>'Datacenter 1'</b> and <b>'Production',</b>"
                                   , "this Rule will be applied to all nodes that are either"
-                                  , "in that datacenter (production or not) or in production (in any datacenter)."
-                                  ].join(" ");
-     $scope.excludeExplanation = [ "<h3>Add Groups here to forbid applying this Rule to the nodes they contain.</h3>"
-                                  , "Nodes in these Groups will never have this Rule applied,"
+                                  , "in that datacenter (production or not) or in production (in any datacenter).</div>"
+                                ].join(" ");
+    $scope.excludeExplanation = [ "<div>Add Groups here to forbid applying this Rule to the nodes they contain.</div><br/>"
+                                  , "<div>Nodes in these Groups will never have this Rule applied,"
                                   , "even if they are also in a Group applied above."
                                   , "For example, if the above list contains groups '<b>Datacenter 1</b>' and '<b>Production</b>',"
                                   , "and this list contains the group '<b>Red Hat Linux</b>',"
                                   , "this Rule will be applied to all nodes that are running any OS except 'Red Hat Linux'"
-                                  , "and are either in that datacenter (production or not) or in production (in any datacenter)."
+                                  , "and are either in that datacenter (production or not) or in production (in any datacenter).</div>"
                                   ].join(" ");
+
+    $scope.modal = function(id, show) {
+      var element = $('#' + id);
+      element.bsModal(show ? 'show' : 'hide');
+    };
+
+    $scope.getTooltipContent = function(group){
+      var title = "<h4>"+group.name+"</h4>";
+      var desc  = group.desc != "" ? ("<div>"+group.desc+"</div>") : "<div><i class='empty'>This group has no description.</div></i>";
+      return title + desc;
+    }
+
   } ] ) ;
 
 // Add directive to create popup from angular, the directive should shared to future angular component

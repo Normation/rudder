@@ -166,131 +166,256 @@
   </div>
 
   <div class="groupedEditZone">
-    <div class="section-title spacing-title">
-      Directives
-      <lift:authz role="directive_write"><a class="title-link" href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz>
-    </div>
-    <div id="directiveTree_actions_zone"  >
-      <div class="col-xs-12 tree">
-        <div class="filter-tree">
-          <div class="input-group">
-            <div class="input-group-btn">
-              <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#directiveTree', this);">
-                <span class="fa fa-folder fa-folder-open"></span>
-              </button>
-            </div>
-            <input class="form-control" placeholder="Filter" id="treeSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#directiveTree');">
-            <div class="input-group-btn">
-              <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#treeSearch', '#directiveTree');" >
-                <span class="fa fa-times"></span>
-              </button>
+
+    <div id="ruleDirectives" ng-app="ruleDirectives">
+      <div id="DirectiveCtrl" ng-controller="DirectiveCtrl">
+
+        <div class="section-title">
+          Directives
+          <lift:authz role="directive_write"><a class="title-link" href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz>
+        </div>
+
+        <div id="selectDirectives" class="modal fade">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <div data-dismiss="modal" class="close">
+                  <span>×</span>
+                </div>
+                <h4 class="modal-title">
+                  Select Directives to be applied
+                </h4>
+              </div>
+              <div class="modal-body">
+                <div id="directiveTree_actions_zone" class="row" >
+                  <div class="col-xs-12 tree">
+                    <div class="filter-tree">
+                      <div class="input-group">
+                        <div class="input-group-btn">
+                          <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#directiveTree', this);">
+                            <span class="fa fa-folder fa-folder-open"></span>
+                          </button>
+                        </div>
+                        <input class="form-control" placeholder="Filter" id="treeSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#directiveTree');">
+                        <div class="input-group-btn">
+                          <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#treeSearch', '#directiveTree');" >
+                            <span class="fa fa-times"></span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div id="selectPiField"  class="col-xs-12" >
+                  Here comes the Directive selection field
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button data-dismiss="modal" class="btn btn-default" type="button">Close</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-      <div id="selectPiField"  class="col-xs-7" >
-        Here comes the Directive selection field
-      </div>
-      <div ng-app="ruleDirectives" id="ruleDirectives" class="col-xs-5" >
-        <div id="DirectiveCtrl" ng-controller="DirectiveCtrl">
-          <div class="spacing-title targetHeader">
-            Apply these Directives:
-            <i class="fa fa-question-circle targetIcon icon-info" aria-hidden="true" tooltip="directiveAddExplanation"></i>
-          </div>
-          <div style="background-color:#DDFFDD;" class="targetContainer">
-            <ul>
-              <li ng-show="directivesIsEmpty()">
-                <span class="targetDisplay">{{emptyDirective}}</span>
-              </li>
-              <li ng-repeat="directive in sortDirectives(directives)">
-                <span class="targetDisplay">
-                    <span class="fa fa-file-text"></span>
-                    {{ directive.name }}
-                    <i class="fa fa-times targetRemove" ng-click="removeInclude(directive.id)"></i>
+        <div class="row">
+          <div class="col-xs-12 col-lg-6">
+            <h4 class="list-title">
+              Apply these Directives
+              <i class="fa fa-question-circle targetIcon icon-info"
+                 data-toggle="tooltip"
+                 data-placement="right"
+                 data-html="true"
+                 data-original-title="<div>Add Directives here to so that they will be applied.</div>"
+              ></i>
+            </h4>
+            <ul class="directives applied-list">
+              <li ng-show="directivesIsEmpty()" class="empty">
+                <span>There is no directive applied. Click on the "Add Directives" button and select directives from the tree to add them here.</span>
+                <span class="warning-sign">
+                  <i class="fa fa-info-circle"></i>
                 </span>
               </li>
+              <li ng-repeat="directive in sortDirectives(directives)">
+                <span class="fa fa-file-text"></span>
+                <a href="{{directive.link}}">
+                  <span class="rudder-label label-sm"
+                    ng-class="{'label-audit': directive.mode=='audit', 'label-enforce': directive.mode=='enforce'}"
+                    data-toggle="tooltip"
+                    data-placement="top"
+                    data-html="true"
+                    data-container="body"
+                    data-original-title="<h4>Policy Mode </h4><div class='tooltip-content policy-mode {{directive.mode}}'><div>This directive is in <b>{{directive.mode}}</b> mode.</div></div>"
+                  ></span>
+                  <span class="target-name"> {{ directive.name }} </span>
+                </a>
+                <i class="fa fa-question-circle targetIcon icon-info"
+                   data-toggle="tooltip"
+                   data-placement="top"
+                   data-html="true"
+                   data-container="body"
+                   data-original-title="{{getTooltipContent(directive)}}"
+                ></i>
+                <span class="target-remove" ng-click="removeInclude(directive.id)">
+                  <i class="fa fa-times"></i>
+                </span>
+                <span class="border"></span>
+              </li>
             </ul>
-            <hr class="spacer"/>
+            <button class="btn btn-outline btn-success add-target" ng-click="modal('selectDirectives', true)">
+              <span>Select Directives</span>
+              <i class="fa fa-plus"></i>
+            </button>
           </div>
-          <hr class="spacer"/><br/>
         </div>
+
       </div>
+    </div>
 
-      <hr class="spacer"/>
+  <div id="groupManagement" ng-app="groupManagement">
+    <div id="GroupCtrl" ng-controller="GroupCtrl">
 
-      <div class="section-title spacing-title">
+      <div class="section-title">
         Groups
         <lift:authz role="group_write"><a class="title-link" href= "/secure/nodeManager/groups">(Create a new Group)</a></lift:authz>
       </div>
-  <div id="groupeTree_actions_zone"  >
-    <div class="col-xs-12 tree">
-      <div class="filter-tree">
-        <div class="input-group">
-          <div class="input-group-btn">
-            <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#groupTree', this);">
-              <span class="fa fa-folder fa-folder-open"></span>
-            </button>
-          </div>
-          <input class="form-control" placeholder="Filter" id="groupSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#groupSearch', '#groupTree');">
-          <div class="input-group-btn">
-            <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" >
-              <span class="fa fa-times"></span>
-            </button>
+
+      <div id="selectGroups" class="modal fade">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <div data-dismiss="modal" class="close">
+                <span>×</span>
+              </div>
+              <h4 class="modal-title">
+                Select target Groups
+              </h4>
+            </div>
+            <div class="modal-body">
+              <div id="groupeTree_actions_zone" class="row">
+                <div class="col-xs-12 tree">
+                  <div class="filter-tree">
+                    <div class="input-group">
+                      <div class="input-group-btn">
+                        <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#groupTree', this);">
+                          <span class="fa fa-folder fa-folder-open"></span>
+                        </button>
+                      </div>
+                      <input class="form-control" placeholder="Filter" id="groupSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#groupSearch', '#groupTree');">
+                      <div class="input-group-btn">
+                        <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" >
+                          <span class="fa fa-times"></span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div id="selectGroupField"  class="col-xs-12" >
+                Here comes the Directive selection field
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button data-dismiss="modal" class="btn btn-default" type="button">Close</button>
+            </div>
           </div>
         </div>
       </div>
+
+      <div class="row">
+        <div class="col-xs-12 col-lg-6">
+          <h4 class="list-title">
+            Apply to Nodes in any of these Groups
+            <i class="fa fa-question-circle targetIcon icon-info"
+               data-toggle="tooltip"
+               data-placement="right"
+               data-html="true"
+               data-original-title="{{includeExplanation}}"
+            ></i>
+          </h4>
+          <ul class="groups applied-list">
+            <li ng-show="target.include.or.length === 0" class="empty">
+              <span>There is no included group selected.</span>
+              <span class="warning-sign">
+                  <i class="fa fa-info-circle"></i>
+                </span>
+            </li>
+            <li ng-repeat="included in target.include.or">
+              <span class="fa fa-sitemap"></span>
+              <span class="target-name">
+                <a href="{{getTarget(included).link}}">
+                  {{ getTarget(included).name }}
+                </a>
+                <i class="fa fa-question-circle targetIcon icon-info"
+                   data-toggle="tooltip"
+                   data-placement="top"
+                   data-html="true"
+                   data-container="body"
+                   data-original-title="{{getTooltipContent(getTarget(included))}}"
+                ></i>
+              </span>
+              <span class="target-remove" ng-click="removeInclude(included)">
+                  <i class="fa fa-times"></i>
+                </span>
+              <span class="border"></span>
+            </li>
+          </ul>
+          <button class="btn btn-outline btn-success add-target" ng-click="modal('selectGroups', true)">
+            <span>Select Groups</span>
+            <i class="fa fa-plus"></i>
+          </button>
+
+
+        </div>
+
+        <div class="col-xs-12 col-lg-6">
+          <h4 class="list-title except">
+            Except to Nodes in any of these Groups
+            <i class="fa fa-question-circle targetIcon icon-info"
+               data-toggle="tooltip"
+               data-placement="right"
+               data-html="true"
+               data-original-title="{{excludeExplanation}}"
+            ></i>
+          </h4>
+          <ul class="groups applied-list">
+            <li ng-show="target.exclude.or.length === 0" class="empty">
+              <span>There is no excluded group selected.</span>
+              <span class="warning-sign">
+                  <i class="fa fa-info-circle"></i>
+                </span>
+            </li>
+            <li ng-repeat="excluded in target.exclude.or">
+              <span class="fa fa-sitemap"></span>
+              <span class="target-name">
+                <a href="{{getTarget(excluded).link}}">
+                  {{getTarget(excluded).name}}
+                </a>
+                <i class="fa fa-question-circle targetIcon icon-info"
+                   data-toggle="tooltip"
+                   data-placement="right"
+                   data-html="true"
+                   data-container="body"
+                   data-original-title="{{getTooltipContent(getTarget(excluded))}}"
+                ></i>
+              </span>
+              <span class="target-remove" ng-click="removeInclude(excluded)">
+                  <i class="fa fa-times"></i>
+                </span>
+              <span class="border"></span>
+            </li>
+          </ul>
+          <button class="btn btn-outline btn-danger add-target" ng-click="modal('selectGroups', true)">
+            <span>Select Groups</span>
+            <i class="fa fa-plus"></i>
+          </button>
+
+
+        </div>
+      </div>
+
     </div>
   </div>
-      <div id="selectGroupField" class="col-xs-7">
-        Here comes the group selection field
-      </div>
-      <div ng-app="groupManagement" id="groupManagement" class="col-xs-5" >
-        <div id="GroupCtrl" ng-controller="GroupCtrl">
-          <div class="spacing-title targetHeader">
-            Apply to Nodes in any of these Groups:
-            <i class="fa fa-question-circle targetIcon icon-info" aria-hidden="true" tooltip="includeExplanation"></i>
-          </div>
-          <div style="background-color:#DDFFDD;" class="targetContainer">
-	        <ul>
-	          <li ng-show="target.include.or.length === 0">
-	            <span class="targetDisplay">{{emptyTarget}}</span>
-	          </li>
-	          <li ng-repeat="included in target.include.or">
-	            <span class="targetDisplay">
-                    <span class="fa fa-sitemap"></span>
-                  {{ getTargetName(included) }}
-                  <i class="fa fa-times targetRemove" ng-click="removeInclude(included)"></i>
-	            </span>
-	          </li>
-	        </ul>
-	        <hr class="spacer"/>
-          </div>
-          <div class="spacing-title targetHeader">
-            Except to Nodes in any of these Groups:
-            <i class="fa fa-question-circle targetIcon icon-info" aria-hidden="true" tooltip="excludeExplanation"></i>
-          </div>
-          <div style="background-color:#FFDDDD;" class="targetContainer">
-            <ul>
-	          <li ng-show="target.exclude.or.length === 0">
-	            <span class="targetDisplay">{{emptyTarget}}</span>
-	          </li>
-              <li ng-repeat="excluded in target.exclude.or"  >
-                <span class="targetDisplay">
-                    <span class="fa fa-sitemap"></span>
-                  {{ getTargetName(excluded) }}
-                  <i class="fa fa-times targetRemove" ng-click="removeExclude(excluded)"></i>
-                </span>
-              </li>
-            </ul>
-            <hr class="spacer"/>
-          </div>
-        </div>
-      </div>
-      <div class="hierarchySpacer"/>
-    </div>
-    <hr class="spacer"/>
+
 </div>
 
 </component-form>

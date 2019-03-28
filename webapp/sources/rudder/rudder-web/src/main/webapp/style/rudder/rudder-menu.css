@@ -1409,12 +1409,13 @@ label.text-fit{
 #groupTree ul.jstree-container-ul>li>ul>li>a .tooltip{
   left:0 !important;
 }
-.content-wrapper .tooltip{
-  z-index:9;
+.skin-yellow .tooltip{
+  z-index:999;
 }
-.content-wrapper .tooltip > .tooltip-inner {
+.skin-yellow .tooltip > .tooltip-inner {
   background-color: #fff;
   padding: 0 !important;
+  padding-bottom: 8px !important;
   color: #222D32;
   text-align: left !important;
   width: 360px;
@@ -1426,37 +1427,58 @@ label.text-fit{
   border: 1px solid #ccc;
   border-radius: 3px;
 }
-.content-wrapper .tooltip.top > .tooltip-arrow{
+.skin-yellow .tooltip.right > .tooltip-inner {
+  padding: 10px !important;
+  font-size: 14px;
+  color: #555;
+}
+
+.skin-yellow .tooltip.top > .tooltip-arrow{
   border-top-color: #ccc;
 }
-.content-wrapper .tooltip > .tooltip-inner h4{
+
+.skin-yellow .tooltip.right > .tooltip-arrow{
+  border-right-color: #ccc;
+}
+
+.skin-yellow .tooltip > .tooltip-inner h4{
   background-color: #fff;
-  font-weight:600;
-  font-sive:20px;
+  font-weight: 600;
   color: #333;
-  border-bottom: 1px solid #ccc;
-  padding: 5px 10px 5px 5px;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 5px;
   font-size: 14px;
-  margin-left: 3%;
-  margin-right: 3%;
-  width: 94%;
+  margin: 10px 8px;
+}
+.skin-yellow .tooltip > .tooltip-inner > div {
+  padding: 0 8px;
+}
+.skin-yellow .tooltip > .tooltip-inner i.empty {
+  color: #777;
+}
+.skin-yellow .tooltip > .tooltip-inner .small{
+  color: #777;
+  margin-left: 4px;
+}
+.skin-yellow .tooltip > .tooltip-inner label{
+  margin-right: 4px;
 }
 form .tooltip-content p {
   padding:0;
 }
-.content-wrapper .tooltip > .tooltip-inner .tooltip-content{
+.skin-yellow .tooltip > .tooltip-inner .tooltip-content{
   padding: 0px 10px 10px 10px;
 }
-.content-wrapper .tooltip > .tooltip-inner .tooltip-content i b{
+.skin-yellow .tooltip > .tooltip-inner .tooltip-content i b{
   color:#333;
   background: none;
   -webkit-background-clip: initial;
   -webkit-text-fill-color: initial;
 }
-.content-wrapper .tooltip > .tooltip-inner .tooltip-content p{
+.skin-yellow .tooltip > .tooltip-inner .tooltip-content p{
   margin-bottom: 5px;
 }
-.content-wrapper .tooltip.in {
+.skin-yellow .tooltip.in {
   opacity: 1;
   filter: alpha(opacity=100);
 }
@@ -2403,12 +2425,22 @@ hr.separation{
 .content-wrapper .btn.btn-success.btn-outline{
   background-color: #fff !important;
   color: #8fb92a !important;
+  transition-property: background-color, color;
+  transition-duration: .2s;
+}
+.content-wrapper .btn.btn-danger.btn-outline{
+  background-color: #fff !important;
+  color: #d43f3a !important;
+  transition-property: background-color, color;
+  transition-duration: .2s;
 }
 .content-wrapper .btn.btn-success.btn-outline:hover{
   background-color: #8fb92a !important;
   color: #fff !important;
-  transition-property: background-color, color;
-  transition-duration: .2s;
+}
+.content-wrapper .btn.btn-danger.btn-outline:hover{
+  background-color: #d43f3a !important;
+  color: #fff !important;
 }
 /* API ACCOUNTS PAGE */
 #accountGrid .reload-token{
