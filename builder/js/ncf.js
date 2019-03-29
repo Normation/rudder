@@ -1156,7 +1156,7 @@ $scope.onImportFileChange = function (fileEl) {
               function(parameter) {
                 var value = parameter.value;
                 if (detectIfVariableIsInvalid(value)) {
-                  invalidContent.push("<div>In generic method: <b>" +m.component + "</b>,  parameter: " + parameter.name + " has incorrect value " + value+"</div>");
+                  invalidParametersArray.push("<div>In generic method: <b>" +m.component + "</b>,  parameter: " + parameter.name + " has incorrect value " + value+"</div>");
                 }
               }
             )
