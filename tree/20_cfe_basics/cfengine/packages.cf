@@ -277,9 +277,9 @@ bundle common rpm_knowledge
 bundle common redhat_no_locking_knowledge {
   vars:
     # Option was introduced in rhel 6.1
-    redhat.!(redhat_3|redhat_4|redhat_5|redhat_6_0)::
+    (redhat|centos).!(redhat_3|redhat_4|redhat_5|redhat_6_0|centos_3|centos_4|centos_5|centos_6_0)::
       "no_locking_option" string => "--setopt=exit_on_lock=True";
-    redhat_3|redhat_4|redhat_5|redhat_6_0::
+    redhat_3|redhat_4|redhat_5|redhat_6_0|centos_3|centos_4|centos_5|centos_6_0::
       "no_locking_option" string => "";
 }
 
