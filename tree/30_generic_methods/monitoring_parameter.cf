@@ -51,10 +51,10 @@ bundle agent monitoring_parameter(key, value)
 
   files:
       "${monitoring_file}"
-        create    => "true",
-        edit_line => lines_present("param,${key},${value}"),
+        create        => "true",
+        edit_line     => insert_lines("param,${key},${value}"),
         edit_defaults => no_backup,
-        classes   => classes_generic("${inner_old_class_prefix}");
+        classes       => classes_generic("${inner_old_class_prefix}");
 
   methods:
       "result classes"      usebundle => _classes_copy_invert_kept_repaired("${inner_old_class_prefix}", "${old_class_prefix}");
