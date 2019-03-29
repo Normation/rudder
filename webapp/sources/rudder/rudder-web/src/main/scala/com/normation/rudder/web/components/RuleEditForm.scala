@@ -47,8 +47,7 @@ import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.repository.{FullActiveTechnique, FullActiveTechniqueCategory, FullNodeGroupCategory}
 import com.normation.rudder.web.components.popup.RuleModificationValidationPopup
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.model.FormTracker
@@ -102,6 +101,11 @@ object RuleEditForm {
   val htmlId_groupTree = "groupTree"
   val htmlId_activeTechniquesTree = "directiveTree"
 }
+
+
+// these two case classes are needed to generate the JS for selected directive & target. They need to be top level else lift goes mad.
+final case class JsGroup(target: String, link:String, name: String, desc: String)
+final case class JsDirective(id: String, link:String, name: String, desc: String, techniqueName: String, techniqueVersion: String, mode: String)
 
 /**
  * The form that handles Rule edition
@@ -243,17 +247,45 @@ class RuleEditForm(
 
     //is't there an other way to do that? We already have the target/name
     //in the tree, so there's just the existing id to find back
-    val maptarget = groupLib.allTargets.map{
-      case (gt,fg) => s" ${encJs(gt.target)} : ${encJs(fg.name)}"
-    }.toList.mkString("{",",","}")
-
-    val selectedDirectives =
-      (for {
-        id <- selectedDirectiveIds
-        (_,directive) <-  directiveLib.allDirectives.get(id)
+    val maptarget = {
+      // information given to the "selectedDirective" list
+      import net.liftweb.json._
+      import net.liftweb.json.Serialization.write
+      implicit val formats = Serialization.formats(NoTypeHints)
+      val map = (for {
+        (gt,fg) <- groupLib.allTargets
       } yield {
-         s" ${encJs(id.value)} : ${encJs(directive.name)}"
-      }).mkString("{",",","}")
+        (gt.target, JsGroup(
+            gt.target
+          , linkUtil.targetLink(gt)
+          , fg.name
+          , fg.description
+        ))
+      }).toMap
+      write(map)
+    }
+
+    val selectedDirectives = {
+      // information given to the "selectedDirective" list
+      import net.liftweb.json._
+      import net.liftweb.json.Serialization.write
+      implicit val formats = Serialization.formats(NoTypeHints)
+      val map = (for {
+        id <- selectedDirectiveIds
+        (t,d) <-  directiveLib.allDirectives.get(id)
+      } yield {
+        (id.value, JsDirective(
+            d.id.value
+          , linkUtil.directiveLink(d.id)
+          , d.name
+          , d.shortDescription
+          , t.newestAvailableTechnique.get.name
+          , d.techniqueVersion.toString
+          , d.policyMode.map(_.name).getOrElse(globalMode.mode.name)
+        ))
+      }).toMap
+      write(map)
+    }
 
     val includedTarget = ruleTarget.includedTarget.targets
     val excludedTarget = ruleTarget.excludedTarget.targets
@@ -278,7 +310,7 @@ class RuleEditForm(
               , usedDirectiveIds = usedDirectiveIds
               , onClickCategory = None
               , onClickTechnique = None
-              , onClickDirective = Some((_,_,d) => directiveClick(d))
+              , onClickDirective = Some((_,t,d) => directiveClick(t, d, globalMode.mode.name))
               , addEditLink = true
               , included = selectedDirectiveIds
                 //filter techniques without directives, and categories without technique
@@ -406,8 +438,16 @@ class RuleEditForm(
     JsRaw(s"""onClickTarget("${target}");""")
   }
 
-  private[this] def directiveClick(directive: Directive) : JsCmd = {
-    JsRaw(s"""onClickDirective("${directive.id.value}", ${directive.name.encJs});""")
+  private[this] def directiveClick(t:FullActiveTechnique , d: Directive, gm:String) : JsCmd = {
+    val dirId          = d.id.value
+    val dirLink        = linkUtil.directiveLink(d.id).encJs
+    val dirName        = d.name.encJs
+    val dirDescription = d.shortDescription.encJs
+    val dirTechName    = t.newestAvailableTechnique.get.name.encJs
+    val dirTechVersion = d.techniqueVersion.toString.encJs
+    val dirMode        = d.policyMode.map(_.name).getOrElse(gm).encJs
+
+    JsRaw(s"""onClickDirective("${dirId}", ${dirName}, ${dirLink}, ${dirDescription}, ${dirTechName}, ${dirTechVersion}, ${dirMode})""")
   }
 
   private[this] def includeRuleTarget(targetInfo: FullRuleTargetInfo) : JsCmd = {

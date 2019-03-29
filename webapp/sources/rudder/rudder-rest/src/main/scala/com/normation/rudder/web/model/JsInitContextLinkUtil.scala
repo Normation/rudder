@@ -78,6 +78,9 @@ class LinkUtil (
   def groupLink(id:NodeGroupId) =
     s"""${S.contextPath}${baseGroupLink(id)}"""
 
+  def targetLink(target: RuleTarget) =
+    s"""${S.contextPath}${baseTargetLink(target)}"""
+
   def redirectToGroupLink(id:NodeGroupId) : JsCmd=
     RedirectTo(baseGroupLink(id))
 

@@ -124,3 +124,137 @@ label.rule-info + div{
     bottom: 0;
   }
 }
+
+/* Directive and Group sections */
+#ruleDirectives,
+#DirectiveCtrl,
+#groupManagement,
+#GroupCtrl,
+.applied-list{
+  float: left;
+  width: 100%;
+}
+
+#ruleDirectives,
+#groupManagement{
+  margin-bottom: 30px;
+}
+
+h4.list-title{
+  font-size: 16px;
+  border-bottom: 4px solid #8fba2b;
+  padding-bottom: 6px;
+  margin-bottom: 14px;
+  margin-top: 14px;
+}
+
+h4.list-title.except{
+  border-bottom-color: #d43f3a;
+}
+ul.applied-list > li {
+  border: 1px solid #e5e5e5;
+  padding: 10px;
+  padding-left: 14px;
+  display: block;
+  float: left;
+  width: 100%;
+  position: relative;
+  background-color: #fff;
+  padding-right: 50px;
+  transition-duration: .2s;
+  margin-bottom: 4px;
+  border-left-width: 0px;
+  box-shadow: 0px 5px 4px -3px rgba(0,0,0,.1);
+}
+
+ul.applied-list > li > .border{
+  background-color: #e5e5e5;
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: 0;
+  width: 4px;
+  transition-duration: .2s;
+}
+ul.applied-list > li:hover > .border{
+  background-color: #ccc;
+}
+ul.applied-list > li > .target-remove:hover + .border{
+  background-color: #da534f !important;
+}
+
+.applied-list > li.empty {
+  border-left: 4px solid #3379b7;
+  color: #777;
+  font-style: italic;
+}
+
+.applied-list > li.empty + li {
+  border-top-right-radius: 4px;
+}
+ul.applied-list > li:last-of-type {
+  border-bottom-right-radius: 4px;
+}
+ul.applied-list > li > span.fa{
+  color: #aaa;
+  margin-right: 6px;
+}
+
+ul.applied-list > li .rudder-label{
+  margin-right: 4px;
+}
+
+ul.applied-list > li .icon-info{
+  color: #ccc;
+  transition-duration: .2s;
+}
+
+ul.applied-list > li:hover .icon-info{
+  color: #337ab7;
+}
+
+ul.applied-list > li > span.target-remove,
+ul.applied-list > li > span.warning-sign{
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 40px;
+  transition: .2s;
+  background-color: #fff;
+  color: #999;
+  border-left: 1px solid #e5e5e5;
+  opacity: .6;
+  cursor: pointer;
+}
+ul.applied-list > li > span.warning-sign{
+  color: #fff;
+  background-color: #3379b7;
+  opacity: 1;
+  cursor: default;
+}
+ul.applied-list > li > span.target-remove:hover{
+  background-color: #da534f;
+  color: #fff;
+}
+
+ul.applied-list > li:hover > span.target-remove{
+  opacity: 1;
+}
+
+ul.applied-list > li > span.target-remove > i,
+ul.applied-list > li > span.warning-sign  > i {
+ position: absolute;
+ top: calc( 50% - 7px);
+ right: calc( 50% - 5.5px);
+}
+
+.add-target{
+  margin-top: 4px;
+  min-width: 150px;
+}
+ul.applied-list > .add-target > .fa{
+  margin-left: 3px;
+  position: relative;
+  top: 1px;
+}
