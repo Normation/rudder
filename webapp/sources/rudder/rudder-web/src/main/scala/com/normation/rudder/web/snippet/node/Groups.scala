@@ -175,11 +175,11 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     }
     def displayDetailsTarget(targetName:String) = {
       RuleTarget.unser(targetName) match {
-        case None => Noop
         case Some(t:NonGroupRuleTarget) =>
           refreshTree(htmlTreeNodeId(targetName)) &
           showGroupSection (Left(t), NodeGroupCategoryId("SystemGroups")) &
           JsRaw("createTooltip()")
+        case _ => Noop
       }
     }
 

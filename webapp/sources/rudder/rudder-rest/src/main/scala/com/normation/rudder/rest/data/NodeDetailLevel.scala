@@ -44,6 +44,7 @@ import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.domain.nodes.JsonSerialisation._
 import com.normation.rudder.domain.nodes.NodeInfo
 import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 
 sealed trait NodeDetailLevel {
   def fields : Set[String]
@@ -171,7 +172,9 @@ object NodeDetailLevel {
     val policyServer : INFO => JValue = (info:INFO) => info._1.policyServerId.value
     val ram          : INFO => JValue = (info:INFO) => info._1.ram.map(MemorySize.sizeMb)
     val arch         : INFO => JValue = (info:INFO) => info._1.archDescription
-    val runDate      : INFO => JValue = (info:INFO) => info._2.map(d => JString(DateFormaterService.getFormatedDate(d))).getOrElse(JNothing)
+    // the date is in RFC 3339. Not having timezone for nodes can be very frustrating
+    val runDate      : INFO => JValue = (info:INFO) => info._2.map(d => JString(d.toString(ISODateTimeFormat.dateTimeNoMillis()))).getOrElse(JNothing)
+    // this date should have had a timezone in it
     val inventoryDate: INFO => JValue = (info:INFO) => DateFormaterService.getFormatedDate(info._1.inventoryDate)
     val properties   : INFO => JValue = (info:INFO) => info._1.properties.toApiJson
     val policyMode   : INFO => JValue = (info:INFO) => info._1.policyMode.map(_.name).getOrElse[String]("default")
