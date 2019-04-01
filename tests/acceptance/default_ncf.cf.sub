@@ -63,7 +63,7 @@ bundle agent execute_serverspec(test_name, class_name, comment)
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-    pass3::
+    pass1::
       "${class_name}" expression => returnszero("ruby -S rspec ${ncf_configuration.ncf_configuration_basedir}/spec/localhost/${test_name} --format documentation #${comment}", "useshell"),
           scope => "namespace";
 
