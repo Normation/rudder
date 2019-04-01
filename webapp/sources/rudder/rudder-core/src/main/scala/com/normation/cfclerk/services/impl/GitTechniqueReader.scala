@@ -40,22 +40,32 @@ package com.normation.cfclerk.services.impl
 import scala.xml._
 import com.normation.cfclerk.domain._
 import java.io.FileNotFoundException
+
 import org.xml.sax.SAXParseException
 import java.io.File
+
 import net.liftweb.common._
-import scala.collection.mutable.{ Map => MutMap }
+
+import scala.collection.mutable.{Map => MutMap}
 import scala.collection.immutable.SortedMap
 import java.io.InputStream
+
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.lib.ObjectId
-import scala.collection.mutable.{ Map => MutMap }
+
+import scala.collection.mutable.{Map => MutMap}
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.services._
+
 import scala.collection.JavaConverters._
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import java.io.IOException
+
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  *
@@ -571,66 +581,65 @@ class GitTechniqueReader(
     , techniquesInfo:InternalTechniquesInfo
     , parseDescriptor:Boolean // that option is a success optimization for the case diff between old/new commit
     , revTreeId: ObjectId
-  ): Unit = {
-    try {
-      val descriptorFile = new File(filePath)
-      val policyVersion = TechniqueVersion(descriptorFile.getParentFile.getName)
-      val policyName = TechniqueName(descriptorFile.getParentFile.getParentFile.getName)
-      val parentCategoryId = TechniqueCategoryId.buildId(descriptorFile.getParentFile.getParentFile.getParent )
+  ): IO[RudderError, Unit] = {
+    def updateParentCat(catId: TechniqueCategoryId, techniqueId: TechniqueId, descriptorFile: File) : Boolean = {
+      catId match {
+        case RootTechniqueCategoryId =>
+          val cat = techniquesInfo.rootCategory.getOrElse(
+              throw new RuntimeException("Can not find the parent (root) category %s for package %s".format(descriptorFile.getParent, TechniqueId))
+          )
+          techniquesInfo.rootCategory = Some(cat.copy(techniqueIds = cat.techniqueIds + techniqueId ))
+          true
 
-      val techniqueId = TechniqueId(policyName,policyVersion)
-
-      val pack = if(parseDescriptor) techniqueParser.parseXml(loadDescriptorFile(is, filePath), techniqueId)
-                 else dummyTechnique
-
-      def updateParentCat() : Boolean = {
-        parentCategoryId match {
-          case RootTechniqueCategoryId =>
-            val cat = techniquesInfo.rootCategory.getOrElse(
-                throw new RuntimeException("Can not find the parent (root) category %s for package %s".format(descriptorFile.getParent, TechniqueId))
-            )
-            techniquesInfo.rootCategory = Some(cat.copy(techniqueIds = cat.techniqueIds + techniqueId ))
-            true
-
-          case sid:SubTechniqueCategoryId =>
-            techniquesInfo.subCategories.get(sid) match {
-              case Some(cat) =>
-                techniquesInfo.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds + techniqueId )
-                true
-              case None =>
-                logger.error("Can not find the parent category %s for package %s".format(descriptorFile.getParent, TechniqueId))
-                false
-            }
-        }
-      }
-
-      //check that that package is not already know, else its an error (by id ?)
-      techniquesInfo.techniques.get(techniqueId.name) match {
-        case None => //so we don't have any version yet, and so no id
-          if(updateParentCat) {
-            techniquesInfo.techniques(techniqueId.name) = MutMap(techniqueId.version -> pack)
-            techniquesInfo.techniquesCategory(techniqueId) = parentCategoryId
-          }
-        case Some(versionMap) => //check for the version
-          versionMap.get(techniqueId.version) match {
-            case None => //add that version
-              if(updateParentCat) {
-                techniquesInfo.techniques(techniqueId.name)(techniqueId.version) = pack
-                techniquesInfo.techniquesCategory(techniqueId) = parentCategoryId
-              }
-            case Some(v) => //error, policy package version already exsits
-              logger.error("Ignoring package for policy with ID %s and root directory %s because an other policy is already defined with that id and root path %s".format(
-                  TechniqueId, descriptorFile.getParent, techniquesInfo.techniquesCategory(techniqueId).toString)
-              )
+        case sid:SubTechniqueCategoryId =>
+          techniquesInfo.subCategories.get(sid) match {
+            case Some(cat) =>
+              techniquesInfo.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds + techniqueId )
+              true
+            case None =>
+              logger.error("Can not find the parent category %s for package %s".format(descriptorFile.getParent, TechniqueId))
+              false
           }
       }
-    } catch {
-      case e : TechniqueVersionFormatException => logger.error("Ignoring technique '%s' because the version format is incorrect. Error message was: %s".format(filePath,e.getMessage))
-      case e : ParsingException => logger.error("Ignoring technique '%s' because the descriptor file is malformed. Error message was: %s".format(filePath,e.getMessage))
-      case e : ConstraintException => logger.error("Ignoring technique '%s' because the descriptor file is malformed. Error message was: %s".format(filePath,e.getMessage))
-      case e : Exception =>
-        logger.error("Error when processing technique '%s'".format(filePath),e)
-        throw e
+    }
+
+    val descriptorFile = new File(filePath)
+    val policyVersion = TechniqueVersion(descriptorFile.getParentFile.getName)
+    val policyName = TechniqueName(descriptorFile.getParentFile.getParentFile.getName)
+    val parentCategoryId = TechniqueCategoryId.buildId(descriptorFile.getParentFile.getParentFile.getParent )
+    val techniqueId = TechniqueId(policyName,policyVersion)
+
+    for {
+      pack <- if(parseDescriptor) loadDescriptorFile(is, filePath).flatMap(d => techniqueParser.parseXml(d, techniqueId))
+                 else dummyTechnique.succeed
+      res  <- Task.effect {
+                //check that that package is not already know, else its an error (by id ?)
+                techniquesInfo.techniques.get(techniqueId.name) match {
+                  case None => //so we don't have any version yet, and so no id
+                    if(updateParentCat(parentCategoryId, techniqueId, descriptorFile)) {
+                      techniquesInfo.techniques(techniqueId.name) = MutMap(techniqueId.version -> pack)
+                      techniquesInfo.techniquesCategory(techniqueId) = parentCategoryId
+                    }
+                  case Some(versionMap) => //check for the version
+                    versionMap.get(techniqueId.version) match {
+                      case None => //add that version
+                        if(updateParentCat(parentCategoryId, techniqueId, descriptorFile)) {
+                          techniquesInfo.techniques(techniqueId.name)(techniqueId.version) = pack
+                          techniquesInfo.techniquesCategory(techniqueId) = parentCategoryId
+                        }
+                      case Some(v) => //error, policy package version already exsits
+                        logger.error("Ignoring package for policy with ID %s and root directory %s because an other policy is already defined with that id and root path %s".format(
+                            TechniqueId, descriptorFile.getParent, techniquesInfo.techniquesCategory(techniqueId).toString)
+                        )
+                    }
+                }
+              } fold { err => err match {
+                case e : TechniqueVersionFormatException => logger.error("Ignoring technique '%s' because the version format is incorrect. Error message was: %s".format(filePath,e.getMessage))
+                case e : ParsingException => logger.error("Ignoring technique '%s' because the descriptor file is malformed. Error message was: %s".format(filePath,e.getMessage))
+                case e : ConstraintException => logger.error("Ignoring technique '%s' because the descriptor file is malformed. Error message was: %s".format(filePath,e.getMessage))
+                case e : Exception =>
+                logger.error("Error when processing technique '%s'".format(filePath),e)
+                throw e
     }
   }
 
@@ -694,22 +703,21 @@ class GitTechniqueReader(
    * @param file : the full filename
    * @return the xml representation of the file
    */
-  private[this] def loadDescriptorFile(is: InputStream, filePath : String ) : Either[LoadTechniqueError, Elem] = {
-    val doc =
-      try {
-        XML.load(is)
-      } catch {
+  private[this] def loadDescriptorFile(is: InputStream, filePath : String ) : IO[RudderError, Elem] = {
+    Task.effect {
+      XML.load(is)
+    }.foldM(
+      err => err match {
         case e: SAXParseException =>
-          throw new ParsingException("Unexpected issue with the descriptor file %s at line %d, column %d: %s".format(filePath, e.getLineNumber(), e.getColumnNumber(), e.getMessage))
+          LoadTechniqueError.Parsing(s"Unexpected issue with the descriptor file '${filePath}' at line ${e.getLineNumber}, column ${e.getColumnNumber}: ${e.getMessage}").fail
         case e: java.net.MalformedURLException =>
-          throw new ParsingException("Descriptor file not found: " + filePath)
+          LoadTechniqueError.Parsing("Descriptor file not found: " + filePath).fail
+        case ex => SystemError(s"Error when parsing ${filePath}", ex).fail
       }
-
-    if (doc.isEmpty) {
-      throw new ParsingException("Error when parsing descriptor file: '%s': the parsed document is empty".format(filePath))
-    }
-
-    doc
+    , doc => if(doc.isEmpty) {
+        LoadTechniqueError.Parsing(s"Error when parsing descriptor file: '${filePath}': the parsed document is empty").fail
+      } else doc.succeed
+    )
   }
 
   /**
