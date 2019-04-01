@@ -1,8 +1,36 @@
+// Copyright 2019 Normation SAS
+//
+// This file is part of Rudder.
+//
+// Rudder is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// In accordance with the terms of section 7 (7. Additional Terms.) of
+// the GNU General Public License version 3, the copyright holders add
+// the following Additional permissions:
+// Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+// Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+// Public License version 3, when you create a Related Module, this
+// Related Module is not considered as a part of the work and may be
+// distributed under the license agreement of your choice.
+// A "Related Module" means a set of sources files including their
+// documentation that, without modification of the Source Code, enables
+// supplementary functions or services in addition to those offered by
+// the Software.
+//
+// Rudder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
 use crate::{data::nodes::NodeId, error::Error};
 use serde::Deserialize;
-use slog::slog_debug;
 use slog::Level;
-use slog_scope::debug;
 use std::net::SocketAddr;
 use std::{collections::HashSet, path::PathBuf};
 use toml;
@@ -25,7 +53,6 @@ pub struct Configuration {
 impl Configuration {
     pub fn read_configuration(configuration: &str) -> Result<Configuration, Error> {
         let cfg = toml::from_str(configuration)?;
-        debug!("Read configuration:\n{:#?}", cfg);
         Ok(cfg)
     }
 }
@@ -37,10 +64,10 @@ pub struct GeneralConfig {
     pub listen: SocketAddr,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
 pub struct CatchupConfig {
-    pub frequency: u32,
-    pub limit: u32,
+    pub frequency: u64,
+    pub limit: u64,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -60,6 +87,7 @@ pub struct InventoryConfig {
 #[serde(rename_all = "lowercase")]
 pub enum InventoryOutputSelect {
     Upstream,
+    Disabled,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -74,6 +102,7 @@ pub struct ReportingConfig {
 pub enum ReportingOutputSelect {
     Database,
     Upstream,
+    Disabled,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -96,26 +125,17 @@ pub struct UpstreamConfig {
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct LogConfig {
     pub general: LoggerConfig,
-    //    pub performance: LoggerConfig,
-    //    pub parsing: LoggerConfig,
-    //    pub processing: LoggerConfig,
 }
 
 #[serde(remote = "Level")]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
-    /// Critical
     Critical,
-    /// Error
     Error,
-    /// Warning
     Warning,
-    /// Info
     Info,
-    /// Debug
     Debug,
-    /// Trace
     Trace,
 }
 
@@ -148,19 +168,19 @@ mod tests {
     #[test]
     fn test_configuration() {
         let config =
-            Configuration::read_configuration(&read_to_string("tests/relayd.conf").unwrap());
+            Configuration::read_configuration(&read_to_string("tests/files/relayd.conf").unwrap());
 
         let mut root_set = HashSet::new();
         root_set.insert("root".to_string());
         let reference = Configuration {
             general: GeneralConfig {
-                nodes_list_file: PathBuf::from("tests/nodeslist.json"),
+                nodes_list_file: PathBuf::from("tests/files/nodeslist.json"),
                 node_id: "root".to_string(),
                 listen: "127.0.0.1:3030".parse().unwrap(),
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
-                    directory: PathBuf::from("tests/inventories/"),
+                    directory: PathBuf::from("tests/tmp/inventories/"),
                     output: InventoryOutputSelect::Upstream,
                     catchup: CatchupConfig {
                         frequency: 10,
@@ -168,8 +188,8 @@ mod tests {
                     },
                 },
                 reporting: ReportingConfig {
-                    directory: PathBuf::from("tests/runlogs/"),
-                    output: ReportingOutputSelect::Upstream,
+                    directory: PathBuf::from("tests/tmp/runlogs/"),
+                    output: ReportingOutputSelect::Database,
                     catchup: CatchupConfig {
                         frequency: 10,
                         limit: 50,
@@ -181,7 +201,7 @@ mod tests {
                     url: "https://127.0.0.1:8080".to_string(),
                 },
                 database: DatabaseConfig {
-                    url: "postgres://rudder:PASSWORD@127.0.0.1/rudder".to_string(),
+                    url: "postgres://rudderreports:PASSWORD@127.0.0.1/rudder".to_string(),
                     max_pool_size: 5,
                 },
             },

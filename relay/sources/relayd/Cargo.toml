@@ -1,6 +1,7 @@
 [package]
 name = "relayd"
-version = "0.0.1"
+# TODO automate version number
+version = "5.1.0-alpha1"
 authors = ["Rudder developpers <dev@rudder.io>"]
 edition = "2018"
 
@@ -17,8 +18,7 @@ path = "src/relayd.rs"
 ## Good
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-regex = "1.1"
-lazy_static = "1.2"
+nom = "4.2"
 clap = "2.32"
 diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }
 # Compile dev and release with trace logs enabled

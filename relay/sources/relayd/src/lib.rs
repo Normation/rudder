@@ -1,3 +1,33 @@
+// Copyright 2019 Normation SAS
+//
+// This file is part of Rudder.
+//
+// Rudder is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// In accordance with the terms of section 7 (7. Additional Terms.) of
+// the GNU General Public License version 3, the copyright holders add
+// the following Additional permissions:
+// Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+// Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+// Public License version 3, when you create a Related Module, this
+// Related Module is not considered as a part of the work and may be
+// distributed under the license agreement of your choice.
+// A "Related Module" means a set of sources files including their
+// documentation that, without modification of the Source Code, enables
+// supplementary functions or services in addition to those offered by
+// the Software.
+//
+// Rudder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
 #[macro_use]
 extern crate diesel;
 
@@ -15,10 +45,10 @@ use crate::{
     api::api,
     cli::parse,
     configuration::LogConfig,
-    configuration::{Configuration, ReportingOutputSelect},
+    configuration::{Configuration, ReportingOutputSelect, InventoryOutputSelect},
     data::nodes::parse_nodeslist,
     error::Error,
-    input::serve,
+    input::{serve_inventories, serve_reports},
     output::database::{pg_pool, PgPool},
     stats::Stats,
 };
@@ -99,7 +129,7 @@ pub fn start() -> Result<(), Error> {
     // Make sure to save the guard
     let _guard = slog_scope::set_global_logger(log);
     // Integrate libs using standard log crate
-    slog_stdlog::init().unwrap();
+    slog_stdlog::init().expect("Could not initialize standard logging");
 
     // ---- Process cli arguments ----
 
@@ -144,6 +174,7 @@ pub fn start() -> Result<(), Error> {
             info!("Signal received: reload requested");
             let cfg = load_configuration(&cli_cfg.configuration_file.clone())
                 .expect("Could not reload config");
+            debug!("Parsed configuration:\n{:#?}", &cfg);
             load_loggers(&ctrl, &cfg.logging);
             // TODO reload nodeslist
             Ok(())
@@ -172,7 +203,12 @@ pub fn start() -> Result<(), Error> {
         //tokio::spawn(shutdown);
         tokio::spawn(reload);
 
-        serve(job_config, tx_stats);
+        if job_config.cfg.processing.reporting.output != ReportingOutputSelect::Disabled {
+            serve_reports(job_config.clone(), tx_stats.clone());
+        }
+        if job_config.cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
+            serve_inventories(job_config, tx_stats);
+        }
         Ok(())
     }));
 

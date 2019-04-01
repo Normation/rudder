@@ -1,5 +1,35 @@
 # protocol-v2-poc
 
+## Install
+
+### Dependencies
+
+Dependencies are:
+
+* pkg-config (only for dev)
+* openssl
+* libpq
+
+To install build dependencies on Debian/Ubuntu:
+
+```bash
+make apt-dependencies
+```
+
+To install build dependencies on RHEL/Fedora:
+
+```bash
+make yum-dependencies
+```
+
+### Installation
+
+To install:
+
+```bash
+make DESTDIR=/target/directory install
+```
+
 ## Development environment
 
 This project requires Rust 1.32 or later (for Rust 2018 support
@@ -33,4 +63,4 @@ cargo install cargo-benchcmp # to compare benchmarks results
 
 ## Development database
 
-Schema for the database is: `webapp/sources/rudder/rudder-core/src/main/resources/reportsSchema.sql`
+Schema for the database is in: `webapp/sources/rudder/rudder-core/src/main/resources/reportsSchema.sql`

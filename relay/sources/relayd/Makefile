@@ -1,25 +1,28 @@
 DESTDIR = $(CURDIR)/target
 
-build:
-	cargo build
+# fmt, build, test, audit, clean, etc.
+%:
+	cargo $@
 
-test:
-	cargo test
-
-audit:
-	cargo audit
-
-format:
-	cargo fmt
+outdated:
+	# only check on our dependencies
+	cargo outdated --root-deps-only
 
 lint:
 	RUSTFLAGS="-D warnings" cargo clippy --all-targets --all-features --examples --tests -- -D clippy::all
 
 install: clean lint audit
-	cargo install --path=. --root=$(DESTDIR)
+	cargo install --bin relayd --path=. --root=$(DESTDIR)
+
+yum-dependencies:
+	yum install pkgconf-pkg-config libpqxx openssl-devel
+
+apt-dependencies:
+	apt install pkg-config libpq-dev libssl-dev
 
 build-env:
 	curl https://sh.rustup.rs -sSf | sh
+	rustup component add clippy
 	cargo install cargo-update
 	cargo install cargo-audit
 
@@ -28,20 +31,13 @@ build-env-update:
 	rustup update
 	cargo install-update -a
 
-deps-update:
-	cargo update
-	cargo outdated -d 1
+deps-update: update outdated
+	# done
 
 dev-env: build-env
 	rustup component add rustfmt
-	rustup component add clippy
-	cargo install cargo-fix
-	cargo install cargo-tree
 	cargo install cargo-outdated
 
-clean:
-	cargo clean
-
 veryclean: clean
-	rm -rf ~/.rustup
-	rm -rf ~/.cargo
+	rustup self uninstall
+	rm -rf ~/.rustup ~/.cargo
