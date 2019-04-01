@@ -455,12 +455,13 @@ class NodeApiService2 (
 }
 
 class NodeApiService4 (
-    inventoryRepository : LDAPFullInventoryRepository
-  , nodeInfoService     : NodeInfoService
-  , softwareRepository  : ReadOnlySoftwareDAO
-  , uuidGen             : StringUuidGenerator
-  , restExtractor       : RestExtractorService
-  , restSerializer      : RestDataSerializer
+    inventoryRepository  : LDAPFullInventoryRepository
+  , nodeInfoService      : NodeInfoService
+  , softwareRepository   : ReadOnlySoftwareDAO
+  , uuidGen              : StringUuidGenerator
+  , restExtractor        : RestExtractorService
+  , restSerializer       : RestDataSerializer
+  , roAgentRunsRepository: RoReportsExecutionRepository
 ) extends Loggable {
 
   import restSerializer._
@@ -476,6 +477,7 @@ class NodeApiService4 (
                        case None    => Failure(s"The node with id ${nodeId.value} was not found in ${state.name} nodes")
                        case Some(x) => Full(x)
                      }
+      runs        <- roAgentRunsRepository.getNodesLastRun(Set(nodeId))
       inventory <- if(detailLevel.needFullInventory()) {
                      inventoryRepository.get(nodeId, state).map(Some(_))
                    } else {
@@ -494,8 +496,8 @@ class NodeApiService4 (
                      Full(Seq())
                    }
     } yield {
-      // that version doesn't have last run date
-      serializeInventory(nodeInfo, state, None, inventory, software, detailLevel, version)
+      val runDate = runs.get(nodeId).flatMap( _.map(_.agentRunId.date))
+      serializeInventory(nodeInfo, state, runDate, inventory, software, detailLevel, version)
     }
   }
 
