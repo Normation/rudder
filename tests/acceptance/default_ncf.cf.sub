@@ -80,3 +80,84 @@ bundle agent execute_serverspec(test_name, class_name, comment)
       "${report_string}";
 
 }
+
+# This bundle should be call when testing a generic method.
+# It will call the target bundle with the given arguments,
+# check that the resulting classes are correct and define
+# a global class "${result_class}_ok" if everything succeed.
+#
+# name: name of the target bundle
+# args: slist containing the target bundle parameter, in 
+#       correct order.
+# status: expected result status, can be: success, error, repaired
+# result_class: prefix of the resulting class
+bundle agent apply_gm(name, args, status, result_class)
+{
+  vars:
+     "length"  int => length("args");
+     "arg0" string => nth("args", "0");
+     "arg1" string => nth("args", "1");
+     "arg2" string => nth("args", "2");
+     "arg3" string => nth("args", "3");
+     "arg4" string => nth("args", "4");
+     "arg5" string => nth("args", "5");
+
+     "old_class_prefix" string => "${${name}.old_class_prefix}";
+
+     "report_param" string => join("_", args);
+     "full_class_prefix" string => canonify("${name}_${report_param}");
+     "class_prefix" string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      # Dynamic bundle call does not support undefined arg number
+      # We have to explicitly define each possibility
+      "1_arg" expression => strcmp("${length}", "1");
+      "2_arg" expression => strcmp("${length}", "2");
+      "3_arg" expression => strcmp("${length}", "3");
+      "4_arg" expression => strcmp("${length}", "4");
+      "5_arg" expression => strcmp("${length}", "5");
+      "6_arg" expression => strcmp("${length}", "6");
+      "7_arg" expression => strcmp("${length}", "7");
+      "8_arg" expression => strcmp("${length}", "8");
+
+    pass2::
+      "old_class_prefix_ok" expression => "${define_expected_classes.report_string_old_class_prefix}";
+      "class_prefix_ok"     expression => "${define_expected_classes.report_string_class_prefix}";
+      "${result_class}_ok"  expression => "old_class_prefix_ok.class_prefix_ok",
+        scope => "namespace";
+
+
+  methods:
+    pass1::
+      "expected_classes" usebundle => define_expected_classes("${class_prefix}", "${status}", "class_prefix");
+      "expected_classes" usebundle => define_expected_classes("${old_class_prefix}", "${status}", "old_class_prefix");
+
+    1_arg::
+      "execute_gm" usebundle => ${name}("${arg0}");
+    2_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}");
+    3_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}");
+    4_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}");
+    5_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}");
+    6_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}");
+    7_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}");
+    8_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}", "${arg7}");
+
+  reports:
+    pass2::
+      "Missing expected old class ${name}"
+        ifvarclass => "!old_class_prefix_ok";
+
+      "Missing expected class ${name}"
+        ifvarclass => "!class_prefix_ok";
+}
