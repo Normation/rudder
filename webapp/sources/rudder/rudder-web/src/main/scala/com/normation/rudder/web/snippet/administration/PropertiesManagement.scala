@@ -717,13 +717,26 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     else PassThru
   }
 
+  /*
+   * Get the set of perm for the property given "isexec":
+   * - isExec == true =>  rwxr-xr-x
+   * - isExec == false => rw-r--r--
+   */
+  def getHookPerm(isExec: Boolean) = {
+    // property file should be either rwxr--r-- or rw-r--r--
+    import java.nio.file.attribute.PosixFilePermission._
+    val perms = Set(OWNER_READ, OWNER_WRITE, GROUP_READ, OTHERS_READ)
+    if(isExec) perms + OWNER_EXECUTE + GROUP_EXECUTE + OTHERS_EXECUTE
+    else perms
+  }
+
   def generationHookCfpromise = { xml : NodeSeq =>
     {
-      import java.io.File
-      val hook = new File("/opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check")
+      import better.files._
+      val hook = File("/opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check")
 
-      val disabled = !(hook.exists() && hook.canWrite())
-      val isEnabled = hook.canExecute()
+      val disabled = !(hook.exists() && hook.isWriteable)
+      val isEnabled = hook.isExecutable
 
       var initIsEnabled = isEnabled
       var currentIsEnabled = isEnabled
@@ -734,13 +747,19 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       }
       def submit() = {
         // exec must be set/unset for all users
-        val save = hook.setExecutable(currentIsEnabled, false)
+        val save =
+          try {
+            hook.setPermissions(getHookPerm(currentIsEnabled))
+            Right(())
+          } catch {
+            case ex:Exception => Left(ex)
+          }
         S.notice("generationHookCfpromiseMsg", save match {
-          case true  =>
+          case Right(())  =>
             initIsEnabled = currentIsEnabled
             Text("'check generated policies' property updated")
-          case false =>
-            <span class="error">There was an error when updating the value of the 'check generated policies' property</span>
+          case Left(ex) =>
+            <span class="error">There was an error when updating the value of the 'check generated policies' property: {ex.getMessage}</span>
         } )
         check
       }
@@ -761,7 +780,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       ) apply (xml)
     }
   }
-
 
   def generationHookTriggerNodeUpdate : NodeSeq => NodeSeq = {
     import better.files._
@@ -815,18 +833,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       }
     }
 
-    def getPropPerm(isExec: Boolean) = {
-      // property file should be either rwxr--r-- or rw-r--r--
-      import java.nio.file.attribute.PosixFilePermission._
-      val perms = Set(OWNER_READ, OWNER_WRITE, GROUP_READ, OTHERS_READ)
-      if(isExec) perms + OWNER_EXECUTE + GROUP_EXECUTE + OTHERS_EXECUTE
-      else perms
-    }
-
     def saveAll(hook: File, isEnabled: Boolean, max: Int, percent: Int): Result[Unit] = {
       for {
         _ <- try {
-               Right(hook.setPermissions(getPropPerm(isEnabled)))
+               Right(hook.setPermissions(getHookPerm(isEnabled)))
              } catch {
                case ex: Exception => Left(s"Error when saving hook state: ${ex.getMessage}")
              }
