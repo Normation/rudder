@@ -276,7 +276,6 @@ object RudderConfig extends Loggable {
       splitProperty(config.getString("rudder.jvm.fatal.exceptions")).toSet
     } catch {
       case ex:ConfigException =>
-        ex.printStackTrace()
         ApplicationLogger.info("Property 'rudder.jvm.fatal.exceptions' is missing or empty in rudder.configFile. Only java.lang.Error will be fatal.")
         Set[String]()
     }
