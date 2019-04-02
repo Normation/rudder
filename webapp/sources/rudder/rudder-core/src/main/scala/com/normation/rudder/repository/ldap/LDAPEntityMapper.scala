@@ -67,7 +67,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
-import com.normation.inventory.ldap.core.InventoryMappingRudderError
+import com.normation.inventory.ldap.core.{InventoryMappingRudderError => Err}
 import com.normation.inventory.ldap.core.InventoryMappingResult._
 import cats._
 import cats.data._
@@ -75,6 +75,7 @@ import cats.implicits._
 import com.normation.NamedZioLogger
 import scalaz.zio._
 import scalaz.zio.syntax._
+import com.normation.errors._
 
 import scala.language.implicitConversions
 
@@ -168,7 +169,7 @@ class LDAPEntityMapper(
     parse(value).extract[HeartbeatConfiguration]
   }
 
-  def entryToNode(e:LDAPEntry) : InventoryMappingPure[Node] = {
+  def entryToNode(e:LDAPEntry) : PureResult[Node] = {
     if(e.isA(OC_RUDDER_NODE)||e.isA(OC_POLICY_SERVER_NODE)) {
       //OK, translate
       for {
@@ -180,9 +181,9 @@ class LDAPEntityMapper(
                         case None => Right(None)
                         case Some(value) => PolicyMode.parse(value).map {Some(_) }
                       }
-        properties <- sequence(e.valuesFor(A_NODE_PROPERTY).toSeq)(v => net.liftweb.json.parseOpt(v) match {
-                        case Some(json) => unserializeLdapNodeProperty(json)
-                        case None => Failure("Invalid data when unserializing node property")
+        properties <- e.valuesFor(A_NODE_PROPERTY).toList.traverse(v => net.liftweb.json.parseOpt(v) match {
+                        case Some(json) => unserializeLdapNodeProperty(json).toEither
+                        case None => Left(Unexpected("Invalid data when unserializing node property"))
                       })
       } yield {
         val hostname = e(A_NAME).getOrElse("")
@@ -194,7 +195,7 @@ class LDAPEntityMapper(
           , NodeStateEncoder.dec(e(A_STATE).getOrElse(NodeState.Enabled.name)) match {
               case Right(s) => s
               case Left(ex) =>
-                logger.debug(s"Can not decode 'state' for node '${hostname}' (${id.value}): ${ex.getMessage}")
+                logEffect.debug(s"Can not decode 'state' for node '${hostname}' (${id.value}): ${ex.getMessage}")
                 NodeState.Enabled
             }
           , e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
@@ -209,7 +210,7 @@ class LDAPEntityMapper(
         )
       }
     } else {
-      Failure(s"The given entry is not of the expected ObjectClass ${OC_RUDDER_NODE} or ${OC_POLICY_SERVER_NODE}. Entry details: ${e}")
+      Left(Unexpected(s"The given entry is not of the expected ObjectClass ${OC_RUDDER_NODE} or ${OC_POLICY_SERVER_NODE}. Entry details: ${e}"))
     }
   }
     //////////////////////////////    NodeInfo    //////////////////////////////
@@ -220,13 +221,13 @@ class LDAPEntityMapper(
    * The only thing used in machineEntry is its object class.
    *
    */
-  def convertEntriesToNodeInfos(nodeEntry: LDAPEntry, inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : Box[NodeInfo] = {
+  def convertEntriesToNodeInfos(nodeEntry: LDAPEntry, inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : IOResult[NodeInfo] = {
     //why not using InventoryMapper ? Some required things for node are not
     // wanted here ?
     for {
-      node         <- entryToNode(nodeEntry)
-      checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Right("Ok")
-                      else Failure("Mismatch id for the node %s and the inventory %s".format(nodeEntry(A_NODE_UUID), inventoryEntry(A_NODE_UUID)))
+      node         <- entryToNode(nodeEntry).toZio
+      checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) "Ok".succeed
+                      else Err.MissingMandatory(s"Mismatch id for the node '${nodeEntry(A_NODE_UUID)}' and the inventory '${inventoryEntry(A_NODE_UUID)}'").fail
 
       nodeInfo     <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry)
     } yield {
@@ -238,9 +239,9 @@ class LDAPEntityMapper(
    * Convert at the best you can node inventories to node information.
    * Some information will be false for sure - that's understood.
    */
-  def convertEntriesToSpecialNodeInfos(inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : Box[NodeInfo] = {
+  def convertEntriesToSpecialNodeInfos(inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : IOResult[NodeInfo] = {
     for {
-      id   <- inventoryEntry(A_NODE_UUID) ?~! s"Missing node id information in Node entry: ${inventoryEntry}"
+      id   <- inventoryEntry(A_NODE_UUID).notOptional(s"Missing node id information in Node entry: ${inventoryEntry}").toZio
       node =  Node(
                   NodeId(id)
                 , inventoryEntry(A_NAME).getOrElse("")
@@ -259,28 +260,28 @@ class LDAPEntityMapper(
     }
   }
 
-  private[this] def inventoryEntriesToNodeInfos(node: Node, inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : Box[NodeInfo] = {
+  private[this] def inventoryEntriesToNodeInfos(node: Node, inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : IOResult[NodeInfo] = {
     //why not using InventoryMapper ? Some required things for node are not
     // wanted here ?
     for {
       // Compute the parent policy Id
       policyServerId <- inventoryEntry.valuesFor(A_POLICY_SERVER_UUID).toList match {
-                          case Nil => Failure(s"Missing policy server id for Node '${node.id.value}'. Entry details: ${inventoryEntry}")
-                          case x :: Nil => Right(x)
-                          case _ => Failure(s"Too many policy servers for a Node '${node.id.value}'. Entry details: ${inventoryEntry}")
+                          case Nil => Err.MissingMandatory(s"Missing policy server id for Node '${node.id.value}'. Entry details: ${inventoryEntry}").fail
+                          case x :: Nil => x.succeed
+                          case _ => Unexpected(s"Too many policy servers for a Node '${node.id.value}'. Entry details: ${inventoryEntry}").fail
                         }
       keys           =  inventoryEntry.valuesFor(A_PKEYS).map(Some(_))
 
       agentsName     <- {
                          val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
-                         sequence(agents.zipAll(keys,None,None)) {
+                         ZIO.foreach(agents.zipAll(keys,None,None)) {
                            case (Some(agent),key) => AgentInfoSerialisation.parseCompatNonJson(agent,key)
-                           case (None,key)        => Failure(s"There was a public key defined for Node ${node.id.value},"+
-                                                             " without a releated agent defined, it should not happen")
+                           case (None,key)        => (Err.MissingMandatory(s"There was a public key defined for Node ${node.id.value},"+
+                                                             " without a releated agent defined, it should not happen")).fail
                          }
                        }
-      osDetails     <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry)
-      keyStatus     <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey))
+      osDetails     <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry).toZio
+      keyStatus     <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey)).toZio
       serverRoles   =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
       timezone      =  (inventoryEntry(A_TIMEZONE_NAME), inventoryEntry(A_TIMEZONE_OFFSET)) match {
                          case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
@@ -305,7 +306,7 @@ class LDAPEntityMapper(
         import inventoryMapper.CustomPropertiesSerialization._
         json.toCustomProperty match {
           case Left(ex)  =>
-            logger.error(s"Error when trying to deserialize Node Custom Property, it will be ignored: ${ex.getMessage}", ex)
+            logEffect.error(s"Error when trying to deserialize Node Custom Property, it will be ignored: ${ex.getMessage}", ex)
             None
           case Right(cs) =>
             Some(NodeProperty(cs.name, cs.value, Some(NodeProperty.customPropertyProvider)))
@@ -348,10 +349,10 @@ class LDAPEntityMapper(
         case Some(custom) =>
           current.provider match {
             case None | Some(NodeProperty.rudderNodePropertyProvider) => //override and log
-              logger.info(s"On node [${nodeId.value}]: overriding existing node property '${current.name}' with custom node inventory property with same name.")
+              logEffect.info(s"On node [${nodeId.value}]: overriding existing node property '${current.name}' with custom node inventory property with same name.")
               custom
             case other => // keep existing prop from other provider but log
-              logger.info(s"On node [${nodeId.value}]: ignoring custom node inventory property with name '${current.name}' (an other provider already set that property).")
+              logEffect.info(s"On node [${nodeId.value}]: ignoring custom node inventory property with name '${current.name}' (an other provider already set that property).")
               current
           }
       }
@@ -425,7 +426,7 @@ class LDAPEntityMapper(
     }
   }
 
-  def nodeDn2OptNodeId(dn:DN) : Box[NodeId] = {
+  def nodeDn2OptNodeId(dn:DN) : InventoryMappingPure[NodeId] = {
     val rdn = dn.getRDN
     if(!rdn.isMultiValued && rdn.hasAttribute(A_NODE_UUID)) {
       Right(NodeId(rdn.getAttributeValues()(0)))
@@ -437,12 +438,12 @@ class LDAPEntityMapper(
   /**
    * children and items are left empty
    */
-  def entry2ActiveTechniqueCategory(e:LDAPEntry) : Box[ActiveTechniqueCategory] = {
+  def entry2ActiveTechniqueCategory(e:LDAPEntry) : InventoryMappingPure[ActiveTechniqueCategory] = {
     if(e.isA(OC_TECHNIQUE_CATEGORY)) {
       //OK, translate
       for {
-        id <- e(A_TECHNIQUE_CATEGORY_UUID) ?~! "Missing required id (attribute name %s) in entry %s".format(A_TECHNIQUE_CATEGORY_UUID, e)
-        name <- e(A_NAME) ?~! "Missing required name (attribute name %s) in entry %s".format(A_NAME, e)
+        id <- e(A_TECHNIQUE_CATEGORY_UUID).notOptional("Missing required id (attribute name %s) in entry %s".format(A_TECHNIQUE_CATEGORY_UUID, e))
+        name <- e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
@@ -489,12 +490,12 @@ class LDAPEntityMapper(
    * Build a ActiveTechnique from and LDAPEntry.
    * children directives are left empty
    */
-  def entry2ActiveTechnique(e:LDAPEntry) : Box[ActiveTechnique] = {
+  def entry2ActiveTechnique(e:LDAPEntry) : InventoryMappingPure[ActiveTechnique] = {
     if(e.isA(OC_ACTIVE_TECHNIQUE)) {
       //OK, translate
       for {
-        id <- e(A_ACTIVE_TECHNIQUE_UUID) ?~! "Missing required id (attribute name %s) in entry %s".format(A_ACTIVE_TECHNIQUE_UUID, e)
-        refTechniqueUuid <- e(A_TECHNIQUE_UUID).map(x => TechniqueName(x)) ?~! "Missing required name (attribute name %s) in entry %s".format(A_TECHNIQUE_UUID, e)
+        id <- e(A_ACTIVE_TECHNIQUE_UUID).notOptional("Missing required id (attribute name %s) in entry %s".format(A_ACTIVE_TECHNIQUE_UUID, e))
+        refTechniqueUuid <- e(A_TECHNIQUE_UUID).map(x => TechniqueName(x)).notOptional("Missing required name (attribute name %s) in entry %s".format(A_TECHNIQUE_UUID, e))
         isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         acceptationDatetimes = e(A_ACCEPTATION_DATETIME).map(unserializeAcceptations(_)).getOrElse(Map())
@@ -521,12 +522,12 @@ class LDAPEntityMapper(
   /**
    * children and items are left empty
    */
-  def entry2NodeGroupCategory(e:LDAPEntry) : Box[NodeGroupCategory] = {
+  def entry2NodeGroupCategory(e:LDAPEntry) : InventoryMappingPure[NodeGroupCategory] = {
     if(e.isA(OC_GROUP_CATEGORY)) {
       //OK, translate
       for {
-        id <- e(A_GROUP_CATEGORY_UUID) ?~! "Missing required id (attribute name %s) in entry %s".format(A_GROUP_CATEGORY_UUID, e)
-        name <- e(A_NAME) ?~! "Missing required name (attribute name %s) in entry %s".format(A_NAME, e)
+        id <- e(A_GROUP_CATEGORY_UUID).notOptional("Missing required id (attribute name %s) in entry %s".format(A_GROUP_CATEGORY_UUID, e))
+        name <- e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
@@ -551,12 +552,12 @@ class LDAPEntityMapper(
    /**
    * Build a node group from and LDAPEntry.
    */
-  def entry2NodeGroup(e:LDAPEntry) : Box[NodeGroup] = {
+  def entry2NodeGroup(e:LDAPEntry) : InventoryMappingPure[NodeGroup] = {
     if(e.isA(OC_RUDDER_NODE_GROUP)) {
       //OK, translate
       for {
-        id <- e(A_NODE_GROUP_UUID) ?~! "Missing required id (attribute name %s) in entry %s".format(A_NODE_GROUP_UUID, e)
-        name <- e(A_NAME) ?~! "Missing required name (attribute name %s) in entry %s".format(A_NAME, e)
+        id <- e(A_NODE_GROUP_UUID).notOptional("Missing required id (attribute name %s) in entry %s".format(A_NODE_GROUP_UUID, e))
+        name <- e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
         query = e(A_QUERY_NODE_GROUP)
         nodeIds =  e.valuesFor(A_NODE_UUID).map(x => NodeId(x))
         query <- e(A_QUERY_NODE_GROUP) match {
@@ -564,7 +565,7 @@ class LDAPEntityMapper(
           case Some(q) => cmdbQueryParser(q) match {
             case Right(x) => Right(Some(x))
             case eb:EmptyBox =>
-              val error = eb ?~! s"Error when parsing query for node group persisted at DN '${e.dn}' (name: '${name}'), that seems to be an inconsistency. You should modify that group"
+              val error = eb.notOptional(s"Error when parsing query for node group persisted at DN '${e.dn}' (name: '${name}'), that seems to be an inconsistency. You should modify that group")
               logger.error(error.messageChain)
               Right(None)
           }
@@ -581,20 +582,20 @@ class LDAPEntityMapper(
 
   //////////////////////////////    Special Policy target info    //////////////////////////////
 
-  def entry2RuleTargetInfo(e:LDAPEntry) : Box[RuleTargetInfo] = {
+  def entry2RuleTargetInfo(e:LDAPEntry) : InventoryMappingPure[RuleTargetInfo] = {
     for {
       target <- {
         if(e.isA(OC_RUDDER_NODE_GROUP)) {
           (e(A_NODE_GROUP_UUID).map(id => GroupTarget(NodeGroupId(id))) )?~! "Missing required id (attribute name %s) in entry %s".format(A_NODE_GROUP_UUID, e)
         } else if(e.isA(OC_SPECIAL_TARGET))
           for {
-            targetString <- e(A_RULE_TARGET) ?~! "Missing required target id (attribute name %s) in entry %s".format(A_RULE_TARGET, e)
-            target <- RuleTarget.unser(targetString) ?~! "Can not unserialize target, '%s' does not match any known target format".format(targetString)
+            targetString <- e(A_RULE_TARGET).notOptional("Missing required target id (attribute name %s) in entry %s".format(A_RULE_TARGET, e))
+            target <- RuleTarget.unser(targetString).notOptional("Can not unserialize target, '%s' does not match any known target format".format(targetString))
           } yield {
             target
           } else Failure("The given entry is not of the expected ObjectClass '%s' or '%s'. Entry details: %s".format(OC_RUDDER_NODE_GROUP, OC_SPECIAL_TARGET, e))
       }
-      name <-  e(A_NAME) ?~! "Missing required name (attribute name %s) in entry %s".format(A_NAME, e)
+      name <-  e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
       description = e(A_DESCRIPTION).getOrElse("")
       isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
       isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
@@ -605,13 +606,13 @@ class LDAPEntityMapper(
 
   //////////////////////////////    Directive    //////////////////////////////
 
-  def entry2Directive(e:LDAPEntry) : Box[Directive] = {
+  def entry2Directive(e:LDAPEntry) : InventoryMappingPure[Directive] = {
 
     if(e.isA(OC_DIRECTIVE)) {
       //OK, translate
       for {
-        id              <- e(A_DIRECTIVE_UUID) ?~! "Missing required attribute %s in entry %s".format(A_DIRECTIVE_UUID, e)
-        s_version       <- e(A_TECHNIQUE_VERSION) ?~! "Missing required attribute %s in entry %s".format(A_TECHNIQUE_VERSION, e)
+        id              <- e(A_DIRECTIVE_UUID).notOptional("Missing required attribute %s in entry %s".format(A_DIRECTIVE_UUID, e))
+        s_version       <- e(A_TECHNIQUE_VERSION).notOptional("Missing required attribute %s in entry %s".format(A_TECHNIQUE_VERSION, e))
         policyMode      <- e(A_POLICY_MODE) match {
           case None => Right(None)
           case Some(value) => PolicyMode.parse(value).map {Some(_) }
@@ -626,7 +627,7 @@ class LDAPEntityMapper(
         isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         tags             <- e(A_SERIALIZED_TAGS) match {
           case None => Right(Tags(Set()))
-          case Some(tags) => CompleteJson.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
+          case Some(tags) => CompleteJson.unserializeTags(tags).notOptional(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}")
         }
       } yield {
         Directive(
@@ -670,12 +671,12 @@ class LDAPEntityMapper(
   /**
    * children and items are left empty
    */
-  def entry2RuleCategory(e:LDAPEntry) : Box[RuleCategory] = {
+  def entry2RuleCategory(e:LDAPEntry) : InventoryMappingPure[RuleCategory] = {
     if(e.isA(OC_RULE_CATEGORY)) {
       //OK, translate
       for {
-        id <- e(A_RULE_CATEGORY_UUID) ?~! s"Missing required id (attribute name '${A_RULE_CATEGORY_UUID}) in entry ${e}"
-        name <- e(A_NAME) ?~! s"Missing required name (attribute name '${A_NAME}) in entry ${e}"
+        id <- e(A_RULE_CATEGORY_UUID).notOptional(s"Missing required id (attribute name '${A_RULE_CATEGORY_UUID}) in entry ${e}")
+        name <- e(A_NAME).notOptional(s"Missing required name (attribute name '${A_NAME}) in entry ${e}")
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
@@ -692,10 +693,10 @@ class LDAPEntityMapper(
   }
 
   //////////////////////////////    Rule    //////////////////////////////
-  def entry2OptTarget(optValue:Option[String]) : Box[Option[RuleTarget]] = {
+  def entry2OptTarget(optValue:Option[String]) : InventoryMappingPure[Option[RuleTarget]] = {
     (for {
       targetValue <- Box(optValue)
-      target <- RuleTarget.unser(targetValue) ?~! "Bad parameter for a rule target: %s".format(targetValue)
+      target <- RuleTarget.unser(targetValue).notOptional("Bad parameter for a rule target: %s".format(targetValue))
     } yield {
       target
     }) match {
@@ -705,7 +706,7 @@ class LDAPEntityMapper(
     }
   }
 
-  def entry2Rule(e:LDAPEntry) : Box[Rule] = {
+  def entry2Rule(e:LDAPEntry) : InventoryMappingPure[Rule] = {
 
     if(e.isA(OC_RULE)) {
       for {
@@ -713,7 +714,7 @@ class LDAPEntityMapper(
                     "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
         tags     <- e(A_SERIALIZED_TAGS) match {
           case None => Right(Tags(Set()))
-          case Some(tags) => CompleteJson.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
+          case Some(tags) => CompleteJson.unserializeTags(tags).notOptional(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}")
         }
       } yield {
         val targets = for {
@@ -808,15 +809,15 @@ class LDAPEntityMapper(
   /**
    * Build an API Account from an entry
    */
-  def entry2ApiAccount(e:LDAPEntry) : Box[ApiAccount] = {
+  def entry2ApiAccount(e:LDAPEntry) : InventoryMappingPure[ApiAccount] = {
     if(e.isA(OC_API_ACCOUNT)) {
       //OK, translate
       for {
-        id                    <- e(A_API_UUID).map( ApiAccountId(_) ) ?~! s"Missing required id (attribute name ${A_API_UUID}) in entry ${e}"
-        name                  <- e(A_NAME).map( ApiAccountName(_) ) ?~! s"Missing required name (attribute name ${A_NAME}) in entry ${e}"
-        token                 <- e(A_API_TOKEN).map( ApiToken(_) ) ?~! s"Missing required token (attribute name ${A_API_TOKEN}) in entry ${e}"
-        creationDatetime      <- e.getAsGTime(A_CREATION_DATETIME) ?~! s"Missing required creation timestamp (attribute name ${A_CREATION_DATETIME}) in entry ${e}"
-        tokenCreationDatetime <- e.getAsGTime(A_API_TOKEN_CREATION_DATETIME) ?~! s"Missing required token creation timestamp (attribute name ${A_API_TOKEN_CREATION_DATETIME}) in entry ${e}"
+        id                    <- e(A_API_UUID).map( ApiAccountId(_) ).notOptional(s"Missing required id (attribute name ${A_API_UUID}) in entry ${e}")
+        name                  <- e(A_NAME).map( ApiAccountName(_) ).notOptional(s"Missing required name (attribute name ${A_NAME}) in entry ${e}")
+        token                 <- e(A_API_TOKEN).map( ApiToken(_) ).notOptional(s"Missing required token (attribute name ${A_API_TOKEN}) in entry ${e}")
+        creationDatetime      <- e.getAsGTime(A_CREATION_DATETIME).notOptional(s"Missing required creation timestamp (attribute name ${A_CREATION_DATETIME}) in entry ${e}")
+        tokenCreationDatetime <- e.getAsGTime(A_API_TOKEN_CREATION_DATETIME).notOptional(s"Missing required token creation timestamp (attribute name ${A_API_TOKEN_CREATION_DATETIME}) in entry ${e}")
         isEnabled             =  e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         description           =  e(A_DESCRIPTION).getOrElse("")
         // expiration date is optionnal
@@ -911,11 +912,11 @@ class LDAPEntityMapper(
 
   //////////////////////////////    Parameters    //////////////////////////////
 
-  def entry2Parameter(e:LDAPEntry) : Box[GlobalParameter] = {
+  def entry2Parameter(e:LDAPEntry) : InventoryMappingPure[GlobalParameter] = {
     if(e.isA(OC_PARAMETER)) {
       //OK, translate
       for {
-        name        <- e(A_PARAMETER_NAME) ?~! "Missing required attribute %s in entry %s".format(A_PARAMETER_NAME, e)
+        name        <- e(A_PARAMETER_NAME).notOptional("Missing required attribute %s in entry %s".format(A_PARAMETER_NAME, e))
         value       = e(A_PARAMETER_VALUE).getOrElse("")
         description = e(A_DESCRIPTION).getOrElse("")
         overridable = e.getAsBoolean(A_PARAMETER_OVERRIDABLE).getOrElse(true)
@@ -942,11 +943,11 @@ class LDAPEntityMapper(
 
   //////////////////////////////    Rudder Config    //////////////////////////////
 
-  def entry2RudderConfig(e:LDAPEntry) : Box[RudderWebProperty] = {
+  def entry2RudderConfig(e:LDAPEntry) : InventoryMappingPure[RudderWebProperty] = {
     if(e.isA(OC_PROPERTY)) {
       //OK, translate
       for {
-        name        <-e(A_PROPERTY_NAME) ?~! s"Missing required attribute ${A_PROPERTY_NAME} in entry ${e}"
+        name        <-e(A_PROPERTY_NAME).notOptional(s"Missing required attribute ${A_PROPERTY_NAME} in entry ${e}")
         value       = e(A_PROPERTY_VALUE).getOrElse("")
         description = e(A_DESCRIPTION).getOrElse("")
       } yield {

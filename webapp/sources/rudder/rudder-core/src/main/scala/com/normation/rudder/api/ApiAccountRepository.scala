@@ -44,8 +44,6 @@ import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.ldap.sdk.BuildFilter
 import com.normation.rudder.domain.RudderLDAPConstants
-import net.liftweb.common.Loggable
-import net.liftweb.common.EmptyBox
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.rudder.domain.RudderLDAPConstants.A_API_UUID
 import com.normation.rudder.repository.ldap.LDAPDiffMapper
@@ -56,9 +54,11 @@ import com.normation.eventlog.EventActor
 import org.joda.time.DateTime
 import com.normation.utils.StringUuidGenerator
 import com.normation.errors._
-
+import com.normation.ldap.sdk.LdapResultRudderError
+import com.normation.rudder.domain.logger.ApplicationLogger
 import scalaz.zio._
 import scalaz.zio.syntax._
+import com.normation.errors._
 
 /**
  * A repository to retrieve API Accounts
@@ -106,7 +106,7 @@ final class RoLDAPApiAccountRepository(
   , val mapper       : LDAPEntityMapper
   , val uuidGen      : StringUuidGenerator
   , val systemAcl    : List[ApiAclElement]
-) extends RoApiAccountRepository with Loggable {
+) extends RoApiAccountRepository {
 
   val systemAPIAccount =
     ApiAccount(
@@ -129,11 +129,10 @@ final class RoLDAPApiAccountRepository(
     } yield {
       //map to ApiAccount in a "as much as possible" way
       val accounts = entries.flatMap ( e => mapper.entry2ApiAccount(e) match {
-          case eb:EmptyBox =>
-            val error = eb ?~! s"Ignoring API Account with dn ${e.dn} due to mapping error"
-            logger.debug(error.messageChain)
+          case Left(err) =>
+            ApplicationLogger.debug(s"Ignoring API Account with dn ${e.dn} due to mapping error: ${err.fullMsg}")
             None
-          case Full(p) => p.kind match {
+          case Right(p) => p.kind match {
             case _: ApiAccountKind.PublicApi => Some(p)
             case _                           => None
           }
@@ -144,36 +143,36 @@ final class RoLDAPApiAccountRepository(
 
   override def getByToken(token: ApiToken): IOResult[Option[ApiAccount]] = {
     if (token == systemAPIAccount.token) {
-      Full(Some(systemAPIAccount))
+      Some(systemAPIAccount).succeed
     } else {
-      (for {
+      for {
         ldap     <- ldapConnexion
         //here, be careful to the semantic of get with a filter!
         optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, token.value))
         optRes   <- optEntry match {
-                      case None    => None.success
-                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) ).toLdapResult
+                      case None    => None.succeed
+                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) ).toZio
                     }
       } yield {
         optRes
-      }).toBox
+      }
     }
   }
 
   override def getById(id:ApiAccountId) : IOResult[Option[ApiAccount]] = {
     if (id == systemAPIAccount.id) {
-      Full(Some(systemAPIAccount))
+      Some(systemAPIAccount).succeed
     } else {
-      (for {
+      for {
         ldap     <- ldapConnexion
         optEntry <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id))
         optRes   <- optEntry match {
-                      case None    => None.success
-                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) ).toLdapResult
+                      case None    => None.succeed
+                      case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) ).toZio
                     }
       } yield {
         optRes
-      }).toBox
+      }
     }
   }
 }
@@ -185,7 +184,7 @@ final class WoLDAPApiAccountRepository(
   , diffMapper         : LDAPDiffMapper
   , actionLogger       : EventLogRepository
   , personIdentService : PersonIdentService
-) extends WoApiAccountRepository with Loggable {
+) extends WoApiAccountRepository {
   repo =>
 
   override def save(
@@ -196,36 +195,34 @@ final class WoLDAPApiAccountRepository(
       (for {
         ldap     <- ldapConnexion
         existing <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) map {
-                      case None    => None.success
+                      case None    => None.succeed
                       case Some(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
-                                        Some(e).success
+                                        Some(e).succeed
                                       } else {
-                                        LdapResultError.Consistancy("An account with given token but different id already exists").failure
+                                        LdapResultRudderError.Consistancy("An account with given token but different id already exists").fail
                                       }
                     }
         name     <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) map {
-                      case None    => None.success
+                      case None    => None.succeed
                       case Some(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
-                                        Some(e).success
+                                        Some(e).succeed
                                       } else {
-                                        LdapResultError.Consistancy(s"An account with the same name ${principal.name.value} exists").failure
+                                        LdapResultRudderError.Consistancy(s"An account with the same name ${principal.name.value} exists").fail
                                       }
                     }
-        optPrevious <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id))
+        optPrevious  <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id))
 
         entry =  mapper.apiAccount2Entry(principal)
-        saved <- ldap.save(entry, removeMissingAttributes=true)
-        loggedAction <- (optPrevious match {
+        saved        <- ldap.save(entry, removeMissingAttributes=true)
+        loggedAction <- optPrevious match {
                             // if there is a previous value, then it's an update
                             case Some(previous) =>
                               for {
-                                optDiff <- diffMapper.modChangeRecords2ApiAccountDiff(
-                                            previous
-                                          , saved)
+                                optDiff <- diffMapper.modChangeRecords2ApiAccountDiff(previous, saved)
 
                                 action  <- optDiff match {
-                                            case Some(diff) => actionLogger.saveModifyApiAccount(modId, principal = actor, modifyDiff = diff, None) ?~! "Error when logging modification of an API Account as an event"
-                                            case None => Full("Ok")
+                                            case Some(diff) => actionLogger.saveModifyApiAccount(modId, principal = actor, modifyDiff = diff, None).chainError("Error when logging modification of an API Account as an event")
+                                            case None => "Ok".succeed
                                           }
                               } yield {
                                 action
@@ -233,15 +230,13 @@ final class WoLDAPApiAccountRepository(
                             // if there is no previous value, then it's a creation
                             case None =>
                               for {
-                                diff   <- diffMapper.addChangeRecords2ApiAccountDiff(
-                                            entry.dn
-                                          , saved)
+                                diff   <- diffMapper.addChangeRecords2ApiAccountDiff(entry.dn, saved)
 
-                                action <-  actionLogger.saveCreateApiAccount(modId, principal = actor, addDiff = diff, None) ?~! "Error when logging creation of API Account as an event"
+                                action <-  actionLogger.saveCreateApiAccount(modId, principal = actor, addDiff = diff, None).chainError("Error when logging creation of API Account as an event")
                               } yield {
                                 action
                               }
-                       }).toLdapResult
+                       }
       } yield {
         principal
       }).toBox

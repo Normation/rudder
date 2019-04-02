@@ -84,6 +84,13 @@ object errors {
     def chainError(hint: String): ZIO[R, RudderError, A] = res.mapError(err => Chained(hint, err))
   }
 
+  /*
+   * A mapper from PureResult to IOResult
+   */
+  implicit class PureToIoResult[A](res: PureResult[A]) {
+    def toZio = ZIO.fromEither(res)
+  }
+
   /**
    *  Some box compatibility methods
    */

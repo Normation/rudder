@@ -64,6 +64,8 @@ import com.unboundid.ldif.LDIFModifyDNChangeRecord
 import net.liftweb.common._
 import net.liftweb.util.Helpers._
 
+import com.normation.errors._
+
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper
   , cmdbQueryParser: CmdbQueryParser
@@ -405,7 +407,7 @@ class LDAPDiffMapper(
   def modChangeRecords2ApiAccountDiff(
       beforeChangeEntry : LDAPEntry
     , change            : LDIFChangeRecord
-  ) : Box[Option[ModifyApiAccountDiff]] = {
+  ) : PureResult[Option[ModifyApiAccountDiff]] = {
     if(change.getParsedDN == beforeChangeEntry.dn ) {
       change match {
         case modify:LDIFModifyChangeRecord =>
