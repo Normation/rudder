@@ -61,15 +61,20 @@ import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries._
-import com.normation.utils.Control._
 import com.unboundid.ldap.sdk.DN
-import net.liftweb.common.Box.{tryo => _, _}
-import net.liftweb.common._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
+import com.normation.inventory.ldap.core.InventoryMappingRudderError
+import com.normation.inventory.ldap.core.InventoryMappingResult._
+import cats._
+import cats.data._
+import cats.implicits._
+import com.normation.NamedZioLogger
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 import scala.language.implicitConversions
 
@@ -83,6 +88,7 @@ final object NodeStateEncoder {
   }
 }
 
+
 /**
  * Map objects from/to LDAPEntries
  *
@@ -93,7 +99,10 @@ class LDAPEntityMapper(
   , inventoryDit   : InventoryDit
   , cmdbQueryParser: CmdbQueryParser
   , inventoryMapper: InventoryMapper
-) extends Loggable {
+) extends NamedZioLogger {
+
+
+  def loogerName = "rudder-ldap-entity-mapper"
 
     //////////////////////////////    Node    //////////////////////////////
 
@@ -159,22 +168,22 @@ class LDAPEntityMapper(
     parse(value).extract[HeartbeatConfiguration]
   }
 
-  def entryToNode(e:LDAPEntry) : Box[Node] = {
+  def entryToNode(e:LDAPEntry) : InventoryMappingPure[Node] = {
     if(e.isA(OC_RUDDER_NODE)||e.isA(OC_POLICY_SERVER_NODE)) {
       //OK, translate
       for {
-        id   <- nodeDit.NODES.NODE.idFromDn(e.dn) ?~! s"Bad DN found for a Node: ${e.dn}"
-        date <- e.getAsGTime(A_OBJECT_CREATION_DATE) ?~! s"Can not find mandatory attribute '${A_OBJECT_CREATION_DATE}' in entry"
+        id   <- nodeDit.NODES.NODE.idFromDn(e.dn).notOptional(s"Bad DN found for a Node: ${e.dn}")
+        date <- e.requiredAs[GeneralizedTime]( _.getAsGTime, A_OBJECT_CREATION_DATE)
         agentRunInterval = e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
         heartbeatConf = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))
         policyMode <- e(A_POLICY_MODE) match {
-          case None => Full(None)
-          case Some(value) => PolicyMode.parse(value).map {Some(_) }
-        }
+                        case None => Right(None)
+                        case Some(value) => PolicyMode.parse(value).map {Some(_) }
+                      }
         properties <- sequence(e.valuesFor(A_NODE_PROPERTY).toSeq)(v => net.liftweb.json.parseOpt(v) match {
-          case Some(json) => unserializeLdapNodeProperty(json)
-          case None => Failure("Invalid data when unserializing node property")
-        })
+                        case Some(json) => unserializeLdapNodeProperty(json)
+                        case None => Failure("Invalid data when unserializing node property")
+                      })
       } yield {
         val hostname = e(A_NAME).getOrElse("")
         Node(
@@ -216,7 +225,7 @@ class LDAPEntityMapper(
     // wanted here ?
     for {
       node         <- entryToNode(nodeEntry)
-      checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Full("Ok")
+      checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Right("Ok")
                       else Failure("Mismatch id for the node %s and the inventory %s".format(nodeEntry(A_NODE_UUID), inventoryEntry(A_NODE_UUID)))
 
       nodeInfo     <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry)
@@ -257,7 +266,7 @@ class LDAPEntityMapper(
       // Compute the parent policy Id
       policyServerId <- inventoryEntry.valuesFor(A_POLICY_SERVER_UUID).toList match {
                           case Nil => Failure(s"Missing policy server id for Node '${node.id.value}'. Entry details: ${inventoryEntry}")
-                          case x :: Nil => Full(x)
+                          case x :: Nil => Right(x)
                           case _ => Failure(s"Too many policy servers for a Node '${node.id.value}'. Entry details: ${inventoryEntry}")
                         }
       keys           =  inventoryEntry.valuesFor(A_PKEYS).map(Some(_))
@@ -271,7 +280,7 @@ class LDAPEntityMapper(
                          }
                        }
       osDetails     <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry)
-      keyStatus     <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
+      keyStatus     <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey))
       serverRoles   =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
       timezone      =  (inventoryEntry(A_TIMEZONE_NAME), inventoryEntry(A_TIMEZONE_OFFSET)) match {
                          case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
@@ -360,14 +369,14 @@ class LDAPEntityMapper(
    */
   def dn2ActiveTechniqueCategoryId(dn:DN) : ActiveTechniqueCategoryId = {
     rudderDit.ACTIVE_TECHNIQUES_LIB.getCategoryIdValue(dn) match {
-      case Full(value) => ActiveTechniqueCategoryId(value)
+      case Right(value) => ActiveTechniqueCategoryId(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Active Technique Category ID. Error was: %s".format(dn,e.toString))
     }
   }
 
   def dn2ActiveTechniqueId(dn:DN) : ActiveTechniqueId = {
     rudderDit.ACTIVE_TECHNIQUES_LIB.getActiveTechniqueId(dn) match {
-      case Full(value) => ActiveTechniqueId(value)
+      case Right(value) => ActiveTechniqueId(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Active Technique ID. Error was: %s".format(dn,e.toString))
     }
   }
@@ -377,7 +386,7 @@ class LDAPEntityMapper(
    */
   def dn2NodeGroupCategoryId(dn:DN) : NodeGroupCategoryId = {
     rudderDit.GROUP.getCategoryIdValue(dn) match {
-      case Full(value) => NodeGroupCategoryId(value)
+      case Right(value) => NodeGroupCategoryId(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Node Group Category ID. Error was: %s".format(dn,e.toString))
     }
   }
@@ -387,7 +396,7 @@ class LDAPEntityMapper(
    */
   def dn2NodeGroupId(dn:DN) : NodeGroupId = {
     rudderDit.GROUP.getGroupId(dn) match {
-      case Full(value) => NodeGroupId(value)
+      case Right(value) => NodeGroupId(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Node Group ID. Error was: %s".format(dn,e.toString))
     }
   }
@@ -397,21 +406,21 @@ class LDAPEntityMapper(
    */
   def dn2RuleCategoryId(dn:DN) : RuleCategoryId = {
     rudderDit.RULECATEGORY.getCategoryIdValue(dn) match {
-      case Full(value) => RuleCategoryId(value)
+      case Right(value) => RuleCategoryId(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Rule Category ID. Error was: %s".format(dn,e.toString))
     }
   }
 
   def dn2LDAPRuleID(dn:DN) : DirectiveId = {
     rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPRuleID(dn) match {
-      case Full(value) => DirectiveId(value)
+      case Right(value) => DirectiveId(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Directive ID. Error was: %s".format(dn,e.toString))
     }
   }
 
   def dn2RuleId(dn:DN) : RuleId = {
     rudderDit.RULES.getRuleId(dn) match {
-      case Full(value) => RuleId(value)
+      case Right(value) => RuleId(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Rule ID. Error was: %s".format(dn,e.toString))
     }
   }
@@ -419,7 +428,7 @@ class LDAPEntityMapper(
   def nodeDn2OptNodeId(dn:DN) : Box[NodeId] = {
     val rdn = dn.getRDN
     if(!rdn.isMultiValued && rdn.hasAttribute(A_NODE_UUID)) {
-      Full(NodeId(rdn.getAttributeValues()(0)))
+      Right(NodeId(rdn.getAttributeValues()(0)))
     } else Failure("Bad RDN for a node, expecting attribute name '%s', got: %s".format(A_NODE_UUID,rdn))
   }
 
@@ -551,13 +560,13 @@ class LDAPEntityMapper(
         query = e(A_QUERY_NODE_GROUP)
         nodeIds =  e.valuesFor(A_NODE_UUID).map(x => NodeId(x))
         query <- e(A_QUERY_NODE_GROUP) match {
-          case None => Full(None)
+          case None => Right(None)
           case Some(q) => cmdbQueryParser(q) match {
-            case Full(x) => Full(Some(x))
+            case Right(x) => Right(Some(x))
             case eb:EmptyBox =>
               val error = eb ?~! s"Error when parsing query for node group persisted at DN '${e.dn}' (name: '${name}'), that seems to be an inconsistency. You should modify that group"
               logger.error(error.messageChain)
-              Full(None)
+              Right(None)
           }
         }
         isDynamic = e.getAsBoolean(A_IS_DYNAMIC).getOrElse(false)
@@ -604,7 +613,7 @@ class LDAPEntityMapper(
         id              <- e(A_DIRECTIVE_UUID) ?~! "Missing required attribute %s in entry %s".format(A_DIRECTIVE_UUID, e)
         s_version       <- e(A_TECHNIQUE_VERSION) ?~! "Missing required attribute %s in entry %s".format(A_TECHNIQUE_VERSION, e)
         policyMode      <- e(A_POLICY_MODE) match {
-          case None => Full(None)
+          case None => Right(None)
           case Some(value) => PolicyMode.parse(value).map {Some(_) }
         }
         version         <- tryo(TechniqueVersion(s_version))
@@ -616,7 +625,7 @@ class LDAPEntityMapper(
         isEnabled        = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         tags             <- e(A_SERIALIZED_TAGS) match {
-          case None => Full(Tags(Set()))
+          case None => Right(Tags(Set()))
           case Some(tags) => CompleteJson.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
         }
       } yield {
@@ -690,8 +699,8 @@ class LDAPEntityMapper(
     } yield {
       target
     }) match {
-      case Full(t) => Full(Some(t))
-      case Empty => Full(None)
+      case Right(t) => Right(Some(t))
+      case Empty => Right(None)
       case f:Failure => f
     }
   }
@@ -703,7 +712,7 @@ class LDAPEntityMapper(
         id       <- e(A_RULE_UUID) ?~!
                     "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
         tags     <- e(A_SERIALIZED_TAGS) match {
-          case None => Full(Tags(Set()))
+          case None => Right(Tags(Set()))
           case Some(tags) => CompleteJson.unserializeTags(tags) ?~! s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}"
         }
       } yield {
@@ -823,7 +832,7 @@ class LDAPEntityMapper(
                                      if(accountType == ApiAccountType.PublicApi) {
                                        logger.warn(s"Missing API authorizations level kind for token '${name.value}' with id '${id.value}'")
                                      }
-                                     Full(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
+                                     Right(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
                                    case Some(s) => ApiAuthorizationKind.parse(s) match {
                                      case Left(error) => Failure(error)
                                      case Right(kind) => kind match {
@@ -832,15 +841,15 @@ class LDAPEntityMapper(
                                          e(A_API_ACL) match {
                                            case None    =>
                                              logger.debug(s"API authorizations level kind for token '${name.value}' with id '${id.value}' is 'ACL' but it doesn't have any ACLs conigured")
-                                             Full(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
+                                             Right(ApiAuthorization.None) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
                                            case Some(s) => unserApiAcl(s) match {
-                                             case Right(x)  => Full(ApiAuthorization.ACL(x))
+                                             case Right(x)  => Right(ApiAuthorization.ACL(x))
                                              case Left(msg) => Failure(msg)
                                            }
                                          }
-                                       case ApiAuthorizationKind.None => Full(ApiAuthorization.None)
-                                       case ApiAuthorizationKind.RO   => Full(ApiAuthorization.RO  )
-                                       case ApiAuthorizationKind.RW   => Full(ApiAuthorization.RW  )
+                                       case ApiAuthorizationKind.None => Right(ApiAuthorization.None)
+                                       case ApiAuthorizationKind.RO   => Right(ApiAuthorization.RO  )
+                                       case ApiAuthorizationKind.RW   => Right(ApiAuthorization.RW  )
                                      }
                                    }
                                  }

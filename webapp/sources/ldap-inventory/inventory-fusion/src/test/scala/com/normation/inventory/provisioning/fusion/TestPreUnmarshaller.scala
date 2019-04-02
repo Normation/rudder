@@ -45,7 +45,7 @@ import com.normation.inventory.services.provisioning.PreUnmarshall
 import java.io.InputStream
 
 import com.normation.errors.RudderError
-import com.normation.errors.RudderResult
+import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.zio.ZioRuntime
 
@@ -64,7 +64,7 @@ class TestPreUnmarshaller extends Specification {
 
   private[this] implicit class TestParser(pre: PreUnmarshall) {
 
-    def fromXml(checkName:String,is:InputStream) : RudderResult[NodeSeq] = {
+    def fromXml(checkName:String,is:InputStream) : IOResult[NodeSeq] = {
       Task.effect(XML.load(is)).mapError(SystemError("error in test", _))
     }
 

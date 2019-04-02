@@ -36,8 +36,8 @@
 */
 package com.normation.rudder.domain.policies
 
-import net.liftweb.common.{Box,Full,Failure}
 import ca.mrvisser.sealerate.values
+import com.normation.errors._
 
 sealed trait PolicyMode {                        def name : String    }
 final object PolicyMode {
@@ -47,19 +47,19 @@ final object PolicyMode {
   def allModes: Set[PolicyMode] = values[PolicyMode]
 
   //get from string, case insensitive
-  def parse (value : String) : Box[PolicyMode] = {
+  def parse (value : String) : Either[RudderError, PolicyMode] = {
     allModes.find { _.name == value.toLowerCase() } match {
       case None =>
-        Failure(s"Unable to parse policy mode name '${value}'. was expecting ${allModes.map(_.name).mkString("'", "' or '", "'")}.")
+        Left(Unexpected(s"Unable to parse policy mode name '${value}'. was expecting ${allModes.map(_.name).mkString("'", "' or '", "'")}."))
       case Some(mode) =>
-        Full(mode)
+        Right(mode)
     }
   }
 
   //get from string, with null, '' and 'default' will result in a None
-  def parseDefault (value : String) : Box[Option[PolicyMode]] = {
+  def parseDefault (value : String) : Either[RudderError, Option[PolicyMode]] = {
     value match {
-      case null | "" | "default" => Full(None)
+      case null | "" | "default" => Right(None)
       case _                     => parse(value).map(Some(_))
     }
   }
@@ -74,11 +74,11 @@ final object PolicyMode {
    * and we know from the context the default global value and the value of
    * other directives for the same technique also on that node.
    */
-  def computeMode(globalValue : GlobalPolicyMode, nodeMode : Option[PolicyMode], directiveMode : Seq[Option[PolicyMode]]) : Box[PolicyMode] = {
+  def computeMode(globalValue : GlobalPolicyMode, nodeMode : Option[PolicyMode], directiveMode : Seq[Option[PolicyMode]]) : Either[RudderError, PolicyMode] = {
     globalValue.overridable match {
       case PolicyModeOverrides.Always =>
         nodeMode match {
-          case Some(Audit) => Full(Audit)
+          case Some(Audit) => Right(Audit)
           case _ =>
 
             // Here, we must ensure that all the directive have consistant policy mode - i.e the same.
@@ -90,16 +90,16 @@ final object PolicyMode {
             finalMode match {
               case Nil =>
                 //here, we didn't passed any directive in the call, so we just get the node|global computed mode
-                Full(default)
+                Right(default)
               case mode :: Nil => //ok
-                Full(mode)
+                Right(mode)
               case _ => // too many modes, verboten
-                Failure(s"Inconsistant policy mode: both audit and enforce applied")
+                Left(Unexpected(s"Inconsistant policy mode: both audit and enforce applied"))
             }
         }
 
       case PolicyModeOverrides.Unoverridable =>
-        Full(globalValue.mode)
+        Right(globalValue.mode)
     }
   }
 

@@ -36,7 +36,6 @@
 */
 package com.normation.rudder.api
 
-import net.liftweb.common.Box
 import net.liftweb.common.Full
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
@@ -56,8 +55,10 @@ import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
 import org.joda.time.DateTime
 import com.normation.utils.StringUuidGenerator
-import com.normation.ldap.sdk.LdapResult._
-import com.normation.ldap.sdk.LdapResultError
+import com.normation.errors._
+
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * A repository to retrieve API Accounts
@@ -68,11 +69,11 @@ trait RoApiAccountRepository {
    * Retrieve all standard API Account (not linked to an user,
    * not system, i.e account.kind == PublicApi)
    */
-  def getAllStandardAccounts: Box[Seq[ApiAccount]]
+  def getAllStandardAccounts: IOResult[Seq[ApiAccount]]
 
-  def getByToken(token: ApiToken): Box[Option[ApiAccount]]
+  def getByToken(token: ApiToken): IOResult[Option[ApiAccount]]
 
-  def getById(id : ApiAccountId) : Box[Option[ApiAccount]]
+  def getById(id : ApiAccountId) : IOResult[Option[ApiAccount]]
 
   def getSystemAccount : ApiAccount
 }
@@ -91,12 +92,12 @@ trait WoApiAccountRepository {
   def save(
       principal : ApiAccount
     , modId     : ModificationId
-    , actor     : EventActor): Box[ApiAccount]
+    , actor     : EventActor): IOResult[ApiAccount]
 
   def delete(
       id        : ApiAccountId
     , modId     : ModificationId
-    , actor     : EventActor) : Box[ApiAccountId]
+    , actor     : EventActor) : IOResult[ApiAccountId]
 }
 
 final class RoLDAPApiAccountRepository(
@@ -121,8 +122,8 @@ final class RoLDAPApiAccountRepository(
 
   override def getSystemAccount: ApiAccount = systemAPIAccount
 
-  override def getAllStandardAccounts: Box[Seq[ApiAccount]] = {
-    (for {
+  override def getAllStandardAccounts: IOResult[Seq[ApiAccount]] = {
+    for {
       ldap    <- ldapConnexion
       entries <- ldap.searchOne(rudderDit.API_ACCOUNTS.dn, BuildFilter.IS(RudderLDAPConstants.OC_API_ACCOUNT))
     } yield {
@@ -138,10 +139,10 @@ final class RoLDAPApiAccountRepository(
           }
       } )
       accounts
-    }).toBox
+    }
   }
 
-  override def getByToken(token: ApiToken): Box[Option[ApiAccount]] = {
+  override def getByToken(token: ApiToken): IOResult[Option[ApiAccount]] = {
     if (token == systemAPIAccount.token) {
       Full(Some(systemAPIAccount))
     } else {
@@ -159,7 +160,7 @@ final class RoLDAPApiAccountRepository(
     }
   }
 
-  override def getById(id:ApiAccountId) : Box[Option[ApiAccount]] = {
+  override def getById(id:ApiAccountId) : IOResult[Option[ApiAccount]] = {
     if (id == systemAPIAccount.id) {
       Full(Some(systemAPIAccount))
     } else {
@@ -190,7 +191,7 @@ final class WoLDAPApiAccountRepository(
   override def save(
       principal : ApiAccount
     , modId     : ModificationId
-    , actor     : EventActor) : Box[ApiAccount] = {
+    , actor     : EventActor) : IOResult[ApiAccount] = {
     repo.synchronized {
       (for {
         ldap     <- ldapConnexion
@@ -250,7 +251,7 @@ final class WoLDAPApiAccountRepository(
   override def delete(
       id        : ApiAccountId
     , modId     : ModificationId
-    , actor     : EventActor) : Box[ApiAccountId] = {
+    , actor     : EventActor) : IOResult[ApiAccountId] = {
     (for {
       ldap         <- ldapConnexion
       entry        <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)).flatMap {

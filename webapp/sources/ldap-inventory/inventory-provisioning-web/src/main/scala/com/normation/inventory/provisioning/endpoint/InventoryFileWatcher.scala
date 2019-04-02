@@ -41,7 +41,7 @@ import java.nio.file.ClosedWatchServiceException
 import java.nio.file.NoSuchFileException
 
 import better.files._
-import com.normation.errors.RudderResult
+import com.normation.errors.IOResult
 import com.normation.zio.ZioRuntime
 import monix.eval.Task
 import monix.execution.Scheduler
@@ -271,10 +271,10 @@ class ProcessFile(
     import scalaz.zio.{scheduler => _, Task => ZioTask, _}
     import scalaz.zio.syntax._
 
-    def sendToProcessor(inventory: File, signature: Option[File]): RudderResult[Unit] = {
+    def sendToProcessor(inventory: File, signature: Option[File]): IOResult[Unit] = {
       // we don't manage race condition very well, so we have cases where
       // we can have two things trying to move
-      def safeMove[T](chunk: =>T): RudderResult[Unit] = {
+      def safeMove[T](chunk: =>T): IOResult[Unit] = {
         ZioTask.effect{chunk ; ()}.catchAll {
           case ex: NoSuchFileException => // ignore
             InventoryProcessingLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The was file was correctly handled.")

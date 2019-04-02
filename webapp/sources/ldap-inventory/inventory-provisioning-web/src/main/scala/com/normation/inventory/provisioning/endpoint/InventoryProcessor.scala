@@ -40,7 +40,7 @@ package com.normation.inventory.provisioning.endpoint
 import com.normation.NamedZioLogger
 import com.normation.ZioLogger
 import com.normation.errors.Chained
-import com.normation.errors.RudderResult
+import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.InventoryError
@@ -137,7 +137,7 @@ class InventoryProcessor(
 
   // we need something that can produce the stream several time because we are reading the file several time - not very
   // optimized :/
-  def saveInventory(newInventoryStream: () => InputStream, inventoryFileName: String, optNewSignatureStream : Option[() => InputStream]): RudderResult[InventoryProcessStatus] = {
+  def saveInventory(newInventoryStream: () => InputStream, inventoryFileName: String, optNewSignatureStream : Option[() => InputStream]): IOResult[InventoryProcessStatus] = {
 
     def saveWithSignature(report: InventoryReport, newInventoryStream: () => InputStream, newSignature: () => InputStream): InventoryResult[InventoryProcessStatus] = {
       ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when reading inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { inventoryStream =>
@@ -164,7 +164,7 @@ class InventoryProcessor(
       }
     }
 
-    def saveNoSignature(report: InventoryReport): RudderResult[InventoryProcessStatus] = {
+    def saveNoSignature(report: InventoryReport): IOResult[InventoryProcessStatus] = {
       // Check if we need a signature or not
       digestService.getKey(report).flatMap {
         // Status is undefined => We accept unsigned inventory
@@ -180,7 +180,7 @@ class InventoryProcessor(
       )
     }
 
-    def parseSafe(newInventoryStream: () => InputStream, inventoryFileName: String): RudderResult[InventoryReport] = {
+    def parseSafe(newInventoryStream: () => InputStream, inventoryFileName: String): IOResult[InventoryReport] = {
       ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when trying to read inventory file '${inventoryFileName}'", _)) )(
         is => Task.effect(is.close()).run
       ){ is =>
@@ -244,7 +244,7 @@ class InventoryProcessor(
      * A method that check LDAP health status.
      * It must be quick and simple.
      */
-    def checkLdapAlive(ldap: LDAPConnectionProvider[RwLDAPConnection]): RudderResult[String] = {
+    def checkLdapAlive(ldap: LDAPConnectionProvider[RwLDAPConnection]): IOResult[String] = {
       for {
         con <- ldap
         res <- con.get(nodeInventoryDit.NODES.dn, "1.1")

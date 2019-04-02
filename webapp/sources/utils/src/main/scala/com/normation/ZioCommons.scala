@@ -28,12 +28,14 @@ package com.normation
 import java.io.FileInputStream
 import java.net.URL
 
-import cats.data.NonEmptyList
 import scalaz.zio._
 import scalaz.zio.syntax._
-import cats.implicits._
 import com.normation.zio.ZioRuntime
 import net.liftweb.common.Logger
+
+import cats._
+import cats.data._
+import cats.implicits._
 
 /**
  * This is our based error for Rudder. Any method that can
@@ -45,7 +47,8 @@ import net.liftweb.common.Logger
 object errors {
 
 
-  type RudderResult[T] = ZIO[Any, RudderError, T]
+  type IOResult[T] = ZIO[Any, RudderError, T]
+  type PureResult[T] = Either[RudderError, T]
 
   trait RudderError {
     // All error have a message which explains what cause the error.
@@ -59,6 +62,9 @@ object errors {
   // a common error for system error not specificaly bound to
   // a domain context.
   final case class SystemError(msg: String, cause: Throwable) extends RudderError
+
+  // a generic error to tell "I wasn't expecting that value"
+  final case class Unexpected(msg: String) extends RudderError
 
   trait BaseChainError[E <: RudderError] extends RudderError {
     def cause: E
@@ -76,6 +82,51 @@ object errors {
    */
   implicit class ChainError[R, E <: RudderError, A](res: ZIO[R, E, A]) {
     def chainError(hint: String): ZIO[R, RudderError, A] = res.mapError(err => Chained(hint, err))
+  }
+
+  /**
+   *  Some box compatibility methods
+   */
+
+
+  import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full}
+
+  object BoxUtil {
+
+    def fold[E <: RudderError, A, F[_]: cats.Monad](error: RudderError => F[A], success: A => F[A])(box: Box[A]): F[A] = {
+      def toFail(f: Failure): RudderError = {
+        (f.chain, f.exception) match {
+          case (Full(parent), _) => Chained(f.msg, toFail(f))
+          case (_, Full(ex))     => SystemError(f.messageChain, ex)
+          case _                 => Unexpected(f.messageChain)
+        }
+      }
+
+      box match {
+        case Full(x)   => success(x)
+        case Empty     => error(Unexpected("no context was provided"))
+
+        // given how Failure are built in Lift/Rudder, we never have both an Full(exception) and
+        // a Full(parent). If it happens nonetheless, we keep parent (which is likely to have ex)
+        case f:Failure => error(toFail(f))
+      }
+    }
+  }
+
+  implicit class BoxToEither[E <: RudderError, A](res: Box[A]) {
+    import cats.instances.either._
+    def toEither: PureResult[A] = BoxUtil.fold[E, A, PureResult](
+      err => Left(err)
+    , suc => Right(suc)
+    )(res)
+  }
+
+  implicit class BoxToIO[E <: RudderError, A](res: Box[A]) {
+    import scalaz.zio.interop.catz._
+    def toIO: IOResult[A] = BoxUtil.fold[E, A, IOResult](
+      err => err.fail
+    , suc => suc.succeed
+    )(res)
   }
 }
 

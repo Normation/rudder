@@ -85,7 +85,7 @@ class TestSignatureService extends Specification with Loggable {
      * either an inventory has already been treated before, it will look into ldap repository
      * or if there was no inventory before, it will look for the key in the received inventory
      */
-    def getKey (receivedInventory  : InventoryReport) : RudderResult[(SecurityToken, KeyStatus)] = {
+    def getKey (receivedInventory  : InventoryReport) : IOResult[(SecurityToken, KeyStatus)] = {
       for {
         cfengineKey <- ZIO.fromOption(receivedInventory.node.agents.headOption).mapError(_ => InventoryError.Inconsistency("There is no public key in inventory"))
         keyStatus = receivedInventory.node.main.keyStatus

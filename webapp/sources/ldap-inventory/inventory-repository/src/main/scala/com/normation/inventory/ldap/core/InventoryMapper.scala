@@ -80,6 +80,14 @@ object InventoryMappingResult {
     }
   }
 
+  implicit class RequiredTypedAttrToPure(entry: LDAPEntry) {
+    def requiredAs[T](f: LDAPEntry => String => Option[T], attribute: String): InventoryMappingPure[T] = f(entry)(attribute) match {
+      case None    => Left(MissingMandatoryAttribute(attribute, entry))
+      case Some(x) => Right(x)
+    }
+  }
+
+
   implicit class RequiredThing[T](opt: Option[T]) {
     def notOptional(msg: String) = opt match {
       case None    => Left(MissingMandatory(msg))

@@ -60,6 +60,8 @@ class TechniqueParser(
   , systemVariableSpecService    : SystemVariableSpecService
 ) extends NamedZioLogger {
 
+  val loggerName = "technique-parser"
+
   def parseXml(xml: Node, id: TechniqueId): Either[LoadTechniqueError, Technique] = {
     def nonEmpty(s: String) = if(null == s || s == "") None else Some(s)
 
@@ -97,26 +99,25 @@ class TechniqueParser(
 
             deprecationInfo <- parseDeprecrationInfo(xml)
 
-            agentConfigs = (
-              (xml \ "AGENT" ).toList.map(agent => parseAgentConfig(id, agent)).flatten ++
-              {
-                //for compability reason, we cheat and make the template/file/bundlesequence under root
-                //and not in an <AGENT> sub-element be considered as being in <AGENT type="cfengine-community,cfengine-enterprise">
-                val forCompatibilityAgent = <AGENT type={s"${AgentType.CfeCommunity.toString},${AgentType.CfeEnterprise.toString}"}>
-                  {(xml \ PROMISE_TEMPLATES_ROOT)}
-                  {(xml \ FILES)}
-                  {(xml \ BUNDLES_ROOT)}
-                  {(xml \ RUN_HOOKS)}
-                </AGENT>
+            //for compability reason, we cheat and make the template/file/bundlesequence under root
+            //and not in an <AGENT> sub-element be considered as being in <AGENT type="cfengine-community,cfengine-enterprise">
+            compatibilityAgent <- {
+                                    val forCompatibilityAgent = <AGENT type={s"${AgentType.CfeCommunity.toString},${AgentType.CfeEnterprise.toString}"}>
+                                      {(xml \ PROMISE_TEMPLATES_ROOT)}
+                                      {(xml \ FILES)}
+                                      {(xml \ BUNDLES_ROOT)}
+                                      {(xml \ RUN_HOOKS)}
+                                    </AGENT>
 
-                parseAgentConfig(id, forCompatibilityAgent)
-              }
-            )
+                                    parseAgentConfig(id, forCompatibilityAgent)
+                                  }
+            otherAgents  <- (xml \ "AGENT" ).toList.traverse(agent => parseAgentConfig(id, agent)).map(_.flatten)
+            agentConfigs = compatibilityAgent ++ otherAgents
 
             // System technique should not have run hooks, this is not supported:
             _ = if(isSystem && agentConfigs.exists( a => a.runHooks.nonEmpty ) ) {
-              logEffect.warn(s"System Technique with ID '${id.toString()}' has agent run hooks defined. This is not supported on system technique.")
-            }
+                  logEffect.warn(s"System Technique with ID '${id.toString()}' has agent run hooks defined. This is not supported on system technique.")
+                }
 
             // 4.3: does the technique support generation without directive merge (i.e mutli directive)
             generationMode = nonEmpty((xml \ TECHNIQUE_GENERATION_MODE).text).flatMap(TechniqueGenerationMode.parse).getOrElse(TechniqueGenerationMode.MergeDirectives)
@@ -169,14 +170,15 @@ class TechniqueParser(
    *
    * id is for reporting
    */
-  private[this] def parseAgentConfig(id: TechniqueId, xml: Node): List[AgentConfig] = {
+  private[this] def parseAgentConfig(id: TechniqueId, xml: Node): Either[LoadTechniqueError, List[AgentConfig]] = {
     //start to parse agent types for that config. It's a comma separated list
     import scala.language.postfixOps
 
     if(xml.label != "AGENT") {
-      Nil
+      Right(Nil)
     } else {
 
+      // we want to ignore without failing unknow agent.
       val agentTypes = (xml \ "@type" text).split(",").map { name =>
         AgentType.fromValue(name) match {
           case Right(agentType) => Some(agentType)
@@ -187,15 +189,23 @@ class TechniqueParser(
         }
       }.flatten.toList
 
-      // create a map of template per agent type
-      val templatesPerAgent = agentTypes.map(agentType => (agentType, (xml \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).map(xml => parseTemplate(id, xml, agentType) ).toList ) ).toMap
 
-      val files = (xml \ FILES \\ FILE).map(xml => parseFile(id, xml) )
-      val bundlesequence = (xml \ BUNDLES_ROOT \\ BUNDLE_NAME).map(xml => BundleName(xml.text) )
-
-      val hooks = (xml \ RUN_HOOKS).flatMap(parseRunHooks(id, _))
-
-      agentTypes.map( agentType => AgentConfig(agentType, templatesPerAgent.getOrElse(agentType, Nil), files.toList, bundlesequence.toList, hooks.toList))
+      for {
+        // create a map of template per agent type
+        templatesPerAgent <- agentTypes.traverse { agentType =>
+                               for {
+                                 templates <- (xml \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).toList.traverse { xml2 => parseTemplate(id, xml2, agentType) }
+                               } yield {
+                                 (agentType, templates)
+                               }
+                             }
+        files          <- (xml \ FILES \\ FILE).toList.traverse(xml => parseFile(id, xml) )
+        bundlesequence =  (xml \ BUNDLES_ROOT \\ BUNDLE_NAME).map(xml2 => BundleName(xml2.text) )
+        hooks          <- (xml \ RUN_HOOKS).toList.traverse(parseRunHooks(id, _)).map( _.flatten )
+      } yield {
+        val templatesMap = templatesPerAgent.toMap
+        agentTypes.map( agentType => AgentConfig(agentType, templatesMap.getOrElse(agentType, Nil), files.toList, bundlesequence.toList, hooks.toList))
+      }
     }
   }
 
@@ -358,21 +368,18 @@ class TechniqueParser(
     </RUNHOOKS>
   */
   def parseRunHooks(id: TechniqueId, xml: Node): Either[LoadTechniqueError, List[RunHook]] = {
-    def parseHookException(msg: String) = {
-      Left(LoadTechniqueError.Parsing(s"Error: in technique '${id.toString()}', tried to parse a <${RUN_HOOKS}> xml, but "+ msg))
-    }
     def parseOneHook(xml: Node, kind: RunHook.Kind): Either[LoadTechniqueError, RunHook] = {
       def opt(s: String) = if(s == null || s == "") None else Some(s)
 
       (for {
-        bundle <- Box(opt((xml \ "@bundle").text)) ?~! s"attribute 'bundle' is missing in: ${xml}"
-        report <- Box((xml \\ "REPORT").toList.flatMap(r =>
+        bundle <- Either.fromOption(opt((xml \ "@bundle").text), LoadTechniqueError.Parsing(s"attribute 'bundle' is missing in: ${xml}"))
+        report <- Either.fromOption((xml \\ "REPORT").toList.flatMap(r =>
                     for {
                       rname <- opt((r \ "@name").text)
                     } yield {
                       RunHook.Report(rname, opt((r \ "@value").text))
                     }
-                  ).headOption) ?~! s"child node 'REPORT' is missing in: ${xml}"
+                  ).headOption, LoadTechniqueError.Parsing(s"child node 'REPORT' is missing in: ${xml}"))
       } yield {
         RunHook(bundle, kind, report, (xml \\ "PARAMETER").toList.flatMap(p =>
           for {
@@ -383,22 +390,20 @@ class TechniqueParser(
             RunHook.Parameter(pname, pvalue)
           }
          ))
-      }) match {
-        case Full(x)     => x
-        case eb:EmptyBox =>
-          val msg = (eb ?~! "XML is invalid: ").messageChain
-          parseHookException(msg)
-      }
+      }).leftMap(err => LoadTechniqueError.Parsing(s"Error: in technique '${id.toString()}', tried to parse a <${RUN_HOOKS}> xml, but XML is invalid: "+ err.fullMsg))
     }
 
-    if(xml.label != RUN_HOOKS) parseHookException(s"actually got: ${xml}")
+    if(xml.label != RUN_HOOKS) {
+      Left(LoadTechniqueError.Parsing(s"Error in techni in technique '${id.toString()}', this is not a valid <${RUN_HOOKS}>: ${xml}"))
+    } else {
 
-    // parse each direct children, but only proceed with PRE and POST. And the are parsed the same
-    xml.child.toList.flatMap( c => c.label match {
-      case "PRE"  => Some(parseOneHook(c, RunHook.Kind.Pre))
-      case "POST" => Some(parseOneHook(c, RunHook.Kind.Post))
-      case _      => None
-    } )
+      // parse each direct children, but only proceed with PRE and POST.
+      xml.child.toList.traverse( c => c.label match {
+        case "PRE"  => parseOneHook(c, RunHook.Kind.Pre).map(x => Some(x))
+        case "POST" => parseOneHook(c, RunHook.Kind.Post).map(x => Some(x))
+        case _      => Right(None)
+      } ).map( _.flatten )
+    }
   }
 
 }

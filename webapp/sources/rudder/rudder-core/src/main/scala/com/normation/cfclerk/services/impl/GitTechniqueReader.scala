@@ -610,7 +610,7 @@ class GitTechniqueReader(
     val techniqueId = TechniqueId(policyName,policyVersion)
 
     for {
-      pack <- if(parseDescriptor) loadDescriptorFile(is, filePath).flatMap(d => techniqueParser.parseXml(d, techniqueId))
+      pack <- if(parseDescriptor) loadDescriptorFile(is, filePath).flatMap(d => ZIO.fromEither(techniqueParser.parseXml(d, techniqueId)))
                  else dummyTechnique.succeed
       res  <- Task.effect {
                 //check that that package is not already know, else its an error (by id ?)
@@ -633,13 +633,15 @@ class GitTechniqueReader(
                         )
                     }
                 }
-              } fold { err => err match {
-                case e : TechniqueVersionFormatException => logger.error("Ignoring technique '%s' because the version format is incorrect. Error message was: %s".format(filePath,e.getMessage))
-                case e : ParsingException => logger.error("Ignoring technique '%s' because the descriptor file is malformed. Error message was: %s".format(filePath,e.getMessage))
-                case e : ConstraintException => logger.error("Ignoring technique '%s' because the descriptor file is malformed. Error message was: %s".format(filePath,e.getMessage))
-                case e : Exception =>
-                logger.error("Error when processing technique '%s'".format(filePath),e)
-                throw e
+              } fold ( err => err match {
+                case e : TechniqueVersionFormatException => s"Ignoring technique '${filePath}}' because the version format is incorrect. Error message was: ${e.getMessage}}".fail
+                case e : ConstraintException => s"Ignoring technique '${filePath}}' because the descriptor file is malformed. Error message was: ${e.getMessage}}".fail
+                case e : Exception => s"Error when processing technique '${filePath}}': ${e.getMessage}}".fail
+              }
+              , ok => ok.succeed
+              )
+    }yield {
+      res
     }
   }
 
@@ -659,7 +661,7 @@ class GitTechniqueReader(
     , filePath          : String
     , maybeCategories   : MutMap[TechniqueCategoryId, TechniqueCategory]
     , parseDescriptor   : Boolean // that option is a success optimization for the case diff between old/new commit
-  ) : Unit = {
+  ) : IO[RudderError, Unit] = {
 
     def nonEmpty(s: String): Option[String] = {
       s match {
@@ -667,35 +669,33 @@ class GitTechniqueReader(
         case _ => Some(s)
       }
     }
+    def parse(parseDesc:Boolean, catId: TechniqueCategoryId): IO[RudderError, (String, String, Boolean)] = {
+      if(parseDesc) {
+        loadDescriptorFile(repo.db.open(descriptorObjectId).openStream, filePath).map { xml =>
+          val name = nonEmpty((xml \\ "name").text).getOrElse(catId.name.value)
+          val description = nonEmpty((xml \\ "description").text).getOrElse("")
+          val isSystem = (nonEmpty((xml \\ "system").text).getOrElse("false")).equalsIgnoreCase("true")
+          (name, description, isSystem)
+        }
+      } else {
+        (catId.name.value, "", false).succeed
+      }
+    }
 
     val catPath = filePath.substring(0, filePath.size - categoryDescriptorName.size - 1 ) // -1 for the trailing slash
 
     val catId = TechniqueCategoryId.buildId(catPath)
     //built the category
-    val (name, desc, system ) = {
-      if(parseDescriptor) {
-        try {
-          val xml = loadDescriptorFile(repo.db.open(descriptorObjectId).openStream, filePath)
-            val name = nonEmpty((xml \\ "name").text).getOrElse(catId.name.value)
-            val description = nonEmpty((xml \\ "description").text).getOrElse("")
-            val isSystem = (nonEmpty((xml \\ "system").text).getOrElse("false")).equalsIgnoreCase("true")
-            (name, description, isSystem)
-        } catch {
-          case e: Exception =>
-            logger.error("Error when processing category descriptor %s, fail back to simple information. Exception message: %s".
-                format(filePath,e.getMessage))
-            (catId.name.value, "", false)
-        }
-      } else { (catId.name.value, "", false) }
+    for {
+      triple <- parse(parseDescriptor, catId)
+    } yield {
+      val (name, desc, system ) = triple
+      val cat = catId match {
+        case RootTechniqueCategoryId => RootTechniqueCategory(name, desc, isSystem = system)
+        case sId:SubTechniqueCategoryId => SubTechniqueCategory(sId, name, desc, isSystem = system)
+      }
+      maybeCategories(cat.id) = cat
     }
-
-    val cat = catId match {
-      case RootTechniqueCategoryId => RootTechniqueCategory(name, desc, isSystem = system)
-      case sId:SubTechniqueCategoryId => SubTechniqueCategory(sId, name, desc, isSystem = system)
-    }
-
-    maybeCategories(cat.id) = cat
-
   }
 
   /**

@@ -57,10 +57,10 @@ object LoadTechniqueError {
 object implicits {
 
   implicit class ChainEither[E <: LoadTechniqueError, T](res: Either[E, T]) {
-    def chain(msg: String) = {
+    def chain(msg: String): Either[LoadTechniqueError, T] = {
       res match {
-        case Right(v)  => v
-        case Left(err) => LoadTechniqueError.Chained(msg, err)
+        case Right(v)  => Right(v)
+        case Left(err) => Left(LoadTechniqueError.Chained(msg, err))
       }
     }
   }
