@@ -29,16 +29,23 @@
 bundle agent _classes_sanitize(prefix)
 {
   vars:
+      "complete_suffix" slist => { "not_kept", "kept", "not_ok", "ok", "not_repaired", "repaired", "failed", "error" };
+
     # this is a way to remove the class withouto side effect
-    unset_kept::
-      "ignored_kept"     string => "", classes => if_ok_cancel("${prefix}_kept");
-    unset_repaired::
-      "ignored_repaired" string => "", classes => if_ok_cancel("${prefix}_repaired");
-    unset_ok::
-      "ignored_ok"       string => "", classes => if_ok_cancel("${prefix}_ok");
+      "error_suffix"    slist => { "not_kept", "not_ok", "not_repaired", "failed", "error" };
+      "repaired_suffix" slist => { "ok", "repaired", "not_kept" };
+      "success_suffix"  slist => { "ok", "kept", "not_repaired" };
+
+
+      "cancel_if_repaired" slist => difference( "success_suffix", "repaired_suffix" );
+      "cancel_if_error"    slist => difference( "complete_suffix", "error_suffix" );
+
+    worst_is_error::
+      "ignored_kept_and_repaired" string => "", classes => if_ok_cancel("${prefix}_${cancel_if_error}");
+    worst_is_repaired::
+      "ignored_repaired"          string => "", classes => if_ok_cancel("${prefix}_${cancel_if_repaired}");
 
   classes:
-    "unset_kept"     expression => "${prefix}_kept.(${prefix}_error|${prefix}_repaired)";
-    "unset_repaired" expression => "${prefix}_repaired.${prefix}_error";
-    "unset_ok"       expression => "${prefix}_ok.${prefix}_error";
+    "worst_is_error"    expression => "${prefix}_error|${prefix}_failed";
+    "worst_is_repaired" expression => "${prefix}_repaired.!${prefix}_error.!${prefix}_failed";
 }
