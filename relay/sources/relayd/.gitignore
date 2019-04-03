@@ -4,4 +4,3 @@
 rudder-relayd.iml
 /target/
 **/*.rs.bk
-/tests/tmp/

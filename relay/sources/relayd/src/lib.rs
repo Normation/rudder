@@ -32,125 +32,75 @@
 extern crate diesel;
 
 pub mod api;
-pub mod cli;
 pub mod configuration;
 pub mod data;
 pub mod error;
-pub mod fake;
 pub mod input;
 pub mod output;
+pub mod processing;
 pub mod stats;
 
 use crate::{
     api::api,
-    cli::parse,
-    configuration::LogConfig,
-    configuration::{Configuration, ReportingOutputSelect, InventoryOutputSelect},
-    data::nodes::parse_nodeslist,
+    configuration::{
+        CliConfiguration, Configuration, InventoryOutputSelect, LogConfig, ReportingOutputSelect,
+    },
+    data::node,
     error::Error,
-    input::{serve_inventories, serve_reports},
     output::database::{pg_pool, PgPool},
+    processing::{serve_inventories, serve_reports},
     stats::Stats,
 };
-use data::nodes::NodesList;
+use clap::crate_version;
 use futures::{
     future::{lazy, Future},
     stream::Stream,
     sync::mpsc,
 };
-use slog::{o, slog_debug, slog_error, slog_info, slog_trace, Drain, Logger};
+use slog::{o, slog_debug, slog_error, slog_info, Drain, Level, Logger};
 use slog_async::Async;
 use slog_atomic::{AtomicSwitch, AtomicSwitchCtrl};
 use slog_kvfilter::KVFilter;
-use slog_scope::{debug, error, info, trace};
+use slog_scope::{debug, error, info, GlobalLoggerGuard};
 use slog_term::{CompactFormat, TermDecorator};
-use stats::{stats_job, Event};
-use std::collections::HashMap;
+use std::collections::HashSet;
+use std::iter::FromIterator;
+use std::process::exit;
+use std::string::ToString;
 use std::{
-    fs::read_to_string,
+    collections::HashMap,
     path::Path,
     sync::{Arc, RwLock},
 };
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 
-pub struct JobConfig {
-    pub cfg: Configuration,
-    pub nodes: NodesList,
-    pub pool: Option<PgPool>,
-}
-
-pub fn stats(rx: mpsc::Receiver<Event>) -> impl Future<Item = (), Error = ()> {
-    let mut stats = Stats::default();
-    rx.for_each(move |event| {
-        stats.event(event);
-        Ok(())
-    })
-}
-
-pub fn load_configuration(file: &Path) -> Result<Configuration, Error> {
-    info!("Reading configuration from {:#?}", file);
-    Ok(Configuration::read_configuration(&read_to_string(file)?)?)
-}
-
-pub fn load_nodeslist(file: &Path) -> Result<NodesList, Error> {
-    info!("Parsing nodes list from {:#?}", file);
-    let nodes = parse_nodeslist(&read_to_string(file)?)?;
-    trace!("Parsed nodes list:\n{:#?}", nodes);
-    Ok(nodes)
-}
-
-fn logger_drain() -> slog::Fuse<slog_async::Async> {
-    let decorator = TermDecorator::new().stdout().build();
-    let drain = CompactFormat::new(decorator).build().fuse();
-    Async::new(drain)
-        .thread_name("relayd-logger".to_string())
-        .chan_size(2048)
-        .build()
-        .fuse()
-}
-
-fn load_loggers(ctrl: &AtomicSwitchCtrl, cfg: &LogConfig) {
-    let mut node_filter = HashMap::new();
-    node_filter.insert("node".to_string(), cfg.general.filter.nodes.clone());
-    let drain = KVFilter::new(
-        slog::LevelFilter::new(logger_drain(), cfg.general.filter.level),
-        cfg.general.level,
-    )
-    .only_pass_any_on_all_keys(Some(node_filter));
-    ctrl.set(drain.map(slog::Fuse));
-}
-
-pub fn start() -> Result<(), Error> {
-    // ---- Default logger for fist steps ----
-
-    let drain = AtomicSwitch::new(logger_drain());
-    let ctrl = drain.ctrl();
-    let log = Logger::root(drain.fuse(), o!());
-    // Make sure to save the guard
-    let _guard = slog_scope::set_global_logger(log);
-    // Integrate libs using standard log crate
-    slog_stdlog::init().expect("Could not initialize standard logging");
-
-    // ---- Process cli arguments ----
-
-    let cli_cfg = parse();
-
+pub fn init(cli_cfg: &CliConfiguration) -> Result<(), Error> {
     // ---- Load configuration ----
 
-    let cfg = load_configuration(&cli_cfg.configuration_file)?;
+    let cfg = Configuration::new(&cli_cfg.configuration_file)?;
 
-    // ---- Setup loggers with actual configuration ----
+    if cli_cfg.check_configuration {
+        println!("Syntax: OK");
+        return Ok(());
+    }
 
-    load_loggers(&ctrl, &cfg.logging);
+    // ---- Setup loggers ----
+
+    let log_ctrl = LoggerCtrl::new();
+    log_ctrl.load(&cfg.logging);
 
     // ---- Start execution ----
 
-    info!("Starting rudder relayd");
+    info!("Starting rudder-relayd {}", crate_version!());
 
     debug!("Parsed cli configuration:\n{:#?}", &cli_cfg);
+    info!("Read configuration from {:#?}", &cli_cfg.configuration_file);
     debug!("Parsed configuration:\n{:#?}", &cfg);
 
-    let nodes = load_nodeslist(&cfg.general.nodes_list_file)?;
+    // ---- Setup data structures ----
+
+    let stats = Arc::new(RwLock::new(Stats::default()));
+    let job_config = JobConfig::new(&cli_cfg.configuration_file)?;
 
     // ---- Setup signal handlers ----
 
@@ -163,54 +113,148 @@ pub fn start() -> Result<(), Error> {
         .into_future()
         .map(|_sig| {
             info!("Signal received: shutdown requested");
-            ::std::process::exit(1);
+            exit(1);
         })
         .map_err(|e| error!("signal error {}", e.0));
 
     // SIGHUP: reload logging configuration + nodes list
+    let cfg_file = cli_cfg.configuration_file.clone();
+    let job_config_reload = job_config.clone();
     let reload = Signal::new(SIGHUP)
         .flatten_stream()
         .for_each(move |_signal| {
             info!("Signal received: reload requested");
-            let cfg = load_configuration(&cli_cfg.configuration_file.clone())
-                .expect("Could not reload config");
-            debug!("Parsed configuration:\n{:#?}", &cfg);
-            load_loggers(&ctrl, &cfg.logging);
-            // TODO reload nodeslist
+            match Configuration::new(&cfg_file) {
+                Ok(cfg) => {
+                    debug!("Parsed configuration:\n{:#?}", &cfg);
+                    log_ctrl.load(&cfg.logging);
+                    match job_config_reload.reload_nodeslist() {
+                        Ok(_) => (),
+                        Err(e) => error!("nodes list reload error {}", e),
+                    }
+                }
+                Err(e) => error!("config reload error {}", e),
+            };
             Ok(())
         })
         .map_err(|e| error!("signal error {}", e));
-
-    let stats = Arc::new(RwLock::new(Stats::default()));
-    let http_api = api(cfg.general.listen, shutdown, stats.clone());
-
-    let pool = if cfg.processing.reporting.output == ReportingOutputSelect::Database {
-        Some(pg_pool(&cfg.output.database)?)
-    } else {
-        None
-    };
-
-    let job_config = Arc::new(JobConfig { cfg, nodes, pool });
 
     // ---- Start server ----
 
     tokio::run(lazy(move || {
         let (tx_stats, rx_stats) = mpsc::channel(1_024);
 
-        tokio::spawn(stats_job(stats.clone(), rx_stats));
-        tokio::spawn(http_api);
+        tokio::spawn(Stats::receiver(stats.clone(), rx_stats));
+        tokio::spawn(api(cfg.general.listen, shutdown, stats.clone()));
 
         //tokio::spawn(shutdown);
         tokio::spawn(reload);
 
         if job_config.cfg.processing.reporting.output != ReportingOutputSelect::Disabled {
-            serve_reports(job_config.clone(), tx_stats.clone());
+            serve_reports(&job_config, &tx_stats);
         }
         if job_config.cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
-            serve_inventories(job_config, tx_stats);
+            serve_inventories(&job_config, &tx_stats);
         }
         Ok(())
     }));
 
     unreachable!("Server halted unexpectedly");
+}
+
+pub struct LoggerCtrl {
+    ctrl: AtomicSwitchCtrl,
+    #[allow(clippy::used_underscore_binding)]
+    _guard: GlobalLoggerGuard,
+}
+
+impl LoggerCtrl {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        let drain = AtomicSwitch::new(Self::logger_drain());
+        let ctrl = drain.ctrl();
+        let log = Logger::root(drain.fuse(), o!());
+        // Make sure to save the guard
+        let _guard = slog_scope::set_global_logger(log);
+        // Integrate libs using standard log crate
+        slog_stdlog::init().expect("Could not initialize standard logging");
+
+        #[allow(clippy::used_underscore_binding)]
+        Self { ctrl, _guard }
+    }
+
+    fn logger_drain() -> slog::Fuse<slog_async::Async> {
+        let decorator = TermDecorator::new().stdout().build();
+        let drain = CompactFormat::new(decorator).build().fuse();
+        Async::new(drain)
+            .thread_name("relayd-logger".to_string())
+            .chan_size(2048)
+            .build()
+            .fuse()
+    }
+
+    pub fn load(&self, cfg: &LogConfig) {
+        if cfg.general.level == Level::Trace {
+            // No filter at all if general level is trace.
+            // This needs to be handled separately as KVFilter cannot skip
+            // its filters completely.
+            self.ctrl.set(Self::logger_drain());
+        } else {
+            let mut node_filter = HashMap::new();
+            node_filter.insert("node".to_string(), cfg.filter.nodes.clone());
+            node_filter.insert(
+                "component".to_string(),
+                HashSet::from_iter(
+                    cfg.filter
+                        .components
+                        .clone()
+                        .iter()
+                        .map(ToString::to_string),
+                ),
+            );
+            let drain = KVFilter::new(
+                slog::LevelFilter::new(Self::logger_drain(), cfg.filter.level),
+                // decrement because the user provides the log level they want to see
+                // while this displays logs unconditionally above the given level included.
+                match cfg.general.level {
+                    Level::Critical => Level::Error,
+                    Level::Error => Level::Warning,
+                    Level::Warning => Level::Info,
+                    Level::Info => Level::Debug,
+                    Level::Debug => Level::Trace,
+                    Level::Trace => unreachable!("Global trace log level is handled separately"),
+                },
+            )
+            .only_pass_any_on_all_keys(Some(node_filter.clone()));
+            self.ctrl.set(drain.map(slog::Fuse));
+            debug!("Log filters are {:#?}", node_filter);
+        }
+    }
+}
+
+pub struct JobConfig {
+    pub cfg: Configuration,
+    pub nodes: RwLock<node::List>,
+    pub pool: Option<PgPool>,
+    //pub stats: mpsc::Sender<Event>,
+}
+
+impl JobConfig {
+    pub fn new(configuration_file: &Path) -> Result<Arc<Self>, Error> {
+        let cfg = Configuration::new(configuration_file)?;
+        let pool = if cfg.processing.reporting.output == ReportingOutputSelect::Database {
+            Some(pg_pool(&cfg.output.database)?)
+        } else {
+            None
+        };
+        let nodes = RwLock::new(node::List::new(&cfg.general.nodes_list_file)?);
+
+        Ok(Arc::new(Self { cfg, nodes, pool }))
+    }
+
+    pub fn reload_nodeslist(&self) -> Result<(), Error> {
+        let mut nodes = self.nodes.write().expect("could not write nodes list");
+        *nodes = node::List::new(&self.cfg.general.nodes_list_file)?;
+        Ok(())
+    }
 }

@@ -1,0 +1,10 @@
+[Unit]
+Description=Rudder Relay Daemon
+After=network-online.target
+
+[Service]
+ExecStart=/opt/rudder/bin/rudder-relayd
+
+[Install]
+RequiredBy=rudder-server.service
+WantedBy=multi-user.target

@@ -28,5 +28,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-pub mod nodes;
-pub mod reporting;
+pub mod node;
+pub mod report;
+pub mod runinfo;
+pub mod runlog;
+
+pub use report::Report;
+pub use runinfo::RunInfo;
+pub use runlog::RunLog;

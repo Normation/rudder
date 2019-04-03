@@ -1,0 +1,35 @@
+[general]
+nodes_list_file = "tests/files/nodeslist.json"
+node_id = "root"
+listen = "127.0.0.1:3030"
+
+[processing.inventory]
+directory = "target/tmp/inventories/"
+output = "upstream"
+
+[processing.inventory.catchup]
+frequency = 10
+limit = 50
+
+[processing.reporting]
+directory = "target/tmp/runlogs/"
+output = "database"
+
+[processing.reporting.catchup]
+frequency = 10
+limit = 50
+
+[output.database]
+url = "postgres://rudderreports:PASSWORD@127.0.0.1/rudder"
+max_pool_size = 5
+
+[output.upstream]
+url = "https://127.0.0.1:8080"
+
+[logging.general]
+level = "info"
+
+[logging.filter]
+level = "debug"
+components = [ "database" ]
+nodes = [ "root" ]

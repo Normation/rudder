@@ -1,25 +1,26 @@
-# protocol-v2-poc
+# relayd
 
 ## Install
 
 ### Dependencies
 
-Dependencies are:
+Runtime dependencies are:
 
-* pkg-config (only for dev)
 * openssl
 * libpq
+* zlib
+* lzma
 
 To install build dependencies on Debian/Ubuntu:
 
 ```bash
-make apt-dependencies
+sudo make apt-dependencies
 ```
 
 To install build dependencies on RHEL/Fedora:
 
 ```bash
-make yum-dependencies
+sudo make yum-dependencies
 ```
 
 ### Installation
@@ -32,21 +33,12 @@ make DESTDIR=/target/directory install
 
 ## Development environment
 
-This project requires Rust 1.32 or later (for Rust 2018 support
-and system allocator).
+This project requires Rust 1.34 or later.
 The best option to install the Rust compiler is to use
 [rustup](https://www.rust-lang.org/tools/install).
 
 Best IDEs for Rust development are *VSCode* or *IntelliJ IdeaC*
 with their Rust plugin.
-
-You may want to install `rls` for *VSCode* integration 
-(IdeaC has its own embedded tools):
-
-```bash
-rustup component add rls rust-analysis rust-src
-cargo install racer
-```
 
 Useful tools include:
 

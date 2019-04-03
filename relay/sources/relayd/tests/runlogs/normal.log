@@ -7,7 +7,7 @@ R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cr
 R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cron@@2018-08-24 15:55:01+00:00##root@#Restart service cron if 'any' condition defined was repaired
 R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cron@@2018-08-24 15:55:01+00:00##root@#Restart service ${canonified_service_name} was repaired
 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2018-08-24 15:55:01+00:00##root@#Cron daemon status was repaired
-R: wrong report
+R: message report
 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Log system for reports@@None@@2018-08-24 15:55:01+00:00##root@#Detected running syslog as rsyslog
 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Log system for reports@@None@@2018-08-24 15:55:01+00:00##root@#Logging system for report centralization is already correctly configured
 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@/var/rudder/tmp/rudder_monitoring.csv@@2018-08-24 15:55:01+00:00##root@#Remove file /var/rudder/tmp/rudder_monitoring.csv was correct

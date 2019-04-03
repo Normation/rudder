@@ -28,18 +28,40 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{data::nodes::NodeId, error::Error};
+use crate::{data::node, error::Error};
 use serde::Deserialize;
-use slog::Level;
-use std::net::SocketAddr;
-use std::{collections::HashSet, path::PathBuf};
+use slog;
+use slog::{Key, Level, Record, Serializer, Value};
+use std::fmt;
+use std::fmt::Display;
+use std::fs::read_to_string;
+use std::str::FromStr;
+use std::{
+    collections::HashSet,
+    net::SocketAddr,
+    path::{Path, PathBuf},
+};
 use toml;
-
-pub const DEFAULT_CONFIGURATION_FILE: &str = "/opt/rudder/etc/relayd.conf";
 
 pub type BaseDirectory = PathBuf;
 pub type WatchedDirectory = PathBuf;
 pub type NodesListFile = PathBuf;
+
+#[derive(Debug)]
+#[allow(clippy::module_name_repetitions)]
+pub struct CliConfiguration {
+    pub configuration_file: PathBuf,
+    pub check_configuration: bool,
+}
+
+impl CliConfiguration {
+    pub fn new<P: AsRef<Path>>(path: P, check_configuration: bool) -> Self {
+        Self {
+            configuration_file: path.as_ref().to_path_buf(),
+            check_configuration,
+        }
+    }
+}
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 // Default can be implemented in serde using the Default trait
@@ -51,16 +73,23 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    pub fn read_configuration(configuration: &str) -> Result<Configuration, Error> {
-        let cfg = toml::from_str(configuration)?;
-        Ok(cfg)
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        read_to_string(path)?.parse::<Self>()
+    }
+}
+
+impl FromStr for Configuration {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(toml::from_str(s)?)
     }
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct GeneralConfig {
     pub nodes_list_file: NodesListFile,
-    pub node_id: NodeId,
+    pub node_id: node::Id,
     pub listen: SocketAddr,
 }
 
@@ -125,6 +154,7 @@ pub struct UpstreamConfig {
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct LogConfig {
     pub general: LoggerConfig,
+    pub filter: LogFilterConfig,
 }
 
 #[serde(remote = "Level")]
@@ -139,36 +169,67 @@ pub enum LogLevel {
     Trace,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Deserialize, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum LogComponent {
+    Database,
+    Parser,
+    Watcher,
+    Statistics,
+}
+
+impl LogComponent {
+    pub fn tag(self) -> &'static str {
+        match self {
+            LogComponent::Database => "database",
+            LogComponent::Parser => "parser",
+            LogComponent::Watcher => "watcher",
+            LogComponent::Statistics => "statistics",
+        }
+    }
+}
+
+impl Display for LogComponent {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.tag())
+    }
+}
+
+impl Value for LogComponent {
+    fn serialize(&self, _record: &Record, key: Key, serializer: &mut Serializer) -> slog::Result {
+        serializer.emit_str(key, self.tag())
+    }
+}
+
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct LogFilterConfig {
     #[serde(with = "LogLevel")]
     pub level: Level,
-    pub nodes: HashSet<NodeId>,
+    pub components: HashSet<LogComponent>,
+    pub nodes: HashSet<node::Id>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct LoggerConfig {
     #[serde(with = "LogLevel")]
     pub level: Level,
-    pub filter: LogFilterConfig,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::read_to_string;
+    use std::iter::FromIterator;
 
     #[test]
     fn test_empty_configuration() {
         let empty = "";
-        let config = Configuration::read_configuration(empty);
+        let config = empty.parse::<Configuration>();
         assert!(config.is_err());
     }
 
     #[test]
     fn test_configuration() {
-        let config =
-            Configuration::read_configuration(&read_to_string("tests/files/relayd.conf").unwrap());
+        let config = Configuration::new("tests/files/relayd.toml");
 
         let mut root_set = HashSet::new();
         root_set.insert("root".to_string());
@@ -180,7 +241,7 @@ mod tests {
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
-                    directory: PathBuf::from("tests/tmp/inventories/"),
+                    directory: PathBuf::from("target/tmp/inventories/"),
                     output: InventoryOutputSelect::Upstream,
                     catchup: CatchupConfig {
                         frequency: 10,
@@ -188,7 +249,7 @@ mod tests {
                     },
                 },
                 reporting: ReportingConfig {
-                    directory: PathBuf::from("tests/tmp/runlogs/"),
+                    directory: PathBuf::from("target/tmp/runlogs/"),
                     output: ReportingOutputSelect::Database,
                     catchup: CatchupConfig {
                         frequency: 10,
@@ -206,12 +267,11 @@ mod tests {
                 },
             },
             logging: LogConfig {
-                general: LoggerConfig {
-                    level: Level::Info,
-                    filter: LogFilterConfig {
-                        level: Level::Trace,
-                        nodes: HashSet::new(),
-                    },
+                general: LoggerConfig { level: Level::Info },
+                filter: LogFilterConfig {
+                    level: Level::Debug,
+                    nodes: HashSet::from_iter(vec!["root".to_string()].iter().cloned()),
+                    components: HashSet::from_iter(vec![LogComponent::Database].iter().cloned()),
                 },
             },
         };
