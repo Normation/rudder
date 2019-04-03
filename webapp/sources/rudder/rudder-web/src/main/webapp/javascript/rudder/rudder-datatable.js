@@ -516,7 +516,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         }
       })
      }
-    , "aaSorting": [[ 0, "asc" ] , [ sortingDefault, "asc" ]]
+    , "aaSorting": [[ 1, "asc" ] , [ sortingDefault, "asc" ]]
     , "sDom": 'rt<"dataTables_wrapper_bottom"lip>'
   }
   var table = createTable(gridId,data,columns, params, contextPath, refresh, "rules", isPopup);
@@ -1186,7 +1186,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         })
         $('.rudder-label').bsTooltip();
       }
-    , "aaSorting": [[ 0, "asc" ]]
+    , "aaSorting": [[ 1, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
 
