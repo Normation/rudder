@@ -46,7 +46,6 @@ import java.io.File
 
 import net.liftweb.common._
 
-import scala.collection.mutable.{Map => MutMap}
 import scala.collection.immutable.SortedMap
 import java.io.InputStream
 
@@ -64,6 +63,7 @@ import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import java.io.IOException
 
 import com.normation.errors._
+import com.normation.zio._
 import scalaz.zio._
 import scalaz.zio.syntax._
 
@@ -169,14 +169,14 @@ class GitTechniqueReader(
 
   private[this] var currentTechniquesInfoCache : TechniquesInfo = {
     try {
-      processRevTreeId(revisionProvider.currentRevTreeId)
+      processRevTreeId(revisionProvider.currentRevTreeId.runNow)
     } catch {
       case NoRootCategory(msg) =>
         logger.error(s"The stored Git revision does not provide a root category.xml, which is mandatory. Error message was: ${msg}")
-        val newRevTreeId = revisionProvider.getAvailableRevTreeId
-        if(newRevTreeId != revisionProvider.currentRevTreeId) {
+        val newRevTreeId = revisionProvider.getAvailableRevTreeId.runNow
+        if(newRevTreeId != revisionProvider.currentRevTreeId.runNow) {
           logger.error(s"Trying to load last available revision of the technique library to unstuck the situation.")
-          revisionProvider.setCurrentRevTreeId(newRevTreeId)
+          revisionProvider.setCurrentRevTreeId(newRevTreeId).runNow
           processRevTreeId(newRevTreeId)
         } else {
           sys.error("Please add a root category.xml and commit it before restarting Rudder.")
@@ -184,18 +184,18 @@ class GitTechniqueReader(
       case e:MissingObjectException => //ah, that commit is not know on our repos
         logger.error("The stored Git revision for the last version of the known Technique Library was not found in the local Git repository. " +
             "That may happen if a commit was reverted, the Git repository was deleted and created again, or if LDAP datas where corrupted. Loading the last available Techique library version.")
-        val newRevTreeId = revisionProvider.getAvailableRevTreeId
-        revisionProvider.setCurrentRevTreeId(newRevTreeId)
+        val newRevTreeId = revisionProvider.getAvailableRevTreeId.runNow
+        revisionProvider.setCurrentRevTreeId(newRevTreeId).runNow
         processRevTreeId(newRevTreeId)
     }
   }
 
-  private[this] var nextTechniquesInfoCache : (ObjectId,TechniquesInfo) = (revisionProvider.currentRevTreeId, currentTechniquesInfoCache)
+  private[this] var nextTechniquesInfoCache : (ObjectId,TechniquesInfo) = (revisionProvider.currentRevTreeId.runNow, currentTechniquesInfoCache)
   //a non empty list IS the indicator of differences between current and next
   private[this] var modifiedTechniquesCache : Map[TechniqueName, TechniquesLibraryUpdateType] = Map()
 
   override def getModifiedTechniques : Map[TechniqueName, TechniquesLibraryUpdateType] = {
-    val nextId = revisionProvider.getAvailableRevTreeId
+    val nextId = revisionProvider.getAvailableRevTreeId.runNow
     if(nextId == nextTechniquesInfoCache._1) modifiedTechniquesCache
     else reader.synchronized { //update next and calculate diffs
       val nextTechniquesInfo = processRevTreeId(nextId)
@@ -205,9 +205,9 @@ class GitTechniqueReader(
       val allKnownTechniquePaths = getTechniquePath(currentTechniquesInfoCache) ++ getTechniquePath(nextTechniquesInfo)
 
       val diffFmt = new DiffFormatter(null)
-      diffFmt.setRepository(repo.db)
+      diffFmt.setRepository(repo.db.runNow)
       val diffPathEntries : Set[(TechniquePath, ChangeType)] =
-        diffFmt.scan(revisionProvider.currentRevTreeId, nextId).asScala.flatMap { diffEntry =>
+        diffFmt.scan(revisionProvider.currentRevTreeId.runNow, nextId).asScala.flatMap { diffEntry =>
           Seq( (toTechniquePath(diffEntry.getOldPath), diffEntry.getChangeType), (toTechniquePath(diffEntry.getNewPath), diffEntry.getChangeType))
         }.toSet
       diffFmt.close
@@ -290,10 +290,10 @@ class GitTechniqueReader(
     try {
       useIt {
         //now, the treeWalk
-        val tw = new TreeWalk(repo.db)
+        val tw = new TreeWalk(repo.db.runNow)
         tw.setFilter(new FileTreeFilter(canonizedRelativePath, path))
         tw.setRecursive(true)
-        tw.reset(revisionProvider.currentRevTreeId)
+        tw.reset(revisionProvider.currentRevTreeId.runNow)
         var ids = List.empty[ObjectId]
         while(tw.next) {
           ids = tw.getObjectId(0) :: ids
@@ -303,7 +303,7 @@ class GitTechniqueReader(
             logger.error("Metadata file %s was not found for technique with id %s.".format(techniqueDescriptorName, techniqueId))
             None
           case h :: Nil =>
-            is = repo.db.open(h).openStream
+            is = repo.db.runNow.open(h).openStream
             Some(is)
           case _ =>
             logger.error(s"There is more than one Technique with ID '${techniqueId}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones.")
@@ -341,10 +341,10 @@ class GitTechniqueReader(
     try {
       useIt {
         //now, the treeWalk
-        val tw = new TreeWalk(repo.db)
+        val tw = new TreeWalk(repo.db.runNow)
         tw.setFilter(filenameFilter)
         tw.setRecursive(true)
-        tw.reset(revisionProvider.currentRevTreeId)
+        tw.reset(revisionProvider.currentRevTreeId.runNow)
         var ids = List.empty[ObjectId]
         while(tw.next) {
           ids = tw.getObjectId(0) :: ids
@@ -354,7 +354,7 @@ class GitTechniqueReader(
             logger.error(s"Template with id ${techniqueResourceId.toString} was not found")
             None
           case h :: Nil =>
-            is = repo.db.open(h).openStream
+            is = repo.db.runNow.open(h).openStream
             Some(is)
           case _ =>
             logger.error(s"There is more than one Technique with name '${techniqueResourceId.name}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones")
@@ -439,7 +439,7 @@ class GitTechniqueReader(
 
   private[this] def processDirectiveDefaultName(revTreeId: ObjectId) : Map[String, String] = {
       //a first walk to find categories
-      val tw = new TreeWalk(repo.db)
+      val tw = new TreeWalk(repo.db.runNow)
       tw.setFilter(new FileTreeFilter(canonizedRelativePath, directiveDefaultName))
       tw.setRecursive(true)
       tw.reset(revTreeId)
@@ -453,7 +453,7 @@ class GitTechniqueReader(
         if(tw.getNameString == directiveDefaultName) {
           var is : InputStream = null
           try {
-            is = repo.db.open(tw.getObjectId(0)).openStream
+            is = repo.db.runNow.open(tw.getObjectId(0)).openStream
             prop.load(is)
           } catch {
             case ex: Exception =>
@@ -475,7 +475,7 @@ class GitTechniqueReader(
 
   private[this] def processTechniques(revTreeId: ObjectId, techniqueInfos : InternalTechniquesInfo, parseDescriptor:Boolean) : Unit = {
       //a first walk to find categories
-      val tw = new TreeWalk(repo.db)
+      val tw = new TreeWalk(repo.db.runNow)
       tw.setFilter(new FileTreeFilter(canonizedRelativePath, techniqueDescriptorName))
       tw.setRecursive(true)
       tw.reset(revTreeId)
@@ -484,14 +484,14 @@ class GitTechniqueReader(
       //is valid
       while(tw.next) {
         val path = toTechniquePath(tw.getPathString) //we will need it to build the category id
-        processTechnique(repo.db.open(tw.getObjectId(0)).openStream, path.path, techniqueInfos, parseDescriptor, revTreeId)
+        processTechnique(repo.db.runNow.open(tw.getObjectId(0)).openStream, path.path, techniqueInfos, parseDescriptor, revTreeId)
       }
   }
 
 
   private[this] def processCategories(revTreeId: ObjectId, techniqueInfos : InternalTechniquesInfo, parseDescriptor:Boolean) : Unit = {
       //a first walk to find categories
-      val tw = new TreeWalk(repo.db)
+      val tw = new TreeWalk(repo.db.runNow)
       tw.setFilter(new FileTreeFilter(canonizedRelativePath, categoryDescriptorName))
       tw.setRecursive(true)
       tw.reset(revTreeId)
@@ -523,7 +523,7 @@ class GitTechniqueReader(
 
       var root = maybeCategories.get(RootTechniqueCategoryId) match {
           case None =>
-            val path = repo.db.getWorkTree.getPath + canonizedRelativePath.map( "/" + _ + "/" + categoryDescriptorName).getOrElse("")
+            val path = repo.db.runNow.getWorkTree.getPath + canonizedRelativePath.map( "/" + _ + "/" + categoryDescriptorName).getOrElse("")
             throw new NoRootCategory(s"Missing techniques root category in Git, expecting category descriptor for Git path: '${path}'")
           case Some(sub:SubTechniqueCategory) =>
             logger.error("Bad type for root category in the Technique Library. Please check the hierarchy of categories")
@@ -671,7 +671,7 @@ class GitTechniqueReader(
     }
     def parse(parseDesc:Boolean, catId: TechniqueCategoryId): IO[RudderError, (String, String, Boolean)] = {
       if(parseDesc) {
-        loadDescriptorFile(repo.db.open(descriptorObjectId).openStream, filePath).map { xml =>
+        loadDescriptorFile(repo.db.runNow.open(descriptorObjectId).openStream, filePath).map { xml =>
           val name = nonEmpty((xml \\ "name").text).getOrElse(catId.name.value)
           val description = nonEmpty((xml \\ "description").text).getOrElse("")
           val isSystem = (nonEmpty((xml \\ "system").text).getOrElse("false")).equalsIgnoreCase("true")

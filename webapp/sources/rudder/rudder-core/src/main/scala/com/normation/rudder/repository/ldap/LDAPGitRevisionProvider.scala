@@ -37,6 +37,7 @@
 
 package com.normation.rudder.repository.ldap
 
+import com.normation.NamedZioLogger
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
@@ -49,60 +50,61 @@ import com.normation.rudder.repository.xml.GitFindUtils
 import net.liftweb.common._
 import org.eclipse.jgit.lib.ObjectId
 
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.errors._
+
 /**
  *
  * A git revision provider which persists the current
  * commit into LDAP
  */
 class LDAPGitRevisionProvider(
-  ldap: LDAPConnectionProvider[RwLDAPConnection], rudderDit: RudderDit, gitRepo: GitRepositoryProvider, refPath: String) extends GitRevisionProvider with Loggable {
+  ldap: LDAPConnectionProvider[RwLDAPConnection], rudderDit: RudderDit, gitRepo: GitRepositoryProvider, refPath: String) extends GitRevisionProvider with NamedZioLogger {
 
   if (!refPath.startsWith("refs/")) {
-    logger.warn("The configured reference path for the Git repository of Active Technique Library does " +
+    logEffect.warn("The configured reference path for the Git repository of Active Technique Library does " +
       "not start with 'refs/'. Are you sure you don't mistype something ?")
   }
 
   private[this] var currentId = {
+    val setID = for {
+      id <- getAvailableRevTreeId
+      _  <- setCurrentRevTreeId(id)
+    } yield {
+      id
+    }
+
     //try to read from LDAP, and if we can't, returned the last available from git
     (for {
-      con <- ldap
+      con   <- ldap
       entry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_TECHNIQUE_LIB_VERSION)
     } yield {
       entry.flatMap(_(A_TECHNIQUE_LIB_VERSION))
-    }) match {
-      case Right(Some(id)) => ObjectId.fromString(id)
-      case Right(None) =>
-        logger.info("No persisted version of the current technique reference library revision " +
-          "to use where found, init to last available from Git repository")
-        val id = getAvailableRevTreeId
-        setCurrentRevTreeId(id)
-        id
-      case Left(e) =>
-        logger.error(s"Error when trying to read persisted version of the current technique " +
-          s"reference library revision to use. Using the last available from Git. Error was: ${e.msg}")
-        val id = getAvailableRevTreeId
-        setCurrentRevTreeId(id)
-        id
-    }
+    }) foldM(
+      err =>
+        logPure.error(s"Error when trying to read persisted version of the current technique " +
+          s"reference library revision to use. Using the last available from Git. Error was: ${err.fullMsg}") *> setID
+    , res => res match {
+      case Some(id) => IOResult.effect(ObjectId.fromString(id))
+      case None =>
+        logPure.info("No persisted version of the current technique reference library revision " +
+          "to use where found, init to last available from Git repository") *> setID
+    })
   }
 
-  override def getAvailableRevTreeId: ObjectId = {
-    GitFindUtils.findRevTreeFromRevString(gitRepo.db, refPath) match {
-      case Full(id) => id
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when looking for a commit tree in git"
-        logger.error(e.messageChain)
-        logger.debug(e.exceptionChain)
-        throw new IllegalArgumentException(e.messageChain)
-    }
+  override def getAvailableRevTreeId: IOResult[ObjectId] = {
+    GitFindUtils.findRevTreeFromRevString(gitRepo.db, refPath).catchAll(err =>
+      logPure.error(err.fullMsg) *> Chained("Error when looking for a commit tree in git", err).fail
+    )
   }
 
   override def currentRevTreeId = currentId
 
-  override def setCurrentRevTreeId(id: ObjectId): Unit = {
+  override def setCurrentRevTreeId(id: ObjectId): IOResult[Unit] = {
     ldap.foreach { con =>
       con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_OC) match {
-        case Left(_)| Right(None) => logger.error("The root entry of the user template library was not found, the current revision won't be persisted")
+        case Left(_)| Right(None) => logEffect.error("The root entry of the user template library was not found, the current revision won't be persisted")
         case Right(Some(root)) =>
           root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
           root +=! (A_TECHNIQUE_LIB_VERSION, id.getName)

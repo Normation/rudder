@@ -23,7 +23,8 @@ package com.normation.rudder.repository.ldap
 
 import java.util.concurrent.locks.ReadWriteLock
 
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.errors._
+import scalaz.zio._
 
 /**
  * Pimp^Wextend my Java Lock
@@ -32,20 +33,7 @@ trait ScalaLock {
   def lock(): Unit
   def unlock(): Unit
 
-  def map[T](f: this.type => T): T = {
-    this.lock()
-    try {
-      f(this)
-    } finally {
-      this.unlock()
-    }
-  }
-
-  def flatMap[T, F[T]](f : this.type => F[T]) : F[T] = map(f)
-
-  def foreach(f: this.type => Unit): Unit = map(f)
-
-  def apply[T](block: => T): T = map(_ => block)
+  def apply[T](block: => IOResult[T]): IOResult[T] = ZIO.bracket(IO.effect(this.lock()).mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex)) )(_ => IO.effect(this.unlock()).run.void)(_ => block)
 }
 
 trait ScalaReadWriteLock {

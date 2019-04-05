@@ -22,7 +22,6 @@ package com.normation.rudder.repository.xml
 
 import java.util.zip.ZipFile
 import java.io.File
-import net.liftweb.common._
 import scala.collection.JavaConverters._
 import org.apache.commons.io.FileUtils
 import java.io.InputStream
@@ -32,14 +31,17 @@ import org.apache.commons.io.IOUtils
 import java.io.FileInputStream
 import java.io.OutputStream
 import scala.collection.Seq
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 object ZipUtils {
 
-  case class Zippable(path:String, useContent:Option[(InputStream => Box[Any]) => Box[Any]])
+  case class Zippable(path:String, useContent:Option[(InputStream => IOResult[Any]) => IOResult[Any]])
 
-  def unzip(zip: ZipFile, intoDir: File) : Box[Unit] = {
+  def unzip(zip: ZipFile, intoDir: File) : IOResult[Unit] = {
     if(intoDir.exists && intoDir.isDirectory && intoDir.canWrite) {
-      try {
+      IOResult.effect(s"Error while unzipping file '${zip.getName}'") {
         zip.entries.asScala.foreach { entry =>
           val file = new File(intoDir, entry.getName)
           if(entry.isDirectory()) {
@@ -49,11 +51,9 @@ object ZipUtils {
             FileUtils.copyInputStreamToFile(zip.getInputStream(entry), file)
           }
         }
-        Full({})
-      } catch {
-        case e:Exception => Failure(s"Error while unzipping file '${zip.getName}'", Full(e), Empty)
+        {}
       }
-    } else Failure(s"Directory '${intoDir.getPath}' is not a valid directory to unzip file: please, check permission and existence")
+    } else Unconsistancy(s"Directory '${intoDir.getPath}' is not a valid directory to unzip file: please, check permission and existence").fail
   }
 
 
@@ -64,17 +64,11 @@ object ZipUtils {
    * be a directory
    */
 
-  def zip(zipout:OutputStream, toAdds:Seq[Zippable]) : Box[Unit] = {
-    var zout:ZipOutputStream = null
-    try {
-      zout = new ZipOutputStream(zipout)
-      val addToZout = (is:InputStream) => try {
-        Full(IOUtils.copy(is, zout))
-      } catch {
-        case e:Exception => Failure("Error when copying file", Full(e),Empty)
-      }
+  def zip(zipout:OutputStream, toAdds:Seq[Zippable]) : IOResult[Unit] = {
+    ZIO.bracket(IOResult.effect(new ZipOutputStream(zipout)))(zout => IO.effect(zout.close()).run.void) { zout =>
+      val addToZout = (is:InputStream) => IOResult.effect("Error when copying file")(IOUtils.copy(is, zout))
 
-      toAdds.foreach { x =>
+      ZIO.foreach(toAdds) { x =>
         val name = x.useContent match {
           case None =>
             if(x.path.endsWith("/")) x.path else x.path + "/"
@@ -82,15 +76,11 @@ object ZipUtils {
             if(x.path.endsWith("/")) x.path.substring(0,x.path.size -1) else x.path
         }
         zout.putNextEntry(new ZipEntry(name))
-        x.useContent.foreach { use =>
-          use(addToZout)
+        x.useContent match {
+          case None    => ().succeed
+          case Some(x) => x(addToZout)
         }
-      }
-      Full(())
-    } catch {
-      case e:Exception => Failure("Error when trying to zip file", Full(e), Empty)
-    } finally {
-      if (null != zout) zout.close
+      }.void
     }
   }
 
@@ -138,15 +128,9 @@ object ZipUtils {
           recZippable(ff,seq)
         }
       } else {
-        def buildContent(use: InputStream => Any) : Box[Any] = {
-          var is : FileInputStream = null
-          try {
-            is = new FileInputStream(f)
-            Full(use(is))
-          } catch {
-            case e:Exception => Failure("Error when using file", Full(e), Empty)
-          } finally {
-            if(null != is) is.close
+        def buildContent(use: InputStream => Any) : IOResult[Any] = {
+          ZIO.bracket(IOResult.effect(new FileInputStream(f)))(is => IO.effect(is.close).run.void){ is =>
+            IOResult.effect("Error when using file")(use(is))
           }
         }
         existing :+ Zippable(getPath(f), Some(buildContent _))

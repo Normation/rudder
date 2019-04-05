@@ -53,6 +53,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.actor._
 import net.liftweb.common._
 import com.normation.rudder.domain.logger.ScheduledJobLogger
+import com.normation.zio._
 
 /**
  * This object will be used as message for the non compliant reports logger
@@ -113,7 +114,7 @@ class AutomaticReportLogger(
               hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind)
               nodes          <- nodeInfoService.getAll
               rules          <- ruleRepository.getAll(true)
-              directives     <- directiveRepository.getFullDirectiveLibrary()
+              directives     <- directiveRepository.getFullDirectiveLibrary().toBox
             } yield {
               val id = hundredReports.headOption match {
                 // None means this is a new rudder without any reports, don't log anything, current id is 0
@@ -217,7 +218,7 @@ class AutomaticReportLogger(
       (for {
         nodes      <- nodeInfoService.getAll
         rules      <- ruleRepository.getAll(true)
-        directives <- directiveRepository.getFullDirectiveLibrary()
+        directives <- directiveRepository.getFullDirectiveLibrary().toBox
       } yield {
         logRec(startAt, maxId, 10000, nodes, rules.map(r => (r.id, r)).toMap, directives)
       }) match {

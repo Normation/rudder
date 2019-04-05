@@ -60,7 +60,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueId
 
-
+import com.normation.errors._
 
 
 /**
@@ -165,7 +165,7 @@ trait RoDirectiveRepository {
    * Get the full directive library with all information,
    * from techniques to directives
    */
-  def getFullDirectiveLibrary() : Box[FullActiveTechniqueCategory]
+  def getFullDirectiveLibrary() : IOResult[FullActiveTechniqueCategory]
 
   /**
    * Try to find the directive with the given ID.
@@ -173,13 +173,13 @@ trait RoDirectiveRepository {
    * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
-  def getDirective(directiveId:DirectiveId) : Box[Directive]
+  def getDirective(directiveId:DirectiveId) : IOResult[Directive]
 
   /**
    * retrieve a Directive with its parent Technique and the
    * binding Active Technique
    */
-  def getDirectiveWithContext(directiveId:DirectiveId) : Box[(Technique, ActiveTechnique, Directive)]
+  def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[(Technique, ActiveTechnique, Directive)]
 
   /**
    * Find the active technique for which the given directive is an instance.
@@ -187,13 +187,13 @@ trait RoDirectiveRepository {
    * Return empty if no such directive is known,
    * fails if no active technique match the directive.
    */
-  def getActiveTechniqueAndDirective(id:DirectiveId) : Box[(ActiveTechnique, Directive)]
+  def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[(ActiveTechnique, Directive)]
 
   /**
    * Get directives for given technique.
    * A not known technique id is a failure.
    */
-  def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : Box[Seq[Directive]]
+  def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : IOResult[Seq[Directive]]
 
   /**
    * Get all pairs of (category details, Set(active technique))
@@ -206,14 +206,14 @@ trait RoDirectiveRepository {
    *   "/cat2"       -> [/cat2_details, Set(UPT5)]
    *   ...
    */
-  def getActiveTechniqueByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]]
+  def getActiveTechniqueByCategory(includeSystem:Boolean = false) : IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]]
 
   /**
    * Find back an active technique thanks to its id.
    * Return Empty if the active technique is not found,
    * Fails on error.
    */
-  def getActiveTechnique(id:ActiveTechniqueId) : Box[Option[ActiveTechnique]]
+  def getActiveTechnique(id:ActiveTechniqueId) : IOResult[Option[ActiveTechnique]]
 
 
   /**
@@ -222,7 +222,7 @@ trait RoDirectiveRepository {
    * Return Empty if the active technique is not found,
    * Fails on error.
    */
-  def getActiveTechnique(techniqueName: TechniqueName) : Box[Option[ActiveTechnique]]
+  def getActiveTechnique(techniqueName: TechniqueName) : IOResult[Option[ActiveTechnique]]
 
   /**
    * Retrieve the list of parents for the given active technique,
@@ -230,32 +230,32 @@ trait RoDirectiveRepository {
    * Return empty if the path can not be build
    * (missing technique, missing category, etc)
    */
-  def activeTechniqueBreadCrump(id:ActiveTechniqueId) : Box[List[ActiveTechniqueCategory]]
+  def activeTechniqueBreadCrump(id:ActiveTechniqueId) : IOResult[List[ActiveTechniqueCategory]]
 
 
   /**
    * Root user categories
    */
-  def getActiveTechniqueLibrary : Box[ActiveTechniqueCategory]
+  def getActiveTechniqueLibrary : IOResult[ActiveTechniqueCategory]
 
   /**
    * Return all categories non system (lightweight version, with no children)
    * @return
    */
-  def getAllActiveTechniqueCategories(includeSystem:Boolean = false) : Box[Seq[ActiveTechniqueCategory]]
+  def getAllActiveTechniqueCategories(includeSystem:Boolean = false) : IOResult[Seq[ActiveTechniqueCategory]]
 
 
   /**
    * Get an active technique by its ID
    */
-  def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory]
+  def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory]
 
   /**
    * Get the direct parent of the given category.
    * Return empty for root of the hierarchy, fails if the category
    * is not in the repository
    */
-  def getParentActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory]
+  def getParentActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory]
 
   /**
    * Return the list of parents for that category, the nearest parent
@@ -263,15 +263,15 @@ trait RoDirectiveRepository {
    * The the last parent is not the root of the library, return a Failure.
    * Also return a failure if the path to top is broken in any way.
    */
-  def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[List[ActiveTechniqueCategory]]
+  def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[List[ActiveTechniqueCategory]]
 
-  def getParentsForActiveTechnique(id:ActiveTechniqueId) : Box[ActiveTechniqueCategory]
+  def getParentsForActiveTechnique(id:ActiveTechniqueId) : IOResult[ActiveTechniqueCategory]
 
   /**
    * Return true if at least one directive exists in this category (or a sub category
    * of this category)
    */
-  def containsDirective(id: ActiveTechniqueCategoryId) : Boolean
+  def containsDirective(id: ActiveTechniqueCategoryId) : scalaz.zio.UIO[Boolean]
 }
 
 trait WoDirectiveRepository {
@@ -289,7 +289,7 @@ trait WoDirectiveRepository {
    * System policy instance can't be saved with that method.
    *
    */
-  def saveDirective(inActiveTechniqueId:ActiveTechniqueId, directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]]
+  def saveDirective(inActiveTechniqueId:ActiveTechniqueId, directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DirectiveSaveDiff]]
 
   /**
    * Save the given system directive into given user technique
@@ -303,7 +303,7 @@ trait WoDirectiveRepository {
    *
    * Returned the saved Directive
    */
-  def saveSystemDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]]
+  def saveSystemDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DirectiveSaveDiff]]
 
   /**
    * Delete a directive.
@@ -316,7 +316,7 @@ trait WoDirectiveRepository {
    *
    * System directive can't be deleted.
    */
-  def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteDirectiveDiff]
+  def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteDirectiveDiff]
 
 
   /**
@@ -338,7 +338,7 @@ trait WoDirectiveRepository {
     , modId        : ModificationId
     , actor        : EventActor
     , reason       : Option[String]
-  ) : Box[ActiveTechnique]
+  ) : IOResult[ActiveTechnique]
 
 
   /**
@@ -347,12 +347,12 @@ trait WoDirectiveRepository {
    * does not exist.
    *
    */
-  def move(id:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
+  def move(id:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueId]
 
   /**
    * Set the status of the active technique to the new value
    */
-  def changeStatus(id:ActiveTechniqueId, status:Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
+  def changeStatus(id:ActiveTechniqueId, status:Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueId]
 
   /**
    * Add new (version,acceptation datetime) to existing
@@ -362,13 +362,13 @@ trait WoDirectiveRepository {
    * Failure if an error happened,
    * Full(id) when success
    */
-  def setAcceptationDatetimes(id:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
+  def setAcceptationDatetimes(id:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], modId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueId]
 
   /**
    * Delete the active technique in the active tehcnique library.
    * If no such element exists, it is a success.
    */
-  def delete(id:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
+  def delete(id:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueId]
 
 
   /**
@@ -386,14 +386,14 @@ trait WoDirectiveRepository {
     , modificationId: ModificationId
     , actor: EventActor
     , reason: Option[String]
-  ) : Box[ActiveTechniqueCategory]
+  ) : IOResult[ActiveTechniqueCategory]
 
   /**
    * Update an existing active technique category
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */
-  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, modificationId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory]
+  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, modificationId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueCategory]
 
 
   /**
@@ -407,7 +407,7 @@ trait WoDirectiveRepository {
    *  - Full(category id) for a success
    *  - Failure(with error message) iif an error happened.
    */
-  def delete(id:ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId]
+  def delete(id:ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty:Boolean = true) : IOResult[ActiveTechniqueCategoryId]
 
   /**
    * Move an existing category into a new one.
@@ -416,6 +416,6 @@ trait WoDirectiveRepository {
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */
-  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId]
+  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueCategoryId]
 
 }

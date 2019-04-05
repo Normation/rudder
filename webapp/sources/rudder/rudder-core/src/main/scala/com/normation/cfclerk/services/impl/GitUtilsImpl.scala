@@ -39,6 +39,8 @@ package com.normation.cfclerk.services.impl
 
 
 import java.io.File
+
+import com.normation.NamedZioLogger
 import net.liftweb.common._
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
@@ -50,7 +52,9 @@ import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.eclipse.jgit.revwalk.RevWalk
 import com.normation.cfclerk.services._
 import org.eclipse.jgit.internal.storage.file.FileRepository
-
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * A default implementation that uses the given root directory
@@ -58,42 +62,43 @@ import org.eclipse.jgit.internal.storage.file.FileRepository
  * If a .git repository is found in it, it is considered as the repository
  * to use, else if none is found, one is created.
  */
-class GitRepositoryProviderImpl(techniqueDirectoryPath: String) extends GitRepositoryProvider with Loggable { //we expect to have a .git here
+class GitRepositoryProviderImpl(techniqueDirectoryPath: String) extends GitRepositoryProvider { //we expect to have a .git here
   /**
    * Check for root package existence
    */
-  private def checkPackageDirectory(dir: File): Unit = {
+  private def checkPackageDirectory(dir: File): IOResult[Unit] = {
     if (!dir.exists) {
-      throw new RuntimeException("Directory %s does not exist, how do you want that I read policy package in it?".format(dir))
-    }
-    if (!dir.canRead) {
-      throw new RuntimeException("Directory %s is not readable, how do you want that I read policy package in it?".format(dir))
-    }
+      Unconsistancy("Directory %s does not exist, how do you want that I read policy package in it?".format(dir)).fail
+    } else if (!dir.canRead) {
+      Unconsistancy("Directory %s is not readable, how do you want that I read policy package in it?".format(dir)).fail
+    } else UIO.unit
   }
 
   /**
    * Ckeck git repos existence.
    * If no git repos is found, create one.
    */
-  private def checkGitRepos(root:File) : Repository = {
-    val db = (new FileRepositoryBuilder().setWorkTree(root).build).asInstanceOf[FileRepository]
-    if(!db.getConfig.getFile.exists) {
-      logger.info("Git directory was not initialised: create a new git repository into folder %s and add all its content as initial release".format(root.getAbsolutePath))
-      db.create()
-      val git = new Git(db)
-      git.add.addFilepattern(".").call
-      git.commit.setMessage("initial commit").call
+  private def checkGitRepos(root:File) : IOResult[Repository] = {
+    IOResult.effect {
+      val db = (new FileRepositoryBuilder().setWorkTree(root).build).asInstanceOf[FileRepository]
+      if(!db.getConfig.getFile.exists) {
+        GitRepositoryLogger.logEffect.info(s"Git directory was not initialised: create a new git repository into folder '${root.getAbsolutePath}' and add all its content as initial release")
+        db.create()
+        val git = new Git(db)
+        git.add.addFilepattern(".").call
+        git.commit.setMessage("initial commit").call
+      }
+      db
     }
-    db
   }
 
   override val db = {
     val dir = new File(techniqueDirectoryPath)
-    checkPackageDirectory(dir)
+    checkPackageDirectory(dir) *>
     checkGitRepos(dir)
   }
 
-  override val git = new Git(db)
+  override val git = db.map(x => new Git(x))
 }
 
 
@@ -109,33 +114,40 @@ class GitRepositoryProviderImpl(techniqueDirectoryPath: String) extends GitRepos
  *
  * WARNING : the current revision is not persisted between creation of that class !
  */
-class SimpleGitRevisionProvider(refPath:String,repo:GitRepositoryProvider) extends GitRevisionProvider with Loggable {
+class SimpleGitRevisionProvider(refPath:String,repo:GitRepositoryProvider) extends GitRevisionProvider {
 
   if(!refPath.startsWith("refs/")) {
-    logger.warn("The configured reference path for the Git repository of Policy Template User Library does "+
+    GitRepositoryLogger.logEffect.warn("The configured reference path for the Git repository of Policy Template User Library does "+
         "not start with 'refs/'. Are you sure you don't mistype something ?")
   }
 
   private[this] var currentId = getAvailableRevTreeId
 
-  override def getAvailableRevTreeId : ObjectId = {
-    val treeId = repo.db.resolve(refPath)
+  override def getAvailableRevTreeId : IOResult[ObjectId] = {
+    repo.db.flatMap(db =>
+      IOResult.effect {
+        val treeId = db.resolve(refPath)
 
-    if(null == treeId) {
-      val message = s"The reference branch '${refPath}' is not found in the Policy Templates User Library's git repository"
-      logger.error(message)
-      throw new IllegalArgumentException(message)
-    }
+        if(null == treeId) {
+          val message = s"The reference branch '${refPath}' is not found in the Policy Templates User Library's git repository"
+          GitRepositoryLogger.logEffect.error(message)
+          throw new IllegalArgumentException(message)
+        }
 
-    val rw = new RevWalk(repo.db)
-    val id = rw.parseTree(treeId).getId
-    rw.dispose
-    id
+        val rw = new RevWalk(db)
+        val id = rw.parseTree(treeId).getId
+        rw.dispose
+        id
+      }
+    )
   }
 
   override def currentRevTreeId = currentId
 
-  override def setCurrentRevTreeId(id:ObjectId) : Unit = currentId = id
+  override def setCurrentRevTreeId(id: ObjectId) : IOResult[Unit] = {
+    currentId = id.succeed
+    UIO.unit
+  }
 }
 
 /**

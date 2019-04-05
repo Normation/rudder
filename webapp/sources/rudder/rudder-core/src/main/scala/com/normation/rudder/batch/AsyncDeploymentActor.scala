@@ -54,8 +54,8 @@ import scala.xml.NodeSeq
 import com.normation.eventlog.ModificationId
 import java.io.File
 
-
 import com.normation.rudder.domain.logger.PolicyLogger
+import com.normation.zio._
 
 sealed trait StartDeploymentMessage
 
@@ -234,13 +234,15 @@ final class AsyncDeploymentActor(
           currentDeployerState = newState
           logger.trace("Policy updater: ask to start updating policies")
           val event = eventLogger.repository.saveEventLog(
-            modId, AutomaticStartDeployement(WithDetails(NodeSeq.Empty)))
+            modId, AutomaticStartDeployement(WithDetails(NodeSeq.Empty))
+          ).either.runNow.toOption
           DeployerAgent ! NewDeployment(newState.id, modId, newState.started, actor, event.flatMap(_.id).getOrElse(0))
 
         case p @ Processing(id, startTime) => //ok, add a pending deployment
           logger.trace("Policy updater: currently updating policies, add a pending update request")
           val event = eventLogger.repository.saveEventLog(
-            modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="false"/>)))
+            modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="false"/>))
+          ).either.runNow.toOption
           currentDeployerState = ProcessingAndPendingAuto(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0))
 
         case p: ProcessingAndPendingAuto => //drop message, one is already pending
@@ -272,14 +274,14 @@ final class AsyncDeploymentActor(
           logger.trace("Policy updater: ask to start updating policies")
           val event = eventLogger.repository.saveEventLog(
               modId, ManualStartDeployement(WithDetails(NodeSeq.Empty))
-            )
+            ).either.runNow.toOption
           DeployerAgent ! NewDeployment(newState.id, modId, newState.started, actor, event.flatMap(_.id).getOrElse(0))
 
         case p@Processing(id, startTime) => //ok, add a pending deployment
           logger.trace("Policy updater: currently updating policies, add a pending update request")
           val event = eventLogger.repository.saveEventLog(
               modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="false"/>))
-            )
+            ).either.runNow.toOption
           currentDeployerState = ProcessingAndPendingManual(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0), reason)
 
         case p:ProcessingAndPendingManual => //drop message, one is already pending
@@ -291,7 +293,7 @@ final class AsyncDeploymentActor(
         case p:ProcessingAndPendingAuto => //replace with manual
           val event = eventLogger.repository.saveEventLog(
               modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
-            )
+            ).either.runNow.toOption
           currentDeployerState = ProcessingAndPendingManual(DateTime.now, p.current, actor, event.flatMap(_.id).getOrElse(0), reason)
           logger.info("One automatic policy update process is already pending, replacing by a manual request")
       }

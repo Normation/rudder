@@ -37,9 +37,11 @@
 
 package com.normation.cfclerk.services
 
+import com.normation.NamedZioLogger
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.lib.ObjectId
+import com.normation.errors._
 
 /**
  * A service that gives access to the Git
@@ -49,12 +51,12 @@ trait GitRepositoryProvider {
   /**
    * Obtain access to JGit porcelain API.
    */
-  def git : Git
+  def git: IOResult[Git]
 
-  def db : Repository
+  def db: IOResult[Repository]
 }
 
-
+object GitRepositoryLogger extends NamedZioLogger() { val loggerName = "git-repository" }
 
 /**
  * A service that allows to know what is the
@@ -76,18 +78,18 @@ trait GitRevisionProvider {
    * Return the last RevTree objectId that
    * is accessible in the repository.
    */
-  def getAvailableRevTreeId : ObjectId
+  def getAvailableRevTreeId: IOResult[ObjectId]
 
   /**
    * Return the commit currently used as the
    * "current version".
    */
-  def currentRevTreeId : ObjectId
+  def currentRevTreeId: IOResult[ObjectId]
 
   /**
    * Update the reference to current commit
    * to the provided one.
    */
-  def setCurrentRevTreeId(id:ObjectId) : Unit
+  def setCurrentRevTreeId(id:ObjectId): IOResult[Unit]
 
 }

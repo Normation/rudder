@@ -38,6 +38,7 @@
 package com.normation.rudder.repository.xml
 
 import java.io.InputStream
+
 import org.eclipse.jgit.lib.{Constants => JConstants}
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
@@ -48,14 +49,21 @@ import org.eclipse.jgit.treewalk.TreeWalk
 import net.liftweb.common._
 import java.io.File
 import java.io.ByteArrayOutputStream
-import com.normation.rudder.repository.xml.ZipUtils.Zippable
 
+import com.normation.NamedZioLogger
+import com.normation.rudder.repository.xml.ZipUtils.Zippable
+import com.normation.errors._
+
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * Utility trait to find/list/get content
  * of Git repository by commit id
  */
-object GitFindUtils extends Loggable {
+object GitFindUtils extends NamedZioLogger {
+
+  override def loggerName: String = this.getClass.getSimpleName
 
   /**
    * List of files available in the given commit.
@@ -66,7 +74,8 @@ object GitFindUtils extends Loggable {
    * - endPath  = Some(".xml")
    * //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
    */
-  def listFiles(db:Repository, revTreeId:ObjectId, rootDirectories:List[String], endPaths: List[String]) : Set[String] = {
+  def listFiles(db:Repository, revTreeId:ObjectId, rootDirectories:List[String], endPaths: List[String]) : IOResult[Set[String]] = {
+    IOResult.effect {
       //a first walk to find categories
       val tw = new TreeWalk(db)
       tw.setFilter(new FileTreeFilter(rootDirectories, endPaths))
@@ -80,6 +89,7 @@ object GitFindUtils extends Loggable {
       }
 
       paths.toSet
+    }
   }
 
 
@@ -87,14 +97,14 @@ object GitFindUtils extends Loggable {
    * Get the content of the file at the given path (as seen by git, so
    * relative to git root)
    */
-  def getFileContent[T](db:Repository, revTreeId:ObjectId, path:String)(useIt : InputStream => Box[T]) : Box[T] = {
+  def getFileContent[T](db:Repository, revTreeId:ObjectId, path:String)(useIt : InputStream => IOResult[T]) : IOResult[T] = {
     val filePath = {
       var p = path
       while (path.endsWith("/")) p = p.substring(0, p.length - 1)
       p
     }
 
-    try {
+    IOResult.effectM(s"Exception caught when trying to acces file '${filePath}'") {
         //now, the treeWalk
         val tw = new TreeWalk(db)
 
@@ -108,15 +118,12 @@ object GitFindUtils extends Loggable {
         }
         ids match {
           case Nil =>
-            Failure("No file were found at path '%s'".format(filePath))
+            Unconsistancy(s"No file were found at path '${filePath}}'").fail
           case h :: Nil =>
-            useIt(db.open(h).openStream)
+            ZIO.bracket(IOResult.effect(db.open(h).openStream()))(s => IO.effect(s.close()).run.void)(useIt)
           case _ =>
-            Failure("More than exactly one matching file were found in the git tree for path %s, I can not know which one to choose. IDs: %s".format(filePath))
+            Unconsistancy(s"More than exactly one matching file were found in the git tree for path '${filePath}', I can not know which one to choose. IDs: ${ids}}").fail
       }
-    } catch {
-      case ex:Exception =>
-        Failure("Exception caught when trying to acces file '%s'".format(filePath),Full(ex),Empty)
     }
   }
 
@@ -124,28 +131,29 @@ object GitFindUtils extends Loggable {
    * Retrieve the commit tree from a path name.
    * The path may be any one of {@code org.eclipse.jgit.lib.Repository#resolve}
    */
-  def findRevTreeFromRevString(db:Repository, revString:String) : Box[ObjectId] = {
-    val tree = db.resolve(revString)
-    if (null == tree) {
-      Failure("The reference branch '%s' is not found in the Active Techniques Library's git repository".format(revString))
-    } else {
-      val rw = new RevWalk(db)
-      val id = rw.parseTree(tree).getId
-      rw.dispose
-      Full(id)
+  def findRevTreeFromRevString(db:Repository, revString:String) : IOResult[ObjectId] = {
+    IOResult.effectM {
+      val tree = db.resolve(revString)
+      if (null == tree) {
+        Unconsistancy(s"The reference branch '${revString}' is not found in the Active Techniques Library's git repository").fail
+      } else {
+        val rw = new RevWalk(db)
+        val id = rw.parseTree(tree).getId
+        rw.dispose
+        id.succeed
+      }
     }
   }
-
 
  /**
   * Get a zip file containing files for commit "revTreeId".
   * You can filter files only some directory by giving
   * a root path.
   */
-  def getZip(db:Repository, revTreeId:ObjectId, onlyUnderPaths: List[String] = Nil) : Box[Array[Byte]] = {
+  def getZip(db:Repository, revTreeId:ObjectId, onlyUnderPaths: List[String] = Nil) : IOResult[Array[Byte]] = {
     val directories = scala.collection.mutable.Set[String]()
     val zipEntries = scala.collection.mutable.Buffer[Zippable]()
-    try {
+    IOResult.effect(s"Error when creating a zip from files in commit with id: '${revTreeId}'") {
       val tw = new TreeWalk(db)
       //create a filter with a OR of all filters
       tw.setFilter(new FileTreeFilter(onlyUnderPaths, Nil))
@@ -163,9 +171,7 @@ object GitFindUtils extends Loggable {
       val out = new ByteArrayOutputStream()
 
       ZipUtils.zip(out, all)
-      Full(out.toByteArray())
-    } catch {
-      case e:Exception => Failure("Error when creating a zip from files in commit with id: '%s'".format(revTreeId))
+      out.toByteArray()
     }
   }
 }

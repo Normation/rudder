@@ -65,6 +65,7 @@ object InventoryMappingRudderError {
   final case class MissingMandatory(msg: String) extends InventoryMappingRudderError
   final case class UnknownElement(msg: String)   extends InventoryMappingRudderError
   final case class Chained[E <: RudderError](hint: String, cause: E) extends InventoryMappingRudderError with BaseChainError[E]
+  final case class UnexpectedObject(msg: String) extends InventoryMappingRudderError
 }
 
 object InventoryMappingResult {
@@ -95,9 +96,6 @@ object InventoryMappingResult {
     }
   }
 
-  implicit class ToZio[T](res: InventoryMappingPure[T]) {
-    def zio = ZIO.fromEither(res)
-  }
 }
 
 class DateTimeSerializer extends Serializer[DateTime] {
@@ -900,6 +898,9 @@ class InventoryMapper(
   }
 
   def nodeFromEntry(entry:LDAPEntry) : InventoryMappingResult[NodeInventory] = {
+    implicit class ToZio[T](res: InventoryMappingPure[T]) {
+      def zio = ZIO.fromEither(res)
+    }
     for {
       dit                <- ditService.getDit(entry.dn).notOptional(s"DIT not found for entry ${entry.dn}").zio
       inventoryStatus    =  ditService.getInventoryStatus(dit)

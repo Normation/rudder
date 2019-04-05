@@ -47,10 +47,11 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
-
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import java.nio.charset.StandardCharsets
+
+import com.normation.zio.ZioRuntime
 
 @RunWith(classOf[JUnitRunner])
 class TestGitFindUtils extends Specification with Loggable with AfterAll {
@@ -110,10 +111,10 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll {
   }
   val git = new Git(db)
   git.add.addFilepattern(".").call
-  val id = GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name).openOrThrowException("For tests")
+  val id = ZioRuntime.unsafeRun(GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name))
 
   def list(rootDirectories:List[String], endPaths: List[String]) =
-    GitFindUtils.listFiles(db, id, rootDirectories, endPaths)
+    ZioRuntime.unsafeRun(GitFindUtils.listFiles(db, id, rootDirectories, endPaths))
 
   ////////// actual tests //////////
 

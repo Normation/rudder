@@ -68,6 +68,9 @@ import net.liftweb.http.SHtml.SelectableOption
 import com.normation.ldap.sdk.LdapResult._
 import cats.implicits._
 
+import scalaz.zio._
+import scalaz.zio.syntax._
+
 sealed trait CriterionComparator {
   val id:String
   def hasValue : Boolean = true
@@ -327,8 +330,8 @@ sealed trait LDAPCriterionType extends CriterionType {
   //transform the given value to its LDAP string value
   def toLDAP(value:String) : Box[String]
 
-  def buildRegex(attribute:String,value:String)   : LdapResult[RegexFilter]    = SimpleRegexFilter(attribute,value).success
-  def buildNotRegex(attribute:String,value:String): LdapResult[NotRegexFilter] = SimpleNotRegexFilter(attribute,value).success
+  def buildRegex(attribute:String,value:String)   : LdapResult[RegexFilter]    = SimpleRegexFilter(attribute,value).succeed
+  def buildNotRegex(attribute:String,value:String): LdapResult[NotRegexFilter] = SimpleNotRegexFilter(attribute,value).succeed
 
   //build the ldap filter for given attribute name and comparator
   def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
@@ -724,12 +727,12 @@ case class JsonFixedKeyComparator(ldapAttr:String, jsonKey: String, quoteValue: 
   def regex(attribute: String, value: String) = {
     s".*${format(attribute, value)}.*"
   }
-  override def buildRegex(attribute:String,value:String) : Box[RegexFilter] = {
-    Full(SimpleRegexFilter(ldapAttr,regex(attribute, value)))
+  override def buildRegex(attribute:String,value:String) : LdapResult[RegexFilter] = {
+    SimpleRegexFilter(ldapAttr,regex(attribute, value)).succeed
   }
 
-  override def buildNotRegex(attribute:String,value:String) : Box[NotRegexFilter] = {
-    Full(SimpleNotRegexFilter(ldapAttr,regex(attribute, value)))
+  override def buildNotRegex(attribute:String,value:String) : LdapResult[NotRegexFilter] = {
+    SimpleNotRegexFilter(ldapAttr,regex(attribute, value)).succeed
   }
 
   override def buildFilter(key: String, comparator:CriterionComparator,value: String) : Filter = {
@@ -782,13 +785,13 @@ case class NameValueComparator(ldapAttr: String) extends TStringComparator with 
   }
 
   //the first arg is "name.value", not interesting here
-  override def buildRegex(_x: String, value: String) : Box[RegexFilter] = {
-    Full(SimpleRegexFilter(ldapAttr,"""\{"""+formatKV(splitInput(value))+"""\}""" ))
+  override def buildRegex(_x: String, value: String) : LdapResult[RegexFilter] = {
+    SimpleRegexFilter(ldapAttr,"""\{"""+formatKV(splitInput(value))+"""\}""" ).succeed
   }
 
   //the first arg is "name.value", not interesting here
-  override def buildNotRegex(_x: String, value: String) : Box[NotRegexFilter] = {
-    Full(SimpleNotRegexFilter(ldapAttr,"""\{"""+formatKV(splitInput(value))+"""\}"""))
+  override def buildNotRegex(_x: String, value: String) : LdapResult[NotRegexFilter] = {
+    SimpleNotRegexFilter(ldapAttr,"""\{"""+formatKV(splitInput(value))+"""\}""").succeed
   }
 
   //the first arg is "name.value", not interesting here

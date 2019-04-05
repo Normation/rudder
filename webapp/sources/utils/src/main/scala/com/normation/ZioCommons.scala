@@ -27,15 +27,16 @@ package com.normation
 
 import java.io.FileInputStream
 import java.net.URL
+import java.util
 
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.normation.zio.ZioRuntime
-import net.liftweb.common.Logger
-
+import net.liftweb.common._
 import cats._
 import cats.data._
 import cats.implicits._
+import com.normation.errors.IOResult
 
 /**
  * This is our based error for Rudder. Any method that can
@@ -47,8 +48,26 @@ import cats.implicits._
 object errors {
 
 
-  type IOResult[T] = ZIO[Any, RudderError, T]
   type PureResult[T] = Either[RudderError, T]
+  type IOResult[T] = ZIO[Any, RudderError, T]
+
+  object IOResult {
+    def effect[A](error: String)(effect: => A): IOResult[A] = {
+      IO.effect(effect).mapError(ex => SystemError(error, ex))
+    }
+    def effect[A](effect: => A): IOResult[A] = {
+      this.effect("An error occured")(effect)
+    }
+    def effectM[A](error: String)(ioeffect: => IOResult[A]): IOResult[A] = {
+      IO.effect(ioeffect).foldM(
+        ex  => SystemError(error, ex).fail
+      , res => res
+      )
+    }
+    def effectM[A](ioeffect: => IOResult[A]): IOResult[A] = {
+      effectM("An error occured")(ioeffect)
+    }
+  }
 
   trait RudderError {
     // All error have a message which explains what cause the error.
@@ -66,6 +85,9 @@ object errors {
   // a generic error to tell "I wasn't expecting that value"
   final case class Unexpected(msg: String) extends RudderError
 
+  // a generic error to tell "there is some (business logic related) unconsistancy"
+  final case class Unconsistancy(msg: String) extends RudderError
+
   trait BaseChainError[E <: RudderError] extends RudderError {
     def cause: E
     def hint: String
@@ -80,15 +102,32 @@ object errors {
    * Chain multiple error. You will loose the specificity of the
    * error type doing so.
    */
-  implicit class ChainError[R, E <: RudderError, A](res: ZIO[R, E, A]) {
+  implicit class IOChainError[R, E <: RudderError, A](res: ZIO[R, E, A]) {
     def chainError(hint: String): ZIO[R, RudderError, A] = res.mapError(err => Chained(hint, err))
+  }
+
+  implicit class PureChainError[R, E <: RudderError, A](res: Either[E, A]) {
+    def chainError(hint: String): Either[RudderError, A] = res.leftMap(err => Chained(hint, err))
   }
 
   /*
    * A mapper from PureResult to IOResult
    */
   implicit class PureToIoResult[A](res: PureResult[A]) {
-    def toZio = ZIO.fromEither(res)
+    def toIO: IOResult[A] = ZIO.fromEither(res)
+  }
+
+  // not optional - mandatory presence of an object
+  implicit class OptionToIoResult[A](res: Option[A]) {
+    def notOptional(error: String) = res match {
+      case None    => Unconsistancy(error).fail
+      case Some(x) => x.succeed
+    }
+  }
+
+  // also with the flatmap included to avoid a combinator
+  implicit class MandatoryOptionIO[R, E <: RudderError, A](res: ZIO[R, E, Option[A]]) {
+    def notOptional(error: String) = res.flatMap( _.notOptional(error))
   }
 
   /**
@@ -122,7 +161,7 @@ object errors {
 
   implicit class BoxToEither[E <: RudderError, A](res: Box[A]) {
     import cats.instances.either._
-    def toEither: PureResult[A] = BoxUtil.fold[E, A, PureResult](
+    def toPureResult: PureResult[A] = BoxUtil.fold[E, A, PureResult](
       err => Left(err)
     , suc => Right(suc)
     )(res)
@@ -231,7 +270,11 @@ object zio {
   /*
    * Default ZIO Runtime used everywhere.
    */
-  object ZioRuntime extends DefaultRuntime
+  object ZioRuntime extends DefaultRuntime {
+     def runNow[A](io: IOResult[A]): A = {
+      ZioRuntime.unsafeRunSync(io).fold(cause => throw cause.squashWith(err => new RuntimeException(err.fullMsg)), a => a)
+    }
+  }
 
   /**
    * Accumulate results of a ZIO execution in a ValidateNel
@@ -245,6 +288,23 @@ object zio {
     }
   }
 
+  /*
+   * When porting a class is too hard
+   */
+  implicit class UnsafeRun[A](io: IOResult[A]) {
+    def runNow: A = ZioRuntime.runNow(io)
+  }
+
+  /*
+   * Opposite to "toIO"
+   */
+  implicit class IOToBox[A](io: IOResult[A]) {
+    def toBox: Box[A] = try {
+      Full(ZioRuntime.runNow(io))
+    } catch {
+      case ex => new Failure(ex.getMessage, Full(ex), Empty)
+    }
+  }
 
 }
 
