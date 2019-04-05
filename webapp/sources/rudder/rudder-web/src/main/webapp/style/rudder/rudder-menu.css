@@ -107,8 +107,8 @@ pre.json-beautify, .content-wrapper pre.json-beautify{
   overflow: hidden;
   position: relative;
   margin-bottom: 0;
-  padding: 0;
-  padding-right: 25px;
+  padding: 6px;
+  padding-right: 65px;
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
@@ -123,7 +123,7 @@ pre.json-beautify.toggle, .content-wrapper pre.json-beautify.toggle{
 pre.json-beautify:after,.content-wrapper pre.json-beautify:after{
   position:absolute;
   right:10px;
-  top : 4px;
+  top : 10px;
   color:#333;
   content: "\f054";
   display: inline-block;
@@ -1158,10 +1158,10 @@ ul.graph-legend > li.legend:hover{
 }
 #addPropTable td.json-check-col{
   width: 80px;
-  background-color:#f4f4f4;
 }
 #addPropTable td.json-check-col > div{
   position:relative;
+  background-color: #f4f4f4;
 }
 #addPropTable td.json-check-col button{
   height: 33px;
@@ -1188,7 +1188,6 @@ ul.graph-legend > li.legend:hover{
 #nodeProp .addon-json + textarea{
   min-height:initial;
 }
-
 .node-tab-content{
   float:left;
   width:100%;
@@ -1209,14 +1208,6 @@ ul.graph-legend > li.legend:hover{
   margin-bottom: 0;
   font-weight: normal;
   font-size: 13.2px;
-}
-#nodePropertiesTab > tbody > tr > td.delete-action > .fa{
-  display:none;
-  cursor:pointer;
-  font-size:18px;
-}
-#nodePropertiesTab > tbody > tr:hover > td.delete-action > .fa{
-  display:inline-block;
 }
 pre.display-keys{
   padding: 6px 8px;
