@@ -20,7 +20,6 @@ import doobie._, doobie.implicits._
 import cats.implicits._
 
 
-
 /**
  * specify from/to version
  */
@@ -360,7 +359,7 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
         saved
       })
 
-      val res = exec.transact(doobie.xa).attempt.unsafeRunSync
+      val res = doobie.transactRun(xa => exec.transact(xa).attempt)
 
       res match {
         case Right(k) if(k.size < 1) =>

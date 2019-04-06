@@ -139,7 +139,7 @@ case class RoReportsExecutionRepositoryImpl (
           nodeIds.map(id => (id, runsMap.get(id))).toMap
         }
 
-        query.transact(xa).attempt.unsafeRunSync
+        transactRunBox(xa => query.transact(xa))
     }
   }
 }
@@ -208,7 +208,7 @@ case class WoReportsExecutionRepositoryImpl (
         result
       }
 
-      action.transact(xa).attempt
+      transact(xa => action.transact(xa).attempt)
     }
 
 

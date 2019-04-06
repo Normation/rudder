@@ -78,10 +78,14 @@ class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
 
   val nodeComplianceLevelcolumns = List("nodeid", "runtimestamp", "ruleid", "directiveid", "pending", "success", "repaired", "error", "unexpected", "missing", "noanswer", "notapplicable", "reportsdisabled", "compliant", "auditnotapplicable", "noncompliant", "auditerror", "badpolicymode")
 
-  implicit val ComplianceLevelComposite: Composite[ComplianceLevel] = {
-    Composite[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].imap(
+  implicit val ComplianceLevelRead: Read[ComplianceLevel] = {
+    Read[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].map(
         tuple => ComplianceLevel.apply _ tupled tuple
-      )( comp  => ComplianceLevel.unapply(comp).get
+    )
+  }
+  implicit val ComplianceLevelWrite: Write[ComplianceLevel] = {
+    Write[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].contramap(
+      comp  => ComplianceLevel.unapply(comp).get
     )
   }
 
@@ -148,13 +152,13 @@ class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
     val queryComplianceLevel = s"""insert into nodecompliancelevels (${nodeComplianceLevelcolumns.mkString(",")})
                                  | values ( ${nodeComplianceLevelcolumns.map(_ => "?").mkString(",")} )""".stripMargin
 
-    val res = (for {
+    val res = transactRun(xa => (for {
       updated  <- Update[RunCompliance](queryCompliance).updateMany(runCompliances)
       levels   <- Update[LEVELS](queryComplianceLevel).updateMany(nodeComplianceLevels)
     } yield {
       val saved = runCompliances.map(_.nodeId)
       reports.filter(r => saved.contains(r.nodeId))
-    }).transact(xa).attempt.unsafeRunSync()
+    }).transact(xa).attempt)
 
     res match {
       case Right(_) => // ok

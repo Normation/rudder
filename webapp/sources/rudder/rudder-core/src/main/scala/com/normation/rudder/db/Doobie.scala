@@ -53,7 +53,10 @@ import org.slf4j.LoggerFactory
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
 import scala.language.implicitConversions
-import doobie.postgres.implicits._
+import doobie.postgres.implicits._ // it is necessary whatever intellij/scalac tells
+import cats.data._
+import cats.effect._
+import cats.implicits._
 import doobie._
 
 /**
@@ -64,8 +67,27 @@ import doobie._
  */
 class Doobie(datasource: DataSource) {
 
-  val xa = Transactor.fromDataSource[IO](datasource)
+  def transact[T](query: Transactor[IO] => IO[T]): IO[T] = {
+    implicit val cs = IO.contextShift(scala.concurrent.ExecutionContext.global)
+    val xa: Resource[IO, DataSourceTransactor[IO]] = {
+      for {
+        ce <- ExecutionContexts.fixedThreadPool[IO](32) // our connect EC
+        te <- ExecutionContexts.cachedThreadPool[IO]    // our transaction EC
+      } yield {
+        Transactor.fromDataSource[IO](datasource, ce, te)
+      }
+    }
+    xa.use(xa => query(xa))
+  }
 
+  def transactRun[T](query: Transactor[IO] => IO[T]): T = {
+    transact(query).unsafeRunSync()
+  }
+
+  def transactRunBox[T](q: Transactor[IO] => IO[T]): Box[T] = {
+    import Doobie._
+    transact(q).attempt.unsafeRunSync()
+  }
 }
 
 object Doobie {
@@ -129,48 +151,54 @@ object Doobie {
   /*
    * Doobie is missing a Query0 builder, so here is simple one.
    */
-  def query[A](sql: String)(implicit a: Composite[A]): Query0[A] = Query[Unit, A](sql, None)(implicitly[Composite[Unit]], a).toQuery0(())
+  def query[A](sql: String)(implicit a: Read[A]): Query0[A] = Query0(sql)
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////// data structure mapping ///////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   implicit val DateTimeMeta: Meta[DateTime] =
-    Meta[java.sql.Timestamp].xmap(
-        ts => new DateTime(ts.getTime())
-      , dt => new java.sql.Timestamp(dt.getMillis)
+    Meta[java.sql.Timestamp].imap(
+       ts => new DateTime(ts.getTime())
+    )( dt => new java.sql.Timestamp(dt.getMillis)
   )
 
-  implicit val ReportComposite: Composite[Reports] = {
+  implicit val ReportRead: Read[Reports] = {
     type R = (DateTime, RuleId, DirectiveId, NodeId, Int, String, String, DateTime, String, String)
-    Composite[R].imap(
-        (t: R      ) => Reports.factory(t._1,t._2,t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10))(
+    Read[R].map(
+        (t: R      ) => Reports.factory(t._1,t._2,t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10))
+  }
+  implicit val ReportWrite: Write[Reports] = {
+    type R = (DateTime, RuleId, DirectiveId, NodeId, Int, String, String, DateTime, String, String)
+    Write[R].contramap(
         (r: Reports) => Reports.unapply(r).get
     )
   }
 
-  implicit val NodesConfigVerionComposite: Composite[NodeConfigVersions] = {
-    Composite[(NodeId, Option[List[String]])].imap(
-        tuple => NodeConfigVersions(tuple._1, tuple._2.getOrElse(Nil).map(NodeConfigId)))(
+  implicit val NodesConfigVerionRead: Read[NodeConfigVersions] = {
+    Read[(NodeId, Option[List[String]])].map(
+        tuple => NodeConfigVersions(tuple._1, tuple._2.getOrElse(Nil).map(NodeConfigId)))
+  }
+  implicit val NodesConfigVerionWrite: Write[NodeConfigVersions] = {
+    Write[(NodeId, Option[List[String]])].contramap(
         ncv   => (ncv.nodeId, Some(ncv.versions.map(_.value)))
     )
   }
 
   implicit val NodeConfigIdComposite: Meta[Vector[NodeConfigIdInfo]] = {
-    Meta[String].xmap(
-        tuple => NodeConfigIdSerializer.unserialize(tuple)
-      , obj   => NodeConfigIdSerializer.serialize(obj)
+    Meta[String].imap(
+       tuple => NodeConfigIdSerializer.unserialize(tuple)
+    )( obj   => NodeConfigIdSerializer.serialize(obj)
     )
   }
 
   /*
    * Do not use that one for extraction, only to save NodeExpectedReports
    */
-  implicit val SerializeNodeExpectedReportsComposite: Composite[NodeExpectedReports] = {
+  implicit val SerializeNodeExpectedReportsWrite: Write[NodeExpectedReports] = {
     import ExpectedReportsSerialisation._
-    Composite[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].imap(
-          tuple => throw new RuntimeException(s"Error: that method should not be used to deserialize NodeExpectedReports"))(
-          ner   => (ner.nodeId, ner.nodeConfigId, ner.beginDate, ner.endDate, ner.toCompactJson)
+    Write[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].contramap(
+      ner   => (ner.nodeId, ner.nodeConfigId, ner.beginDate, ner.endDate, ner.toCompactJson)
     )
   }
 
@@ -178,51 +206,43 @@ object Doobie {
    * As we have some json in NodeExpectedReports, it is expected to fail somewhen like
    * at each format update. We need to enforce that.
    */
-  implicit val DeserializeNodeExpectedReportsComposite: Composite[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]] = {
+  implicit val DeserializeNodeExpectedReportsRead: Read[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]] = {
     import ExpectedReportsSerialisation._
-    Composite[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].imap(
-        tuple => {
-              parseJsonNodeExpectedReports(tuple._5) match {
-                case Full(x)      =>
-                  Right(NodeExpectedReports(tuple._1, tuple._2, tuple._3, tuple._4, x.modes, x.ruleExpectedReports, x.overrides))
-                case eb: EmptyBox =>
-                  Left((tuple._1, tuple._2, tuple._3))
-              }
-          }
-      )(
-        ner   => throw new RuntimeException(s"Error: that method should not be used to serialize NodeExpectedReports")
+    Read[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].map( tuple =>
+      parseJsonNodeExpectedReports(tuple._5) match {
+        case Full(x)      =>
+          Right(NodeExpectedReports(tuple._1, tuple._2, tuple._3, tuple._4, x.modes, x.ruleExpectedReports, x.overrides))
+        case eb: EmptyBox =>
+          Left((tuple._1, tuple._2, tuple._3))
+      }
     )
   }
 
-  implicit val CompliancePercentComposite: Composite[CompliancePercent] = {
+  implicit val CompliancePercentRead: Read[CompliancePercent] = {
     import ComplianceLevelSerialisation._
     import net.liftweb.json._
-    Composite[String].imap(
-        json => parsePercent(parse(json)))(
-        x    => compactRender(x.toJson)
-    )
+    Read[String].map(json => parsePercent(parse(json)))
+  }
+  implicit val CompliancePercentWrite: Write[CompliancePercent] = {
+    import ComplianceLevelSerialisation._
+    import net.liftweb.json._
+    Write[String].contramap(x => compactRender(x.toJson))
   }
 
-  implicit val ComplianceRunInfoComposite: Composite[(RunAndConfigInfo, RunComplianceInfo)] = {
+  implicit val ComplianceRunInfoComposite: Write[(RunAndConfigInfo, RunComplianceInfo)] = {
     import NodeStatusReportSerialization._
-    Composite[String].imap(
-        json => throw new RuntimeException(s"You can deserialize run compliance info for now"))(
-        x    => x.toCompactJson
-    )
+    Write[String].contramap(_.toCompactJson)
   }
 
-  implicit val AggregatedStatusReportComposite: Composite[AggregatedStatusReport] = {
+  implicit val AggregatedStatusReportComposite: Write[AggregatedStatusReport] = {
     import NodeStatusReportSerialization._
-    Composite[String].imap(
-        json => throw new RuntimeException(s"You can deserialize aggredatedStatusReport for now"))(
-        x    => x.toCompactJson
-    )
+    Write[String].contramap(_.toCompactJson)
   }
 
 
   import doobie.enum.JdbcType.Other
   implicit val XmlMeta: Meta[Elem] =
-    Meta.advanced[Elem](
+    Meta.Advanced.many[Elem](
       NonEmptyList.of(Other),
       NonEmptyList.of("xml"),
       (rs, n) => XML.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),

@@ -366,7 +366,6 @@ limitations under the License.
     <cglib-version>3.2.7</cglib-version>
     <asm-version>5.2</asm-version>
     <bcpkix-jdk15on-version>1.60</bcpkix-jdk15on-version>
-    <monix-version>2.3.3</monix-version>
     <silencer-lib-version>1.2</silencer-lib-version>
     <better-files-version>3.7.0</better-files-version>
     <!--
@@ -374,13 +373,14 @@ limitations under the License.
       We declare cats in "test" here, because it is not directly needed
       in any project before rudder.
     -->
-    <cats-version>1.2.0</cats-version>
-    <specs2-version>4.3.4</specs2-version>
-    <doobie-version>0.5.3</doobie-version>
-    <fs2-version>0.10.5</fs2-version>
-    <http4s-version>0.18.16</http4s-version>
+    <monix-version>2.3.3</monix-version>
+    <cats-version>1.6.0</cats-version>
+    <specs2-version>4.3.5</specs2-version>
+    <doobie-version>0.6.0</doobie-version>
+    <fs2-version>1.0.0</fs2-version>
+    <http4s-version>0.19.0</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
-    <cats-effect-version>1.0.0-RC</cats-effect-version>
+    <cats-effect-version>1.0.0</cats-effect-version>
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
       With that, one can override Xmx or add jvm parameters either
@@ -650,6 +650,18 @@ limitations under the License.
       <artifactId>joda-time</artifactId>
       <version>${jodatime-version}</version>
     </dependency>
+    <!-- this is now standard -->
+    <dependency>
+      <groupId>org.typelevel</groupId>
+      <artifactId>cats-core_${scala-binary-version}</artifactId>
+      <version>${cats-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.typelevel</groupId>
+      <artifactId>cats-effect_${scala-binary-version}</artifactId>
+      <version>${cats-effect-version}</version>
+    </dependency>
+
     <!--  test -->
     <dependency>
       <groupId>junit</groupId>

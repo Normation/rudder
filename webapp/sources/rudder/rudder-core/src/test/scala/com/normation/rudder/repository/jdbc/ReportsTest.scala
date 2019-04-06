@@ -64,11 +64,9 @@ import com.normation.rudder.db.DB
 @RunWith(classOf[JUnitRunner])
 class ReportsTest extends DBCommon {
 
-  import doobie._
-
   //clean data base
   def cleanTables() = {
-    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).unsafeRunSync
+    transacRun(xa => sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa))
   }
 
   lazy val repostsRepo = new ReportsJdbcRepository(doobie)
@@ -118,8 +116,8 @@ class ReportsTest extends DBCommon {
       )
     )
     "correctly init info" in {
-      DB.insertReports(reports.values.toList.flatten).transact(xa).unsafeRunSync
-      sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa).unsafeRunSync.size === 8
+      transacRun(xa => DB.insertReports(reports.values.toList.flatten).transact(xa))
+      transacRun(xa => sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa)).size === 8
     }
 
     "find the last reports for node0" in {
@@ -169,7 +167,7 @@ class ReportsTest extends DBCommon {
     )
     step {
       cleanTables()
-      DB.insertReports(reports.values.toList.flatten).transact(xa).unsafeRunSync
+      transacRun(xa => DB.insertReports(reports.values.toList.flatten).transact(xa))
     }
 
 
@@ -188,7 +186,10 @@ class ReportsTest extends DBCommon {
         , AgentRun(AgentRunId(NodeId("n0"),run1),None,true, 109)
       )
 
-      res._1 must contain(exactly(expected:_*))
+      val checkInsert = transacRun(xa => sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa)).size
+
+      (checkInsert must beEqualTo(13)) and
+      (res._1 must contain(exactly(expected:_*)))
     }
 
   }

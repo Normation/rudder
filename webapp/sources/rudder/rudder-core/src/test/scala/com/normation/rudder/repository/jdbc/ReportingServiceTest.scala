@@ -98,11 +98,10 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   self =>
 
   import ReportType._
-  import doobie._
 
   //clean data base
   def cleanTables() = {
-    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).unsafeRunSync
+    transacRun(xa => sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa))
   }
 
   val nodeInfoService = new NodeInfoService {
@@ -346,7 +345,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
       val q = DB.insertReports(reports.values.toList.flatten)
 
-      val r = q.transact(xa).unsafeRunSync
+      val r = transacRun(xa => q.transact(xa))
 
       (r must be_==(30))
     }

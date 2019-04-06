@@ -39,18 +39,18 @@ package com.normation.rudder.db
 
 import java.util.Properties
 
-import scala.io.Source
+import cats.effect.IO
 
+import scala.io.Source
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.migration.MigrableEntity
 import com.normation.rudder.migration.MigrationEventLogRepository
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
-
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAfterAll
-
 import net.liftweb.common.Loggable
-import doobie._, doobie.implicits._
+import doobie._
+import doobie.implicits._
 import cats.implicits._
 import com.normation.rudder.migration.MigrationTestLog
 import org.joda.time.DateTime
@@ -111,12 +111,12 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     if(sqlInit.trim.size > 0) {
       // Postgres'JDBC driver just accept multiple statement
       // in one query. No need to try to split ";" etc.
-      Update0(sqlInit, None).run.transact(doobie.xa).unsafeRunSync
+      doobie.transactRun(xa => Update0(sqlInit, None).run.transact(xa))
     }
   }
 
   def cleanDb() = {
-    if(sqlClean.trim.size > 0) Update0(sqlClean, None).run.transact(doobie.xa).unsafeRunSync
+    if(sqlClean.trim.size > 0) doobie.transactRun(xa => Update0(sqlClean, None).run.transact(xa))
 
     dataSource.close
   }
@@ -156,12 +156,15 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   }
 
   lazy val doobie = new Doobie(dataSource)
+  def transacRun[T](query: Transactor[IO] => IO[T]) = {
+    doobie.transactRun(xa => query(xa))
+  }
   lazy val migrationEventLogRepository = new MigrationEventLogRepository(doobie)
 
   def insertLog(log: MigrationTestLog): Int = {
-  sql"""
+  doobie.transactRun(xa => sql"""
       insert into EventLog (creationDate, principal, eventType, severity, data, causeid)
       values (${log.timestamp}, ${log.principal}, ${log.eventType}, ${log.severity}, ${log.data}, ${log.cause})
-    """.update.withUniqueGeneratedKeys[Int]("id").transact(doobie.xa).unsafeRunSync
+    """.update.withUniqueGeneratedKeys[Int]("id").transact(xa))
 }
 }

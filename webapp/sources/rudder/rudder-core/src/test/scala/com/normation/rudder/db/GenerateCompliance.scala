@@ -101,7 +101,6 @@ object GenerateCompliance {
   }
 
   lazy val doobie = new Doobie(dataSource)
-  import doobie._
 
   lazy val roLdap =
     new ROPooledSimpleAuthConnectionProvider(
@@ -245,7 +244,7 @@ object GenerateCompliance {
       (fr"insert into nodecompliancecomposite (nodeid, runtimestamp, details) values (${run.nodeId}, ${run.runtime}, " ++ rules(run.rules) ++ fr")").update
     }
 
-    runs.toList.traverse(r => query(r).run).transact(xa).unsafeRunSync
+    doobie.transactRun(xa => runs.toList.traverse(r => query(r).run).transact(xa))
   }
 
 
@@ -276,7 +275,7 @@ object GenerateCompliance {
 
     val query = (base ++ optNode ++ optRule).query[RES]
 
-    query.to[Vector].transact(xa).unsafeRunSync
+    doobie.transactRun(xa => query.to[Vector].transact(xa))
 
   }
 
@@ -309,10 +308,14 @@ object GenerateCompliance {
   type DATA = (String, DateTime, String, String, ComplianceLevel)
 
 
-  implicit val ComplianceComposite: Composite[ComplianceLevel] = {
-    Composite[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].imap(
-        tuple => ComplianceLevel.apply _ tupled tuple
-    )(  comp  => ComplianceLevel.unapply(comp).get
+  implicit val ComplianceRead: Read[ComplianceLevel] = {
+    Read[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].map(
+      tuple => ComplianceLevel.apply _ tupled tuple
+    )
+  }
+  implicit val ComplianceWrite: Write[ComplianceLevel] = {
+    Write[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].contramap(
+      comp  => ComplianceLevel.unapply(comp).get
     )
   }
 
@@ -327,7 +330,7 @@ object GenerateCompliance {
     }).toList
 
 
-    Update[DATA](s"insert into nodecompliancelevels ($columnsString) values ($columnsPlaceholder)").updateMany(expanded).transact(xa).unsafeRunSync
+    doobie.transactRun(xa => Update[DATA](s"insert into nodecompliancelevels ($columnsString) values ($columnsPlaceholder)").updateMany(expanded).transact(xa))
   }
 
   def getComplianceData(startDate: DateTime, endDate: DateTime, ruleId: Option[String], nodeId: Option[String]): Vector[(ComplianceLevel, Int)] = {
@@ -345,7 +348,7 @@ object GenerateCompliance {
     val groupby = Fragment.const(" group by index")
     val query = (base ++ interval ++ dates ++ optNode ++ optRule ++ groupby).query[(ComplianceLevel, Int)]
 
-    query.to[Vector].transact(xa).unsafeRunSync
+    doobie.transactRun(xa => query.to[Vector].transact(xa))
   }
 
   def dataExample(runs: Seq[RunCompliance]): Unit = {
@@ -404,3 +407,4 @@ object GenerateCompliance {
 
   }
 }
+

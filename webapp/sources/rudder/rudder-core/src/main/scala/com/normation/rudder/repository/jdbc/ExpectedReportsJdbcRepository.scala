@@ -115,7 +115,7 @@ class FindExpectedReportsJdbcRepository(
       case Nil        => Full(Map())
       case nodeAndIds =>
 
-        (for {
+        transactRunBox(xa => (for {
           configs <- query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]](s"""
                        select nodeid, nodeconfigid, begindate, enddate, configuration
                        from nodeconfigurations
@@ -129,7 +129,7 @@ class FindExpectedReportsJdbcRepository(
             case Right(x) => Some((NodeAndConfigId(x.nodeId, x.nodeConfigId), x))
           }).toMap
           nodeConfigIds.map(id => (id, configsMap.get(id))).toMap
-        }).transact(xa).attempt.unsafeRunSync
+        }).transact(xa))
     }
   }
 
@@ -143,7 +143,7 @@ class FindExpectedReportsJdbcRepository(
       Full(Map())
     } else {
         val t0 = System.currentTimeMillis
-        (for {
+        transactRunBox(xa => (for {
           configs <- (Fragment.const(s"with tempnodeid (id) as (values ${nodeIds.map(x => s"('${x.value}')").mkString(",")})") ++
                       fr"""
                        select nodeid, nodeconfigid, begindate, enddate, configuration
@@ -161,16 +161,16 @@ class FindExpectedReportsJdbcRepository(
             case Right(x) => Some((x.nodeId, x))
           }).toMap
           nodeIds.map(id => (id, configsMap.get(id))).toMap
-        }).transact(xa).attempt.unsafeRunSync
+        }).transact(xa))
     }
   }
 
 
   override def findCurrentNodeIds(ruleId : RuleId) : Box[Set[NodeId]] = {
-    sql"""
+    transactRunBox(xa => sql"""
       select distinct nodeid from nodeconfigurations
       where enddate is null and configuration like ${"%"+ruleId.value+"%"}
-    """.query[NodeId].to[Set].transact(xa).attempt.unsafeRunSync
+    """.query[NodeId].to[Set].transact(xa))
   }
 
 
@@ -180,13 +180,13 @@ class FindExpectedReportsJdbcRepository(
   override def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]] = {
     if(nodeIds.isEmpty) Full(Map.empty[NodeId, Option[Vector[NodeConfigIdInfo]]])
     else {
-      (for {
+      transactRunBox(xa => (for {
         entries <-query[(NodeId, String)](s"""select node_id, config_ids from nodes_info
                                               where ${in("node_id", nodeIds.map(_.value))}""").to[Vector]
       } yield {
         val res = entries.map{ case(nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
         nodeIds.map(n => (n, res.get(n))).toMap
-      }).transact(xa).attempt.unsafeRunSync
+      }).transact(xa))
     }
   }
 }
@@ -205,9 +205,9 @@ class UpdateExpectedReportsJdbcRepository(
   val logger = ReportLogger
 
   override def closeNodeConfigurations(nodeId: NodeId): Box[NodeId] = {
-    sql"""
+    transactRunBox(xa => sql"""
       update nodeconfigurations set enddate = ${DateTime.now} where nodeid = ${nodeId} and enddate is null
-    """.update.run.transact(xa).attempt.unsafeRunSync.map( _ => nodeId )
+    """.update.run.transact(xa)).map( _ => nodeId )
   }
 
 
@@ -221,21 +221,21 @@ class UpdateExpectedReportsJdbcRepository(
         val withFrag = Fragment.const(s"with tempnodeid (id) as (values ${nodeIds.mkString(",")})")
 
         type A = Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
-        val getConfigs: Either[Throwable, List[A]] = (
+        val getConfigs: Either[Throwable, List[A]] = transactRun(xa => (
                         withFrag ++ fr"""
                            select nodeid, nodeconfigid, begindate, enddate, configuration
                            from nodeconfigurations
                            inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
                            where enddate is NULL"""
-                        ).query[A].to[List].transact(xa).attempt.unsafeRunSync
+                                                                       ).query[A].to[List].transact(xa).attempt)
 
         type B = (NodeId, Vector[NodeConfigIdInfo])
-        val getInfos: Either[Throwable, List[B]] = (
+        val getInfos: Either[Throwable, List[B]] = transactRun(xa => (
                             withFrag ++ fr"""
                               select node_id, config_ids from nodes_info
                               inner join tempnodeid on tempnodeid.id = nodes_info.node_id
                             """
-                          ).query[B].to[List].transact(xa).attempt.unsafeRunSync
+                                                                     ).query[B].to[List].transact(xa).attempt)
 
         // common part: find old configs and node config info for all config to update
         val time_0 = System.currentTimeMillis
@@ -266,7 +266,6 @@ class UpdateExpectedReportsJdbcRepository(
   ): Either[Throwable, List[NodeExpectedReports]] = {
 
     import Doobie._
-    import doobie.xa
 
     val currentConfigs = configs.map( c => (c.nodeId, (c.nodeConfigId, c.beginDate)) ).toMap
 
@@ -313,7 +312,7 @@ class UpdateExpectedReportsJdbcRepository(
     PolicyLogger.expectedReports.trace(s"Updating node configuration timeline info: [${toUpdate.sortBy(_._2.value).map{ case(i,n) => s"${n.value}(${i.size} entries):${i.map(_.configId.value).sorted.mkString(",")}"}.mkString("][")}]")
 
     //now, mass update
-    (for {
+    transactRun(xa => (for {
       closedConfigs <- Update[(DateTime, NodeId, NodeConfigId, DateTime)]("""
                           update nodeconfigurations set enddate = ?
                           where nodeid = ? and nodeconfigid = ? and begindate = ?
@@ -330,7 +329,7 @@ class UpdateExpectedReportsJdbcRepository(
                        """).updateMany(toAdd)
     } yield {
       configs
-    }).transact(xa).attempt.unsafeRunSync
+    }).transact(xa).attempt)
   }
 
 
@@ -355,7 +354,7 @@ class UpdateExpectedReportsJdbcRepository(
                  |]]""".stripMargin)
 
     (for {
-       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt.unsafeRunSync
+       i <- transactRun(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt)
     } yield {
        i
     }) match {
@@ -383,7 +382,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt.unsafeRunSync
+      i <- transactRun(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt)
     } yield {
       i
     }) match  {
@@ -419,7 +418,7 @@ class UpdateExpectedReportsJdbcRepository(
                  |]]""".stripMargin)
 
     (for {
-       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt.unsafeRunSync
+       i <- transactRun(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt)
     } yield {
        i
     }) match {
@@ -447,7 +446,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt.unsafeRunSync
+      i <- transactRun(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt)
     } yield {
       i
     }) match  {
@@ -472,7 +471,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- Update0(d1, None).run.transact(xa).attempt.unsafeRunSync()
+      i <- transactRun(xa => Update0(d1, None).run.transact(xa).attempt)
     } yield {
       i
     }) match  {
@@ -489,7 +488,7 @@ class UpdateExpectedReportsJdbcRepository(
    * This must be transactionnal to avoid conflict with other potential updates
    */
   override def deleteNodeConfigIdInfo(date:DateTime) : Box[Int] = {
-    (for {
+    transactRunBox(xa => (for {
       allNodeConfigId       <- sql"""select node_id, config_ids from nodes_info""".query[(NodeId, String)].to[Vector]
       mapOfBeforeAfter      = allNodeConfigId.map { case (nodeId, nodeConfigIds) =>
                                 ( nodeId
@@ -500,7 +499,7 @@ class UpdateExpectedReportsJdbcRepository(
       update                <- updateNodeConfigIdInfo(mapOfBeforeAfter.map{ case (nodeId, (old, current)) => (nodeId, current)})
     } yield {
       update.size
-    }).transact(xa).attempt.unsafeRunSync
+    }).transact(xa))
   }
 
 

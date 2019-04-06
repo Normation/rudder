@@ -60,7 +60,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
   import db._
 
   def getAllOpenedNodes(): Seq[DB.SerializedNodes[Long]] = {
-    sql"select id, nodeid, nodename, nodedescription, starttime, endtime from nodes where endtime is null".query[DB.SerializedNodes[Long]].to[Vector].transact(xa).unsafeRunSync
+    transactRun(xa => sql"select id, nodeid, nodename, nodedescription, starttime, endtime from nodes where endtime is null".query[DB.SerializedNodes[Long]].to[Vector].transact(xa))
   }
 
 
@@ -80,14 +80,14 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     updateQuery(nodes.map(_.id.value).toList ++ closable, "nodes", "nodeid") match {
       case None              =>  //nothing to do
       case Some(updateQuery) =>
-        (for {
+        transactRun(xa => (for {
           updated  <- updateQuery.update.run
           inserted <- Update[DB.SerializedNodes[Unit]](
                         "insert into nodes (nodeid, nodename, nodedescription, starttime, endtime) values (?, ?, ?, ?, ?)"
                       ).updateMany(nodes.map(DB.Historize.fromNode).toList)
         } yield {
           ()
-        }).transact(xa).unsafeRunSync
+        }).transact(xa))
     }
   }
 
@@ -114,7 +114,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       groups.map(x => (x, byIds.getOrElse(x.id, Nil)))
     }
 
-    action.transact(xa).unsafeRunSync
+    transactRun(xa => action.transact(xa))
   }
 
 
@@ -122,22 +122,22 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     updateQuery(groups.map(_.id.value).toList ++ closable, "groups", "groupid") match {
       case None              =>  //nothing to do
       case Some(updateQuery) =>
-        (for {
+        transactRun(xa => (for {
           updated  <- updateQuery.update.run
           inserted <- Update[DB.SerializedGroups[Unit]](
                         "insert into groups (groupid, groupname, groupdescription, nodecount, groupstatus, starttime, endtime) values (?, ?, ?, ?, ?, ?, ?)"
                       ).updateMany(groups.map(DB.Historize.fromNodeGroup).toList)
         } yield {
           ()
-        }).transact(xa).unsafeRunSync
+        }).transact(xa))
       }
   }
 
   def getAllOpenedDirectives(): Seq[DB.SerializedDirectives[Long]] = {
-    sql"""select id, directiveid, directivename, directivedescription, priority, techniquename,
+    transactRun(xa => sql"""select id, directiveid, directivename, directivedescription, priority, techniquename,
                   techniquehumanname, techniquedescription, techniqueversion, starttime, endtime
           from directives
-          where endtime is null""".query[DB.SerializedDirectives[Long]].to[Vector].transact(xa).unsafeRunSync
+          where endtime is null""".query[DB.SerializedDirectives[Long]].to[Vector].transact(xa))
   }
 
   def updateDirectives(
@@ -147,7 +147,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     updateQuery(directives.map(_._1.id.value).toList ++ closable, "directives", "directiveid") match {
       case None              =>  //nothing to do
       case Some(updateQuery) =>
-        (for {
+        transactRun(xa => (for {
           updated  <- updateQuery.update.run
           inserted <- Update[DB.SerializedDirectives[Unit]]("""
                         insert into directives (directiveid, directivename, directivedescription, priority, techniquename,
@@ -155,7 +155,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                       """).updateMany(directives.map(DB.Historize.fromDirective).toList)
         } yield {
           ()
-        }).transact(xa).unsafeRunSync
+        }).transact(xa))
     }
   }
 
@@ -164,7 +164,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       Fragment.const(s"rulepkeyid in ( values ${joinIds.toList.map(x => s"(${x.toString})").mkString(",")} )")
     }
 
-    (for {
+    transactRun(xa => (for {
       rules      <- sql"""select rulepkeyid, ruleid, categoryid, name, shortdescription,
                                  longdescription, isenabled, starttime, endtime
                           from rules
@@ -188,7 +188,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
           , gMap.getOrElse(rule.id, Seq())
           , dMap.getOrElse(rule.id, Seq())
         ) )
-    }).transact(xa).unsafeRunSync
+    }).transact(xa))
   }
 
 
@@ -222,26 +222,26 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       case None              =>  //nothing to do
       case Some(updateQuery) =>
         (for {
-          updated  <- updateQuery.update.run.transact(xa)
-          inserted <- rules.map(r => insertRule(now)(r).transact(xa)).toList.sequence
+          updated  <- transact(xa => updateQuery.update.run.transact(xa))
+          inserted <- rules.map(r => transact(xa => insertRule(now)(r).transact(xa))).toList.sequence
         } yield {
           ()
-        }).unsafeRunSync
+        }).unsafeRunSync()
     }
   }
 
   def getOpenedGlobalSchedule() : Option[DB.SerializedGlobalSchedule[Long]] = {
-    sql"select id, interval, splaytime, start_hour, start_minute, starttime, endtime from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa).unsafeRunSync
+    transactRun(xa => sql"select id, interval, splaytime, start_hour, start_minute, starttime, endtime from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa))
   }
 
   def updateGlobalSchedule(interval: Int, splaytime: Int, start_hour: Int, start_minute: Int  ) : Unit = {
-      (for {
+      transactRun(xa => (for {
         updated  <- sql"update globalschedule set endtime = ${Some(DateTime.now)} where endtime is null".update.run
         inserted <- sql"""insert into globalschedule (interval, splaytime, start_hour, start_minute, starttime)
                           values($interval, $splaytime, $start_hour, $start_minute, ${DateTime.now})""".update.run
       } yield {
         ()
-      }).transact(xa).unsafeRunSync
+      }).transact(xa))
   }
 
 }

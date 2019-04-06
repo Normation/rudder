@@ -23,7 +23,7 @@ class GitModificationRepositoryImpl(
     """.update
 
 
-    sql.run.transact(xa).attempt.unsafeRunSync match {
+    transactRun(xa => sql.run.transact(xa).attempt) match {
       case Right(x) => Full(DB.GitCommitJoin(commit, modId))
       case Left(ex) => Failure(s"Error when trying to add a Git Commit in DB: ${ex.getMessage}", Full(ex), Empty)
     }
@@ -35,7 +35,7 @@ class GitModificationRepositoryImpl(
       select gitcommit from gitcommit where modificationid=${modificationId.value}
     """.query[String].option
 
-    sql.transact(xa).attempt.unsafeRunSync match {
+    transactRun(xa => sql.transact(xa).attempt) match {
       case Right(x)  => Full(x.map(id => GitCommitId(id)))
       case Left(ex) => Failure(s"Error when trying to get Git Commit for modification ID '${modificationId.value}': ${ex.getMessage}", Full(ex), Empty)
     }

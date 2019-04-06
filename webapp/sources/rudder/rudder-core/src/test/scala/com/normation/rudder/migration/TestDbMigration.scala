@@ -115,8 +115,6 @@ case class MigrationTestLog(
 @RunWith(classOf[JUnitRunner])
 class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
 
-  import doobie._
-
   lazy val migration = new EventLogsMigration_5_6(
       doobie = doobie
     , batchSize = 2
@@ -131,10 +129,10 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
     super.initDb
 
     def insertLog(log: MigrationTestLog): Int = {
-      sql"""
+      transacRun(xa => sql"""
           insert into EventLog (creationDate, principal, eventType, severity, data, causeid)
           values (${log.timestamp}, ${log.principal}, ${log.eventType}, ${log.severity}, ${log.data}, ${log.cause})
-        """.update.withUniqueGeneratedKeys[Int]("id").transact(xa).unsafeRunSync
+        """.update.withUniqueGeneratedKeys[Int]("id").transact(xa))
     }
 
     // init datas, get the map of ids
@@ -162,7 +160,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
   "Event Logs" should {
 
     "be all found" in {
-      val logs = migration.findBatch.transact(doobie.xa).unsafeRunSync
+      val logs = transacRun(xa => migration.findBatch.transact(xa))
       logs.size must beEqualTo(migration.batchSize) and
       forallWhen(logs) {
         case MigrationEventLog(id, eventType, data) =>
@@ -175,10 +173,10 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
 
     "be correctly migrated" in {
       val MigrationProcessResult(migrated, nbBataches) = migration.process.openOrThrowException("Bad migration in test")
-      val logs = sql"""
+      val logs = transacRun(xa => sql"""
         select id, eventtype, creationdate, principal, causeid, severity, data
         from eventlog
-      """.query[MigrationTestLog].to[Vector].transact(xa).unsafeRunSync.filter(log =>
+      """.query[MigrationTestLog].to[Vector].transact(xa)).filter(log =>
                    //only actually migrated file format
                    try {
                      log.data \\ "@fileFormat" exists { _.text.toInt == 6 }

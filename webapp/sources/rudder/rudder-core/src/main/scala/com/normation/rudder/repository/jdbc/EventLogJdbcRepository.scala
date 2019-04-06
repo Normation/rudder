@@ -79,12 +79,12 @@ class EventLogJdbcRepository(
     eventLog.details match {
       case elt: Elem =>
 
-        val boxId: Box[Int] = sql"""
+        val boxId: Box[Int] = transactRunBox(xa => sql"""
           insert into eventlog (creationdate, modificationid, principal, eventtype, severity, data, reason, causeid)
           values(${eventLog.creationDate}, ${modId.value}, ${eventLog.principal.name}, ${eventLog.eventType.serialize},
                  ${eventLog.severity}, ${elt}, ${eventLog.eventDetails.reason}, ${eventLog.cause}
                 )
-        """.update.withUniqueGeneratedKeys[Int]("id").transact(xa).attempt.unsafeRunSync
+        """.update.withUniqueGeneratedKeys[Int]("id").transact(xa))
 
         for {
           id      <- boxId
@@ -146,11 +146,11 @@ class EventLogJdbcRepository(
       current *> HPS.set(index+2, event.eventType.serialize)
     }
 
-    (for {
+    transactRunBox(xa => (for {
       entries <- HC.stream[(String, EventLogDetails)](q, param, 512).compile.toVector
     } yield {
       entries.map(toEventLog)
-    }).transact(xa).attempt.unsafeRunSync
+    }).transact(xa))
   }
 
   def getLastEventByChangeRequest(
@@ -189,13 +189,13 @@ class EventLogJdbcRepository(
       HPS.set(index+1, event.eventType.serialize)
     }.void
 
-    (for {
+    transactRunBox(xa => (for {
       entries <- HC.stream[(String, String, EventLogDetails)](q, param, 512).compile.toVector
     } yield {
       entries.map { case (crid, tpe, details) =>
         (ChangeRequestId(crid.substring(1, crid.length()-1).toInt), toEventLog((tpe, details)) )
       }.toMap
-    }).transact(xa).attempt.unsafeRunSync
+    }).transact(xa))
   }
 
   def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : Box[Vector[EventLog]] = {
@@ -210,11 +210,11 @@ class EventLogJdbcRepository(
       ${where} ${order} ${limit}
     """
 
-    (for {
+    transactRun(xa => (for {
       entries <- query[(String, EventLogDetails)](q).to[Vector]
     } yield {
       entries.map(toEventLog)
-    }).transact(xa).attempt.unsafeRunSync ?~! s"could not find event log with request ${q}"
+    }).transact(xa).attempt) ?~! s"could not find event log with request ${q}"
   }
 
   def getEventLogWithChangeRequest(id:Int) : Box[Option[(EventLog,Option[ChangeRequestId])]] = {
@@ -225,13 +225,13 @@ class EventLogJdbcRepository(
       where E.id = ${id}
     """
 
-    (for {
+    transactRun(xa => (for {
       optEntry <- select.query[(String, EventLogDetails, Option[Int])].option
     } yield {
       optEntry.map { case (tpe, details, crid) =>
         (toEventLog((tpe, details)), crid.flatMap(i => if(i > 0) Some(ChangeRequestId(i)) else None))
       }
-    }).transact(xa).attempt.unsafeRunSync ?~! s"could not find event log with request ${select}"
+    }).transact(xa).attempt) ?~! s"could not find event log with request ${select}"
   }
 
 }

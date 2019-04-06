@@ -61,7 +61,6 @@ import cats.implicits._
 class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
 
   lazy val repos = new GitModificationRepositoryImpl(doobie)
-  import doobie._
 
   implicit def toCommitId(s: String) = GitCommitId(s)
   implicit def toModId(s: String) = ModificationId(s)
@@ -74,7 +73,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
   "Git modification repo" should {
 
     "found nothing at start" in {
-      sql"select gitcommit from gitcommit".query[String].to[Vector].transact(xa).unsafeRunSync must beEmpty
+      transacRun(xa => sql"select gitcommit from gitcommit".query[String].to[Vector].transact(xa)) must beEmpty
     }
 
     "be able to add commits" in {
@@ -90,7 +89,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
       )
 
       (res must contain((y:ADD) => y.mustFull).foreach) and
-      (sql"select count(*) from gitcommit".query[Long].unique.transact(xa).unsafeRunSync === 5)
+      (transacRun(xa => sql"select count(*) from gitcommit".query[Long].unique.transact(xa)) === 5)
 
     }
 
