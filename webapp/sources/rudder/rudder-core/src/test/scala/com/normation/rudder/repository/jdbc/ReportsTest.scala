@@ -102,19 +102,19 @@ class ReportsTest extends DBCommon {
     val reports = (
       Map[String, Seq[Reports]]() +
       node("n0")(
-          ("r0", "d1", 1, "c1", "cv1", run1, "result_success", "End execution")
+          ("r0", "d1", 0, "c1", "cv1", run1, "result_success", "End execution")
       ) +
       node("n1")(
-          ("r0", "d1", 1, "c1", "cv1", run1, "result_success", "Start execution")
-        , ("r1", "d1", 1, "c1", "cv1", run1, "result_success", "msg1")
-        , ("r1", "d1", 1, "c2", "cv2", run1, "result_success", "msg1")
+          ("r0", "d1", 0, "c1", "cv1", run1, "result_success", "Start execution")
+        , ("r1", "d1", 0, "c1", "cv1", run1, "result_success", "msg1")
+        , ("r1", "d1", 0, "c2", "cv2", run1, "result_success", "msg1")
         //haha! run2!
-        , ("r1", "d1", 1, "c2", "cv2", run2, "result_success", "msg1")
+        , ("r1", "d1", 0, "c2", "cv2", run2, "result_success", "msg1")
       ) +
       node("n2")(
-          ("r0", "d1", 1, "c1", "cv1", run1, "result_success", "End execution")
-        , ("r1", "d1", 1, "c1", "cv1", run1, "result_success", "msg1")
-        , ("r1", "d1", 1, "c2", "cv2", run1, "result_success", "msg1")
+          ("r0", "d1", 0, "c1", "cv1", run1, "result_success", "End execution")
+        , ("r1", "d1", 0, "c1", "cv1", run1, "result_success", "msg1")
+        , ("r1", "d1", 0, "c2", "cv2", run1, "result_success", "msg1")
       )
     )
     "correctly init info" in {
@@ -144,26 +144,27 @@ class ReportsTest extends DBCommon {
     val reports = (
       Map[String, Seq[Reports]]() +
       node("n0")(
-          ("hasPolicyServer-root", "d1", 1, "common", "EndRun", run1, "result_success", "End execution")
+          // ruleId  dirId serial comp  keyVal  execTime   severity      msg
+          ("rudder", "run", 0, "end", "", run1, "control", "End execution")
       ) +
       node("n1")(
         //run1
-          ("hasPolicyServer-root", "d1", 1, "common", "StartRun", run1, "result_success", "Start execution [n1_run1]")
-        , ("r1", "d1", 1, "c1", "cv1", run1, "result_success", "msg1")
-        , ("r1", "d1", 1, "c2", "cv2", run1, "result_success", "msg2")
-        , ("r1", "d1", 1, "c2", "cv1", run1, "result_success", "msg1")
-        , ("r1", "d1", 1, "c2", "cv3", run1, "result_success", "msg3")
-        , ("hasPolicyServer-root", "d1", 1, "common", "EndRun", run1, "result_success", "End execution [n1_run1]")
+          ("rudder", "run", 0, "start", "n1_run1", run1, "control", "Start execution")
+        , ("r1", "d1", 0, "c1", "cv1", run1, "result_success", "msg1")
+        , ("r1", "d1", 0, "c2", "cv2", run1, "result_success", "msg2")
+        , ("r1", "d1", 0, "c2", "cv1", run1, "result_success", "msg1")
+        , ("r1", "d1", 0, "c2", "cv3", run1, "result_success", "msg3")
+        , ("rudder", "run", 0, "end", "n1_run1", run1, "control", "End execution")
         //run2
-        , ("hasPolicyServer-root", "d1", 1, "common", "StartRun", run2, "result_success", "Start execution [n1_run2]")
-        , ("r1", "d1", 1, "c2", "cv2", run2, "result_success", "msg1")
+        , ("rudder", "run", 0, "start", "n1_run2", run2, "control", "Start execution")
+        , ("r1", "d1", 0, "c2", "cv2", run2, "result_success", "msg1")
         //run3
-        , ("hasPolicyServer-root", "d1", 1, "common", "StartRun", run3, "result_success", "Start execution [n1_run3]")
+        , ("rudder", "run", 0, "start", "n1_run3", run3, "control", "Start execution")
       ) +
       node("n2")(
-          ("hasPolicyServer-root", "d1", 1, "common", "EndRun", run1, "result_success", "End execution [n2_run1]")
-        , ("r1", "d1", 1, "c1", "cv1", run1, "result_success", "msg1")
-        , ("r1", "d1", 1, "c2", "cv2", run1, "result_success", "msg1")
+          ("rudder", "run", 0, "end", "n2_run1", run1, "control", "End execution")
+        , ("r1", "d1", 0, "c1", "cv1", run1, "result_success", "msg1")
+        , ("r1", "d1", 0, "c2", "cv2", run1, "result_success", "msg1")
       )
     )
     step {

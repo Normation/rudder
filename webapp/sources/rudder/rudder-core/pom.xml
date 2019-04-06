@@ -130,7 +130,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <artifactId>HikariCP</artifactId>
         <version>2.7.3</version>
     </dependency>
-
+    <dependency>
+      <groupId>com.softwaremill.quicklens</groupId>
+      <artifactId>quicklens_${scala-binary-version}</artifactId>
+      <version>1.4.12</version>
+    </dependency>
     <!-- Doobie for SQL queries -->
     <dependency>
       <groupId>org.tpolecat</groupId>

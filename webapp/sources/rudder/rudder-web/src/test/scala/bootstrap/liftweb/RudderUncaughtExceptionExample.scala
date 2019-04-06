@@ -55,7 +55,7 @@ object RudderUncaughtException1 {
 object RudderUncaughtException2 {
   def main(args: Array[String]): Unit = {
     FatalException.init(Set())
-    var plop = new Array[Array[String]](10000000)
+    val plop = new Array[Array[String]](10000000)
     var i = 0
     while(true) {
       plop(i) = Array.fill(1000000)("a")

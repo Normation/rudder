@@ -42,16 +42,14 @@ import com.normation.rudder.db.DBCommon
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepositoryImpl
 import com.normation.rudder.reports.execution.WoReportsExecutionRepositoryImpl
-
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-
 import doobie.implicits._
 
 /**
@@ -85,17 +83,19 @@ class AgentRunsTest extends DBCommon {
       , AgentRun(AgentRunId(n1, runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), false, 42)
     )
 
+    val results = runs.map(r => AgentRunWithNodeConfig(r.agentRunId, r.nodeConfigVersion.map(c => (c, None)), r.isCompleted, r.insertionId))
+
     "correctly insert" in {
       woRunRepo.updateExecutions(Seq(runs(0))) must beEqualTo( Seq(Full(runs(0)) ))
     }
 
     "correctly find back" in {
-      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(0)))))
+      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(results(0)))))
     }
 
     "correctly ignore incomplete" in {
       //(woRunRepo.updateExecutions(runs) must beEqualTo( Full(Seq(runs(1))) )) and
-      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(0)))))
+      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(results(0)))))
     }
 
     "don't find report when none was added" in {
