@@ -36,6 +36,7 @@
 */
 package com.normation.rudder.repository.ldap
 
+import com.normation.NamedZioLogger
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
@@ -46,43 +47,47 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.WoNodeRepository
-import net.liftweb.common._
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 class WoLDAPNodeRepository(
     nodeDit             : NodeDit
   , mapper              : LDAPEntityMapper
   , ldap                : LDAPConnectionProvider[RwLDAPConnection]
   , actionLogger        : EventLogRepository
-  ) extends WoNodeRepository with Loggable {
+) extends WoNodeRepository with NamedZioLogger {
   repo =>
 
-  def updateNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node] = {
+  override def loggerName: String = this.getClass.getName
+
+  def updateNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node] = {
     import com.normation.rudder.services.nodes.NodeInfoService.{nodeInfoAttributes => attrs}
     repo.synchronized { for {
       con           <- ldap
       existingEntry <- con.get(nodeDit.NODES.NODE.dn(node.id.value), attrs:_*).notOptional(s"Cannot update node with id ${node.id.value} : there is no node with that id")
-      oldNode       <- (mapper.entryToNode(existingEntry) ?~! s"Error when transforming LDAP entry into a node for id ${node.id.value} . Entry: ${existingEntry}").toLdapResult
-      _             <- checkNodeModification(oldNode, node).toLdapResult
+      oldNode       <- mapper.entryToNode(existingEntry).toIO.chainError(s"Error when transforming LDAP entry into a node for id ${node.id.value} . Entry: ${existingEntry}")
+      _             <- checkNodeModification(oldNode, node)
       // here goes the check that we are not updating policy server
       nodeEntry     =  mapper.nodeToEntry(node)
-      result        <- con.save(nodeEntry, true, Seq()) ?~! s"Error when saving node entry in repository: ${nodeEntry}"
+      result        <- con.save(nodeEntry, true, Seq()).chainError(s"Error when saving node entry in repository: ${nodeEntry}")
       // only record an event log if there is an actual change
       _             <- result match {
-                         case LDIFNoopChangeRecord(_) => "ok".success
+                         case LDIFNoopChangeRecord(_) => UIO.unit
                          case _                       =>
                            val diff = ModifyNodeDiff(oldNode, node)
-                           actionLogger.saveModifyNode(modId, actor, diff, reason).toLdapResult
+                           actionLogger.saveModifyNode(modId, actor, diff, reason)
                        }
     } yield {
       node
     } }
-  }.toBox
+  }
 
   /**
    * This method allows to check if the modification that will be made on a node are licit.
    * (in particular on root node)
    */
-  def checkNodeModification(oldNode: Node, newNode: Node): Box[Unit] = {
+  def checkNodeModification(oldNode: Node, newNode: Node): IOResult[Unit] = {
     // use cats validation
     import cats.data._
     import cats.implicits._
@@ -105,13 +110,13 @@ class WoLDAPNodeRepository(
       else "You can't change the 'system' nature of Root policy server".invalidNel
     }
 
-    def validateRoot(node: Node): Box[Unit] = {
+    def validateRoot(node: Node): IOResult[Unit] = {
       // transform a validation result to a Full | Failure
-      implicit def toBox(validation: ValidationResult): Box[Unit] = {
+      implicit def toIOResult(validation: ValidationResult): IOResult[Unit] = {
         validation.fold(
-          nel => Failure(nel.toList.mkString("; "))
+          nel => nel.toList.mkString("; ").fail
         ,
-          _ => Full(())
+          _ => UIO.unit
         )
       }
 
@@ -121,6 +126,6 @@ class WoLDAPNodeRepository(
 
     if(newNode.id == Constants.ROOT_POLICY_SERVER_ID) {
       validateRoot(newNode)
-    } else Full(())
+    } else UIO.unit
   }
 }

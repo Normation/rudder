@@ -63,7 +63,7 @@ import scalaz.zio.syntax._
  */
 object GitFindUtils extends NamedZioLogger {
 
-  override def loggerName: String = this.getClass.getSimpleName
+  override def loggerName: String = this.getClass.getName
 
   /**
    * List of files available in the given commit.

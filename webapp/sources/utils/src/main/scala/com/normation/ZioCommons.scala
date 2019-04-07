@@ -336,7 +336,9 @@ trait ZioLogger {
 trait NamedZioLogger extends ZioLogger {
   import org.slf4j.LoggerFactory
   import net.liftweb.common.Logger
+
   def loggerName: String
+
   lazy val logEffect = new Logger() {
     override protected def _logger = LoggerFactory.getLogger(loggerName)
   }

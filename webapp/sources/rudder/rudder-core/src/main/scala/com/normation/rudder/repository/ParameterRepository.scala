@@ -36,30 +36,31 @@
 */
 
 package com.normation.rudder.repository
-import net.liftweb.common._
 import com.normation.rudder.domain.parameters._
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.archives.ParameterArchiveId
+
+import com.normation.errors._
 
 /**
  * The Parameter Repository (Read Only) to read parameters from LDAP
  */
 trait RoParameterRepository {
 
-  def getGlobalParameter(parameterName : ParameterName) : Box[GlobalParameter]
+  def getGlobalParameter(parameterName : ParameterName) : IOResult[Option[GlobalParameter]]
 
-  def getAllGlobalParameters() : Box[Seq[GlobalParameter]]
+  def getAllGlobalParameters() : IOResult[Seq[GlobalParameter]]
 
-  def getAllOverridable() : Box[Seq[GlobalParameter]]
+  def getAllOverridable() : IOResult[Seq[GlobalParameter]]
 }
 
 trait WoParameterRepository {
-  def saveParameter(parameter : GlobalParameter, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[AddGlobalParameterDiff]
+  def saveParameter(parameter : GlobalParameter, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[AddGlobalParameterDiff]
 
-  def updateParameter(parameter : GlobalParameter, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyGlobalParameterDiff]]
+  def updateParameter(parameter : GlobalParameter, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyGlobalParameterDiff]]
 
-  def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteGlobalParameterDiff]
+  def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteGlobalParameterDiff]
 
   /**
    * A (dangerous) method that replace all existing parameters
@@ -68,10 +69,10 @@ trait WoParameterRepository {
    * are stored the old parameters - it is the
    * responsibility of the user to delete them.
    */
-  def swapParameters(newParameters:Seq[GlobalParameter]) : Box[ParameterArchiveId]
+  def swapParameters(newParameters:Seq[GlobalParameter]) : IOResult[ParameterArchiveId]
 
   /**
    * Delete a set of saved rules.
    */
-  def deleteSavedParametersArchiveId(saveId:ParameterArchiveId) : Box[Unit]
+  def deleteSavedParametersArchiveId(saveId:ParameterArchiveId) : IOResult[Unit]
 }

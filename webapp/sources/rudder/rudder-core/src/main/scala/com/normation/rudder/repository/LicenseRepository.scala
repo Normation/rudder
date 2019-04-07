@@ -39,8 +39,7 @@ package com.normation.rudder.repository
 
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.inventory.domain.NodeId
-import net.liftweb.common.Box
-
+import com.normation.errors._
 /**
  * Repository des licences Nova
  * @author Nicolas CHARLES
@@ -53,5 +52,5 @@ trait LicenseRepository {
    * If new licences were added on the underlying storage,
    * they are retrieved.
    */
-  def getAllLicense() : Box[Map[NodeId, CfeEnterpriseLicense]]
+  def getAllLicense() : IOResult[Map[NodeId, CfeEnterpriseLicense]]
 }

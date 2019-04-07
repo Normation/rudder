@@ -94,7 +94,10 @@ class LDAPGitRevisionProvider(
   }
 
   override def getAvailableRevTreeId: IOResult[ObjectId] = {
-    GitFindUtils.findRevTreeFromRevString(gitRepo.db, refPath).catchAll(err =>
+    (for {
+      db  <- gitRepo.db
+      res <- GitFindUtils.findRevTreeFromRevString(db, refPath)
+    } yield res).catchAll(err =>
       logPure.error(err.fullMsg) *> Chained("Error when looking for a commit tree in git", err).fail
     )
   }
@@ -102,16 +105,19 @@ class LDAPGitRevisionProvider(
   override def currentRevTreeId = currentId
 
   override def setCurrentRevTreeId(id: ObjectId): IOResult[Unit] = {
-    ldap.foreach { con =>
-      con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_OC) match {
-        case Left(_)| Right(None) => logEffect.error("The root entry of the user template library was not found, the current revision won't be persisted")
-        case Right(Some(root)) =>
-          root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
-          root +=! (A_TECHNIQUE_LIB_VERSION, id.getName)
-          con.save(root)
-          () // unit is expected
-      }
+    for {
+      con <- ldap
+      opt <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_OC)
+      res <- opt match {
+               case None       => logPure.error("The root entry of the user template library was not found, the current revision won't be persisted") *> UIO.unit
+               case Some(root) =>
+                 root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
+                 root +=! (A_TECHNIQUE_LIB_VERSION, id.getName)
+                 con.save(root).void
+             }
+    } yield {
+      currentId = id.succeed
+      ()
     }
-    currentId = id
   }
 }

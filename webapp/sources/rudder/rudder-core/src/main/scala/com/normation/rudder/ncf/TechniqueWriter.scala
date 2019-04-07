@@ -61,35 +61,18 @@ import net.liftweb.common.Empty
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import scala.language.implicitConversions
 
-trait NcfError {
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
+
+import cats._
+import cats.data._
+import cats.implicits._
+
+trait NcfError extends RudderError {
   def message : String
   def exception : Option[Throwable]
-}
-
-object ResultHelper {
-  type Result[T] = Either[NcfError,T]
-
-  def execute[T](f : => T )( errorCatcher: Throwable => NcfError ) : Result[T] = {
-    try {
-      Right(f)
-    } catch {
-      case e: Throwable => Left(errorCatcher(e))
-    }
-  }
-
-  def sequence[T,U](seq : Seq[T])( f : T => Result[U]) : Result[Seq[U]] = {
-    ((Right(Seq()) : Result[Seq[U]]) /: seq) {
-      case (e @ Left(_), _) => e
-      case (Right(res), value) =>f(value).map( res :+ _)
-    }
-  }
-
-  implicit def resultToBox[T] (res : Result[T]) : Box[T] = {
-    res match {
-      case Right(r) => Full(r)
-      case Left(e) => Failure(e.message,e.exception,Empty)
-    }
-  }
+  def msg = message
 }
 
 final case class IOError(message : String, exception : Option[Throwable]) extends NcfError
@@ -104,15 +87,14 @@ class TechniqueWriter (
   , basePath         : String
 ) extends Loggable {
 
-  import ResultHelper._
   private[this] var agentSpecific = new ClassicTechniqueWriter :: new DSCTechniqueWriter(basePath, translater) :: Nil
 
-  def techniqueMetadataContent(technique : Technique, methods: Map[BundleName, GenericMethod]) : Result[XmlNode] = {
+  def techniqueMetadataContent(technique : Technique, methods: Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
 
-    def reportingValuePerMethod (component: String, calls :Seq[MethodCall]) : Result[Seq[XmlNode]] = {
+    def reportingValuePerMethod (component: String, calls :Seq[MethodCall]) : PureResult[Seq[XmlNode]] = {
 
       for {
-        spec <- sequence(calls) { call: MethodCall =>
+        spec <- calls.toList.traverse { call =>
           for {
             method <- methods.get(call.methodId) match {
               case None => Left(MethodNotFound(s"Cannot find method ${call.methodId.value} when writing a method call of Technique '${technique.bundleName.value}'", None))
@@ -166,8 +148,8 @@ class TechniqueWriter (
       }
 
     for {
-      reportingSection     <- sequence(expectedReportingMethodsWithValues)((reportingValuePerMethod _).tupled)
-      agentSpecificSection <- sequence(agentSpecific)(_.agentMetadata(technique, methods))
+      reportingSection     <- expectedReportingMethodsWithValues.traverse((reportingValuePerMethod _).tupled)
+      agentSpecificSection <- agentSpecific.traverse(_.agentMetadata(technique, methods))
     } yield {
       <TECHNIQUE name={technique.name}>
         { if (technique.parameters.nonEmpty) {
@@ -193,48 +175,41 @@ class TechniqueWriter (
   }
 
   // Write and commit all techniques files
-  def writeAll(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : Result[Seq[String]] = {
+  def writeAll(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[Seq[String]] = {
     for {
       agentFiles <- writeAgentFiles(technique, methods, modId, committer)
       metadata   <- writeMetadata(technique, methods, modId, committer)
-      libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")) match {
-                      case Full(techniques) => Right(techniques)
-                      case eb:EmptyBox =>
-                        val fail = eb ?~! s"An error occured during technique update after files were created for ncf Technique ${technique.name}"
-                        Left(TechniqueUpdateError(fail.msg,fail.exception))
-                    }
+      libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
+                      toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
     } yield {
       metadata +: agentFiles
     }
   }
 
-  def writeAgentFiles(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : Result[Seq[String]] = {
+  def writeAgentFiles(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[Seq[String]] = {
     for {
       // Create/update agent files, filter None by flattenning to list
-      files  <- sequence(agentSpecific)(_.writeAgentFile(technique, methods)).map(_.flatten)
-      commit <- sequence(files)(archiver.commitFile(technique, _, modId, commiter , s"Commiting Technique '${technique.bundleName.value}' file for agent " ))
+      files  <- ZIO.foreach(agentSpecific)(_.writeAgentFile(technique, methods)).map(_.flatten)
+      commit <- ZIO.foreach(files)(archiver.commitFile(technique, _, modId, commiter , s"Commiting Technique '${technique.bundleName.value}' file for agent " ))
     } yield {
       files
     }
   }
 
-  def writeMetadata(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : Result[String] = {
+  def writeMetadata(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[String] = {
 
     val metadataPath = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
 
     val path = s"${basePath}/${metadataPath}"
     for {
-      content <- techniqueMetadataContent(technique, methods).map(n => xmlPrettyPrinter.format(n))
-      file    <- execute {
+      content <- techniqueMetadataContent(technique, methods).map(n => xmlPrettyPrinter.format(n)).toIO
+      file    <- IOResult.effect(s"An error occured while creating metadata file for Technique '${technique.name}'") {
                    val filePath = Paths.get(path)
                    if (!Files.exists(filePath)) {
                      Files.createDirectories(filePath.getParent)
                      Files.createFile(filePath)
                    }
                    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8))
-                 } {
-                   case e =>
-                     IOError(s"An error occured while creating metadata file for Technique '${technique.name}'",Some(e))
                  }
      commit   <- archiver.commitFile(technique, metadataPath, modId, commiter , s"Commiting Technique '${technique.bundleName.value}' metadata")
 
@@ -246,17 +221,15 @@ class TechniqueWriter (
 
 trait AgentSpecificTechniqueWriter {
 
-  import ResultHelper._
-  def writeAgentFile( technique : Technique, methods : Map[BundleName, GenericMethod] ) : Result[Option[String]]
+  def writeAgentFile( technique : Technique, methods : Map[BundleName, GenericMethod] ) : IOResult[Option[String]]
 
-  def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] ) : Result[NodeSeq]
+  def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] ) : PureResult[NodeSeq]
 }
 
 class ClassicTechniqueWriter extends AgentSpecificTechniqueWriter {
 
-  import ResultHelper._
-  def writeAgentFile( technique : Technique, methods : Map[BundleName, GenericMethod] )  : Result[Option[String]] = Right(None)
-  def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] )  : Result[NodeSeq] = {
+  def writeAgentFile( technique : Technique, methods : Map[BundleName, GenericMethod] )  : IOResult[Option[String]] = None.succeed
+  def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] )  : PureResult[NodeSeq] = {
     // We need to add reporting bundle if there is a method call that does not support cfengine (agent support does not contains both cfe agent)
     val noAgentSupportReporting = technique.methodCalls.exists(  m =>
                          methods.get(m.methodId).exists( gm =>
@@ -291,16 +264,15 @@ class DSCTechniqueWriter(
   , translater : InterpolatedValueCompiler
 ) extends AgentSpecificTechniqueWriter{
 
-  import ResultHelper._
   val genericParams =
     "-reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly"
 
   def computeTechniqueFilePath(technique : Technique) =
     s"dsc/ncf/50_techniques/${technique.bundleName.value}/${technique.version.value}/${technique.bundleName.value}.ps1"
 
-  def writeAgentFile(technique : Technique, methods : Map[BundleName, GenericMethod] ) = {
+  def writeAgentFile(technique : Technique, methods : Map[BundleName, GenericMethod] ): IOResult[Option[String]] = {
 
-    def toDscFormat(call : MethodCall) : Result[String]= {
+    def toDscFormat(call : MethodCall) : PureResult[String]= {
 
       val componentName = s"""-componentName "${call.component.replaceAll("\"", "`\"")}""""
 
@@ -309,7 +281,7 @@ class DSCTechniqueWriter(
       for {
 
         // First translate parameters to Dsc values
-        params    <- ( sequence(call.parameters.toSeq) {
+        params    <- ((call.parameters.toList).traverse {
                         case (id, arg) =>
                           translater.translateToAgent(arg, AgentType.Dsc) match {
                             case Full(dscValue) => Right((id,dscValue))
@@ -383,7 +355,7 @@ class DSCTechniqueWriter(
 
     for {
 
-      calls <- sequence(filteredCalls)(toDscFormat)
+      calls <- filteredCalls.toList.traverse(toDscFormat).toIO
 
       content =
         s"""|function ${technique.bundleName.validDscName} {
@@ -402,10 +374,8 @@ class DSCTechniqueWriter(
             |
             |}""".stripMargin('|')
 
-      path  <-  execute (
+      path  <-  IOResult.effect(s"Could not find dsc Technique '${technique.name}' in path ${basePath}/${techniquePath}") (
                   Paths.get(s"${basePath}/${techniquePath}")
-                ) ( e =>
-                  IOError(s"Could not find dsc Technique '${technique.name}' in path ${basePath}/${techniquePath}", Some(e))
                 )
       // Powershell files needs to have a BOM added at the beginning of all files when using UTF8 enoding
       // See https://docs.microsoft.com/en-us/windows/desktop/intl/using-byte-order-marks
@@ -413,12 +383,11 @@ class DSCTechniqueWriter(
         // Bom, three bytes: EF BB BF https://en.wikipedia.org/wiki/Byte_order_mark
         239.toByte :: 187.toByte :: 191.toByte  ::
         content.getBytes(StandardCharsets.UTF_8).toList
-      files <-  execute {
+
+      files <-  IOResult.effect(s"Could not write dsc Technique file '${technique.name}' in path ${basePath}/${techniquePath}") {
                   Files.createDirectories(path.getParent)
                   Files.write(path, contentWithBom.toArray)
-                } ( e =>
-                  IOError(s"Could not write dsc Technique file '${technique.name}' in path ${basePath}/${techniquePath}",Some(e))
-                )
+                }
     } yield {
       Some(techniquePath)
     }
@@ -441,8 +410,7 @@ class DSCTechniqueWriter(
 }
 
 trait TechniqueArchiver {
-  import ResultHelper._
-  def commitFile(technique : Technique, gitPath : String, modId: ModificationId, commiter:  EventActor, msg : String) : Result[Unit]
+  def commitFile(technique : Technique, gitPath : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
 }
 
 class TechniqueArchiverImpl (
@@ -456,21 +424,15 @@ class TechniqueArchiverImpl (
   Loggable with
   GitArchiverUtils with TechniqueArchiver{
 
-  import ResultHelper._
   override val encoding : String = "UTF-8"
 
-  def commitFile(technique : Technique, gitPath : String, modId: ModificationId, commiter:  EventActor, msg : String) : Result[Unit] = {
+  def commitFile(technique : Technique, gitPath : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
     (for {
       ident  <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      commit <- commitAddFile(modId,ident, gitPath, msg)
+      commit <- commitAddFile(modId,ident, gitPath, msg).toIO
     } yield {
       gitPath
-    }) match {
-      case Full(_) => Right(())
-      case eb : EmptyBox =>
-        val error = (eb ?~! s"error when commiting file ${gitPath} for Technique '${technique.name}")
-        Left(IOError(error.msg,error.exception))
-    }
+    }).chainError(s"error when commiting file ${gitPath} for Technique '${technique.name}").void
   }
 
 }

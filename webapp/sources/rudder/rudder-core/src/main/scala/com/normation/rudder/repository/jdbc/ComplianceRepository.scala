@@ -152,13 +152,13 @@ class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
     val queryComplianceLevel = s"""insert into nodecompliancelevels (${nodeComplianceLevelcolumns.mkString(",")})
                                  | values ( ${nodeComplianceLevelcolumns.map(_ => "?").mkString(",")} )""".stripMargin
 
-    val res = xa.use(xa => (for {
+    val res = transactRun(xa => (for {
       updated  <- Update[RunCompliance](queryCompliance).updateMany(runCompliances)
       levels   <- Update[LEVELS](queryComplianceLevel).updateMany(nodeComplianceLevels)
     } yield {
       val saved = runCompliances.map(_.nodeId)
       reports.filter(r => saved.contains(r.nodeId))
-    }).transact(xa).attempt).unsafeRunSync()
+    }).transact(xa).attempt)
 
     res match {
       case Right(_) => // ok

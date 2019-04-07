@@ -52,6 +52,8 @@ import com.normation.eventlog.ModificationId
 import scala.collection.immutable.SortedMap
 import com.normation.rudder.domain.policies._
 
+import com.normation.errors._
+
 /**
  * Here is the ordering for a List[NodeGroupCategoryId]
  * MUST start by the root !
@@ -210,14 +212,14 @@ trait RoNodeGroupRepository {
    * for categories and groups.
    * Returns the objects sorted by name within
    */
-  def getFullGroupLibrary(): Box[FullNodeGroupCategory]
+  def getFullGroupLibrary(): IOResult[FullNodeGroupCategory]
 
   /**
    * Get a server group by its id
    * @param id
    * @return
    */
-  def getNodeGroup(id: NodeGroupId) : Box[(NodeGroup,NodeGroupCategoryId)]
+  def getNodeGroup(id: NodeGroupId) : IOResult[(NodeGroup,NodeGroupCategoryId)]
 
 
   /**
@@ -226,12 +228,12 @@ trait RoNodeGroupRepository {
    * @param id
    * @return
    */
-  def getParentGroupCategory(id: NodeGroupId): Box[NodeGroupCategory]
+  def getParentGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory]
 
   /**
    * Get all node groups defined in that repository
    */
-  def getAll() : Box[Seq[NodeGroup]]
+  def getAll() : IOResult[Seq[NodeGroup]]
 
   /**
    * Get all pairs of (category details, Set(node groups) )
@@ -245,7 +247,7 @@ trait RoNodeGroupRepository {
    *   ...    *
    *
    */
-  def getGroupsByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]]
+  def getGroupsByCategory(includeSystem:Boolean = false) : IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]]
 
   /**
    * Retrieve all groups that have at least one of the given
@@ -253,7 +255,7 @@ trait RoNodeGroupRepository {
    * @param nodeIds
    * @return
    */
-  def findGroupWithAnyMember(nodeIds:Seq[NodeId]) : Box[Seq[NodeGroupId]]
+  def findGroupWithAnyMember(nodeIds:Seq[NodeId]) : IOResult[Seq[NodeGroupId]]
 
   /**
    * Retrieve all groups that have ALL given node ID in their
@@ -261,7 +263,7 @@ trait RoNodeGroupRepository {
    * @param nodeIds
    * @return
    */
-  def findGroupWithAllMember(nodeIds:Seq[NodeId]) : Box[Seq[NodeGroupId]]
+  def findGroupWithAllMember(nodeIds:Seq[NodeId]) : IOResult[Seq[NodeGroupId]]
 
 
   /**
@@ -280,27 +282,27 @@ trait RoNodeGroupRepository {
    *   "/cat2"       -> [/cat2_details]
    *   ...
    */
-  def getCategoryHierarchy : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]]
+  def getCategoryHierarchy : IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]]
 
   /**
    * Return all categories
    * @return
    */
-  def getAllGroupCategories(includeSystem: Boolean = false) : Box[List[NodeGroupCategory]]
+  def getAllGroupCategories(includeSystem: Boolean = false) : IOResult[List[NodeGroupCategory]]
 
   /**
    * Get a group category by its id
    * @param id
    * @return
    */
-  def getGroupCategory(id: NodeGroupCategoryId) : Box[NodeGroupCategory]
+  def getGroupCategory(id: NodeGroupCategoryId) : IOResult[NodeGroupCategory]
 
   /**
    * Get the direct parent of the given category.
    * Return empty for root of the hierarchy, fails if the category
    * is not in the repository
    */
-  def getParentGroupCategory(id:NodeGroupCategoryId) : Box[NodeGroupCategory]
+  def getParentGroupCategory(id:NodeGroupCategoryId) : IOResult[NodeGroupCategory]
 
   /**
    * Return the list of parents for that category, the nearest parent
@@ -308,13 +310,13 @@ trait RoNodeGroupRepository {
    * The the last parent is not the root of the library, return a Failure.
    * Also return a failure if the path to top is broken in any way.
    */
-  def getParents_NodeGroupCategory(id:NodeGroupCategoryId) : Box[List[NodeGroupCategory]]
+  def getParents_NodeGroupCategory(id:NodeGroupCategoryId) : IOResult[List[NodeGroupCategory]]
 
   /**
    * Returns all non system categories + the root category
    * Caution, they are "lightweight" group categories (no children)
    */
-  def getAllNonSystemCategories() : Box[Seq[NodeGroupCategory]]
+  def getAllNonSystemCategories() : IOResult[Seq[NodeGroupCategory]]
 
 }
 
@@ -328,7 +330,7 @@ trait WoNodeGroupRepository {
    * The id provided by the nodeGroup will  be used to save it inside the repository
    * return the newly created server group
    */
-  def create(group: NodeGroup, into: NodeGroupCategoryId, modId: ModificationId, actor:EventActor, why: Option[String]): Box[AddNodeGroupDiff]
+  def create(group: NodeGroup, into: NodeGroupCategoryId, modId: ModificationId, actor:EventActor, why: Option[String]): IOResult[AddNodeGroupDiff]
 
 
   /**
@@ -339,12 +341,12 @@ trait WoNodeGroupRepository {
    *
    * System group can not be updated with that method.
    */
-  def update(group:NodeGroup, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
+  def update(group:NodeGroup, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
    * Update the given existing system group
    */
-  def updateSystemGroup(group:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
+  def updateSystemGroup(group:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
    * Update the given existing dynamic group, and only the node list
@@ -357,7 +359,7 @@ trait WoNodeGroupRepository {
    * so you will have to manage rule deployment
    * if needed
    */
-  def updateDynGroupNodes(group:NodeGroup, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
+  def updateDynGroupNodes(group:NodeGroup, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
    * Move the given existing group to the new container.
@@ -370,7 +372,7 @@ trait WoNodeGroupRepository {
    * so you will have to manage rule deployment
    * if needed
    */
-  def move(group:NodeGroupId, containerId : NodeGroupCategoryId, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
+  def move(group:NodeGroupId, containerId : NodeGroupCategoryId, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
    * Delete the given nodeGroup.
@@ -378,7 +380,7 @@ trait WoNodeGroupRepository {
    * @param id
    * @return
    */
-  def delete(id:NodeGroupId, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : Box[DeleteNodeGroupDiff]
+  def delete(id:NodeGroupId, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : IOResult[DeleteNodeGroupDiff]
 
   /**
    * Add that group category into the given parent category
@@ -392,17 +394,17 @@ trait WoNodeGroupRepository {
     , into:NodeGroupCategoryId //parent category
     , modificationId: ModificationId
     , actor:EventActor, reason: Option[String]
-  ) : Box[NodeGroupCategory]
+  ) : IOResult[NodeGroupCategory]
 
   /**
    * Update an existing group category
    */
-  def saveGroupCategory(category:NodeGroupCategory, modificationId: ModificationId, actor:EventActor, reason: Option[String]) : Box[NodeGroupCategory]
+  def saveGroupCategory(category:NodeGroupCategory, modificationId: ModificationId, actor:EventActor, reason: Option[String]) : IOResult[NodeGroupCategory]
 
   /**
     * Update/move an existing group category
     */
-   def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId, modificationId: ModificationId, actor:EventActor, reason: Option[String]): Box[NodeGroupCategory]
+   def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId, modificationId: ModificationId, actor:EventActor, reason: Option[String]): IOResult[NodeGroupCategory]
 
   /**
    * Delete the category with the given id.
@@ -415,6 +417,6 @@ trait WoNodeGroupRepository {
    *  - Full(category id) for a success
    *  - Failure(with error message) iif an error happened.
    */
-  def delete(id:NodeGroupCategoryId, modificationId: ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[NodeGroupCategoryId]
+  def delete(id:NodeGroupCategoryId, modificationId: ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : IOResult[NodeGroupCategoryId]
 
 }

@@ -220,7 +220,7 @@ final class WoLDAPApiAccountRepository(
 
                                 action  <- optDiff match {
                                             case Some(diff) => actionLogger.saveModifyApiAccount(modId, principal = actor, modifyDiff = diff, None).chainError("Error when logging modification of an API Account as an event")
-                                            case None => "Ok".succeed
+                                            case None => UIO.unit
                                           }
                               } yield {
                                 action

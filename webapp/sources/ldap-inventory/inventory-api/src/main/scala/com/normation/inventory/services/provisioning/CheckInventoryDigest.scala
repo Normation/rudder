@@ -94,7 +94,7 @@ class ParseInventoryDigestFileV1 extends ParseInventoryDigestFile {
       v_ok    <- loaded.get("header").filter( _.trim.toLowerCase == "rudder-signature-v1" ).notOptional("could not read 'header'")
       algo    <- loaded.get("algorithm").map( _.trim.toLowerCase).notOptional("could not read 'algorithm'")
       algo_ok <- if(algo == "sha512") {  // in v1, we only accept sha512
-                   "ok".succeed
+                   UIO.unit
                  } else {
                    InventoryError.Crypto(s"The algorithm '${algo}' contains in the digest file is not authorized, only 'sha512' is.").fail
                  }

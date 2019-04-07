@@ -113,7 +113,7 @@ class AutomaticReportLogger(
             val isSuccess = for {
               hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind)
               nodes          <- nodeInfoService.getAll
-              rules          <- ruleRepository.getAll(true)
+              rules          <- ruleRepository.getAll(true).toBox
               directives     <- directiveRepository.getFullDirectiveLibrary().toBox
             } yield {
               val id = hundredReports.headOption match {
@@ -217,7 +217,7 @@ class AutomaticReportLogger(
       logger.debug(s"Writting non-compliant-report logs beetween ids ${startAt} and ${maxId} (both incuded)")
       (for {
         nodes      <- nodeInfoService.getAll
-        rules      <- ruleRepository.getAll(true)
+        rules      <- ruleRepository.getAll(true).toBox
         directives <- directiveRepository.getFullDirectiveLibrary().toBox
       } yield {
         logRec(startAt, maxId, 10000, nodes, rules.map(r => (r.id, r)).toMap, directives)

@@ -75,7 +75,7 @@ import cats.implicits._
 import com.normation.NamedZioLogger
 import scalaz.zio._
 import scalaz.zio.syntax._
-import com.normation.errors._
+import com.normation.errors.{OptionToIoResult => _, _}
 
 import scala.language.implicitConversions
 
@@ -226,7 +226,7 @@ class LDAPEntityMapper(
     // wanted here ?
     for {
       node         <- entryToNode(nodeEntry).toIO
-      checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) "Ok".succeed
+      checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) UIO.unit
                       else Err.MissingMandatory(s"Mismatch id for the node '${nodeEntry(A_NODE_UUID)}' and the inventory '${inventoryEntry(A_NODE_UUID)}'").fail
 
       nodeInfo     <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry)
@@ -449,14 +449,14 @@ class LDAPEntityMapper(
     if(e.isA(OC_TECHNIQUE_CATEGORY)) {
       //OK, translate
       for {
-        id <- e(A_TECHNIQUE_CATEGORY_UUID).notOptional("Missing required id (attribute name %s) in entry %s".format(A_TECHNIQUE_CATEGORY_UUID, e))
-        name <- e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
-        description = e(A_DESCRIPTION).getOrElse("")
-        isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        id          <- e(A_TECHNIQUE_CATEGORY_UUID).notOptional("Missing required id (attribute name %s) in entry %s".format(A_TECHNIQUE_CATEGORY_UUID, e))
+        name        <- e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
+        description =  e(A_DESCRIPTION).getOrElse("")
+        isSystem    =  e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
          ActiveTechniqueCategory(ActiveTechniqueCategoryId(id), name, description, Nil, Nil, isSystem)
       }
-    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_TECHNIQUE_CATEGORY, e))
+    } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_TECHNIQUE_CATEGORY, e)))
   }
 
   /**
@@ -509,7 +509,7 @@ class LDAPEntityMapper(
       } yield {
          ActiveTechnique(ActiveTechniqueId(id), refTechniqueUuid, acceptationDatetimes, Nil, isEnabled, isSystem)
       }
-    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_TECHNIQUE_CATEGORY, e))
+    } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_TECHNIQUE_CATEGORY, e)))
   }
 
   def activeTechnique2Entry(activeTechnique:ActiveTechnique, parentDN:DN) : LDAPEntry = {
@@ -540,7 +540,7 @@ class LDAPEntityMapper(
       } yield {
          NodeGroupCategory(NodeGroupCategoryId(id), name, description, Nil, Nil, isSystem)
       }
-    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_GROUP_CATEGORY, e))
+    } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_GROUP_CATEGORY, e)))
   }
 
   /**
@@ -932,7 +932,7 @@ class LDAPEntityMapper(
           , overridable
         )
       }
-    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e))
+    } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e)))
   }
 
   def parameter2Entry(parameter: GlobalParameter) : LDAPEntry = {
@@ -961,7 +961,7 @@ class LDAPEntityMapper(
           , description
         )
       }
-    } else Failure(s"The given entry is not of the expected ObjectClass '${OC_PROPERTY}'. Entry details: ${e}")
+    } else Left(Err.UnexpectedObject(s"The given entry is not of the expected ObjectClass '${OC_PROPERTY}'. Entry details: ${e}"))
   }
 
   def rudderConfig2Entry(property: RudderWebProperty) : LDAPEntry = {
