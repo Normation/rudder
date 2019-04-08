@@ -296,6 +296,10 @@ html, body, .Override.container{
 .table-ncf > tbody > tr:hover > td {
     background-color: #E8E8E8;
 }
+.form-control{
+  padding-left: 6px;
+  padding-right: 6px;
+}
 .table-ncf .input-group .form-control{
   font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
   white-space: initial;
