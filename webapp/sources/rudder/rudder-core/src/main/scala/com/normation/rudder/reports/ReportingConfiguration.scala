@@ -41,7 +41,6 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import org.joda.time.Duration
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.Constants
 

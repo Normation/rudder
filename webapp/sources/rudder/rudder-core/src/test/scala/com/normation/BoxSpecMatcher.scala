@@ -65,6 +65,13 @@ trait BoxSpecMatcher extends Specification with Loggable {
     }
   }
 
+  implicit class BoxMustEmpty[T](t: Box[T]) {
+    def mustEmpty(): MatchResult[Any] = t match {
+      case Empty => ok(s"Got Empty as expected")
+      case x     => ko(s"I was expecting an Empty box and got ${x}")
+    }
+  }
+
   implicit class BoxMustEquals[T](t: Box[T]) {
     private[this] def matchRes(f: T => MatchResult[Any]) = t match {
       case f: Failure =>
