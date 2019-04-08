@@ -429,7 +429,7 @@ class TechniqueArchiverImpl (
   def commitFile(technique : Technique, gitPath : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
     (for {
       ident  <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      commit <- commitAddFile(modId,ident, gitPath, msg).toIO
+      commit <- commitAddFile(modId,ident, gitPath, msg)
     } yield {
       gitPath
     }).chainError(s"error when commiting file ${gitPath} for Technique '${technique.name}").void
