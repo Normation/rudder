@@ -324,7 +324,7 @@ class RuleEditForm(
           <ul>{DisplayNodeGroupTree.displayTree(
               groupLib
             , None
-            , Some( ( (_,target) => targetClick (target)))
+            , None
             , Map(
                   "include" -> includeRuleTarget _
                 , "exclude" -> excludeRuleTarget _
