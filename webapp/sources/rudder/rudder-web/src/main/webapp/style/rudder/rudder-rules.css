@@ -258,3 +258,22 @@ ul.applied-list > .add-target > .fa{
   position: relative;
   top: 1px;
 }
+
+#groupTree a.jstree-anchor{
+  cursor: default !important;
+}
+
+#groupTree a.jstree-anchor{
+  cursor: default !important;
+}
+
+#groupTree a.jstree-anchor.jstree-clicked{
+  background-color: transparent;
+  box-shadow: none !important;
+}
+#groupTree a.jstree-anchor.jstree-clicked:hover{
+  background-color: #e7f4f9;
+}
+#groupTree a.jstree-anchor .treeActions{
+  cursor: pointer !important;
+}
