@@ -28,16 +28,13 @@
         <lift:Msgs>[error]</lift:Msgs>
         <div  data-lift="lazy-load">
           <div data-lift="node.AcceptNode.list">
-            <pending-selectall></pending-selectall>
-            <br/>
             <pending-servers></pending-servers>
             <div id="acceptNodeGrid_paginate_area" class="nodisplay"></div>
             <lift:authz role="node_write">
-                <div class="col-xs-12">
-                  <pending-accept></pending-accept>
+                <div class="action-btns">
                   <pending-refuse></pending-refuse>
+                  <pending-accept></pending-accept>
                 </div>
-              <hr class="spacer"/>
             </lift:authz>
             <pending-errors></pending-errors>
           </div>

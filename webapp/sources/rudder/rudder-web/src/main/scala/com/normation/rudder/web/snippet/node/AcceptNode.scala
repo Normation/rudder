@@ -337,9 +337,9 @@ class AcceptNode extends Loggable {
       serverGrid.displayAndInit (
           nodes
         , "acceptNodeGrid"
-        , Seq( ( Text("Since")    , { e => Text(DateFormaterService.getFormatedDate(e.creationDate))})
-             , ( Text("Directive"), { e => SHtml.ajaxButton(<span><i class="glyphicon glyphicon-search"></i></span>, { () =>  showExpectedPolicyPopup(e) }, ("class", "smallButton") )})
-             , ( Text("")         , { e => <input type="checkbox" name="serverids" value={e.id.value.toString}/>  })
+        , Seq( ( Text("Since")     , { e => Text(DateFormaterService.getFormatedDate(e.creationDate))})
+             , ( Text("Directive") , { e => SHtml.ajaxButton(<span><i class="glyphicon glyphicon-search"></i></span>, { () =>  showExpectedPolicyPopup(e) }, ("class", "smallButton") )})
+             , ( selectAll         , { e => <input type="checkbox" name="serverids" value={e.id.value.toString}/>  })
           )
         , """,{ "sWidth": "10%" },{ "sWidth": "11%", "bSortable":false },{ "sWidth": "2%", "bSortable":false }"""
         , true
@@ -352,7 +352,7 @@ class AcceptNode extends Loggable {
           SHtml.ajaxButton(
               "Accept"
             , { () =>  showConfirmPopup(acceptTemplate, "confirmPopup") }
-            , ("class", "btn btn-success pull-right") )
+            , ("class", "btn btn-success") )
       & "pending-refuse" #>
           SHtml.ajaxButton(
               "Refuse"
@@ -362,7 +362,6 @@ class AcceptNode extends Loggable {
         case None => NodeSeq.Empty
         case Some(x) => <div>x</div>
       })
-    & "pending-selectall" #> selectAll
     )(html)
   }
 
@@ -370,10 +369,6 @@ class AcceptNode extends Loggable {
    *
    * @return
    */
-  val selectAll : NodeSeq =
-    <div class="checkbox">
-      <p>
-      Select/deselect all <input type="checkbox" id="selectAll" onClick="jqCheckAll('selectAll', 'serverids')"/>
-      </p>
-    </div>
+  val selectAll : Node =
+    <input type="checkbox" id="selectAll" onClick="jqCheckAll('selectAll', 'serverids')"/>
 }

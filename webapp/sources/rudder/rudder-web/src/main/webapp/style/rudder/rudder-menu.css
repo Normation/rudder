@@ -1038,6 +1038,21 @@ ul.graph-legend > li.legend:hover{
   padding: 0 15px;
 }
 
+/* --- ACCEPT NEW NODES --- */
+.tabInform .glyphicon{
+  margin: 0 6px 0 4px;
+  transform: scale(1.2);
+}
+.action-btns{
+  float: left;
+  width: 100%;
+  text-align: right;
+  padding-top: 15px;
+}
+.action-btns .btn {
+  margin-left: 20px;
+  min-width: 95px;
+}
 /* --- NODE PAGE --- */
 #nodeInventory .ui-tabs-nav{
   margin-bottom: 15px;
@@ -2959,6 +2974,7 @@ table a > i.fa-pencil:hover{
   color: #777;
   transition-property: color;
   transition-duration: .2s;
+  font-size: 15px;
 }
 .ui-tabs-nav > .ui-tabs-tab > a:hover {
   color: #3c8dbc;
