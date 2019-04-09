@@ -1158,15 +1158,15 @@ img.treeAction.noRight {
 }
 
 li.included a {
-  background: none repeat scroll 0 0 #DDFFDD !important;
-  border: 1px dotted #48A648 !important;
-  padding: 0 2px 0 1px;
+  background-color: #DDFFDD !important;
+  border: 1px solid #a3d6a3 !important;
+  padding: 0 2px;
 }
 
 li.excluded a{
-  background: none repeat scroll 0 0 #FFDDDD !important;
-  border: 1px dotted #A64848 !important;
-  padding: 0 2px 0 1px;
+  background-color: #FFDDDD !important;
+  border: 1px solid #e7acac !important;
+  padding: 0 2px ;
 }
 
 .title-link {

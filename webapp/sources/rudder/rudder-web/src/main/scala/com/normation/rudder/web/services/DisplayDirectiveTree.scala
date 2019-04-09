@@ -133,6 +133,7 @@ object DisplayDirectiveTree extends Loggable {
     , onClickTechnique: Option[(FullActiveTechniqueCategory, FullActiveTechnique) => JsCmd]
     , onClickDirective: Option[(FullActiveTechniqueCategory, FullActiveTechnique, Directive) => JsCmd]
     , addEditLink     : Boolean
+    , addActionBtns   : Boolean
     , included        : Set[DirectiveId] = Set()
     , keepCategory    : FullActiveTechniqueCategory => Boolean = _ => true
     , keepTechnique   : FullActiveTechnique => Boolean = _ => true
@@ -274,6 +275,7 @@ object DisplayDirectiveTree extends Loggable {
         s"${disabled} ${includedClass} directiveNode"
 
       }
+
       val htmlId = s"jsTree-${directive.id.value}"
       val directiveTags = JsObj(directive.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList:_*)
       override val attrs = (
@@ -284,6 +286,7 @@ object DisplayDirectiveTree extends Loggable {
       )
 
       override def body = {
+
         val editButton = {
           if (addEditLink && ! directive.isSystem) {
             val tooltipContent = s"""
@@ -298,6 +301,18 @@ object DisplayDirectiveTree extends Loggable {
           } else {
             NodeSeq.Empty
           }
+        }
+
+        val actionBtns = if (addActionBtns)  {
+          onClickDirective match {
+            case Some(f) =>
+              <span class="treeActions">
+                <span class="treeAction fa action-icon directive bsTooltip"  data-toggle="tooltip" data-placement="top" data-html="true" title="" onclick={f(directive)}> </span>
+              </span>
+            case None    => NodeSeq.Empty
+          }
+        }else{
+          NodeSeq.Empty
         }
 
         val (isDeprecated,deprecationInfo,deprecatedIcon) =
@@ -381,15 +396,17 @@ object DisplayDirectiveTree extends Loggable {
               NodeSeq.Empty
             }}
           </span> ++
+          actionBtns ++
           editButton ++
           Script(JsRaw(s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation.toString()}", "#boxDirectiveTree"));""")
           )
         }
 
-        onClickDirective match {
-          case None                     => <a style="cursor:default">{xml}</a>
-          case _ if(directive.isSystem) => <a style="cursor:default">{xml}</a>
-          case Some(f)                  => SHtml.a(() => f(directive), xml)
+        (onClickDirective, addActionBtns) match {
+          case ( _       , true ) => <a style="cursor:default">{xml}</a>
+          case ( None    , _    ) => <a style="cursor:default">{xml}</a>
+          case ( _       , _    ) if(directive.isSystem) => <a style="cursor:default">{xml}</a>
+          case ( Some(f) , _    ) => SHtml.a(() => f(directive), xml)
         }
       }
     }
