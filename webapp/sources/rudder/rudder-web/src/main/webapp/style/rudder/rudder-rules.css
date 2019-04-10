@@ -261,10 +261,7 @@ ul.applied-list > .add-target > .fa{
 
 #groupTree a.jstree-anchor{
   cursor: default !important;
-}
-
-#groupTree a.jstree-anchor{
-  cursor: default !important;
+  position: relative;
 }
 
 #groupTree a.jstree-anchor.jstree-clicked{
@@ -273,9 +270,6 @@ ul.applied-list > .add-target > .fa{
 }
 #groupTree a.jstree-anchor.jstree-clicked:hover{
   background-color: #e7f4f9;
-}
-#groupTree a.jstree-anchor .treeActions{
-  cursor: pointer !important;
 }
 
 .jstree ul > li .action-icon{
@@ -287,22 +281,19 @@ ul.applied-list > .add-target > .fa{
 .jstree ul > li .action-icon:before{
   content: "\f055";
 }
-.jstree ul > li .action-icon.except:before{
-  content: "\f056";
-}
 #directiveTree ul > li.included .action-icon,
 #groupTree ul > li.included .action-icon.accept,
 #groupTree ul > li.excluded .action-icon.except{
   color: #888;
 }
 #directiveTree ul > li.included .action-icon:before{
-  content: "\f057";
+  content: "\f00d";
 }
 #groupTree ul > li.included .action-icon.accept:before{
-  content: "\f057";
+  content: "\f00d";
 }
 #groupTree ul > li.excluded .action-icon.except:before{
-  content: "\f057";
+  content: "\f00d";
 }
 
 .modal .jstree ul > li a.jstree-anchor{

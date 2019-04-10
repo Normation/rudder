@@ -395,9 +395,8 @@ object DisplayDirectiveTree extends Loggable {
             } else {
               NodeSeq.Empty
             }}
-          </span> ++
-          actionBtns ++
-          editButton ++
+          </span>
+          <div class="treeActions-container"> {actionBtns} {editButton} </div> ++
           Script(JsRaw(s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation.toString()}", "#boxDirectiveTree"));""")
           )
         }

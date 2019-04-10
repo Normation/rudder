@@ -169,13 +169,16 @@ object DisplayNodeGroupTree extends Loggable {
         val actionButtons = {
           if (!targetActions.isEmpty) {
               { (targetActions get ("include") match {
-                case Some (include) =>
 
+                case Some (include) =>
                   val tooltipId = Helpers.nextFuncName
-            <span class="treeActions">
-                  <span class="tooltipable fa action-icon accept" tooltipid={tooltipId} title="" onclick={include(targetInfo).toJsCmd}></span>
-                  <div class="tooltipContent" id={tooltipId}><div>Include Nodes from this group.</div></div></span>
+                  <span class="treeActions">
+                        <span class="tooltipable fa action-icon accept" tooltipid={tooltipId} title="" onclick={include(targetInfo).toJsCmd}></span>
+                        <div class="tooltipContent" id={tooltipId}><div>Include Nodes from this group.</div></div>
+                  </span>
+
                 case None => NodeSeq.Empty
+
                 }) ++
                 (targetActions get ("exclude") match {
                   case Some (exclude) =>
@@ -183,7 +186,8 @@ object DisplayNodeGroupTree extends Loggable {
                   val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
                   <span class="tooltipable fa action-icon except" tooltipid={tooltipId} title="" onclick={exclude(targetInfo).toJsCmd}></span>
-                  <div class="tooltipContent" id={tooltipId}><div>Exclude Nodes from this group.</div></div></span>
+                  <div class="tooltipContent" id={tooltipId}><div>Exclude Nodes from this group.</div></div>
+            </span>
                   case None => NodeSeq.Empty
                 })
               }
@@ -207,9 +211,8 @@ object DisplayNodeGroupTree extends Loggable {
           <div class="tooltipContent" id={tooltipId}>
             <h3>{targetInfo.name}</h3>
             <div>{targetInfo.description}</div>
-          </div> ++
-        actionButtons ++
-        editButton
+          </div>
+          <div class="treeActions-container">{actionButtons} {editButton}</div>
         }
 
         onClickNode match {
