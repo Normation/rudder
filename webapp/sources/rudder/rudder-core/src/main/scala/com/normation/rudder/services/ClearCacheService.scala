@@ -11,6 +11,8 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRe
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 
+import com.normation.zio._
+
 trait ClearCacheService {
 
   /*
@@ -90,7 +92,7 @@ class ClearCacheServiceImpl(
                      , reason = Some("Clearing cache for: node configuration, recent changes, compliance and node info at user request")
                    )
                  )
-               )
+               ).toBox
     } yield {
       set
     }) match {

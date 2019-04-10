@@ -71,6 +71,8 @@ import com.normation.rudder.services.marshalling.TestFileFormat
 import net.liftweb.json.JsonAST.JString
 import org.joda.time.DateTime
 
+import com.normation.zio._
+
 /**
  * A service that helps mapping event log details to there structured data model.
  * Details should always be in the format: <entry>{more details here}</entry>
@@ -394,7 +396,7 @@ class EventLogDetailsServiceImpl(
       priority              <- getFromTo[Int]((directive \ "priority").headOption, { x => tryo(x.text.toInt) } )
       isEnabled             <- getFromTo[Boolean]((directive \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } )
       isSystem              <- getFromTo[Boolean]((directive \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
-      policyMode            <- getFromTo[Option[PolicyMode]]((directive \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text) })
+      policyMode            <- getFromTo[Option[PolicyMode]]((directive \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text).toBox })
     } yield {
       ModifyDirectiveDiff(
           techniqueName = TechniqueName(ptName)
@@ -957,7 +959,7 @@ class EventLogDetailsServiceImpl(
                         else Failure(s"'Node modification' entry does not have attribute 'changeType' with value 'modify', entry is: ${entry}")
                       }
       id           <- (node \ "id").headOption.map( x => NodeId(x.text) ) ?~! ("Missing element 'id' in entry type Node: " + entry)
-      policyMode   <- getFromTo[Option[PolicyMode]]((node \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text) })
+      policyMode   <- getFromTo[Option[PolicyMode]]((node \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text).toBox })
       agentRun     <- getFromTo[Option[AgentRunInterval]](  (node \ "agentRun").headOption ,{ x => extractAgentRun(xml)(x) })
       heartbeat    <- getFromTo[Option[HeartbeatConfiguration]]((node \ "heartbeat").headOption ,{ x => extractHeartbeatConfiguration(xml)(x) })
       properties   <- getFromTo[Seq[NodeProperty]]( (node \ "properties").headOption ,{ x => extractNodeProperties(xml)(x) })

@@ -44,6 +44,7 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
 
 import org.eclipse.jgit.lib.PersonIdent
+import com.normation.zio._
 
 import net.liftweb.common._
 
@@ -56,7 +57,7 @@ class ModificationService(
   def getCommitsfromEventLog(eventLog:EventLog) : Box[Option[GitCommitId]] = {
     eventLog.modificationId match {
       case None        => Full(None)
-      case Some(modId) => gitModificationRepository.getCommits(modId)
+      case Some(modId) => gitModificationRepository.getCommits(modId).toBox
     }
   }
 
@@ -65,7 +66,7 @@ class ModificationService(
       commit   <- getCommitsfromEventLog(eventLog)
       rollback <- commit match {
                     case None    => Failure(s"The event log ${eventLog.id.getOrElse("")} don't have a matching commit ID and can't be restored")
-                    case Some(x) => itemArchiveManager.rollback(x, commiter, ModificationId(uuidGen.newUuid), eventLog.principal, None, rollbackedEvents, target, "after", false)
+                    case Some(x) => itemArchiveManager.rollback(x, commiter, ModificationId(uuidGen.newUuid), eventLog.principal, None, rollbackedEvents, target, "after", false).toBox
                   }
     } yield {
       rollback
@@ -80,7 +81,7 @@ class ModificationService(
                     case None    => Failure(s"The event log ${eventLog.id.getOrElse("")} don't have a matching commit ID and can't be restored")
                     case Some(x) =>
                       val parentCommit = GitCommitId(x.value+"^")
-                      itemArchiveManager.rollback(parentCommit, commiter, ModificationId(uuidGen.newUuid), eventLog.principal, None, rollbackedEvents, target, "before", false)
+                      itemArchiveManager.rollback(parentCommit, commiter, ModificationId(uuidGen.newUuid), eventLog.principal, None, rollbackedEvents, target, "before", false).toBox
                   }
     } yield {
       rollback

@@ -92,6 +92,8 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.PolicyMode
 
+import com.normation.zio._
+
 case class XmlUnserializerImpl (
     rule        : RuleUnserialisation
   , directive   : DirectiveUnserialisation
@@ -156,7 +158,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
       isEnabled             <- (directive \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type directive : " + xml)
       priority              <- (directive \ "priority").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! ("Missing or bad attribute 'priority' in entry type directive : " + xml)
       isSystem              <- (directive \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type directive : " + xml)
-      policyMode            =  (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text) )
+      policyMode            =  (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text).toBox )
       tags                  =  TagsXml.getTags( directive \ "tags")
     } yield {
       (
@@ -497,8 +499,9 @@ class ChangeRequestChangesUnserialisationImpl (
               case "modifyTo" => (changeNode \\ "rootSection").headOption match {
                 case Some(rsXml) =>
                   val techId = TechniqueId(techniqueName,changeDirective.techniqueVersion)
-                  val rootSection = sectionSpecUnserialiser.parseSectionsInPolicy(rsXml, techId, techniqueName.value)
-                  Full(ModifyToDirectiveDiff(techniqueName,changeDirective,rootSection))
+                  sectionSpecUnserialiser.parseSectionsInPolicy(rsXml, techId, techniqueName.value).map(rootSection =>
+                    ModifyToDirectiveDiff(techniqueName,changeDirective,rootSection)
+                  ).toBox
                 case None => Failure(s"Could not find rootSection node in ${changeNode}")
 
               }

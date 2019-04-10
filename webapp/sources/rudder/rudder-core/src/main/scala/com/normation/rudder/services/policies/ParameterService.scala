@@ -47,6 +47,8 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.inventory.domain.NodeId
 
+import com.normation.zio._
+
 trait RoParameterService {
 
   /**
@@ -103,8 +105,8 @@ class RoParameterServiceImpl(
    * Returns a Global Parameter by its name
    */
   def getGlobalParameter(parameterName : ParameterName) : Box[Option[GlobalParameter]] = {
-    roParamRepo.getGlobalParameter(parameterName) match {
-      case Full(entry) => Full(Some(entry))
+    roParamRepo.getGlobalParameter(parameterName).toBox match {
+      case Full(entry) => Full(entry)
       case Empty       => Full(None)
       case e:Failure   =>
         logger.error("Error while trying to fetch param %s : %s".format(parameterName.value, e.messageChain))
@@ -116,7 +118,7 @@ class RoParameterServiceImpl(
    * Returns all defined Global Parameters
    */
   def getAllGlobalParameters() : Box[Seq[GlobalParameter]]= {
-    roParamRepo.getAllGlobalParameters() match {
+    roParamRepo.getAllGlobalParameters().toBox match {
       case Full(seq) => Full(seq)
       case Empty       => Full(Seq())
       case e:Failure   =>
@@ -150,7 +152,7 @@ class WoParameterServiceImpl(
     , actor     : EventActor
     , reason    : Option[String]
   ) : Box[GlobalParameter] = {
-    woParamRepo.saveParameter(parameter, modId, actor, reason) match {
+    woParamRepo.saveParameter(parameter, modId, actor, reason).toBox match {
       case e:Failure =>
         logger.error("Error while trying to create param %s : %s".format(parameter.name.value, e.messageChain))
         e
@@ -187,7 +189,7 @@ class WoParameterServiceImpl(
     , actor     : EventActor
     , reason    : Option[String]
    ) : Box[GlobalParameter] = {
-    woParamRepo.updateParameter(parameter, modId, actor, reason) match {
+    woParamRepo.updateParameter(parameter, modId, actor, reason).toBox match {
       case e:Failure =>
         logger.error("Error while trying to update param %s : %s".format(parameter.name.value, e.messageChain))
         e
@@ -214,7 +216,7 @@ class WoParameterServiceImpl(
   }
 
   def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[ParameterName] = {
-    woParamRepo.delete(parameterName, modId, actor, reason) match {
+    woParamRepo.delete(parameterName, modId, actor, reason).toBox match {
       case e:Failure =>
         logger.error("Error while trying to delete param %s : %s".format(parameterName.value, e.messageChain))
         e

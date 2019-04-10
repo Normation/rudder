@@ -45,6 +45,7 @@ import com.normation.rudder.domain.eventlog.ChangeRequestDiff
 import com.normation.eventlog._
 import com.normation.rudder.domain.eventlog.ChangeRequestLogsFilter
 
+import com.normation.zio._
 
 /**
  * Allow to query relevant information about change request
@@ -83,11 +84,11 @@ class ChangeRequestEventLogServiceImpl(
  ) extends ChangeRequestEventLogService with Loggable{
 
   def saveChangeRequestLog(modId: ModificationId, principal: EventActor, diff: ChangeRequestDiff, reason:Option[String]): Box[EventLog] = {
-    eventLogRepository.saveChangeRequest(modId, principal, diff, reason)
+    eventLogRepository.saveChangeRequest(modId, principal, diff, reason).toBox
   }
 
   def getChangeRequestHistory(id: ChangeRequestId) : Box[Seq[ChangeRequestEventLog]] = {
-    eventLogRepository.getEventLogByChangeRequest(id,"/entry/changeRequest/id/text()", eventTypeFilter= ChangeRequestLogsFilter.eventList).map(_.collect{case c:ChangeRequestEventLog => c})
+    eventLogRepository.getEventLogByChangeRequest(id,"/entry/changeRequest/id/text()", eventTypeFilter= ChangeRequestLogsFilter.eventList).map(_.collect{case c:ChangeRequestEventLog => c}).toBox
   }
 
   def getFirstLog(id:ChangeRequestId) : Box[Option[ChangeRequestEventLog]] = {
@@ -99,13 +100,13 @@ class ChangeRequestEventLogServiceImpl(
   }
 
   private[this] def getFirstOrLastLog(id:ChangeRequestId, sortMethod:String) :  Box[Option[ChangeRequestEventLog]] = {
-    eventLogRepository.getEventLogByChangeRequest(id,"/entry/changeRequest/id/text()",Some(1),Some(sortMethod), ChangeRequestLogsFilter.eventList).map(_.collect{case c:ChangeRequestEventLog => c}.headOption)
+    eventLogRepository.getEventLogByChangeRequest(id,"/entry/changeRequest/id/text()",Some(1),Some(sortMethod), ChangeRequestLogsFilter.eventList).map(_.collect{case c:ChangeRequestEventLog => c}.headOption).toBox
   }
 
   /**
    * Get Last Change Request event for all change Request
    */
   def getLastCREvents: Box[Map[ChangeRequestId,EventLog]] = {
-    eventLogRepository.getLastEventByChangeRequest("/entry/changeRequest/id/text()", ChangeRequestLogsFilter.eventList)
+    eventLogRepository.getLastEventByChangeRequest("/entry/changeRequest/id/text()", ChangeRequestLogsFilter.eventList).toBox
   }
 }

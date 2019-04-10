@@ -80,6 +80,8 @@ import sun.security.provider.PolicyFile
 import com.github.ghik.silencer.silent
 import com.normation.rudder.domain.logger.JsDirectiveParamLogger
 
+import com.normation.zio._
+
 sealed trait HashOsType
 
 final object HashOsType {
@@ -565,8 +567,9 @@ final object JsEngine {
             }
           }) ?~! s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax"
         }
+        copied <- variable.copyWithSavedValues(values).toBox
       } yield {
-          variable.copyWithSavedValues(values)
+        copied
       }
     }
 

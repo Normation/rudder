@@ -37,6 +37,7 @@ import cats._
 import cats.data._
 import cats.implicits._
 import com.normation.errors.IOResult
+import com.normation.errors.RudderError
 
 /**
  * This is our based error for Rudder. Any method that can
@@ -303,6 +304,17 @@ object zio {
       Full(ZioRuntime.runNow(io))
     } catch {
       case ex => new Failure(ex.getMessage, Full(ex), Empty)
+    }
+  }
+
+  /*
+   * The same for either - not sure it should go there, but
+   * we are likely to use both "toBox" in the same files
+   */
+  implicit class EitherToBox[E <: RudderError, A](either: Either[E, A]) {
+    def toBox: Box[A] = either match {
+      case Left(err) => Failure(err.fullMsg)
+      case Right(x)  => Full(x)
     }
   }
 

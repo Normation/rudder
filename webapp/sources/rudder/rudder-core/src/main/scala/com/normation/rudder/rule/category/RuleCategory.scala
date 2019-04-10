@@ -37,7 +37,6 @@
 
 package com.normation.rudder.rule.category
 
-import com.normation.ldap.sdk.LdapResult.LdapResult
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._

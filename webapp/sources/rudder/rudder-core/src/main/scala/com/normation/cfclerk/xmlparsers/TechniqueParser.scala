@@ -233,7 +233,9 @@ class TechniqueParser(
    */
   private[this] def parseSysvarSpecs(xml: Node, id:TechniqueId) : Either[LoadTechniqueError, Set[SystemVariableSpec]] = {
     (xml \ SYSTEMVARS_ROOT \ SYSTEMVAR_NAME).toList.traverse { x =>
-      systemVariableSpecService.get(x.text).toValidNel(LoadTechniqueError.Parsing(s"The system variable ${x.text} is not defined: perhaps the metadata.xml for technique '${id.toString}' is not up to date"))
+      systemVariableSpecService.get(x.text).leftMap(_ =>
+        LoadTechniqueError.Parsing(s"The system variable ${x.text} is not defined: perhaps the metadata.xml for technique '${id.toString}' is not up to date")
+      ).toValidatedNel
     }.fold(errs => Left(LoadTechniqueError.Accumulated(errs)), x => Right(x.toSet))
   }
 

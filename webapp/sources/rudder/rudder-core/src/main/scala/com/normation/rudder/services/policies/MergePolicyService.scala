@@ -47,6 +47,8 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.utils.Control.sequence
 
+import com.normation.zio._
+
 /*
  * This file contains all the logic that allows to build a List of policies, for a node,
  * given the list of all applicable "BoundPolicyDraft" to that node.
@@ -161,7 +163,7 @@ final object MergePolicyService {
             samePolicyMode    <- drafts.map( _.policyMode ).distinct match {
                                    case Nil         => Full(None) //should not happen
                                    case mode :: Nil => Full(mode) //either None or Some(mode), that's ok
-                                   case modes       => PolicyMode.computeMode(globalPolicyMode, nodeInfo.node.policyMode, modes).map(Some(_)) ?~! (s"Node ${nodeInfo.hostname} "+
+                                   case modes       => PolicyMode.computeMode(globalPolicyMode, nodeInfo.node.policyMode, modes).map(Some(_)).toBox ?~! (s"Node ${nodeInfo.hostname} "+
                                                           s"'${nodeInfo.id.value}' get directives with incompatible different policy mode but technique " +
                                                           s"'${sameTechniqueName}/${sameVersion}' does not support multi-policy generation. Problematic rules/directives: " +
                                                           drafts.map(d => d.id.ruleId.value + " / " + d.id.directiveId.value).mkString(" ; "))
@@ -259,7 +261,13 @@ final object MergePolicyService {
         val size = if (d.technique.isMultiInstance) { trackedVariable.values.size } else { 1 }
         Seq.fill(size)(d.id.getReportId)
       }
-      d.copy(trackerVariable = trackingKeyVariable.copyWithSavedValues(values))
+      val newTrackingKey = trackingKeyVariable.copyWithSavedValues(values) match {
+        case Left(err) =>
+          PolicyLogger.error(s"Error when updating tracking key variable for '${d.id.value}'. Using initial values. Error was: ${err.fullMsg}")
+          trackingKeyVariable
+        case Right(key) => key
+      }
+      d.copy(trackerVariable = newTrackingKey)
     }
 
     // group directives by non-multi-instance, multi-instance non-multi-policy, multi-instance-multi-policy

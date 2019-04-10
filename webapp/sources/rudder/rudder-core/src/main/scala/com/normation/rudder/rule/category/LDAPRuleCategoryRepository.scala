@@ -38,12 +38,12 @@
 package com.normation.rudder.rule.category
 
 import cats.implicits._
+import com.normation.NamedZioLogger
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.LdapResult._
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.RoLDAPConnection
@@ -58,7 +58,9 @@ import com.normation.utils.Utils
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.LDAPException
 import com.unboundid.ldap.sdk.ResultCode
-import net.liftweb.common._
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * Here is the ordering for a List[RuleCategoryId]
@@ -76,37 +78,38 @@ class RoLDAPRuleCategoryRepository(
   , val ldap          : LDAPConnectionProvider[RoLDAPConnection]
   , val mapper        : LDAPEntityMapper
   , val categoryMutex : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
-) extends RoRuleCategoryRepository with Loggable {
+) extends RoRuleCategoryRepository with NamedZioLogger {
   repo =>
 
+  override def loggerName: String = this.getClass.getName
 
   /**
    * Get category with given Id
    */
-  def get(id:RuleCategoryId) : Box[RuleCategory] = {
+  def get(id:RuleCategoryId) : IOResult[RuleCategory] = {
     for {
       con      <- ldap
       entry    <- getCategoryEntry(con, id).notOptional(s"Entry with ID '${id.value}' was not found")
-      category <- (mapper.entry2RuleCategory(entry) ?~! s"Error when transforming LDAP entry ${entry} into a server group category").toLdapResult
+      category <- mapper.entry2RuleCategory(entry).toIO.chainError(s"Error when transforming LDAP entry ${entry} into a server group category")
     } yield {
       category
     }
-  }.toBox
+  }
 
   /**
    * Retrieve the category entry for the given ID, with the given connection
    * Used to get the ldap dn
    */
-  protected[category] def getCategoryEntry(con:RoLDAPConnection, id:RuleCategoryId, attributes:String*) : LdapResult[Option[LDAPEntry]] = {
+  protected[category] def getCategoryEntry(con:RoLDAPConnection, id:RuleCategoryId, attributes:String*) : IOResult[Option[LDAPEntry]] = {
     categoryMutex.readLock {
       con.searchSub(rudderDit.RULECATEGORY.dn,  EQ(A_RULE_CATEGORY_UUID, id.value), attributes:_*)
     }.flatMap { categoryEntries =>
       categoryEntries.size match {
-        case 0 => None.success
-        case 1 => Some(categoryEntries(0)).success
+        case 0 => None.succeed
+        case 1 => Some(categoryEntries(0)).succeed
         case _ =>
           val categoryDN = categoryEntries.map( _.dn).mkString("; ")
-          s"Error, the directory contains multiple occurrence of group category with id ${id.value}. DN: ${categoryDN}".failure
+          Unconsistancy(s"Error, the directory contains multiple occurrence of group category with id ${id.value}. DN: ${categoryDN}").fail
       }
     }
   }
@@ -114,34 +117,34 @@ class RoLDAPRuleCategoryRepository(
   /**
    * get Root category
    */
-  override def getRootCategory(): Box[RuleCategory] = {
+  override def getRootCategory(): IOResult[RuleCategory] = {
     val catAttributes = Seq(A_OC, A_RULE_CATEGORY_UUID, A_NAME, A_RULE_TARGET, A_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM)
 
     (for {
       con          <- ldap
       entries      <- categoryMutex.readLock { con.searchSub(rudderDit.RULECATEGORY.dn, IS(OC_RULE_CATEGORY), catAttributes:_*) }
       // look for sub categories
-      categories   <- entries.toList.traverse { entry =>
-                        (mapper.entry2RuleCategory(entry).map(c => (entry.dn, c)) ?~! s"Error when mapping from an LDAP entry to a RuleCategory: ${entry}").toLdapResult
+      categories   <- ZIO.foreach(entries) { entry =>
+                        mapper.entry2RuleCategory(entry).map(c => (entry.dn, c)).toIO.chainError(s"Error when mapping from an LDAP entry to a RuleCategory: ${entry}")
                       }
       rootCategory <- buildHierarchy(rudderDit.RULECATEGORY.dn, categories.toList)
     } yield {
       rootCategory
     })
-  }.toBox
+  }
 
   /**
    * Build the hierarchy defined by the list of categories, filling children.
    * The starting point is given by the root id.
    */
-  private[this] def buildHierarchy(rootDn: DN, categories: List[(DN, RuleCategory)]): LdapResult[RuleCategory] = {
+  private[this] def buildHierarchy(rootDn: DN, categories: List[(DN, RuleCategory)]): IOResult[RuleCategory] = {
     def getChildren(parentDn: DN): List[RuleCategory] = categories.collect { case (dn, r) if(dn.getParent == parentDn) =>
       val cc = getChildren(dn)
       r.copy(childs = cc)
     }
 
     for {
-      root <- categories.find( _._1 == rootDn).success.notOptional(s"The category with id '${rootDn}' was not found on the back but is referenced by other categories")
+      root <- categories.find( _._1 == rootDn).succeed.notOptional(s"The category with id '${rootDn}' was not found on the back but is referenced by other categories")
     } yield {
       root._2.copy(childs = getChildren(rootDn))
     }
@@ -155,10 +158,12 @@ class WoLDAPRuleCategoryRepository(
   , gitArchiver        : GitRuleCategoryArchiver
   , personIdentService : PersonIdentService
   , autoExportOnModify : Boolean
-) extends WoRuleCategoryRepository with Loggable {
+) extends WoRuleCategoryRepository with NamedZioLogger {
   repo =>
 
   import roruleCategoryRepo._
+
+  override def loggerName: String = this.getClass.getName
 
   /**
    * Check if a category exist with the given name
@@ -167,14 +172,14 @@ class WoLDAPRuleCategoryRepository(
       con      : RoLDAPConnection
     , name     : String
     , parentDn : DN
-  ) : Boolean = {
-    con.searchOne(parentDn, AND(IS(OC_RULE_CATEGORY), EQ(A_NAME, name)), A_RULE_CATEGORY_UUID).size match {
-      case 0 => false
-      case 1 => true
+  ) : IOResult[Boolean] = {
+    con.searchOne(parentDn, AND(IS(OC_RULE_CATEGORY), EQ(A_NAME, name)), A_RULE_CATEGORY_UUID).flatMap( _.size match {
+      case 0 => false.succeed
+      case 1 => true.succeed
       case _ =>
-        logger.error(s"More than one Rule Category has ${name} name under ${parentDn}")
-        true
-    }
+        logPure.error(s"More than one Rule Category has ${name} name under ${parentDn}") *>
+        true.succeed
+    })
   }
 
   /**
@@ -185,24 +190,24 @@ class WoLDAPRuleCategoryRepository(
     , name      : String
     , parentDn  : DN
     , currentId : RuleCategoryId
-  ) : Boolean = {
-    con.searchOne(parentDn, AND(NOT(EQ(A_RULE_CATEGORY_UUID, currentId.value)), AND(IS(OC_RULE_CATEGORY), EQ(A_NAME, name))), A_RULE_CATEGORY_UUID).size match {
-      case 0 => false
-      case 1 => true
+  ) : IOResult[Boolean] = {
+    con.searchOne(parentDn, AND(NOT(EQ(A_RULE_CATEGORY_UUID, currentId.value)), AND(IS(OC_RULE_CATEGORY), EQ(A_NAME, name))), A_RULE_CATEGORY_UUID).flatMap(_.size match {
+      case 0 => false.succeed
+      case 1 => true.succeed
       case _ =>
-        logger.error(s"More than one Rule Category has ${name} name under ${parentDn}")
-        true
-    }
+        logPure.error(s"More than one Rule Category has ${name} name under ${parentDn}") *>
+        true.succeed
+    })
   }
 
 
   /**
    * Return the list of parents for that category, from the root category
    */
-  private[this] def getParents(id:RuleCategoryId) : LdapResult[List[RuleCategory]] = {
+  private[this] def getParents(id:RuleCategoryId) : IOResult[List[RuleCategory]] = {
     for {
-      root    <- getRootCategory.toLdapResult
-      parents <- root.findParents(id).leftMap(s => LdapResultError.Consistancy(s))
+      root    <- getRootCategory
+      parents <- root.findParents(id).leftMap(s => Unconsistancy(s)).toIO
     } yield {
       parents
     }
@@ -220,31 +225,32 @@ class WoLDAPRuleCategoryRepository(
     , modId  : ModificationId
     , actor  : EventActor
     , reason : Option[String]
-  ): Box[RuleCategory] = {
+  ): IOResult[RuleCategory] = {
     for {
       con                 <- ldap
       parentCategoryEntry <- getCategoryEntry(con, into, "1.1").notOptional(s"The parent category '${into.value}' was not found, can not add")
-      canAddByName        <- if (categoryExists(con, that.name, parentCategoryEntry.dn)) {
-                               s"Cannot create the Node Group Category with name '${that.name}' : a category with the same name exists at the same level".failure
+      exists              <- categoryExists(con, that.name, parentCategoryEntry.dn)
+      canAddByName        <- if (exists) {
+                               Unconsistancy(s"Cannot create the Node Group Category with name '${that.name}' : a category with the same name exists at the same level").fail
                              } else {
-                               "OK, can add".success
+                               UIO.unit
                              }
       categoryEntry       =  mapper.ruleCategory2ldap(that,parentCategoryEntry.dn)
       result              <- categoryMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      autoArchive         <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
+      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                for {
-                                 parents  <- getParents(that.id).toBox
+                                 parents  <- getParents(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitArchiver.archiveRuleCategory(that,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield {
                                  archive
                                }
-                             } else Full("ok")).toLdapResult
-      newCategory         <- (get(that.id) ?~! s"The newly created category '${that.id.value}' was not found").toLdapResult
+                             } else UIO.unit
+      newCategory         <- get(that.id).chainError(s"The newly created category '${that.id.value}' was not found")
     } yield {
       newCategory
     }
-  }.toBox
+  }
 
   /**
    * Update and move an existing category
@@ -255,56 +261,54 @@ class WoLDAPRuleCategoryRepository(
     , modId       : ModificationId
     , actor       : EventActor
     , reason      : Option[String]
-  ) : Box[RuleCategory] = {
+  ) : IOResult[RuleCategory] = {
     repo.synchronized { for {
       con              <- ldap
       oldParents       <- if(autoExportOnModify) {
                             getParents(category.id)
-                          } else Nil.success
+                          } else Nil.succeed
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional(s"Entry with ID '${category.id.value}' was not found")
       newParent        <- getCategoryEntry(con, containerId, "1.1").notOptional(s"Parent entry with ID '${containerId.value}' was not found")
-      canAddByName     <- if (categoryExists(con, category.name, newParent.dn, category.id)) {
-                            s"Cannot update the Node Group Category with name ${category.name} : a category with the same name exists at the same level".failure
+      exists           <- categoryExists(con, category.name, newParent.dn, category.id)
+      canAddByName     <- if (exists) {
+                            Unconsistancy(s"Cannot update the Node Group Category with name ${category.name} : a category with the same name exists at the same level").fail
                           } else {
-                            "OK".success
+                            UIO.unit
                           }
       categoryEntry    =  mapper.ruleCategory2ldap(category,newParent.dn)
       moved            <- if (newParent.dn == oldCategoryEntry.dn.getParent) {
-                            LDIFNoopChangeRecord(oldCategoryEntry.dn).success
+                            LDIFNoopChangeRecord(oldCategoryEntry.dn).succeed
                           } else {
                             categoryMutex.writeLock { con.move(oldCategoryEntry.dn, newParent.dn) }
                           }
       result           <- categoryMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      updated          <- get(category.id).toLdapResult
+      updated          <- get(category.id)
       autoArchive      <- (moved, result) match {
-                            case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => "OK, nothing to archive".success
+                            case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => "OK, nothing to archive".succeed
                             case _ if(autoExportOnModify && !updated.isSystem) =>
-                              ((for {
-                                parents  <- getParents(updated.id).toBox
+                              (for {
+                                parents  <- getParents(updated.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                 moved    <- gitArchiver.moveRuleCategory(updated, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
                               } yield {
                                 moved
-                              }) ?~! "Error when trying to  automaticallyarchive the category move or update").toLdapResult
-                            case _ => "ok".success
+                              }).chainError("Error when trying to  automaticallyarchive the category move or update")
+                            case _ => "ok".succeed
                           }
     } yield {
       updated
     } }
-  }.toBox
+  }
 
 
   /**
    * Delete the category.
-   * If no category with such id exists, it is a success.
+   * If no category with such id exists, it is a succeed.
    * If checkEmtpy is set to true, the deletion may be done only if
    * the category is empty (else, category and children are deleted).
-   * @param category to delete
-   * @param checkEmtpy Is a category containing subElements can be deleted
-   *                   true => can only delete empty category
    * @return
-   *  - Full(category id) for a success
-   *  - Failure(with error message) if an error happened.
+   *  - Full(category id) for a succeed
+   *  - fail(with error message) if an error happened.
    */
   override def delete(
       that       : RuleCategoryId
@@ -312,35 +316,35 @@ class WoLDAPRuleCategoryRepository(
     , actor      : EventActor
     , reason     : Option[String]
     , checkEmpty : Boolean = true
-  ) : Box[RuleCategoryId] = {
+  ) : IOResult[RuleCategoryId] = {
     for {
-      con <-ldap
+      con     <-ldap
       deleted <- {
         getCategoryEntry(con, that).flatMap {
           case Some(entry) =>
             for {
               parents     <- if(autoExportOnModify) {
                                getParents(that)
-                             } else Nil.success
-              ok          <- categoryMutex.writeLock { con.delete(entry.dn, recurse = !checkEmpty) ?~! s"Error when trying to delete category with ID '${that.value}'" }
-              category    <- mapper.entry2RuleCategory(entry).toLdapResult
-              autoArchive <- ((if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
+                             } else Nil.succeed
+              ok          <- categoryMutex.writeLock { con.delete(entry.dn, recurse = !checkEmpty) }.chainError(s"Error when trying to delete category with ID '${that.value}'")
+              category    <- mapper.entry2RuleCategory(entry).toIO
+              autoArchive <- (if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitArchiver.deleteRuleCategory(that,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield {
                                  archive
                                }
-                             } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion").toLdapResult
+                             } else UIO.unit ) .chainError("Error when trying to archive automatically the category deletion")
             } yield {
               that
             }
-          case None => that.success
+          case None => that.succeed
         }
       }
     } yield {
       deleted
     }
-  }.toBox
+  }
 
 }

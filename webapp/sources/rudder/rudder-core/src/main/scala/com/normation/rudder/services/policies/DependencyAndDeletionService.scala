@@ -37,15 +37,13 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.rudder.domain.policies.{
-  GroupTarget,RuleTarget,CompositeRuleTarget
-}
+import com.normation.rudder.domain.policies.{CompositeRuleTarget, GroupTarget, RuleTarget}
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._
-import com.normation.rudder.domain.policies.{ActiveTechniqueId, RuleId, DirectiveId}
-import com.normation.rudder.domain.{RudderLDAPConstants, RudderDit}
+import com.normation.rudder.domain.policies.{ActiveTechniqueId, DirectiveId, RuleId}
+import com.normation.rudder.domain.{RudderDit, RudderLDAPConstants}
 import RudderLDAPConstants._
 import com.normation.utils.Control.sequence
 import com.normation.ldap.sdk.{BuildFilter, LDAPConnectionProvider}
@@ -57,6 +55,11 @@ import com.normation.eventlog.ModificationId
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.LdapResult._
 import cats.implicits._
+import com.normation.NamedZioLogger
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.errors._
+import com.normation.zio._
 
 /**
  * A container for items which depend on directives
@@ -175,7 +178,9 @@ class DependencyAndDeletionServiceImpl(
   , woRuleRepository     : WoRuleRepository
   , woGroupRepository    : WoNodeGroupRepository
   , mapper               : LDAPEntityMapper
-) extends DependencyAndDeletionService with Loggable {
+) extends DependencyAndDeletionService with NamedZioLogger {
+
+  override def loggerName: String = this.getClass.getName
 
   /**
    * Utility method that find rules which depends upon a directive.
@@ -184,11 +189,11 @@ class DependencyAndDeletionServiceImpl(
   private[this] def searchRules(
       con:RoLDAPConnection
     , id:DirectiveId
-  ):LdapResult[Seq[Rule]] = {
+  ): IOResult[Seq[Rule]] = {
     for {
       entries <- con.searchOne(rudderDit.RULES.dn, EQ(A_DIRECTIVE_UUID, id.value))
-      res     <- entries.toVector.traverse { entry =>
-                   mapper.entry2Rule(entry).toLdapResult
+      res     <- ZIO.foreach(entries) { entry =>
+                   mapper.entry2Rule(entry).toIO
                  }
     } yield {
       res
@@ -204,7 +209,7 @@ class DependencyAndDeletionServiceImpl(
    * - have a target ;
    * - the target is enable ;
    */
-  private[this] def filterRules(rules:Seq[Rule], groupLib: FullNodeGroupCategory) : LdapResult[Seq[Rule]] = {
+  private[this] def filterRules(rules:Seq[Rule], groupLib: FullNodeGroupCategory) : IOResult[Seq[Rule]] = {
     val switchableCr: Seq[(Rule, Set[RuleTarget])] =
       // only rule with "own status == true" and completly defined
       // (else their states can't change)
@@ -214,17 +219,17 @@ class DependencyAndDeletionServiceImpl(
 
     // group by target, and check if target status is enable
     // if the target is disable, we can't change the rule status anyhow
-    (switchableCr.toVector.traverse { case (rule, targets) =>
-      targets.toVector.traverse { target =>
+    ZIO.foreach(switchableCr) { case (rule, targets) =>
+      ZIO.foreach(targets) { target =>
         for {
-          targetInfo <- groupLib.allTargets.get(target).success.notOptional("target info must be defined")
-          _          <- if(targetInfo.isEnabled) "ok".success
-                        else "not ok".failure
+          targetInfo <- groupLib.allTargets.get(target).notOptional("target info must be defined")
+          _          <- if(targetInfo.isEnabled) UIO.unit
+                        else Unconsistancy(s"target is not enable: ${targetInfo.name}").fail
         } yield {
           rule
         }
       }
-    }).map( _.flatten )
+    }.map( _.flatten )
   }
 
 
@@ -242,9 +247,9 @@ class DependencyAndDeletionServiceImpl(
     for {
       con         <- ldap
       configRules <- searchRules(con,id)
-      groupLib    <- boxGroupLib.toLdapResult
+      groupLib    <- boxGroupLib.toIO
       filtered    <- onlyForState match {
-                       case DontCare        => configRules.success
+                       case DontCare        => configRules.succeed
                        case OnlyEnableable  => filterRules(configRules, groupLib)
                        case OnlyDisableable => filterRules(configRules, groupLib)
                      }
@@ -261,8 +266,8 @@ class DependencyAndDeletionServiceImpl(
     for {
       con          <- ldap
       configRules  <- searchRules(con,id)
-      diff         <- (woDirectiveRepository.delete(id, modId, actor, reason) ?~! s"Error when deleting policy instanc with ID '${id.value}'.").toLdapResult
-      updatedRules <- configRules.toVector.traverse { rule =>
+      diff         <- woDirectiveRepository.delete(id, modId, actor, reason).chainError(s"Error when deleting policy instanc with ID '${id.value}'.")
+      updatedRules <- ZIO.foreach(configRules) { rule =>
                         //check that directive is actually in rule directives, and remove it
                         if(rule.directiveIds.exists(i => id == i)) {
                           val newRule = rule.copy(directiveIds = rule.directiveIds - id)
@@ -271,15 +276,15 @@ class DependencyAndDeletionServiceImpl(
                           } else {
                             woRuleRepository.update(newRule, modId, actor, reason)
                           }
-                          (updatedRuleRes ?~!
+                          updatedRuleRes.chainError(
                             s"Can not remove directive '${id.value}' from rule with ID '${rule.id.value}'. %s".format {
                                val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                if(alreadyUpdated.isEmpty) ""
                                else "Some rules were already updated: %s".format(alreadyUpdated.mkString(", "))
-                            }).toLdapResult
+                          })
                         } else {
-                          logger.debug(s"Do not remove directive with ID '${id.value}' from rule '${rule.id.value}' (already not present?)")
-                          None.success
+                          logPure.debug(s"Do not remove directive with ID '${id.value}' from rule '${rule.id.value}' (already not present?)") *>
+                          None.succeed
                         }
       }
     } yield {
@@ -302,19 +307,19 @@ class DependencyAndDeletionServiceImpl(
   def techniqueDependencies(id:ActiveTechniqueId, boxGroupLib: Box[FullNodeGroupCategory], onlyForState:ModificationStatus = DontCare) : Box[TechniqueDependencies] = {
     for {
       con         <- ldap
-      directives  <- roDirectiveRepository.getDirectives(id).toLdapResult
+      directives  <- roDirectiveRepository.getDirectives(id)
       //if we are asked only for enable directives, remove disabled ones
       filteredPis =  onlyForState match {
                        case DontCare => directives
                        //if the technique is not internally enable, there is no chance that its status will ever change
                        case _ => directives.filter(directive => directive.isEnabled)
                      }
-      groupLib    <- boxGroupLib.toLdapResult
-      piAndCrs    <- filteredPis.toVector.traverse { directive =>
+      groupLib    <- boxGroupLib.toIO
+      piAndCrs    <- ZIO.foreach(filteredPis) { directive =>
                       for {
                         configRules  <- searchRules(con,directive.id)
                         filtered     <- onlyForState match {
-                                          case DontCare        => configRules.success
+                                          case DontCare        => configRules.succeed
                                           case OnlyEnableable  => filterRules(configRules, groupLib)
                                           case OnlyDisableable => filterRules(configRules, groupLib)
                                         }
@@ -345,12 +350,12 @@ class DependencyAndDeletionServiceImpl(
   def cascadeDeleteTechnique(id:ActiveTechniqueId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[TechniqueDependencies] = {
     for {
       con        <- ldap
-      directives <- roDirectiveRepository.getDirectives(id).toLdapResult
+      directives <- roDirectiveRepository.getDirectives(id)
       piMap      =  directives.map(directive => (directive.id, directive) ).toMap
-      deletedPis <- directives.toVector.traverse { directive =>
-                      cascadeDeleteDirective(directive.id, modId, actor, reason = reason).toLdapResult
+      deletedPis <- ZIO.foreach(directives) { directive =>
+                      cascadeDeleteDirective(directive.id, modId, actor, reason = reason).toIO
                     }
-      deletedActiveTechnique <- woDirectiveRepository.delete(id, modId, actor, reason).toLdapResult
+      deletedActiveTechnique <- woDirectiveRepository.delete(id, modId, actor, reason)
     } yield {
       val allCrs = scala.collection.mutable.Map[RuleId,Rule]()
       val directives = deletedPis.map { case DirectiveDependencies(directiveId,seqCrs) =>
@@ -367,11 +372,11 @@ class DependencyAndDeletionServiceImpl(
   ////////////////////////////// Target dependencies //////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////
 
-  private[this] def searchRules(con:RoLDAPConnection, target:RuleTarget) : LdapResult[Seq[Rule]] = {
+  private[this] def searchRules(con:RoLDAPConnection, target:RuleTarget) : IOResult[Seq[Rule]] = {
     for {
       entries <- con.searchOne(rudderDit.RULES.dn, SUB(A_RULE_TARGET,null,Array(target.target),null))
-      res     <- entries.toVector.traverse { entry =>
-                   mapper.entry2Rule(entry).toLdapResult
+      res     <- ZIO.foreach(entries) { entry =>
+                   mapper.entry2Rule(entry).toIO
                  }
     } yield {
       res
@@ -390,14 +395,14 @@ class DependencyAndDeletionServiceImpl(
      * - have a directive ;
      * - the directive is enable ;
      */
-    def filterRules(rules:Seq[Rule]) : LdapResult[Seq[Rule]] = {
+    def filterRules(rules:Seq[Rule]) : IOResult[Seq[Rule]] = {
         val enabledCr: Seq[(Rule,DirectiveId)] = rules.collect {
           case rule if(rule.isEnabledStatus && rule.directiveIds.size > 0) => rule.directiveIds.map(id => (rule, id))
         }.flatten
         //group by target, and check if target is enable
-        enabledCr.groupBy { case (rule,id) => id }.toVector.traverse { case (id, seq) =>
+        ZIO.foreach(enabledCr.groupBy { case (rule,id) => id }) { case (id, seq) =>
           for {
-            res <- (roDirectiveRepository.getActiveTechniqueAndDirective(id) ?~! s"Error when retrieving directive with ID ${id.value}''").toLdapResult
+            res <- roDirectiveRepository.getActiveTechniqueAndDirective(id).chainError(s"Error when retrieving directive with ID ${id.value}''")
           } yield {
             val (activeTechnique, directive) = res
             if(directive.isEnabled && activeTechnique.isEnabled) {
@@ -412,7 +417,7 @@ class DependencyAndDeletionServiceImpl(
     for {
       con          <- ldap
       configRules  <- searchRules(con,target)
-      filtered     <- if(onlyEnableable) filterRules(configRules) else configRules.success
+      filtered     <- if(onlyEnableable) filterRules(configRules) else configRules.succeed
     } yield {
       TargetDependencies(target,filtered.toSet)
     }
@@ -439,7 +444,7 @@ class DependencyAndDeletionServiceImpl(
       } else {
         woRuleRepository.update(updatedRule, modId, actor, reason)
       }
-      (updatedRuleRes ?~! s"Can not remove target '${targetToDelete.target}' from rule with id '${rule.id.value}'.").toLdapResult
+      updatedRuleRes.chainError(s"Can not remove target '${targetToDelete.target}' from rule with id '${rule.id.value}'.")
     }
 
     targetToDelete match {
@@ -447,15 +452,16 @@ class DependencyAndDeletionServiceImpl(
         for {
           con           <- ldap
           configRules   <- searchRules(con,targetToDelete)
-          updatedRules  <- configRules.toVector.traverse(updateRule)
-          deletedTarget <- (woGroupRepository.delete(groupId, modId, actor, reason) ?~!
+          updatedRules  <- ZIO.foreach(configRules)(updateRule)
+          deletedTarget <- woGroupRepository.delete(groupId, modId, actor, reason).chainError(
                             "Error when deleting target %s. All dependent rules where updated %s".format(
-                              targetToDelete, configRules.map( _.id.value ).mkString("(", ", ", ")" ))).toLdapResult
+                              targetToDelete, configRules.map( _.id.value ).mkString("(", ", ", ")" ))
+                           )
         } yield {
           TargetDependencies(targetToDelete,configRules.toSet)
         }
 
-      case _ => "Can not delete the special target: %s ; abort".format(targetToDelete).failure
+      case _ => "Can not delete the special target: %s ; abort".format(targetToDelete).fail
     }
   }.toBox
 

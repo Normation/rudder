@@ -40,8 +40,6 @@ package com.normation.rudder.repository.xml
 import org.apache.commons.io.FileUtils
 import com.normation.rudder.repository._
 import com.normation.utils.Control._
-import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
 import org.joda.time.DateTime
@@ -59,9 +57,14 @@ import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.GitRuleCategoryArchiver
 import java.io.File
 
+import com.normation.NamedZioLogger
 import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.queries.DynGroupUpdaterService
+
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 class ItemArchiveManagerImpl(
     roRuleRepository                  : RoRuleRepository
@@ -93,7 +96,7 @@ class ItemArchiveManagerImpl(
   , updateDynamicGroups               : DynGroupUpdaterService
 ) extends
   ItemArchiveManager with
-  Loggable with
+  NamedZioLogger with
   GitArchiverFullCommitUtils
 {
 
@@ -103,13 +106,14 @@ class ItemArchiveManagerImpl(
   ///// implementation /////
 
   // Clean a directory only if it exists, all exception are catched by the tryo
-  private[this] def cleanExistingDirectory (directory : File) : Box[Unit] = {
-    tryo {
-        if (directory.exists) FileUtils.cleanDirectory(directory)
+  private[this] def cleanExistingDirectory (directory : File) : IOResult[Unit] = {
+    IOResult.effect {
+      if (directory.exists) FileUtils.cleanDirectory(directory)
+      else ()
     }
   }
 
-  override def exportAll(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[(GitArchiveId, NotArchivedElements)] = {
+  override def exportAll(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): IOResult[(GitArchiveId, NotArchivedElements)] = {
     for {
       saveCrs        <- exportRules(commiter, modId, actor, reason, includeSystem)
       saveUserLib    <- exportTechniqueLibrary(commiter, modId, actor, reason, includeSystem)
@@ -134,26 +138,25 @@ class ItemArchiveManagerImpl(
       // Get Map of all categories grouped by parent categories
       categories  <- roRuleCategoryeRepository.getRootCategory.map(_.childrenMap)
       cleanedRoot <- cleanExistingDirectory(gitRuleCategoryArchiver.getRootDirectory)
-      saved       <-  sequence(categories.toSeq) {
-                        case (parentCategories, categories ) =>
-                          // Archive each category
-                          sequence(categories) {
-                            case category =>
-                              gitRuleCategoryArchiver.archiveRuleCategory(category,parentCategories, gitCommit = None)
-                          }
-                      }
+      saved       <- ZIO.foreach(categories) {
+                       case (parentCategories, categories ) =>
+                         // Archive each category
+                         ZIO.foreach(categories) { category =>
+                             gitRuleCategoryArchiver.archiveRuleCategory(category,parentCategories, gitCommit = None)
+                         }
+                       }
       commitId    <- gitRuleCategoryArchiver.commitRuleCategories(modId, commiter, reason)
     } yield {
       commitId
     }
   }
-  override def exportRules(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[GitArchiveId] = {
+  override def exportRules(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): IOResult[GitArchiveId] = {
     for {
       // Treat categories before treating Rules
       categories  <- exportRuleCategories(commiter, modId, actor, reason)
       rules       <- roRuleRepository.getAll(false)
-      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitRuleArchiver.getRootDirectory) }
-      saved       <- sequence(rules.filterNot(_.isSystem)) { rule =>
+      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitRuleArchiver.getRootDirectory) )
+      saved       <- ZIO.foreach(rules.filterNot(_.isSystem)) { rule =>
                        gitRuleArchiver.archiveRule(rule, None)
                      }
       commitId    <- gitRuleArchiver.commitRules(modId, commiter, reason)
@@ -163,7 +166,7 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  override def exportTechniqueLibrary(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[(GitArchiveId, NotArchivedElements)] = {
+  override def exportTechniqueLibrary(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): IOResult[(GitArchiveId, NotArchivedElements)] = {
     //case class SavedDirective( saved:Seq[String, ])
 
     for {
@@ -174,9 +177,9 @@ class ItemArchiveManagerImpl(
                           case (categories, CategoryWithActiveTechniques(cat, upts)) if(cat.isSystem == false || categories.size <= 1) =>
                             (categories, CategoryWithActiveTechniques(cat, upts.filter( _.isSystem == false )))
                       }
-      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitActiveTechniqueCategoryArchiver.getRootDirectory) }
+      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitActiveTechniqueCategoryArchiver.getRootDirectory) )
 
-      savedItems  = exportElements(okCatWithUPT.toSeq)
+      savedItems  <- exportElements(okCatWithUPT.toSeq)
 
       commitId    <- gitActiveTechniqueCategoryArchiver.commitActiveTechniqueLibrary(modId, commiter, reason)
       eventLogged <- eventLogger.saveEventLog(modId, new ExportTechniqueLibraryArchive(actor,commitId, reason))
@@ -190,38 +193,41 @@ class ItemArchiveManagerImpl(
    * - if the category archiving fails, we just record that and continue - that's not a big issue
    * - if an active technique fails, we don't go further to directive, and record that failure
    * - if a directive fails, we record that failure.
-   * At the end, we can't have total failure for that part, so we don't have a box
+   * At the end, we can't have total failure for that part, so we don't have a IOResult
    */
-  private[this] def exportElements(elements: Seq[(List[ActiveTechniqueCategoryId],CategoryWithActiveTechniques)]) : NotArchivedElements = {
-    val byCategories = for {
-      (categories, CategoryWithActiveTechniques(cat, activeTechniques)) <- elements
-    } yield {
-      //we try to save the category, and else record an error. It's a seq with at most one element
-      val catInError = gitActiveTechniqueCategoryArchiver.archiveActiveTechniqueCategory(cat,categories.reverse.tail, gitCommit = None) match {
-                         case Full(ok) => Seq.empty[CategoryNotArchived]
-                         case Empty    => Seq(CategoryNotArchived(cat.id, Failure("No error message were left")))
-                         case f:Failure=> Seq(CategoryNotArchived(cat.id, f))
-                       }
-      //now, we try to save the active techniques - we only
-      val activeTechniquesInError = activeTechniques.toSeq.filterNot(_.isSystem).map { activeTechnique =>
-                                      gitActiveTechniqueArchiver.archiveActiveTechnique(activeTechnique,categories.reverse, gitCommit = None) match {
-                                        case Full((gitPath, directivesNotArchiveds)) => (Seq.empty[ActiveTechniqueNotArchived], directivesNotArchiveds)
-                                        case Empty => (Seq(ActiveTechniqueNotArchived(activeTechnique.id, Failure("No error message was left"))), Seq.empty[DirectiveNotArchived])
-                                        case f:Failure => (Seq(ActiveTechniqueNotArchived(activeTechnique.id, f)), Seq.empty[DirectiveNotArchived])
-                                      }
-                                    }
-      val (atNotArchived, dirNotArchived) = ( (Seq.empty[ActiveTechniqueNotArchived], Seq.empty[DirectiveNotArchived]) /: activeTechniquesInError) {
-        case ( (ats,dirs) , (at,dir)  ) => (ats ++ at, dirs ++ dir)
-      }
-      (catInError, atNotArchived, dirNotArchived)
-    }
+  private[this] def exportElements(elements: Seq[(List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques)]) : IOResult[NotArchivedElements] = {
+    ZIO.foldLeft(elements)(NotArchivedElements( Seq(), Seq(), Seq())) { case (notArchived, (categories, CategoryWithActiveTechniques(cat, activeTechniques))) =>
 
-    (NotArchivedElements( Seq(), Seq(), Seq()) /: byCategories) {
-      case (NotArchivedElements(cats, ats, dirs), (cat,at,dir)) => NotArchivedElements(cats++cat, ats++at, dirs++dir)
+      //we try to save the category, and else record an error. It's a seq with at most one element
+      val catInErrorIO = gitActiveTechniqueCategoryArchiver.archiveActiveTechniqueCategory(cat,categories.reverse.tail, gitCommit = None).foldM(
+        err => Seq(CategoryNotArchived(cat.id, err)).succeed
+      , suc => Seq().succeed
+      )
+
+      //now, we try to save the active techniques - we only
+      val activeTechniquesInErrorIO = ZIO.foreach(activeTechniques.filterNot(_.isSystem)) { activeTechnique =>
+        gitActiveTechniqueArchiver.archiveActiveTechnique(activeTechnique,categories.reverse, gitCommit = None).foldM(
+          err => (Seq(ActiveTechniqueNotArchived(activeTechnique.id, err)), Seq.empty[DirectiveNotArchived]).succeed
+          // in case of success, we can still have directive not archived
+        , suc => (Seq.empty[ActiveTechniqueNotArchived], suc._2).succeed
+        )
+      }
+      for {
+        catInError              <- catInErrorIO
+        activeTechniquesInError <- activeTechniquesInErrorIO
+      } yield {
+
+        val (atNotArchived, dirNotArchived) = ( (Seq.empty[ActiveTechniqueNotArchived], Seq.empty[DirectiveNotArchived]) /: activeTechniquesInError) {
+          case ( (ats,dirs) , (at,dir)  ) => (ats ++ at, dirs ++ dir)
+        }
+
+        // now group all non archive for all categories
+        NotArchivedElements(notArchived.categories ++ catInError, notArchived.activeTechniques ++ atNotArchived, notArchived.directives ++ dirNotArchived)
+      }
     }
   }
 
-  override def exportGroupLibrary(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[GitArchiveId] = {
+  override def exportGroupLibrary(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): IOResult[GitArchiveId] = {
     for {
       catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem = true)
       //remove systems categories, because we don't want them
@@ -230,12 +236,12 @@ class ItemArchiveManagerImpl(
                             case (categories, CategoryAndNodeGroup(cat, groups)) if(cat.isSystem == false || categories.size <= 1) =>
                               (categories, CategoryAndNodeGroup(cat, groups.filter( _.isSystem == false )))
                          }
-      cleanedRoot     <- tryo { FileUtils.cleanDirectory(gitNodeGroupArchiver.getRootDirectory) }
-      savedItems      <- sequence(okCatWithGroup.toSeq) { case (categories, CategoryAndNodeGroup(cat, groups)) =>
+      cleanedRoot     <- IOResult.effect( FileUtils.cleanDirectory(gitNodeGroupArchiver.getRootDirectory) )
+      savedItems      <- ZIO.foreach(okCatWithGroup.toSeq) { case (categories, CategoryAndNodeGroup(cat, groups)) =>
                            for {
                              //categories.tail is OK, as no category can have an empty path (id)
                              savedCat    <- gitNodeGroupArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = None)
-                             savedgroups <- sequence(groups.toSeq.filterNot(_.isSystem)) { group =>
+                             savedgroups <- ZIO.foreach(groups.toSeq.filterNot(_.isSystem)) { group =>
                                               gitNodeGroupArchiver.archiveNodeGroup(group,categories.reverse, gitCommit = None)
                                             }
                            } yield {
@@ -249,11 +255,11 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  override def exportParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId] = {
+  override def exportParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitArchiveId] = {
     for {
       parameters  <- roParameterRepository.getAllGlobalParameters()
-      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitParameterArchiver.getRootDirectory) }
-      saved       <- sequence(parameters) { param =>
+      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitParameterArchiver.getRootDirectory) )
+      saved       <- ZIO.foreach(parameters) { param =>
                        gitParameterArchiver.archiveParameter(param, None)
                      }
       commitId    <- gitParameterArchiver.commitParameters(modId, commiter, reason)
@@ -264,9 +270,9 @@ class ItemArchiveManagerImpl(
   }
   ////////// Import //////////
 
-  override def importAll(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    logger.info("Importing full archive with id '%s'".format(archiveId.value))
+  override def importAll(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId] = {
     for {
+      _           <- logPure.info("Importing full archive with id '%s'".format(archiveId.value))
       rules       <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
@@ -291,36 +297,34 @@ class ItemArchiveManagerImpl(
       archiveId
   }
 
-  private[this] def importRuleCategories(archiveId:GitCommitId) : Box[GitCommitId] = {
-    logger.info("Importing rule categories archive with id '%s'".format(archiveId.value))
+  private[this] def importRuleCategories(archiveId:GitCommitId) : IOResult[GitCommitId] = {
     for {
-      parsed      <- parseRuleCategories.getArchive(archiveId)
-      imported    <- importRuleCategoryLibrary.swapRuleCategory(parsed)
+      _         <- logPure.info("Importing rule categories archive with id '%s'".format(archiveId.value))
+      parsed    <- parseRuleCategories.getArchive(archiveId)
+      imported  <- importRuleCategoryLibrary.swapRuleCategory(parsed)
     } yield {
       archiveId
     }
   }
 
-  private[this] def importRulesAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
-    logger.info("Importing rules archive with id '%s'".format(archiveId.value))
+  private[this] def importRulesAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : IOResult[GitCommitId] = {
     for {
-      categories  <- importRuleCategories(archiveId)
-      parsed      <- parseRules.getArchive(archiveId)
-      imported    <- woRuleRepository.swapRules(parsed)
-    } yield {
+      _          <- logPure.info("Importing rules archive with id '%s'".format(archiveId.value))
+      categories <- importRuleCategories(archiveId)
+      parsed     <- parseRules.getArchive(archiveId)
+      imported   <- woRuleRepository.swapRules(parsed)
       //try to clean
-      woRuleRepository.deleteSavedRuleArchiveId(imported) match {
-        case eb:EmptyBox =>
-          val e = eb ?~! ("Error when trying to delete saved archive of old rule: " + imported)
-          logger.error(e)
-        case _ => //ok
-      }
+      _          <- woRuleRepository.deleteSavedRuleArchiveId(imported).catchAll(err =>
+                      logPure.warn(s"Error when trying to delete saved archive of old rule: ${err.fullMsg}")
+                    )
+      _          <- IOResult.effect(if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)}).run.void
+    } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
       archiveId
     }
   }
 
-  override def importTechniqueLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean) : Box[GitCommitId] = {
+  override def importTechniqueLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean) : IOResult[GitCommitId] = {
     val commitMsg = "User %s requested directive archive restoration to commit %s".format(actor.name,archiveId.value)
     for {
       directivesArchiveId <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
@@ -329,18 +333,18 @@ class ItemArchiveManagerImpl(
     } yield
       archiveId
   }
-  private[this] def importTechniqueLibraryAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
-    logger.info("Importing technique library archive with id '%s'".format(archiveId.value))
+  private[this] def importTechniqueLibraryAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : IOResult[GitCommitId] = {
       for {
-        parsed      <- parseActiveTechniqueLibrary.getArchive(archiveId)
-        imported    <- importTechniqueLibrary.swapActiveTechniqueLibrary(parsed, includeSystem)
+        _        <- logPure.info(s"Importing technique library archive with id '${archiveId.value}'")
+        parsed   <- parseActiveTechniqueLibrary.getArchive(archiveId)
+        imported <- importTechniqueLibrary.swapActiveTechniqueLibrary(parsed, includeSystem)
       } yield {
         if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
         archiveId
       }
   }
 
-  override def importGroupLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean) : Box[GitCommitId] = {
+  override def importGroupLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean) : IOResult[GitCommitId] = {
     val commitMsg = "User %s requested group archive restoration to commit %s".format(actor.name,archiveId.value)
     for {
       groupsArchiveId <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
@@ -350,9 +354,9 @@ class ItemArchiveManagerImpl(
       archiveId
   }
 
-  private[this] def importGroupLibraryAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
-    logger.info("Importing groups archive with id '%s'".format(archiveId.value))
+  private[this] def importGroupLibraryAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : IOResult[GitCommitId] = {
       for {
+        _        <- logPure.info(s"Importing groups archive with id '${archiveId.value}'")
         parsed   <- parseGroupLibrary.getArchive(archiveId)
         imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
         dynGroup <- updateDynamicGroups.updateAll(modId,actor,reason)
@@ -372,20 +376,17 @@ class ItemArchiveManagerImpl(
       archiveId
   }
 
-  private[this] def importParametersAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
-    logger.info("Importing Parameters archive with id '%s'".format(archiveId.value))
+  private[this] def importParametersAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : IOResult[GitCommitId] = {
     for {
-      parsed      <- parseGlobalParameters.getArchive(archiveId)
-      imported    <- woParameterRepository.swapParameters(parsed)
-    } yield {
+      _        <- logPure.info(s"Importing Parameters archive with id '${archiveId.value}'")
+      parsed   <- parseGlobalParameters.getArchive(archiveId)
+      imported <- woParameterRepository.swapParameters(parsed)
       //try to clean
-      woParameterRepository.deleteSavedParametersArchiveId(imported) match {
-        case eb:EmptyBox =>
-          val e = eb ?~! ("Error when trying to delete saved archive of old parameters: " + imported)
-          logger.error(e)
-        case _ => //ok
-      }
-      if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
+      _        <- woParameterRepository.deleteSavedParametersArchiveId(imported).catchAll(err =>
+                    logPure.warn(s"Error when trying to delete saved archive of old parameters: ${err.fullMsg}")
+                  )
+      _        <- IOResult.effect(if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)}).run.void
+    } yield {
       archiveId
     }
   }
@@ -396,9 +397,9 @@ class ItemArchiveManagerImpl(
    * linked to a modification made in the rudder UI.
    */
 
-  override def rollback(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String],  rollbackedEvents :Seq[EventLog], target:EventLog, rollbackType:String, includeSystem:Boolean = false) : Box[GitCommitId] = {
-    logger.info("Importing full archive with id '%s'".format(archiveId.value))
+  override def rollback(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String],  rollbackedEvents :Seq[EventLog], target:EventLog, rollbackType:String, includeSystem:Boolean = false) : IOResult[GitCommitId] = {
     for {
+      _           <- logPure.info(s"Importing full archive with id '${archiveId.value}'")
       rules       <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
@@ -411,12 +412,12 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  override def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]] = this.getTags()
+  override def getFullArchiveTags : IOResult[Map[DateTime,GitArchiveId]] = this.getTags()
 
   // groups, technique library and rules may use
   // their own tag or a global one.
 
-  override def getGroupLibraryTags : Box[Map[DateTime,GitArchiveId]] = {
+  override def getGroupLibraryTags : IOResult[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
       groupsTags <- gitNodeGroupArchiver.getTags()
@@ -425,7 +426,7 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  override def getTechniqueLibraryTags : Box[Map[DateTime,GitArchiveId]] = {
+  override def getTechniqueLibraryTags : IOResult[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags    <- this.getTags()
       policyLibTags <- gitActiveTechniqueCategoryArchiver.getTags()
@@ -434,7 +435,7 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  override def getRulesTags : Box[Map[DateTime,GitArchiveId]] = {
+  override def getRulesTags : IOResult[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
       crTags     <- gitRuleArchiver.getTags()
@@ -443,7 +444,7 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  override def getParametersTags : Box[Map[DateTime,GitArchiveId]] = {
+  override def getParametersTags : IOResult[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
       crTags     <- gitParameterArchiver.getTags()

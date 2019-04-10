@@ -174,7 +174,7 @@ trait GitArchiverUtils extends NamedZioLogger {
    * 'git added' (with and without the 'update' mode).
    * commitMessage is used for the message of the commit.
    */
-  def commitMvDirectory(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : IOResult[GitCommitId] = synchronized {
+  def commitMvDirectory(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
     semaphoreMove.flatMap(lock =>
       ZIO.bracket(lock.acquire)(_ => lock.release) { _ =>
         for {

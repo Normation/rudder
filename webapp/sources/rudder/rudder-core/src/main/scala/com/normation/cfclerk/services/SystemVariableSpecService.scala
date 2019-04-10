@@ -39,6 +39,9 @@ package com.normation.cfclerk.services
 
 import com.normation.cfclerk.domain.SystemVariableSpec
 
+
+final case class MissingSystemVariable(name: String)
+
 /**
  * Service that returns VariableSpec for a variable name. It is used only for system variable
  * (hard coded ones), and for deserializing the NodeConfiguration
@@ -49,12 +52,10 @@ trait SystemVariableSpecService {
   /**
    * Get the spec for the system variable with
    * the given name.
-   * Throw an exception if no such system variable
-   * is know, as it is a really unexpected thing.
    * @param varName
    * @return
    */
-  def get(varName : String) : Option[SystemVariableSpec]
+  def get(varName : String) : Either[MissingSystemVariable, SystemVariableSpec]
 
   /**
    * Get the list of all known system vars spec

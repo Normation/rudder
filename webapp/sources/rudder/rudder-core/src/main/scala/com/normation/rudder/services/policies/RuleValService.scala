@@ -42,7 +42,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._
 import com.normation.cfclerk.domain._
-import com.normation.cfclerk.exceptions._
 import com.normation.utils.Control.bestEffort
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import org.joda.time.DateTime

@@ -43,6 +43,8 @@ import net.liftweb.common._
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
 
+import com.normation.zio._
+
 
 trait WorkflowEventLogService {
 
@@ -64,18 +66,18 @@ class WorkflowEventLogServiceImpl (
 ) extends WorkflowEventLogService with Loggable {
   def saveEventLog(stepChange:WorkflowStepChange, actor:EventActor, reason:Option[String]) : Box[EventLog] = {
     val modId = ModificationId(uuidGen.newUuid)
-    eventLogRepository.saveWorkflowStep(modId, actor, stepChange, reason)
+    eventLogRepository.saveWorkflowStep(modId, actor, stepChange, reason).toBox
   }
 
   def getChangeRequestHistory(id: ChangeRequestId) : Box[Seq[WorkflowStepChanged]] = {
-    eventLogRepository.getEventLogByChangeRequest(id,"/entry/workflowStep/changeRequestId/text()", eventTypeFilter= List(WorkflowStepChanged)).map(_.collect{case w:WorkflowStepChanged => w})
+    eventLogRepository.getEventLogByChangeRequest(id,"/entry/workflowStep/changeRequestId/text()", eventTypeFilter= List(WorkflowStepChanged)).map(_.collect{case w:WorkflowStepChanged => w}).toBox
   }
 
   def getLastLog(id:ChangeRequestId) : Box[Option[WorkflowStepChanged]] = {
-    eventLogRepository.getEventLogByChangeRequest(id,"/entry/workflowStep/changeRequestId/text()",Some(1),Some("creationDate desc"), eventTypeFilter= List(WorkflowStepChanged)).map(_.collect{case w:WorkflowStepChanged => w}.headOption)
+    eventLogRepository.getEventLogByChangeRequest(id,"/entry/workflowStep/changeRequestId/text()",Some(1),Some("creationDate desc"), eventTypeFilter= List(WorkflowStepChanged)).map(_.collect{case w:WorkflowStepChanged => w}.headOption).toBox
   }
 
   def getLastWorkflowEvents() : Box[Map[ChangeRequestId,EventLog]] = {
-    eventLogRepository.getLastEventByChangeRequest("/entry/workflowStep/changeRequestId/text()", List(WorkflowStepChanged))
+    eventLogRepository.getLastEventByChangeRequest("/entry/workflowStep/changeRequestId/text()", List(WorkflowStepChanged)).toBox
   }
   }

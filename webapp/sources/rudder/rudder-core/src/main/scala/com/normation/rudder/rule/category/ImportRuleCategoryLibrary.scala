@@ -37,8 +37,6 @@
 
 package com.normation.rudder.rule.category
 
-import net.liftweb.common._
-import com.normation.utils.Control.sequence
 import com.normation.rudder.domain.RudderDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.unboundid.ldap.sdk.DN
@@ -47,10 +45,11 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.archives.RuleCategoryArchiveId
 import com.normation.rudder.repository.ldap._
-import com.normation.ldap.sdk.LdapResult._
 import cats.implicits._
-import com.normation.ldap.sdk.LdapResultError
 
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.errors._
 
 trait ImportRuleCategoryLibrary {
   /**
@@ -62,7 +61,7 @@ trait ImportRuleCategoryLibrary {
   def swapRuleCategory(
       newRootCategory : RuleCategory
     , includeSystem   : Boolean = false
-  ) : Box[Unit]
+  ) : IOResult[Unit]
 }
 
 class ImportRuleCategoryLibraryImpl(
@@ -73,6 +72,8 @@ class ImportRuleCategoryLibraryImpl(
 ) extends ImportRuleCategoryLibrary with LDAPImportLibraryUtil {
 
 
+  override def loggerName: String = this.getClass.getName
+
   /**
    * That method swap an existing active technique library in LDAP
    * to a new one.
@@ -82,7 +83,7 @@ class ImportRuleCategoryLibraryImpl(
    def swapRuleCategory (
       newRootCategory : RuleCategory
     , includeSystem   : Boolean = false
-  ) : Box[Unit] = {
+  ) : IOResult[Unit] = {
     /*
      * High level behavior:
      * - check that Rule category tree respects global rules
@@ -101,17 +102,17 @@ class ImportRuleCategoryLibraryImpl(
 
     //as far atomic as we can :)
     //don't bother with system and consistency here, it is taken into account elsewhere
-    def atomicSwap(rootCategory:RuleCategory) : LdapResult[RuleCategoryArchiveId] = {
+    def atomicSwap(rootCategory:RuleCategory) : IOResult[RuleCategoryArchiveId] = {
       //save the new one
       //we need to keep the git commit id
-      def saveUserLib(con:RwLDAPConnection) : LdapResult[Unit] = {
-        def recSaveUserLib(parentDN:DN, content:RuleCategory) : LdapResult[Unit] = {
+      def saveUserLib(con:RwLDAPConnection) : IOResult[Unit] = {
+        def recSaveUserLib(parentDN:DN, content:RuleCategory) : IOResult[Unit] = {
           //start with the category
           //then recurse on sub-categories
           val categoryEntry =  mapper.ruleCategory2ldap(content,parentDN)
           for {
-            category      <- con.save(categoryEntry) ?~! s"Error when persisting category with DN '${categoryEntry.dn}' in LDAP"
-            subCategories <- content.childs.traverse { cat =>
+            category      <- con.save(categoryEntry).chainError(s"Error when persisting category with DN '${categoryEntry.dn}' in LDAP")
+            subCategories <- ZIO.foreach(content.childs) { cat =>
                                recSaveUserLib(categoryEntry.dn, cat)
                              }
           } yield {
@@ -132,15 +133,17 @@ class ImportRuleCategoryLibraryImpl(
         finished <- {
                       (for {
                         saved  <- saveUserLib(con)
-                        system <-if(includeSystem) "OK".success
-                                 else copyBackSystemEntrie(con, rudderDit.RULECATEGORY.dn, targetArchiveDN) ?~! "Error when copying back system entries in the imported Rule category library"
+                        system <-if(includeSystem) UIO.unit
+                                 else copyBackSystemEntrie(con, rudderDit.RULECATEGORY.dn, targetArchiveDN).chainError(
+                                   "Error when copying back system entries in the imported Rule category library"
+                                 )
                       } yield {
                         system
-                      }) leftMap { e =>
-                             logger.error("Error when trying to load archived Rule category library. Rollbaching to previous one.")
-                             restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN) fold(
-                               _ => LdapResultError.Chained(s"Error when trying to restore archive with ID '${archiveId.value}' for the active technique library", e)
-                             , _ => LdapResultError.Chained("Error when trying to load archived Rule category library. A rollback to previous state was executed", e)
+                      }) catchAll  { e =>
+                             logPure.error("Error when trying to load archived Rule category library. Rollbaching to previous one.") *>
+                             restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN).fold(
+                               _ => Chained(s"Error when trying to restore archive with ID '${archiveId.value}' for the active technique library", e)
+                             , _ => Chained("Error when trying to load archived Rule category library. A rollback to previous state was executed", e)
                              )
                       }
                     }
@@ -155,7 +158,7 @@ class ImportRuleCategoryLibraryImpl(
      * - all ids must be uniques
      * + remove system category if we don't want them
      */
-    def checkUserLibConsistance(rootCategory:RuleCategory) : LdapResult[RuleCategory] = {
+    def checkUserLibConsistance(rootCategory:RuleCategory) : IOResult[RuleCategory] = {
       import scala.collection.mutable.{Set,Map}
       val categoryIds = Set[RuleCategoryId]()
       // for a name, all Category already containing a child with that name.
@@ -164,17 +167,17 @@ class ImportRuleCategoryLibraryImpl(
       def recSanitizeCategory(cat:RuleCategory, parent:RuleCategory, isRoot:Boolean = false) : Option[RuleCategory] = {
         if( !isRoot && cat.isSystem && includeSystem == false) None
         else if(categoryIds.contains(cat.id)) {
-          logger.error(s"Ignoring Rule category because its ID was already processed: ${cat}")
+          logEffect.error(s"Ignoring Rule category because its ID was already processed: ${cat}")
           None
         } else if(cat.name == null || cat.name.size < 1) {
-          logger.error(s"Ignoring Rule category because its name is empty: ${cat}")
+          logEffect.error(s"Ignoring Rule category because its name is empty: ${cat}")
           None
         } else {
           val parentCategories = categoryNamesByParent.get(cat.name)
           parentCategories match {
             //name is mandatory
             case Some(list) if list.contains(parent.id) =>
-              logger.error(s"Ignoring Rule category with ID '${cat.id.value}' because its name is '${cat.name}' already referenced in a child of category with '${parent.name}' of ID '${parent.id.value}'")
+              logEffect.error(s"Ignoring Rule category with ID '${cat.id.value}' because its name is '${cat.name}' already referenced in a child of category with '${parent.name}' of ID '${parent.id.value}'")
               None
             case _ => //OK, process sub categories !
               categoryIds += cat.id
@@ -187,13 +190,13 @@ class ImportRuleCategoryLibraryImpl(
           } }
       }
 
-      recSanitizeCategory(rootCategory, rootCategory, true).success.notOptional("Error when trying to sanitize serialised user library for consistency errors")
+      IOResult.effect(recSanitizeCategory(rootCategory, rootCategory, true)).notOptional("Error when trying to sanitize serialised user library for consistency errors")
     }
 
     //all the logic for a library swap.
     for {
       cleanLib <- checkUserLibConsistance(newRootCategory)
-      moved    <- groupLibMutex.writeLock { atomicSwap(cleanLib) } ?~! "Error when swapping serialised library and existing one in LDAP"
+      moved    <- groupLibMutex.writeLock { atomicSwap(cleanLib) }.chainError("Error when swapping serialised library and existing one in LDAP")
     } yield {
       //delete archive - not a real error if fails
       val dn = rudderDit.ARCHIVES.RuleCategoryLibDN(moved)
@@ -202,11 +205,9 @@ class ImportRuleCategoryLibraryImpl(
         deleted <- con.delete(dn)
       } yield {
         deleted
-      }) leftMap  { e =>
-        logger.warn("Error when deleting archived library in LDAP with DN '%s'".format(dn))
+      }) catchAll { e =>
+        logPure.warn("Error when deleting archived library in LDAP with DN '%s'".format(dn))
       }
-      () // unit is expected
     }
-
-  }.toBox
+  }
 }
