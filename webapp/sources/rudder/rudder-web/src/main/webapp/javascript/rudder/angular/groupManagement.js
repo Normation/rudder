@@ -122,7 +122,7 @@ groupManagement.controller('GroupCtrl', ['$scope', function($scope) {
           // In included targets => remove from included
           $scope.removeInclude(target);
         }
-      };
+    };
 
     // Explanations to use in popups
     $scope.includeExplanation = [ "<div>Add Groups here to apply this Rule to the nodes they contain.</div><br/>"
@@ -168,24 +168,25 @@ groupManagement.directive('tooltip', function () {
 // Helper function to access from outside angular scope
 
 function excludeTarget(event, target) {
-  event.stopPropagation();
   var scope = angular.element($("#GroupCtrl")).scope();
+  var indexExclude = scope.target.exclude.or.indexOf(target);
   scope.$apply(function() {
-    scope.addExclude(target);
+    if ( indexExclude == -1 )  {
+      scope.addExclude(target);
+    }else{
+      scope.removeExclude(target);
+    }
   });
 };
 
 function includeTarget(event, target) {
-  event.stopPropagation();
   var scope = angular.element($("#GroupCtrl")).scope();
+  var indexInclude = scope.target.include.or.indexOf(target);
   scope.$apply(function(){
-    scope.addInclude(target);
-  });
-};
-
-function onClickTarget(target) {
-  var scope = angular.element($("#GroupCtrl")).scope();
-  scope.$apply(function(){
-    scope.toggleTarget(target);
+    if ( indexInclude == -1 )  {
+      scope.addInclude(target);
+    }else{
+      scope.removeInclude(target);
+    }
   });
 };

@@ -173,7 +173,7 @@ object DisplayNodeGroupTree extends Loggable {
 
                   val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
-                  <span class="tooltipable fa fa-plus-circle text-success" tooltipid={tooltipId} title="" onclick={include(targetInfo).toJsCmd}></span>
+                  <span class="tooltipable fa action-icon accept" tooltipid={tooltipId} title="" onclick={include(targetInfo).toJsCmd}></span>
                   <div class="tooltipContent" id={tooltipId}><div>Include Nodes from this group.</div></div></span>
                 case None => NodeSeq.Empty
                 }) ++
@@ -182,7 +182,7 @@ object DisplayNodeGroupTree extends Loggable {
 
                   val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
-                  <span class="tooltipable fa fa-minus-circle text-danger" tooltipid={tooltipId} title="" onclick={exclude(targetInfo).toJsCmd}></span>
+                  <span class="tooltipable fa action-icon except" tooltipid={tooltipId} title="" onclick={exclude(targetInfo).toJsCmd}></span>
                   <div class="tooltipContent" id={tooltipId}><div>Exclude Nodes from this group.</div></div></span>
                   case None => NodeSeq.Empty
                 })

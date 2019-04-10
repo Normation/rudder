@@ -277,3 +277,52 @@ ul.applied-list > .add-target > .fa{
 #groupTree a.jstree-anchor .treeActions{
   cursor: pointer !important;
 }
+
+.jstree ul > li .action-icon{
+  color: #3c763d;
+}
+.jstree ul > li .action-icon.except{
+  color: #a94442;
+}
+.jstree ul > li .action-icon:before{
+  content: "\f055";
+}
+.jstree ul > li .action-icon.except:before{
+  content: "\f056";
+}
+#directiveTree ul > li.included .action-icon,
+#groupTree ul > li.included .action-icon.accept,
+#groupTree ul > li.excluded .action-icon.except{
+  color: #888;
+}
+#directiveTree ul > li.included .action-icon:before{
+  content: "\f057";
+}
+#groupTree ul > li.included .action-icon.accept:before{
+  content: "\f057";
+}
+#groupTree ul > li.excluded .action-icon.except:before{
+  content: "\f057";
+}
+
+.modal .jstree ul > li a.jstree-anchor{
+  margin-top: 1px;
+  border: 1px solid transparent;
+}
+
+.jstree ul > li a.jstree-anchor{
+  cursor: default !important;
+}
+
+.jstree ul > li a.jstree-anchor .treeAction,
+.jstree ul > li a.jstree-anchor .action-icon{
+  cursor: pointer !important;
+}
+
+.jstree .jstree-clicked{
+  background-color: inherit;
+  box-shadow: none !important;
+}
+.jstree .jstree-hovered.jstree-clicked{
+  background-color: rgb(231, 244, 249);
+}

@@ -170,6 +170,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                   , Some(onClickActiveTechnique)
                   , Some(onClickDirective)
                   , false
+                  , false
                 )
               }</ul>
             case (x, y, z) =>

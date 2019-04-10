@@ -308,14 +308,15 @@ class RuleEditForm(
                 directiveLib
               , globalMode
               , usedDirectiveIds = usedDirectiveIds
-              , onClickCategory = None
+              , onClickCategory  = None
               , onClickTechnique = None
               , onClickDirective = Some((_,t,d) => directiveClick(t, d, globalMode.mode.name))
-              , addEditLink = true
-              , included = selectedDirectiveIds
+              , addEditLink      = true
+              , addActionBtns    = true
+              , included         = selectedDirectiveIds
                 //filter techniques without directives, and categories without technique
-              , keepCategory    = category => category.allDirectives.nonEmpty
-              , keepTechnique   = technique => technique.directives.nonEmpty
+              , keepCategory     = category => category.allDirectives.nonEmpty
+              , keepTechnique    = technique => technique.directives.nonEmpty
             )
           }</ul>
         }</div> } &
@@ -431,11 +432,6 @@ class RuleEditForm(
       }, ruleTarget.target
     ) % ( "id" -> "selectedTargets") ++
     save
-  }
-
-  private[this] def targetClick(targetInfo: FullRuleTargetInfo) : JsCmd = {
-    val target = targetInfo.target.target.target
-    JsRaw(s"""onClickTarget("${target}");""")
   }
 
   private[this] def directiveClick(t:FullActiveTechnique , d: Directive, gm:String) : JsCmd = {
