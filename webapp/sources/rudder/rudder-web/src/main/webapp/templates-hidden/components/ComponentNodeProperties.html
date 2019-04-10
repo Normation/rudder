@@ -11,6 +11,7 @@
              <thead>
                <tr class="head tablewidth">
                  <th >Name</th>
+                 <th >Format</th>
                  <th >Value</th>
                  <th ></th>
                </tr>
@@ -26,7 +27,11 @@
                    </div>
                  </td>
                  <td >
-                   <pre class='json-beautify' onclick='$(this).toggleClass("toggle")'>{{formatContent(property)}}</pre>
+                   {{getFormat(property.value)}}
+                 </td>
+                 <td class="property-value">
+                   <pre class='json-beautify' onclick="$(this).toggleClass('toggle')">{{formatContent(property)}}</pre>
+                   <button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text="{{formatContent(property)}}" data-toggle='tooltip' data-placement='left' data-container="html" title="Copy to clipboard"><i class="ion ion-clipboard"></i></button>
                  </td>
                  <td class="text-center delete-action">
                    <span ng-if="property.rights !== 'read-only'" class="fa fa-times text-danger" ng-click="popupDeletion(property.name, $index)"></span>
