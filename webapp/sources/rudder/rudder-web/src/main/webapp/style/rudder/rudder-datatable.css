@@ -251,7 +251,6 @@ td.listclose:after {
 .dataTables_info{
   float:left;
 }
-
 .dataTables_info{
   padding-top: 3px;
   margin-left: 15px;
@@ -325,4 +324,46 @@ td.listclose:after {
   color: #777;
   font-style: italic;
   padding: 10px 6px;
+}
+
+/* NODES PAGE */
+#nodePropertiesTab > tbody > tr > td.delete-action{
+  position: relative;
+}
+#nodePropertiesTab > tbody > tr > td.delete-action > .fa{
+  opacity:0;
+  cursor:pointer;
+  font-size:18px;
+  position: absolute;
+  top: calc(50% - 9px);
+  left: calc(50% - 7px);
+  transition-property: opacity;
+  transition-duration: .1s;
+}
+#nodePropertiesTab > tbody > tr:hover > td.delete-action > .fa{
+  opacity: 1;
+}
+#nodePropertiesTab th:first-child{
+  width: 20% !important;
+}
+#nodePropertiesTab th:nth-child(2){
+  width: 95px !important;
+}
+#nodePropertiesTab th:nth-child(3){
+  width: calc(80% - 125px) !important;
+}
+#nodePropertiesTab th:last-child{
+  width: 30px !important;
+}
+#nodePropertiesTab > tbody > tr > td.property-value{
+  cursor: pointer;
+  position: relative;
+  padding: 0 !important;
+}
+#nodePropertiesTab > tbody > tr > td.property-value > button{
+  font-size: 1.2em;
+  position: absolute;
+  right: 35px;
+  top: 2px;
+  max-height: 27px;
 }

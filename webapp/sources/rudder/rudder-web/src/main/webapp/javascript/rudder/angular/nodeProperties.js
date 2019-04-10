@@ -55,13 +55,22 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
     $scope.newProperty = {'name':"", 'value':""};
   }
 
+  $scope.formatIsJson = function(value) {
+    var res = (value !== null && typeof value === 'object');
+    return res;
+  }
+  $scope.getFormat = function(value) {
+    var res = $scope.formatIsJson(value) ? "JSON" : "String";
+    return res;
+  }
   $scope.formatContent = function(property) {
     var value = property.value
-      if (value !== null && typeof value === 'object') {
-        value = JSON.stringify(value, null, 2)
-      }
+    if ($scope.formatIsJson(value)) {
+      value = JSON.stringify(value, null, 2);
+    }
     return value;
   }
+
   $scope.options =
     DTOptionsBuilder.newOptions().
       withPaginationType('full_numbers').
@@ -91,8 +100,9 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
     }
     currentNodeId = nodeId
     $scope.properties = properties;
-
     $scope.urlAPI = contextPath + '/secure/api/nodes/'+ nodeId;
+    $('.rudder-label').bsTooltip();
+    new ClipboardJS('.btn-clipboard');
   }
 
   $scope.addProperty = function(){
@@ -165,7 +175,3 @@ app.config(function($locationProvider) {
     requireBase: false
   });
 })
-
-$(document).ready(function(){
-  $('.rudder-label').bsTooltip();
-});
