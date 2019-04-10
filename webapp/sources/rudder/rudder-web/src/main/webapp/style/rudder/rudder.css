@@ -1351,15 +1351,22 @@ label span.text-fit{
 }
 
 .jstree a.jstree-anchor .categoryAction, .jstree a.jstree-anchor .treeActions  {
-  display: none;
+  opacity: 0.2;
+  cursor: pointer !important;
+  font-size: 20px !important;
 }
 
 .jstree a.jstree-anchor:hover .categoryAction, .jstree a.jstree-anchor:hover .treeActions  {
-  display: inline;
+  opacity: 1;
+}
+.treeActions-container {
+  display: inline-block;
+  position: relative;
+  top: 1px;
 }
 
 .jstree .fa.jstree-icon {
-    color : #999
+  color : #999
 }
 .jstree .fa.fa-gear, .jstree .fa.fa-folder {
   position: relative;
