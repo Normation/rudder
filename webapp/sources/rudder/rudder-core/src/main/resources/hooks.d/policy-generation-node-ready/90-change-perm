@@ -9,16 +9,20 @@
 # - RUDDER_AGENT_TYPE            : agent type ("cfengine-community", "cfengine-nova" or "dsc")
 # - RUDDER_POLICIES_DIRECTORY_NEW: new policies directory (for ex for nodes under root: /var/rudder/share/$RUDDER_NODE_ID/rules.new)
 
-# Correct all file permissions
+# Correct all file permissions, except for Root
 
-/bin/chmod -R u-x,u+rwX,g-wx,g+rX,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}"
-r1=$?
-/bin/chgrp -R rudder-policy-reader "${RUDDER_POLICIES_DIRECTORY_NEW}"
-r2=$?
-/bin/chmod u-x,u+rwX,g-wx,g+rX,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
-r3=$?
-/bin/chgrp rudder-policy-reader "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
-r4=$?
+if [ "${RUDDER_NODE_ID}" != "root" ]; then
+  /bin/chmod -R u-x,u+rwX,g-wx,g+rX,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}"
+  r1=$?
+  /bin/chgrp -R rudder-policy-reader "${RUDDER_POLICIES_DIRECTORY_NEW}"
+  r2=$?
+  /bin/chmod u-x,u+rwX,g-wx,g+rX,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
+  r3=$?
+  /bin/chgrp rudder-policy-reader "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
+  r4=$?
 
-# Return aggregated error code
-[ $r1 -eq 0 ] && [ $r2 -eq 0 ] && [ $r3 -eq 0 ] && [ $r4 -eq 0 ]
+  # Return aggregated error code
+  [ $r1 -eq 0 ] && [ $r2 -eq 0 ] && [ $r3 -eq 0 ] && [ $r4 -eq 0 ]
+else
+  exit 0
+fi
