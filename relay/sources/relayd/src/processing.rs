@@ -45,28 +45,16 @@ use futures::{
     sync::mpsc,
     Stream,
 };
-use slog::{slog_debug, slog_warn};
-use slog_scope::{debug, warn};
+use std::fs::create_dir_all;
+use slog::{slog_debug, slog_error};
+use slog_scope::{debug, error};
 use std::{path::PathBuf, sync::Arc};
+use tokio::fs::remove_file;
+use tokio::fs::rename;
 use tokio::prelude::*;
 use tokio_threadpool::blocking;
 
 pub type ReceivedFile = PathBuf;
-
-pub type Outcome = Result<(), ()>;
-
-pub trait Output {
-    fn output(path: PathBuf, job_config: Arc<JobConfig>) -> Outcome;
-}
-
-pub trait Processor {
-    fn process(job_config: Arc<JobConfig>, stats: mpsc::Sender<Event>);
-    /*fn treat_reports(
-        job_config: Arc<JobConfig>,
-        rx: mpsc::Receiver<ReceivedFile>,
-        stats: mpsc::Sender<Event>,
-    ) -> impl Future<Item = (), Error = ()>;*/
-}
 
 pub fn serve_reports(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
     let (reporting_tx, reporting_rx) = mpsc::channel(1_024);
@@ -126,25 +114,65 @@ fn treat_reports(
         let stat_event = stats
             .clone()
             .send(Event::ReportReceived)
-            .map_err(|e| warn!("receive error: {}", e; "component" => LogComponent::Watcher))
+            .map_err(|e| error!("receive error: {}", e; "component" => LogComponent::Watcher))
             .map(|_| ());
         // FIXME: no need for a spawn
         tokio::spawn(lazy(|| stat_event));
 
         debug!("received: {:?}", file; "component" => LogComponent::Watcher);
 
-        let stats = stats.clone();
+        let stats_ok = stats.clone();
+        let stats_err = stats.clone();
+        let file_clone = file.clone();
+        let file_move = file.clone();
+        let job_config_clone = job_config.clone();
         let treat_file = match job_config.cfg.processing.reporting.output {
-            ReportingOutputSelect::Database => output_report_database(file, job_config.clone())
-                .and_then(|_| {
-                    stats
-                        .send(Event::ReportInserted)
-                        .wait()
-                        .map_err(
-                            |e| warn!("send error: {}", e; "component" => LogComponent::Parser),
+            ReportingOutputSelect::Database => output_report_database(
+                file_clone,
+                job_config.clone(),
+            )
+            .and_then(|_| {
+                stats_ok
+                    .send(Event::ReportInserted)
+                    .map_err(|e| error!("send error: {}", e; "component" => LogComponent::Parser))
+                    .then(|_| {
+                        remove_file(file.clone())
+                            .map(move |_| debug!("deleted: {:#?}", file))
+                            .map_err(
+                                |e| error!("error: {}", e; "component" => LogComponent::Parser),
+                            )
+                    })
+            })
+            .or_else(|_| {
+                stats_err
+                    .send(Event::ReportRefused)
+                    .map_err(|e| error!("send error: {}", e; "component" => LogComponent::Parser))
+                    .then(move |_| {
+                        rename(
+                            file_move.clone(),
+                            {
+                                let mut dest = job_config_clone.cfg.processing.reporting.directory.clone();
+                                dest.push("failed");
+                                // FIXME do at startup
+                                create_dir_all(&dest).expect("Could not create failed directory");
+                                dest.push(file_move.file_name().expect("not a file"));
+                                dest
+                            },
                         )
-                        .map(|_| ())
-                }),
+                        .map(move |_| {
+                            debug!(
+                                "moved: {:#?} to {:#?}",
+                                file_move, {
+                                let mut dest = job_config_clone.cfg.processing.reporting.directory.clone();
+                                dest.push("failed");
+                                dest.push(file_move.file_name().expect("not a file"));
+                                dest
+                            }
+                            )
+                        })
+                        .map_err(|e| error!("error: {}", e; "component" => LogComponent::Parser))
+                    })
+            }),
             ReportingOutputSelect::Upstream => unimplemented!(),
             // The job should not be started in this case
             ReportingOutputSelect::Disabled => unreachable!("Report server should be disabled"),
@@ -164,7 +192,7 @@ fn treat_inventories(
         let stat_event = stats
             .clone()
             .send(Event::InventoryReceived)
-            .map_err(|e| warn!("receive error: {}", e; "component" => LogComponent::Watcher))
+            .map_err(|e| error!("receive error: {}", e; "component" => LogComponent::Watcher))
             .map(|_| ());
         // FIXME: no need for a spawn
         tokio::spawn(lazy(|| stat_event));
@@ -191,14 +219,12 @@ fn output_report_database(
     // We can switch to it once we also have stream (i.e. not on disk) input.
     poll_fn(move || {
         blocking(|| {
-            let path = path.clone();
-            let job_config = job_config.clone();
-
-            let _ = output_report_database_inner(&path, &job_config)
-                .map_err(|e| warn!("output error: {}", e; "component" => LogComponent::Database));
+            output_report_database_inner(&path, &job_config)
+                .map_err(|e| error!("output error: {}", e; "component" => LogComponent::Database))
         })
         .map_err(|_| panic!("the thread pool shut down"))
     })
+    .flatten()
 }
 
 fn output_report_database_inner(
