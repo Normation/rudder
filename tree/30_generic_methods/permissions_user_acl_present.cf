@@ -1,0 +1,206 @@
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Permissions user POSIX acl entry present
+# @description Verify that an ace is present on a file or directory for a given user.
+# This method will make sure the given ace is present in the POSIX ACL of the target.
+#
+# @documentation The `permissions_*acl_*` manage the POSIX ACL on files and directories.
+# 
+# Please note that the mask will be automatically recalculated when editing ACLs.
+#
+# #### Parameters
+#
+# ##### Path
+#
+# Path can be globbing with the following format:
+#
+# * `*` matches any filename or directory at one level, e.g. `*.cf` will match all files in one directory that end in .cf but it won't search across directories. `*/*.cf` on the other hand will look two levels deep.
+# * `?` matches a single letter
+# * `[a-z]` matches any letter from a to z
+# * `{x,y,anything}` will match x or y or anything.
+#
+# ##### Recursive
+# 
+# Can be:
+# 
+# * `true` to apply the given aces to folder and sub-folders and files.
+# * or `false` to apply to the strict match of `Path`
+#
+# If left blank, recursivity will automatically be set to `false`
+#
+# ##### User
+#
+# `Username` to enforce the ace, being the Linux account name.
+# This method can only handle one username.
+#
+# ##### ACE
+#
+# The operator can be:
+# * `+` to add the given ACE to the current ones.
+# * `-` to remove the given ACE to the current ones.
+# * `=` to force the given ACE to the current ones.
+# * `empty` if no operator is specified, it will be interpreted as `=`.
+#
+# ACE must respect the classic:
+# 
+# * `^[+-=]?(?=.*[rwx])r?w?x?$`
+#
+# #### Example
+# 
+# Given a file with the following getfacl output:
+#
+# ~~~~
+# root@server# getfacl /tmp/myTestFile 
+# getfacl: Removing leading '/' from absolute path names
+# # file: tmp/myTestFile
+# # owner: root
+# # group: root
+# user::rwx
+# user:bob:rwx
+# group::r--
+# mask::rwx
+# other::---
+#
+# ~~~~
+# 
+# Applying this method with the following parameters:
+# 
+# * `path`: /tmp/myTestFile
+# * `recursive`: false
+# * `user`: bob
+# * `ace`: -rw
+#
+# Will transform the previous ACLs in:
+#
+# ~~~~
+# root@server# getfacl /tmp/myTestFile 
+# getfacl: Removing leading '/' from absolute path names
+# # file: tmp/myTestFile
+# # owner: root
+# # group: root
+# user::rwx
+# user:bob:--x
+# group::r--
+# mask::r-x
+# other::---
+#
+# ~~~~
+#
+#
+# @parameter path       Path of the file or directory.
+# @parameter recursive  Recursive Should ACLs cleanup be recursive, "true" or "false" (defaults to "false")
+# @parameter user       Username of the Linux account.
+# @parameter ace        ACE to enforce for the given user.
+# 
+# @parameter_constraint recursive "select" : [ "", "true", "false" ]
+# @parameter_constraint recursive "allow_empty_string" : true
+#
+# @parameter_constraint ace       "regex" : "^[+-=]?(?=.*[rwx])r?w?x?$"
+#
+# @class_prefix permissions_user_acl_present
+# @class_parameter path
+
+bundle agent permissions_user_acl_present(path, recursive, user, ace)
+{
+  vars:
+      "old_class_prefix"    string => canonify("permissions_user_acl_present_${path}");
+      "args"                 slist => { "${path}", "${recursive}", "${user}", "${ace}" }; 
+      "report_param"        string => join("_", args);
+      "full_class_prefix"   string => canonify("permissions_user_acl_present_${report_param}");
+      "class_prefix"        string => string_head("${full_class_prefix}", "1000");
+
+      "user_ace"            string => regex_replace("user:${user}:${ace}", " ", "", "g");
+
+      "file_list"                               slist  => findfiles("${path}");
+      "file_list_length"                        int    => length("file_list");
+      "file_array[${file_list}]"                string => "${file_list}";
+      "canonified_file_array[${file_list}]"     string => canonify("${file_array[${file_list}]}");
+
+      "full_inner_class_prefix[${file_list}]"   string => canonify("permissions_user_acl_present_${canonified_file_array[${file_list}]}_${report_param}");
+      "inner_class_prefix[${file_list}]"        string => string_head("${full_inner_class_prefix[${file_list}]}", "1000");
+
+      "applied_aces" slist => { "${user_ace}" };
+
+    pass2::
+      "repaired[${file_list}]" string => "repaired: ${file_list}",
+        ifvarclass => "${inner_class_prefix[${file_list}]}_repaired";
+      "error[${file_list}]"    string => "error: ${file_list}",
+        ifvarclass => "${inner_class_prefix[${file_list}]}_error";
+      "success[${file_list}]"  string => "success: ${file_list}",
+        ifvarclass => "${inner_class_prefix[${file_list}]}_kept";
+
+      "repaired_list" slist  => getvalues("repaired");
+      "error_list"    slist  => getvalues("error");
+      "success_list"  slist  => getvalues("success");
+
+      "report_list"   slist  => { "@{error_list}", "@{repaired_list}", "@{success_list}" };
+      "report_string" string => join("$(const.endl)", report_list),
+        policy => "ifdefined";
+
+
+  defaults:
+      "recursive" string => "false", if_match_regex => "";
+
+  classes:
+      "is_recursive"                expression => strcmp("true", "${recursive}");
+      "files_found"                 expression => isgreaterthan("${file_list_length}", "0");
+      "path_exists_${canonified_file_array[${file_list}]}"    expression => fileexists("${file_list}");
+      "isdir_${canonified_file_array[${file_list}]}" expression => isdir("${file_list}");
+      "isrecursive_${canonified_file_array[${file_list}]}" expression => "isdir_${canonified_file_array[${file_list}]}.is_recursive";
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+    pass2::
+      "${file_array[${file_list}]}"
+        depth_search => include_base,
+        acl => add_posix_acl(@{applied_aces}),
+        classes => classes_generic("${inner_class_prefix[${file_list}]}"),
+        ifvarclass => "path_exists_${canonified_file_array[${file_list}]}.isrecursive_${canonified_file_array[${file_list}]}";
+
+      "${file_array[${file_list}]}"
+        acl => add_posix_acl(@{applied_aces}),
+        classes => classes_generic("${inner_class_prefix[${file_list}]}"),
+        ifvarclass => "path_exists_${canonified_file_array[${file_list}]}.!isrecursive_${canonified_file_array[${file_list}]}";
+
+  methods:
+    !files_found::
+      "No_file_found" usebundle =>  _classes_failure("${class_prefix}");
+      "No_file_found" usebundle =>  _classes_failure("${old_class_prefix}");
+      "report" usebundle => _log_v3("No files could be found matching ${path}, set POSIX acl ${user_ace}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass2.files_found::
+      "failure_${file_list}" usebundle => _classes_failure("${inner_class_prefix[${file_list}]}"),
+        ifvarclass => "!path_exists_${canonified_file_array[${file_list}]}";
+
+      "sanitize single reports" usebundle => _classes_sanitize("${inner_class_prefix[${file_list}]}");
+
+    pass3.files_found::
+      "merge reports"    usebundle => _classes_combine_two("${class_prefix}", "${inner_class_prefix[${file_list}]}", "${class_prefix}");
+      "sanitize reports" usebundle => _classes_sanitize("${class_prefix}");
+      "set old classes"  usebundle => _classes_copy("${class_prefix}", "${old_class_prefix}");
+
+    is_recursive.pass3.files_found::
+      "report" usebundle => _log_v3("${report_string} ${const.endl}Set POSIX acl ${user_ace} recursively on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    !is_recursive.pass3.files_found::
+      "report" usebundle => _log_v3("${report_string} ${const.endl}Set POSIX acl ${user_ace} on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
