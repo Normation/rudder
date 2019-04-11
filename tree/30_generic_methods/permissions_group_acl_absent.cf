@@ -1,0 +1,218 @@
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Permissions group POSIX acl entry absent
+# @description Verify that an ace is absent on a file or directory for a given group.
+# This method will make sure that no ace is present in the POSIX ACL of the target.
+#
+# @documentation The `permissions_*acl_*` manage the POSIX ACL on files and directories.
+# 
+# Please note that the mask will be automatically recalculated when editing ACLs.
+#
+# #### Parameters
+#
+# ##### Path
+#
+# Path can be a regex with the following format:
+#
+# * `*` matches any filename or directory at one level, e.g. `*.cf` will match all files in one directory that end in .cf but it won't search across directories. `*/*.cf` on the other hand will look two levels deep.
+# * `?` matches a single letter
+# * `[a-z]` matches any letter from a to z
+# * `{x,y,anything}` will match x or y or anything.
+#
+# ##### Recursive
+# 
+# Can be:
+# 
+# * `true` to apply the given aces to folder and sub-folders and files.
+# * or `false` to apply to the strict match of `Path`
+#
+# If left blank, recursivity will automatically be set to `false`
+#
+# ##### User
+#
+# `Username` to enforce the ace absence, being the Linux account name.
+# This method can only handle one groupname.
+#
+# #### Example
+# 
+# Given a file with the following getfacl output:
+#
+# ~~~~
+# root@server# getfacl /tmp/myTestFile 
+# getfacl: Removing leading '/' from absolute path names
+# # file: tmp/myTestFile
+# # owner: root
+# # group: root
+# user::rwx
+# group::r--
+# group:bob:rwx
+# mask::rwx
+# other::---
+#
+# ~~~~
+# 
+# Applying this method with the following parameters:
+# 
+# * `path`: /tmp/myTestFile
+# * `recursive`: false
+# * `group`: bob
+#
+# Will transform the previous ACLs in:
+#
+# ~~~~
+# root@server# getfacl /tmp/myTestFile 
+# getfacl: Removing leading '/' from absolute path names
+# # file: tmp/myTestFile
+# # owner: root
+# # group: root
+# user::rwx
+# group::r--
+# mask::r--
+# other::---
+#
+# ~~~~
+#
+# @parameter path       Path of the file or directory
+# @parameter recursive  Recursive Should ACLs cleanup be recursive, "true" or "false" (defaults to "false")
+# @parameter group       Username of the Linux account.
+# 
+# @parameter_constraint recursive "select" : [ "", "true", "false" ]
+# @parameter_constraint recursive "allow_empty_string" : true
+#
+# @class_prefix permissions_group_acl_absent
+# @class_parameter path
+
+bundle agent permissions_group_acl_absent(path, recursive, group)
+{
+  vars:
+      "old_class_prefix"                        string => canonify("permissions_group_acl_absent_${path}");
+      "args"                                    slist  => { "${path}", "${recursive}", "${group}" }; 
+      "report_param"                            string => join("_", args);
+      "full_class_prefix"                       string => canonify("permissions_group_acl_absent_${report_param}");
+      "class_prefix"                            string => string_head("${full_class_prefix}", "1000");
+
+      "group_trimmed"                            string => regex_replace("${group}", " ", "", "g");
+      "group_ace"                                string => regex_replace("group:${group}", " ", "", "g");
+
+      "file_list"                               slist  => findfiles("${path}");
+      "file_list_length"                        int    => length("file_list");
+      "max_range"                               string => execresult("/usr/bin/expr ${file_list_length} - 1", "useshell");
+
+    pass1.!max_range_is_null::
+      "indices"                                 slist  => expandrange("[0-${max_range}]", 1);
+    pass1.max_range_is_null::
+      "indices"                                 slist  => { "0" };
+    pass1::
+      "file[${indices}]"                        string => nth("file_list", "${indices}");
+      "canonified_file[${indices}]"             string => canonify("${file[${indices}]}");
+
+    pass2::
+      "repaired[${indices}]"                    string => "repaired: ${file[${indices}]}",
+        ifvarclass => "inner_class_${indices}_repaired";
+
+      "error[${indices}]"                       string => "error: ${file[${indices}]}",
+        ifvarclass => "inner_class_${indices}_error";
+
+      "success[${indices}]"                     string => "success: ${file[${indices}]}",
+        ifvarclass => "inner_class_${indices}_kept";
+
+      "repaired_list"                           slist  => getvalues("repaired");
+      "error_list"                              slist  => getvalues("error");
+      "success_list"                            slist  => getvalues("success");
+
+      "report_list"                             slist  => { "@{error_list}", "@{repaired_list}", "@{success_list}" };
+      "report_string"                           string => join("$(const.endl)", report_list),
+        policy => "ifdefined";
+
+
+  defaults:
+      "recursive" string => "false", if_match_regex => "";
+
+  classes:
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      "max_range_is_null" expression => strcmp("${max_range}", "0");
+
+      "is_recursive"                expression => strcmp("true", "${recursive}");
+
+      "files_found"                 expression => isgreaterthan("${file_list_length}", "0");
+      "path_exists_${canonified_file[${indices}]}"    expression => fileexists("${file_list}");
+
+    pass2.files_found.!is_recursive::
+      # Do not forget the ":"
+      "need_change_${canonified_file[${indices}]}" expression => returnszero("${paths.getfacl} -c ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${group_ace}:\" #Initial Check", "useshell"),
+        ifvarclass => "path_exists_${canonified_file[${indices}]}";
+
+    pass2.files_found.is_recursive::
+      # Do not forget the ":"
+      "need_change_${canonified_file[${indices}]}" expression => returnszero("${paths.getfacl} -Rc ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${group_ace}:\" #Initial Check", "useshell"),
+        ifvarclass => "path_exists_${canonified_file[${indices}]}";
+
+    pass2.files_found.!(global_dry_run|dry_run).!is_recursive::
+      "remove_acl_${canonified_file[${indices}]}"  expression => returnszero("${paths.setfacl} -x g:${group} ${file[${indices}]}", "useshell"),
+        ifvarclass => "path_exists_${canonified_file[${indices}]}.need_change_${canonified_file[${indices}]}";
+
+      "change_verified_${canonified_file[${indices}]}"    not => returnszero("${paths.getfacl} -c ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${group_ace}:\" #Post repaired Check", "useshell"),
+        ifvarclass => "path_exists_${canonified_file[${indices}]}.need_change_${canonified_file[${indices}]}";
+
+    pass2.files_found.!(global_dry_run|dry_run).is_recursive::
+      "remove_acl_${canonified_file[${indices}]}"  expression => returnszero("${paths.setfacl} -Rx g:${group} ${file[${indices}]}", "useshell"),
+        ifvarclass => "path_exists_${canonified_file[${indices}]}.need_change_${canonified_file[${indices}]}";
+
+      "change_verified_${canonified_file[${indices}]}"    not => returnszero("${paths.getfacl} -Rc ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${group_ace}:\" #Post repaired Check", "useshell"),
+        ifvarclass => "path_exists_${canonified_file[${indices}]}.need_change_${canonified_file[${indices}]}";
+
+    pass2.files_found::
+      "inner_class_${indices}_kept"     expression => "!need_change_${canonified_file[${indices}]}";
+      "inner_class_${indices}_repaired" expression => "need_change_${canonified_file[${indices}]}.change_verified_${canonified_file[${indices}]}";
+      "inner_class_${indices}_error"    expression => "!inner_class_${indices}_kept.!inner_class_${indices}_repaired";
+
+      "merging_failure"  expression => "inner_class_${indices}_error";
+      "merging_repaired" expression => "inner_class_${indices}_repaired";
+
+
+  methods:
+    pass3.!files_found::
+      "No_file_found" usebundle =>  _classes_failure("${class_prefix}");
+      "No_file_found" usebundle =>  _classes_failure("${old_class_prefix}");
+      "report"        usebundle => _log_v3("No files could be found matching ${path}, remove POSIX acl for group ${group}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass3.files_found::
+      "failure_${indices}"      usebundle => _classes_failure("inner_class_${indices}"),
+        ifvarclass => "!path_exists_${canonified_file[${indices}]}";
+
+    pass3.files_found.merging_failure::
+      "error"    usebundle => _classes_failure("${old_class_prefix}");
+      "error"    usebundle => _classes_failure("${class_prefix}");
+    pass3.files_found.!merging_failure.merging_repaired::
+      "repaired" usebundle => _classes_repaired("${old_class_prefix}");
+      "repaired" usebundle => _classes_repaired("${class_prefix}");
+    pass3.files_found.!merging_failure.!merging_repaired::
+      "success"  usebundle => _classes_success("${old_class_prefix}");
+      "success"  usebundle => _classes_success("${class_prefix}");
+
+    is_recursive.pass3.files_found::
+      "report" usebundle => _log_v3("${report_string} ${const.endl}Remove POSIX acl for group ${group} recursively on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    !is_recursive.pass3.files_found::
+      "report" usebundle => _log_v3("${report_string} ${const.endl}Remove POSIX acl for group ${group} on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
