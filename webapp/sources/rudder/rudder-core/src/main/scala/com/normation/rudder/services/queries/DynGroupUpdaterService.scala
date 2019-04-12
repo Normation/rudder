@@ -46,6 +46,8 @@ import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
 
+import com.normation.box._
+
 
 /**
  * A container for a dynamic group update.

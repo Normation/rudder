@@ -92,7 +92,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.PolicyMode
 
-import com.normation.zio._
+import com.normation.box._
 
 case class XmlUnserializerImpl (
     rule        : RuleUnserialisation

@@ -80,7 +80,7 @@ import sun.security.provider.PolicyFile
 import com.github.ghik.silencer.silent
 import com.normation.rudder.domain.logger.JsDirectiveParamLogger
 
-import com.normation.zio._
+import com.normation.box._
 
 sealed trait HashOsType
 

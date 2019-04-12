@@ -63,7 +63,8 @@ import com.normation.rudder.domain.policies.TagValue
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import scala.util.control.NonFatal
 import net.liftweb.common.Loggable
-import com.normation.ldap.sdk.LdapResult._
+
+import com.normation.box._
 
 /**
  * Correctly quote a token
@@ -108,7 +109,7 @@ object QSDirectiveBackend extends Loggable {
 
     if(query.objectClass.contains(QSDirective) && attributes.nonEmpty) {
       for {
-        directiveLib <- repo.getFullDirectiveLibrary
+        directiveLib <- repo.getFullDirectiveLibrary.toBox
       } yield {
         (for {
           (at, dir) <- directiveLib.allDirectives.values

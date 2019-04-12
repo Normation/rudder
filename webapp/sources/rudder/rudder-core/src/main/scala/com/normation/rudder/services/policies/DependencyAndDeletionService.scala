@@ -59,7 +59,7 @@ import com.normation.NamedZioLogger
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.normation.errors._
-import com.normation.zio._
+import com.normation.box._
 
 /**
  * A container for items which depend on directives

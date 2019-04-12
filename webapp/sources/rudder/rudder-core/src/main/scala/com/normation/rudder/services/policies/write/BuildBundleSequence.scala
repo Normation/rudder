@@ -57,6 +57,11 @@ import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.cfclerk.domain.RunHook
 import scala.collection.immutable.ListMap
 
+import com.normation.box._
+import cats._
+import cats.data._
+import cats.implicits._
+
 /**
  * This file groups together everything related to building the bundle sequence and
  * related system variables.
@@ -230,18 +235,19 @@ class BuildBundleSequence(
       (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
       bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentNodeProps, systemInputFiles, systemBundle, userInputFiles, userBundle, runHooks) ?~!
                                     s"Error for node '${agentNodeProps.nodeId.value}' bundle creation"
-    } yield {
       // map to correct variables
-      List(
-          //this one is CFengine specific and kept for historical reason
-          SystemVariable(systemVariableSpecService.get("INPUTLIST") , CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path)))
-          //this one is CFengine specific and kept for historical reason
-        , SystemVariable(systemVariableSpecService.get("BUNDLELIST"), techniquesBundles.flatMap( _.bundleSequence.map(_.name)).mkString(", ", ", ", "") :: Nil)
-        , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , bundleVars.systemDirectivesInputFiles)
-        , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), bundleVars.systemDirectivesUsebundle)
-        , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")         , bundleVars.directivesInputFiles)
-        , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE")       , bundleVars.directivesUsebundle)
-      )
+      vars                       <- List(
+                                        //this one is CFengine specific and kept for historical reason
+                                        systemVariableSpecService.get("INPUTLIST"                         ).map(v => SystemVariable(v, CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path))))
+                                        //this one is CFengine specific and kept for historical reason
+                                      , systemVariableSpecService.get("BUNDLELIST"                        ).map(v => SystemVariable(v, techniquesBundles.flatMap( _.bundleSequence.map(_.name)).mkString(", ", ", ", "") :: Nil))
+                                      , systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS"   ).map(v => SystemVariable(v, bundleVars.systemDirectivesInputFiles))
+                                      , systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE" ).map(v => SystemVariable(v, bundleVars.systemDirectivesUsebundle))
+                                      , systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS"          ).map(v => SystemVariable(v, bundleVars.directivesInputFiles))
+                                      , systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"        ).map(v => SystemVariable(v, bundleVars.directivesUsebundle))
+                                    ).sequence.toBox
+    } yield {
+      vars
     }
   }
 
@@ -322,7 +328,7 @@ class BuildBundleSequence(
       }
       TechniqueBundles(name, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policyMode, policy.technique.useMethodReporting)
     }
-  }
+  }.toBox
 
   /*
    * Sort the techniques according to the order of the associated BundleOrder of Policy.

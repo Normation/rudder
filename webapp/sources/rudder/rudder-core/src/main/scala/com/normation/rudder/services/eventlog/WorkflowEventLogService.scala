@@ -43,7 +43,7 @@ import net.liftweb.common._
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
 
-import com.normation.zio._
+import com.normation.box._
 
 
 trait WorkflowEventLogService {

@@ -47,7 +47,7 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.inventory.domain.NodeId
 
-import com.normation.zio._
+import com.normation.box._
 
 trait RoParameterService {
 

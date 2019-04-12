@@ -44,7 +44,7 @@ import net.liftweb.common._
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.repository.EventLogRepository
 
-import com.normation.zio._
+import com.normation.box._
 
 class EventLogDeploymentService(
     val repository             : EventLogRepository

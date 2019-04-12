@@ -38,7 +38,6 @@
 package com.normation.rudder.services.policies
 
 import com.normation.cfclerk.domain.{Variable, VariableSpec}
-import com.normation.cfclerk.exceptions.VariableException
 import net.liftweb.common._
 
 
@@ -80,15 +79,9 @@ class VariableBuilderServiceImpl extends VariableBuilderService with Loggable {
         context.get(spec.name) match {
           case None => (spec.name, spec.toVariable())
           case Some(seqValues) =>
-            try {
-                val newVar = spec.toVariable(seqValues)
-                assert(seqValues.toSet == newVar.values.toSet)
-                (spec.name -> newVar)
-            } catch {
-              case ex: VariableException =>
-                logger.error("Error when trying to set values for variable '%s', use a default value for that variable. Erroneous values was: %s".format(spec.name, seqValues.mkString("[", " ; ", "]")))
-                (spec.name, spec.toVariable())
-            }
+              val newVar = spec.toVariable(seqValues)
+              assert(seqValues.toSet == newVar.values.toSet)
+              (spec.name -> newVar)
         }
       }.toMap
     )

@@ -54,6 +54,11 @@ import net.liftweb.common._
 import com.normation.ldap.sdk.LdapResult._
 import cats.implicits._
 
+import scalaz.zio._
+import scalaz.zio.syntax._
+
+import com.normation.box._
+
 /**
  * A service used to manage dynamic groups : find
  * dynGroup to which belongs nodes, updates them,
@@ -93,8 +98,8 @@ class DynGroupServiceImpl(
     for {
       con         <- ldap
       entries     <- con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs:_*)
-      dyngroupIds <- entries.toVector.traverse { entry =>
-                       (mapper.entry2NodeGroup(entry) ?~! s"Can not map entry to a node group: ${entry}").toLdapResult
+      dyngroupIds <- ZIO.foreach(entries) { entry =>
+                       mapper.entry2NodeGroup(entry).toIO.chainError(s"Can not map entry to a node group: ${entry}")
                      }
     } yield {
       // The idea is to sort group to update groups with a query based on other groups content (objecttype group) at the end so their base group is already updated

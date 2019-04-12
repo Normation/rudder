@@ -89,7 +89,7 @@ import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
 import com.normation.rudder.domain.reports.OverridenPolicy
 
-import com.normation.zio._
+import com.normation.box._
 
 /**
  * A deployment hook is a class that accept callbacks.

@@ -71,7 +71,7 @@ import com.normation.rudder.services.marshalling.TestFileFormat
 import net.liftweb.json.JsonAST.JString
 import org.joda.time.DateTime
 
-import com.normation.zio._
+import com.normation.box._
 
 /**
  * A service that helps mapping event log details to there structured data model.

@@ -47,7 +47,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.utils.Control.sequence
 
-import com.normation.zio._
+import com.normation.box._
 
 /*
  * This file contains all the logic that allows to build a List of policies, for a node,

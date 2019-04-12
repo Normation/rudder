@@ -45,7 +45,7 @@ import com.normation.rudder.domain.eventlog.ChangeRequestDiff
 import com.normation.eventlog._
 import com.normation.rudder.domain.eventlog.ChangeRequestLogsFilter
 
-import com.normation.zio._
+import com.normation.box._
 
 /**
  * Allow to query relevant information about change request

@@ -42,6 +42,7 @@ import com.normation.ldap.sdk._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
 import BuildFilter._
+import com.normation.errors.PureResult
 
 import scala.collection.SortedMap
 import com.normation.rudder.services.queries.SpecialFilter
@@ -101,7 +102,7 @@ final case object NodeDnJoin extends LDAPJoinElement(A_NODE_UUID) with HashcodeC
 //request for that object type.
 final case class LDAPObjectTypeFilter(value: Filter)
 
-class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, getGroups: () => Box[Seq[SubGroupChoice]]) {
+class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, getGroups: () => PureResult[Seq[SubGroupChoice]]) {
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
     //Criterion(A_MACHINE_UUID, StringComparator),
     //Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that

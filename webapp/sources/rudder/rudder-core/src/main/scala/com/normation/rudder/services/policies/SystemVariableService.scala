@@ -67,6 +67,8 @@ import com.normation.inventory.domain.ServerRole
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.Certificate
 import com.normation.zio._
+import com.normation.box._
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]]
@@ -90,6 +92,21 @@ final case class ResolvedRudderServerRole(
     val name       : String
   , val configValue: Option[Iterable[String]]
 )
+
+object SystemVariableService {
+
+  // we use that variable to take care of an unexpected missing variable.
+  implicit class MissingSystemVariableCatch(optVar: Either[MissingSystemVariable, SystemVariableSpec]) {
+    def toVariable(initValues: Seq[String] = Seq()): SystemVariable = (optVar match {
+      case Left(MissingSystemVariable(name)) =>
+        ApplicationLogger.error(s"System variable '${name}' is missing. This is most likely denote a desynchronisation between your system variable and " +
+                                s"your Rudder version. Please check that both are well synchronized. If it's the case, please report that problem.")
+        SystemVariableSpec(name, "THIS IS DEFAULT GENERATED VARIABLE SPEC. THE CORRECT ONE WAS NOT FOUND. PLEASE SEE YOUR RUDDER LOG.")
+
+      case Right(spec) => spec
+    }).toVariable(initValues)
+  }
+}
 
 class SystemVariableServiceImpl(
     systemVariableSpecService    : SystemVariableSpecService
@@ -120,6 +137,8 @@ class SystemVariableServiceImpl(
   , getSyslogProtocol               : () => Box[SyslogProtocol]
 ) extends SystemVariableService with Loggable {
 
+  import SystemVariableService._
+
   //get the Rudder reports DB (postgres) database name from URI
   val reportsDbName = {
     reportsDbUri.split("""/""").toSeq.lastOption.getOrElse(throw new IllegalArgumentException(
@@ -127,17 +146,6 @@ class SystemVariableServiceImpl(
     )
   }
 
-  // we use that variable to take care of an unexpected missing variable.
-  implicit class MissingSystemVariableCatch(optVar: Either[MissingSystemVariable, SystemVariableSpec]) {
-    def toVariable(initValues: Seq[String] = Seq()): SystemVariable = (optVar match {
-      case Left(MissingSystemVariable(name)) =>
-        logger.error(s"System variable '${name}' is missing. This is most likely denote a desynchronisation between your system variable and " +
-                     s"your Rudder version. Please check that both are well synchronized. If it's the case, please report that problem.")
-        SystemVariableSpec(name, "THIS IS DEFAULT GENERATED VARIABLE SPEC. THE CORRECT ONE WAS NOT FOUND. PLEASE SEE YOUR RUDDER LOG.")
-
-      case Right(spec) => spec
-    }).toVariable(initValues)
-  }
 
   val varToolsFolder                = systemVariableSpecService.get("TOOLS_FOLDER"                   ).toVariable(Seq(toolsFolder))
   val varCmdbEndpoint               = systemVariableSpecService.get("CMDBENDPOINT"                   ).toVariable(Seq(cmdbEndPoint))
@@ -336,9 +344,9 @@ class SystemVariableServiceImpl(
         // The heartbeat should be strictly shorter than the run execution, otherwise they may be skipped
         val heartbeat = runInterval.interval * heartBeatFrequency - 1
         val vars = {
-          systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(runInterval.interval.toString) ::
-          systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue(runInterval.splaytime.toString)  ::
-          systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(schedule) ::
+          systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable(Seq(runInterval.interval.toString)) ::
+          systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable(Seq(runInterval.splaytime.toString))  ::
+          systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable(Seq(schedule)) ::
           systemVariableSpecService.get("RUDDER_HEARTBEAT_INTERVAL").toVariable(Seq(heartbeat.toString)) ::
           systemVariableSpecService.get("RUDDER_REPORT_MODE").toVariable(Seq(globalComplianceMode.name)) ::
           Nil

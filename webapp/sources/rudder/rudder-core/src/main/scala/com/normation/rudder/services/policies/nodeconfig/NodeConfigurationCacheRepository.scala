@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
-import cats.implicits._
 import com.normation.inventory.domain.NodeId
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
@@ -46,16 +45,18 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_CONFIG
 import com.normation.rudder.domain.RudderLDAPConstants.OC_NODES_CONFIG
 import net.liftweb.common.Box
-import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Variable
-import com.normation.ldap.sdk.LdapResult._
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.NodeConfiguration
 
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.errors._
+import com.normation.box._
 
 case class PolicyHash(
     draftId   : PolicyId
@@ -71,7 +72,7 @@ case class PolicyHash(
  * Keep in mind that anything that is changing the related resources
  * of policies that are written for the node during policy generation
  * must be taken into account in the hash.
- * Typically, the technique non-template resources, like success CFEngine
+ * Typically, the technique non-template resources, like succeed CFEngine
  * file or other configuration files, must be looked for change
  * (for them, this is done with the technique "acceptation" (i.e commit)
  * date.
@@ -132,8 +133,8 @@ object NodeConfigurationHash {
      * be handle directly at the directive level) or a system variable
      * (which is already in nodeContext)
      *
-     * - all ${rudder.node} params (because can be used in success CFEngine)
-     * - node properties (because can be used in success CFEngine)
+     * - all ${rudder.node} params (because can be used in succeed CFEngine)
+     * - node properties (because can be used in succeed CFEngine)
      * - isPolicyServer (for nodes becoming relay)
      * - serverRoles (because not the same set of directives - but
      *   perhaps it is already handle in the directives)
@@ -334,15 +335,15 @@ class LdapNodeConfigurationHashRepository(
    * "best effort" way. Bad config are logged as error.
    * We fail if the entry is not of the expected type
    */
-  private[this] def fromLdap(entry: Option[LDAPEntry]): LdapResult[Set[NodeConfigurationHash]] = {
+  private[this] def fromLdap(entry: Option[LDAPEntry]): IOResult[Set[NodeConfigurationHash]] = {
     entry match {
-      case None    => Set.empty[NodeConfigurationHash].success
+      case None    => Set.empty[NodeConfigurationHash].succeed
       case Some(e) =>
         for {
           typeOk <- if(e.isA(OC_NODES_CONFIG)) {
-                      "ok".success
+                      UIO.unit
                     } else {
-                      s"Entry ${e.dn} is not a '${OC_NODES_CONFIG}', can not find node configuration caches. Entry details: ${e}".failure
+                      Unconsistancy(s"Entry ${e.dn} is not a '${OC_NODES_CONFIG}', can not find node configuration caches. Entry details: ${e}").fail
                     }
         } yield {
           e.valuesFor(A_NODE_CONFIG).flatMap { json =>
@@ -383,7 +384,7 @@ class LdapNodeConfigurationHashRepository(
    * Delete node config matching predicate.
    * Return the list of remaining ids.
    */
-  private[this] def deleteCacheMatching( shouldDeleteConfig: NodeConfigurationHash => Boolean): LdapResult[Set[NodeId]] = {
+  private[this] def deleteCacheMatching( shouldDeleteConfig: NodeConfigurationHash => Boolean): IOResult[Set[NodeId]] = {
      for {
        ldap         <- ldapCon
        currentEntry <- ldap.get(rudderDit.NODE_CONFIGS.dn)

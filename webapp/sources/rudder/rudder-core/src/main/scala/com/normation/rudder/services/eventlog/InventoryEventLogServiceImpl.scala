@@ -42,7 +42,7 @@ import com.normation.rudder.domain.eventlog.InventoryEventLog
 import com.normation.rudder.repository.EventLogRepository
 import net.liftweb.common._
 
-import com.normation.zio._
+import com.normation.box._
 
 class InventoryEventLogServiceImpl(
     repository : EventLogRepository

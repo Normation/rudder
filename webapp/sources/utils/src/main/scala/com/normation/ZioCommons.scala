@@ -25,19 +25,18 @@
 
 package com.normation
 
-import java.io.FileInputStream
 import java.net.URL
-import java.util
 
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.normation.zio.ZioRuntime
 import net.liftweb.common._
-import cats._
 import cats.data._
 import cats.implicits._
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
+
+import scala.util.control.NonFatal
 
 /**
  * This is our based error for Rudder. Any method that can
@@ -136,7 +135,7 @@ object errors {
    */
 
 
-  import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full}
+  import net.liftweb.common.{Box, Empty, Failure, Full}
 
   object BoxUtil {
 
@@ -168,103 +167,14 @@ object errors {
     )(res)
   }
 
-  implicit class BoxToIO[E <: RudderError, A](res: Box[A]) {
+  implicit class BoxToIO[E <: RudderError, A](res: => Box[A]) {
     import scalaz.zio.interop.catz._
-    def toIO: IOResult[A] = BoxUtil.fold[E, A, IOResult](
+    def toIO: IOResult[A] = IOResult.effect(res).flatMap(x => BoxUtil.fold[E, A, IOResult](
       err => err.fail
     , suc => suc.succeed
-    )(res)
+    )(x))
   }
 }
-
-object TestImplicits {
-  import scalaz.zio._
-  import scalaz.zio.syntax._
-
-  object module1 {
-    import com.normation.errors._
-    sealed trait M_1_Error extends RudderError
-    object M_1_Error {
-      final case class Some(msg: String) extends M_1_Error
-      final case class Chained[E <: RudderError](hint: String, cause: E) extends M_1_Error with BaseChainError[E]
-    }
-
-    object M_1_Result {
-    }
-
-    object service1 {
-      def doStuff(param: String): IO[RudderError, String] = param.succeed
-    }
-  }
-
-  object module2 {
-    import com.normation.errors._
-    sealed trait M_2_Error extends RudderError
-    object M_2_Error {
-      final case class Some(msg: String) extends M_2_Error
-      final case class Chained[E <: RudderError](hint: String, cause: E) extends M_2_Error with BaseChainError[E]
-    }
-    object M_2_Result {
-    }
-
-    final case class TestError(msg: String) extends RudderError
-
-    object service2 {
-      def doStuff(param: Int): IO[RudderError, Int] = TestError("ah ah ah I'm failing").fail
-    }
-  }
-
-  object testModule {
-    import module1._
-    import module2._
-
-    import com.normation.errors._
-    sealed trait M_3_Error extends RudderError
-    object M_3_Error {
-      final case class Some(msg: String) extends M_3_Error
-      final case class Chained[E <: RudderError](hint: String, cause: E) extends M_3_Error with BaseChainError[E]
-    }
-    object M_3_Result {
-      // implicits ?
-    }
-
-    import module1.M_1_Result._
-    import module2.M_2_Result._
-    import M_3_Result._
-
-    /*
-     * I would like all of that to be possible, with the minimum boilerplate,
-     * and the maximum homogeneity between modules
-     */
-    object service {
-
-      def trace(msg: => AnyRef): UIO[Unit] = ZIO.effect(println(msg)).run.void
-
-      def test0(a: String): IO[RudderError, String] = service1.doStuff(a)
-
-      def test1(a: Int): IO[RudderError, Int] = service2.doStuff(a)
-
-      def test2(a: String, b: Int): IO[RudderError, (String, Int)] = {
-        (for {
-          x <- service1.doStuff(a)
-          y <- service2.doStuff(b).chainError("Oups, I did it again")
-        } yield {
-          (x, y)
-        })
-      }
-
-      def prog = test2("plop", 42) catchAll( err => trace(err.fullMsg) *> ("success", 0).succeed)
-    }
-  }
-
-
-  import testModule.service.prog
-  def main(args: Array[String]): Unit = {
-    println(ZioRuntime.unsafeRun(prog))
-  }
-}
-
-
 
 object zio {
 
@@ -296,6 +206,15 @@ object zio {
     def runNow: A = ZioRuntime.runNow(io)
   }
 
+}
+
+/*
+ * Implicit classes to change IO and Either TOWARDS box
+ */
+object box {
+
+  import com.normation.zio.ZioRuntime
+
   /*
    * Opposite to "toIO"
    */
@@ -303,7 +222,7 @@ object zio {
     def toBox: Box[A] = try {
       Full(ZioRuntime.runNow(io))
     } catch {
-      case ex => new Failure(ex.getMessage, Full(ex), Empty)
+      case NonFatal(ex) => new Failure(ex.getMessage, Full(ex), Empty)
     }
   }
 
@@ -317,7 +236,6 @@ object zio {
       case Right(x)  => Full(x)
     }
   }
-
 }
 
 /*
@@ -340,6 +258,12 @@ trait ZioLogger {
   def info (msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.info (msg, t))
   def warn (msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.warn (msg, t))
   def error(msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.error(msg, t))
+
+  def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isTraceEnabled) action else () )
+  def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isDebugEnabled) action else () )
+  def ifInfoEnabled [T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isInfoEnabled ) action else () )
+  def ifWarnEnabled [T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isWarnEnabled ) action else () )
+  def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isErrorEnabled) action else () )
 
 }
 
@@ -386,80 +310,3 @@ object TestSream {
   }
 
 }
-
-object TestLog {
-
-  val log = NamedZioLogger("test-logger")
-
-  def main(args: Array[String]): Unit = {
-
-
-    def oups: IO[String, Int] = "oups error".fail
-
-    val prog = oups.catchAll(e => log.error("I got an error!") *> e.fail) *> UIO.succeed(42)
-
-    ZioRuntime.unsafeRun(prog)
-  }
-
-}
-
-
-//
-//object Test {
-//  import zio._
-//  import scalaz.zio._
-//  import scalaz.zio.syntax._
-//  import cats.implicits._
-//
-//  def main(args: Array[String]): Unit = {
-//
-//    val l = List("ok", "ok", "booo", "ok", "plop")
-//
-//    def f(s: String) = if(s == "ok") 1.succeed else s.fail
-//
-//    val res = IO.foreach(l) { s => f(s).either }
-//
-//    val res2 = for {
-//      ll <- res
-//    } yield {
-//      ll.traverse( _.toValidatedNel)
-//    }
-//
-//    println(ZioRuntime.unsafeRun(res))
-//    println(ZioRuntime.unsafeRun(res2))
-//    println(ZioRuntime.unsafeRun(l.accumulate(f)))
-//
-//  }
-//
-//}
-//
-//object Test2 {
-//  import zio._
-//  import scalaz.zio._
-//  import scalaz.zio.syntax._
-//  import cats.implicits._
-//
-//  def main(args: Array[String]): Unit = {
-//
-//    case class BusinessError(msg: String)
-//
-//    val prog1 = Task.effect {
-//      val a = "plop"
-//      val b = throw new RuntimeException("foo bar bar")
-//      val c = "replop"
-//      a + c
-//    } mapError(e => BusinessError(e.getMessage))
-//
-//    val prog2 = Task.effect {
-//      val a = "plop"
-//      val b = throw new Error("I'm an java.lang.Error!")
-//      val c = "replop"
-//      a + c
-//    } mapError(e => BusinessError(e.getMessage))
-//
-//    //println(ZioRuntime.unsafeRun(prog1))
-//    println(ZioRuntime.unsafeRun(prog2))
-//
-//  }
-//
-//}

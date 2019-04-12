@@ -11,7 +11,7 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRe
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 
-import com.normation.zio._
+import com.normation.box._
 
 trait ClearCacheService {
 

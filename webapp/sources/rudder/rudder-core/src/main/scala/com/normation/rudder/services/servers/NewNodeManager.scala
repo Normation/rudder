@@ -92,6 +92,9 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.box._
 
 /**
  * A newNodeManager hook is a class that accept callbacks.
@@ -235,8 +238,8 @@ trait ListNewNode extends NewNodeManager {
   def pendingNodesDit:InventoryDit
 
   override def listNewNodes : Box[Seq[Srv]] = {
-    ldap map { con =>
-      con.searchOne(pendingNodesDit.NODES.dn,ALL,Srv.ldapAttributes:_*).map { e =>
+    ldap flatMap  { con =>
+      con.searchOne(pendingNodesDit.NODES.dn,ALL,Srv.ldapAttributes:_*).map { seq => seq.flatMap(e =>
         serverSummaryService.makeSrv(e) match {
           case Full(x) => Some(x)
           case b:EmptyBox =>
@@ -244,9 +247,9 @@ trait ListNewNode extends NewNodeManager {
             NodeLogger.PendingNode.debug(error.messageChain)
             None
         }
-      }.flatten
+      )}
     }
-  }
+  }.toBox
 }
 
 trait UnitRefuseInventory {
@@ -329,7 +332,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
    * Retrieve the last inventory for the selected server
    */
   def retrieveLastVersions(nodeId : NodeId) : Option[DateTime] = {
-      historyLogRepository.versions(nodeId).flatMap(_.headOption)
+      historyLogRepository.versions(nodeId).toBox.flatMap(_.headOption)
   }
 
   /**
@@ -408,7 +411,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
                 , inventoryDetails = inventoryDetails
               )
 
-              eventLogRepository.saveEventLog(modId, entry) match {
+              eventLogRepository.saveEventLog(modId, entry).toBox match {
                 case Full(_) =>
                   NodeLogger.PendingNode.debug(s"Successfully refused node '${id.value}'")
                 case _ =>
@@ -491,8 +494,10 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
     //
     // start by retrieving all sms
     //
-    val sm = smRepo.get(id, PendingInventory) match {
-      case Full(x) => x
+    val sm = smRepo.get(id, PendingInventory).toBox match {
+      case Full(Some(x)) => x
+      case Full(None) =>
+        return Failure(s"Can not accept not found inventory with id: '${id.value}'")
       case eb: EmptyBox =>
         return eb ?~! "Can not accept not found inventory with id %s".format(id)
       }
@@ -566,7 +571,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
 
     // Get inventory from a nodeId
     def getInventory(nodeId: NodeId) = {
-      smRepo.get(nodeId, PendingInventory) match {
+      smRepo.get(nodeId, PendingInventory).toBox match {
       case Full(x) => Full(x)
       case eb: EmptyBox =>
         val msg = s"Can not accept not found inventory with id '${nodeId.value}'"
@@ -616,7 +621,10 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
      id =>
        for {
          // Get inventory og the node
-         inventory <- getInventory(id)
+         inventory <- getInventory(id).flatMap {
+                        case None    => Failure(s"Missing inventory for node with ID: '${id.value}'")
+                        case Some(i) => Full(i)
+                      }
          // Pre accept it
          preAccept <- passPreAccept(inventory)
          // Accept it
@@ -641,7 +649,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
                , inventoryDetails = inventoryDetails
              )
 
-             eventLogRepository.saveEventLog(modId, entry) match {
+             eventLogRepository.saveEventLog(modId, entry).toBox match {
                case Full(_) =>
                  NodeLogger.PendingNode.debug(s"Successfully accepted node '${id.value}'")
                case _ =>
@@ -710,14 +718,14 @@ class AcceptInventory(
   override val toInventoryStatus = AcceptedInventory
 
   def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
-    smRepo.move(sm.node.main.id, fromInventoryStatus, toInventoryStatus).map { _ => sm }
+    smRepo.move(sm.node.main.id, fromInventoryStatus, toInventoryStatus).toBox.map { _ => sm }
   }
 
   def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit  = {
     sms.foreach { sm =>
       //rollback from accepted
       (for {
-        result <- smRepo.move(sm.node.main.id, toInventoryStatus, fromInventoryStatus)
+        result <- smRepo.move(sm.node.main.id, toInventoryStatus, fromInventoryStatus).toBox
       } yield {
         result
       }) match {
@@ -730,7 +738,7 @@ class AcceptInventory(
   //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
     //refuse an inventory: delete it
-    smRepo.delete(srv.id, fromInventoryStatus).map( _ => srv)
+    smRepo.delete(srv.id, fromInventoryStatus).toBox.map( _ => srv)
   }
 
 }
@@ -785,17 +793,11 @@ class AcceptFullInventoryInNodeOu(
     val entry = ldapEntityMapper.nodeToEntry(node)
     for {
       con <- ldap
-      _   <- con.save(entry) ?~! "Error when trying to save node %s in process '%s'".format(entry.dn, this.name)
-      // check that the node was correctly created - sometime, we have silent error, see #14430
-      _   <- if(con.exists(entry.dn)) {
-               Full("ok")
-             } else {
-               Failure(s"Entry for node '${sm.node.main.hostname}' [${sm.node.main.id.value}] should have been created but does not exists. Please ask your operator to check application logs." )
-             }
+      res <- con.save(entry).chainError(s"Error when trying to save node '${entry.dn}' in process '${this.name}'")
     } yield {
       sm
     }
-  }
+  }.toBox
 
   /**
    * Just remove the node entry
@@ -808,7 +810,7 @@ class AcceptFullInventoryInNodeOu(
         result <- con.delete(dn)
       } yield {
         result
-      }) match {
+      }).toBox match {
         case e:EmptyBox => NodeLogger.PendingNode.error(rollbackErrorMsg(e, sm.node.main.id.value))
         case Full(f) => NodeLogger.PendingNode.debug("Succesfully rollbacked %s for process '%s'".format(sm.node.main.id, this.name))
       }
@@ -825,7 +827,7 @@ class AcceptFullInventoryInNodeOu(
     } yield {
       srv
     }
-  }
+  }.toBox
 
 }
 
@@ -836,31 +838,31 @@ class RefuseGroups(
 ) extends UnitRefuseInventory {
 
   //////////// refuse ////////////
-  override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
+  override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor): Box[Srv] = {
     //remove server id in all groups
     for {
-      groupIds <- roGroupRepo.findGroupWithAnyMember(Seq(srv.id))
-      modifiedGroups <- bestEffort(groupIds) { groupId =>
-        for {
-          (group, _) <- roGroupRepo.getNodeGroup(groupId)
-          modGroup = group.copy( serverList = group.serverList - srv.id)
-          msg = Some("Automatic update of groups due to refusal of node "+ srv.id.value)
-          saved <- {
-                     val res = if(modGroup.isSystem) {
-                       woGroupRepo.updateSystemGroup(modGroup, modId, actor, msg)
-                     } else {
-                       woGroupRepo.update(modGroup, modId, actor, msg)
-                     }
-                     res
-                   }
-        } yield {
-          saved
-        }
-      }
+      groupIds       <- roGroupRepo.findGroupWithAnyMember(Seq(srv.id))
+      modifiedGroups <- ZIO.foreach(groupIds) { groupId =>
+                          for {
+                            groupPair  <- roGroupRepo.getNodeGroup(groupId)
+                            modGroup   =  groupPair._1.copy( serverList = groupPair._1.serverList - srv.id)
+                            msg        =  Some("Automatic update of groups due to refusal of node "+ srv.id.value)
+                            saved      <- {
+                                            val res = if(modGroup.isSystem) {
+                                            woGroupRepo.updateSystemGroup(modGroup, modId, actor, msg)
+                                          } else {
+                                            woGroupRepo.update(modGroup, modId, actor, msg)
+                                          }
+                                            res
+                                          }
+                          } yield {
+                            saved
+                          }
+                        }
     } yield {
       srv
     }
-  }
+  }.toBox
 }
 
 /**
@@ -897,7 +899,7 @@ class AcceptHostnameAndIp(
       Failure("There is already a node with %s %s in database. You can not add it again.".format(name, duplicates.mkString("'", "' or '", "'")))
     }
 
-    val hostnameCriterion = hostnames.map { h =>
+    val hostnameCriterion = hostnames.toList.map { h =>
       CriterionLine(
           objectType = objectType
         , attribute  = hostnameCriteria
@@ -978,7 +980,7 @@ class HistorizeNodeStateOnChoice(
    * Add a node entry in ou=Nodes
    */
   def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
-    historyRepos.save(sm.node.main.id, sm).map( _ => sm)
+    historyRepos.save(sm.node.main.id, sm).toBox.map( _ => sm)
   }
 
   /**
@@ -992,7 +994,10 @@ class HistorizeNodeStateOnChoice(
     //refuse ou=nodes: delete it
     for {
       full <- repos.get(srv.id, inventoryStatus)
-      _    <- historyRepos.save(srv.id, full)
+      _    <- full match {
+                case None      => "ok".succeed
+                case Some(inv) => historyRepos.save(srv.id, inv)
+              }
     } yield srv
-  }
+  }.toBox
 }

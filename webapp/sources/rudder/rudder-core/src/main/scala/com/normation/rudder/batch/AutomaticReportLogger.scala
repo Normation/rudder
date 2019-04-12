@@ -53,7 +53,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.actor._
 import net.liftweb.common._
 import com.normation.rudder.domain.logger.ScheduledJobLogger
-import com.normation.zio._
+import com.normation.box._
 
 /**
  * This object will be used as message for the non compliant reports logger

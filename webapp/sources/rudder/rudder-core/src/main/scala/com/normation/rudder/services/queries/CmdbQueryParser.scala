@@ -43,8 +43,8 @@ import net.liftweb.json._
 import JsonParser.ParseException
 import CmdbQueryParser._
 import com.normation.utils.HashcodeCaching
-import com.normation.ldap.sdk.LdapResult._
 import cats.implicits._
+import com.normation.utils.Control.sequence
 
 /**
  * This trait is the general interface that
@@ -109,9 +109,9 @@ trait DefaultStringQueryParser extends StringQueryParser {
                                    case None    => Failure(s"The requested composition '${query.composition}' is not know")
                                  }
                }
-      lines <- query.criteria.traverse(parseLine)
+      lines <- sequence(query.criteria)(parseLine)
     } yield {
-      Query(query.returnType, comp , lines)
+      Query(query.returnType, comp , lines.toList)
     }
   }
 
@@ -229,7 +229,7 @@ trait JsonQueryLexer extends QueryLexer {
           composition <- parseComposition(q)
           criteria <- parseCriterionLine(q)
         } yield {
-          StringQuery(target,composition,criteria.toSeq)
+          StringQuery(target,composition,criteria.toList)
         }
       case x => Failure("Failed to parse the query, bad structure. Expected a JSON object, found: '%s'".format(x))
     }

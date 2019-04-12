@@ -45,6 +45,7 @@ import monix.execution.Scheduler.{ global => scheduler }
 import scala.concurrent.duration._
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 
+import com.normation.zio._
 
 /**
  * A naive scheduler which checks every N seconds if inventories are updated.
@@ -67,7 +68,7 @@ class CheckInventoryUpdate(
   }
 
   scheduler.scheduleWithFixedDelay(30.second , updateInterval) {
-    if(!nodeInfoCacheImpl.isUpToDate()) {
+    if(!nodeInfoCacheImpl.isUpToDate().runNow) {
       logger.info("Update in node inventories main information detected: triggering a policy generation")
       asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor, "Main inventory information of at least one node were updated")
     } else {

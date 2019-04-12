@@ -44,7 +44,7 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
 
 import org.eclipse.jgit.lib.PersonIdent
-import com.normation.zio._
+import com.normation.box._
 
 import net.liftweb.common._
 

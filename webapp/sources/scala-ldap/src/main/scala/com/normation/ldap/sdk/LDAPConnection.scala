@@ -44,7 +44,6 @@ import com.unboundid.ldif.LDIFChangeRecord
 import scalaz.zio.blocking.Blocking
 import scalaz.zio._
 import scalaz.zio.syntax._
-import com.normation.zio._
 
 import scala.collection.JavaConverters._
 import org.slf4j.LoggerFactory
@@ -82,11 +81,6 @@ object LdapResult{
   // same than above for a Rudder error from a string
   implicit class ToFailureMsg(e: String) {
     def fail = IO.fail(LdapResultRudderError.Consistancy(e))
-  }
-  // for compat
-  implicit class ToBox[T](res: LdapResult[T]) {
-    import net.liftweb.common._
-    def toBox: Box[T] = ZioRuntime.unsafeRun(res.fold(e => Failure(e.msg), s => Full(s)))
   }
 
   implicit class ValidatedToLdapError[T](res: ZIO[Any, NonEmptyList[LdapResultRudderError], List[T]]) {

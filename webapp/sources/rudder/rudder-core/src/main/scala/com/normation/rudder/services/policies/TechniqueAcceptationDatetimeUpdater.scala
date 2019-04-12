@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.policies
 
+import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services._
 import com.normation.eventlog.ModificationId
@@ -53,8 +54,11 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import net.liftweb.common.Box
-
-
+import com.normation.errors._
+import com.normation.box._
+import com.normation.zio._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * This handler is in charge to maintain a correct state
@@ -77,7 +81,9 @@ class TechniqueAcceptationUpdater(
   , rwActiveTechniqueRepo : WoDirectiveRepository
   , techniqueRepo         : TechniqueRepository
   , uuidGen               : StringUuidGenerator
-) extends TechniquesLibraryUpdateNotification with Loggable {
+) extends TechniquesLibraryUpdateNotification with NamedZioLogger {
+
+  override def loggerName: String = this.getClass.getName
 
   override def updatedTechniques(gitRev: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit] = {
 
@@ -115,101 +121,94 @@ class TechniqueAcceptationUpdater(
           val info = names.head
           val cat = ActiveTechniqueCategory(ActiveTechniqueCategoryId(uuidGen.newUuid), info.name, info.description, List(), List())
 
-          rwActiveTechniqueRepo.addActiveTechniqueCategory(cat, parentCategory._1, modId, actor, reason) match {
-            case eb: EmptyBox =>
-              val e = eb ?~! "Error when trying to create to hierarchy of categories into which the new technique should be added"
-              logger.error(e.messageChain)
-              e.rootExceptionCause.foreach { ex =>
-                logger.error("Root exception was:", ex)
-              }
+          rwActiveTechniqueRepo.addActiveTechniqueCategory(cat, parentCategory._1, modId, actor, reason).either.runNow match {
+            case Left(err) =>
+              val msg = s"Error when trying to create to hierarchy of categories into which the new technique should be added: ${err.fullMsg}"
+              logEffect.error(msg)
               //return parent category id as the place to put the technique
               parentCategory
-            case Full(_) => createCategories(tail, (cat.id, cat.name))
+
+            case Right(_) => createCategories(tail, (cat.id, cat.name))
           }
       }
     }
 
     val acceptationDatetime = DateTime.now()
 
-      for {
-        techLib          <- roActiveTechniqueRepo.getFullDirectiveLibrary
-        activeTechniques =  techLib.allActiveTechniques.map { case (_, at) => (at.techniqueName, at) }
-        accepted         <- Control.bestEffort(techniqueMods.toSeq) { case (name, mod) =>
-                              (mod, activeTechniques.get(name) ) match {
+    (for {
+      techLib          <- roActiveTechniqueRepo.getFullDirectiveLibrary
+      activeTechniques =  techLib.allActiveTechniques.map { case (_, at) => (at.techniqueName, at) }
+      accepted         <- ZIO.foreach(techniqueMods) { case (name, mod) =>
+                            (mod, activeTechniques.get(name) ) match {
 
-                                case (TechniqueDeleted(name, versions), None) =>
-                                  //nothing to do
-                                  Full({})
+                              case (TechniqueDeleted(name, versions), None) =>
+                                //nothing to do
+                                UIO.unit
 
-                                case (TechniqueDeleted(name, versions), Some(activeTechnique)) =>
-                                  //if an active technique still exists for that technique, disable it
-                                  rwActiveTechniqueRepo.changeStatus(activeTechnique.id, false, modId, actor, reason)
+                              case (TechniqueDeleted(name, versions), Some(activeTechnique)) =>
+                                //if an active technique still exists for that technique, disable it
+                                rwActiveTechniqueRepo.changeStatus(activeTechnique.id, false, modId, actor, reason)
 
-                                case (TechniqueUpdated(name, mods), Some(activeTechnique)) =>
-                                  logger.debug("Update acceptation datetime for: " + activeTechnique.techniqueName)
-                                  val versionsMap = mods.keySet.map( v => (v, acceptationDatetime)).toMap
-                                  rwActiveTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason) match {
-                                    case e: EmptyBox =>
-                                      e ?~! s"Error when saving Active Technique ${activeTechnique.id.value} for technque ${activeTechnique.techniqueName}"
-                                    case _ =>
-                                      Full({})
-                                  }
+                              case (TechniqueUpdated(name, mods), Some(activeTechnique)) =>
+                                val versionsMap = mods.keySet.map( v => (v, acceptationDatetime)).toMap
+                                logPure.debug("Update acceptation datetime for: " + activeTechnique.techniqueName) *>
+                                rwActiveTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason).chainError(
+                                    s"Error when saving Active Technique ${activeTechnique.id.value} for technque ${activeTechnique.techniqueName}"
+                                ).void
 
-                                case (TechniqueUpdated(name, mods), None) =>
+                              case (TechniqueUpdated(name, mods), None) =>
 
-                                  /*
-                                   * Here, we want to add an "auto-add active technique" feature.
-                                   * The addition is done as soon as something is added for the technique,
-                                   * meaning that:
-                                   * - we don't auto-add on only delete
-                                   * - we do auto-add on any version, even if some already exists, what could
-                                   *   mean that the user un-added the active technique a previous time. But
-                                   *   it also could mean that the auto-add feature was not here yet.
-                                   */
-                                  mods.find(x => x._2 == VersionAdded || x._2 == VersionUpdated ) match {
-                                    case None => //do nothing
-                                      Full({})
-                                    case Some((version, mod)) =>
+                                /*
+                                 * Here, we want to add an "auto-add active technique" feature.
+                                 * The addition is done as soon as something is added for the technique,
+                                 * meaning that:
+                                 * - we don't auto-add on only delete
+                                 * - we do auto-add on any version, even if some already exists, what could
+                                 *   mean that the user un-added the active technique a previous time. But
+                                 *   it also could mean that the auto-add feature was not here yet.
+                                 */
+                                mods.find(x => x._2 == VersionAdded || x._2 == VersionUpdated ) match {
+                                  case None => //do nothing
+                                    UIO.unit
 
-                                      //get the category for the technique
-                                      val techniquesInfo = techniqueRepo.getTechniquesInfo()
+                                  case Some((version, mod)) =>
 
-                                      techniquesInfo.techniques.get(name) match {
-                                        case None =>
-                                          //hum, something changed on the repos since the update. Strange.
-                                          //ignore ? => do nothing
-                                          Full({})
-                                        case Some(t) =>
-                                          //if the technique is system, we must not add it to UserTechniqueLib, the process
-                                          //must be handled by a dedicated action. Only update system techniques!
-                                          val isSystem = t.exists( _._2.isSystem == true) //isSystem should be consistant, but still
-                                          if(isSystem && mod == VersionAdded) {
-                                            logger.info(s"Not auto-adding system techniques '${name.value}' in user library. You will need to add it explicitly.")
-                                            Full({})
-                                          } else {
-                                            val referenceId = t.head._2.id
+                                    //get the category for the technique
+                                    val techniquesInfo = techniqueRepo.getTechniquesInfo()
 
-                                            val referenceCats = techniquesInfo.techniquesCategory(referenceId).getIdPathFromRoot.map( techniquesInfo.allCategories(_) )
+                                    techniquesInfo.techniques.get(name) match {
+                                      case None =>
+                                        //hum, something changed on the repos since the update. Strange.
+                                        //ignore ? => do nothing
+                                        UIO.unit
+                                      case Some(t) =>
+                                        //if the technique is system, we must not add it to UserTechniqueLib, the process
+                                        //must be handled by a dedicated action. Only update system techniques!
+                                        val isSystem = t.exists( _._2.isSystem == true) //isSystem should be consistant, but still
+                                        if(isSystem && mod == VersionAdded) {
+                                          logPure.info(s"Not auto-adding system techniques '${name.value}' in user library. You will need to add it explicitly.") *>
+                                          UIO.unit
+                                        } else {
+                                          val referenceId = t.head._2.id
 
-                                            //now, for each category in reference library, look if it exists in target library, and recurse on children
-                                            //tail of cats, because if root, we want an empty list to return immediatly in findCategory
-                                            val parentCat = findCategory(referenceCats.tail.map(x => CategoryInfo(x.name, x.description)), techLib)
+                                          val referenceCats = techniquesInfo.techniquesCategory(referenceId).getIdPathFromRoot.map( techniquesInfo.allCategories(_) )
 
-                                            logger.info(s"Automatically adding technique '${name}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library")
-                                            rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason) match {
-                                              case eb: EmptyBox =>
-                                                eb ?~! s"Error when automatically activating technique '${name}'"
-                                              case Full(_) => //ok, nothing to do
-                                                Full({})
-                                            }
-                                          }
-                                      }
+                                          //now, for each category in reference library, look if it exists in target library, and recurse on children
+                                          //tail of cats, because if root, we want an empty list to return immediatly in findCategory
+                                          val parentCat = findCategory(referenceCats.tail.map(x => CategoryInfo(x.name, x.description)), techLib)
 
-                                  }
-                              }
+                                          logPure.info(s"Automatically adding technique '${name}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library") *>
+                                          rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason).chainError(
+                                              s"Error when automatically activating technique '${name}'"
+                                          ).void
+                                        }
+                                    }
+
+                                }
                             }
+                          }
       } yield {
         {}
-      }
+      }).toBox
   }
 }

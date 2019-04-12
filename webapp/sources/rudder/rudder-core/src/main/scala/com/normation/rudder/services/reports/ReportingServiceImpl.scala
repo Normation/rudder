@@ -58,6 +58,8 @@ import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.domain.nodes.NodeState
 
+import com.normation.box._
+
 /**
  * Defaults non-cached version of the reporting service.
  * Just the composition of the two defaults implementation.
@@ -120,7 +122,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = {
 
     for {
-      systemDirectiveIds <- directivesRepo.getFullDirectiveLibrary().map( _.allDirectives.values.collect{ case(at, d) if(at.isSystem) => d.id }.toSet)
+      systemDirectiveIds <- directivesRepo.getFullDirectiveLibrary().map( _.allDirectives.values.collect{ case(at, d) if(at.isSystem) => d.id }.toSet).toBox
       nodeIds            <- nodeInfoService.getAll().map( _.keySet )
       reports            <- findRuleNodeStatusReports(nodeIds, Set())
     } yield {
