@@ -744,6 +744,45 @@ td.complianceTd, td.parametersTd {
   display:none;
 }
 
+.svg-loading{
+  height:25px;
+  width:25px;
+  padding: 0 !important;
+}
+
+.border-fail {
+  border-left-width: 5px;
+  border-left-style: solid;
+  border-left-color: #c9302c;
+  border-radius: 5px;
+}
+
+.border-success {
+  border-left-width: 5px;
+  border-left-style: solid;
+  border-left-color: #9bc832;
+  border-radius: 5px;
+}
+
+.btn-state {
+  width:128px;
+  height:40px;
+  margin-bottom: 10px;
+}
+
+.btn-trigger {
+  width:136px;
+  height:40px;
+}
+
+.fa-times-custom {
+  color: #c9302c;
+}
+
+.fa-check-custom {
+  color: #9bc832;
+}
+
 .svg-loader{
   height:40px;
   width:40px;

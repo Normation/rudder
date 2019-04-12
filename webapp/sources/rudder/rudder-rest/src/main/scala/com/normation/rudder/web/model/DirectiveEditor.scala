@@ -453,7 +453,7 @@ case class MultivaluedSectionField(
   private def content: NodeSeq = {
     <td colspan="3">
       <div class="directiveGroup">{
-        (allSections.zipWithIndex.map {
+        allSections.zipWithIndex.map {
           case (section, i) =>
             val sectionId = Helpers.nextFuncName
             val changeVisibility = section.visibilityCallBack(sectionId)
@@ -474,7 +474,7 @@ case class MultivaluedSectionField(
               }
               <hr class="spacer"/>
             </div> ++ Script(JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd)))
-        })
+        }
       }</div>
     </td> ++  Script(OnLoad(JsVar("""
           $("input").not("#treeSearch").keydown( function(event) {
