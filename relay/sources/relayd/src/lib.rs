@@ -63,14 +63,14 @@ use slog_atomic::{AtomicSwitch, AtomicSwitchCtrl};
 use slog_kvfilter::KVFilter;
 use slog_scope::{debug, error, info, GlobalLoggerGuard};
 use slog_term::{CompactFormat, TermDecorator};
-use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::process::exit;
 use std::string::ToString;
 use std::{
-    collections::HashMap,
+    collections::{HashSet, HashMap},
     path::Path,
     sync::{Arc, RwLock},
+    fs::create_dir_all,
 };
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 
@@ -236,12 +236,23 @@ pub struct JobConfig {
     pub cfg: Configuration,
     pub nodes: RwLock<node::List>,
     pub pool: Option<PgPool>,
-    //pub stats: mpsc::Sender<Event>,
 }
 
 impl JobConfig {
     pub fn new(configuration_file: &Path) -> Result<Arc<Self>, Error> {
         let cfg = Configuration::new(configuration_file)?;
+
+        // Create dirs
+        if cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
+            create_dir_all(cfg.processing.inventory.directory.join("incoming"))?;
+            create_dir_all(cfg.processing.inventory.directory.join("accepted-nodes-updates"))?;
+            create_dir_all(cfg.processing.inventory.directory.join("failed"))?;
+        }
+        if cfg.processing.reporting.output != ReportingOutputSelect::Disabled {
+            create_dir_all(cfg.processing.reporting.directory.join("incoming"))?;
+            create_dir_all(cfg.processing.reporting.directory.join("failed"))?;
+        }
+
         let pool = if cfg.processing.reporting.output == ReportingOutputSelect::Database {
             Some(pg_pool(&cfg.output.database)?)
         } else {
@@ -258,3 +269,4 @@ impl JobConfig {
         Ok(())
     }
 }
+

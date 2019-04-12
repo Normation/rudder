@@ -43,7 +43,6 @@ use inotify::{Inotify, WatchMask};
 use slog::{slog_debug, slog_info, slog_warn};
 use slog_scope::{debug, info, warn};
 use std::{
-    fs::create_dir_all,
     path::Path,
     sync::Arc,
     time::{Duration, Instant, SystemTime},
@@ -56,8 +55,6 @@ pub fn watch(
     tx: &mpsc::Sender<ReceivedFile>,
 ) {
     info!("Starting file watcher on {:#?}", &path; "component" => LogComponent::Watcher);
-    // Try to create target dir
-    create_dir_all(path).expect("Could not create watched directory");
     tokio::spawn(list_files(
         path.clone(),
         job_config.cfg.processing.reporting.catchup,
@@ -134,8 +131,7 @@ fn watch_files<P: AsRef<Path>>(
         .map(|entry| entry.expect("inotify entry has no name"))
         // inotify gives the filename, add the entire path
         .map(move |p| {
-            let mut full_path = path_prefix.clone();
-            full_path.push(p);
+            let full_path = path_prefix.join(p);
             debug!("inotify: {:?}", path.as_ref(); "component" => LogComponent::Watcher);
             full_path
         })

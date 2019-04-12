@@ -32,7 +32,6 @@ fn it_reads_and_inserts_a_runlog() {
     let file_broken = "target/tmp/test_simple/incoming/2018-02-24T15:55:01+00:00@root.log";
     let file_failed = "target/tmp/test_simple/failed/2018-02-24T15:55:01+00:00@root.log";
 
-
     copy(
         "tests/runlogs/normal_old.log",
         file_old,
@@ -49,7 +48,7 @@ fn it_reads_and_inserts_a_runlog() {
     thread::spawn(move || {
         init(&cli_cfg).unwrap();
     });
-    thread::sleep(time::Duration::from_millis(100));
+    thread::sleep(time::Duration::from_millis(200));
 
     let results = ruddersysevents
         .filter(component.eq("start"))
@@ -68,7 +67,7 @@ fn it_reads_and_inserts_a_runlog() {
         file_broken,
     )
     .unwrap();
-    thread::sleep(time::Duration::from_millis(100));
+    thread::sleep(time::Duration::from_millis(200));
 
     let results = ruddersysevents
         .filter(component.eq("start"))

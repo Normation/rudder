@@ -45,7 +45,6 @@ use futures::{
     sync::mpsc,
     Stream,
 };
-use std::fs::create_dir_all;
 use slog::{slog_debug, slog_error};
 use slog_scope::{debug, error};
 use std::{path::PathBuf, sync::Arc};
@@ -150,24 +149,13 @@ fn treat_reports(
                     .then(move |_| {
                         rename(
                             file_move.clone(),
-                            {
-                                let mut dest = job_config_clone.cfg.processing.reporting.directory.clone();
-                                dest.push("failed");
-                                // FIXME do at startup
-                                create_dir_all(&dest).expect("Could not create failed directory");
-                                dest.push(file_move.file_name().expect("not a file"));
-                                dest
-                            },
+                            job_config_clone.cfg.processing.reporting.directory.join("failed").join(file_move.file_name().expect("not a file"))
                         )
                         .map(move |_| {
                             debug!(
                                 "moved: {:#?} to {:#?}",
-                                file_move, {
-                                let mut dest = job_config_clone.cfg.processing.reporting.directory.clone();
-                                dest.push("failed");
-                                dest.push(file_move.file_name().expect("not a file"));
-                                dest
-                            }
+                                file_move,
+                                job_config_clone.cfg.processing.reporting.directory.join("failed").join(file_move.file_name().expect("not a file"))
                             )
                         })
                         .map_err(|e| error!("error: {}", e; "component" => LogComponent::Parser))
