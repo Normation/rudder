@@ -115,23 +115,31 @@ def get_path_for_technique(root_path, technique_metadata):
   """ Generate path where file about a technique needs to be created"""
   return os.path.join(root_path, technique_metadata['bundle_name'], technique_metadata['version'])
 
+def get_logger_call(message, class_prefix, class_parameter):
+  return '"dummy_report" usebundle => log_rudder("' + message + '", "' + class_parameter + '", "' + class_prefix +'", "' + class_prefix +'", @{args})'.replace("&", "\\&")
+
 
 def generate_rudder_reporting(technique):
   """Generate complementary reporting needed for Rudder in rudder_reporting.st file"""
   # Get all generic methods
   generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
 
+  args = ""
   bundle_param = ""
   if len(technique["parameter"]) > 0:
     bundle_param = "("+", ".join([ncf.canonify(param["name"]) for param in technique["parameter"] ])+")"
+    args = ", ".join('${'+[ncf.canonify(param["name"])+'}' for param in technique["parameter"] ])
+
+  bundle_name = technique['bundle_name']+'_rudder_reporting'
 
   content = []
   content.append('bundle agent '+ technique['bundle_name']+'_rudder_reporting'+ bundle_param)
   content.append('{')
   content.append('  vars:')
-  content.append('    "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";')
-  content.append('    "class_prefix"      string => canonify(join("_", "promisers"));')
-  content.append('    "args"               slist => { };')
+  content.append('    "args"               slist => { '+ args +' };')
+  content.append('    "report_param"      string => join("_", args);')
+  content.append('    "full_class_prefix" string => canonify("' + bundle_name + '_${report_param}");')
+  content.append('    "class_prefix"      string => string_head("${full_class_prefix}", "1000");')
   content.append('')
   content.append('  methods:')
 
@@ -146,7 +154,7 @@ def generate_rudder_reporting(technique):
 
     key_value = ncf.get_key_value(method_call, generic_method)
 
-    class_prefix = ncf.get_class_prefix(key_value, generic_method)
+    class_prefix = '${class_prefix}_'+ncf.get_class_prefix(key_value, generic_method)
     method_reporting = '"dummy_report_' + str(report_unique_id) + '" usebundle => ' + ncf.generate_reporting_context(generic_method, method_call) 
     report_unique_id += 1
     class_parameter  = ncf.generate_reporting_class_parameter(generic_method, method_call)
@@ -154,7 +162,7 @@ def generate_rudder_reporting(technique):
     if not "cfengine-community" in generic_method["agent_support"]:
 
       message = "'"+generic_method["name"]+"' method is not available on cfengine based agent, skip"
-      logger_call = ncf.get_logger_call(message, class_prefix, class_parameter)
+      logger_call = get_logger_call(message, class_prefix, class_parameter)
 
       content.append('    any::')
       content.append('    "dummy_report" usebundle => _classes_noop("'+class_prefix+'");')
@@ -167,7 +175,7 @@ def generate_rudder_reporting(technique):
       escaped_key_value = regex_quote.sub('\\"', key_value)
 
       message = generic_method['name'] + ' ' + escaped_key_value + ' if ' + method_call['class_context']
-      logger_rudder_call = ncf.get_logger_call(message, class_prefix, class_parameter)
+      logger_rudder_call = get_logger_call(message, class_prefix, class_parameter)
 
       # Always add an empty line for readability
       content.append('')

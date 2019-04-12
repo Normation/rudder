@@ -515,9 +515,6 @@ def get_class_prefix(key_value, generic_method):
   key_value_canonified = regex.sub(repl, key_value)
   return generic_method["class_prefix"]+"_"+key_value_canonified
 
-def get_logger_call(message, class_prefix, class_parameter):
-  return '"dummy_report" usebundle => log_rudder("' + message + '", "' + class_parameter + '", "' + class_prefix +'", "${class_prefix}", @{args})'.replace("&", "\\&")
-
 def canonify_class_context(class_context):
   """Transform a class context into a canonified one"""
   # We transform the following class context:
