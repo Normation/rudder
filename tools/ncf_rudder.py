@@ -128,7 +128,7 @@ def generate_rudder_reporting(technique):
   bundle_param = ""
   if len(technique["parameter"]) > 0:
     bundle_param = "("+", ".join([ncf.canonify(param["name"]) for param in technique["parameter"] ])+")"
-    args = ", ".join('${'+[ncf.canonify(param["name"])+'}' for param in technique["parameter"] ])
+    args = ", ".join('"${' +  ncf.canonify(param["name"]) + '}"' for param in technique["parameter"] )
 
   bundle_name = technique['bundle_name']+'_rudder_reporting'
 
